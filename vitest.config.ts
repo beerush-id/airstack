@@ -23,6 +23,11 @@ export default defineConfig({
       'irpclib/http',
       'irpclib/ws',
       'irpclib/broadcast',
+
+      'ui-kits/form',
+      'ui-kits/react-form',
+      'ui-kits/solid-form',
+      'ui-kits/aria',
     ],
     exclude: ['packages/react-classic'],
     reporters: ['default', 'html'],
@@ -44,6 +49,11 @@ export default defineConfig({
         'irpclib/http/src/**/*.{ts}',
         'irpclib/ws/src/**/*.{ts}',
         'irpclib/broadcast/src/**/*.{ts}',
+
+        'ui-kits/form/src/**/*.{ts}',
+        'ui-kits/react-form/src/**/*.{ts,tsx}',
+        'ui-kits/solid-form/src/**/*.{ts,tsx}',
+        'ui-kits/aria/src/**/*.{ts}',
       ],
       exclude: ['packages/vite-ssr/src/pages/plugin.ts'],
       reportsDirectory: 'docs/.vitepress/dist/coverage/details',

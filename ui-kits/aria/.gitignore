@@ -1,0 +1,22 @@
+node_modules
+
+# Output
+.output
+.vercel
+.netlify
+.wrangler
+dist
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.*
+!.env.example
+!.env.test
+
+# Editor
+.idea
+.vscode

@@ -1,0 +1,303 @@
+import {
+  type AnyType,
+  anchor,
+  createContext,
+  createObserver,
+  mutable,
+  onCleanup,
+  type StateObserver,
+} from '@airlib/core';
+import type {
+  AriaAttributes,
+  AriaOptions,
+  AriaProps,
+  BaseElement,
+  DetachFn,
+  NormalizedAttrs,
+  RefineFn,
+  TranslateFn,
+} from './types.js';
+import { applyAttributes, normalizeAttrs } from './utils/attributes.js';
+
+/**
+ * Ambient context scope for active Aria controllers.
+ * Enables nested overlays (Tooltips, Popovers) and child parts to self-discover
+ * their enclosing parent controller without prop-drilling or provider wrappers.
+ */
+export const ariaScope = createContext<Aria<BaseElement, AriaProps, AriaAttributes<BaseElement>>>();
+
+/**
+ * Base ARIA behavioral controller that encapsulates reactive state management,
+ * fine-grained DOM lifecycle binding, and attribute translation.
+ *
+ * @template E - Target Element type (HTML or SVG)
+ * @template T - Reactive state interface
+ * @template A - HTML / SVG / ARIA attributes interface matching E
+ */
+export class Aria<
+  E extends BaseElement = HTMLElement,
+  T extends AriaProps = AriaProps,
+  A extends AriaAttributes<E> = AriaAttributes<E>,
+  O extends AriaOptions = AriaOptions,
+> {
+  /**
+   * The underlying reactive props proxy managed by AirLib.
+   * Stores the component's interactive inputs and states (e.g. disabled, active, checked) for fine-grained reactivity.
+   */
+  public props: T;
+
+  /**
+   * The enclosing parent Aria controller discovered from ambient execution scope.
+   * Enables self-discovering overlays (Tooltips, Popovers) and compound parts.
+   */
+  public readonly scope?: Aria<BaseElement, AriaProps, AriaAttributes<BaseElement>>;
+
+  /**
+   * The compiled HTML and ARIA attribute dictionary ready for JSX spread and SSR rendering.
+   * Provides framework-translated attributes (e.g. className, onClick) for template binding.
+   */
+  public get attributes() {
+    return this.translated;
+  }
+
+  /**
+   * React RefObject getter to access the bound DOM element.
+   * Enables interoperability with React ref contracts.
+   */
+  public get current(): E | null {
+    return this.element;
+  }
+
+  /**
+   * React RefObject setter to attach or detach the DOM element.
+   * Synchronizes React ref updates directly with the controller's lifecycle ref.
+   */
+  public set current(element: E | null) {
+    this.ref(element);
+  }
+
+  /**
+   * Universal DOM ref callback for framework integration (SolidJS, Svelte, React, Native DOM).
+   * Attaches the DOM element, triggers attribute synchronization, and manages the bind lifecycle.
+   *
+   * @param element - The Element to bind, or null to detach
+   * @returns An optional detachment teardown callback
+   */
+  public ref = (element: E | null) => {
+    if (this.element === element) return;
+    if (this.element) {
+      this.detach?.();
+    }
+
+    this.element = element;
+    this.prevAttrs = undefined;
+    this.update();
+
+    if (element) {
+      this.detach = this.attach()!;
+    }
+
+    return () => this.detach?.();
+  };
+
+  /**
+   * Whether the controller is configured for a native HTML element for this role.
+   * When true, disables redundant ARIA attributes and keyboard polyfills.
+   */
+  public get isNative(): boolean {
+    return !!this.options.native;
+  }
+
+  /**
+   * Set of registered cleanup callbacks to execute upon controller destruction.
+   */
+  protected cleanups = new Set<() => void>();
+
+  /**
+   * The currently bound DOM element, or null if unmounted.
+   * Tracks the target DOM node for direct attribute diffing and lifecycle event binding.
+   */
+  protected element: E | null = null;
+
+  /**
+   * Normalized native HTML and ARIA attributes dictionary.
+   * Serves as the internal source of truth before framework translation and DOM diffing.
+   */
+  protected attrs: NormalizedAttrs<E> = {} as NormalizedAttrs<E>;
+
+  /**
+   * Cached framework-translated attributes dictionary ready for JSX spread.
+   * Pre-computed outside reactive observation to provide zero-cost reads during template rendering.
+   */
+  protected translated: Record<string, unknown> = {};
+
+  /**
+   * Set of registered attribute refiner callbacks.
+   * Allows external consumers to inject custom attributes, styles, and composed event handlers.
+   */
+  protected refiners = new Set<RefineFn<T, A>>();
+
+  /**
+   * Reactive state observer instance managed by AirLib.
+   * Automatically re-runs attribute computation whenever tracked reactive state properties mutate.
+   */
+  protected observer: StateObserver;
+
+  /**
+   * Snapshot of the previously applied normalized attributes.
+   * Used by DOM diffing to remove stale attributes and minimize DOM mutations.
+   */
+  protected prevAttrs?: NormalizedAttrs<E>;
+
+  /**
+   * Cleanup callback returned by the attach() lifecycle method.
+   * Unbinds DOM event listeners and tears down side effects when the element unmounts.
+   */
+  protected detach?: DetachFn;
+
+  /**
+   * Controller configuration options.
+   */
+  protected options: O;
+
+  /**
+   * Creates an Aria controller instance with an initial reactive state or external props.
+   *
+   * @param props - Initial state overrides or reactive props
+   * @param options - Configuration options or native HTML tag name
+   */
+  public constructor(props: Partial<T> = {}, options: O = {} as O) {
+    this.options = { ...options };
+    this.scope = ariaScope.get() as Aria<BaseElement, object, AriaAttributes<BaseElement>> | undefined;
+    ariaScope.set(this as unknown as Aria<BaseElement, object, AriaAttributes<BaseElement>>);
+
+    this.props = (anchor.has(props) ? props : mutable(props)) as T;
+    this.observer = createObserver(() => {
+      this.update();
+    });
+
+    onCleanup(() => {
+      this.destroy();
+    });
+  }
+
+  /**
+   * Batch updates the reactive state with a single atomic mutation notification.
+   *
+   * @param props - Partial props dictionary to merge into the reactive props
+   */
+  public assign(props: Partial<T>): void {
+    anchor.assign(this.props, props);
+  }
+
+  /**
+   * Merges custom user-defined attributes, CSS classes, or dynamic overrides into the attribute dictionary.
+   *
+   * @param refiner - Callback receiving the reactive state and returning attribute overrides
+   * @returns An unregister teardown callback to remove the refiner and purge stale attributes
+   */
+  public refine(refiner: RefineFn<T, A>): () => void {
+    this.refiners.add(refiner);
+    this.update(false, refiner);
+
+    return () => {
+      this.refiners.delete(refiner);
+      this.update();
+    };
+  }
+
+  /**
+   * Tears down the controller, executing cleanup functions, destroying observers, and unbinding DOM references.
+   */
+  public destroy(): void {
+    this.detach?.();
+    for (const cleanup of this.cleanups) {
+      cleanup();
+    }
+    this.cleanups.clear();
+    this.observer.destroy();
+    this.element = null;
+  }
+
+  /**
+   * Attribute keys managed exclusively by the controller that cannot be overridden by refiners.
+   */
+  protected omittedAttrs: string[] = [];
+
+  /**
+   * Computes the initial default ARIA and HTML attributes for this role.
+   *
+   * @returns The default attribute dictionary
+   */
+  protected createAttributes(): A {
+    return {} as A;
+  }
+
+  /**
+   * Binds DOM event listeners and accessibility behaviors when the element mounts.
+   *
+   * @returns An optional detachment callback to execute on unmount
+   */
+  protected attach(): DetachFn | void {}
+
+  /**
+   * Recomputes attributes inside the reactive observer and schedules DOM synchronization.
+   *
+   * @param reinit - Whether to reinitialize attributes from createAttributes
+   * @param refine - Optional specific refiner to run instead of iterating all refiners
+   */
+  protected update(reinit = true, refine?: RefineFn<T, A>): void {
+    this.observer.run(() => {
+      if (reinit) {
+        this.attrs = normalizeAttrs(this.createAttributes() as Record<string, unknown>);
+      }
+
+      if (refine) {
+        const overrides = refine(this.props, this.attrs as unknown as A);
+        if (overrides) normalizeAttrs(overrides as Record<string, unknown>, this.attrs, this.omittedAttrs);
+      } else {
+        for (const refiner of this.refiners) {
+          const overrides = refiner(this.props, this.attrs as unknown as A);
+          if (overrides) normalizeAttrs(overrides as Record<string, unknown>, this.attrs, this.omittedAttrs);
+        }
+      }
+    });
+
+    const publicAttrs: Record<string, unknown> = {};
+    for (const [key, val] of Object.entries(this.attrs)) {
+      if (!key.startsWith('on')) {
+        publicAttrs[key] = val;
+      }
+    }
+
+    this.translated = Aria.translator(publicAttrs as Record<string, AnyType>);
+    this.applyAttributes();
+  }
+
+  /**
+   * Synchronizes compiled attributes directly to the attached DOM element via attribute diffing.
+   */
+  protected applyAttributes(): void {
+    if (this.element) {
+      applyAttributes(this.element, this.attrs, this.prevAttrs);
+      this.prevAttrs = { ...this.attrs };
+    }
+  }
+
+  /**
+   * Active global attribute translator function.
+   * Transforms raw attributes into framework-specific conventions (e.g. React camelCase props).
+   */
+  static translator: TranslateFn = (input) => {
+    return input;
+  };
+
+  /**
+   * Registers a global attribute translation function to adapt attributes across frameworks.
+   *
+   * @param translator - The attribute translation callback
+   */
+  public static translate(translator: TranslateFn): void {
+    Aria.translator = translator;
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "type": "module",
+  "name": "@airlib/aria",
+  "version": "2.1.0",
+  "description": "Headless, reactive WAI-ARIA behavioral engine and DOM reference system built on AirLib.",
+  "keywords": [
+    "aria",
+    "accessibility",
+    "a11y",
+    "wai-aria",
+    "reactive",
+    "state",
+    "airlib",
+    "anchor",
+    "typescript"
+  ],
+  "author": "Nanang Mahdaen El Agung <mahdaen@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/beerush-id/airstack.git"
+  },
+  "bugs": {
+    "url": "https://github.com/beerush-id/airstack/issues"
+  },
+  "sideEffects": false,
+  "types": "./dist/index.d.ts",
+  "module": "./dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "directories": {
+    "dist": "dist"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "catalog:",
+    "@types/bun": "catalog:",
+    "jsdom": "catalog:",
+    "publint": "catalog:",
+    "rimraf": "catalog:",
+    "tsdown": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "@airlib/core": "workspace:*",
+    "typescript": "catalog:lib"
+  },
+  "scripts": {
+    "dev": "tsdown --watch ./src",
+    "clean": "rimraf dist",
+    "build": "bun run clean && tsdown && publint",
+    "prepublish": "bun run format && bun run build",
+    "format": "biome format --write",
+    "test:run": "rimraf coverage && vitest --run",
+    "test:preview": "rimraf coverage && vitest --run && vite preview --outDir coverage"
+  },
+  "license": "MIT"
+}
