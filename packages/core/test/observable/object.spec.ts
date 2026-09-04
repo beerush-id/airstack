@@ -178,21 +178,89 @@ describe('Anchor Core - Observable Object', () => {
       vi.useFakeTimers();
 
       const state = anchor({ a: 1 }, { observable: true });
-      const observer = createObserver(() => {});
+      const observer = createObserver(() => cycle());
+      const cycleTrack = vi.fn();
 
       // Access properties to track them
-      const valueA = observer.run(() => {
-        if (state.a === 1) {
-          state.a = 2;
-        }
+      const cycle = () => {
+        observer.run(() => {
+          cycleTrack();
 
-        return state.a;
-      });
+          if (state.a === 1) {
+            state.a = 2;
+          } else if (state.a === 2) {
+            state.a = 1;
+          }
+
+          return state.a;
+        });
+      };
+      cycle();
 
       vi.runAllTimers();
 
-      expect(valueA).toBe(2);
-      expect(state.a).toBe(2);
+      expect(cycleTrack).toHaveBeenCalledTimes(10);
+      expect(errorSpy).toHaveBeenCalled();
+
+      vi.useRealTimers();
+    });
+
+    it('should not treat correction as circular mutation in observation', () => {
+      vi.useFakeTimers();
+
+      const state = anchor({ a: 1 }, { observable: true });
+      const observer = createObserver(() => cycle());
+      const cycleTrack = vi.fn();
+
+      // Access properties to track them
+      const cycle = () => {
+        observer.run(() => {
+          cycleTrack();
+
+          if (state.a === 1) {
+            state.a = 2;
+          }
+
+          return state.a;
+        });
+      };
+      cycle();
+
+      vi.runAllTimers();
+
+      expect(cycleTrack).toHaveBeenCalledTimes(2);
+      expect(errorSpy).not.toHaveBeenCalled();
+
+      vi.useRealTimers();
+    });
+
+    it('should detect circular mutation across objects in observation', () => {
+      vi.useFakeTimers();
+
+      const left = anchor({ a: 1 }, { observable: true });
+      const right = anchor({ b: 1 }, { observable: true });
+      const observer = createObserver(() => cycle());
+      const cycleTrack = vi.fn();
+
+      // Each run shifts the mismatch to the other object, so neither ever settles.
+      const cycle = () => {
+        observer.run(() => {
+          cycleTrack();
+
+          if (left.a === right.b) {
+            left.a += 1;
+          } else {
+            right.b = left.a;
+          }
+
+          return left.a + right.b;
+        });
+      };
+      cycle();
+
+      vi.runAllTimers();
+
+      expect(cycleTrack).toHaveBeenCalledTimes(10);
       expect(errorSpy).toHaveBeenCalled();
 
       vi.useRealTimers();

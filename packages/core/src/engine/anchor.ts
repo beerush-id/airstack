@@ -111,6 +111,7 @@ function anchorFn<T extends Linkable, S extends LinkableSchema>(
     immutable: options?.immutable ?? ANCHOR_SETTINGS.immutable,
     observable: options?.observable ?? ANCHOR_SETTINGS.observable,
     safeParse: options?.safeParse ?? ANCHOR_SETTINGS.safeParse,
+    trapOwnKeys: options?.trapOwnKeys ?? ANCHOR_SETTINGS.trapOwnKeys,
   };
   const observers: StateObserverList = new Set();
   const subscribers: StateSubscriberList<T> = new Set();

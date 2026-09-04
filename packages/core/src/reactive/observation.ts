@@ -21,7 +21,7 @@ import type {
   StateTracker,
   StateUnsubscribe,
 } from '../types.js';
-import { isFunction, shortId } from '../utils/index.js';
+import { isFunction, microtask, shortId } from '../utils/index.js';
 
 /**
  * Creates a reactive effect that automatically tracks dependencies and re-runs when those dependencies change.
@@ -234,6 +234,7 @@ export function createObserver(
   let observedSize = 0;
   let isObserving = false;
   let isDestroyed = false;
+  let stackCycles = 0;
 
   const cleaners = new Set<() => void>();
   const resetters = new Set<() => void>();
@@ -331,8 +332,10 @@ export function createObserver(
     return keyTrackers.get(init);
   }) satisfies StateObserver['assign'];
 
+  const [unstack] = microtask(0);
   const propagate = (event: StateChange) => {
-    if (isObserving) {
+    if (isObserving) stackCycles += 1;
+    if (stackCycles >= 10) {
       const error = new Error('Circular mutation.');
       captureStack.violation.general(
         'Circular mutation detected:',
@@ -346,11 +349,13 @@ export function createObserver(
         propagate
       );
 
+      stackCycles = 0;
       return;
     }
 
     reset();
     onChange(event);
+    unstack(() => (stackCycles = 0));
   };
 
   if (!controlled) {

@@ -74,6 +74,7 @@ export type StateBaseOptions = {
   recursive?: Recursive;
   safeParse?: boolean;
   observable?: boolean;
+  trapOwnKeys?: boolean;
 };
 export type StateOptions<S extends LinkableSchema = LinkableSchema> = StateBaseOptions & {
   schema?: S;

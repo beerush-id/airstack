@@ -37,6 +37,7 @@ export const ANCHOR_SETTINGS = {
   globalScopeWarning: true,
   safeParse: false,
   reactive: typeof document !== 'undefined',
+  trapOwnKeys: true,
 } as AnchorSettings;
 
 export const POISONED_KEYS = new Set([
