@@ -1,4 +1,5 @@
-import { $symbol, createContext, uIndex } from '@airlib/core';
+import { $static, $symbol, createContext, uIndex } from '@airlib/core';
+import { roverCtx } from '../context.js';
 import { Aria } from '../core.js';
 import {
   SelectionAria,
@@ -186,8 +187,10 @@ export class TabsAria<
 
   public constructor(props: Partial<T> = {}) {
     super(props);
-    this.props.id = this.props.id ?? this.id;
-    this.props.orientation = this.props.orientation ?? TabsAria.config.orientation;
+    $static(() => {
+      this.props.id = this.props.id ?? this.id;
+      this.props.orientation = this.props.orientation ?? TabsAria.config.orientation;
+    });
     tabCtx.set(this as unknown as TabsAria);
     selectionGroup.set(this.props);
     this.update();
@@ -230,6 +233,8 @@ export class TablistAria<
   E extends BaseElement = HTMLElement,
   A extends TablistAttributes<E> = TablistAttributes<E>,
 > extends Aria<E, AriaProps, A> {
+  private parentRover = roverCtx.get();
+
   /**
    * Associated tabs selection group props.
    */
@@ -238,6 +243,7 @@ export class TablistAria<
   public constructor(group?: TabsProps) {
     super();
     this.group = group ?? (selectionGroup.get() as TabsProps | undefined);
+    roverCtx.set(this as unknown as Aria<BaseElement>);
     this.update();
   }
 
@@ -256,7 +262,7 @@ export class TablistAria<
       role: ROLE_TABLIST,
       'aria-orientation': this.orientation,
       onkeydown: (e: KeyboardEvent) => {
-        if (this.group?.disabled) return;
+        if (this.group?.disabled || this.parentRover) return;
 
         handleRovingKey(this.element, e, {
           selector: TAB_SELECTORS,

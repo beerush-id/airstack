@@ -1,4 +1,5 @@
-import { $symbol, createContext, uIndex } from '@airlib/core';
+import { $static, $symbol, createContext, uIndex } from '@airlib/core';
+import { roverCtx } from '../context.js';
 import { Aria } from '../core.js';
 import { selectionGroup } from '../selection.js';
 import type { AriaAttributes, AriaProps, BaseElement } from '../types.js';
@@ -66,10 +67,15 @@ export class RadioGroupAria<
   T extends RadioGroupProps = RadioGroupProps,
   A extends RadioGroupAttributes<E> = RadioGroupAttributes<E>,
 > extends Aria<E, T, A> {
+  private parentRover = roverCtx.get();
+
   public constructor(props: Partial<T> = {}) {
     super(props);
-    this.props.id = this.props.id ?? `radiogroup-${uIndex($symbol('radiogroup'), true)}`;
+    $static(() => {
+      this.props.id = this.props.id ?? `radiogroup-${uIndex($symbol('radiogroup'), true)}`;
+    });
     radioGroupCtx.set(this as unknown as RadioGroupAria);
+    roverCtx.set(this as unknown as Aria<BaseElement>);
     selectionGroup.set(this.props as Record<string, unknown>);
 
     this.omittedAttrs.push('role', 'aria-orientation', 'aria-disabled');
@@ -117,7 +123,7 @@ export class RadioGroupAria<
       'aria-orientation': orientation,
       'aria-disabled': disabled,
       onkeydown: (e: KeyboardEvent) => {
-        if (disabled) return;
+        if (disabled || this.parentRover) return;
 
         handleRovingKey(this.element, e, {
           selector: RADIO_SELECTORS,

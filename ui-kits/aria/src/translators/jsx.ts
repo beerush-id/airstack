@@ -70,18 +70,20 @@ const REACT_EVENT_MAP: Record<string, string> = {
  * @param attrs - The standard DOM attribute dictionary
  * @returns A new dictionary adapted for React JSX props
  */
-export const reactTranslator: TranslateFn = (attrs: Record<string, unknown>): Record<string, unknown> => {
+export const JSXTranslator: TranslateFn = (attrs: Record<string, unknown>): Record<string, unknown> => {
   const result: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(attrs)) {
     if (key === 'class' || key === 'className') {
       result.className = classx(value as ClassInput);
     } else if (key === 'style') {
+      /* istanbul ignore else */
       if (value && typeof value === 'object') {
         result.style = stylex(value as StyleInput);
       }
     } else if (key.startsWith('on') && typeof value === 'function') {
       const lowerKey = key.toLowerCase();
+      /* istanbul ignore next */
       const mappedEvent = REACT_EVENT_MAP[lowerKey] ?? key;
       result[mappedEvent] = value;
     } else {

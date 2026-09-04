@@ -19,6 +19,7 @@ import {
   TabsAria,
   type TabsProps,
 } from './composites/tabs.js';
+import { ToolbarAria, type ToolbarProps } from './composites/toolbar.js';
 import type { BaseElement } from './types.js';
 import { ButtonAria, type ButtonOptions, type ButtonProps } from './widgets/button.js';
 import { CheckboxAria, type CheckboxOptions, type CheckboxProps } from './widgets/checkbox.js';
@@ -30,9 +31,11 @@ export * from './composites/accordion.js';
 export * from './composites/listbox.js';
 export * from './composites/radiogroup.js';
 export * from './composites/tabs.js';
+export * from './composites/toolbar.js';
+export * from './context.js';
 export * from './core.js';
 export * from './selection.js';
-export * from './translators/react.js';
+export * from './translators/jsx.js';
 export * from './types.js';
 export * from './utils/attributes.js';
 export * from './utils/navigation.js';
@@ -106,6 +109,10 @@ export function aria<E extends BaseElement = HTMLElement>(
   role: 'accordion-panel',
   props?: Partial<AccordionPanelProps>
 ): AccordionPanelAria<E>;
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'toolbar',
+  props?: Partial<ToolbarProps>
+): ToolbarAria<E>;
 export function aria(role: string, init?: unknown, options?: unknown): unknown {
   switch (role) {
     case 'button':
@@ -137,6 +144,8 @@ export function aria(role: string, init?: unknown, options?: unknown): unknown {
       return new AccordionAria(init as never, options as never);
     case 'accordion-panel':
       return new AccordionPanelAria(init as never);
+    case 'toolbar':
+      return new ToolbarAria(init as never);
     default:
       throw new Error(`Unsupported aria role: ${role}`);
   }

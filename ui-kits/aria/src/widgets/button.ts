@@ -35,7 +35,12 @@ export interface ButtonProps extends AriaProps {
 /**
  * Behavioral configuration options for ButtonAria.
  */
-export interface ButtonOptions extends AriaOptions {}
+export interface ButtonOptions extends AriaOptions {
+  /**
+   * Whether the button can toggle between pressed and unpressed states.
+   */
+  toggle?: boolean;
+}
 
 /**
  * Compiled HTML and ARIA attributes for a button element.

@@ -1,4 +1,5 @@
-import { $symbol, type AnyType, createContext, uIndex } from '@airlib/core';
+import { $static, $symbol, type AnyType, createContext, uIndex } from '@airlib/core';
+import { roverCtx } from '../context.js';
 import { Aria } from '../core.js';
 import { selectionGroup } from '../selection.js';
 import type { AriaAttributes, AriaProps, BaseElement } from '../types.js';
@@ -77,10 +78,15 @@ export class ListboxAria<
   T extends ListboxProps = ListboxProps,
   A extends ListboxAttributes<E> = ListboxAttributes<E>,
 > extends Aria<E, T, A> {
+  private parentRover = roverCtx.get();
+
   public constructor(props: Partial<T> = {}) {
     super(props);
-    this.props.id = this.props.id ?? `listbox-${uIndex($symbol(ROLE_LISTBOX), true)}`;
+    $static(() => {
+      this.props.id = this.props.id ?? `listbox-${uIndex($symbol(ROLE_LISTBOX), true)}`;
+    });
     listboxCtx.set(this as unknown as ListboxAria);
+    roverCtx.set(this as unknown as Aria<BaseElement>);
     selectionGroup.set(this.props as Record<string, unknown>);
 
     this.omittedAttrs.push('role', 'aria-multiselectable', 'aria-orientation', 'aria-disabled');
@@ -136,7 +142,7 @@ export class ListboxAria<
       'aria-multiselectable': this.multiple ? 'true' : undefined,
       'aria-disabled': disabled ? 'true' : undefined,
       onkeydown: (e: KeyboardEvent) => {
-        if (disabled) return;
+        if (disabled || this.parentRover) return;
 
         handleRovingKey(this.element, e, {
           selector: OPTION_SELECTORS,
