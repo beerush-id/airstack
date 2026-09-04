@@ -1,8 +1,8 @@
 import {
   $do,
   $symbol,
-  anchor,
   type AnyType,
+  anchor,
   captureStack,
   createObserver,
   getContextStore,

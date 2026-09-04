@@ -41,7 +41,7 @@ export function createLifecycle(setupProps: Record<string, unknown>, name?: stri
   const cleanupHandlers = new Set<CleanupHandler>();
 
   const context = new RenderContext(name ?? 'Anonymous', getContextStore());
-  const propsRef = anchor({ ...setupProps }, { recursive: false });
+  const propsRef = anchor({ ...setupProps }, { recursive: false, trapOwnKeys: false });
 
   const stack = createStack();
   const props = proxyProps(propsRef);

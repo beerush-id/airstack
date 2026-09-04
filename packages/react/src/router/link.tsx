@@ -47,6 +47,9 @@ export const Link = setup<LinkProps<AnyRoute>>((props) => {
     const { href, params, query } = $props;
 
     const activeUrl = untrack(() => new URL(getCurrentUrl()));
+    if (!activeUrl.pathname.endsWith('/')) {
+      activeUrl.pathname = `${activeUrl.pathname}/`;
+    }
 
     let route: AnyRoute | undefined;
     let target: URL;
