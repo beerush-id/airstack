@@ -1,3 +1,4 @@
+export * from './animation.js';
 export * from './clipboard.js';
 export * from './cursor.js';
 export * from './drag.js';
