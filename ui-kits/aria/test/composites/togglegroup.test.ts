@@ -114,7 +114,9 @@ describe('ToggleGroup - Composite Specifications', () => {
           // Early returns when disabled
           const disabledGroup = aria('toggle-group', { disabled: true });
           const disabledEl = bind(document.createElement('div'), disabledGroup);
-          disabledEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
+          disabledEl.dispatchEvent(
+            new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true })
+          );
 
           // Early returns when parentRover is active
           roverCtx.set(group as unknown as Aria<BaseElement>);

@@ -1,6 +1,17 @@
 import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
-import { Aria, aria, type BaseElement, roverCtx, TabAria, TabButtonAria, TabPanelAria, type TabButtonProps, type TabPanelProps, type TabProps } from '../../src/index.js';
+import {
+  Aria,
+  aria,
+  type BaseElement,
+  roverCtx,
+  TabAria,
+  TabButtonAria,
+  TabPanelAria,
+  type TabButtonProps,
+  type TabPanelProps,
+  type TabProps,
+} from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 describe('Tabs - User Expectations & A11y Specifications', () => {
@@ -399,19 +410,25 @@ describe('Tabs - User Expectations & A11y Specifications', () => {
           const disabledTabs = aria('tab', { id: 'dt', value: 't1', disabled: true });
           const disabledList = disabledTabs.list();
           const disabledListEl = bind(document.createElement('div'), disabledList);
-          disabledListEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
+          disabledListEl.dispatchEvent(
+            new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true })
+          );
 
           // TabList with manual: false
           const autoTabs = aria('tab', { id: 'at', value: 't1', manual: false });
           const autoList = autoTabs.list();
           const autoListEl = bind(document.createElement('div'), autoList);
-          autoListEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
+          autoListEl.dispatchEvent(
+            new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true })
+          );
 
           // Parent rover ignores keydown
           roverCtx.set(standaloneList as unknown as Aria<BaseElement>);
           const childList = aria('tab-list');
           const childListEl = bind(document.createElement('div'), childList);
-          childListEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
+          childListEl.dispatchEvent(
+            new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true })
+          );
           roverCtx.set(undefined);
         });
       }));
