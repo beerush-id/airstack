@@ -1,6 +1,6 @@
-import { createLifecycle } from '@airlib/core';
+import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
-import { aria } from '../../src/index.js';
+import { aria, RadioAria, selectionGroup } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 describe('Radio - Coverage & Edge Cases', () => {
@@ -20,18 +20,19 @@ describe('Radio - Coverage & Edge Cases', () => {
         expect(radio.checked).toBe(false);
         radio.checked = true;
         expect(radio.checked).toBe(true);
+        // Radio is idempotent: once checked, it cannot be unchecked
         radio.checked = false;
-        expect(radio.checked).toBe(false);
+        expect(radio.checked).toBe(true);
 
         // disabled
         expect(radio.disabled).toBe(false);
-        radio.disabled = true;
+        radio.props.disabled = true;
         expect(radio.disabled).toBe(true);
 
         // name
-        expect(radio.name).toBeUndefined();
+        expect(radio.props.name).toBeUndefined();
         radio.props.name = 'group-name';
-        expect(radio.name).toBe('group-name');
+        expect(radio.props.name).toBe('group-name');
       });
     }));
 
@@ -79,6 +80,17 @@ describe('Radio - Coverage & Edge Cases', () => {
       tree.run(() => {
         const r = aria<HTMLDivElement>('radio', { checked: false }, { native: false });
         expect(r.attributes.tabindex).toBe(0);
+
+        const group = mutable({ value: 'opt-1' });
+        selectionGroup.set(group);
+        const inGroupChecked = aria<HTMLDivElement>('radio', { value: 'opt-1' }, { native: false });
+        expect(inGroupChecked.attributes.tabindex).toBe(0);
+
+        const inGroupUnchecked = aria<HTMLDivElement>('radio', { value: 'opt-2' }, { native: false });
+        expect(inGroupUnchecked.attributes.tabindex).toBe(-1);
+
+        const defaultRadio = new RadioAria();
+        expect(defaultRadio.checked).toBe(false);
       });
     }));
 

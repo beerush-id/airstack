@@ -1,4 +1,11 @@
-import type { AnyType, ClassInput, StyleInput } from '@airlib/core';
+import type { AnyType, ClassInput, Primitive, StyleInput } from '@airlib/core';
+
+export type { Primitive };
+
+/**
+ * Visual and keyboard navigation layout axis.
+ */
+export type Orientation = 'horizontal' | 'vertical';
 
 /**
  * Base reactive input properties for Aria controllers.
@@ -221,7 +228,7 @@ export interface AriaAttributes<E extends BaseElement = HTMLElement> extends Glo
   'aria-valuemin'?: number;
   'aria-valuemax'?: number;
   'aria-valuetext'?: string;
-  'aria-orientation'?: 'horizontal' | 'vertical';
+  'aria-orientation'?: Orientation;
   'aria-autocomplete'?: 'none' | 'inline' | 'list' | 'both';
   'aria-activedescendant'?: string;
   'aria-sort'?: 'none' | 'ascending' | 'descending' | 'other';

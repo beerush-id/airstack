@@ -1,6 +1,6 @@
 # ARIA Package Specification & WAI-ARIA Reference
 
-The `@beerush/aria` package is a headless, framework-agnostic accessibility controller foundation for UI components. It bridges reactive state machines with the standard W3C WAI-ARIA specification, compiling deterministic attribute snapshots for SSR/JSX rendering and managing DOM lifecycles.
+The `aria` package is a headless, framework-agnostic accessibility controller foundation for UI components. It bridges reactive state machines with the standard W3C WAI-ARIA specification, compiling deterministic attribute snapshots for SSR/JSX rendering and managing DOM lifecycles.
 
 ---
 
@@ -18,20 +18,57 @@ The core job of the `aria` package is to:
 
 ---
 
+## The Three Semantic Layers: HTML vs. WAI-ARIA vs. Aria Package
+
+Controllers strictly separate three distinct layers of semantic responsibility to avoid conflating native browser behavior, accessibility tree annotations, and reactive application state:
+
+| Layer | Responsibility & Boundary | Source of Truth | Key Characteristics |
+| :--- | :--- | :--- | :--- |
+| **HTML Semantic** | Native browser behavior, DOM element semantics, form participation (`FormData`), native focusability, built-in events, and native boolean/value attributes (`checked`, `disabled`, `open`, `multiple`, `type`, `name`, `value`). | WHATWG HTML Living Standard | Browser-executed, native validation, implicit roles, form submission. |
+| **WAI-ARIA Semantic** | Accessible metadata for assistive technologies: roles (`role="listbox"`), string states (`aria-selected="true"`, `aria-checked="mixed"`), and relationship linkages (`aria-controls`, `aria-activedescendant`). | W3C WAI-ARIA 1.2 / 1.3 | **Zero native behavior, zero state storage, zero form participation**. Purely an accessibility tree snapshot. |
+| **Aria Package Semantic** | Headless reactive controller and state machine (this package): orchestrates structural contracts (`group` with `multiple?: boolean`, `name`, `value`, `required`), ambient scope discovery (`this.scope`), attribute compilation, and DOM lifecycle/keyboard polyfills. | Aria Protocol | Framework-agnostic reactive proxy, bridges HTML and ARIA based on `isNative`. |
+
+---
+
 ## Architectural Contracts
+
+### Standards vs Locked Role Specs
+This document states illustrative standards: layering, vocabulary, and shared
+mechanics. Role specifications under [`specs/`](specs/) are locked contracts and
+may lock otherwise on any per-role decision (defaults, overloads, keyboard
+tables). Where this document shows sample code (ID generation, scope capture,
+roving queries), the sample is normative for the mechanism it demonstrates:
+`uIndex` namespacing, scope push/pop pairing, and disabled-aware queries.
 
 ### Public API Surface
 External consumers and template authors interact with:
-- **`.attributes`**: Normalized HTML and ARIA attribute dictionary for template spread (`role`, `tabindex`, `aria-*`, `class`, `style`). Excludes `on*` event handlers.
+- **`.attributes`**: Normalized HTML and ARIA attribute dictionary for template spread (`role`, `tabindex`, `aria-*`, `class`, `style`). Excludes `on*` event handlers. Emits **strictly accessibility metadata**; never emits HTML form attributes (`name`, `value`, `form`).
 - **`.current`**: React `RefObject` compatible getter/setter for DOM element access (`widget.current?.focus()`).
 - **`.ref`**: Universal callback ref for DOM attachment across React, Solid, Svelte, and vanilla DOM (`ref={widget.ref}`).
-- **`.props`**: Reactive inputs proxy for reading and mutating component properties.
+- **`.props`**: Reactive inputs proxy for reading and mutating component properties. Props is a transparent bridge: unowned consumer props pass through to the template or can be bound directly in JSX.
 - **`.scope`**: Enclosing parent `Aria` controller captured during construction via ambient scope chaining (`this.scope = ariaScope.get()`).
-- **State Projections**: First-class reactive getters/setters exposing computed role states for template conditionals, class toggles, and direct mutations (`widget.selected`, `widget.expanded`, `widget.checked`, `widget.disabled`, `widget.open`).
-- **`.isNative`**: Read-only flag indicating whether the controller is configured for a native HTML element (`!!this.options.native`), guaranteeing deterministic attribute compilation across SSR and client hydration.
+- **State Projections**: First-class reactive getters and setters for interactive states (`widget.selected`, `widget.expanded`, `widget.checked`, `widget.pressed`, `widget.open`). Only state has a setter to drive transitions; comparators (`widget.disabled`, `widget.isNative`) are read-only getters and never have a setter.
 - **`.assign(partial)`**: Batch updates reactive props atomically.
 - **`.refine(fn)`**: Injects custom attributes, styles, or composed event listeners; returns an unregister cleanup callback (`() => void`) to prevent memory leaks and zombie attributes.
-- **`.destroy()`**: Cleans up observers, unbinds DOM listeners, and releases element references.
+- **`.destroy()`**: Cleans up observers, runs registered refiner cleanups (`unrefine`), unbinds DOM listeners, and releases element references.
+
+### Base Types & Interfaces
+
+```ts
+/** Universal base inputs contract for Aria controllers (open dictionary) */
+export interface AriaProps {
+  [key: string]: any;
+}
+
+/** Universal static configuration options */
+export interface AriaOptions {
+  /** Whether bound to native HTML element (omits redundant roles and keyboard polyfills) */
+  native?: boolean;
+}
+
+/** Compiled attribute dictionary for template spreading */
+export type AriaAttributes = Record<string, any>;
+```
 
 ### DOM Event Attachment & Lifecycle
 Event listeners are bound directly to the mounted DOM element through the `applyAttributes` utility:
@@ -43,7 +80,7 @@ Event listeners are bound directly to the mounted DOM element through the `apply
 Specialized widget implementations (e.g. `ButtonAria`, `SliderAria`) extend base `Aria`:
 - **`protected options`**: Controller configuration options (`native` and subclass-specific options).
 - **`protected element`**: The bound DOM element reference for internal queries and DOM APIs.
-- **`protected omittedAttrs`**: Array of protected attribute keys shielded from external mutation or override by consumer `.refine()` calls.
+- **`protected omittedAttrs`**: Attribute keys shielded from external mutation or override by consumer `.refine()` calls (aria linkage ids and state attributes).
 - **`protected attrs`**: Normalized attribute dictionary containing internal role attributes and `on*` event handlers prior to public projection.
 - **`protected createAttributes()`**: Pure factory computing base HTML/ARIA attributes and event handlers for the role.
 - **`protected attach()`**: Lifecycle hook invoked when the DOM element mounts, returning a detachment cleanup function.
@@ -51,44 +88,128 @@ Specialized widget implementations (e.g. `ButtonAria`, `SliderAria`) extend base
 > [!IMPORTANT]
 > **Prohibit ECMAScript Hard Private Fields (`#field`)**: Never use `#field` syntax in controllers. Hard private fields are completely inaccessible to subclasses, break class inheritance, prevent method overrides, and cause runtime `TypeError` when accessed across reactive `Proxy` instances. Always use TypeScript soft access modifiers (`protected` / `private`) so subclasses can cleanly inherit and coordinate state.
 
+### The Architectural Boundary: Props vs. Options
+
+To maintain predictable separation between UI component authoring and internal engine lifecycles, controllers enforce a strict boundary between `props` and `options`:
+
+| Dimension | Component Props (`props`) | Controller Options (`options`) |
+| :--- | :--- | :--- |
+| **Concern** | **What** the component represents (semantic state, user inputs, ARIA attributes). | **How** the controller operates (engine adapter, DOM binding lifecycle). |
+| **Exposure** | Public JSX/template API (`<Tab orientation="vertical" manual value="x">`, `<Accordion multiple>`). Forwarded directly from consumer component wrappers without plucking. | Instantiation-time engine flags passed to `new Aria(props, options)` or `aria(role, props, options)`. Encapsulated within component wrappers; never exposed to template authors. |
+| **Mutability** | **Dynamic & Reactive**: Values change across component ticks (`value`, `disabled`, `required`, `orientation`, `multiple`, `manual`). Wrapped in a reactive proxy. | **Static & Immutable**: Engine configuration fixed at controller creation (`native?: boolean`). Never changes during the element lifecycle. |
+| **DOM Compilation** | Compiles directly into standard ARIA and interaction attributes (`aria-orientation`, `aria-required`, `aria-disabled`, `aria-selected`, `tabindex`). | Governs attribute omission, event listener attachment strategies, and whether to emit native HTML attributes vs. pure ARIA polyfills. |
+| **Examples** | `value`, `name`, `multiple`, `orientation`, `manual`, `required`, `disabled`, `selected`, `checked`, `pressed`, `min`, `max`, `step`. | `native?: boolean` (bind to `<button>`/`<input>` vs custom `<div>`), mid-layer inheritance flags set by the public class or parent controller, never JSX (e.g. `toggle?: boolean`, see Mid-Layer Architecture). |
+
+#### The Guiding Axioms:
+1. **The Direct Forwarding Rule**: If a value is passed by a template author in JSX/HTML (`<Widget foo="...">`), it **must** reside in `props`. Component wrappers must never be forced to deconstruct JSX props into separate `props` and `options`.
+2. **The Engine Isolation Rule**: If a setting determines how the controller attaches to the browser DOM (e.g. `native: true` using native `<button>` behavior vs `native: false` attaching Space/Enter key polyfills), it **must** reside in `options`.
+
+---
+
+### Authoring Vocabulary: Archetypes & Semantic Concerns
+
+`aria()` role strings are **Aria entity names**, not WAI-ARIA tokens; the compile step maps entity+part to WAI-ARIA roles.
+
+Authoring properties are structured around the **four behavioral archetypes** of composite and collection widgets:
+
+#### 1. Paired Structural Composites (`Tab`, `Accordion`)
+- **Primary Concern**: Deterministic cross-element coordinate linkage (`aria-controls` &harr; `aria-labelledby`) between trigger and content panel without holding object references.
+- **Container**: `id` (entity namespace, author-overridable, defaults generated) + `value` (active section state) + concern props (`orientation`, `manual`, `required`, `disabled`).
+- **Member**: `name` (identity key linking trigger to panel) + initial state hints (`selected`, `expanded`) + `disabled`.
+- **Coordinate Derivation**: Member DOM IDs and ARIA linkage derive deterministically via `f(parentId, name)`.
+
+#### 2. Value Choice Composites (`RadioGroup`, `Listbox`)
+- **Primary Concern**: Selection of a candidate value within an input collection (`group.value === member.value`).
+- **Container**: `value` (current selected value) + concern props (`orientation`, `manual`, `required`, `disabled`). Group `id` is optional and not required for coordination (no external panels).
+- **Member**: `value` (candidate value matching `group.value`) + `disabled`.
+- **Form Compatibility**: Member selection uses `value`. The HTML form field name (`name`) is preserved for native form binding: `<input {...radio.attributes} name={props.name} value={props.value} />`.
+
+#### 3. Coordinated Toggle Groups (`ToggleGroup`)
+- **Primary Concern**: Coordinated two-state button toggling (single or multiple).
+- **Container**: `value` (active item or array of active items) + concern props (`orientation`, `manual`, `required`, `disabled`). Group `id` is optional.
+- **Member**: `value` (active token) + `disabled`.
+
+#### 4. Stateless Focus Collections (`Toolbar`, `Menu`)
+- **Primary Concern**: Single-tab-stop roving focus management across independent actions.
+- **Container**: Focus-only traversal (`orientation`). Zero selection state; no group `value`, no group `id`.
+- **Controls**: Native action controls managing their own state (`pressed`, `checked`).
+
+#### The Form Boundary Invariant
+The `aria` package is **not a form serializer or submission engine**. The `.attributes` dictionary emits only accessibility metadata (`role`, `aria-*`, `tabindex`, `aria-disabled`). It never synthesizes or emits HTML form attributes (`name`, `value`, `form`). When an underlying element participates in native form submission, the template author binds standard HTML attributes directly in JSX.
+
+---
+
+### Entity Tree Architecture & Authoring Taxonomy (Authoring vs. WAI-ARIA Compilation)
+
+Component and controller naming is authored strictly around the **Entity Tree Structure**, not forced into a naive 1:1 parity with raw WAI-ARIA role strings or HTML tags.
+
+#### The Authoring Dichotomy
+Forcing a 1:1 relationship between authored roles and WAI-ARIA roles creates severe taxonomy breakdowns:
+- WAI-ARIA designates `role="tab"` for the individual clickable button and `role="tablist"` for the container.
+- If a framework forces the composite root to be pluralized as `Tabs` and the button as `Tab`, consumer code suffers from semantic collision, irregular JSX nesting, and ambiguous scoping.
+
+#### The Entity Tree Model
+In our architecture, the **Root Entity** is singular and identifies the conceptual domain component (`Tab`, `Accordion`, `Menu`, `Dialog`). All child members specialize as explicit sub-parts within that entity's tree:
+
+```
+- Tab (Root Orchestrator / Context Publisher)
+  - TabList (Tab.List) -> Focus manager container (compiles role="tablist")
+    - TabButton (Tab.Button) -> Interactive trigger (compiles role="tab")
+  - TabPanel (Tab.Panel) -> Content panel (compiles role="tabpanel")
+
+- Accordion (Root Orchestrator / Context Publisher)
+  - AccordionItem (Accordion.Item) -> Optional item boundary
+    - AccordionButton (Accordion.Button) -> Interactive header trigger (compiles role="button")
+    - AccordionPanel (Accordion.Panel) -> Collapsible content (compiles role="region")
+```
+
+#### Compilation Separation
+- **Authoring Surface**: Clean, intuitive entity trees using dot-notation (`<Tab>`, `<Tab.List>`, `<Tab.Button>`, `<Tab.Panel>`) or standalone parts (`Tab`, `TabList`, `TabButton`, `TabPanel`). Controller methods mirror this hierarchy (`tab.list()`, `tab.button()`, `tab.panel()`).
+- **WAI-ARIA Projection**: The controller compiler projects the entity tree down to standard WAI-ARIA attributes and DOM relationships:
+  - `Tab.List` &rarr; `<div role="tablist">`
+  - `Tab.Button` &rarr; `<button role="tab" aria-selected="..." aria-controls="...">`
+  - `Tab.Panel` &rarr; `<div role="tabpanel" aria-labelledby="...">`
+
+---
+
 ### Composite Widget Architecture & Contracts
 
-Every `Aria` controller instance governs exactly one DOM element. Composite WAI-ARIA widgets (Tabs, Menu, Combobox, RadioGroup, Accordion, Toolbar) are coordinated graphs of discrete `Aria` instances operating through self-discovery and shared reactive state:
+Every `Aria` controller instance governs exactly one DOM element. Composite WAI-ARIA widgets (Tab, Menu, Combobox, RadioGroup, Accordion, Toolbar) are coordinated graphs of discrete `Aria` instances operating through self-discovery and shared reactive state:
 
 ---
 
 #### 1. Logical Component Hierarchy vs Semantic DOM Hierarchy
 In WAI-ARIA, the logical component tree must not be conflated with the rendered DOM hierarchy:
-- **Logical Root Orchestrator (`Tabs`)**: Owns the single reactive state store (`value`, `orientation`, `manual`, `id`) and publishes ambient context (`tabsCtx.set(this)`). It renders as a pure fragment or un-roled structural wrapper (`<div class="tabs">`). It does **not** bind to `role="tablist"` directly, because WAI-ARIA strictly prohibits `tabpanel` elements from existing as DOM children inside a `tablist`.
+- **Logical Root Orchestrator (`Tab`)**: Owns the reactive state (`value`, `id`, `manual`, `orientation`) and publishes ambient context (`selectionGroup.set(this.props)` and `tabCtx.set(this)`). It renders as a pure fragment or un-roled structural wrapper (`<div class="tab">`). It does **not** bind to `role="tablist"` directly, because WAI-ARIA strictly prohibits `tabpanel` elements from existing as DOM children inside a `tablist`.
 - **Semantic DOM Elements**:
-  - **`tabs.list()` &rarr; `TabListAria`**: Binds to `<div role="tablist">`. Has **no independent state** of its own; it reads and mutates the parent's `this.tabs.state`. Manages roving tabindex keyboard navigation across child tabs.
-  - **`tabs.tab()` &rarr; `TabButtonAria`**: Binds to `<button role="tab">` inside `<div role="tablist">`.
-  - **`tabs.panel()` &rarr; `TabPanelAria`**: Binds to `<div role="tabpanel">` rendered as a sibling **outside** `<div role="tablist">`.
+  - **`tab.list()` &rarr; `TabListAria`**: Binds to `<div role="tablist">`. Has **no independent state** of its own; it reads and mutates `this.tab`. Manages roving tabindex keyboard navigation across child tabs.
+  - **`tab.button()` &rarr; `TabButtonAria`**: Binds to `<button role="tab">` inside `<div role="tablist">`.
+  - **`tab.panel()` &rarr; `TabPanelAria`**: Binds to `<div role="tabpanel">` rendered as a sibling **outside** `<div role="tablist">`.
 
 ```tsx
 // Logical Component Tree (Context Hierarchy)
-<Tabs value="profile">              {/* Logical Root: Owns state.value, publishes tabsCtx, NO ARIA role */}
-  <TabList>                         {/* DOM: <div role="tablist"> (TabListAria: No state, shares this.tabs.state) */}
-    <TabButton name="profile">      {/* Semantic identity: name="profile" (DOM: <button role="tab">) */}
-    <TabButton name="security">     {/* Semantic identity: name="security" (DOM: <button role="tab">) */}
-  </TabList>
-  <TabPanel name="profile">         {/* Paired by matching name="profile" (DOM: <div role="tabpanel">) */}
-  <TabPanel name="security">        {/* Paired by matching name="security" (DOM: <div role="tabpanel">) */}
-</Tabs>
+<Tab value="profile">              {/* Logical Root: Owns value, publishes tabCtx, NO ARIA role */}
+  <Tab.List>                       {/* DOM: <div role="tablist"> (TabListAria: Shares this.tab) */}
+    <Tab.Button name="profile">    {/* Semantic identity: name="profile" (DOM: <button role="tab">) */}
+    <Tab.Button name="security">   {/* Semantic identity: name="security" (DOM: <button role="tab">) */}
+  </Tab.List>
+  <Tab.Panel name="profile">       {/* Paired by matching name="profile" (DOM: <div role="tabpanel">) */}
+  <Tab.Panel name="security">      {/* Paired by matching name="security" (DOM: <div role="tabpanel">) */}
+</Tab>
 ```
 
 ```tsx
 // TabList.tsx (Child Component)
-const tabs = tabsCtx.get();
-const list = tabs.list(); // TabListAria shares tabs.state
+const tab = tabCtx.get();
+const list = tab.list(); // TabListAria shares tab instance
 
 // TabButton.tsx (Child Component)
-const tabs = tabsCtx.get();
-const button = tabs.tab({ name: 'profile' });
+const tab = tabCtx.get();
+const button = tab.button({ name: 'profile' });
 
 // TabPanel.tsx (Child Component)
-const tabs = tabsCtx.get();
-const panel = tabs.panel({ name: 'profile' });
+const tab = tabCtx.get();
+const panel = tab.panel({ name: 'profile' });
 ```
 
 This decouples the visual component tree from DOM hierarchy depth, allowing intermediate markup and layout styling without manual controller prop-drilling while enforcing strict WAI-ARIA DOM validity.
@@ -99,40 +220,40 @@ This decouples the visual component tree from DOM hierarchy depth, allowing inte
 Controllers generate stable, context-scoped identifiers using `uIndex(..., true)` with declared role symbol constants to guarantee SSR and client hydration parity:
 
 ```ts
-const ROLE_TABS = 'tabs';
-const ROLE_TABLIST = 'tablist';
 const ROLE_TAB = 'tab';
-const ROLE_TABPANEL = 'tabpanel';
+const ROLE_TABLIST = 'tab-list';
+const ROLE_TABBUTTON = 'tab-button';
+const ROLE_TABPANEL = 'tab-panel';
 
-const TABS_INDEX = $symbol(ROLE_TABS);
-const TABLIST_INDEX = $symbol(ROLE_TABLIST);
 const TAB_INDEX = $symbol(ROLE_TAB);
+const TABLIST_INDEX = $symbol(ROLE_TABLIST);
+const TABBUTTON_INDEX = $symbol(ROLE_TABBUTTON);
 const TABPANEL_INDEX = $symbol(ROLE_TABPANEL);
 
 // Parent Orchestrator
-public id = `${ROLE_TABS}-${uIndex(TABS_INDEX, true)}`;
+public id = `${ROLE_TAB}-${uIndex(TAB_INDEX, true)}`;
 
 // Child Parts
-public id = `${ROLE_TAB}-${uIndex(TAB_INDEX, true)}`;
+public id = `${ROLE_TABBUTTON}-${uIndex(TABBUTTON_INDEX, true)}`;
 ```
 
-During attribute generation (`createAttributes()`), child elements derive paired DOM identifiers dynamically from the parent's resolved namespace (`const parentId = this.tabs.state.id ?? this.tabs.id`) and the child's semantic key (`const key = this.key`):
+During attribute generation (`createAttributes()`), child elements derive paired DOM identifiers dynamically from the parent's resolved namespace (`const parentId = this.tab.id`) and the child's semantic name (`const name = this.props.name`):
 
 ```ts
 // Inside TabButton.createAttributes()
 return {
-  id: `${parentId}-${ROLE_TAB}-${key}`,
-  'aria-controls': `${parentId}-${ROLE_TABPANEL}-${key}`,
+  id: `${parentId}-tab-button-${key}`,
+  'aria-controls': `${parentId}-tab-panel-${key}`,
 };
 
 // Inside TabPanel.createAttributes()
 return {
-  id: `${parentId}-${ROLE_TABPANEL}-${key}`,
-  'aria-labelledby': `${parentId}-${ROLE_TAB}-${key}`,
+  id: `${parentId}-tab-panel-${key}`,
+  'aria-labelledby': `${parentId}-tab-button-${key}`,
 };
 ```
 
-Child controllers protect `'id'`, `'aria-controls'`, and `'aria-labelledby'` in their `this.omit` lists to preserve pair synchronization.
+Child controllers push `'id'`, `'aria-controls'`, and `'aria-labelledby'` into `omittedAttrs` to shield pair synchronization from consumer `.refine()` overrides.
 
 Pairing between elements is strictly addressable through deterministic state and key derivation, never through cross-instance references:
 - **Zero Cross-Instance References**: Triggers never reference panels (`this.panel` does not exist), and panels never reference triggers (`this.button` does not exist).
@@ -141,79 +262,79 @@ Pairing between elements is strictly addressable through deterministic state and
 
 ---
 
-#### 3. Semantic Naming: Identity (`name`) vs Active State (`value`)
-Controllers distinguish item identity from widget selection through explicit semantic naming:
-- **Container Coordinator (`value` or Dictionary)**: The root orchestrator's state coordinates selection across children (e.g. `<Tabs value="profile">`, `<Toolbar formatting={{ bold: true }}>`).
-- **Child Parts (`name`)**: Discrete interactive triggers, toggles, buttons, and panels declare `name` as their **semantic identity** (e.g. `<TabButton name="profile">`, `<Button name="bold">`).
-- **Key Resolution Precedence**: Child parts resolve their addressable `key` via:
-  ```ts
-  public get key(): string {
-    return this.props.name ?? this.props.value ?? this.props.id ?? this.id;
-  }
-  ```
-  `name` takes primary precedence as the semantic identifier. `value` and `id` are supported as secondary fallbacks for form-native elements (`<Radio value="...">`) and DOM compatibility.
+#### 3. Group Contracts & Structural Signatures
 
-##### Group Selection Models & Signals (Single vs. Multiple)
-The controller dynamically detects and switches between selection modes during both **state synchronization** and **activation (`select()`)** based on declared child props and the container's state shape:
+The contract defined by this package is strictly the **signature (structural protocol)**, not the value itself. DOM identifiers (`id`) and semantic identifiers (`name`) are always `string`. Selection values (`value`) must be `Primitive`: they compare with `===` and derive selection state. Richer domain objects remain in consumer application state.
 
-```mermaid
-graph TD
-    A["Is Button in a Group?"] -->|No| B["Standalone Toggle<br/>Toggles this.props.pressed"]
-    A -->|Yes| C{"Declared Props"}
+##### Ambient Publication Contract (Props vs. Instance)
+To facilitate decoupled child members across disparate component subtrees, composite groups manage context through a two-tier ambient publication contract:
 
-    C -->|"name + value"| D["Scoped Field: group.value[name]<br/>Array: toggle membership<br/>Scalar: set / unset value"]
-    C -->|"name only"| E["Property Toggle: group.value[name]<br/>Boolean: toggle flag"]
-    C -->|"value only"| F["Group Coordinator: group.value<br/>Array: toggle membership<br/>Scalar: set / unset value"]
-```
+1. **Mandatory Ambient Props (`selectionGroup`)**:
+   A group **must** publish its reactive props (`GroupProps`) into ambient context (`selectionGroup.set(this.props)`).
+   - Child members discover their enclosing group via this ambient props context (`this.group = selectionGroup.get()`).
+   - Members read and mutate the collective group state directly through `this.group` (`this.group.value`, `this.group.multiple`, `this.group.required`, `this.group.orientation`) without coupling to a specific parent controller class.
 
-1. **Named Field with Item Value (`name` + `value`)**:
-   - **Component Pattern**: `<Button name="formatting" value="bold">`
-   - **Target**: Operates on `group.value[this.name]` as a scoped field.
-   - **Multi-Select (Array)**: If `Array.isArray(group.value[this.name])`, checks `group.value[this.name].includes(this.value)`. Activating toggles array membership.
-   - **Single-Select (Scalar)**: If `group.value[this.name]` is scalar, checks `group.value[this.name] === this.value`. Activating assigns `group.value[this.name] = this.value` (or toggles to `undefined`).
+2. **Optional Controller Instance (`tabCtx`, `accordionCtx`, etc.)**:
+   When specialized composites require coordinated sub-controller spawning (e.g. `Tab` orchestrating `tab.list()`, `tab.button()`, `tab.panel()`), the group **optionally** publishes its own controller instance into a role-specific ambient context (`tabCtx.set(this)`).
 
-2. **Direct Property Toggle (`name` only)**:
-   - **Component Pattern**: `<Button name="bold">` (e.g. Rich Text Toolbar `<Toolbar value={{ bold: true }}>`)
-   - **Target**: Operates directly on the group value dictionary (`group.value[this.name]`).
-   - **Active Check**: `this.pressed = Boolean(group.value[this.name]);`
-   - **Activation**: Toggles the boolean flag: `group.value[this.name] = !group.value[this.name];`
-   - **Fine-Grained Advantage**: Mutating `group.value.bold` triggers *only* the observer of the button matching `name="bold"`. Sibling buttons (`italic`, `underline`) do not re-render.
-
-3. **Choice Item (`value` only)**:
-   - **Component Pattern**: `<Button value="left">` (e.g. Alignment Segmented Control, Filter Tabs)
-   - **Target**: Operates on the group's default coordinator state (`group.value`).
-   - **Single-Select**: If `group.value` is scalar, checks `group.value === this.value`. Activating assigns `group.value = this.value` (or toggles to `undefined` if deselectable).
-   - **Multi-Select Fallback**: If `Array.isArray(group.value)`, checks `group.value.includes(this.value)`. Activating toggles array membership.
-
-4. **Standalone Toggle Button (No Group)**:
-   - **Component Pattern**: `<Button pressed={false}>`
-   - **Target**: Local reactive props (`this.props.pressed`).
-   - **Activation**: `this.pressed = !this.pressed;`
-
-##### Self-Claiming Initial Selection ($static)
-To prevent children from rendering as unselected during the initial render or SSR pass when a **mutually-exclusive single-selection group** (`Tabs`, `RadioGroup`, `!this.isToggle`) has no initial value, the child **self-claims** selection synchronously on initialization inside `$static`:
+##### Group Archetypes on Public Props (`props`)
+Component props (`props`) represent the public-facing API exposed to template authors (`<Tab value="profile" orientation="vertical">`, `<Accordion multiple value={['a']}>`, `<RadioGroup value="dark">`). Grouping archetypes (`multiple?: boolean`) and interaction axis (`orientation?: 'horizontal' | 'vertical'`) reside directly on `props` to allow direct prop forwarding and dynamic attribute compilation (`aria-orientation`).
 
 ```ts
-if (this.group && !this.isToggle) {
-  $static(() => {
-    if (!('value' in this.group!) || this.props.selected) {
-      this.group!.value = this.key;
-    }
-  });
+export interface BaseGroupProps extends AriaProps {
+  /** Prevents user interaction across all member items */
+  disabled?: boolean;
+  /** Enforces a selection constraint requiring a non-empty value (`aria-required="true"`) */
+  required?: boolean;
+  /** Axis orientation for keyboard navigation and aria-orientation attribute */
+  orientation?: 'horizontal' | 'vertical';
+}
+
+/** Single selection archetype (default) */
+export interface GroupProps<T extends Primitive = Primitive> extends BaseGroupProps {
+  multiple?: false;
+  /** Current active item identifier */
+  value?: T;
+}
+
+/** Multiple simultaneous selection archetype */
+export interface GroupMultipleProps<T extends Primitive = Primitive> extends BaseGroupProps {
+  multiple: true;
+  /** Array of active item identifiers */
+  value?: T[];
 }
 ```
 
-- **Mutually-Exclusive Guard (`!this.isToggle`)**: Only single-selection groups require a guaranteed active item on initial render. Toggle groups, checkboxes, and multi-select groups naturally default to empty/unselected states and must never auto-claim selection.
-- **Uncontrolled Detection**: Using `!('value' in this.group)` distinguishes an uncontrolled parent (where `value` was omitted) from a controlled parent where `value` was explicitly provided as `undefined`, `null`, `""`, or `0`.
-- **SSR Parity**: Guarantees the first item (or the item marked `selected: true`) synchronously evaluates `selected === true` (`aria-selected="true"`, `tabindex="0"`) on the initial pass in both SSR and client rendering without waiting for post-mount parent reconciliation.
-- **Untracked Execution (`$static`)**: Evaluates outside the reactive observation loop to prevent subscribing outer tracking scopes to group mutations during constructor instantiation.
+##### Child Member Contracts
+Member active state evaluation depends on the widget archetype:
 
-##### The Three-Layer Architecture: Props, Attributes, and Options
-Controllers strictly isolate three distinct concerns to prevent state pollution, preserve live reactive proxies, and avoid non-HTML DOM attribute leakage:
+1. **Paired Structural Members (`Tab.Button`, `Accordion.Button`)**:
+   Declare `name` as their semantic section key:
+   - **Active Check**:
+     ```ts
+     const isActive = this.group.multiple
+       ? this.group.value?.includes(this.props.name)
+       : this.group.value === this.props.name;
+     ```
+   - **Activation**: Mutates `this.group.value` with `this.props.name`. If single-select and `!this.group.required`, re-activation toggles off (`delete this.group.value`).
 
-1. **`props` (Reactive Inputs)**: Dynamic inputs that change over time and drive rendering (`disabled`, `pressed`, `value`, `name`). In component setup (`setup((props) => ...)`), `props` is passed directly as an intact reactive proxy reference (`this.props`).
-2. **`attributes` (DOM Projection)**: Normalized HTML and WAI-ARIA attributes rendered to the target element (`role`, `tabindex`, `aria-*`, `disabled`).
-3. **`options` (Controller Configuration)**: Static behavioral flags that dictate how the controller functions (`native`, `toggle`, etc.). Passed separately from `props` so component authors never need to spread props (`{ ...props, toggle: true }`), which would destroy reactive proxy traps.
+2. **Value Choice Members (`Radio`, `Option`)**:
+   Declare `value` as their candidate selection choice:
+   - **Active Check**:
+     ```ts
+     const isActive = this.group.multiple
+       ? this.group.value?.includes(this.props.value)
+       : this.group.value === this.props.value;
+     ```
+   - **Activation**: Mutates `this.group.value` with `this.props.value`.
+   - **Radio Exception**: Radios are never toggle controls. Once checked, re-activation is always idempotent, even when `!this.group.required`. A radiogroup may still start empty (`value === undefined`).
+   - **Option Toggle**: In single-select listbox, selecting an active option deselects it only when `!this.group.required`.
+
+3. **Initial Selection & Claiming Strategy**:
+   When a single-selection group has no value present (`this.group.value === undefined`):
+   - A member explicitly declaring an initial selection hint (`selected: true` / `checked: true`) claims active selection (`this.group.value = memberKey`).
+   - If the group is marked as `required` (`this.group.required`) and no member has claimed selection, the first mounted member claims active selection.
+   - If the group is not `required` and no member declares a selection hint, the group remains unselected.
 
 ##### The Native vs. Pure ARIA Contract (`{ native?: boolean }`)
 During SSR, DOM elements do not exist (`this.element === null`). The controller cannot inspect the DOM to determine whether the template renders a native HTML element (`<button>`, `<input>`) or a custom element (`<div>`, `<span>`). To guarantee 100% deterministic compilation between SSR and client hydration:
@@ -222,9 +343,9 @@ During SSR, DOM elements do not exist (`this.element === null`). The controller 
    - `this.isNative` evaluates strictly from `!!this.options.native`.
    - Never relies on runtime DOM tag guessing (`this.element?.tagName === ...`), ensuring zero hydration mismatches.
 
-2. **Sensible DX Defaults**:
+2. **Default Options**:
    - Roles wrapping native HTML elements by default (`button`, `checkbox`) default to `{ native: true }` in their controller options, eliminating boilerplate in standard UI components.
-   - Roles without native HTML counterparts (`switch`) are strictly pure ARIA (`native: false`).
+   - Roles without native HTML counterparts (`switch`) default to pure ARIA (`native: false`); the role spec may permit `native: true` for button-backed hosts (see `switch`).
 
 3. **Output Isolation**:
    - **When `isNative === true` (Native Elements)**:
@@ -236,105 +357,25 @@ During SSR, DOM elements do not exist (`this.element === null`). The controller 
      - Activates keyboard navigation polyfills (Space/Enter) so custom elements behave accessibly.
      - Omits invalid HTML attributes (`type`, `checked`, `indeterminate`) that do not belong on non-input tags.
 
-##### Reversibility & Deselection: The `toggle` Option Contract
-Single-choice group items can be configured to allow toggling off to an empty state (`undefined`) using the `options` configuration parameter:
-
-```ts
-export interface ButtonProps {
-  disabled?: boolean;
-  pressed?: boolean | 'mixed';
-  value?: AnyType;
-  name?: string;
-}
-
-export interface ButtonOptions {
-  toggle?: boolean;
-}
-
-export type ButtonGroupProps = {
-  value?: AnyType;
-  disabled?: boolean;
-  [key: string]: AnyType;
-};
-
-export interface ButtonGroupOptions {
-  toggle?: boolean;
-}
-```
-
-- **Group-Level Configuration (`group.options.toggle`)**: When `toggle = true`, all single-choice items in the group can deselect themselves to `undefined`.
-- **Item-Level Configuration (`button.options.toggle`)**: When `toggle = true` (or initialized with `'pressed' in this.props`), that specific button allows toggling off.
-- **Resolution Precedence**:
-  ```ts
-  const isToggle = this.options.toggle ?? this.group?.options?.toggle ?? ('pressed' in this.props);
-  ```
-  - If `isToggle === true`: Activating an already-active item unsets the value to `undefined`.
-  - If `isToggle === false`: Activating an already-active item is idempotent (preserves selection, matching Radio and Tab behavior).
-
 ---
 
-#### 4. State-Driven Rendering & Synchronous Selection
+#### 4. State-Driven Rendering & Public Projections
 All dynamic attributes (`aria-selected`, `aria-pressed`, `tabindex`, `hidden`) are pure projections of reactive state.
 
-To support clean template conditionals (`{panel.selected && <Content />}`), dynamic class bindings (`class={{ active: button.selected }}`), and programmatic control, all computed accessibility states must be exposed as first-class public reactive getters and setters on the controller instance:
-
-```ts
-// Inside TabButtonAria & TabPanelAria
-public get selected(): boolean {
-  return this.tabs.props.value === this.key;
-}
-
-public set selected(active: boolean) {
-  if (this.props.disabled || !active) return;
-  this.tabs.props.value = this.key;
-}
-
-protected createAttributes() {
-  return {
-    'aria-selected': this.selected ? 'true' : 'false',
-    tabindex: this.selected ? 0 : -1,
-  };
-}
-```
-
-##### State Transition Models: Exclusive Selection vs Toggle
-Controllers implement one of two transition models based on role semantics:
-- **Exclusive Selection (`tab`, `radio`)**:
-  - Enforces single-active cardinality across the group: exactly one item is active at all times once initialized.
-  - Activating an item assigns the container value (`this.parent.props.value = this.key`).
-  - An active item cannot deselect itself (`selected = false` is an ignored no-op); active state changes only when an alternative item is activated.
-- **Toggle State (`disclosure`, `accordion`, `checkbox`, `switch`, `button`)**:
-  - Represents reversible, independent binary states.
-  - Activating an item toggles its state (`expanded = !expanded`, `checked = !checked`, `pressed = !pressed`).
-  - Collapsible collections allow deselecting or collapsing all items to an empty active state.
+To support template conditionals (`{panel.selected && <Content />}`), dynamic class bindings (`class={{ active: button.selected }}`), and programmatic control, controllers expose computed interactive states as first-class public reactive getters and setters (`widget.selected`, `widget.expanded`, `widget.checked`, `widget.pressed`, `widget.open`). Props is the single source of state; projections directly read from and write to props (or to `this.group` for members):
+- **Read**: Returns whether the element currently satisfies the active state.
+- **Write**: Only interactive states have setters; setting active state invokes the role's defined activation mutation rules. Comparators (`disabled`, `isNative`) are read-only getters and never expose setters.
+- **Compiled Output**: Compiles deterministic attributes (e.g. `aria-selected="true" | "false"` and roving `tabindex="0" | "-1"`).
 
 ARIA state attributes (`aria-selected`, `aria-expanded`, `aria-checked`, `aria-pressed`, `aria-hidden`, `aria-modal`) are string-enumerated attributes that require explicit string tokens (`"true"` | `"false"` | `"mixed"`). Unlike HTML boolean attributes (`hidden`, `disabled`) that are omitted when false, ARIA attributes must emit `"false"` explicitly so assistive technologies distinguish an inactive state from an element lacking the role capability.
-
-When parent state is uncontrolled (`!('value' in this.tabs.props)`), the first mounted child establishes default active selection synchronously upon initialization:
-
-```ts
-// Inside TabButton initialization
-if (!('value' in this.tabs.props) || this.props.selected) {
-  this.tabs.props.value = this.key;
-}
-```
-
-This guarantees complete and deterministic attribute generation on the initial render pass across both SSR and client environments without secondary reconciliation.
 
 ---
 
 #### 5. Event Handling & State Mutation Convergence
-The child's `onclick` handler is the authoritative mutation point for active selection:
-
-```ts
-// Inside TabButton.createAttributes()
-onclick: () => {
-  if (this.state.disabled) return;
-  this.tabs.state.value = this.key;
-}
-```
-
-Mouse clicks, native button keyboard activation (Enter/Space on `<button>`), and programmatic roving focus all dispatch through this single mutation path. Internal controller transitions execute prior to user-defined refiner listeners, ensuring downstream handlers receive freshly updated state.
+Interactive triggers converge mouse clicks, native button keyboard activation (Enter/Space on `<button>`), and programmatic roving focus into a single authoritative activation mutation path:
+- **Internal Transitions First**: Controller state transitions execute synchronously upon event trigger before user-defined refiner listeners receive the event.
+- **Downstream Synchronization**: User refiner callbacks receive fresh, transitioned state.
+- **Disabled Guarding**: When `disabled` is true, all activation mutations and event dispatching are suppressed.
 
 ---
 
@@ -343,12 +384,12 @@ Composite widgets manage single-tab-stop roving focus through container-level ev
 
 ```ts
 // Inside TabListAria onkeydown
-const tabs = Array.from(this.element.querySelectorAll<HTMLElement>('[role="tab"]:not([disabled])'));
+const tabs = Array.from(this.element.querySelectorAll<HTMLElement>('[role="tab"]:not([disabled]):not([aria-disabled="true"])'));
 const index = tabs.indexOf(currentTabElement);
 const next = tabs[(index + 1) % tabs.length];
 
 next.focus();
-if (!this.tabs.props.manual) {
+if (!this.group.manual) {
   next.click(); // Invokes child onclick state mutation
 }
 ```
@@ -358,7 +399,9 @@ Navigation conforms to `aria-orientation`:
 - `vertical` (`aria-orientation="vertical"`): `ArrowDown` (next, wraps) / `ArrowUp` (prev, wraps).
 - `Home` / `End`: First / last enabled DOM item.
 
-In automatic selection (default), focus movement invokes `next.click()` immediately. In manual selection (`manual: true`), focus moves without selection until explicitly activated via `Enter` or `Space`.
+**Toolbar roving takeover**: A `toolbar` owns the single tab stop and arrow travel across everything inside it. Inner selection groups keep their value semantics but surrender their own roving handlers when scoped inside a toolbar; grouping inside collapses to `role="group"` for AT semantics only. Scope detection runs over the ambient scope chain (nearest toolbar controller); see [Toolbar](specs/composites/toolbar.md).
+
+In automatic selection, focus movement invokes `next.click()` immediately. In manual selection (`props.manual: true`), focus moves without selection until explicitly activated via `Enter` or `Space`. `manual` exists only on single-select focus-moving containers (`tab`, single `accordion`, `radio-group`, single `listbox`, single `toggle-group`, single `tree`); multi-select, action, and grid/menu/toolbar containers never select on focus, so they declare no `manual` prop. Defaults are per-role, never global.
 
 ---
 
@@ -396,6 +439,9 @@ export class Aria<E = HTMLElement, T = AriaProps, A = AriaAttributes, O = AriaOp
     this.options = options;
     this.scope = ariaScope.get(); // Captures enclosing parent controller
     ariaScope.set(this);         // Publishes itself for downstream children
+    // The previous scope MUST be restored when this controller's construction
+    // scope exits (sibling subtrees must never observe each other as scope).
+    // Host frameworks restore it after rendering this controller's children.
   }
 }
 ```
@@ -449,152 +495,88 @@ Because compiled `this.attrs` dictionaries are non-reactive snapshots recomputed
 
 ---
 
-## 1. Paired & Composite Widget Roles
+### Shared Locked Rules (normative for all role specs)
 
-Composite widgets require parent-child structures and cross-referencing attributes (like `aria-controls`, `aria-labelledby`, `aria-selected`, `aria-expanded`, and `aria-activedescendant`).
+1. **Deselect idiom**: single-select deselection is `delete this.group.value`.
+2. **`omittedAttrs` shielding**: pair-linkage IDs (`id`, `aria-controls`, `aria-labelledby`, overlay-injected `aria-describedby`) and compiled state attributes are always shielded from consumer `.refine()` overrides; refiners targeting shielded keys are ignored.
+3. **Pair-ID derivation**: `f(parentId, role, key)` derives paired child IDs from `parentId`, `role`, and child string `key` (`props.name ?? props.id ?? this.id`). Deterministic `uIndex(..., true)` namespacing applies to paired composite roots (Tab, Accordion).
+4. **Disabled composition**: effective disabled is group `disabled` OR member `disabled`.
+5. **`required` on multi-select**: `required: true` demands a non-empty array; `[]` and `undefined` are both unselected. First-mount claiming does not apply to multi-select; single-select claiming follows §3.
+6. **Form attribute isolation**: `.attributes` never synthesizes or emits HTML form attributes (`name`, `value`, `form`). In value choice composites (radio, option), group matching evaluates member `value` against `group.value`. Form field naming (`props.name`) is preserved unmutated for template binding.
+7. **Structural `group` parts** (listbox/tree/menu inner groups): render `role="group"` with a label, pass the ambient scope through unchanged, and take no `aria()` overload — except menu subgroups, which publish an independent scoped selection value for their radio members (see `menu`).
+8. **Group `id` scoping**: Paired composite roots (`Tab`, `Accordion`) accept `id?: string`, defaulting to a generated namespace, so child triggers and panels derive paired coordinate IDs. Non-paired groups (`RadioGroup`, `Listbox`, `ToggleGroup`, `Toolbar`) do not require a group `id` for internal coordination.
 
-### 1.1 Tabbed Interface (`tablist` + `tab` + `tabpanel`)
+### Behavioral Capabilities & Architectural Layers
 
-| Role | What It Is | Purpose | Required & Expected Attributes | Paired Relationship |
-| :--- | :--- | :--- | :--- | :--- |
-| `tablist` | Container for a set of tabs. | Informs screen readers of a tab group and manages focus between tabs. | `aria-label` or `aria-labelledby` | **Parent of:** `tab` |
-| `tab` | Interactive header/tab button. | Controls the visibility of an associated panel. | `aria-selected` (`"true"` \| `"false"`), `aria-controls` (ID of `tabpanel`), `id` | **Child of:** `tablist`<br>**Controls:** `tabpanel` |
-| `tabpanel` | Content container for the active tab. | Houses content rendered for the selected tab. | `id`, `aria-labelledby` (ID of `tab`), `tabindex="0"` (if scrollable/focusable) | **Controlled by:** `tab` |
+Controllers are organized across three capability layers:
 
-```html
-<div role="tablist" aria-label="Account Settings">
-  <button role="tab" id="tab-1" aria-selected="true" aria-controls="panel-1" tabindex="0">Profile</button>
-  <button role="tab" id="tab-2" aria-selected="false" aria-controls="panel-2" tabindex="-1">Security</button>
-</div>
-<div role="tabpanel" id="panel-1" aria-labelledby="tab-1" tabindex="0">...</div>
-<div role="tabpanel" id="panel-2" aria-labelledby="tab-2" tabindex="0" hidden>...</div>
-```
+- **Base (`Aria`)**: element lifecycle, attribute compilation, refiners, scope chaining (SPI above).
+- **Behavioral Capabilities**: shared state machinery. Selection capability coordinates group value, activation/toggle rules, claiming, and roving tabindex; disclosure capability coordinates overlay trigger wiring, light-dismiss, Escape handling, and focus restoration.
+- **Public Roles** (`TabAria`, `TabButtonAria`, `RadioGroupAria`, …): role compilation + locked per-role contracts in `specs/`.
 
----
+Capability options are set by the public-class definition or the parent controller — never forwarded from JSX. The test is the setter: anything a template author passes in JSX **must** be props (Direct Forwarding Rule); anything fixed at class-definition level **may** be options. Per rulings: `movable`, `selectionMode`, and live-region `politeness`/`atomic` are author-set and live on props; textbox `role` is set by the public Textbox/Searchbox faces and stays in options.
 
-### 1.2 Menus & Menu Bars (`menubar` / `menu` + `menuitem` + `group`)
+## Role Specifications Index
 
-> [!NOTE]
-> ARIA `menu` is intended for application-like action menus (like desktop file menus or context menus), **not** standard website navigation lists. For navigation, use `<nav>` with links.
+Role-specific architectural options, props contracts, state projections, and keyboard lifecycles are organized in dedicated specifications under [`specs/`](specs/), mirrored after the package directory structure:
 
-| Role | What It Is | Purpose | Required & Expected Attributes | Paired Relationship |
-| :--- | :--- | :--- | :--- | :--- |
-| `menubar` | Horizontal top-level menu bar. | Houses top-level trigger items (e.g., File, Edit, View). | `aria-label` or `aria-labelledby` | **Parent of:** `menuitem` / `menu` |
-| `menu` | Submenu popup or standalone popup menu. | Groups action triggers and selectable items. | `aria-label` or `aria-labelledby`, `aria-orientation` (`vertical` default) | **Parent of:** `menuitem`, `menuitemcheckbox`, `menuitemradio`, `group` |
-| `menuitem` | Actionable item in a menu. | Triggers a command or expands a submenu. | If expandable: `aria-haspopup="menu"`, `aria-expanded` (`"true"` \| `"false"`), `aria-controls` | **Child of:** `menu` or `menubar` |
-| `menuitemcheckbox` | Checkable menu item. | Toggles a boolean setting. | `aria-checked` (`"true"` \| `"false"` \| `"mixed"`) | **Child of:** `menu` or `group` |
-| `menuitemradio` | Single-choice radio item in a menu. | Selects one option among a group. | `aria-checked` (`"true"` \| `"false"`) | **Child of:** `group` inside `menu` |
-| `group` | Subgroup of menu items. | Logically separates sets of radio or checkbox items. | `aria-label` or `aria-labelledby` | **Parent of:** `menuitem*` |
+### Composites ([`specs/composites/`](specs/composites/))
+- [Tab](specs/composites/tabs.md) (`tab` + `tab-list` + `tab-button` + `tab-panel`)
+- [Accordion](specs/composites/accordion.md) (`accordion` + `accordion-item` + `accordion-button` + `accordion-panel`)
+- [Menu & Menubar](specs/composites/menu.md) (`menubar` / `menu` + `menu-item` + `menu-item-checkbox` + `menu-item-radio` + `group`)
+- [Listbox](specs/composites/listbox.md) (`listbox` + `option` + `group`)
+- [Combobox](specs/composites/combobox.md) (`combobox` + popup `listbox` / `grid` / `tree` / `dialog`)
+- [Treeview](specs/composites/tree.md) (`tree` + `tree-item` + `group`)
+- [Grid & Treegrid](specs/composites/grid.md) (`grid` / `treegrid` + `row` + `gridcell`)
+- [Radio Group](specs/composites/radio-group.md) (`radiogroup` + `radio`)
+- [Toggle Group](specs/composites/togglegroup.md) (`toggle-group` + `toggle`)
+- [Toolbar](specs/composites/toolbar.md) (`toolbar` + controls)
+- [Feed](specs/composites/feed.md) (`feed` + `feed-article`)
 
----
+### Widgets ([`specs/widgets/`](specs/widgets/))
+- [Button](specs/widgets/button.md) (`button` action trigger)
+- [Toggle](specs/widgets/toggle.md) (`toggle` two-state button)
+- [Checkbox](specs/widgets/checkbox.md) (`checkbox` binary & tri-state)
+- [Radio](specs/widgets/radio.md) (`radio` single-selection member)
+- [Option](specs/widgets/option.md) (`option` listbox/combobox member)
+- [Switch](specs/widgets/switch.md) (`switch` boolean toggle)
+- [Textbox](specs/widgets/textbox.md) (`textbox` text input)
+- [Searchbox](specs/widgets/searchbox.md) (`searchbox` search input)
+- [Slider](specs/widgets/slider.md) (`slider` numeric range)
+- [Spinbutton](specs/widgets/spinbutton.md) (`spinbutton` number stepper)
+- [Progressbar](specs/widgets/progressbar.md) (`progressbar` deterministic & indeterminate)
+- [Scrollbar](specs/widgets/scrollbar.md) (`scrollbar` container sync)
+- [Separator](specs/widgets/separator.md) (`separator` static & movable splitter)
+- [Dialog](specs/widgets/dialog.md) (`dialog` modal overlay)
+- [Alertdialog](specs/widgets/alertdialog.md) (`alertdialog` urgent modal overlay)
+- [Tooltip](specs/widgets/tooltip.md) (`tooltip` advisory overlay)
+- [Popover](specs/widgets/popover.md) (`popover` disclosure overlay)
+- [Link](specs/widgets/link.md) (`link` navigation trigger)
 
-### 1.3 Listbox & Selection Lists (`listbox` + `option` + `group`)
+### Landmarks ([`specs/landmarks/`](specs/landmarks/))
+- [Overview](specs/landmarks/landmarks.md)
+- [Banner](specs/landmarks/banner.md) (`banner`)
+- [Main](specs/landmarks/main.md) (`main`)
+- [Navigation](specs/landmarks/navigation.md) (`navigation`)
+- [Complementary](specs/landmarks/complementary.md) (`complementary`)
+- [Contentinfo](specs/landmarks/contentinfo.md) (`contentinfo`)
+- [Search](specs/landmarks/search.md) (`search`)
+- [Form](specs/landmarks/form.md) (`form`)
+- [Region](specs/landmarks/region.md) (`region`)
 
-| Role | What It Is | Purpose | Required & Expected Attributes | Paired Relationship |
-| :--- | :--- | :--- | :--- | :--- |
-| `listbox` | Single or multi-select list. | Custom select dropdown or selectable list widget. | `aria-label` or `aria-labelledby`, `aria-multiselectable` (`"true"` \| `"false"` if multi) | **Parent of:** `option`, `group` |
-| `option` | Selectable choice in a listbox. | Represents an individual item. | `aria-selected` (`"true"` \| `"false"`) | **Child of:** `listbox` or `group` |
-| `group` | Option group separator. | Visually and semantically clusters related options. | `aria-label` or `aria-labelledby` | **Child of:** `listbox`, **Parent of:** `option` |
-
----
-
-### 1.4 Combobox / Autocomplete (`combobox` + popup `listbox` / `grid` / `tree` / `dialog`)
-
-| Role | What It Is | Purpose | Required & Expected Attributes | Paired Relationship |
-| :--- | :--- | :--- | :--- | :--- |
-| `combobox` | Composite input (text field + popup). | Allows typing to filter or select from an associated popup. | `aria-expanded` (`"true"` \| `"false"`), `aria-haspopup` (`listbox`/`grid`/`tree`/`dialog`), `aria-controls` (ID of popup), `aria-autocomplete` (`none`/`list`/`inline`/`both`) | **Controls:** Popup (`listbox`, `grid`, `tree`, `dialog`) |
-| Popup (`listbox` / etc.) | The suggestions container. | Presents selectable results. | `id`, `aria-label` | **Controlled by:** `combobox`, **Parent of:** items |
-
----
-
-### 1.5 Treeview (`tree` + `treeitem` + `group`)
-
-| Role | What It Is | Purpose | Required & Expected Attributes | Paired Relationship |
-| :--- | :--- | :--- | :--- | :--- |
-| `tree` | Hierarchical list container (folder tree, file system). | Enables navigable nested structures. | `aria-label` or `aria-labelledby`, `aria-multiselectable` (`"true"` \| `"false"`) | **Parent of:** `treeitem`, `group` |
-| `treeitem` | Individual node in a tree. | Represents a leaf or expandable branch. | `aria-selected` (`"true"` \| `"false"`), If branch: `aria-expanded` (`"true"` \| `"false"`), `aria-owns` / contains `group` | **Child of:** `tree` or `group` |
-| `group` | Container for children of a branch node. | Groups the subtree items under an expanded `treeitem`. | None or `aria-labelledby` (ID of parent `treeitem`) | **Child of:** `treeitem`, **Parent of:** `treeitem` |
-
----
-
-### 1.6 Grid & Treegrid (`grid` / `treegrid` + `row` + `gridcell` / `columnheader` / `rowheader`)
-
-| Role | What It Is | Purpose | Required & Expected Attributes | Paired Relationship |
-| :--- | :--- | :--- | :--- | :--- |
-| `grid` / `treegrid` | Interactive data table or spreadsheet with cell-level keyboard navigation. | Enables 2D keyboard navigation (arrow keys across rows and cells). | `aria-label` or `aria-labelledby`, `aria-colcount`, `aria-rowcount` (for virtualized grids) | **Parent of:** `row`, `rowgroup` |
-| `rowgroup` | Structural group for header/body rows. | Mirrors `<thead>`, `<tbody>`, `<tfoot>`. | None | **Child of:** `grid`, **Parent of:** `row` |
-| `row` | Row container within grid. | Encapsulates cells. | `aria-rowindex` (optional for virtualized), `aria-selected` (`"true"` \| `"false"` if selectable) | **Child of:** `grid` / `rowgroup`, **Parent of:** cells |
-| `columnheader` | Header cell for a column. | Labels the column data. | `aria-sort` (`ascending`/`descending`/`none`/`other`), `aria-colindex` | **Child of:** `row` |
-| `rowheader` | Header cell for a row. | Labels the row data. | `aria-rowindex` | **Child of:** `row` |
-| `gridcell` | Interactive data cell. | Holds data, inputs, or actionable elements. | `aria-selected` (`"true"` \| `"false"` if selectable), `aria-readonly` (`"true"` \| `"false"` if editable), `aria-colindex` | **Child of:** `row` |
+### Live Regions ([`specs/live/`](specs/live/))
+- [Overview](specs/live/live-regions.md)
+- [Alert](specs/live/alert.md) (`alert`)
+- [Status](specs/live/status.md) (`status`)
+- [Log](specs/live/log.md) (`log`)
+- [Timer](specs/live/timer.md) (`timer`)
+- [Marquee](specs/live/marquee.md) (`marquee`)
 
 ---
 
-### 1.7 Radio Group (`radiogroup` + `radio`)
+## WAI-ARIA Semantic References
 
-| Role | What It Is | Purpose | Required & Expected Attributes | Paired Relationship |
-| :--- | :--- | :--- | :--- | :--- |
-| `radiogroup` | Container for mutually exclusive radio buttons. | Groups choices together for assistive tech. | `aria-label` or `aria-labelledby`, `aria-required` (`"true"` \| `"false"` if mandatory) | **Parent of:** `radio` |
-| `radio` | Single radio button option. | Selects one option in the group. | `aria-checked` (`"true"` \| `"false"`), `tabindex` (`0` for active/selected, `-1` for others) | **Child of:** `radiogroup` |
-
----
-
-### 1.8 Feed (`feed` + `article`)
-
-| Role | What It Is | Purpose | Required & Expected Attributes | Paired Relationship |
-| :--- | :--- | :--- | :--- | :--- |
-| `feed` | Scrollable stream of articles (like social media feed). | Allows screen reader users to browse an infinitely loading feed. | `aria-label` or `aria-labelledby`, `aria-busy` (`"true"` \| `"false"` during load) | **Parent of:** `article` |
-| `article` | Individual post or entry inside feed. | Self-contained unit in the stream. | `aria-posinset` (position in feed), `aria-setsize` (-1 or total size), `aria-labelledby` | **Child of:** `feed` |
-
----
-
-### 1.9 Accordion & Disclosure (`button` + `region`)
-
-| Role | What It Is | Purpose | Required & Expected Attributes | Paired Relationship |
-| :--- | :--- | :--- | :--- | :--- |
-| `button` (Disclosure) | Header/trigger toggling panel visibility. | Expands or collapses associated content. | `aria-expanded` (`"true"` \| `"false"`), `aria-controls` (ID of region), `id` | **Controls:** `region` |
-| `region` (Accordion Panel) | Collapsible content container. | Holds the expandable details. | `id`, `aria-labelledby` (ID of trigger button), `hidden` (when collapsed) | **Controlled by:** `button` |
-
----
-
-### 1.10 Toolbar (`toolbar` + controls)
-
-| Role | What It Is | Purpose | Required & Expected Attributes | Paired Relationship |
-| :--- | :--- | :--- | :--- | :--- |
-| `toolbar` | Container grouping active tools and actions. | Informs screen readers of a tool set and manages single-tab-stop roving focus. | `aria-label` or `aria-labelledby`, `aria-orientation` (`horizontal` default) | **Parent of:** buttons, toggles, inputs |
-
----
-
-## 2. Dialog & Window Roles
-
-| Role | What It Is | Purpose | Required Attributes | Best Practices |
-| :--- | :--- | :--- | :--- | :--- |
-| `dialog` | Modal or non-modal overlay window. | Prompts for user input or displays contextual details. | `aria-labelledby` (heading ID), `aria-describedby` (body/description ID), `aria-modal="true"` (if modal) | Trap focus inside when open; restore focus on close. |
-| `alertdialog` | Urgent modal dialog for critical confirmations/warnings. | Demands immediate user response (e.g., delete confirmation). | `aria-labelledby`, `aria-describedby`, `aria-modal="true"` | Initial focus must be on the least destructive action (e.g. Cancel). |
-
----
-
-## 3. Standalone Widget Roles
-
-| Role | What It Is | Purpose | Required Attributes / States | HTML Native Equivalent |
-| :--- | :--- | :--- | :--- | :--- |
-| `button` | Clickable button / trigger. | Submits, opens, or activates actions. | `type="button"` (native, default). `role="button"`, `aria-pressed` (`"true"` \| `"false"` for toggle), `aria-expanded` (custom, `native: false`) | `<button>` |
-| `checkbox` | Two-state or tri-state toggle. | Selects boolean value. | `type="checkbox"`, `checked`, `indeterminate` (native, default). `role="checkbox"`, `aria-checked` (`"true"` \| `"false"` \| `"mixed"`) (custom, `native: false`) | `<input type="checkbox">` |
-| `switch` | On/off toggle switch. | Toggles a state/setting immediately. | Strictly pure ARIA: `role="switch"`, `aria-checked` (`"true"` \| `"false"`). Space key polyfilled. | `<button type="button">` with state |
-| `radio` | Single radio button option. | Selects mutually exclusive choice in a group. | `type="radio"`, `checked` (native, default). `role="radio"`, `aria-checked` (`"true"` \| `"false"`), roving `tabindex` (custom, `native: false`) | `<input type="radio">` |
-| `textbox` | Freeform text input. | Single or multi-line text field. | `aria-multiline` (`"true"` \| `"false"`), `aria-readonly` (`"true"` \| `"false"`), `aria-required` (`"true"` \| `"false"`) | `<input type="text">`, `<textarea>` |
-| `searchbox` | Search input. | Specifically designates text field for queries. | `aria-label` or `aria-labelledby` | `<input type="search">` |
-| `slider` | Range input with slider thumb. | Selects a numeric value from a range. | `aria-valuenow`, `aria-valuemin`, `aria-valuemax`, `aria-valuetext` (if non-numeric display) | `<input type="range">` |
-| `spinbutton` | Number stepper input. | Increments/decrements numeric value. | `aria-valuenow`, `aria-valuemin`, `aria-valuemax` | `<input type="number">` |
-| `progressbar` | Visual progress indicator. | Displays task or transfer progress. | `aria-valuenow` (omit if indeterminate), `aria-valuemin`, `aria-valuemax` | `<progress>` |
-| `scrollbar` | Custom scrollbar widget. | Controls scroll position of an element. | `aria-controls` (target element), `aria-orientation`, `aria-valuenow`, `aria-valuemin`, `aria-valuemax` | Native scrolling preferred |
-| `link` | Hyperlink. | Navigates to a resource. | None (needs `href` behavior or click handler) | `<a href="...">` |
-| `tooltip` | Contextual advisory popup hint. | Displays description on hover/focus without moving focus. | `id`, role `tooltip` | Linked via `aria-describedby` |
-| `separator` | Content divider or movable splitter. | Divides groups in menus, toolbars, or panels. | `aria-orientation` (if interactive), `tabindex="-1"` (or `0` if movable window splitter) | `<hr>` (static) |
-
----
-
-## 4. Live Region Roles
+### Live Region Roles
 
 Live regions automatically announce updates without losing current focus.
 
@@ -608,7 +590,7 @@ Live regions automatically announce updates without losing current focus.
 
 ---
 
-## 5. Landmark Roles
+### Landmark Roles
 
 Landmarks divide page structure into navigable sections (`<main>`, `<nav>`, `<header>`, etc.).
 
@@ -625,7 +607,7 @@ Landmarks divide page structure into navigable sections (`<main>`, `<nav>`, `<he
 
 ---
 
-## 6. Document Structure & Presentational Roles
+### Document Structure & Presentational Roles
 
 | Role | What It Is | Purpose | HTML5 Native Element |
 | :--- | :--- | :--- | :--- |
@@ -640,7 +622,7 @@ Landmarks divide page structure into navigable sections (`<main>`, `<nav>`, `<he
 
 ---
 
-## Summary Matrix of Critical Relationship Attributes
+### Summary Matrix of Critical Relationship Attributes
 
 | Attribute | Meaning | Common Role Combinations |
 | :--- | :--- | :--- |

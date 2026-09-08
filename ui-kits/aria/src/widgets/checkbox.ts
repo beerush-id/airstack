@@ -72,7 +72,7 @@ export class CheckboxAria<
       ...options,
       role: 'checkbox',
       key: 'checked',
-      toggle: true,
+      valueKey: 'value',
       allowKeys: [' '],
     });
 
@@ -92,52 +92,13 @@ export class CheckboxAria<
   }
 
   /**
-   * Whether the checkbox is in an indeterminate/mixed state.
-   */
-  public get indeterminate(): boolean {
-    return !!this.props.indeterminate;
-  }
-
-  public set indeterminate(value: boolean) {
-    this.props.indeterminate = value;
-  }
-
-  public override select(): void {
-    super.select();
-    this.props.indeterminate = false;
-  }
-
-  /**
-   * Toggles the checkbox state between checked and unchecked,
-   * updating group membership if bound, and clearing indeterminate.
-   *
-   * @param checked - Optional explicit target state override
-   */
-  public override toggle(checked?: boolean): void {
-    if (this.disabled) return;
-
-    if (typeof checked === 'boolean') {
-      this.selected = checked;
-      this.props.indeterminate = false;
-      return;
-    }
-
-    if (this.indeterminate) {
-      this.select();
-      return;
-    }
-
-    super.toggle();
-  }
-
-  /**
    * Computes the HTML, ARIA, and event handler attributes for the checkbox.
    *
    * @returns Checkbox attributes dictionary
    */
   protected override createAttributes(): A {
     const isChecked = this.checked;
-    const isIndeterminate = this.indeterminate;
+    const isIndeterminate = this.props.indeterminate === true;
 
     if (this.isNative) {
       return Object.assign(super.createAttributes(), {

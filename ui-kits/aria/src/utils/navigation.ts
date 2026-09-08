@@ -1,4 +1,4 @@
-import type { BaseElement } from '../types.js';
+import type { BaseElement, Orientation } from '../types.js';
 
 /**
  * Configuration options for roving keyboard navigation across composite items.
@@ -13,7 +13,7 @@ export interface RovingNavigationOptions {
    * Layout orientation determining which arrow keys navigate forward and backward.
    * Defaults to 'vertical'.
    */
-  orientation?: 'horizontal' | 'vertical';
+  orientation?: Orientation;
 
   /**
    * Whether navigation only moves focus without activating selection.

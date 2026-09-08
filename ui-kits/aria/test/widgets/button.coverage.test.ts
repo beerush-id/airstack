@@ -1,6 +1,6 @@
-import { createLifecycle, mutable } from '@airlib/core';
-import { afterAll, describe, expect, it } from 'vitest';
-import { aria, selectionGroup } from '../../src/index.js';
+import { createLifecycle } from '@airlib/core';
+import { afterAll, describe, expect, it, vi } from 'vitest';
+import { aria, ButtonAria } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 describe('Button - Coverage & Edge Cases', () => {
@@ -10,64 +10,21 @@ describe('Button - Coverage & Edge Cases', () => {
     scope.destroy();
   });
 
-  it('covers type, disabled, pressed, value, and name public property getters and setters', () =>
+  it('covers type and disabled public property getters', () =>
     scope.run(() => {
       const tree = component();
       tree.run(() => {
-        const btn = aria('button');
-
-        // type getter
-        expect(btn.type).toBe('button');
-
-        // disabled getter and setter
-        expect(btn.disabled).toBe(false);
-        btn.disabled = true;
+        const btn = aria('button', { type: 'submit', disabled: true });
+        expect(btn.type).toBe('submit');
         expect(btn.disabled).toBe(true);
-        btn.disabled = false;
-        expect(btn.disabled).toBe(false);
 
-        // pressed getter and setter
-        const toggleBtn = aria('button', {}, { toggle: true });
-        expect(toggleBtn.pressed).toBe(false);
-        toggleBtn.pressed = true;
-        expect(toggleBtn.pressed).toBe(true);
-        toggleBtn.pressed = false;
-        expect(toggleBtn.pressed).toBe(false);
+        const defaultBtn = aria('button');
+        expect(defaultBtn.type).toBe('button');
+        expect(defaultBtn.disabled).toBe(false);
 
-        // value getter and setter
-        expect(btn.value).toBeUndefined();
-        btn.value = 'val-1';
-        expect(btn.value).toBe('val-1');
-
-        // name getter and setter
-        expect(btn.name).toBeUndefined();
-        btn.name = 'opt-name';
-        expect(btn.name).toBe('opt-name');
-      });
-    }));
-
-  it('toggles pressed state explicitly via toggle() method', () =>
-    scope.run(() => {
-      const tree = component();
-      tree.run(() => {
-        const btn = aria('button', { pressed: false }, { toggle: true });
-        expect(btn.pressed).toBe(false);
-
-        btn.toggle();
-        expect(btn.pressed).toBe(true);
-
-        btn.toggle();
-        expect(btn.pressed).toBe(false);
-      });
-    }));
-
-  it('no-ops when select() is invoked on a disabled button', () =>
-    scope.run(() => {
-      const tree = component();
-      tree.run(() => {
-        const btn = aria('button', { disabled: true, pressed: false });
-        btn.select();
-        expect(btn.pressed).toBe(false);
+        const ctorBtn = new ButtonAria();
+        expect(ctorBtn.type).toBe('button');
+        expect(ctorBtn.disabled).toBe(false);
       });
     }));
 
@@ -77,29 +34,38 @@ describe('Button - Coverage & Edge Cases', () => {
       tree.run(() => {
         const submitBtn = aria<HTMLDivElement>('button', { type: 'submit' });
         const submitDiv = bind(document.createElement('div'), submitBtn);
-        // Click outside of any <form> -> closest('form') is null, no-ops cleanly
         expect(() => submitDiv.click()).not.toThrow();
 
         const resetBtn = aria<HTMLDivElement>('button', { type: 'reset' });
         const resetDiv = bind(document.createElement('div'), resetBtn);
-        // Click outside of any <form> -> closest('form') is null, no-ops cleanly
         expect(() => resetDiv.click()).not.toThrow();
       });
     }));
 
-  it('no-ops programmatic select() on native submit and reset buttons', () =>
+  it('triggers form submit and reset when non-native button is clicked inside a form', () =>
     scope.run(() => {
       const tree = component();
       tree.run(() => {
-        const submitBtn = aria('button', { type: 'submit' }, { native: true });
-        bind(document.createElement('button'), submitBtn);
-        submitBtn.select();
-        expect(submitBtn.pressed).toBe(false);
+        const form = document.createElement('form');
+        const submitSpy = vi.fn((e: Event) => e.preventDefault());
+        const resetSpy = vi.fn((e: Event) => e.preventDefault());
+        form.addEventListener('submit', submitSpy);
+        form.addEventListener('reset', resetSpy);
+        document.body.appendChild(form);
 
-        const resetBtn = aria('button', { type: 'reset' }, { native: true });
-        bind(document.createElement('button'), resetBtn);
-        resetBtn.select();
-        expect(resetBtn.pressed).toBe(false);
+        const submitBtn = aria<HTMLDivElement>('button', { type: 'submit' }, { native: false });
+        const submitDiv = bind(document.createElement('div'), submitBtn);
+        form.appendChild(submitDiv);
+        submitDiv.click();
+        expect(submitSpy).toHaveBeenCalledTimes(1);
+
+        const resetBtn = aria<HTMLDivElement>('button', { type: 'reset' }, { native: false });
+        const resetDiv = bind(document.createElement('div'), resetBtn);
+        form.appendChild(resetDiv);
+        resetDiv.click();
+        expect(resetSpy).toHaveBeenCalledTimes(1);
+
+        form.remove();
       });
     }));
 
@@ -129,52 +95,15 @@ describe('Button - Coverage & Edge Cases', () => {
         const nativeEl = bind(document.createElement('button'), nativeBtn);
         nativeEl.dispatchEvent(spaceDown);
         nativeEl.dispatchEvent(spaceUp);
-      });
-    }));
 
-  it('handles group button without name or value props gracefully', () =>
-    scope.run(() => {
-      const tree = component();
-      tree.run(() => {
-        const group = mutable({ value: 'opt-1' });
-        selectionGroup.set(group);
-
-        const btn = aria('button');
-        expect(btn.type).toBe('button');
-        btn.select();
-        expect(group.value).toBe(btn.id);
-      });
-    }));
-
-  it('selects group option with name-only toggle', () =>
-    scope.run(() => {
-      const tree = component();
-      tree.run(() => {
-        const group = mutable({ value: { italic: false } });
-        selectionGroup.set(group);
-
-        const btn = aria('button', { name: 'italic' });
-        expect(btn.pressed).toBe(false);
-        btn.select();
-        expect(group.value.italic).toBe(true);
-        expect(btn.pressed).toBe(true);
-      });
-    }));
-
-  it('handles reactive effect when group reference is cleared defensively', () =>
-    scope.run(() => {
-      const tree = component();
-      tree.run(() => {
-        const group = mutable({ value: 'opt-1' });
-        selectionGroup.set(group);
-
-        const btn = aria('button', { value: 'opt-1' });
-        expect(btn.pressed).toBe(true);
-
-        // Defensively clear group reference and trigger group mutation
-        (btn as unknown as { group: unknown }).group = undefined;
-        group.value = 'opt-2';
-        expect(btn.pressed).toBe(true);
+        // Disabled custom non-native element handlers
+        const customDisabledBtn = aria<HTMLDivElement>('button', { disabled: true }, { native: false });
+        const customDisabledDiv = bind(document.createElement('div'), customDisabledBtn);
+        expect(customDisabledBtn.attributes.tabindex).toBe(-1);
+        expect(customDisabledBtn.attributes['aria-disabled']).toBe('true');
+        customDisabledDiv.click();
+        customDisabledDiv.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true }));
+        customDisabledDiv.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', cancelable: true }));
       });
     }));
 });

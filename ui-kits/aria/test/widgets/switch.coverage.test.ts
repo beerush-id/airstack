@@ -24,9 +24,9 @@ describe('Switch - Coverage & Edge Cases', () => {
         expect(sw.checked).toBe(false);
 
         expect(sw.disabled).toBe(false);
-        sw.disabled = true;
+        sw.props.disabled = true;
         expect(sw.disabled).toBe(true);
-        sw.disabled = false;
+        sw.props.disabled = false;
         expect(sw.disabled).toBe(false);
       });
     }));

@@ -1,10 +1,33 @@
-import { SelectionAria, type SelectionAttributes } from '../selection.js';
-import type { AriaProps, BaseElement } from '../types.js';
+import { SelectionAria, type SelectionAttributes, type SelectionOptions } from '../selection.js';
+import type { AriaOptions, AriaProps, BaseElement, Primitive } from '../types.js';
+
+/**
+ * Configuration options for SwitchAria.
+ */
+export interface SwitchOptions extends AriaOptions {
+  /**
+   * Whether bound to a native <button> host.
+   * @default false
+   */
+  native?: boolean;
+}
 
 /**
  * Reactive inputs for SwitchAria.
+ *
+ * @template T - Candidate value type when nested in a selection group
  */
-export interface SwitchProps extends AriaProps {
+export interface SwitchProps<T extends Primitive = Primitive> extends AriaProps {
+  /**
+   * Choice candidate value if nested in a selection group.
+   */
+  value?: T;
+
+  /**
+   * Semantic identity key or field name on the parent settings group.
+   */
+  name?: string;
+
   /**
    * Whether the switch is currently toggled on.
    */
@@ -14,19 +37,14 @@ export interface SwitchProps extends AriaProps {
    * Whether the switch is disabled from user interaction.
    */
   disabled?: boolean;
-
-  /**
-   * Semantic identity key or field name on the parent settings group.
-   */
-  name?: string;
 }
 
 /**
  * Compiled HTML and ARIA attributes for a switch element.
  *
- * @template E - Target Element type (defaults to HTMLButtonElement)
+ * @template E - Target Element type (defaults to HTMLElement)
  */
-export interface SwitchAttributes<E extends BaseElement = HTMLButtonElement> extends SelectionAttributes<E> {
+export interface SwitchAttributes<E extends BaseElement = HTMLElement> extends SelectionAttributes<E> {
   role?: 'switch';
   'aria-checked'?: 'true' | 'false';
 }
@@ -34,19 +52,24 @@ export interface SwitchAttributes<E extends BaseElement = HTMLButtonElement> ext
 /**
  * Universal WAI-ARIA switch controller managing binary on/off states and keyboard toggles.
  *
- * @template E - Target Element type (defaults to HTMLButtonElement)
+ * @template E - Target Element type (defaults to HTMLElement)
  * @template T - Reactive props type
  * @template A - Attributes dictionary type
+ * @template O - Controller options type
  */
 export class SwitchAria<
-  E extends BaseElement = HTMLButtonElement,
+  E extends BaseElement = HTMLElement,
   T extends SwitchProps = SwitchProps,
   A extends SwitchAttributes<E> = SwitchAttributes<E>,
-> extends SelectionAria<E, T, A> {
-  public constructor(props: Partial<T> = {}) {
+  O extends SwitchOptions = SwitchOptions,
+> extends SelectionAria<E, T, A, SelectionOptions> {
+  public constructor(props: Partial<T> = {}, options: O = {} as O) {
     super(props, {
+      native: false,
+      ...options,
+      role: 'switch',
       key: 'checked',
-      toggle: true,
+      valueKey: 'value',
     });
 
     this.omittedAttrs.push('role', 'aria-checked');

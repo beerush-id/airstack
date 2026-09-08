@@ -1,6 +1,6 @@
 import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
-import { aria, selectionGroup } from '../../src/index.js';
+import { aria, CheckboxAria, selectionGroup } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 describe('Checkbox - Coverage & Edge Cases', () => {
@@ -23,51 +23,50 @@ describe('Checkbox - Coverage & Edge Cases', () => {
         cb.checked = false;
         expect(cb.checked).toBe(false);
 
-        // indeterminate
-        expect(cb.indeterminate).toBe(false);
-        cb.indeterminate = true;
-        expect(cb.indeterminate).toBe(true);
+        const defaultCb = new CheckboxAria();
+        expect(defaultCb.checked).toBe(false);
+        expect(defaultCb.attributes.type).toBe('checkbox');
 
-        // Setting checked to true clears indeterminate
-        cb.checked = true;
-        expect(cb.indeterminate).toBe(false);
+        // indeterminate
+        expect(cb.props.indeterminate).toBeUndefined();
+        cb.props.indeterminate = true;
+        expect(cb.props.indeterminate).toBe(true);
 
         // disabled
         expect(cb.disabled).toBe(false);
-        cb.disabled = true;
+        cb.props.disabled = true;
         expect(cb.disabled).toBe(true);
-        cb.disabled = false;
+        cb.props.disabled = false;
         expect(cb.disabled).toBe(false);
 
         // value
         expect(cb.value).toBeUndefined();
-        cb.value = 'my-val';
+        cb.props.value = 'my-val';
         expect(cb.value).toBe('my-val');
 
         // name
-        expect(cb.name).toBeUndefined();
-        cb.name = 'my-field';
-        expect(cb.name).toBe('my-field');
+        expect(cb.props.name).toBeUndefined();
+        cb.props.name = 'my-field';
+        expect(cb.props.name).toBe('my-field');
       });
     }));
 
-  it('supports explicit target boolean on toggle() method', () =>
+  it('supports toggle(), select(), and deselect() methods', () =>
     scope.run(() => {
       const tree = component();
       tree.run(() => {
-        const cb = aria('checkbox', { checked: false, indeterminate: true });
-        cb.toggle(true);
-        expect(cb.checked).toBe(true);
-        expect(cb.indeterminate).toBe(false);
-
-        cb.toggle(false);
-        expect(cb.checked).toBe(false);
-
-        // Invoking toggle() without arguments on indeterminate checkbox checks it
-        cb.indeterminate = true;
+        const cb = aria('checkbox', { checked: false });
         cb.toggle();
         expect(cb.checked).toBe(true);
-        expect(cb.indeterminate).toBe(false);
+
+        cb.toggle();
+        expect(cb.checked).toBe(false);
+
+        cb.select();
+        expect(cb.checked).toBe(true);
+
+        cb.deselect();
+        expect(cb.checked).toBe(false);
       });
     }));
 
@@ -109,48 +108,25 @@ describe('Checkbox - Coverage & Edge Cases', () => {
       });
     }));
 
-  it('supports explicit boolean in array group toggle and handles un-added items', () =>
+  it('supports selection and deselection in array group and handles un-added items', () =>
     scope.run(() => {
       const tree = component();
       tree.run(() => {
-        const group = mutable({ value: ['a'] });
+        const group = mutable({ value: ['a'], multiple: true });
         selectionGroup.set(group);
 
         const cb = aria('checkbox', { value: 'a' });
-        // toggle(false) removes 'a'
-        cb.toggle(false);
+        // deselect() removes 'a'
+        cb.deselect();
         expect(group.value).toEqual([]);
 
-        // toggle(true) adds 'a'
-        cb.toggle(true);
+        // select() adds 'a'
+        cb.select();
         expect(group.value).toEqual(['a']);
 
-        // toggle(true) on already existing item keeps 'a'
-        cb.toggle(true);
+        // select() on already existing item keeps 'a'
+        cb.select();
         expect(group.value).toEqual(['a']);
-      });
-    }));
-
-  it('supports explicit boolean in named record group toggle', () =>
-    scope.run(() => {
-      const tree = component();
-      tree.run(() => {
-        const group = mutable({ value: { active: false } });
-        selectionGroup.set(group);
-
-        const cb = aria('checkbox', { name: 'active' });
-        cb.toggle(true);
-        expect(group.value.active).toBe(true);
-
-        cb.toggle(false);
-        expect(group.value.active).toBe(false);
-
-        // Toggle without arguments
-        cb.toggle();
-        expect(group.value.active).toBe(true);
-
-        cb.toggle();
-        expect(group.value.active).toBe(false);
       });
     }));
 
@@ -158,7 +134,7 @@ describe('Checkbox - Coverage & Edge Cases', () => {
     scope.run(() => {
       const tree = component();
       tree.run(() => {
-        const group = mutable({ value: ['item-1'] });
+        const group = mutable({ value: ['item-1'], multiple: true });
         selectionGroup.set(group);
 
         const cb = aria('checkbox', { value: 'item-1' });
@@ -179,26 +155,8 @@ describe('Checkbox - Coverage & Edge Cases', () => {
         const input = bind(document.createElement('input'), cb);
         expect(input.indeterminate).toBe(false);
 
-        cb.indeterminate = true;
+        cb.props.indeterminate = true;
         expect(input.indeterminate).toBe(true);
-      });
-    }));
-
-  it('supports scoped property key with name and value on group', () =>
-    scope.run(() => {
-      const tree = component();
-      tree.run(() => {
-        const group = mutable({ value: { tags: ['news'] } });
-        selectionGroup.set(group);
-
-        const cb = aria('checkbox', { name: 'tags', value: 'news' });
-        expect(cb.checked).toBe(true);
-
-        cb.toggle();
-        expect(group.value.tags).toEqual([]);
-
-        cb.toggle();
-        expect(group.value.tags).toEqual(['news']);
       });
     }));
 
@@ -242,36 +200,16 @@ describe('Checkbox - Coverage & Edge Cases', () => {
         cb2.toggle();
         expect(group.value).toBeUndefined();
 
-        // Toggle on with explicit boolean true
-        cb.toggle(true);
+        // Select with select()
+        cb.select();
         expect(group.value).toBe('opt-1');
 
-        // Toggle off with explicit boolean false
-        cb.toggle(false);
+        // Deselect with deselect()
+        cb.deselect();
         expect(group.value).toBeUndefined();
 
-        // Toggle off with explicit boolean false when already unselected
-        cb2.toggle(false);
-        expect(group.value).toBeUndefined();
-      });
-    }));
-
-  it('coordinates membership by id when inside group without name or value props', () =>
-    scope.run(() => {
-      const tree = component();
-      tree.run(() => {
-        const group = mutable<{ value: string | undefined }>({ value: undefined });
-        selectionGroup.set(group);
-
-        const cb = aria('checkbox');
-        expect(cb.checked).toBe(false);
-
-        cb.toggle();
-        expect(cb.checked).toBe(true);
-        expect(group.value).toBe(cb.id);
-
-        cb.toggle();
-        expect(cb.checked).toBe(false);
+        // Deselect when already unselected
+        cb2.deselect();
         expect(group.value).toBeUndefined();
       });
     }));

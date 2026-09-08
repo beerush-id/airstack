@@ -1,6 +1,6 @@
 import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
-import { aria, type ListboxProps, listboxCtx } from '../../src/index.js';
+import { Aria, aria, type BaseElement, type ListboxProps, listboxCtx, roverCtx } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 describe('Listbox - Composite Specifications', () => {
@@ -17,8 +17,8 @@ describe('Listbox - Composite Specifications', () => {
           const listbox = aria('listbox');
           expect(listbox.attributes.role).toBe('listbox');
           expect(listbox.attributes['aria-orientation']).toBe('vertical');
-          expect(listbox.attributes['aria-multiselectable']).toBeUndefined();
-          expect(listbox.attributes['aria-disabled']).toBeUndefined();
+          expect(listbox.attributes['aria-multiselectable']).toBe('false');
+          expect(listbox.attributes['aria-disabled']).toBe('false');
 
           const horizontalListbox = aria('listbox', { orientation: 'horizontal' });
           expect(horizontalListbox.attributes['aria-orientation']).toBe('horizontal');
@@ -28,6 +28,9 @@ describe('Listbox - Composite Specifications', () => {
 
           const disabledListbox = aria('listbox', { disabled: true });
           expect(disabledListbox.attributes['aria-disabled']).toBe('true');
+
+          const requiredListbox = aria('listbox', { required: true });
+          expect(requiredListbox.attributes['aria-required']).toBe('true');
         });
       }));
 
@@ -38,8 +41,8 @@ describe('Listbox - Composite Specifications', () => {
           const listbox = aria('listbox', props);
 
           expect(listbox.attributes['aria-orientation']).toBe('vertical');
-          expect(listbox.attributes['aria-multiselectable']).toBeUndefined();
-          expect(listbox.attributes['aria-disabled']).toBeUndefined();
+          expect(listbox.attributes['aria-multiselectable']).toBe('false');
+          expect(listbox.attributes['aria-disabled']).toBe('false');
 
           props.orientation = 'horizontal';
           expect(listbox.attributes['aria-orientation']).toBe('horizontal');
@@ -264,6 +267,25 @@ describe('Listbox - Composite Specifications', () => {
           expect(document.activeElement).toBe(el1);
 
           listboxEl.remove();
+        });
+      }));
+
+    it('supports manual navigation, orientation fallback, and parent rover keydown guard', () =>
+      scope.run(() => {
+        component().run(() => {
+          const manualListbox = aria('listbox', { manual: false });
+          const manualEl = bind(document.createElement('div'), manualListbox);
+          manualEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
+
+          delete (manualListbox.props as Record<string, unknown>).orientation;
+          expect(manualListbox.orientation).toBe('vertical');
+
+          // Parent rover ignores keydown
+          roverCtx.set(manualListbox as unknown as Aria<BaseElement>);
+          const childListbox = aria('listbox');
+          const childEl = bind(document.createElement('div'), childListbox);
+          childEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
+          roverCtx.set(undefined);
         });
       }));
   });

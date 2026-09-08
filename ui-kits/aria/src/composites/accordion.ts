@@ -1,4 +1,4 @@
-import { $symbol, type AnyType, createContext, uIndex } from '@airlib/core';
+import { $static, $symbol, createContext, uIndex } from '@airlib/core';
 import { Aria } from '../core.js';
 import {
   SelectionAria,
@@ -8,38 +8,43 @@ import {
   type SelectionProps,
   selectionGroup,
 } from '../selection.js';
-import type { AriaAttributes, AriaOptions, AriaProps, BaseElement } from '../types.js';
+import type { AriaAttributes, AriaOptions, AriaProps, BaseElement, Orientation } from '../types.js';
 import { handleRovingKey } from '../utils/navigation.js';
 
 /**
  * Visual and keyboard orientation of the accordion group.
  */
-export type AccordionOrientation = 'vertical' | 'horizontal';
+export type AccordionOrientation = Orientation;
 
 /**
- * Ambient instance context for the enclosing AccordionGroup orchestrator.
+ * Ambient instance context for the enclosing Accordion orchestrator.
  */
-export const accordionCtx = createContext<AccordionGroupAria>();
-
-const ROLE_ACCORDION = 'accordion';
-const ROLE_REGION = 'region';
-const DEFAULT_ORIENTATION: AccordionOrientation = 'vertical';
-const ACCORDION_SELECTORS =
-  'button:not([disabled]):not([aria-disabled="true"]), [role="button"]:not([disabled]):not([aria-disabled="true"])';
+export const accordionCtx = createContext<AccordionAria>();
 
 /**
- * Reactive input properties for the AccordionGroup container orchestrator.
+ * Reactive input properties for single-expansion Accordion container.
  */
-export interface AccordionGroupProps extends SelectionGroupProps {
+export interface SingleAccordionProps extends AriaProps {
   /**
    * Explicit DOM identifier and namespace of the group.
    */
   id?: string;
 
   /**
-   * Active expanded item key, array of keys, or dictionary of boolean flags.
+   * Multiple expansion flag. Must be false for single selection.
    */
-  value?: AnyType;
+  multiple?: false;
+
+  /**
+   * Active expanded item key.
+   */
+  value?: string;
+
+  /**
+   * Whether at least one section must remain expanded in single-expand mode.
+   * @default true
+   */
+  required?: boolean;
 
   /**
    * Whether all member accordions in the group are disabled.
@@ -47,47 +52,86 @@ export interface AccordionGroupProps extends SelectionGroupProps {
   disabled?: boolean;
 
   /**
-   * Whether member accordions can be collapsed back to an empty/undefined state.
-   * Inside a group, defaults to false (one section must stay open, like Tabs).
-   * @default false
-   */
-  toggle?: boolean;
-
-  /**
-   * Visual and keyboard roving navigation orientation ('vertical' | 'horizontal').
+   * Visual and keyboard roving navigation orientation.
    * @default 'vertical'
    */
   orientation?: AccordionOrientation;
+
+  /**
+   * Whether moving focus automatically expands or requires manual activation.
+   * @default true
+   */
+  manual?: boolean;
 }
 
 /**
- * Compiled HTML and ARIA attributes for the AccordionGroup container.
+ * Reactive input properties for multiple-expansion Accordion container.
  */
-export interface AccordionGroupAttributes<E extends BaseElement = HTMLElement> extends AriaAttributes<E> {
+export interface MultipleAccordionProps extends AriaProps {
+  /**
+   * Explicit DOM identifier and namespace of the group.
+   */
+  id?: string;
+
+  /**
+   * Multiple expansion flag.
+   */
+  multiple: true;
+
+  /**
+   * Array of active expanded item keys.
+   */
+  value?: string[];
+
+  /**
+   * Whether all member accordions in the group are disabled.
+   */
+  disabled?: boolean;
+
+  /**
+   * Visual and keyboard roving navigation orientation.
+   * @default 'vertical'
+   */
+  orientation?: AccordionOrientation;
+
+  /**
+   * Whether moving focus automatically expands or requires manual activation.
+   * @default true
+   */
+  manual?: boolean;
+}
+
+/**
+ * Discriminated union of Accordion container properties.
+ */
+export type AccordionProps = SingleAccordionProps | MultipleAccordionProps;
+
+/**
+ * Compiled HTML and ARIA attributes for the Accordion container.
+ *
+ * @template E - Target Element type
+ */
+export interface AccordionAttributes<E extends BaseElement = HTMLElement> extends AriaAttributes<E> {
   id: string;
+  onkeydown?: (e: KeyboardEvent) => void;
 }
 
 /**
- * Reactive input properties for an Accordion trigger header.
+ * Reactive input properties for an AccordionButton trigger header.
  */
-export interface AccordionProps extends SelectionProps {
+export interface AccordionButtonProps extends AriaProps {
   /**
    * Explicit DOM identifier of the trigger.
    */
   id?: string;
 
   /**
-   * Semantic identity key or field name on the parent group.
+   * Semantic identity key matching paired AccordionPanel.
    */
   name?: string;
 
   /**
-   * Value payload for scalar or array collection membership.
-   */
-  value?: AnyType;
-
-  /**
-   * Whether the accordion section is currently expanded.
+   * Whether the accordion section is initially expanded when parent is uncontrolled.
    */
   expanded?: boolean;
 
@@ -98,22 +142,29 @@ export interface AccordionProps extends SelectionProps {
 }
 
 /**
- * Controller configuration options for Accordion.
+ * Controller configuration options for AccordionButton.
  */
-export interface AccordionOptions extends AriaOptions {
+export interface AccordionButtonOptions extends AriaOptions {
   /**
-   * Whether this accordion trigger can be toggled/collapsed independently.
+   * Whether bound to a native button element.
+   * @default true
    */
-  toggle?: boolean;
+  native?: boolean;
 }
 
 /**
  * Compiled HTML and ARIA attributes for the Accordion trigger button.
+ *
+ * @template E - Target Element type
  */
-export interface AccordionAttributes<E extends BaseElement = HTMLButtonElement> extends SelectionAttributes<E> {
+export interface AccordionButtonAttributes<E extends BaseElement = HTMLButtonElement> extends SelectionAttributes<E> {
   id: string;
+  type?: 'button';
+  role?: 'button';
   'aria-expanded': 'true' | 'false';
-  'aria-controls'?: string;
+  'aria-disabled'?: 'true' | 'false';
+  'aria-controls': string;
+  tabindex?: number;
 }
 
 /**
@@ -121,96 +172,96 @@ export interface AccordionAttributes<E extends BaseElement = HTMLButtonElement> 
  */
 export interface AccordionPanelProps extends AriaProps {
   /**
-   * Explicit DOM identifier of the panel.
-   */
-  id?: string;
-
-  /**
-   * Semantic identity key or field name linking to the controlling accordion trigger.
+   * Semantic identity key matching paired AccordionButton.
    */
   name?: string;
 
   /**
-   * Value payload matching the controlling accordion trigger.
+   * Explicit DOM identifier overriding automatic pair derivation.
    */
-  value?: AnyType;
-
-  /**
-   * Explicit local expansion state when used outside an accordion group.
-   */
-  expanded?: boolean;
+  id?: string;
 }
 
 /**
- * Compiled HTML and ARIA attributes for the AccordionPanel container.
+ * Compiled HTML and ARIA attributes for the AccordionPanel content container.
+ *
+ * @template E - Target Element type
  */
 export interface AccordionPanelAttributes<E extends BaseElement = HTMLElement> extends AriaAttributes<E> {
-  role: 'region';
   id: string;
-  'aria-labelledby'?: string;
+  role: typeof ROLE_REGION;
+  'aria-labelledby': string;
   hidden?: boolean;
 }
 
+const ROLE_ACCORDION = 'accordion';
+const ROLE_REGION = 'region';
+const DEFAULT_ORIENTATION: AccordionOrientation = 'vertical';
+const ACCORDION_SELECTORS =
+  'button:not([disabled]):not([aria-disabled="true"]), [role="button"]:not([disabled]):not([aria-disabled="true"])';
+
 /**
- * AccordionGroup container coordinating mutually-exclusive or multi-expand disclosure state.
+ * Root logical orchestrator managing accordion expansion state and roving keyboard navigation.
  *
- * @template E - Target Element type
+ * @template E - Target Element type (defaults to HTMLElement)
  * @template T - Reactive props type
  * @template A - Compiled attributes dictionary type
  */
-export class AccordionGroupAria<
+export class AccordionAria<
   E extends BaseElement = HTMLElement,
-  T extends AccordionGroupProps = AccordionGroupProps,
-  A extends AccordionGroupAttributes<E> = AccordionGroupAttributes<E>,
+  T extends AccordionProps = AccordionProps,
+  A extends AccordionAttributes<E> = AccordionAttributes<E>,
 > extends Aria<E, T, A> {
   /**
    * Guaranteed unique controller instance identifier generated at instantiation.
    */
-  public id: string = `${ROLE_ACCORDION}-${uIndex($symbol(ROLE_ACCORDION), true)}`;
+  public id: string = `accordion-${uIndex($symbol('accordion'), true)}`;
 
   public constructor(props: Partial<T> = {}) {
     super(props);
-    this.props.id = this.props.id ?? this.id;
-    this.props.orientation = this.props.orientation ?? DEFAULT_ORIENTATION;
-
-    accordionCtx.set(this as unknown as AccordionGroupAria);
+    $static(() => {
+      this.props.id = this.props.id ?? this.id;
+      this.props.orientation = this.props.orientation ?? DEFAULT_ORIENTATION;
+      if (!this.props.multiple) {
+        this.props.required = this.props.required ?? true;
+        this.props.manual = this.props.manual ?? true;
+      }
+    });
+    accordionCtx.set(this as unknown as AccordionAria);
     selectionGroup.set(this.props);
     this.update();
   }
 
   /**
-   * Visual and keyboard orientation inherited by roving navigation.
+   * Spawns an AccordionButtonAria trigger controller bound to this accordion instance.
+   *
+   * @template BE - Target Element type (defaults to HTMLButtonElement)
+   * @param props - AccordionButton reactive properties
+   * @param options - AccordionButton configuration options
+   * @returns Configured AccordionButtonAria instance
    */
-  public get orientation(): AccordionOrientation {
-    return this.props.orientation ?? DEFAULT_ORIENTATION;
+  public button<BE extends BaseElement = HTMLButtonElement>(
+    props?: AccordionButtonProps,
+    options?: Partial<AccordionButtonOptions>
+  ): AccordionButtonAria<BE> {
+    return new AccordionButtonAria<BE>(props, options);
   }
 
   /**
-   * Spawns an Accordion trigger controller bound to this accordion group.
+   * Spawns an AccordionPanelAria container controller bound to this accordion instance.
    *
-   * @param props - Reactive trigger properties
-   * @param options - Controller configuration options
-   * @returns Configured AccordionAria instance
-   */
-  public item<TE extends BaseElement = HTMLButtonElement>(
-    props?: Partial<AccordionProps>,
-    options?: Partial<AccordionOptions>
-  ): AccordionAria<TE> {
-    return new AccordionAria<TE>(props, options);
-  }
-
-  /**
-   * Spawns an AccordionPanel content controller bound to this accordion group.
-   *
-   * @param props - Reactive panel properties
+   * @template PE - Target Element type (defaults to HTMLElement)
+   * @param props - AccordionPanel reactive properties
    * @returns Configured AccordionPanelAria instance
    */
-  public panel<PE extends BaseElement = HTMLElement>(props?: Partial<AccordionPanelProps>): AccordionPanelAria<PE> {
+  public panel<PE extends BaseElement = HTMLElement>(props?: AccordionPanelProps): AccordionPanelAria<PE> {
     return new AccordionPanelAria<PE>(props);
   }
 
   /**
-   * Compiles HTML attributes and roving keyboard navigation handlers for the container.
+   * Compiles base attributes and roving key event handlers for the accordion root element.
+   *
+   * @returns Accordion attributes dictionary
    */
   protected override createAttributes(): A {
     return {
@@ -220,49 +271,37 @@ export class AccordionGroupAria<
 
         handleRovingKey(this.element, e, {
           selector: ACCORDION_SELECTORS,
-          orientation: this.orientation,
+          orientation: this.props.orientation ?? DEFAULT_ORIENTATION,
+          manual: this.props.manual ?? true,
         });
       },
-    } as unknown as A;
+    } as A;
   }
 }
 
 /**
- * Interactive accordion trigger button that toggles an associated content panel.
- * Standalone: acts as an independent disclosure toggle.
- * Inside group: coordinates mutually-exclusive section expansion (like Tabs).
+ * Interactive accordion trigger button that toggles paired panel visibility.
  *
  * @template E - Target Element type (defaults to HTMLButtonElement)
  * @template T - Reactive props type
  * @template A - Compiled attributes dictionary type
- * @template O - Controller options type
+ * @template O - Options dictionary type
  */
-export class AccordionAria<
+export class AccordionButtonAria<
   E extends BaseElement = HTMLButtonElement,
-  T extends AccordionProps = AccordionProps,
-  A extends AccordionAttributes<E> = AccordionAttributes<E>,
-  O extends AccordionOptions = AccordionOptions,
-> extends SelectionAria<E, T, A, SelectionOptions> {
+  T extends AccordionButtonProps = AccordionButtonProps,
+  A extends AccordionButtonAttributes<E> = AccordionButtonAttributes<E>,
+  O extends AccordionButtonOptions = AccordionButtonOptions,
+> extends SelectionAria<E, SelectionProps, A, SelectionOptions> {
   public constructor(props: Partial<T> = {}, options: Partial<O> = {}) {
-    super(props, {
+    super(props as SelectionProps, {
       native: true,
       ...options,
-      role: ROLE_ACCORDION,
-      key: 'expanded',
+      role: 'button',
+      valueKey: 'name',
     });
-
     this.omittedAttrs.push('id', 'aria-controls');
     this.update();
-  }
-
-  /**
-   * Whether the accordion item toggles on click.
-   * Standalone disclosure widgets default to true (independent collapse).
-   * Inside a group, defaults to false (one section must stay open, like Tabs).
-   */
-  public override get isToggle(): boolean {
-    if (!this.group) return this.options.toggle ?? true;
-    return super.isToggle;
   }
 
   /**
@@ -277,26 +316,29 @@ export class AccordionAria<
   }
 
   /**
-   * Compiles HTML and WAI-ARIA attributes for the accordion trigger button.
+   * Compiles HTML and ARIA attributes for the accordion trigger button.
+   *
+   * @returns AccordionButton attributes dictionary
    */
   protected override createAttributes(): A {
     const scope = this.group?.id ? `${this.group.id}-` : '';
-    const key = this.key;
+    const value = this.value;
     const isExpanded = this.expanded;
 
     return Object.assign(super.createAttributes(), {
-      id: this.props.id ?? `${scope}${ROLE_ACCORDION}-${key}`,
-      role: this.isNative ? undefined : 'button',
+      id: this.props.id ?? `${scope}${ROLE_ACCORDION}-${value}`,
       type: this.isNative ? 'button' : undefined,
+      role: this.isNative ? undefined : 'button',
       'aria-expanded': isExpanded ? 'true' : 'false',
-      'aria-controls': `${scope}${ROLE_REGION}-${key}`,
+      'aria-disabled': this.disabled ? 'true' : 'false',
+      'aria-controls': `${scope}${ROLE_REGION}-${value}`,
       tabindex: this.isNative ? undefined : this.disabled ? -1 : 0,
-    }) as unknown as A;
+    }) as A;
   }
 }
 
 /**
- * Collapsible content region associated with a specific accordion trigger.
+ * Accordion content section revealed or collapsed by its paired trigger button.
  *
  * @template E - Target Element type (defaults to HTMLElement)
  * @template T - Reactive props type
@@ -319,46 +361,42 @@ export class AccordionPanelAria<
 
   public constructor(props: Partial<T> = {}) {
     super(props);
-
     this.group = selectionGroup.get();
     this.omittedAttrs.push('id', 'aria-labelledby');
     this.update();
   }
 
   /**
-   * Semantic identity key resolved with fallbacks: name -> value -> id.
+   * Semantic identity key resolved with fallbacks: name -> id.
    */
   public get key(): string {
-    return this.props.name ?? this.props.value ?? this.props.id ?? this.id;
+    return this.props.name ?? this.props.id ?? this.id;
   }
 
   /**
-   * Whether this panel's paired accordion trigger is currently expanded.
+   * Whether this panel's paired accordion button is currently active.
    */
   public get expanded(): boolean {
-    if (this.group) {
-      const value = this.group.value;
-      if (value === undefined) return false;
-      if (Array.isArray(value)) return value.includes(this.key);
-      if (typeof value === 'object' && value !== null) return !!(value as Record<string, unknown>)[this.key];
-      return value === this.key;
+    if (this.group?.multiple) {
+      return Array.isArray(this.group.value) && this.group.value.includes(this.key);
     }
-    return !!this.props.expanded;
+    return this.group?.value === this.key;
   }
 
   /**
-   * Compiles HTML and WAI-ARIA attributes for the collapsible accordion panel.
+   * Compiles HTML and ARIA attributes for the accordion content section.
+   *
+   * @returns AccordionPanel attributes dictionary
    */
   protected override createAttributes(): A {
     const scope = this.group?.id ? `${this.group.id}-` : '';
     const key = this.key;
-    const isExpanded = this.expanded;
 
     return {
-      role: ROLE_REGION,
       id: this.props.id ?? `${scope}${ROLE_REGION}-${key}`,
+      role: ROLE_REGION,
       'aria-labelledby': `${scope}${ROLE_ACCORDION}-${key}`,
-      hidden: !isExpanded,
-    } as unknown as A;
+      hidden: !this.expanded,
+    } as A;
   }
 }

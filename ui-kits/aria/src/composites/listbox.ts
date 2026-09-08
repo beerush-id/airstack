@@ -1,15 +1,15 @@
-import { $static, $symbol, type AnyType, createContext, uIndex } from '@airlib/core';
+import { $static, $symbol, createContext, uIndex } from '@airlib/core';
 import { roverCtx } from '../context.js';
 import { Aria } from '../core.js';
 import { selectionGroup } from '../selection.js';
-import type { AriaAttributes, AriaProps, BaseElement } from '../types.js';
+import type { AriaAttributes, AriaProps, BaseElement, Orientation, Primitive } from '../types.js';
 import { handleRovingKey } from '../utils/navigation.js';
 import { OptionAria, type OptionOptions, type OptionProps } from '../widgets/option.js';
 
 /**
  * Visual and keyboard orientation of the listbox.
  */
-export type ListboxOrientation = 'vertical' | 'horizontal';
+export type ListboxOrientation = Orientation;
 
 /**
  * Ambient instance context for the enclosing Listbox orchestrator.
@@ -17,36 +17,85 @@ export type ListboxOrientation = 'vertical' | 'horizontal';
 export const listboxCtx = createContext<ListboxAria>();
 
 /**
- * Reactive input properties for the Listbox container orchestrator.
+ * Reactive input properties for single-select ListboxAria.
+ *
+ * @template T - Candidate option value type
  */
-export interface ListboxProps extends AriaProps {
+export interface SingleListboxProps<T extends Primitive = Primitive> extends AriaProps {
+  multiple?: false;
+
   /**
    * Explicit DOM identifier and group namespace.
    */
   id?: string;
 
   /**
-   * Currently selected option value, array of values (multi-select), or dictionary of boolean flags.
+   * Active option value.
    */
-  value?: AnyType;
+  value?: T;
 
   /**
-   * Whether multiple options can be selected simultaneously.
-   * Automatically inferred if `value` is initialized as an array.
+   * Focus movement axis and aria-orientation.
+   * @default 'vertical'
    */
-  multiple?: boolean;
+  orientation?: ListboxOrientation;
+
+  /**
+   * When true, arrows move focus without selecting until Enter/Space.
+   * @default true
+   */
+  manual?: boolean;
+
+  /**
+   * Enforces a selection constraint requiring a non-empty value.
+   */
+  required?: boolean;
 
   /**
    * Whether user interaction is disabled across the entire listbox.
    */
   disabled?: boolean;
+}
+
+/**
+ * Reactive input properties for multi-select ListboxAria.
+ *
+ * @template T - Candidate option value type
+ */
+export interface MultipleListboxProps<T extends Primitive = Primitive> extends AriaProps {
+  multiple: true;
 
   /**
-   * Visual and keyboard navigation orientation of the options.
+   * Explicit DOM identifier and group namespace.
+   */
+  id?: string;
+
+  /**
+   * Array of active option values.
+   */
+  value?: T[];
+
+  /**
+   * Focus movement axis and aria-orientation.
    * @default 'vertical'
    */
   orientation?: ListboxOrientation;
+
+  /**
+   * Enforces a selection constraint requiring a non-empty value.
+   */
+  required?: boolean;
+
+  /**
+   * Whether user interaction is disabled across the entire listbox.
+   */
+  disabled?: boolean;
 }
+
+/**
+ * Reactive input properties for the Listbox container orchestrator.
+ */
+export type ListboxProps<T extends Primitive = Primitive> = SingleListboxProps<T> | MultipleListboxProps<T>;
 
 /**
  * Compiled HTML and ARIA attributes for a listbox container element.
@@ -58,6 +107,7 @@ export interface ListboxAttributes<E extends BaseElement = HTMLElement> extends 
   tabindex?: number;
   'aria-multiselectable'?: 'true' | 'false';
   'aria-orientation'?: ListboxOrientation;
+  'aria-required'?: 'true' | 'false';
   'aria-disabled'?: 'true' | 'false';
 }
 
@@ -83,7 +133,7 @@ export class ListboxAria<
   public constructor(props: Partial<T> = {}) {
     super(props);
     $static(() => {
-      this.props.id = this.props.id ?? `listbox-${uIndex($symbol(ROLE_LISTBOX), true)}`;
+      this.props.id = this.props.id ?? `${ROLE_LISTBOX}-${uIndex($symbol(ROLE_LISTBOX), true)}`;
     });
     listboxCtx.set(this as unknown as ListboxAria);
     roverCtx.set(this as unknown as Aria<BaseElement>);
@@ -111,7 +161,7 @@ export class ListboxAria<
    * Whether multiple options may be selected concurrently.
    */
   public get multiple(): boolean {
-    return !!this.props.multiple || Array.isArray(this.props.value);
+    return !!this.props.multiple;
   }
 
   /**
@@ -134,19 +184,23 @@ export class ListboxAria<
   protected override createAttributes(): A {
     const disabled = this.disabled;
     const orientation = this.orientation;
+    const isMultiple = this.multiple;
 
     return Object.assign(super.createAttributes(), {
       id: this.props.id,
       role: ROLE_LISTBOX,
+      tabindex: disabled ? -1 : 0,
       'aria-orientation': orientation,
-      'aria-multiselectable': this.multiple ? 'true' : undefined,
-      'aria-disabled': disabled ? 'true' : undefined,
+      'aria-multiselectable': isMultiple ? 'true' : 'false',
+      'aria-required': this.props.required ? 'true' : undefined,
+      'aria-disabled': disabled ? 'true' : 'false',
       onkeydown: (e: KeyboardEvent) => {
         if (disabled || this.parentRover) return;
 
         handleRovingKey(this.element, e, {
           selector: OPTION_SELECTORS,
           orientation,
+          manual: this.props.manual ?? true,
         });
       },
     }) as A;

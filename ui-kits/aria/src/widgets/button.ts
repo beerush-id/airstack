@@ -1,9 +1,8 @@
-import type { AnyType } from '@airlib/core';
-import { SelectionAria, type SelectionAttributes, type SelectionOptions } from '../selection.js';
-import type { AriaOptions, AriaProps, BaseElement } from '../types.js';
+import { Aria } from '../core.js';
+import type { AriaAttributes, AriaOptions, AriaProps, BaseElement } from '../types.js';
 
 /**
- * Reactive inputs for ButtonAria.
+ * Reactive input properties for ButtonAria.
  */
 export interface ButtonProps extends AriaProps {
   /**
@@ -12,50 +11,32 @@ export interface ButtonProps extends AriaProps {
   type?: 'button' | 'submit' | 'reset';
 
   /**
-   * Whether the button is in a pressed/active toggle state.
-   */
-  pressed?: boolean;
-
-  /**
    * Whether the button is disabled from user interaction.
    */
   disabled?: boolean;
-
-  /**
-   * Semantic identity key or field name on the parent group or form.
-   */
-  name?: string;
-
-  /**
-   * Value payload for collection membership or form submission.
-   */
-  value?: AnyType;
 }
 
 /**
  * Behavioral configuration options for ButtonAria.
  */
-export interface ButtonOptions extends AriaOptions {
-  /**
-   * Whether the button can toggle between pressed and unpressed states.
-   */
-  toggle?: boolean;
-}
+export interface ButtonOptions extends AriaOptions {}
 
 /**
  * Compiled HTML and ARIA attributes for a button element.
  *
  * @template E - Target Element type (defaults to HTMLButtonElement)
  */
-export interface ButtonAttributes<E extends BaseElement = HTMLButtonElement> extends SelectionAttributes<E> {
+export interface ButtonAttributes<E extends BaseElement = HTMLButtonElement> extends AriaAttributes<E> {
   role?: 'button';
   type?: 'button' | 'submit' | 'reset';
-  'aria-pressed'?: 'true' | 'false';
+  disabled?: boolean;
+  tabindex?: number;
+  'aria-disabled'?: 'true' | 'false';
 }
 
 /**
- * Universal WAI-ARIA button controller supporting action triggers, toggle states,
- * group selection sync, and native button equivalence for custom non-native elements.
+ * Headless WAI-ARIA button controller that compiles native button type/disabled attributes
+ * or polyfills non-native elements with ARIA semantics and Space/Enter keyboard activation.
  *
  * @template E - Target Element type (defaults to HTMLButtonElement)
  * @template T - Reactive props type
@@ -67,16 +48,14 @@ export class ButtonAria<
   T extends ButtonProps = ButtonProps,
   A extends ButtonAttributes<E> = ButtonAttributes<E>,
   O extends ButtonOptions = ButtonOptions,
-> extends SelectionAria<E, T, A, SelectionOptions> {
+> extends Aria<E, T, A, O> {
   public constructor(props: Partial<T> = {}, options: O = {} as O) {
     super(props, {
       native: true,
       ...options,
-      role: 'button',
-      key: 'pressed',
     });
 
-    this.omittedAttrs.push('role', 'aria-pressed');
+    this.omittedAttrs.push('role', 'type', 'disabled', 'tabindex', 'aria-disabled');
     this.update();
   }
 
@@ -84,45 +63,14 @@ export class ButtonAria<
    * The button's functional behavior type.
    */
   public get type(): 'button' | 'submit' | 'reset' {
-    if (this.group) return 'button';
     return this.props.type ?? 'button';
   }
 
   /**
-   * Whether the button is in a pressed/active toggle state.
+   * Whether the button is disabled from user interaction.
    */
-  public get pressed(): boolean {
-    return this.selected;
-  }
-
-  public set pressed(value: boolean) {
-    this.selected = value;
-  }
-
-  /**
-   * Activates the button, executing appropriate transitions across form submission,
-   * group coordination, and toggle modes.
-   */
-  public override select(): void {
-    if (this.disabled) return;
-
-    if (this.type === 'submit') {
-      if (!this.isNative) {
-        (this.element?.closest('form') as HTMLFormElement | null)?.requestSubmit();
-      }
-      return;
-    }
-
-    if (this.type === 'reset') {
-      if (!this.isNative) {
-        (this.element?.closest('form') as HTMLFormElement | null)?.reset();
-      }
-      return;
-    }
-
-    if (this.group || this.isToggle) {
-      super.select();
-    }
+  public get disabled(): boolean {
+    return !!this.props.disabled;
   }
 
   /**
@@ -131,20 +79,45 @@ export class ButtonAria<
    * @returns Button attributes dictionary
    */
   protected override createAttributes(): A {
-    const isNative = this.isNative;
-
-    const attrs = Object.assign(super.createAttributes(), {
-      type: this.type,
-    });
-
-    if (!isNative) {
-      attrs.role = 'button';
+    if (this.isNative) {
+      return {
+        type: this.type,
+        disabled: this.disabled,
+      } as unknown as A;
     }
 
-    if (this.group || this.isToggle) {
-      attrs['aria-pressed'] = this.selected ? 'true' : 'false';
-    }
+    const isDisabled = this.disabled;
 
-    return attrs as A;
+    return {
+      role: 'button',
+      tabindex: isDisabled ? -1 : 0,
+      'aria-disabled': isDisabled ? 'true' : 'false',
+      onclick: () => {
+        if (isDisabled) return;
+
+        if (this.type === 'submit') {
+          (this.element?.closest('form') as HTMLFormElement | null)?.requestSubmit();
+        } else if (this.type === 'reset') {
+          (this.element?.closest('form') as HTMLFormElement | null)?.reset();
+        }
+      },
+      onkeydown: (e: KeyboardEvent) => {
+        if (isDisabled) return;
+
+        if (e.key === ' ') {
+          e.preventDefault();
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          (e.currentTarget as HTMLElement)?.click?.();
+        }
+      },
+      onkeyup: (e: KeyboardEvent) => {
+        if (isDisabled) return;
+
+        if (e.key === ' ') {
+          (e.currentTarget as HTMLElement)?.click?.();
+        }
+      },
+    } as unknown as A;
   }
 }

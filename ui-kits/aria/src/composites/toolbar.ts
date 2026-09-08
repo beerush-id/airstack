@@ -1,9 +1,8 @@
 import { createContext } from '@airlib/core';
 import { roverCtx } from '../context.js';
 import { Aria } from '../core.js';
-import type { AriaAttributes, AriaProps, BaseElement } from '../types.js';
+import type { AriaAttributes, AriaProps, BaseElement, Orientation } from '../types.js';
 import { handleRovingKey } from '../utils/navigation.js';
-import { ButtonAria, type ButtonOptions, type ButtonProps } from '../widgets/button.js';
 
 /**
  * Ambient instance context for the enclosing Toolbar orchestrator.
@@ -18,7 +17,7 @@ export interface ToolbarProps extends AriaProps {
    * Visual and keyboard navigation orientation of the toolbar.
    * @default 'horizontal'
    */
-  orientation?: 'horizontal' | 'vertical';
+  orientation?: Orientation;
 
   /**
    * Whether user interaction is disabled across the entire toolbar.
@@ -33,8 +32,8 @@ export interface ToolbarProps extends AriaProps {
  */
 export interface ToolbarAttributes<E extends BaseElement = HTMLElement> extends AriaAttributes<E> {
   role?: 'toolbar';
-  'aria-orientation'?: 'horizontal' | 'vertical';
-  'aria-disabled'?: boolean;
+  'aria-orientation'?: Orientation;
+  'aria-disabled'?: 'true' | 'false';
 }
 
 /**
@@ -63,23 +62,9 @@ export class ToolbarAria<
   }
 
   /**
-   * Spawns a ButtonAria controller bound to this toolbar.
-   *
-   * @param props - Reactive button properties
-   * @param options - Button controller configuration options
-   * @returns Configured ButtonAria instance
-   */
-  public button<TE extends BaseElement = HTMLButtonElement>(
-    props?: Partial<ButtonProps>,
-    options?: ButtonOptions
-  ): ButtonAria<TE> {
-    return new ButtonAria<TE>(props, options);
-  }
-
-  /**
    * Visual and keyboard navigation orientation of the toolbar.
    */
-  public get orientation(): NonNullable<ToolbarProps['orientation']> {
+  public get orientation(): Orientation {
     return this.props.orientation ?? 'horizontal';
   }
 
@@ -102,7 +87,7 @@ export class ToolbarAria<
     return Object.assign(super.createAttributes(), {
       role: 'toolbar',
       'aria-orientation': orientation,
-      'aria-disabled': disabled,
+      'aria-disabled': disabled ? 'true' : 'false',
       onkeydown: (e: KeyboardEvent) => {
         if (disabled || this.parentRover) return;
 

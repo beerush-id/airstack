@@ -405,4 +405,9 @@ describe('Core - Coverage & Edge Cases', () => {
   it('throws an error for unsupported aria roles in aria() factory', () => {
     expect(() => aria('unsupported-role' as never)).toThrowError('Unsupported aria role: unsupported-role');
   });
+
+  it('exposes ownKeys combining attributes and omittedAttrs', () => {
+    const widget = new Aria();
+    expect(widget.ownKeys).toBeInstanceOf(Array);
+  });
 });

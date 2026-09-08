@@ -1,6 +1,6 @@
 import { createLifecycle } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
-import { Aria, aria, JSXTranslator, radioGroupCtx, toolbarCtx } from '../../src/index.js';
+import { Aria, aria, type BaseElement, JSXTranslator, roverCtx, ToolbarAria } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 describe('Toolbar - Composite Specifications', () => {
@@ -33,7 +33,24 @@ describe('Toolbar - Composite Specifications', () => {
       scope.run(() => {
         component().run(() => {
           const toolbar = aria('toolbar', { disabled: true });
-          expect(toolbar.attributes['aria-disabled']).toBe(true);
+          expect(toolbar.attributes['aria-disabled']).toBe('true');
+
+          const disabledToolbar = aria('toolbar', { disabled: true });
+          const disabledEl = bind(document.createElement('div'), disabledToolbar);
+          disabledEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+
+          // Parent rover ignores keydown
+          roverCtx.set(toolbar as unknown as Aria<BaseElement>);
+          const childToolbar = aria('toolbar');
+          const childEl = bind(document.createElement('div'), childToolbar);
+          childEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+          roverCtx.set(undefined);
+
+          delete (toolbar.props as Record<string, unknown>).orientation;
+          expect(toolbar.orientation).toBe('horizontal');
+
+          const defaultToolbar = new ToolbarAria();
+          expect(defaultToolbar.orientation).toBe('horizontal');
         });
       }));
   });
@@ -46,9 +63,9 @@ describe('Toolbar - Composite Specifications', () => {
           const toolbarEl = bind(document.createElement('div'), toolbar);
           document.body.appendChild(toolbarEl);
 
-          const b1 = toolbar.button();
-          const b2 = toolbar.button();
-          const b3 = toolbar.button();
+          const b1 = aria('button');
+          const b2 = aria('button');
+          const b3 = aria('button');
 
           const btn1 = bind(document.createElement('button'), b1);
           const btn2 = bind(document.createElement('button'), b2);
@@ -92,8 +109,8 @@ describe('Toolbar - Composite Specifications', () => {
           const toolbarEl = bind(document.createElement('div'), toolbar);
           document.body.appendChild(toolbarEl);
 
-          const b1 = toolbar.button();
-          const b2 = toolbar.button();
+          const b1 = aria('button');
+          const b2 = aria('button');
 
           const btn1 = bind(document.createElement('button'), b1);
           const btn2 = bind(document.createElement('button'), b2);
@@ -122,9 +139,9 @@ describe('Toolbar - Composite Specifications', () => {
           const toolbarEl = bind(document.createElement('div'), toolbar);
           document.body.appendChild(toolbarEl);
 
-          const btn1 = bind(document.createElement('button'), toolbar.button());
-          const btn2 = bind(document.createElement('button'), toolbar.button());
-          const btn3 = bind(document.createElement('button'), toolbar.button());
+          const btn1 = bind(document.createElement('button'), aria('button'));
+          const btn2 = bind(document.createElement('button'), aria('button'));
+          const btn3 = bind(document.createElement('button'), aria('button'));
 
           toolbarEl.appendChild(btn1);
           toolbarEl.appendChild(btn2);
@@ -152,8 +169,8 @@ describe('Toolbar - Composite Specifications', () => {
           document.body.appendChild(toolbarEl);
 
           let clicked = false;
-          const btn1 = bind(document.createElement('button'), toolbar.button());
-          const btn2 = bind(document.createElement('button'), toolbar.button());
+          const btn1 = bind(document.createElement('button'), aria('button'));
+          const btn2 = bind(document.createElement('button'), aria('button'));
           btn2.addEventListener('click', () => {
             clicked = true;
           });
@@ -178,8 +195,8 @@ describe('Toolbar - Composite Specifications', () => {
           const toolbarEl = bind(document.createElement('div'), toolbar);
           document.body.appendChild(toolbarEl);
 
-          const btn1 = bind(document.createElement('button'), toolbar.button());
-          const btn2 = bind(document.createElement('button'), toolbar.button());
+          const btn1 = bind(document.createElement('button'), aria('button'));
+          const btn2 = bind(document.createElement('button'), aria('button'));
 
           toolbarEl.appendChild(btn1);
           toolbarEl.appendChild(btn2);
@@ -204,8 +221,8 @@ describe('Toolbar - Composite Specifications', () => {
           const toolbarEl = bind(document.createElement('div'), toolbar);
           document.body.appendChild(toolbarEl);
 
-          const btn1 = bind(document.createElement('button'), toolbar.button());
-          const btn2 = bind(document.createElement('button'), toolbar.button());
+          const btn1 = bind(document.createElement('button'), aria('button'));
+          const btn2 = bind(document.createElement('button'), aria('button'));
           toolbarEl.appendChild(btn1);
           toolbarEl.appendChild(btn2);
 
@@ -247,7 +264,7 @@ describe('Toolbar - Composite Specifications', () => {
           document.body.appendChild(toolbarEl);
 
           // 1. Standalone leading button (e.g. Undo)
-          const undoBtn = bind(document.createElement('button'), toolbar.button());
+          const undoBtn = bind(document.createElement('button'), aria('button'));
           toolbarEl.appendChild(undoBtn);
 
           // 2. Nested group (e.g. Alignment: Left, Center, Right)
@@ -263,7 +280,7 @@ describe('Toolbar - Composite Specifications', () => {
           alignGroupEl.appendChild(rightRadio);
 
           // 3. Standalone trailing button (e.g. Redo)
-          const redoBtn = bind(document.createElement('button'), toolbar.button());
+          const redoBtn = bind(document.createElement('button'), aria('button'));
           toolbarEl.appendChild(redoBtn);
 
           const outsideAfter = document.createElement('button');
@@ -330,7 +347,7 @@ describe('Toolbar - Composite Specifications', () => {
               style: { padding: '8px' },
             }));
 
-            const button = toolbar.button({ pressed: true }, { toggle: true });
+            const button = aria('toggle', { pressed: true });
             button.refine(() => ({
               class: 'toolbar-item',
               tabindex: 0,

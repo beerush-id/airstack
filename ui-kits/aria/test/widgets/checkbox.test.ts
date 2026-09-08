@@ -21,17 +21,17 @@ describe('Checkbox - Contract Specifications', () => {
           expect(cb.current).toBeNull();
           expect(cb.checked).toBe(false);
           expect(cb.isNative).toBe(true);
-          expect(cb.attributes.tabindex).toBe(0);
+          expect(cb.attributes.tabindex).toBeUndefined();
           expect(cb.attributes.type).toBe('checkbox');
           expect(cb.attributes.disabled).toBe(false);
-          expect(cb.attributes['aria-disabled']).toBe('false');
+          expect(cb.attributes['aria-disabled']).toBeUndefined();
           expect(cb.attributes.checked).toBe(false);
 
           // 2. Mount Phase: framework element binding
           const input = bind(document.createElement('input'), cb);
           expect(cb.current).toBe(input);
           expect(cb.isNative).toBe(true);
-          expect(input.getAttribute('tabindex')).toBe('0');
+          expect(input.getAttribute('tabindex')).toBeNull();
           expect(input.checked).toBe(false);
 
           // 3. Interaction Phase: user clicks to check
@@ -105,7 +105,7 @@ describe('Checkbox - Contract Specifications', () => {
 
           // 1. SSR Phase: native uses indeterminate attribute/property
           expect(cb.current).toBeNull();
-          expect(cb.indeterminate).toBe(true);
+          expect(cb.props.indeterminate).toBe(true);
           expect(cb.attributes.indeterminate).toBe(true);
           expect(cb.attributes['aria-checked']).toBeUndefined();
 
@@ -114,10 +114,9 @@ describe('Checkbox - Contract Specifications', () => {
           expect(cb.current).toBe(input);
           expect(input.indeterminate).toBe(true);
 
-          // 3. Interaction Phase: clicking an indeterminate checkbox checks it and clears mixed state
+          // 3. Interaction Phase: clicking an indeterminate checkbox checks it and clears native mixed state
           input.click();
           expect(cb.checked).toBe(true);
-          expect(cb.indeterminate).toBe(false);
           expect(input.checked).toBe(true);
           expect(input.indeterminate).toBe(false);
 
@@ -131,11 +130,12 @@ describe('Checkbox - Contract Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const cb = aria<HTMLDivElement>('checkbox', { indeterminate: true, checked: false }, { native: false });
+          const props = mutable({ indeterminate: true, checked: false });
+          const cb = aria<HTMLDivElement>('checkbox', props, { native: false });
 
           // 1. SSR Phase: custom element uses pure aria-checked="mixed"
           expect(cb.current).toBeNull();
-          expect(cb.indeterminate).toBe(true);
+          expect(cb.props.indeterminate).toBe(true);
           expect(cb.attributes['aria-checked']).toBe('mixed');
           expect(cb.attributes.indeterminate).toBeUndefined();
 
@@ -145,9 +145,9 @@ describe('Checkbox - Contract Specifications', () => {
           expect(div.getAttribute('aria-checked')).toBe('mixed');
 
           // 3. Interaction Phase
+          props.indeterminate = false;
           div.click();
           expect(cb.checked).toBe(true);
-          expect(cb.indeterminate).toBe(false);
           expect(div.getAttribute('aria-checked')).toBe('true');
 
           cb.destroy();
@@ -167,15 +167,15 @@ describe('Checkbox - Contract Specifications', () => {
           expect(cb.current).toBeNull();
           expect(cb.disabled).toBe(true);
           expect(cb.attributes.disabled).toBe(true);
-          expect(cb.attributes.tabindex).toBe(-1);
-          expect(cb.attributes['aria-disabled']).toBe('true');
+          expect(cb.attributes.tabindex).toBeUndefined();
+          expect(cb.attributes['aria-disabled']).toBeUndefined();
 
           // 2. Mount Phase
           const input = bind(document.createElement('input'), cb);
           expect(cb.current).toBe(input);
           expect(input.disabled).toBe(true);
-          expect(input.getAttribute('tabindex')).toBe('-1');
-          expect(input.getAttribute('aria-disabled')).toBe('true');
+          expect(input.getAttribute('tabindex')).toBeNull();
+          expect(input.getAttribute('aria-disabled')).toBeNull();
 
           // 3. Interaction Phase: click is rejected
           input.click();
@@ -212,15 +212,15 @@ describe('Checkbox - Contract Specifications', () => {
           props.disabled = true;
           expect(cb.disabled).toBe(true);
           expect(input.disabled).toBe(true);
-          expect(input.getAttribute('tabindex')).toBe('-1');
-          expect(input.getAttribute('aria-disabled')).toBe('true');
+          expect(input.getAttribute('tabindex')).toBeNull();
+          expect(input.getAttribute('aria-disabled')).toBeNull();
 
           // Parent re-enables and updates checked
           props.disabled = false;
           props.checked = true;
           expect(cb.disabled).toBe(false);
           expect(input.disabled).toBe(false);
-          expect(input.getAttribute('tabindex')).toBe('0');
+          expect(input.getAttribute('tabindex')).toBeNull();
           expect(input.checked).toBe(true);
 
           // User interaction mutates the forwarded props directly
@@ -304,7 +304,7 @@ describe('Checkbox - Contract Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const group = mutable({ value: ['newsletter'] });
+          const group = mutable({ value: ['newsletter'], multiple: true });
           selectionGroup.set(group);
 
           const newsCb = aria('checkbox', { value: 'newsletter' });
@@ -340,46 +340,11 @@ describe('Checkbox - Contract Specifications', () => {
         });
       }));
 
-    it('toggles named boolean properties on group record across SSR -> Mount -> Interaction', () =>
-      scope.run(() => {
-        const tree = component();
-        tree.run(() => {
-          const group = mutable({ value: { email: true, sms: false } });
-          selectionGroup.set(group);
-
-          const emailCb = aria('checkbox', { name: 'email' });
-          const smsCb = aria('checkbox', { name: 'sms' });
-
-          // 1. SSR Phase
-          expect(emailCb.attributes.checked).toBe(true);
-          expect(smsCb.attributes.checked).toBe(false);
-
-          // 2. Mount Phase
-          const emailEl = bind(document.createElement('input'), emailCb);
-          const smsEl = bind(document.createElement('input'), smsCb);
-          expect(emailEl.checked).toBe(true);
-          expect(smsEl.checked).toBe(false);
-
-          // 3. Interaction Phase
-          smsEl.click();
-          expect(group.value.sms).toBe(true);
-          expect(smsCb.checked).toBe(true);
-
-          emailEl.click();
-          expect(group.value.email).toBe(false);
-          expect(emailCb.checked).toBe(false);
-
-          // 4. Disposal Phase
-          emailCb.destroy();
-          smsCb.destroy();
-        });
-      }));
-
     it('cascades group disablement to member checkboxes across SSR -> Mount -> Interaction', () =>
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const group = mutable({ value: ['item-1'], disabled: true });
+          const group = mutable({ value: ['item-1'], multiple: true, disabled: true });
           selectionGroup.set(group);
 
           const cb = aria('checkbox', { value: 'item-1' });
@@ -387,13 +352,13 @@ describe('Checkbox - Contract Specifications', () => {
           // 1. SSR Phase
           expect(cb.disabled).toBe(true);
           expect(cb.attributes.disabled).toBe(true);
-          expect(cb.attributes.tabindex).toBe(-1);
-          expect(cb.attributes['aria-disabled']).toBe('true');
+          expect(cb.attributes.tabindex).toBeUndefined();
+          expect(cb.attributes['aria-disabled']).toBeUndefined();
 
           // 2. Mount Phase
           const input = bind(document.createElement('input'), cb);
           expect(input.disabled).toBe(true);
-          expect(input.getAttribute('tabindex')).toBe('-1');
+          expect(input.getAttribute('tabindex')).toBeNull();
 
           // 3. Interaction Phase: click rejected
           input.click();
@@ -410,7 +375,7 @@ describe('Checkbox - Contract Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const group = mutable({ value: ['item-1'], disabled: false });
+          const group = mutable({ value: ['item-1'], multiple: true, disabled: false });
           selectionGroup.set(group);
 
           const cb = aria('checkbox', { value: 'item-1' });
@@ -429,13 +394,13 @@ describe('Checkbox - Contract Specifications', () => {
           group.disabled = true;
           expect(input.checked).toBe(true);
           expect(input.disabled).toBe(false);
-          expect(input.getAttribute('tabindex')).toBe('0');
+          expect(input.getAttribute('tabindex')).toBeNull();
         });
       }));
 
     it('disposes ambient group synchronization effects when component tree unmounts', () =>
       scope.run(() => {
-        const group = mutable({ value: ['item-1'] });
+        const group = mutable({ value: ['item-1'], multiple: true });
         selectionGroup.set(group);
 
         let cb!: CheckboxAria;

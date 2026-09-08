@@ -1,6 +1,6 @@
 import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
-import { aria, type RadioGroupProps, radioGroupCtx } from '../../src/index.js';
+import { Aria, aria, type BaseElement, type RadioGroupProps, radioGroupCtx, roverCtx } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 describe('RadioGroup - Composite Specifications', () => {
@@ -19,6 +19,9 @@ describe('RadioGroup - Composite Specifications', () => {
 
         const horizontalGroup = aria('radiogroup', { orientation: 'horizontal' });
         expect(horizontalGroup.attributes['aria-orientation']).toBe('horizontal');
+
+        const requiredGroup = aria('radiogroup', { required: true });
+        expect(requiredGroup.attributes['aria-required']).toBe('true');
       });
     }));
 
@@ -91,15 +94,34 @@ describe('RadioGroup - Composite Specifications', () => {
         groupEl.appendChild(input1);
         groupEl.appendChild(input2);
 
-        input1.focus();
+        expect(input1.disabled).toBe(true);
+        expect(input2.disabled).toBe(true);
 
         const downEvent = new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true });
         groupEl.dispatchEvent(downEvent);
 
         expect(group.props.value).toBe('opt-1');
-        expect(document.activeElement).toBe(input1);
 
         groupEl.remove();
+      });
+    }));
+
+  it('supports manual navigation, orientation fallback, and parent rover keydown guard', () =>
+    scope.run(() => {
+      component().run(() => {
+        const manualGroup = aria('radiogroup', { manual: true });
+        const manualEl = bind(document.createElement('div'), manualGroup);
+        manualEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
+
+        delete (manualGroup.props as Record<string, unknown>).orientation;
+        expect(manualGroup.orientation).toBe('vertical');
+
+        // Parent rover ignores keydown
+        roverCtx.set(manualGroup as unknown as Aria<BaseElement>);
+        const childGroup = aria('radiogroup');
+        const childEl = bind(document.createElement('div'), childGroup);
+        childEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
+        roverCtx.set(undefined);
       });
     }));
 });

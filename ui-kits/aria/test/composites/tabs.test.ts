@@ -1,13 +1,13 @@
 import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
-import { aria, TabsAria, type TabsProps } from '../../src/index.js';
+import { Aria, aria, type BaseElement, roverCtx, TabAria, TabButtonAria, TabPanelAria, type TabButtonProps, type TabPanelProps, type TabProps } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 describe('Tabs - User Expectations & A11y Specifications', () => {
   const scope = createLifecycle();
 
   afterAll(() => {
-    TabsAria.configure({ orientation: 'horizontal' });
+    TabAria.configure({ orientation: 'horizontal' });
     scope.destroy();
   });
 
@@ -16,12 +16,12 @@ describe('Tabs - User Expectations & A11y Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const props = mutable<TabsProps>({ id: 'account', value: 'profile' });
-          const tabs = aria('tabs', props);
+          const props = mutable<TabProps>({ id: 'account', value: 'profile' });
+          const tabs = aria('tab', props);
 
           const list = tabs.list();
-          const tabProfile = tabs.tab({ name: 'profile' });
-          const tabSecurity = tabs.tab({ name: 'security' });
+          const tabProfile = tabs.button({ name: 'profile' });
+          const tabSecurity = tabs.button({ name: 'security' });
 
           const panelProfile = tabs.panel({ name: 'profile' });
           const panelSecurity = tabs.panel({ name: 'security' });
@@ -70,15 +70,15 @@ describe('Tabs - User Expectations & A11y Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const tabs = aria('tabs', { value: 'general' });
-          const tab = tabs.tab({ name: 'general' });
+          const tabs = aria('tab', { value: 'general' });
+          const tab = tabs.button({ name: 'general' });
           const panel = tabs.panel({ name: 'general' });
 
-          expect(tabs.attributes.id).toBe('tabs-1');
-          expect(tab.attributes.id).toBe('tabs-1-tab-general');
-          expect(tab.attributes['aria-controls']).toBe('tabs-1-tabpanel-general');
-          expect(panel.attributes.id).toBe('tabs-1-tabpanel-general');
-          expect(panel.attributes['aria-labelledby']).toBe('tabs-1-tab-general');
+          expect(tabs.attributes.id).toBe('tab-1');
+          expect(tab.attributes.id).toBe('tab-1-tab-general');
+          expect(tab.attributes['aria-controls']).toBe('tab-1-tabpanel-general');
+          expect(panel.attributes.id).toBe('tab-1-tabpanel-general');
+          expect(panel.attributes['aria-labelledby']).toBe('tab-1-tab-general');
         });
       }));
 
@@ -86,9 +86,9 @@ describe('Tabs - User Expectations & A11y Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const tabs = aria('tabs', { id: 'custom', value: 'item' });
-          const customTab = tabs.tab({ name: 'item' }, { native: false });
-          const inactiveTab = tabs.tab({ name: 'other' }, { native: false });
+          const tabs = aria('tab', { id: 'custom', value: 'item' });
+          const customTab = tabs.button({ name: 'item' }, { native: false });
+          const inactiveTab = tabs.button({ name: 'other' }, { native: false });
 
           expect(customTab.attributes.role).toBe('tab');
           expect(customTab.attributes.type).toBeUndefined();
@@ -106,11 +106,11 @@ describe('Tabs - User Expectations & A11y Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const props = mutable<TabsProps>({ id: 'app', value: 'home' });
-          const tabs = aria('tabs', props);
+          const props = mutable<TabProps>({ id: 'app', value: 'home' });
+          const tabs = aria('tab', props);
 
-          const tabHome = tabs.tab({ name: 'home' });
-          const tabSettings = tabs.tab({ name: 'settings' });
+          const tabHome = tabs.button({ name: 'home' });
+          const tabSettings = tabs.button({ name: 'settings' });
           const panelHome = tabs.panel({ name: 'home' });
           const panelSettings = tabs.panel({ name: 'settings' });
 
@@ -137,8 +137,8 @@ describe('Tabs - User Expectations & A11y Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const props = mutable<TabsProps>({ id: 'lazy-tabs', value: 'first' });
-          const tabs = aria('tabs', props);
+          const props = mutable<TabProps>({ id: 'lazy-tabs', value: 'first' });
+          const tabs = aria('tab', props);
 
           const p1 = tabs.panel({ name: 'first' });
           const p2 = tabs.panel({ name: 'second' });
@@ -159,13 +159,13 @@ describe('Tabs - User Expectations & A11y Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const props = mutable<TabsProps>({ id: 'nav', value: 'tab-1' });
-          const tabs = aria('tabs', props);
+          const props = mutable<TabProps>({ id: 'nav', value: 'tab-1', manual: false });
+          const tabs = aria('tab', props);
 
           const list = tabs.list();
-          const t1 = tabs.tab({ name: 'tab-1' });
-          const t2 = tabs.tab({ name: 'tab-2' });
-          const t3 = tabs.tab({ name: 'tab-3' });
+          const t1 = tabs.button({ name: 'tab-1' });
+          const t2 = tabs.button({ name: 'tab-2' });
+          const t3 = tabs.button({ name: 'tab-3' });
 
           const listEl = bind(document.createElement('div'), list);
           const b1 = bind(document.createElement('button'), t1);
@@ -202,12 +202,12 @@ describe('Tabs - User Expectations & A11y Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const props = mutable<TabsProps>({ id: 'manual', value: 'tab-1', manual: true });
-          const tabs = aria('tabs', props);
+          const props = mutable<TabProps>({ id: 'manual', value: 'tab-1', manual: true });
+          const tabs = aria('tab', props);
 
           const list = tabs.list();
-          const t1 = tabs.tab({ name: 'tab-1' });
-          const t2 = tabs.tab({ name: 'tab-2' });
+          const t1 = tabs.button({ name: 'tab-1' });
+          const t2 = tabs.button({ name: 'tab-2' });
 
           const listEl = bind(document.createElement('div'), list);
           const b1 = bind(document.createElement('button'), t1);
@@ -238,12 +238,12 @@ describe('Tabs - User Expectations & A11y Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const props = mutable<TabsProps>({ id: 'v-tabs', value: 't1', orientation: 'vertical' });
-          const tabs = aria('tabs', props);
+          const props = mutable<TabProps>({ id: 'v-tabs', value: 't1', orientation: 'vertical', manual: false });
+          const tabs = aria('tab', props);
 
           const list = tabs.list();
-          const t1 = tabs.tab({ name: 't1' });
-          const t2 = tabs.tab({ name: 't2' });
+          const t1 = tabs.button({ name: 't1' });
+          const t2 = tabs.button({ name: 't2' });
 
           expect(list.attributes['aria-orientation']).toBe('vertical');
 
@@ -273,20 +273,20 @@ describe('Tabs - User Expectations & A11y Specifications', () => {
   });
 
   describe('Configuration & Global Defaults', () => {
-    it('applies global default orientation configured via TabsAria.configure()', () =>
+    it('applies global default orientation configured via TabAria.configure()', () =>
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          TabsAria.configure({ orientation: 'vertical' });
+          TabAria.configure({ orientation: 'vertical' });
 
-          const tabs = aria('tabs');
+          const tabs = aria('tab');
           const list = tabs.list();
 
           expect(list.attributes['aria-orientation']).toBe('vertical');
 
           // Reset to default
-          TabsAria.configure({ orientation: 'horizontal' });
-          const horizontalTabs = aria('tabs');
+          TabAria.configure({ orientation: 'horizontal' });
+          const horizontalTabs = aria('tab');
           expect(horizontalTabs.list().attributes['aria-orientation']).toBe('horizontal');
         });
       }));
@@ -295,10 +295,10 @@ describe('Tabs - User Expectations & A11y Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const tabs = aria('tabs', { id: 'disabled-tabs', value: 't1', disabled: true });
+          const tabs = aria('tab', { id: 'disabled-tabs', value: 't1', disabled: true });
           const list = tabs.list();
-          const t1 = tabs.tab({ name: 't1' });
-          const t2 = tabs.tab({ name: 't2' });
+          const t1 = tabs.button({ name: 't1' });
+          const t2 = tabs.button({ name: 't2' });
 
           expect(t1.attributes.disabled).toBe(true);
           expect(t2.attributes.disabled).toBe(true);
@@ -325,9 +325,9 @@ describe('Tabs - User Expectations & A11y Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const tabs = aria('tabs', { id: 'uncontrolled' });
-          const tab1 = tabs.tab({ name: 'first' });
-          const tab2 = tabs.tab({ name: 'second' });
+          const tabs = aria('tab', { id: 'uncontrolled' });
+          const tab1 = tabs.button({ name: 'first' });
+          const tab2 = tabs.button({ name: 'second' });
 
           // First tab automatically claims group selection
           expect(tabs.props.value).toBe('first');
@@ -344,9 +344,9 @@ describe('Tabs - User Expectations & A11y Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const tabs = aria('tabs', { id: 'claim-tabs' });
-          const tab1 = tabs.tab({ name: 'first' });
-          const tab2 = tabs.tab({ name: 'second', selected: true });
+          const tabs = aria('tab', { id: 'claim-tabs' });
+          const tab1 = tabs.button({ name: 'first' });
+          const tab2 = tabs.button({ name: 'second', selected: true });
 
           // Tab with selected: true claims selection over initial first tab
           expect(tabs.props.value).toBe('second');
@@ -361,33 +361,58 @@ describe('Tabs - User Expectations & A11y Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const standaloneTab = aria('tab', { name: 't1' });
+          const standaloneTab = aria('tab-button', { name: 't1' });
           expect(standaloneTab.attributes.id).toBe('tab-t1');
           expect(standaloneTab.attributes['aria-controls']).toBe('tabpanel-t1');
 
-          const noArgsTab = aria('tab');
+          const noArgsTab = aria('tab-button', {} as TabButtonProps);
           expect(noArgsTab.attributes.role).toBe('tab');
 
-          const disabledCustomTab = aria('tab', { disabled: true }, { native: false });
+          const disabledCustomTab = aria('tab-button', { disabled: true } as TabButtonProps, { native: false });
           expect(disabledCustomTab.attributes.tabindex).toBe(-1);
 
-          const standalonePanel = aria('tabpanel', { name: 'p1' });
+          const standalonePanel = aria('tab-panel', { name: 'p1' });
           expect(standalonePanel.attributes.id).toBe('tabpanel-p1');
           expect(standalonePanel.attributes['aria-labelledby']).toBe('tab-p1');
           expect(standalonePanel.selected).toBe(false);
 
-          const idPanel = aria('tabpanel', { id: 'custom-p-id' });
+          const idPanel = aria('tab-panel', { id: 'custom-p-id' } as TabPanelProps);
           expect(idPanel.key).toBe('custom-p-id');
 
-          const autoPanel = aria('tabpanel');
+          const autoPanel = aria('tab-panel', {} as TabPanelProps);
           expect(autoPanel.key).toBe(autoPanel.id);
 
-          const standaloneList = aria('tablist');
+          const defaultButton = new TabButtonAria();
+          expect(defaultButton.attributes.role).toBe('tab');
+
+          const defaultPanel = new TabPanelAria();
+          expect(defaultPanel.attributes.role).toBe('tabpanel');
+
+          const standaloneList = aria('tab-list');
           expect(standaloneList.attributes.role).toBe('tablist');
           expect(standaloneList.attributes['aria-orientation']).toBe('horizontal');
 
           const listEl = bind(document.createElement('div'), standaloneList);
           listEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
+
+          // TabList with disabled tab
+          const disabledTabs = aria('tab', { id: 'dt', value: 't1', disabled: true });
+          const disabledList = disabledTabs.list();
+          const disabledListEl = bind(document.createElement('div'), disabledList);
+          disabledListEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
+
+          // TabList with manual: false
+          const autoTabs = aria('tab', { id: 'at', value: 't1', manual: false });
+          const autoList = autoTabs.list();
+          const autoListEl = bind(document.createElement('div'), autoList);
+          autoListEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
+
+          // Parent rover ignores keydown
+          roverCtx.set(standaloneList as unknown as Aria<BaseElement>);
+          const childList = aria('tab-list');
+          const childListEl = bind(document.createElement('div'), childList);
+          childListEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
+          roverCtx.set(undefined);
         });
       }));
   });

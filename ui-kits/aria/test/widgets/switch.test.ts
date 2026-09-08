@@ -1,6 +1,6 @@
 import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
-import { aria, type SwitchProps, selectionGroup } from '../../src/index.js';
+import { aria, SwitchAria, type SwitchProps, selectionGroup } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 describe('Switch - Contract Specifications', () => {
@@ -23,9 +23,13 @@ describe('Switch - Contract Specifications', () => {
           expect(sw.checked).toBe(false);
           expect(sw.attributes.role).toBe('switch');
           expect(sw.attributes.tabindex).toBe(0);
-          expect(sw.attributes.disabled).toBe(false);
+          expect(sw.attributes.disabled).toBeUndefined();
           expect(sw.attributes['aria-disabled']).toBe('false');
           expect(sw.attributes['aria-checked']).toBe('false');
+
+          const defaultSwitch = new SwitchAria();
+          expect(defaultSwitch.checked).toBe(false);
+          expect(defaultSwitch.attributes.role).toBe('switch');
 
           // 2. Mount Phase
           const el = bind(document.createElement('button'), sw);
@@ -68,7 +72,7 @@ describe('Switch - Contract Specifications', () => {
           // 1. SSR Phase
           expect(sw.disabled).toBe(true);
           expect(sw.checked).toBe(false);
-          expect(sw.attributes.disabled).toBe(true);
+          expect(sw.attributes.disabled).toBeUndefined();
           expect(sw.attributes.tabindex).toBe(-1);
           expect(sw.attributes['aria-disabled']).toBe('true');
           expect(sw.attributes['aria-checked']).toBe('false');
@@ -163,39 +167,16 @@ describe('Switch - Contract Specifications', () => {
   });
 
   describe('Group Coordination Contract', () => {
-    it('coordinates named boolean switch controls inside selectionGroup', () =>
-      scope.run(() => {
-        const tree = component();
-        tree.run(() => {
-          const settings = mutable<{ value: { [key: string]: boolean } }>({ value: { wifi: true, bluetooth: false } });
-          selectionGroup.set(settings);
-
-          const wifi = aria('switch', { name: 'wifi' });
-          const bluetooth = aria('switch', { name: 'bluetooth' });
-
-          expect(wifi.checked).toBe(true);
-          expect(wifi.attributes['aria-checked']).toBe('true');
-          expect(bluetooth.checked).toBe(false);
-          expect(bluetooth.attributes['aria-checked']).toBe('false');
-
-          const wifiBtn = bind(document.createElement('button'), wifi);
-          wifiBtn.click();
-          expect(settings.value.wifi).toBe(false);
-          expect(wifi.checked).toBe(false);
-          expect(wifiBtn.getAttribute('aria-checked')).toBe('false');
-        });
-      }));
-
     it('cascades group disablement to member switches', () =>
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const group = mutable({ disabled: true, value: { darkMode: true } });
+          const group = mutable({ disabled: true });
           selectionGroup.set(group);
 
-          const sw = aria('switch', { name: 'darkMode' });
+          const sw = aria('switch');
           expect(sw.disabled).toBe(true);
-          expect(sw.attributes.disabled).toBe(true);
+          expect(sw.attributes.disabled).toBeUndefined();
           expect(sw.attributes.tabindex).toBe(-1);
           expect(sw.attributes['aria-disabled']).toBe('true');
         });

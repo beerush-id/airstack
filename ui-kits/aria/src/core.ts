@@ -61,6 +61,17 @@ export class Aria<
   }
 
   /**
+   * Attribute and event handler keys compiled and managed by this controller.
+   * Exposes the active attribute names on {@link attributes} so consumers can safely omit
+   * controlled keys when forwarding rest props (e.g. `props.$omit(controller.ownKeys)`).
+   *
+   * @returns Array of property names managed on the compiled attributes dictionary.
+   */
+  public get ownKeys(): string[] {
+    return Array.from(new Set([...Object.keys(this.attributes), ...this.omittedAttrs]));
+  }
+
+  /**
    * React RefObject getter to access the bound DOM element.
    * Enables interoperability with React ref contracts.
    */

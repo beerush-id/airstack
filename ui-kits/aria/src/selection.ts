@@ -1,6 +1,7 @@
 import { $static, $symbol, type AnyType, createContext, effect, uIndex } from '@airlib/core';
 import { Aria } from './core.js';
-import type { AriaAttributes, AriaOptions, AriaProps, BaseElement } from './types.js';
+import type { AriaAttributes, AriaOptions, AriaProps, BaseElement, DetachFn, Orientation } from './types.js';
+import { bindLabel } from './utils/label.js';
 
 /**
  * Shared state coordinated by an enclosing selection group.
@@ -12,9 +13,19 @@ export interface SelectionGroupProps extends AriaProps {
   id?: string;
 
   /**
-   * Active collection of selected values, single scalar value, or record of boolean flags.
+   * Current active selection value (scalar for single-select, array for multiple).
    */
   value?: AnyType;
+
+  /**
+   * Whether multiple items may be selected simultaneously.
+   */
+  multiple?: boolean;
+
+  /**
+   * Whether a non-empty selection is required.
+   */
+  required?: boolean;
 
   /**
    * Whether all member items in the group are disabled.
@@ -22,9 +33,14 @@ export interface SelectionGroupProps extends AriaProps {
   disabled?: boolean;
 
   /**
-   * Whether member items can be deselected back to an empty/undefined state.
+   * Keyboard navigation axis and aria-orientation.
    */
-  toggle?: boolean;
+  orientation?: Orientation;
+
+  /**
+   * Whether moving focus selects automatically or requires manual activation.
+   */
+  manual?: boolean;
 }
 
 /**
@@ -52,7 +68,7 @@ export interface SelectionProps extends AriaProps {
   disabled?: boolean;
 
   /**
-   * Value payload for collection membership or group coordination (fallback for name).
+   * Value payload for collection membership or group coordination.
    */
   value?: AnyType;
 }
@@ -68,14 +84,20 @@ export interface SelectionOptions extends AriaOptions {
   key?: string;
 
   /**
+   * Property name on props that holds the identity/value token ('value' | 'name').
+   * @default 'value'
+   */
+  valueKey?: 'value' | 'name';
+
+  /**
    * WAI-ARIA role identifier used for deterministic ID namespacing.
    */
   role?: string;
 
   /**
-   * Whether the item can be toggled off back to an unselected state.
+   * Whether selection is idempotent (cannot be toggled off once active).
    */
-  toggle?: boolean;
+  idempotent?: boolean;
 
   /**
    * Keyboard keys that trigger selection activation on non-native elements.
@@ -123,48 +145,37 @@ export abstract class SelectionAria<
     const role = this.options.role ?? 'item';
     this.id = `${role}-${uIndex($symbol(role), true)}`;
 
-    this.omittedAttrs.push('id', 'disabled', 'tabindex', 'aria-disabled');
+    this.omittedAttrs.push('id', 'disabled', this.stateKey);
+    if (!this.isNative) {
+      this.omittedAttrs.push('tabindex', 'aria-disabled');
+    }
 
     if (this.group) {
-      if (!this.isToggle) {
-        $static(() => {
-          if (!('value' in this.group!) || this.props.selected) {
-            this.group!.value = this.key;
+      $static(() => {
+        if (this.group!.multiple) {
+          if (!Array.isArray(this.group!.value)) {
+            console.warn(`[ARIA] Multi-select group initialized with non-array value.`);
+            this.group!.value = [];
           }
-        });
-      }
+
+          if (this.props.selected && !this.group!.value.includes(this.value)) {
+            this.group!.value.push(this.value);
+          }
+        } else if (this.idempotent && (!('value' in this.group!) || this.props.selected)) {
+          this.group!.value = this.value;
+        }
+      });
 
       effect(() => {
         if (!this.group) return;
+        const value = this.value;
 
-        const key = this.key;
-
-        if (this.group.value === undefined) {
-          this.stateProps[this.stateKey] = false;
+        if (this.group.multiple) {
+          this.stateProps[this.stateKey] = this.group.value.includes(value);
           return;
         }
 
-        if (Array.isArray(this.group.value)) {
-          this.stateProps[this.stateKey] = key !== undefined && this.group.value.includes(key);
-          return;
-        }
-
-        if (typeof this.group.value === 'object' && this.group.value !== null) {
-          if (this.groupKey) {
-            const target = this.group.value[this.groupKey];
-            this.stateProps[this.stateKey] = Array.isArray(target)
-              ? target.includes(this.props.value)
-              : target === this.props.value;
-            return;
-          }
-
-          if (this.props.name) {
-            this.stateProps[this.stateKey] = !!this.group.value[this.props.name];
-            return;
-          }
-        }
-
-        this.stateProps[this.stateKey] = this.group.value === key;
+        this.stateProps[this.stateKey] = this.group.value === value;
       });
     }
   }
@@ -174,6 +185,13 @@ export abstract class SelectionAria<
    */
   protected get stateKey(): string {
     return this.options.key ?? 'selected';
+  }
+
+  /**
+   * Property name on props that holds the identity/value token ('value' | 'name').
+   */
+  protected get valueKey(): 'value' | 'name' {
+    return this.options.valueKey ?? 'value';
   }
 
   /**
@@ -208,51 +226,25 @@ export abstract class SelectionAria<
     return !!(this.props.disabled ?? this.group?.disabled);
   }
 
-  public set disabled(value: boolean) {
-    this.props.disabled = value;
-  }
-
   /**
-   * Semantic identity key resolved with fallbacks: name -> value -> id.
-   */
-  public get key(): string {
-    return this.props.name ?? this.props.value ?? this.props.id ?? this.id;
-  }
-
-  /**
-   * Semantic identity key or field name on the parent group.
-   */
-  public get name(): string | undefined {
-    return this.props.name;
-  }
-
-  public set name(name: string | undefined) {
-    this.props.name = name;
-  }
-
-  /**
-   * Value payload for group collection membership or form submission.
+   * Selection value resolved from the declared valueKey.
    */
   public get value(): AnyType {
-    return this.props.value;
-  }
-
-  public set value(value: AnyType) {
-    this.props.value = value;
+    return this.props[this.valueKey];
   }
 
   /**
-   * Whether the item can be toggled between selected and unselected.
+   * Whether selection is idempotent (cannot be toggled off once active).
    */
-  public get isToggle(): boolean {
+  protected get idempotent(): boolean {
+    if (this.options.idempotent !== undefined) return this.options.idempotent;
+
     if (this.group) {
-      if (Array.isArray(this.group.value)) return true;
-      if (typeof this.group.value === 'object' && this.group.value !== null) {
-        if (this.groupKey && Array.isArray(this.group.value[this.groupKey])) return true;
-        if (this.props.name) return true;
-      }
+      if (this.group.multiple) return false;
+      return !!this.group.required;
     }
-    return !!(this.options.toggle ?? this.group?.toggle);
+
+    return false;
   }
 
   /**
@@ -262,41 +254,16 @@ export abstract class SelectionAria<
     if (this.disabled) return;
 
     if (this.group) {
-      const key = this.key;
+      const value = this.value;
 
-      if (this.group.value !== undefined) {
-        if (Array.isArray(this.group.value)) {
-          if (key !== undefined && !this.group.value.includes(key)) {
-            this.group.value = [...this.group.value, key];
-          }
-          return;
+      if (this.group.multiple) {
+        if (!this.group.value.includes(value)) {
+          this.group.value.push(value);
         }
-
-        if (typeof this.group.value === 'object' && this.group.value !== null) {
-          if (this.groupKey) {
-            const target = this.group.value[this.groupKey];
-            if (Array.isArray(target)) {
-              if (!target.includes(this.props.value)) {
-                this.group.value[this.groupKey] = [...target, this.props.value];
-              }
-              return;
-            }
-
-            this.group.value[this.groupKey] = this.props.value;
-            return;
-          }
-
-          if (this.props.name) {
-            this.group.value[this.props.name] = true;
-            return;
-          }
-        }
-
-        this.group.value = key;
         return;
       }
 
-      this.group.value = key;
+      this.group.value = value;
       return;
     }
 
@@ -307,44 +274,23 @@ export abstract class SelectionAria<
    * Deselects this item.
    */
   public deselect(): void {
-    if (this.disabled) return;
+    if (this.disabled || this.idempotent) return;
 
     if (this.group) {
-      const key = this.key;
+      const value = this.value;
 
-      if (this.group.value !== undefined) {
-        if (Array.isArray(this.group.value)) {
-          if (this.group.value.includes(key)) {
-            this.group.value = this.group.value.filter((val: unknown) => val !== key);
-          }
-          return;
-        }
-
-        if (typeof this.group.value === 'object' && this.group.value !== null) {
-          if (this.groupKey) {
-            const target = this.group.value[this.groupKey];
-            if (Array.isArray(target)) {
-              this.group.value[this.groupKey] = target.filter((val: unknown) => val !== this.props.value);
-              return;
-            }
-
-            if (target === this.props.value) {
-              this.group.value[this.groupKey] = undefined;
-            }
-            return;
-          }
-
-          if (this.props.name) {
-            this.group.value[this.props.name] = false;
-            return;
-          }
-        }
-
-        if (this.group.value === key) {
-          this.group.value = undefined;
+      if (this.group.multiple) {
+        const index = this.group.value.indexOf(value);
+        if (index !== -1) {
+          this.group.value.splice(index, 1);
         }
         return;
       }
+
+      if (this.group.value === value) {
+        delete this.group.value;
+      }
+      return;
     }
 
     this.stateProps[this.stateKey] = false;
@@ -369,15 +315,6 @@ export abstract class SelectionAria<
   protected group = selectionGroup.get();
 
   /**
-   * Resolves the target property key on the group coordinator.
-   */
-  protected get groupKey(): string | undefined {
-    if ('name' in this.props && 'value' in this.props) return this.props.name;
-    if ('value' in this.props) return 'value';
-    return undefined;
-  }
-
-  /**
    * Computes base selection attributes, lockout state, and keyboard event handlers.
    *
    * @returns Base selection attributes dictionary
@@ -385,40 +322,55 @@ export abstract class SelectionAria<
   protected override createAttributes(): A {
     const isDisabled = this.disabled;
     const role = this.options.role ? `${this.options.role}-` : '';
-    const id = this.props.id ?? (this.group?.id ? `${this.group.id}-${role}${this.key}` : `${role}${this.key}`);
+    const token = typeof this.value === 'string' ? this.value : this.id;
+    const id = this.props.id ?? (this.group?.id ? `${this.group.id}-${role}${token}` : this.id);
     const allowKeys = this.options.allowKeys ?? DEFAULT_ALLOW_KEYS;
 
     const attrs: Record<string, unknown> = {
       id,
-      tabindex: isDisabled ? -1 : 0,
-      disabled: isDisabled,
-      'aria-disabled': isDisabled ? 'true' : 'false',
+      disabled: this.isNative ? isDisabled : undefined,
       onclick: () => {
-        if (this.disabled) return;
-        if (this.isToggle) {
-          this.toggle();
-        } else {
-          this.select();
-        }
-      },
-      onkeydown: (e: KeyboardEvent) => {
-        if (this.disabled || this.isNative) return;
-        if (allowKeys.includes(e.key)) {
-          e.preventDefault();
-          if (e.key !== ' ') {
-            (e.currentTarget as HTMLElement)?.click?.();
-          }
-        }
-      },
-      onkeyup: (e: KeyboardEvent) => {
-        if (this.disabled || this.isNative) return;
-        if (e.key === ' ' && allowKeys.includes(' ')) {
-          (e.currentTarget as HTMLElement)?.click?.();
-        }
+        if (isDisabled) return;
+        this.toggle();
       },
     };
 
+    if (!this.isNative) {
+      Object.assign(attrs, {
+        tabindex: isDisabled ? -1 : 0,
+        'aria-disabled': isDisabled ? 'true' : 'false',
+        onkeydown: (e: KeyboardEvent) => {
+          if (isDisabled || !allowKeys.includes(e.key)) return;
+
+          if (e.key === ' ') {
+            e.preventDefault();
+          } else if (e.key === 'Enter') {
+            e.preventDefault();
+            (e.currentTarget as HTMLElement)?.click?.();
+          }
+        },
+        onkeyup: (e: KeyboardEvent) => {
+          if (isDisabled || !allowKeys.includes(e.key)) return;
+
+          if (e.key === ' ') {
+            (e.currentTarget as HTMLElement)?.click?.();
+          }
+        },
+      });
+    }
+
     return attrs as A;
+  }
+
+  /**
+   * Polyfills enclosing `<label>` click activation for non-native selection widgets.
+   *
+   * @returns Teardown callback to unbind the label listener, or void if native or unbound
+   */
+  protected override attach(): DetachFn | void {
+    if (!this.isNative) {
+      return bindLabel(this.element!);
+    }
   }
 }
 

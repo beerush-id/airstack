@@ -1,20 +1,16 @@
-import type { AnyType } from '@airlib/core';
 import { SelectionAria, type SelectionAttributes, type SelectionOptions } from '../selection.js';
-import type { AriaOptions, AriaProps, BaseElement } from '../types.js';
+import type { AriaOptions, AriaProps, BaseElement, Primitive } from '../types.js';
 
 /**
  * Reactive input properties for an individual Option widget.
+ *
+ * @template T - Candidate value type
  */
-export interface OptionProps extends AriaProps {
+export interface OptionProps<T extends Primitive = Primitive> extends AriaProps {
   /**
-   * Explicit DOM identifier.
+   * Choice candidate value matching listbox active value.
    */
-  id?: string;
-
-  /**
-   * Value payload or distinct identity of this option within the group.
-   */
-  value?: AnyType;
+  value: T;
 
   /**
    * Initial or controlled selection state.
@@ -32,9 +28,10 @@ export interface OptionProps extends AriaProps {
  */
 export interface OptionOptions extends AriaOptions {
   /**
-   * Whether clicking an active option can deselect it in single-select mode.
+   * Whether bound to native <option>.
+   * @default false
    */
-  toggle?: boolean;
+  native?: boolean;
 }
 
 /**
@@ -66,7 +63,7 @@ export class OptionAria<
   O extends OptionOptions = OptionOptions,
 > extends SelectionAria<E, T, A, SelectionOptions> {
   public constructor(props: Partial<T> = {}, options: Partial<O> = {}) {
-    super(props, { native: false, ...options, role: ROLE_OPTION, key: 'selected' });
+    super(props, { native: false, ...options, role: ROLE_OPTION, key: 'selected', valueKey: 'value' });
     this.omittedAttrs.push('role', 'aria-selected');
     this.update();
   }

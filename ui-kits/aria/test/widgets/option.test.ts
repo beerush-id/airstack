@@ -1,6 +1,6 @@
 import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
-import { aria, type OptionProps } from '../../src/index.js';
+import { aria, OptionAria, type OptionProps } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 describe('Option - Contract Specifications', () => {
@@ -19,6 +19,10 @@ describe('Option - Contract Specifications', () => {
           expect(defaultOpt.attributes.role).toBe('option');
           expect(defaultOpt.selected).toBe(false);
 
+          const ctorOpt = new OptionAria();
+          expect(ctorOpt.attributes.role).toBe('option');
+          expect(ctorOpt.selected).toBe(false);
+
           const option = aria('option', { selected: false, value: 'opt-1' });
 
           // 1. SSR Phase: deterministic attributes for custom option
@@ -27,7 +31,7 @@ describe('Option - Contract Specifications', () => {
           expect(option.attributes.role).toBe('option');
           expect(option.attributes.tabindex).toBe(-1);
           expect(option.attributes['aria-selected']).toBe('false');
-          expect(option.attributes.disabled).toBe(false);
+          expect(option.attributes.disabled).toBeUndefined();
 
           // 2. Mount Phase: framework element binding
           const el = bind(document.createElement('div'), option);
@@ -76,7 +80,7 @@ describe('Option - Contract Specifications', () => {
 
           expect(option.attributes.tabindex).toBe(-1);
           expect(option.attributes['aria-disabled']).toBe('true');
-          expect(option.attributes.disabled).toBe(true);
+          expect(option.attributes.disabled).toBeUndefined();
 
           const el = bind(document.createElement('div'), option);
           expect(el.getAttribute('tabindex')).toBe('-1');

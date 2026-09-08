@@ -17,6 +17,10 @@ class TestItem extends SelectionAria {
     this.selected = value;
   }
 
+  public override get idempotent(): boolean {
+    return super.idempotent;
+  }
+
   protected override createAttributes() {
     return Object.assign(super.createAttributes(), {
       'aria-selected': this.selected ? 'true' : 'false',
@@ -39,7 +43,7 @@ describe('Selection - Contract Specifications', () => {
           // Default key: 'selected'
           const item = new TestItem();
           expect(item.attributes.tabindex).toBe(0);
-          expect(item.attributes.disabled).toBe(false);
+          expect(item.attributes.disabled).toBeUndefined();
           expect(item.attributes['aria-disabled']).toBe('false');
 
           item.select();
@@ -70,7 +74,7 @@ describe('Selection - Contract Specifications', () => {
         tree.run(() => {
           const item = new TestItem({ disabled: true });
           expect(item.disabled).toBe(true);
-          expect(item.attributes.disabled).toBe(true);
+          expect(item.attributes.disabled).toBeUndefined();
           expect(item.attributes.tabindex).toBe(-1);
           expect(item.attributes['aria-disabled']).toBe('true');
 
@@ -87,41 +91,39 @@ describe('Selection - Contract Specifications', () => {
           item.isSelected = true;
           expect(item.props.selected).toBeUndefined();
 
-          // Mutable setter
-          item.disabled = false;
+          // Mutable setter via props
+          item.props.disabled = false;
           expect(item.disabled).toBe(false);
           item.select();
           expect(item.props.selected).toBe(true);
         });
       }));
 
-    it('manages value and name properties', () =>
+    it('reads value from props using declared valueKey', () =>
       scope.run(() => {
         const tree = component();
         tree.run(() => {
           const item = new TestItem();
           expect(item.value).toBeUndefined();
-          expect(item.name).toBeUndefined();
 
-          item.value = 'opt-1';
+          item.props.value = 'opt-1';
           expect(item.value).toBe('opt-1');
           expect(item.props.value).toBe('opt-1');
 
-          item.name = 'field-a';
-          expect(item.name).toBe('field-a');
+          item.props.name = 'field-a';
           expect(item.props.name).toBe('field-a');
         });
       }));
 
-    it('handles explicit toggle option', () =>
+    it('handles explicit idempotent option', () =>
       scope.run(() => {
         const tree = component();
         tree.run(() => {
           const normalItem = new TestItem();
-          expect(normalItem.isToggle).toBe(false);
+          expect(normalItem.idempotent).toBe(false);
 
-          const toggleItem = new TestItem({}, { toggle: true });
-          expect(toggleItem.isToggle).toBe(true);
+          const idempotentItem = new TestItem({}, { idempotent: true });
+          expect(idempotentItem.idempotent).toBe(true);
         });
       }));
   });
@@ -131,13 +133,13 @@ describe('Selection - Contract Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const group = mutable({ value: ['item-1'] });
+          const group = mutable({ multiple: true, value: ['item-1'] });
           selectionGroup.set(group);
 
           const item1 = new TestItem({ value: 'item-1' });
           const item2 = new TestItem({ value: 'item-2' });
 
-          expect(item1.isToggle).toBe(true);
+          expect(item1.idempotent).toBe(false);
           expect(item1.props.selected).toBe(true);
           expect(item2.props.selected).toBe(false);
 
@@ -197,32 +199,6 @@ describe('Selection - Contract Specifications', () => {
         });
       }));
 
-    it('coordinates named boolean record groups', () =>
-      scope.run(() => {
-        const tree = component();
-        tree.run(() => {
-          const group = mutable<{ value: { [key: string]: boolean } }>({ value: { bold: true, italic: false } });
-          selectionGroup.set(group);
-
-          const bold = new TestItem({ name: 'bold' });
-          const italic = new TestItem({ name: 'italic' });
-
-          expect(bold.isToggle).toBe(true);
-          expect(bold.props.selected).toBe(true);
-          expect(italic.props.selected).toBe(false);
-
-          // Deselect sets record key to false
-          bold.deselect();
-          expect(group.value.bold).toBe(false);
-          expect(bold.props.selected).toBe(false);
-
-          // Select sets record key to true
-          italic.select();
-          expect(group.value.italic).toBe(true);
-          expect(italic.props.selected).toBe(true);
-        });
-      }));
-
     it('cascades group-level disablement to member items', () =>
       scope.run(() => {
         const tree = component();
@@ -232,7 +208,7 @@ describe('Selection - Contract Specifications', () => {
 
           const item = new TestItem({ value: 'opt-1' });
           expect(item.disabled).toBe(true);
-          expect(item.attributes.disabled).toBe(true);
+          expect(item.attributes.disabled).toBeUndefined();
           expect(item.attributes['aria-disabled']).toBe('true');
           expect(item.attributes.tabindex).toBe(-1);
         });
@@ -240,12 +216,12 @@ describe('Selection - Contract Specifications', () => {
   });
 
   describe('DOM & Keyboard Interaction', () => {
-    it('handles click events according to toggle state', () =>
+    it('handles click events according to idempotent state', () =>
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          // Toggle item
-          const toggleItem = new TestItem({}, { toggle: true });
+          // Default item (idempotent: false) toggles on and off
+          const toggleItem = new TestItem();
           const div = bind(document.createElement('div'), toggleItem);
 
           div.click();
@@ -254,15 +230,17 @@ describe('Selection - Contract Specifications', () => {
           expect(toggleItem.props.selected).toBe(false);
 
           // Disabled item ignores click
-          toggleItem.disabled = true;
+          toggleItem.props.disabled = true;
           div.click();
           expect(toggleItem.props.selected).toBe(false);
 
-          // Non-toggle item selects on click
-          const nonToggle = new TestItem();
-          const nonToggleDiv = bind(document.createElement('div'), nonToggle);
-          nonToggleDiv.click();
-          expect(nonToggle.props.selected).toBe(true);
+          // Idempotent item selects on click and stays selected
+          const idempotentItem = new TestItem({}, { idempotent: true });
+          const idempotentDiv = bind(document.createElement('div'), idempotentItem);
+          idempotentDiv.click();
+          expect(idempotentItem.props.selected).toBe(true);
+          idempotentDiv.click();
+          expect(idempotentItem.props.selected).toBe(true);
         });
       }));
 
@@ -270,7 +248,7 @@ describe('Selection - Contract Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const item = new TestItem({}, { toggle: true });
+          const item = new TestItem();
           const div = bind(document.createElement('div'), item);
 
           // Space keydown prevents scroll
@@ -289,10 +267,29 @@ describe('Selection - Contract Specifications', () => {
           expect(enterDown.defaultPrevented).toBe(true);
           expect(item.props.selected).toBe(false);
 
-          // Ignores unallowed keys
+          // Enter keyup does not re-click (handled on keydown)
+          const enterUp = new KeyboardEvent('keyup', { key: 'Enter', cancelable: true });
+          div.dispatchEvent(enterUp);
+          expect(item.props.selected).toBe(false);
+
+          // Allowed keys that are neither Space nor Enter do not preventDefault
+          const customAllowedItem = new TestItem({}, { allowKeys: ['Tab'] });
+          const customAllowedEl = bind(document.createElement('div'), customAllowedItem);
+          const tabDown = new KeyboardEvent('keydown', { key: 'Tab', cancelable: true });
+          customAllowedEl.dispatchEvent(tabDown);
+          expect(tabDown.defaultPrevented).toBe(false);
+
+          const tabUp = new KeyboardEvent('keyup', { key: 'Tab', cancelable: true });
+          customAllowedEl.dispatchEvent(tabUp);
+
           const escapeDown = new KeyboardEvent('keydown', { key: 'Escape', cancelable: true });
           div.dispatchEvent(escapeDown);
           expect(escapeDown.defaultPrevented).toBe(false);
+
+          // Disabled non-native ignores key events
+          customAllowedItem.props.disabled = true;
+          customAllowedEl.dispatchEvent(tabDown);
+          customAllowedEl.dispatchEvent(tabUp);
 
           // Native option delegates to browser
           const nativeItem = new TestItem({}, { native: true });
@@ -311,12 +308,12 @@ describe('Selection - Contract Specifications', () => {
             const group = mutable<{ id?: string; value?: string }>({ id: 'view-mode', value: 'grid' });
             selectionGroup.set(group);
 
-            // 1. Group with name only
-            const grid = new TestItem({ name: 'grid' });
+            // 1. Group with value token
+            const grid = new TestItem({ value: 'grid' });
             expect(grid.attributes.id).toBe('view-mode-grid');
 
-            // 2. Group with name and role
-            const list = new TestItem({ name: 'list' }, { role: 'option' });
+            // 2. Group with value and role
+            const list = new TestItem({ value: 'list' }, { role: 'option' });
             expect(list.id).toBe('option-1');
             expect(list.attributes.id).toBe('view-mode-option-list');
 
@@ -376,144 +373,103 @@ describe('Selection - Contract Specifications', () => {
           });
         }));
 
-      it('coordinates group.value across name, value, and id item identifiers', () =>
+      it('coordinates group.value across items with value payloads', () =>
         scope.run(() => {
           const tree = component();
           tree.run(() => {
             const group = mutable<{ id: string; value: string | undefined }>({ id: 'theme-picker', value: 'light' });
             selectionGroup.set(group);
 
-            const byName = new TestItem({ name: 'light' });
-            const byValue = new TestItem({ value: 'dark' });
-            const byId = new TestItem({ id: 'system' });
+            const itemLight = new TestItem({ value: 'light' });
+            const itemDark = new TestItem({ value: 'dark' });
+            const itemSystem = new TestItem({ value: 'system' });
 
             // Verify compiled DOM attributes upon initialization
-            expect(byName.attributes.id).toBe('theme-picker-light');
-            expect(byName.attributes.name).toBeUndefined();
-            expect(byName.attributes['aria-selected']).toBe('true');
+            expect(itemLight.attributes.id).toBe('theme-picker-light');
+            expect(itemLight.attributes.value).toBeUndefined();
+            expect(itemLight.attributes['aria-selected']).toBe('true');
 
-            expect(byValue.attributes.id).toBe('theme-picker-dark');
-            expect(byValue.attributes.value).toBeUndefined();
-            expect(byValue.attributes['aria-selected']).toBe('false');
+            expect(itemDark.attributes.id).toBe('theme-picker-dark');
+            expect(itemDark.attributes.value).toBeUndefined();
+            expect(itemDark.attributes['aria-selected']).toBe('false');
 
-            expect(byId.attributes.id).toBe('system');
-            expect(byId.attributes['aria-selected']).toBe('false');
+            expect(itemSystem.attributes.id).toBe('theme-picker-system');
+            expect(itemSystem.attributes.value).toBeUndefined();
+            expect(itemSystem.attributes['aria-selected']).toBe('false');
 
             // Switching via select()
-            byValue.select();
+            itemDark.select();
             expect(group.value).toBe('dark');
-            expect(byName.attributes['aria-selected']).toBe('false');
-            expect(byValue.attributes['aria-selected']).toBe('true');
-            expect(byId.attributes['aria-selected']).toBe('false');
+            expect(itemLight.attributes['aria-selected']).toBe('false');
+            expect(itemDark.attributes['aria-selected']).toBe('true');
+            expect(itemSystem.attributes['aria-selected']).toBe('false');
 
-            byId.select();
+            itemSystem.select();
             expect(group.value).toBe('system');
-            expect(byName.attributes['aria-selected']).toBe('false');
-            expect(byValue.attributes['aria-selected']).toBe('false');
-            expect(byId.attributes['aria-selected']).toBe('true');
+            expect(itemLight.attributes['aria-selected']).toBe('false');
+            expect(itemDark.attributes['aria-selected']).toBe('false');
+            expect(itemSystem.attributes['aria-selected']).toBe('true');
 
-            byName.select();
+            itemLight.select();
             expect(group.value).toBe('light');
-            expect(byName.attributes['aria-selected']).toBe('true');
+            expect(itemLight.attributes['aria-selected']).toBe('true');
           });
         }));
 
-      it('coordinates array multi-select group.value across name, value, and id', () =>
+      it('coordinates array multi-select group.value across items with value payloads', () =>
         scope.run(() => {
           const tree = component();
           tree.run(() => {
-            const group = mutable<{ id: string; value: string[] }>({ id: 'roles', value: ['admin'] });
+            const group = mutable<{ id: string; multiple: boolean; value: string[] }>({
+              id: 'roles',
+              multiple: true,
+              value: ['admin'],
+            });
             selectionGroup.set(group);
 
-            const byName = new TestItem({ name: 'editor' });
-            const byValue = new TestItem({ value: 'viewer' });
-            const byId = new TestItem({ id: 'admin' });
+            const itemAdmin = new TestItem({ value: 'admin' });
+            const itemEditor = new TestItem({ value: 'editor' });
+            const itemViewer = new TestItem({ value: 'viewer' });
 
-            expect(byId.attributes.id).toBe('admin');
-            expect(byId.attributes['aria-selected']).toBe('true');
+            expect(itemAdmin.attributes.id).toBe('roles-admin');
+            expect(itemAdmin.attributes['aria-selected']).toBe('true');
 
-            expect(byName.attributes.id).toBe('roles-editor');
-            expect(byName.attributes.name).toBeUndefined();
-            expect(byName.attributes['aria-selected']).toBe('false');
+            expect(itemEditor.attributes.id).toBe('roles-editor');
+            expect(itemEditor.attributes.value).toBeUndefined();
+            expect(itemEditor.attributes['aria-selected']).toBe('false');
 
-            expect(byValue.attributes.id).toBe('roles-viewer');
-            expect(byValue.attributes.value).toBeUndefined();
-            expect(byValue.attributes['aria-selected']).toBe('false');
+            expect(itemViewer.attributes.id).toBe('roles-viewer');
+            expect(itemViewer.attributes.value).toBeUndefined();
+            expect(itemViewer.attributes['aria-selected']).toBe('false');
 
-            byName.select();
+            itemEditor.select();
             expect(group.value).toEqual(['admin', 'editor']);
-            expect(byName.attributes['aria-selected']).toBe('true');
+            expect(itemEditor.attributes['aria-selected']).toBe('true');
 
-            byValue.select();
+            itemViewer.select();
             expect(group.value).toEqual(['admin', 'editor', 'viewer']);
-            expect(byValue.attributes['aria-selected']).toBe('true');
+            expect(itemViewer.attributes['aria-selected']).toBe('true');
 
-            byId.deselect();
+            itemAdmin.deselect();
             expect(group.value).toEqual(['editor', 'viewer']);
-            expect(byId.attributes['aria-selected']).toBe('false');
+            expect(itemAdmin.attributes['aria-selected']).toBe('false');
           });
         }));
 
-      it('deselects scoped field scalar property on group', () =>
+      it('defensively initializes non-array multi-select group and claims initial selected items', () =>
         scope.run(() => {
           const tree = component();
           tree.run(() => {
-            const group = mutable<{ value: { align?: string } }>({ value: { align: 'left' } });
-            selectionGroup.set(group);
+            const group = mutable<{ multiple: boolean; value: unknown }>({
+              multiple: true,
+              value: undefined,
+            });
+            selectionGroup.set(group as never);
 
-            const item = new TestItem({ name: 'align', value: 'left' });
-            expect(item.name).toBe('align');
-            expect(item.value).toBe('left');
-            expect(item.attributes.name).toBeUndefined();
-            expect(item.attributes.value).toBeUndefined();
-            expect(item.attributes['aria-selected']).toBe('true');
-
-            item.deselect();
-            expect(group.value.align).toBeUndefined();
-            expect(item.attributes['aria-selected']).toBe('false');
-
-            // Deselecting when target does not match is a no-op
-            item.deselect();
-            expect(group.value.align).toBeUndefined();
-          });
-        }));
-
-      it('handles scoped array duplicate selection and non-matching deselection', () =>
-        scope.run(() => {
-          const tree = component();
-          tree.run(() => {
-            const group = mutable<{ value: { roles: string[] } }>({ value: { roles: ['admin'] } });
-            selectionGroup.set(group);
-
-            const item = new TestItem({ name: 'roles', value: 'admin' });
+            const item = new TestItem({ value: 'init-item', selected: true });
+            expect(Array.isArray(group.value)).toBe(true);
+            expect(group.value).toEqual(['init-item']);
             expect(item.props.selected).toBe(true);
-
-            // Re-selecting item when already included in scoped array
-            item.select();
-            expect(group.value.roles).toEqual(['admin']);
-
-            // Value-only item with groupKey
-            const valItem = new TestItem({ value: 'editor' });
-            expect(valItem.props.selected).toBe(false);
-          });
-        }));
-
-      it('handles anonymous items inside object group value', () =>
-        scope.run(() => {
-          const tree = component();
-          tree.run(() => {
-            const group = mutable<{ value: unknown }>({ value: { bold: true } });
-            selectionGroup.set(group);
-
-            const anon = new TestItem({ id: 'anon' });
-            expect(anon.props.selected).toBe(false);
-
-            anon.select();
-            expect(group.value).toBe('anon');
-
-            group.value = { bold: true };
-            anon.deselect();
-            expect(anon.props.selected).toBe(false);
           });
         }));
     });

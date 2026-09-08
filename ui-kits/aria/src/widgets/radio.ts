@@ -1,15 +1,21 @@
-import type { AnyType } from '@airlib/core';
 import { SelectionAria, type SelectionAttributes, type SelectionOptions } from '../selection.js';
-import type { AriaOptions, AriaProps, BaseElement } from '../types.js';
+import type { AriaOptions, AriaProps, BaseElement, Primitive } from '../types.js';
 
 /**
  * Reactive input properties for RadioAria.
+ *
+ * @template T - Candidate value type
  */
-export interface RadioProps extends AriaProps {
+export interface RadioProps<T extends Primitive = Primitive> extends AriaProps {
   /**
-   * Explicit DOM element identifier.
+   * Choice candidate value matching parent group value.
    */
-  id?: string;
+  value?: T;
+
+  /**
+   * Native HTML form field name pass-through.
+   */
+  name?: string;
 
   /**
    * Whether the radio option is currently checked.
@@ -20,22 +26,18 @@ export interface RadioProps extends AriaProps {
    * Whether the radio button is disabled from user interaction.
    */
   disabled?: boolean;
-
-  /**
-   * Semantic field name for group binding or native form submission.
-   */
-  name?: string;
-
-  /**
-   * Distinct value payload identifying this option within the group.
-   */
-  value?: AnyType;
 }
 
 /**
  * Configuration options for RadioAria.
  */
-export interface RadioOptions extends AriaOptions {}
+export interface RadioOptions extends AriaOptions {
+  /**
+   * Whether bound to native <input type="radio">.
+   * @default true
+   */
+  native?: boolean;
+}
 
 /**
  * Compiled HTML and ARIA attributes for a radio element.
@@ -70,8 +72,9 @@ export class RadioAria<
       native: true,
       ...options,
       role: 'radio',
-      toggle: false,
+      idempotent: true,
       key: 'checked',
+      valueKey: 'value',
       allowKeys: [' '],
     });
 
@@ -99,14 +102,9 @@ export class RadioAria<
     const isChecked = this.checked;
 
     if (this.isNative) {
-      const name = this.group?.id ?? this.props.name;
-      const value = this.props.value !== undefined ? String(this.props.value) : this.props.name;
-
       return Object.assign(super.createAttributes(), {
         type: 'radio',
         checked: isChecked,
-        name,
-        value,
       }) as A;
     }
 

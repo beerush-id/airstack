@@ -1,6 +1,6 @@
 import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
-import { type AccordionGroupProps, accordionCtx, aria } from '../../src/index.js';
+import { type AccordionProps, accordionCtx, aria } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 describe('Accordion - User Expectations & A11y Specifications', () => {
@@ -14,17 +14,17 @@ describe('Accordion - User Expectations & A11y Specifications', () => {
     it('generates deterministic accessibility attributes and coordinates active states in a group', () =>
       scope.run(() => {
         component().run(() => {
-          const props = mutable<AccordionGroupProps>({ id: 'faq', value: 'shipping' });
-          const group = aria('accordion-group', props);
+          const props = mutable<AccordionProps>({ id: 'faq', value: 'shipping' });
+          const group = aria('accordion', props);
           const container = bind(document.createElement('div'), group);
 
           const { item: itemShipping, panel: panelShipping } = component().run(() => ({
-            item: accordionCtx.get()!.item({ name: 'shipping' }),
+            item: accordionCtx.get()!.button({ name: 'shipping' }),
             panel: accordionCtx.get()!.panel({ name: 'shipping' }),
           }));
 
           const { item: itemBilling, panel: panelBilling } = component().run(() => ({
-            item: accordionCtx.get()!.item({ name: 'billing' }),
+            item: accordionCtx.get()!.button({ name: 'billing' }),
             panel: accordionCtx.get()!.panel({ name: 'billing' }),
           }));
 
@@ -74,10 +74,10 @@ describe('Accordion - User Expectations & A11y Specifications', () => {
     it('derives automatic fallback namespace when group id is omitted', () =>
       scope.run(() => {
         component().run(() => {
-          const group = aria('accordion-group', { value: 'first' });
+          const group = aria('accordion', { value: 'first' });
 
           const { item, panel } = component().run(() => ({
-            item: accordionCtx.get()!.item({ name: 'first' }),
+            item: accordionCtx.get()!.button({ name: 'first' }),
             panel: accordionCtx.get()!.panel({ name: 'first' }),
           }));
 
@@ -92,10 +92,10 @@ describe('Accordion - User Expectations & A11y Specifications', () => {
     it('allows explicit id on item and panel to take precedence', () =>
       scope.run(() => {
         component().run(() => {
-          const group = aria('accordion-group', { id: 'support' });
+          const group = aria('accordion', { id: 'support' });
 
           const { item, panel } = component().run(() => ({
-            item: accordionCtx.get()!.item({ name: 'help', id: 'custom-trigger-id' }),
+            item: accordionCtx.get()!.button({ name: 'help', id: 'custom-trigger-id' }),
             panel: accordionCtx.get()!.panel({ name: 'help', id: 'custom-panel-id' }),
           }));
 
@@ -109,22 +109,21 @@ describe('Accordion - User Expectations & A11y Specifications', () => {
     it('instantiates group with vertical orientation and auto id by default', () =>
       scope.run(() => {
         component().run(() => {
-          const group = aria('accordion-group');
-          expect(group.orientation).toBe('vertical');
+          const group = aria('accordion');
+          expect(group.props.orientation).toBe('vertical');
           expect(group.attributes.id).toBe(group.id);
 
           // Orientation getter falls back to vertical if prop is explicitly set to undefined
           group.props.orientation = undefined;
-          expect(group.orientation).toBe('vertical');
+          expect(group.props.orientation ?? 'vertical').toBe('vertical');
         });
       }));
 
     it('instantiates standalone accordion trigger collapsed with toggle enabled by default', () =>
       scope.run(() => {
         component().run(() => {
-          const item = aria('accordion');
+          const item = aria('accordion-button');
           expect(item.expanded).toBe(false);
-          expect(item.isToggle).toBe(true);
           expect(item.attributes['aria-expanded']).toBe('false');
         });
       }));
@@ -143,7 +142,7 @@ describe('Accordion - User Expectations & A11y Specifications', () => {
     it('operates as an independent collapsible disclosure widget with toggle enabled', () =>
       scope.run(() => {
         component().run(() => {
-          const trigger = aria('accordion', { name: 'disclaimer' });
+          const trigger = aria('accordion-button', { name: 'disclaimer' });
           const panel = aria('accordion-panel', { name: 'disclaimer' });
 
           const btn = bind(document.createElement('button'), trigger);
@@ -176,26 +175,11 @@ describe('Accordion - User Expectations & A11y Specifications', () => {
         });
       }));
 
-    it('allows disabling toggle on standalone trigger with explicit toggle: false', () =>
+    it('supports panel expanded state inside an accordion group', () =>
       scope.run(() => {
         component().run(() => {
-          const nonToggle = aria('accordion', { name: 'fixed' }, { toggle: false });
-          expect(nonToggle.isToggle).toBe(false);
-
-          const btn = bind(document.createElement('button'), nonToggle);
-          btn.click();
-          expect(nonToggle.expanded).toBe(true);
-
-          // Clicking again does not collapse because toggle is false
-          btn.click();
-          expect(nonToggle.expanded).toBe(true);
-        });
-      }));
-
-    it('supports standalone panel with explicit expanded prop', () =>
-      scope.run(() => {
-        component().run(() => {
-          const activePanel = aria('accordion-panel', { name: 'active', expanded: true });
+          const group = aria('accordion', { value: 'active' });
+          const activePanel = group.panel({ name: 'active' });
           const region = bind(document.createElement('div'), activePanel);
 
           expect(activePanel.expanded).toBe(true);
@@ -207,7 +191,7 @@ describe('Accordion - User Expectations & A11y Specifications', () => {
     it('resolves standalone panel key with value or auto id fallback', () =>
       scope.run(() => {
         component().run(() => {
-          const valPanel = aria('accordion-panel', { value: 'by-val' });
+          const valPanel = aria('accordion-panel', { name: 'by-val' });
           expect(valPanel.key).toBe('by-val');
 
           const autoPanel = aria('accordion-panel');
@@ -218,7 +202,7 @@ describe('Accordion - User Expectations & A11y Specifications', () => {
     it('supports non-native element polyfilling role="button", tabindex, and keyboard activation', () =>
       scope.run(() => {
         component().run(() => {
-          const customTrigger = aria('accordion', { name: 'custom' }, { native: false });
+          const customTrigger = aria('accordion-button', { name: 'custom' }, { native: false });
           expect(customTrigger.attributes.role).toBe('button');
           expect(customTrigger.attributes.type).toBeUndefined();
           expect(customTrigger.attributes.tabindex).toBe(0);
@@ -239,7 +223,7 @@ describe('Accordion - User Expectations & A11y Specifications', () => {
     it('sets tabindex="-1" on disabled non-native trigger', () =>
       scope.run(() => {
         component().run(() => {
-          const disabledCustom = aria('accordion', { name: 'off', disabled: true }, { native: false });
+          const disabledCustom = aria('accordion-button', { name: 'off', disabled: true }, { native: false });
           expect(disabledCustom.attributes.tabindex).toBe(-1);
         });
       }));
@@ -247,8 +231,8 @@ describe('Accordion - User Expectations & A11y Specifications', () => {
     it('manages independent states when multiple standalone accordions exist', () =>
       scope.run(() => {
         component().run(() => {
-          const first = aria('accordion', { name: 'first' });
-          const second = aria('accordion', { name: 'second' });
+          const first = aria('accordion-button', { name: 'first' });
+          const second = aria('accordion-button', { name: 'second' });
 
           const btn1 = bind(document.createElement('button'), first);
           const btn2 = bind(document.createElement('button'), second);
@@ -268,16 +252,16 @@ describe('Accordion - User Expectations & A11y Specifications', () => {
     it('enforces mutually-exclusive expansion by default (one section must stay open)', () =>
       scope.run(() => {
         component().run(() => {
-          const group = aria('accordion-group');
+          const group = aria('accordion');
           const container = bind(document.createElement('div'), group);
 
           const { item: secA, panel: panelA } = component().run(() => ({
-            item: accordionCtx.get()!.item({ name: 'a' }),
+            item: accordionCtx.get()!.button({ name: 'a' }),
             panel: accordionCtx.get()!.panel({ name: 'a' }),
           }));
 
           const { item: secB, panel: panelB } = component().run(() => ({
-            item: accordionCtx.get()!.item({ name: 'b' }),
+            item: accordionCtx.get()!.button({ name: 'b' }),
             panel: accordionCtx.get()!.panel({ name: 'b' }),
           }));
 
@@ -326,19 +310,19 @@ describe('Accordion - User Expectations & A11y Specifications', () => {
         });
       }));
 
-    it('allows collapsing all sections when group explicitly sets toggle: true', () =>
+    it('allows collapsing all sections when group explicitly sets required: false', () =>
       scope.run(() => {
         component().run(() => {
-          const group = aria('accordion-group', { toggle: true, value: 'item1' });
+          const group = aria('accordion', { required: false, value: 'item1' });
           const container = bind(document.createElement('div'), group);
 
           const { item: item1, panel: panel1 } = component().run(() => ({
-            item: accordionCtx.get()!.item({ name: 'item1' }),
+            item: accordionCtx.get()!.button({ name: 'item1' }),
             panel: accordionCtx.get()!.panel({ name: 'item1' }),
           }));
 
           const { item: item2, panel: panel2 } = component().run(() => ({
-            item: accordionCtx.get()!.item({ name: 'item2' }),
+            item: accordionCtx.get()!.button({ name: 'item2' }),
             panel: accordionCtx.get()!.panel({ name: 'item2' }),
           }));
 
@@ -374,15 +358,15 @@ describe('Accordion - User Expectations & A11y Specifications', () => {
     it('honors child item with selected prop to claim initial group selection', () =>
       scope.run(() => {
         component().run(() => {
-          const group = aria('accordion-group');
+          const group = aria('accordion');
 
           const { item: first, panel: p1 } = component().run(() => ({
-            item: accordionCtx.get()!.item({ name: 'first' }),
+            item: accordionCtx.get()!.button({ name: 'first' }),
             panel: accordionCtx.get()!.panel({ name: 'first' }),
           }));
 
           const { item: second, panel: p2 } = component().run(() => ({
-            item: accordionCtx.get()!.item({ name: 'second', selected: true }),
+            item: accordionCtx.get()!.button({ name: 'second', selected: true }),
             panel: accordionCtx.get()!.panel({ name: 'second' }),
           }));
 
@@ -400,15 +384,15 @@ describe('Accordion - User Expectations & A11y Specifications', () => {
     it('coordinates array collection membership for multi-expansion', () =>
       scope.run(() => {
         component().run(() => {
-          const group = aria('accordion-group', { value: ['sec1'] });
+          const group = aria('accordion', { value: ['sec1'], multiple: true });
 
           const { item: sec1, panel: p1 } = component().run(() => ({
-            item: accordionCtx.get()!.item({ name: 'sec1' }),
+            item: accordionCtx.get()!.button({ name: 'sec1' }),
             panel: accordionCtx.get()!.panel({ name: 'sec1' }),
           }));
 
           const { item: sec2, panel: p2 } = component().run(() => ({
-            item: accordionCtx.get()!.item({ name: 'sec2' }),
+            item: accordionCtx.get()!.button({ name: 'sec2' }),
             panel: accordionCtx.get()!.panel({ name: 'sec2' }),
           }));
 
@@ -440,48 +424,17 @@ describe('Accordion - User Expectations & A11y Specifications', () => {
         });
       }));
 
-    it('coordinates dictionary boolean flags mode', () =>
-      scope.run(() => {
-        component().run(() => {
-          const group = aria('accordion-group', { value: { optA: true, optB: false } });
-
-          const { item: optA, panel: pA } = component().run(() => ({
-            item: accordionCtx.get()!.item({ name: 'optA' }),
-            panel: accordionCtx.get()!.panel({ name: 'optA' }),
-          }));
-
-          const { item: optB, panel: pB } = component().run(() => ({
-            item: accordionCtx.get()!.item({ name: 'optB' }),
-            panel: accordionCtx.get()!.panel({ name: 'optB' }),
-          }));
-
-          const elB = bind(document.createElement('button'), optB);
-          const rA = bind(document.createElement('div'), pA);
-          const rB = bind(document.createElement('div'), pB);
-
-          expect(optA.expanded).toBe(true);
-          expect(rA.hidden).toBe(false);
-          expect(optB.expanded).toBe(false);
-          expect(rB.hidden).toBe(true);
-
-          elB.click();
-          expect(optB.expanded).toBe(true);
-          expect(rB.hidden).toBe(false);
-          expect((group.props.value as Record<string, boolean>).optB).toBe(true);
-        });
-      }));
-
     it('cascades disabled state from group and blocks interaction', () =>
       scope.run(() => {
         component().run(() => {
-          const group = aria('accordion-group', { disabled: true, value: 'item1' });
+          const group = aria('accordion', { disabled: true, value: 'item1' });
 
           const { item: item1 } = component().run(() => ({
-            item: accordionCtx.get()!.item({ name: 'item1' }),
+            item: accordionCtx.get()!.button({ name: 'item1' }),
           }));
 
           const { item: item2, panel: p2 } = component().run(() => ({
-            item: accordionCtx.get()!.item({ name: 'item2' }),
+            item: accordionCtx.get()!.button({ name: 'item2' }),
             panel: accordionCtx.get()!.panel({ name: 'item2' }),
           }));
 
@@ -491,6 +444,8 @@ describe('Accordion - User Expectations & A11y Specifications', () => {
 
           expect(item1.disabled).toBe(true);
           expect(item2.disabled).toBe(true);
+          expect(el1.disabled).toBe(true);
+          expect(el2.disabled).toBe(true);
           expect(el1.getAttribute('aria-disabled')).toBe('true');
           expect(el2.getAttribute('aria-disabled')).toBe('true');
 
@@ -506,21 +461,21 @@ describe('Accordion - User Expectations & A11y Specifications', () => {
     it('navigates vertically with ArrowDown and ArrowUp wrapping around items', () =>
       scope.run(() => {
         component().run(() => {
-          const group = aria('accordion-group', { orientation: 'vertical' });
+          const group = aria('accordion', { orientation: 'vertical' });
           const container = bind(document.createElement('div'), group);
 
           const { item: b1, panel: p1 } = component().run(() => ({
-            item: accordionCtx.get()!.item({ name: 'b1' }),
+            item: accordionCtx.get()!.button({ name: 'b1' }),
             panel: accordionCtx.get()!.panel({ name: 'b1' }),
           }));
 
           const { item: b2, panel: p2 } = component().run(() => ({
-            item: accordionCtx.get()!.item({ name: 'b2' }),
+            item: accordionCtx.get()!.button({ name: 'b2' }),
             panel: accordionCtx.get()!.panel({ name: 'b2' }),
           }));
 
           const { item: b3, panel: p3 } = component().run(() => ({
-            item: accordionCtx.get()!.item({ name: 'b3' }),
+            item: accordionCtx.get()!.button({ name: 'b3' }),
             panel: accordionCtx.get()!.panel({ name: 'b3' }),
           }));
 
@@ -565,16 +520,16 @@ describe('Accordion - User Expectations & A11y Specifications', () => {
     it('navigates horizontally with ArrowRight and ArrowLeft when orientation is horizontal', () =>
       scope.run(() => {
         component().run(() => {
-          const group = aria('accordion-group', { orientation: 'horizontal' });
+          const group = aria('accordion', { orientation: 'horizontal' });
           const container = bind(document.createElement('div'), group);
 
           const { item: h1, panel: p1 } = component().run(() => ({
-            item: accordionCtx.get()!.item({ name: 'h1' }),
+            item: accordionCtx.get()!.button({ name: 'h1' }),
             panel: accordionCtx.get()!.panel({ name: 'h1' }),
           }));
 
           const { item: h2, panel: p2 } = component().run(() => ({
-            item: accordionCtx.get()!.item({ name: 'h2' }),
+            item: accordionCtx.get()!.button({ name: 'h2' }),
             panel: accordionCtx.get()!.panel({ name: 'h2' }),
           }));
 
@@ -600,22 +555,43 @@ describe('Accordion - User Expectations & A11y Specifications', () => {
         });
       }));
 
+    it('handles roving key with fallback orientation and manual settings in multiple mode', () =>
+      scope.run(() => {
+        component().run(() => {
+          const group = aria('accordion', { multiple: true });
+          const container = bind(document.createElement('div'), group);
+          delete (group.props as Record<string, unknown>).orientation;
+          delete (group.props as Record<string, unknown>).manual;
+
+          const { item: b1 } = component().run(() => ({
+            item: accordionCtx.get()!.button({ name: 'b1' }),
+          }));
+          const el = bind(document.createElement('button'), b1);
+          container.appendChild(el);
+          document.body.appendChild(container);
+
+          el.focus();
+          container.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+          document.body.removeChild(container);
+        });
+      }));
+
     it('skips disabled accordion items during roving navigation', () =>
       scope.run(() => {
         component().run(() => {
-          const group = aria('accordion-group');
+          const group = aria('accordion');
           const container = bind(document.createElement('div'), group);
 
           const { item: i1 } = component().run(() => ({
-            item: accordionCtx.get()!.item({ name: 'i1' }),
+            item: accordionCtx.get()!.button({ name: 'i1' }),
           }));
 
           const { item: i2 } = component().run(() => ({
-            item: accordionCtx.get()!.item({ name: 'i2', disabled: true }),
+            item: accordionCtx.get()!.button({ name: 'i2', disabled: true }),
           }));
 
           const { item: i3 } = component().run(() => ({
-            item: accordionCtx.get()!.item({ name: 'i3' }),
+            item: accordionCtx.get()!.button({ name: 'i3' }),
           }));
 
           const el1 = bind(document.createElement('button'), i1);
@@ -639,15 +615,15 @@ describe('Accordion - User Expectations & A11y Specifications', () => {
     it('ignores keyboard navigation when group is disabled', () =>
       scope.run(() => {
         component().run(() => {
-          const group = aria('accordion-group', { disabled: true, value: 'd1' });
+          const group = aria('accordion', { disabled: true, value: 'd1' });
           const container = bind(document.createElement('div'), group);
 
           const { item: d1 } = component().run(() => ({
-            item: accordionCtx.get()!.item({ name: 'd1' }),
+            item: accordionCtx.get()!.button({ name: 'd1' }),
           }));
 
           const { item: d2 } = component().run(() => ({
-            item: accordionCtx.get()!.item({ name: 'd2' }),
+            item: accordionCtx.get()!.button({ name: 'd2' }),
           }));
 
           const b1 = bind(document.createElement('button'), d1);

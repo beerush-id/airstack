@@ -23,9 +23,9 @@ describe('Radio - Contract Specifications', () => {
           expect(radio.isNative).toBe(true);
           expect(radio.attributes.role).toBeUndefined();
           expect(radio.attributes.type).toBe('radio');
-          expect(radio.attributes.tabindex).toBe(0);
+          expect(radio.attributes.tabindex).toBeUndefined();
           expect(radio.attributes.disabled).toBe(false);
-          expect(radio.attributes['aria-disabled']).toBe('false');
+          expect(radio.attributes['aria-disabled']).toBeUndefined();
           expect(radio.attributes.checked).toBe(false);
           expect(radio.attributes['aria-checked']).toBeUndefined();
 
@@ -34,7 +34,7 @@ describe('Radio - Contract Specifications', () => {
           expect(radio.current).toBe(input);
           expect(radio.isNative).toBe(true);
           expect(input.getAttribute('role')).toBeNull();
-          expect(input.getAttribute('tabindex')).toBe('0');
+          expect(input.getAttribute('tabindex')).toBeNull();
           expect(input.checked).toBe(false);
 
           // 3. Interaction Phase: user clicks to select
@@ -148,14 +148,14 @@ describe('Radio - Contract Specifications', () => {
           // 1. SSR Phase
           expect(radio.disabled).toBe(true);
           expect(radio.attributes.disabled).toBe(true);
-          expect(radio.attributes.tabindex).toBe(-1);
-          expect(radio.attributes['aria-disabled']).toBe('true');
+          expect(radio.attributes.tabindex).toBeUndefined();
+          expect(radio.attributes['aria-disabled']).toBeUndefined();
 
           // 2. Mount Phase
           const input = bind(document.createElement('input'), radio);
           expect(input.disabled).toBe(true);
-          expect(input.getAttribute('tabindex')).toBe('-1');
-          expect(input.getAttribute('aria-disabled')).toBe('true');
+          expect(input.getAttribute('tabindex')).toBeNull();
+          expect(input.getAttribute('aria-disabled')).toBeNull();
 
           // 3. Interaction Phase: click rejected
           input.click();
@@ -261,28 +261,6 @@ describe('Radio - Contract Specifications', () => {
         });
       }));
 
-    it('coordinates named property keys on group record', () =>
-      scope.run(() => {
-        const tree = component();
-        tree.run(() => {
-          const settings = mutable<{ value: { plan: string } }>({ value: { plan: 'free' } });
-          selectionGroup.set(settings);
-
-          const free = aria('radio', { name: 'plan', value: 'free' });
-          const paid = aria('radio', { name: 'plan', value: 'paid' });
-
-          expect(free.checked).toBe(true);
-          expect(paid.checked).toBe(false);
-
-          const paidEl = bind(document.createElement('input'), paid);
-          paidEl.click();
-
-          expect(settings.value.plan).toBe('paid');
-          expect(free.checked).toBe(false);
-          expect(paid.checked).toBe(true);
-        });
-      }));
-
     it('manages roving tabindex for custom elements within a group', () =>
       scope.run(() => {
         const tree = component();
@@ -313,8 +291,8 @@ describe('Radio - Contract Specifications', () => {
           const r = aria('radio', { value: 'a' });
           expect(r.disabled).toBe(true);
           expect(r.attributes.disabled).toBe(true);
-          expect(r.attributes.tabindex).toBe(-1);
-          expect(r.attributes['aria-disabled']).toBe('true');
+          expect(r.attributes.tabindex).toBeUndefined();
+          expect(r.attributes['aria-disabled']).toBeUndefined();
         });
       }));
   });
