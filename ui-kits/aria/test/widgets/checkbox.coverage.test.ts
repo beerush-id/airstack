@@ -80,6 +80,49 @@ describe('Checkbox - Coverage & Edge Cases', () => {
       });
     }));
 
+  it('preserves indeterminate when select()/deselect() are blocked by disabled state', () =>
+    scope.run(() => {
+      const tree = component();
+      tree.run(() => {
+        const cb = aria('checkbox', { disabled: true, indeterminate: true, checked: false });
+
+        cb.select();
+        expect(cb.checked).toBe(false);
+        expect(cb.props.indeterminate).toBe(true);
+
+        cb.deselect();
+        expect(cb.checked).toBe(false);
+        expect(cb.props.indeterminate).toBe(true);
+      });
+    }));
+
+  it('blocks deselect() when checkbox is idempotent inside a required single group', () =>
+    scope.run(() => {
+      const tree = component();
+      tree.run(() => {
+        const group = mutable({ value: 'a', required: true });
+        selectionGroup.set(group);
+
+        const cb = aria('checkbox', { value: 'a', indeterminate: true });
+        cb.deselect();
+        expect(group.value).toBe('a');
+        expect(cb.props.indeterminate).toBe(true);
+      });
+    }));
+
+  it('clears indeterminate when deselect() resolves a checked mixed state', () =>
+    scope.run(() => {
+      const tree = component();
+      tree.run(() => {
+        const cb = aria('checkbox', { indeterminate: true, checked: true });
+        expect(cb.indeterminate).toBe(true);
+
+        cb.deselect();
+        expect(cb.checked).toBe(false);
+        expect(cb.props.indeterminate).toBe(false);
+      });
+    }));
+
   it('early returns from onkeydown and onkeyup when custom checkbox is disabled or receives non-space key', () =>
     scope.run(() => {
       const tree = component();

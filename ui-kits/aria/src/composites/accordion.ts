@@ -42,7 +42,7 @@ export interface SingleAccordionProps extends AriaProps {
 
   /**
    * Whether at least one section must remain expanded in single-expand mode.
-   * @default true
+   * @default false
    */
   required?: boolean;
 
@@ -223,7 +223,7 @@ export class AccordionAria<
       this.props.id = this.props.id ?? this.id;
       this.props.orientation = this.props.orientation ?? DEFAULT_ORIENTATION;
       if (!this.props.multiple) {
-        this.props.required = this.props.required ?? true;
+        this.props.required = this.props.required ?? false;
         this.props.manual = this.props.manual ?? true;
       }
     });

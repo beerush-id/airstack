@@ -34,7 +34,7 @@ export interface SingleAccordionProps {
   value?: string;
   /** When false, arrow-key focus movement expands the focused panel immediately (default: true) */
   manual?: boolean;
-  /** Enforces a selection constraint requiring a non-empty value */
+  /** Enforces a selection constraint requiring a non-empty value (default: false; all sections may collapse) */
   required?: boolean;
   disabled?: boolean;
 }

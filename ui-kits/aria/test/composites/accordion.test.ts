@@ -249,10 +249,59 @@ describe('Accordion - User Expectations & A11y Specifications', () => {
   });
 
   describe('Grouped Coordination & Selection Modes', () => {
-    it('enforces mutually-exclusive expansion by default (one section must stay open)', () =>
+    it('collapses freely by default with no initial claiming when uncontrolled', () =>
       scope.run(() => {
         component().run(() => {
           const group = aria('accordion');
+          const container = bind(document.createElement('div'), group);
+
+          const { item: secA, panel: panelA } = component().run(() => ({
+            item: accordionCtx.get()!.button({ name: 'a' }),
+            panel: accordionCtx.get()!.panel({ name: 'a' }),
+          }));
+
+          const { item: secB, panel: panelB } = component().run(() => ({
+            item: accordionCtx.get()!.button({ name: 'b' }),
+            panel: accordionCtx.get()!.panel({ name: 'b' }),
+          }));
+
+          const elA = bind(document.createElement('button'), secA);
+          const regionA = bind(document.createElement('div'), panelA);
+          const elB = bind(document.createElement('button'), secB);
+          const regionB = bind(document.createElement('div'), panelB);
+
+          container.appendChild(elA);
+          container.appendChild(regionA);
+          container.appendChild(elB);
+          container.appendChild(regionB);
+
+          // No initial claiming: all sections start collapsed
+          expect(group.props.value).toBeUndefined();
+          expect(secA.expanded).toBe(false);
+          expect(regionA.hidden).toBe(true);
+
+          // Opening A, then clicking A collapses it back
+          elA.click();
+          expect(group.props.value).toBe('a');
+          expect(regionA.hidden).toBe(false);
+
+          elA.click();
+          expect(group.props.value).toBeUndefined();
+          expect(secA.expanded).toBe(false);
+          expect(regionA.hidden).toBe(true);
+
+          // Switching between sections still works
+          elB.click();
+          expect(group.props.value).toBe('b');
+          expect(secB.expanded).toBe(true);
+          expect(regionB.hidden).toBe(false);
+        });
+      }));
+
+    it('enforces mutually-exclusive expansion when required: true (one section must stay open)', () =>
+      scope.run(() => {
+        component().run(() => {
+          const group = aria('accordion', { required: true });
           const container = bind(document.createElement('div'), group);
 
           const { item: secA, panel: panelA } = component().run(() => ({

@@ -92,6 +92,33 @@ export class CheckboxAria<
   }
 
   /**
+   * Whether the checkbox is in a tri-state indeterminate/mixed condition.
+   */
+  public get indeterminate(): boolean {
+    return this.props.indeterminate === true;
+  }
+
+  /**
+   * Selects the checkbox, clearing any indeterminate condition
+   * so click/Space activation always resolves into a definitive checked state.
+   */
+  public override select(): void {
+    if (this.disabled) return;
+    if (this.props.indeterminate) this.props.indeterminate = false;
+    super.select();
+  }
+
+  /**
+   * Deselects the checkbox, clearing any indeterminate condition
+   * so click/Space activation always resolves into a definitive checked state.
+   */
+  public override deselect(): void {
+    if (this.disabled || this.idempotent) return;
+    if (this.props.indeterminate) this.props.indeterminate = false;
+    super.deselect();
+  }
+
+  /**
    * Computes the HTML, ARIA, and event handler attributes for the checkbox.
    *
    * @returns Checkbox attributes dictionary

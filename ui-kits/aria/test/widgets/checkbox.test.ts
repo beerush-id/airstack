@@ -117,6 +117,7 @@ describe('Checkbox - Contract Specifications', () => {
           // 3. Interaction Phase: clicking an indeterminate checkbox checks it and clears native mixed state
           input.click();
           expect(cb.checked).toBe(true);
+          expect(cb.props.indeterminate).toBe(false);
           expect(input.checked).toBe(true);
           expect(input.indeterminate).toBe(false);
 
@@ -136,6 +137,7 @@ describe('Checkbox - Contract Specifications', () => {
           // 1. SSR Phase: custom element uses pure aria-checked="mixed"
           expect(cb.current).toBeNull();
           expect(cb.props.indeterminate).toBe(true);
+          expect(cb.indeterminate).toBe(true);
           expect(cb.attributes['aria-checked']).toBe('mixed');
           expect(cb.attributes.indeterminate).toBeUndefined();
 
@@ -144,10 +146,11 @@ describe('Checkbox - Contract Specifications', () => {
           expect(cb.current).toBe(div);
           expect(div.getAttribute('aria-checked')).toBe('mixed');
 
-          // 3. Interaction Phase
-          props.indeterminate = false;
+          // 3. Interaction Phase: clicking an indeterminate checkbox checks it and clears mixed state
           div.click();
           expect(cb.checked).toBe(true);
+          expect(cb.props.indeterminate).toBe(false);
+          expect(cb.indeterminate).toBe(false);
           expect(div.getAttribute('aria-checked')).toBe('true');
 
           cb.destroy();

@@ -161,7 +161,12 @@ export abstract class SelectionAria<
           if (this.props.selected && !this.group!.value.includes(this.value)) {
             this.group!.value.push(this.value);
           }
-        } else if (this.idempotent && (!('value' in this.group!) || this.props.selected)) {
+        } else if (
+          (this.idempotent && (!('value' in this.group!) || this.props.selected)) ||
+          (!('value' in this.group!) && this.props.selected)
+        ) {
+          // Claims initial selection when uncontrolled: required groups claim
+          // via idempotency, while an explicit `selected` hint claims regardless.
           this.group!.value = this.value;
         }
       });
