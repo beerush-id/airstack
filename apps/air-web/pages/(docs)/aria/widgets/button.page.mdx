@@ -1,0 +1,217 @@
+---
+title: 'Button'
+description: 'Command and toggle button behavioral bridges with safe form defaults and custom element polyfills.'
+nav: 'Button'
+nav-priority: 210
+---
+
+# Button
+
+Buttons nested inside `<form>` elements submit the form by default unless explicitly given `type="button"`. Conversely, buttons built from custom `<div>` elements require manual `role="button"`, `tabindex` management, and custom `Space` and `Enter` keyboard listeners to meet accessibility standards.
+
+`@airlib/aria` provides headless behavioral bridges for buttons. It defaults native buttons safely to `type="button"` to prevent accidental form submission, polyfills full keyboard activation and ARIA attributes for custom non-button elements, and manages toggle state reflection without dictating markup or styles.
+
+You compose buttons using these pieces:
+
+- **Button**: The command trigger that compiles `type="button"` by default to prevent accidental form submission.
+- **Toggle Button**: The two-state button that reflects `aria-pressed` for on/off states like bookmark, mute, or pin.
+
+## What you get
+
+- **Safe form defaults.** Compiles `type="button"` by default, preventing unintended form submission when nested inside `<form>`.
+- **Custom element polyfills.** Polyfills `role="button"`, `tabindex="0"`, and Space/Enter key events when wrapping custom elements with `native: false`.
+- **Accessible state reporting.** Reflects `aria-disabled` and `aria-pressed` to screen readers and assistive devices.
+- **Clean disabled semantics.** Disabled buttons ignore clicks, suppress keyboard activation, and exit the tab order.
+
+## Button
+
+In Aria, Button is the command action trigger created with `aria('button')` that provides safe form defaults and event forwarding.
+
+```ts
+aria(role: 'button', props?: ButtonProps, options?: ButtonOptions): ButtonAria<E>
+```
+
+### Parameters
+
+- `props.type` *('button' | 'submit' | 'reset', optional, default `'button'`)*: Button behavior type. Compiles `type="button"` by default on native buttons to prevent implicit form submission.
+- `props.disabled` *(boolean, optional)*: Disables the button, preventing interaction and removing it from the tab order.
+- `options.native` *(boolean, optional, default `true`)*: Pass `false` when wrapping custom non-button elements (such as `<div>` or `<span>`).
+
+### How it behaves
+
+When bound to a native `<button>` element, explicit `role="button"` is omitted since the browser supplies it natively. It compiles `type="button"` by default unless `submit` or `reset` is explicitly passed. When bound to a custom element (`native: false`), it compiles `role="button"`, manages `tabindex` (`0` enabled, `-1` disabled), and polyfills keyboard activation (triggering click on `Enter` keydown and `Space` keyup).
+
+:::tip[Custom Elements]
+When wrapping non-button elements (like `<div>` or `<span>`), pass `{ native: false }` to the engine options inside your component to attach keyboard polyfills and focus attributes.
+:::
+
+### Usage
+
+To use Button, create the button instance with `aria('button', props)`, then pass `button.ref` and spread `button.attributes` onto your button element:
+
+:::code-group
+
+```tsx [React] executable
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type ButtonProps = ComponentProps<'button'> & {
+  disabled?: boolean;
+};
+
+const Button = setup<ButtonProps>((props) => {
+  const button = aria('button', props);
+  const restProps = props.$omit([...button.ownKeys, 'children', 'className']);
+
+  return () => (
+    <button ref={button.ref} {...restProps} {...button.attributes} className={props.className}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type ButtonProps = ComponentProps<'button'> & {
+  disabled?: boolean;
+};
+
+const Button = setup<ButtonProps>((props) => {
+  const button = aria('button', props);
+  const restProps = props.$omit([...button.ownKeys, 'children', 'className']);
+
+  return (
+    <button ref={button.ref} {...restProps} {...button.attributes} className={props.className}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+:::
+
+## Toggle Button
+
+In Aria, Toggle Button is the two-state action trigger created with `aria('toggle')` that maintains an independent pressed state.
+
+```ts
+aria<E extends BaseElement = HTMLButtonElement, T extends Primitive = Primitive>(
+  role: 'toggle',
+  props?: ToggleProps<T>,
+  options?: ToggleOptions
+): ToggleAria<E>
+```
+
+### Parameters
+
+- `props.pressed` *(boolean, optional, default `false`)*: Current toggle state, compiled to `aria-pressed`.
+- `props.value` *(Primitive, optional)*: Member value token when nested inside a toggle group.
+- `props.disabled` *(boolean, optional)*: Disables the toggle button.
+- `options.native` *(boolean, optional, default `true`)*: Pass `false` on non-button elements.
+
+### How it behaves
+
+Projects `aria-pressed` reflecting its `pressed` state. Clicking the button or pressing `Space` or `Enter` flips its state and announces the transition to screen readers. When disabled, it ignores input and prevents state changes.
+
+### Usage
+
+To use Toggle Button, create the toggle instance with `aria('toggle', props)`, then pass `toggle.ref` and spread `toggle.attributes` onto your button element:
+
+:::code-group
+
+```tsx [React] executable
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type ToggleButtonProps = ComponentProps<'button'> & {
+  pressed?: boolean;
+  disabled?: boolean;
+};
+
+const ToggleButton = setup<ToggleButtonProps>((props) => {
+  const toggle = aria('toggle', props);
+  const restProps = props.$omit([...toggle.ownKeys, 'children', 'className']);
+
+  return () => (
+    <button ref={toggle.ref} {...restProps} {...toggle.attributes} className={props.className}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type ToggleButtonProps = ComponentProps<'button'> & {
+  pressed?: boolean;
+  disabled?: boolean;
+};
+
+const ToggleButton = setup<ToggleButtonProps>((props) => {
+  const toggle = aria('toggle', props);
+  const restProps = props.$omit([...toggle.ownKeys, 'children', 'className']);
+
+  return (
+    <button ref={toggle.ref} {...restProps} {...toggle.attributes} className={props.className}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+:::
+
+## Putting It Together
+
+Once your components are wired with `aria(...)`, compose them to build accessible buttons and toggles:
+
+```tsx
+<div className="flex items-center gap-2">
+  <Button onClick={() => console.log('Saved!')}>Save Changes</Button>
+  <ToggleButton pressed={false}>Pin Item</ToggleButton>
+  <Button disabled={true}>Disabled</Button>
+</div>
+```
+
+:::interactive[Button Interactive Demo]
+<div className="flex items-center gap-2 p-3 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50">
+  <Button
+    className="px-4 py-2 rounded-lg text-sm font-medium bg-primary text-white shadow-sm hover:opacity-90 transition-opacity"
+    onClick={() => console.log('Saved!')}
+  >
+    Save Changes
+  </Button>
+  <ToggleButton
+    pressed={false}
+    className="px-4 py-2 rounded-lg text-sm font-medium border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 aria-pressed:bg-primary aria-pressed:text-white aria-pressed:border-transparent transition-colors"
+  >
+    Pin Item
+  </ToggleButton>
+  <Button
+    disabled={true}
+    className="px-4 py-2 rounded-lg text-sm font-medium bg-zinc-200 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 cursor-not-allowed opacity-60"
+  >
+    Disabled
+  </Button>
+</div>
+:::
+
+## Keyboard Navigation
+
+- **Tab**: Focuses into the button or moves to the next focusable page element.
+- **Space / Enter**: Activates the button, triggering its click handler or flipping the toggle state.
+
+## Next Steps
+
+- **[Toolbar](file:///Users/mahdaen/Domains/beerush.io/anchor/apps/air-web/pages/(docs)/aria/composites/toolbar.page.mdx)**: Group buttons, toggles, and controls into a single tab stop with circular roving focus.
+- **[Toggle Group](file:///Users/mahdaen/Domains/beerush.io/anchor/apps/air-web/pages/(docs)/aria/composites/togglegroup.page.mdx)**: Coordinate single or multiple pressed toggle buttons under a shared selection model.
+- **[Switch](file:///Users/mahdaen/Domains/beerush.io/anchor/apps/air-web/pages/(docs)/aria/widgets/switch.page.mdx)**: Build instant-activation toggle switches with `role="switch"`.

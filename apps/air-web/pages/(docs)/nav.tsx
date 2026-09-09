@@ -1,4 +1,7 @@
 import type { NavItem } from '@airlib/react/mdx';
+import ariaCompositesMeta from '@airlib-cache/metadata/(docs)/aria/composites/index.js';
+import ariaMeta from '@airlib-cache/metadata/(docs)/aria/index.js';
+import ariaWidgetsMeta from '@airlib-cache/metadata/(docs)/aria/widgets/index.js';
 import formMeta from '@airlib-cache/metadata/(docs)/form/index.js';
 import docsMeta from '@airlib-cache/metadata/(docs)/index.js';
 import componentsMeta from '@airlib-cache/metadata/(docs)/material-css/components/index.js';
@@ -150,6 +153,25 @@ export const navs: NavItem[] = [
     icon: () => <ChecklistIcon />,
     collapsed: true,
     items: toNavItems(formMeta),
+  },
+  {
+    text: 'Accessibility (ARIA)',
+    icon: () => <WidgetsIcon />,
+    collapsed: true,
+    items: [
+      toNavItems(ariaMeta).find((item) => item.href === '/docs/aria')!,
+      {
+        text: 'Widgets',
+        icon: () => <WidgetsIcon />,
+        items: toNavItems(ariaWidgetsMeta),
+      },
+      {
+        text: 'Composites',
+        icon: () => <GridViewIcon />,
+        items: toNavItems(ariaCompositesMeta),
+      },
+      toNavItems(ariaMeta).find((item) => item.href === '/docs/aria/selection')!,
+    ],
   },
   // {
   //   text: 'AirLib Material 3 CSS',

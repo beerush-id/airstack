@@ -1,0 +1,47 @@
+---
+title: 'Overview'
+description: 'Atomic interactive ARIA primitives for buttons, inputs, toggles, and options.'
+nav: 'Overview'
+nav-priority: 200
+---
+
+# Widgets Overview
+
+Standalone interactive controls—buttons, checkboxes, switches, text fields, and options—are the fundamental building blocks of any user interface. Yet implementing them in an accessible way requires carefully balancing native browser semantics with custom state projection, keyboard activation, and screen-reader announcements.
+
+`@airlib/aria` provides headless behavioral bridges for atomic widgets. Each controller encapsulates WAI-ARIA roles, state attributes, and keyboard listeners while leaving 100% of DOM markup and visual design in your hands.
+
+## What you get
+
+- **Safe native defaults.** Automatically attaches safe defaults (such as `type="button"` on native buttons) to prevent unintended form submissions.
+- **Seamless custom element polyfills.** Polyfills missing browser roles, focusability (`tabindex`), and keyboard listeners (`Space` and `Enter`) when wrapping non-native tags (`<div>`, `<span>`).
+- **Reactive state reflection.** Automatically compiles `aria-checked`, `aria-pressed`, `aria-selected`, `aria-disabled`, and `aria-invalid` from reactive props.
+- **Zero markup constraints.** Apply the controller's `ref` and `attributes` to any HTML element without wrapper `<div>`s or predefined styles.
+
+## Available Widgets
+
+- **[Button](./button)** — Command trigger buttons that compile safe form defaults, plus two-state toggle buttons reflecting `aria-pressed`.
+- **[Checkbox](./checkbox)** — Two-state and tri-state checkable inputs with indeterminate (`aria-checked="mixed"`) support.
+- **[Switch](./switch)** — Immediate-action toggles with `role="switch"` and `aria-checked` projection.
+- **[Radio](./radio)** — Single-choice radio buttons that function standalone or automatically coordinate when placed inside a Radio Group.
+- **[Option](./option)** — Selectable choice members that project `aria-selected` based on enclosing list or select container state.
+- **[Textbox](./textbox)** — Single-line text inputs and specialized search fields (`searchbox`) with live value synchronization and validation reflection.
+
+## Native vs Custom Element Contracts
+
+A key design principle of `@airlib/aria` is zero redundant work on the DOM:
+
+- **Native Elements** (`native: true`, default): When attached to native HTML tags (`<button>`, `<input>`), the controller avoids adding redundant ARIA attributes (`role="button"`) and lets the browser manage native focus and keyboard events.
+- **Custom Elements** (`native: false`): When building buttons or toggles from non-interactive tags (`<div>`, `<span>`), the controller polyfills browser behavior by setting `role`, managing `tabindex`, and handling `Enter` and `Space` keypresses.
+
+## Standalone vs Composite Coordination
+
+Some widgets operate entirely on their own, while others can seamlessly coordinate with an enclosing composite:
+
+- **Standalone Widgets**: `Button`, `Checkbox`, `Switch`, and `Textbox` manage their own state and events without requiring an enclosing wrapper.
+- **Coordinating Members**: `Radio` and `Option` can function standalone with local props, or automatically derive their selection state, disabled status, and roving focus when placed inside a [Radio Group](../composites/radiogroup) or [Listbox](../composites/listbox).
+
+## Next Steps
+
+- **[Composites Overview](../composites)** — Learn how multi-item composites manage roving tabindex and arrow navigation under a single tab stop.
+- **[Selection Foundation](../selection)** — Explore the low-level selection architecture that coordinates state across groups.

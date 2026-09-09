@@ -1,0 +1,407 @@
+---
+title: 'Tabs'
+description: 'Headless accessible tabbed interface with reciprocal tab-to-panel pairing and roving focus.'
+nav: 'Tabs'
+nav-priority: 310
+---
+
+# Tabs
+
+Hand-crafting an accessible tabbed interface requires generating reciprocal element IDs, maintaining synchronized `aria-controls` and `aria-labelledby` pointers between tabs and panels, tracking selected states, and orchestrating horizontal or vertical roving focus across the tab strip. A single missing attribute or mismatched ID breaks the relationship for assistive technologies.
+
+`@airlib/aria` provides headless behavioral bridges for tabbed layouts. It pairs tabs and panels automatically by matching their `name`, handles keyboard roving focus and selection constraints, and projects required WAI-ARIA attributes onto your elements without dictating markup or styles.
+
+You compose a tabbed interface using these pieces:
+
+- **Tabs**: Coordinates active selection and orientation across the composite without rendering an ARIA role.
+- **Tab List**: The focus container that compiles `role="tablist"` and roves focus across tab buttons.
+- **Tab Button**: The interactive trigger that compiles `role="tab"` and pairs with its panel via matching `name`.
+- **Tab Panel**: The content section that compiles `role="tabpanel"` and links to its counterpart tab button.
+
+## What you get
+
+- **One Tab stop.** Tabbing into the tab list lands on the active tab; tabbing again exits the strip completely.
+- **Automatic reciprocal linkage.** Matching `name` values deterministically link tabs and panels with synchronized `aria-controls` and `aria-labelledby` IDs.
+- **Arrow-key roving focus.** Arrow navigation roves within the tab list and wraps at boundaries without leaking focus to outside elements.
+- **Focus separated from activation.** Manual selection (default) moves keyboard focus across tabs without switching content until `Enter` or `Space` is pressed.
+- **Guaranteed selection constraint.** `required` (default `true`) enforces that at least one tab remains selected, preventing empty panel states.
+
+## Tabs
+
+In Aria, Tabs is the root orchestrator created with `aria('tab')` that coordinates active tab selection and orientation across the composite without rendering a WAI-ARIA role.
+
+```ts
+aria<E extends BaseElement = HTMLElement>(role: 'tab', props?: TabProps): TabAria<E>
+```
+
+### Parameters
+
+- `props.id` *(string, optional)*: Namespace identifier; defaults to a generated ID.
+- `props.value` *(string, optional)*: Active tab `name`.
+- `props.orientation` *('horizontal' | 'vertical', optional, default `'horizontal'`)*: Axis along which the tab list runs.
+- `props.manual` *(boolean, optional, default `true`)*: When `true`, keyboard navigation moves focus without immediately activating the tab until `Enter` or `Space` is pressed.
+- `props.required` *(boolean, optional, default `true`)*: Enforces that at least one tab must remain active. Pass `false` to allow deselecting all tabs.
+- `props.disabled` *(boolean, optional)*: Disables the entire tab group.
+
+### How it behaves
+
+The root orchestrator holds the active tab selection and coordinates child components through ambient context. It projects no ARIA role directly onto its DOM element, ensuring that child panels are not invalid descendants of a tablist in the accessibility tree. When `required` is `true` (default), an active tab cannot be deselected; setting `required={false}` allows toggling off the active tab.
+
+:::tip[DOM Structure]
+In WAI-ARIA, `tabpanel` elements must be siblings of `tablist`, never nested inside it. The root `Tabs` wrapper coordinates their reciprocal state across the DOM hierarchy.
+:::
+
+### Usage
+
+To use Tabs, create the root orchestrator instance with `aria('tab', props)`, then pass `tabs.ref` and spread `tabs.attributes` onto your container element:
+
+:::code-group
+
+```tsx [React] executable
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type TabsProps = ComponentProps<'div'> & {
+  id?: string;
+  value?: string;
+  orientation?: 'horizontal' | 'vertical';
+  manual?: boolean;
+  required?: boolean;
+  disabled?: boolean;
+};
+
+const Tabs = setup<TabsProps>((props) => {
+  const tabs = aria('tab', props);
+  const restProps = props.$omit([...tabs.ownKeys, 'children', 'className']);
+
+  return () => (
+    <div ref={tabs.ref} {...restProps} {...tabs.attributes} className={props.className}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type TabsProps = ComponentProps<'div'> & {
+  id?: string;
+  value?: string;
+  orientation?: 'horizontal' | 'vertical';
+  manual?: boolean;
+  required?: boolean;
+  disabled?: boolean;
+};
+
+const Tabs = setup<TabsProps>((props) => {
+  const tabs = aria('tab', props);
+  const restProps = props.$omit([...tabs.ownKeys, 'children', 'className']);
+
+  return (
+    <div ref={tabs.ref} {...restProps} {...tabs.attributes} className={props.className}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
+
+## Tab List
+
+In Aria, a Tab List is the focus container created with `aria('tab-list')` that compiles `role="tablist"` to manage roving keyboard navigation across child tab buttons.
+
+```ts
+aria<E extends BaseElement = HTMLElement>(role: 'tab-list', props?: TabListProps): TabListAria<E>
+```
+
+### Parameters
+
+- `props.label` *(string, optional)*: Accessible title announced to screen readers.
+- `props.labelledby` *(string, optional)*: ID of element providing the accessible title.
+
+### How it behaves
+
+Renders with `role="tablist"` and acts as a single tab stop in the page tab order. It listens for arrow keys to rove focus across child tab buttons along the specified orientation (Left/Right for horizontal, Up/Down for vertical). If manual selection is enabled on the root (default), moving focus does not change the active panel until the user presses Enter or Space.
+
+### Usage
+
+To use Tab List, create the list instance with `aria('tab-list', props)`, then pass `list.ref` and spread `list.attributes` onto your navigation strip element:
+
+:::code-group
+
+```tsx [React] executable
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type TabListProps = ComponentProps<'div'> & {
+  label?: string;
+  labelledby?: string;
+};
+
+const TabList = setup<TabListProps>((props) => {
+  const list = aria('tab-list', props);
+  const restProps = props.$omit([...list.ownKeys, 'children', 'className']);
+
+  return () => (
+    <div ref={list.ref} {...restProps} {...list.attributes} className={props.className}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type TabListProps = ComponentProps<'div'> & {
+  label?: string;
+  labelledby?: string;
+};
+
+const TabList = setup<TabListProps>((props) => {
+  const list = aria('tab-list', props);
+  const restProps = props.$omit([...list.ownKeys, 'children', 'className']);
+
+  return (
+    <div ref={list.ref} {...restProps} {...list.attributes} className={props.className}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
+
+## Tab Button
+
+In Aria, a Tab Button is an interactive trigger created with `aria('tab-button')` that compiles `role="tab"` and connects to its counterpart panel by matching `name`.
+
+```ts
+aria<E extends BaseElement = HTMLButtonElement>(role: 'tab-button', props: TabButtonProps, options?: TabButtonOptions): TabButtonAria<E>
+```
+
+### Parameters
+
+- `props.name` *(string, required)*: Semantic identifier matching the paired tab panel.
+- `props.id` *(string, optional)*: Explicit DOM element ID overriding automatic pair derivation.
+- `props.selected` *(boolean, optional)*: Initial selection hint when the parent root is uncontrolled.
+- `props.disabled` *(boolean, optional)*: Prevents interaction with this tab.
+- `options.native` *(boolean, optional, default `true`)*: Pass `false` on non-button elements to attach Space and Enter key handlers.
+
+### How it behaves
+
+Compiles `role="tab"`, projects `aria-selected="true"` when its `name` matches the root's active value, and automatically sets `aria-controls` to the paired panel's generated ID. When selected, its `tabindex` is set to `0`; inactive tabs receive `tabindex="-1"` to support roving focus. Activating an enabled tab button assigns its `name` to the parent's selection state.
+
+### Usage
+
+To use Tab Button, create the trigger instance with `aria('tab-button', props)`, then pass `button.ref` and spread `button.attributes` onto your button element:
+
+:::code-group
+
+```tsx [React] executable
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type TabButtonProps = ComponentProps<'button'> & {
+  id?: string;
+  name: string;
+  selected?: boolean;
+  disabled?: boolean;
+};
+
+const TabButton = setup<TabButtonProps>((props) => {
+  const button = aria('tab-button', props);
+  const restProps = props.$omit([...button.ownKeys, 'children', 'className']);
+
+  return () => (
+    <button ref={button.ref} {...restProps} {...button.attributes} className={props.className}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type TabButtonProps = ComponentProps<'button'> & {
+  id?: string;
+  name: string;
+  selected?: boolean;
+  disabled?: boolean;
+};
+
+const TabButton = setup<TabButtonProps>((props) => {
+  const button = aria('tab-button', props);
+  const restProps = props.$omit([...button.ownKeys, 'children', 'className']);
+
+  return (
+    <button ref={button.ref} {...restProps} {...button.attributes} className={props.className}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+:::
+
+## Tab Panel
+
+In Aria, a Tab Panel is a content section created with `aria('tab-panel')` that compiles `role="tabpanel"` and automatically derives an accessible label from its paired tab button.
+
+```ts
+aria<E extends BaseElement = HTMLElement>(role: 'tab-panel', props: TabPanelProps): TabPanelAria<E>
+```
+
+### Parameters
+
+- `props.name` *(string, required)*: Semantic identifier matching the paired tab button.
+- `props.id` *(string, optional)*: Explicit DOM element ID overriding automatic pair derivation.
+
+### How it behaves
+
+Compiles `role="tabpanel"` and sets `aria-labelledby` to point directly to the paired tab button's ID. It participates as a keyboard focusable region with `tabindex="0"` so screen readers and keyboard users can navigate its contents.
+
+:::note[DOM Visibility]
+`@airlib/aria` coordinates accessibility attributes and deterministic ID pairing, not DOM visibility. Control panel visibility (`{tabs.value === 'account' && <TabPanel ... />}` or CSS display) in your application layer.
+:::
+
+### Usage
+
+To use Tab Panel, create the panel instance with `aria('tab-panel', props)`, then pass `panel.ref` and spread `panel.attributes` onto your content section element:
+
+:::code-group
+
+```tsx [React] executable
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type TabPanelProps = ComponentProps<'div'> & {
+  id?: string;
+  name: string;
+};
+
+const TabPanel = setup<TabPanelProps>((props) => {
+  const panel = aria('tab-panel', props);
+  const restProps = props.$omit([...panel.ownKeys, 'children', 'className']);
+
+  return () => (
+    <div ref={panel.ref} {...restProps} {...panel.attributes} className={props.className}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type TabPanelProps = ComponentProps<'div'> & {
+  id?: string;
+  name: string;
+};
+
+const TabPanel = setup<TabPanelProps>((props) => {
+  const panel = aria('tab-panel', props);
+  const restProps = props.$omit([...panel.ownKeys, 'children', 'className']);
+
+  return (
+    <div ref={panel.ref} {...restProps} {...panel.attributes} className={props.className}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
+
+## Putting It Together
+
+Once your components are wired with `aria(...)`, compose them to build accessible tabbed interfaces:
+
+```tsx
+<Tabs value="account">
+  <TabList label="Account Settings">
+    <TabButton name="account">Account</TabButton>
+    <TabButton name="security">Security</TabButton>
+    <TabButton name="notifications">Notifications</TabButton>
+  </TabList>
+
+  <TabPanel name="account">
+    Update your personal details, email address, and profile settings.
+  </TabPanel>
+
+  <TabPanel name="security">
+    Manage two-factor authentication, active browser sessions, and security keys.
+  </TabPanel>
+
+  <TabPanel name="notifications">
+    Select which email and in-app alerts you would like to receive.
+  </TabPanel>
+</Tabs>
+```
+
+:::interactive[Tabs Interactive Demo]
+<Tabs value="account" className="flex flex-col gap-4 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6 bg-zinc-50/50 dark:bg-zinc-900/50">
+  <TabList label="Account Settings" className="flex items-center gap-1 border-b border-zinc-200 dark:border-zinc-800 pb-2">
+    <TabButton
+      name="account"
+      className="px-3.5 py-1.5 rounded-md text-sm font-medium transition-all text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 aria-selected:bg-primary aria-selected:text-white aria-selected:shadow-sm"
+    >
+      Account
+    </TabButton>
+    <TabButton
+      name="security"
+      className="px-3.5 py-1.5 rounded-md text-sm font-medium transition-all text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 aria-selected:bg-primary aria-selected:text-white aria-selected:shadow-sm"
+    >
+      Security
+    </TabButton>
+    <TabButton
+      name="notifications"
+      className="px-3.5 py-1.5 rounded-md text-sm font-medium transition-all text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 aria-selected:bg-primary aria-selected:text-white aria-selected:shadow-sm"
+    >
+      Notifications
+    </TabButton>
+  </TabList>
+
+  <TabPanel name="account" className="pt-2 text-sm text-zinc-600 dark:text-zinc-300">
+    Update your personal details, email address, and profile settings.
+  </TabPanel>
+
+  <TabPanel name="security" className="pt-2 text-sm text-zinc-600 dark:text-zinc-300">
+    Manage two-factor authentication, active browser sessions, and security keys.
+  </TabPanel>
+
+  <TabPanel name="notifications" className="pt-2 text-sm text-zinc-600 dark:text-zinc-300">
+    Select which email and in-app alerts you would like to receive.
+  </TabPanel>
+</Tabs>
+:::
+
+## Keyboard Navigation
+
+- **ArrowRight / ArrowLeft**: Moves roving focus across horizontal tab buttons (wraps at boundaries).
+- **ArrowDown / ArrowUp**: Moves roving focus across vertical tab buttons (when `orientation="vertical"`).
+- **Home / End**: Moves focus directly to the first or last enabled tab button.
+- **Space / Enter**: Activates the focused tab button (when `manual={true}`, the default).
+- **Tab**: Exits the tab list, moving focus to the active tab panel or next focusable page element.
+
+## Next Steps
+
+- **[Accordion](file:///Users/mahdaen/Domains/beerush.io/anchor/apps/air-web/pages/(docs)/aria/composites/accordion.page.mdx)**: Coordinate collapsible disclosure panels with header focus management.
+- **[Menu](file:///Users/mahdaen/Domains/beerush.io/anchor/apps/air-web/pages/(docs)/aria/composites/menu.page.mdx)**: Build action menus, popups, and menubars with roving focus and trigger pairing.
+- **[Toolbar](file:///Users/mahdaen/Domains/beerush.io/anchor/apps/air-web/pages/(docs)/aria/composites/toolbar.page.mdx)**: Arrange buttons, toggles, and controls into a single tab-stop container.

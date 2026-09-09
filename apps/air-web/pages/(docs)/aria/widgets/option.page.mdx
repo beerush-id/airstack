@@ -1,0 +1,207 @@
+---
+title: 'Option'
+description: 'Selectable item behavioral controller with selection state projection and container group synchronization.'
+nav: 'Option'
+nav-priority: 250
+---
+
+:::interactive{rendered=false}
+```tsx
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type ListboxProps = ComponentProps<'ul'> & {
+  value?: string;
+  disabled?: boolean;
+};
+
+const Listbox = setup<ListboxProps>((props) => {
+  const listbox = aria('listbox', props);
+  const restProps = props.$omit([...listbox.ownKeys, 'value', 'disabled', 'children', 'className']);
+
+  return () => (
+    <ul ref={listbox.ref} {...restProps} {...listbox.attributes} className={props.className}>
+      {props.children}
+    </ul>
+  );
+}, 'Listbox');
+```
+:::
+
+# Option
+
+Native `<select>` elements cannot be easily styled across browsers, leading developers to construct custom dropdown menus, autocomplete pickers, and select lists using non-form elements such as `<li>` or `<div>`. Without accessible markup, assistive technologies cannot determine which item is selected, where focus is, or when an item is disabled.
+
+`@airlib/aria` provides headless behavioral control for options. It compiles `role="option"`, projects `aria-selected` automatically from parent selection groups, handles standalone selection state, and coordinates focus without imposing markup or CSS.
+
+You compose selectable items using this piece:
+
+- **Option**: The selectable choice member that compiles `role="option"` and synchronizes its `aria-selected` state with an enclosing selection group or explicit selection prop.
+
+## What you get
+
+- **Automatic selection projection.** Automatically projects `aria-selected` based on whether its `value` matches the enclosing selection container.
+- **Standalone and group support.** Works seamlessly inside an enclosing container or as a standalone controlled option via `selected`.
+- **Disabled state coordination.** Reflects `aria-disabled` both from local disabled props and inherited container lockout.
+- **Headless markup.** Compatible with `<li>`, `<div>`, or native `<option>` elements without layout constraints.
+
+## Option
+
+In Aria, Option is the selectable choice member created with `aria('option', props)` that manages selection projection and accessibility attributes for list and dropdown items.
+
+```ts
+aria<E extends BaseElement = HTMLElement, T extends Primitive = Primitive>(
+  role: 'option',
+  props: OptionProps<T>,
+  options?: OptionOptions
+): OptionAria<E>
+```
+
+### Parameters
+
+- `props.value` *(Primitive, required)*: Choice candidate value matching the active selection of the enclosing group.
+- `props.selected` *(boolean, optional)*: Explicit selection state when used standalone or uncontrolled outside a group.
+- `props.disabled` *(boolean, optional)*: Disables the option, preventing selection and user interaction.
+- `options.native` *(boolean, optional, default `false`)*: Set to `true` when binding to native `<option>` elements inside `<select>`.
+
+### How it behaves
+
+When bound to a custom element (`<li>` or `<div>`), Option compiles `role="option"` and dynamically manages `aria-selected`:
+- **Inside Single-Selection Group**: Evaluates `group.value === props.value`.
+- **Inside Multi-Selection Group**: Evaluates whether `props.value` is included in the group's selection array.
+- **Standalone**: Evaluates `Boolean(props.selected)`.
+
+Clicking the option activates it: in single-selection containers, it assigns the group value (or deselects if the group is optional); in multiple-selection containers, it toggles its value in the array. Disabled options ignore clicks and suppress selection changes.
+
+:::tip[Enclosing Container]
+Option is most powerful when placed inside an enclosing [Listbox](../composites/listbox) composite, which provides roving focus, circular arrow navigation, and centralized selection state across all options.
+:::
+
+### Usage
+
+To use Option, create the option instance with `aria('option', props)`, then pass `option.ref` and spread `option.attributes` onto your option element:
+
+:::code-group
+
+```tsx [React] executable
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type OptionProps = ComponentProps<'li'> & {
+  value: string;
+  selected?: boolean;
+  disabled?: boolean;
+};
+
+const Option = setup<OptionProps>((props) => {
+  const option = aria('option', props);
+  const restProps = props.$omit([
+    ...option.ownKeys,
+    'value',
+    'selected',
+    'disabled',
+    'children',
+    'className',
+  ]);
+
+  return () => (
+    <li ref={option.ref} {...restProps} {...option.attributes} className={props.className}>
+      {props.children}
+    </li>
+  );
+}, 'Option');
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type OptionProps = ComponentProps<'li'> & {
+  value: string;
+  selected?: boolean;
+  disabled?: boolean;
+};
+
+const Option = setup<OptionProps>((props) => {
+  const option = aria('option', props);
+  const restProps = props.$omit([
+    ...option.ownKeys,
+    'value',
+    'selected',
+    'disabled',
+    'children',
+    'className',
+  ]);
+
+  return (
+    <li ref={option.ref} {...restProps} {...option.attributes} className={props.className}>
+      {props.children}
+    </li>
+  );
+});
+```
+
+:::
+
+## Putting It Together
+
+Once your component is wired with `aria('option', props)`, compose it inside a list or selection container:
+
+```tsx
+<ul>
+  <Option value="us" selected={true}>
+    <span>United States</span>
+    <span>USD</span>
+  </Option>
+  <Option value="de">
+    <span>Germany</span>
+    <span>EUR</span>
+  </Option>
+  <Option value="jp" disabled={true}>
+    <span>Japan</span>
+    <span>Unavailable</span>
+  </Option>
+</ul>
+```
+
+:::interactive[Option Interactive Demo]
+<Listbox value="us" className="flex flex-col gap-1 max-w-xs p-2 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50">
+  <Option
+    value="us"
+    className="px-3.5 py-2 rounded-lg text-sm cursor-pointer select-none transition-colors flex items-center justify-between text-zinc-800 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 aria-selected:bg-primary/10 aria-selected:text-primary aria-selected:font-medium"
+  >
+    <span>United States</span>
+    <span className="text-xs text-zinc-400">USD</span>
+  </Option>
+  <Option
+    value="de"
+    className="px-3.5 py-2 rounded-lg text-sm cursor-pointer select-none transition-colors flex items-center justify-between text-zinc-800 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 aria-selected:bg-primary/10 aria-selected:text-primary aria-selected:font-medium"
+  >
+    <span>Germany</span>
+    <span className="text-xs text-zinc-400">EUR</span>
+  </Option>
+  <Option
+    value="jp"
+    disabled={true}
+    className="px-3.5 py-2 rounded-lg text-sm cursor-pointer select-none transition-colors flex items-center justify-between opacity-40 cursor-not-allowed text-zinc-400 dark:text-zinc-600"
+  >
+    <span>Japan</span>
+    <span className="text-xs text-zinc-400">Unavailable</span>
+  </Option>
+</Listbox>
+:::
+
+## Keyboard Navigation
+
+- **Tab**: Focuses into the option or moves to the next focusable page element when used standalone.
+- **Space / Enter**: Selects the option when focused.
+- **Arrow Keys**: When placed inside an enclosing composite like [Listbox](../composites/listbox), arrow keys navigate through options under a single tab stop with circular roving focus.
+
+## Next Steps
+
+- **[Listbox](file:///Users/mahdaen/Domains/beerush.io/anchor/apps/air-web/pages/(docs)/aria/composites/listbox.page.mdx)**: Group options into a single- or multi-select list with roving focus.
+- **[Radio Group](file:///Users/mahdaen/Domains/beerush.io/anchor/apps/air-web/pages/(docs)/aria/composites/radiogroup.page.mdx)**: Mutually exclusive radio selections with roving focus.
+- **[Button](file:///Users/mahdaen/Domains/beerush.io/anchor/apps/air-web/pages/(docs)/aria/widgets/button.page.mdx)**: Command and toggle button behavioral bridges.

@@ -1,0 +1,235 @@
+---
+title: 'Toggle Group'
+description: 'Headless accessible toggle group composite coordinating single and multi-select pressed states with roving focus.'
+nav: 'Toggle Group'
+nav-priority: 335
+---
+
+# Toggle Group
+
+Text style bars (bold/italic/underline), view switchers, and filter strips require grouped toggle buttons where items stay pressed. Some groups allow only one pressed button at a time (like text alignment), while others allow multiple concurrent selections (like text formatting).
+
+`@airlib/aria` provides headless behavioral bridges for toggle groups. It coordinates single-press or multi-press selection models, manages circular keyboard roving focus across the strip, and projects required WAI-ARIA attributes onto your elements without dictating markup or styles.
+
+You compose a toggle group using these pieces:
+
+- **Toggle Group**: The container element that compiles `role="group"` and coordinates pressed states across member buttons.
+- **Toggle Button**: The member button created with `aria('toggle')` that reflects `aria-pressed` and participates in roving focus.
+
+## What you get
+
+- **One Tab stop.** Tabbing into the group lands on the active (or first) toggle; tabbing again exits the group completely.
+- **Single or multi-pressed.** Single-choice selection by default; pass `multiple={true}` to allow formatting combinations like bold, italic, and underline.
+- **Focus separated from toggling.** Arrow navigation moves focus only; buttons toggle exclusively on click, `Space`, or `Enter`.
+- **Circular roving focus.** Arrow keys navigate across enabled toggle buttons and wrap circularly at boundaries.
+- **Configurable constraints.** Allows deselecting to empty by default, or enforces persistent selection via `required={true}`.
+
+## Toggle Group
+
+In Aria, Toggle Group is the container controller created with `aria('toggle-group')` that compiles `role="group"` and coordinates pressed states across member buttons.
+
+```ts
+aria<E extends BaseElement = HTMLElement, T extends Primitive = Primitive>(
+  role: 'toggle-group',
+  props?: ToggleGroupProps<T>
+): ToggleGroupAria<E>
+```
+
+### Parameters
+
+- `props.value` *(Primitive | Primitive[], optional)*: Active selection token (`Primitive` in single mode, `Primitive[]` when `multiple: true`).
+- `props.multiple` *(boolean, optional, default `false`)*: Allows multiple toggle buttons to remain pressed concurrently.
+- `props.orientation` *('horizontal' | 'vertical', optional, default `'horizontal'`)*: Keyboard navigation axis and compiled `aria-orientation`.
+- `props.manual` *(boolean, optional, default `true`)*: In single mode, arrow navigation moves focus without pressing until `Enter` or `Space` is activated.
+- `props.required` *(boolean, optional, default `false`)*: When `true`, at least one toggle button must remain active.
+- `props.id` *(string, optional)*: DOM element identifier.
+- `props.disabled` *(boolean, optional)*: Disables the entire toggle group.
+
+### How it behaves
+
+Compiles `role="group"` (or `role="radiogroup"` if single-select with `required: true`) and acts as a single tab stop in the page tab order. Arrow keys rove focus across enabled member toggles along the configured orientation. In single mode, activating an active toggle deselects it unless `required: true` is set. In multiple mode, activating a toggle flips its membership in the `value` array.
+
+### Usage
+
+To use Toggle Group, create the group instance with `aria('toggle-group', props)`, then pass `group.ref` and spread `group.attributes` onto your container element:
+
+:::code-group
+
+```tsx [React] executable
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type ToggleGroupProps = ComponentProps<'div'> & {
+  id?: string;
+  value?: string | string[];
+  multiple?: boolean;
+  orientation?: 'horizontal' | 'vertical';
+  manual?: boolean;
+  required?: boolean;
+  disabled?: boolean;
+};
+
+const ToggleGroup = setup<ToggleGroupProps>((props) => {
+  const group = aria('toggle-group', props);
+  const restProps = props.$omit([...group.ownKeys, 'children', 'className']);
+
+  return () => (
+    <div ref={group.ref} {...restProps} {...group.attributes} className={props.className}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type ToggleGroupProps = ComponentProps<'div'> & {
+  id?: string;
+  value?: string | string[];
+  multiple?: boolean;
+  orientation?: 'horizontal' | 'vertical';
+  manual?: boolean;
+  required?: boolean;
+  disabled?: boolean;
+};
+
+const ToggleGroup = setup<ToggleGroupProps>((props) => {
+  const group = aria('toggle-group', props);
+  const restProps = props.$omit([...group.ownKeys, 'children', 'className']);
+
+  return (
+    <div ref={group.ref} {...restProps} {...group.attributes} className={props.className}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
+
+## Toggle Button
+
+In Aria, a Toggle Button inside a group is a member button created with `aria('toggle')` that reflects `aria-pressed` from the parent group.
+
+```ts
+aria(role: 'toggle', props?: ToggleProps, options?: ButtonOptions): ToggleAria<E>
+```
+
+### Parameters
+
+- `props.value` *(Primitive, optional)*: Member identifier matching parent group value.
+- `props.pressed` *(boolean, optional, default `false`)*: Explicit pressed state when used standalone.
+- `props.disabled` *(boolean, optional)*: Disables this toggle button and causes keyboard navigation to skip it.
+
+### How it behaves
+
+Projects `aria-pressed="true"` when its `value` matches the parent group's active value (or is present in the `value` array when `multiple: true`), and `aria-pressed="false"` otherwise. It participates in the group's roving focus strip (`tabindex="0"` when active, `tabindex="-1"` when inactive). Activating via click, `Space`, or `Enter` toggles its active state in the parent group.
+
+:::note[Toggle Widget]
+Group members use the standard `toggle` role (`aria('toggle')`). When nested inside a Toggle Group, the button derives its `aria-pressed` state and roving focus participation automatically from the parent group.
+:::
+
+### Usage
+
+To use a Toggle Button, create the toggle instance with `aria('toggle', props)`, then pass `toggle.ref` and spread `toggle.attributes` onto your button element:
+
+:::code-group
+
+```tsx [React] executable
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type ToggleButtonProps = ComponentProps<'button'> & {
+  value: string;
+  disabled?: boolean;
+};
+
+const ToggleButton = setup<ToggleButtonProps>((props) => {
+  const toggle = aria('toggle', props);
+  const restProps = props.$omit([...toggle.ownKeys, 'children', 'className']);
+
+  return () => (
+    <button ref={toggle.ref} {...restProps} {...toggle.attributes} className={props.className}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type ToggleButtonProps = ComponentProps<'button'> & {
+  value: string;
+  disabled?: boolean;
+};
+
+const ToggleButton = setup<ToggleButtonProps>((props) => {
+  const toggle = aria('toggle', props);
+  const restProps = props.$omit([...toggle.ownKeys, 'children', 'className']);
+
+  return (
+    <button ref={toggle.ref} {...restProps} {...toggle.attributes} className={props.className}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+:::
+
+## Putting It Together
+
+Once your components are wired with `aria(...)`, compose them to build accessible toggle groups:
+
+```tsx
+<ToggleGroup value={['bold']} multiple>
+  <ToggleButton value="bold">Bold</ToggleButton>
+  <ToggleButton value="italic">Italic</ToggleButton>
+  <ToggleButton value="underline">Underline</ToggleButton>
+</ToggleGroup>
+```
+
+:::interactive[Toggle Group Interactive Demo]
+<ToggleGroup value={['bold']} multiple className="flex items-center gap-1 border border-zinc-200 dark:border-zinc-800 rounded-xl p-2 bg-zinc-50/50 dark:bg-zinc-900/50">
+  <ToggleButton
+    value="bold"
+    className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-800 aria-pressed:bg-primary aria-pressed:text-white"
+  >
+    Bold
+  </ToggleButton>
+  <ToggleButton
+    value="italic"
+    className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-800 aria-pressed:bg-primary aria-pressed:text-white"
+  >
+    Italic
+  </ToggleButton>
+  <ToggleButton
+    value="underline"
+    className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-800 aria-pressed:bg-primary aria-pressed:text-white"
+  >
+    Underline
+  </ToggleButton>
+</ToggleGroup>
+:::
+
+## Keyboard Navigation
+
+- **ArrowRight / ArrowLeft**: Moves roving focus between toggle buttons (horizontal orientation, wraps circularly).
+- **ArrowDown / ArrowUp**: Moves roving focus between toggle buttons (when `orientation="vertical"`).
+- **Home / End**: Moves focus directly to the first or last enabled toggle button.
+- **Space / Enter**: Toggles the active state of the focused toggle button.
+- **Tab**: Exits the toggle group completely, moving focus to the next page element.
+
+## Next Steps
+
+- **[Toolbar](file:///Users/mahdaen/Domains/beerush.io/anchor/apps/air-web/pages/(docs)/aria/composites/toolbar.page.mdx)**: Group buttons, toggles, and dropdowns into an action bar with single-tab-stop roving focus.
+- **[Radio Group](file:///Users/mahdaen/Domains/beerush.io/anchor/apps/air-web/pages/(docs)/aria/composites/radiogroup.page.mdx)**: Build mutually exclusive single-choice option sets.
+- **[Button](file:///Users/mahdaen/Domains/beerush.io/anchor/apps/air-web/pages/(docs)/aria/widgets/button.page.mdx)**: Explore standalone button and toggle button behaviors.

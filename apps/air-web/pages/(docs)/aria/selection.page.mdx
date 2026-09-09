@@ -1,0 +1,88 @@
+---
+title: 'Selection'
+description: 'Low-level abstract foundation for authoring custom selectable widgets and coordination groups.'
+nav: 'Selection'
+nav-priority: 400
+---
+
+# Selection Foundation
+
+:::warning[Internal / Extensibility API]
+This page covers the internal architecture for authoring new custom controls (such as chips, segmented controls, or tree items). For everyday application components, use the pre-built widgets and composites (`Button`, `Checkbox`, `Radio`, `Option`, `Tabs`, `Listbox`) — the selection foundation documented here already powers them under the hood.
+:::
+
+Custom selectable controls all share common behavioral requirements: tracking selected values, supporting single- or multi-selection modes, inheriting disabled state from a parent container, and handling `Space` and `Enter` keyboard activation. 
+
+`SelectionAria` is the abstract foundation in `@airlib/aria` that encapsulates these responsibilities, allowing custom widgets to focus strictly on their visual presentation and role-specific semantics.
+
+## What a custom control inherits
+
+- **Universal state mapping.** Maps selection onto whichever prop name your control expects (`pressed`, `checked`, or `selected`). Controls are matched by their `value` (or by `name` for paired composites like tabs and accordions).
+- **Selection lifecycle methods.** Exposes `select()`, `deselect()`, and `toggle()`. Deselection is automatically prevented when the control is disabled, or when deselecting would violate a `required` single-selection constraint.
+- **Ambient group synchronization.** When placed inside a coordinating container publishing `selectionGroup`, the control derives its selection state automatically without manual prop drilling.
+- **Inherited disablement.** A disabled parent group automatically disables all child controls within its scope.
+- **Custom element keyboard support.** Automatically handles `Space` and `Enter` key events when bound to non-native elements (`native: false`).
+
+## Building a custom selectable control
+
+Here is an example authoring a custom `Chip` control that behaves as an accessible toggle:
+
+```ts [TypeScript]
+import {
+  SelectionAria,
+  type SelectionProps,
+  type SelectionAttributes,
+  type SelectionOptions,
+  type BaseElement,
+} from '@airlib/aria';
+
+export interface ChipProps extends SelectionProps {
+  selected?: boolean;
+}
+
+export interface ChipAttributes<E extends BaseElement = HTMLElement> extends SelectionAttributes<E> {
+  role?: 'button';
+  'aria-pressed'?: 'true' | 'false';
+}
+
+export class ChipAria<E extends BaseElement = HTMLElement> extends SelectionAria<
+  E,
+  ChipProps,
+  ChipAttributes<E>,
+  SelectionOptions
+> {
+  constructor(props?: Partial<ChipProps>, options?: SelectionOptions) {
+    super(props, { key: 'selected', role: 'button', ...options });
+  }
+
+  protected createAttributes(): ChipAttributes<E> {
+    const attrs = super.createAttributes();
+    attrs['aria-pressed'] = this.selected ? 'true' : 'false';
+    return attrs;
+  }
+}
+```
+
+## How wrappers share their choice
+
+A parent container that coordinates multiple selectable controls publishes its ambient state using `selectionGroup`:
+
+```ts [TypeScript]
+import { selectionGroup } from '@airlib/aria';
+
+// Publish selection state to child controls created within this scope
+selectionGroup.set({
+  id: 'settings-group',
+  value: activeValue,
+  multiple: false,
+  disabled: false,
+});
+```
+
+Any child control created within that reactive scope reads the ambient context via `selectionGroup.get()` and synchronizes its state automatically.
+
+## Next Steps
+
+- **[Atomic Widgets](./widgets)** — Explore the pre-built widgets powered by this selection foundation.
+- **[Composites Overview](./composites)** — Learn how multi-item composites manage roving tabindex and group selection.
+- **[Toggle Group](./composites/togglegroup)** — See how multi-selection is coordinated across button groups.

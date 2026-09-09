@@ -1,3 +1,4 @@
+import { Aria, JSXTranslator } from '@airlib/aria';
 import { type AppEntry, Head, type HeadConfig, UIRouter } from '@airlib/react';
 import ogImage from '@/assets/og_image.png?asset' with { sizes: '1200' };
 import { ThemeToggler } from '@/components/ThemeToggler.js';
@@ -29,6 +30,8 @@ Head.config(() => {
     },
   } as HeadConfig;
 });
+
+Aria.translate(JSXTranslator);
 
 export default (({ url }) => (
   <UIRouter router={router} root={RootLayout} url={url}>

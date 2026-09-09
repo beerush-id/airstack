@@ -1,0 +1,123 @@
+---
+title: 'Overview'
+description: 'Headless, reactive WAI-ARIA behavioral state machines with zero styling opinions.'
+nav: 'Overview'
+nav-priority: 100
+---
+
+# AirLib ARIA
+
+Building accessible web applications is difficult. Developers often face a frustrating trade-off: adopt heavyweight component libraries that dictate your markup, styles, and bundle size, or manually wire dozens of WAI-ARIA attributes, manage focus states, and polyfill keyboard interactions by hand.
+
+**AirLib ARIA** (`@airlib/aria`) eliminates this trade-off. It provides headless behavioral state machines that manage accessibility semantics, keyboard navigation, and composite coordination—without imposing any CSS, HTML markup structure, or DOM wrappers.
+
+## The Mental Model
+
+AirLib ARIA operates on a simple principle: **Behavior without presentation**.
+
+Instead of rendering DOM elements, an ARIA controller acts as a reactive bridge between your component's state and the browser DOM through two primary touchpoints:
+
+1. **`attributes`**: A reactive getter returning the compiled dictionary of HTML and ARIA attributes (`role`, `aria-*`, `tabindex`, `disabled`). Whenever underlying reactive state changes, attributes recompile automatically.
+2. **`ref`**: A lifecycle callback attached to the DOM node. It registers keyboard and pointer listeners, synchronizes DOM properties, and handles cleanup on unmount.
+
+Because the controller only manages attributes and events, you retain 100% control over your markup, CSS, and component structure.
+
+## Installation
+
+:::code-group{group="pm"}
+```bash [Bun] name="bun"
+bun add @airlib/aria
+```
+
+```bash [NPM] name="npm"
+npm install @airlib/aria
+```
+
+```bash [PNPM] name="pnpm"
+pnpm add @airlib/aria
+```
+
+```bash [Yarn] name="yarn"
+yarn add @airlib/aria
+```
+:::
+
+## Component Integration
+
+In AirLib, components built with `setup` receive reactive `props`. When passed directly into the `aria()` factory, the controller binds to that existing reactive proxy—eliminating glue code, change-detection boilerplate, and intermediate state management.
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+export type ActionButtonProps = ComponentProps<'button'> & {
+  disabled?: boolean;
+};
+
+export const ActionButton = setup<ActionButtonProps>((props) => {
+  const button = aria('button', props);
+  const restProps = props.$omit([...button.ownKeys, 'disabled', 'children', 'className']);
+
+  return () => (
+    <button ref={button.ref} {...restProps} {...button.attributes} className={props.className}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+export type ActionButtonProps = ComponentProps<'button'> & {
+  disabled?: boolean;
+};
+
+export const ActionButton = setup<ActionButtonProps>((props) => {
+  const button = aria('button', props);
+  const restProps = props.$omit([...button.ownKeys, 'disabled', 'children', 'className']);
+
+  return (
+    <button ref={button.ref} {...restProps} {...button.attributes} className={props.className}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+:::
+
+## Safe Prop Forwarding with ownKeys
+
+When building reusable components that forward consumer props to underlying DOM elements, two pitfalls must be avoided:
+
+1. **Attribute Collisions**: User props can inadvertently collide with or shadow attributes compiled by the ARIA controller.
+2. **Prop Leakage**: Component input props (such as `disabled`, `children`, `className`) should not leak onto the DOM as raw HTML attributes.
+
+`Aria.prototype.ownKeys` exposes the exact array of attribute and listener names currently compiled on `controller.attributes`. Passing `controller.ownKeys` along with component-specific keys to `props.$omit(...)` produces a clean `restProps` object:
+
+```tsx
+const restProps = props.$omit([...controller.ownKeys, 'children', 'className', ...controlledKeys]);
+```
+
+Spreading `{...restProps}` before `{...controller.attributes}` ensures that consumer props (such as custom `onClick`, `title`, or `data-*` attributes) safely reach the DOM without overriding ARIA contracts.
+
+## Native vs Custom Element Contracts
+
+A primary goal of AirLib ARIA is to avoid redundant DOM work while ensuring complete accessibility:
+
+- **Native Elements** (`native: true`, default): When attached to native HTML elements (`<button>`, `<input>`), the controller avoids setting redundant ARIA attributes (`role="button"`) and lets the browser handle native keyboard events and form submission.
+- **Custom Elements** (`native: false`): When building buttons or toggles from non-interactive tags (`<div>`, `<span>`), the controller polyfills the missing browser capabilities by injecting `role`, managing `tabindex` focusability, and handling `Enter` and `Space` keyboard activation.
+
+## Next Steps
+
+Explore the ARIA documentation:
+
+- **[Atomic Widgets](/docs/aria/widgets)** — Standalone accessible controls including buttons, checkboxes, switches, radios, and options.
+- **[Composites](/docs/aria/composites)** — Multi-item navigable structures with single-tab-stop roving focus (tabs, accordions, toolbars, toggle groups, radio groups, listboxes).
+- **[Selection Engine](/docs/aria/selection)** — Base controllers and ambient coordination context for authoring custom selectable widgets.

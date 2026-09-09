@@ -1,0 +1,59 @@
+---
+title: 'Overview'
+description: 'Multi-item interactive patterns with single-tab-stop roving focus and nested rover delegation.'
+nav: 'Overview'
+nav-priority: 300
+---
+
+# Composites Overview
+
+Composites are structured UI components made up of multiple navigable items—such as Tabs, Accordions, Toolbars, Radio Groups, and Listboxes.
+
+Unlike independent form inputs, composite widgets share a critical accessibility responsibility defined by WAI-ARIA authoring practices: **they must present a single tab stop in the page's tab sequence**.
+
+## What you get
+
+- **Single tab stop navigation.** Enter with `Tab`, exit with `Tab`, and navigate across child controls with arrow keys without trapping keyboard users.
+- **Dynamic roving tabindex.** Automatically promotes the active item to `tabindex="0"` and demotes inactive siblings to `tabindex="-1"`.
+- **Ambient rover delegation.** Automatically coordinates nested roving composites (such as a Radio Group inside a Toolbar) so the parent roves smoothly across child controls without event collisions.
+- **Deterministic ID pairing.** Coordinates paired triggers and content panels (tabs to tabpanels, accordion headers to accordion panels) through automatic, collision-free ID derivation.
+- **Zero styling opinions.** Headless behavioral engines that manage focus, state, and ARIA attributes while leaving markup and styling 100% in your hands.
+
+## The Single Tab Stop Problem
+
+In standard web pages, every interactive element (`<button>`, `<input>`) receives focus when pressing `Tab`. If a page contains an editing toolbar with 20 formatting buttons, a keyboard user would be forced to press `Tab` 20 times just to navigate past the toolbar to the main document.
+
+Composites solve this using **Roving Tabindex**:
+
+1. **One Tab Stop**: Entering the composite with `Tab` lands on the currently active item (`tabindex="0"`). Pressing `Tab` again immediately exits the composite to the next section of the page.
+2. **Arrow Key Navigation**: While focus is inside the composite, arrow keys move focus forward and backward between child controls.
+3. **Dynamic Focusability**: As focus moves, the controller transfers `tabindex="0"` to the newly focused control while resetting previous controls to `tabindex="-1"`.
+4. **Boundary Jumps**: `Home` and `End` jump directly to the first and last enabled items.
+
+## Available Composites
+
+- **[Tabs](./tabs)** — Coordinated tab strips and panels with automatic pairing and horizontal or vertical orientation.
+- **[Accordion](./accordion)** — Vertically stacked collapsible disclosure regions with single and multi-expand support.
+- **[Toolbar](./toolbar)** — Action grouping with roving focus across mixed buttons, toggles, and nested groups.
+- **[Toggle Group](./togglegroup)** — Coordinated two-state button groups supporting single- and multi-selection models.
+- **[Radio Group](./radiogroup)** — Mutually exclusive radio options with arrow selection and circular focus.
+- **[Listbox](./listbox)** — Single- and multi-select scrollable option lists.
+- **[Menu](./menu)** — Action menus, menubars, and popups with checkboxes and radio groups.
+
+## Nested Rover Delegation
+
+A common challenge in complex web apps is embedding one roving composite inside another—for example, placing a **Radio Group** inside a **Toolbar**.
+
+If both the Toolbar and the Radio Group listen to arrow keys, both handlers trigger simultaneously: focus skips unpredictably, and navigation breaks.
+
+AirLib ARIA solves this with **Ambient Rover Delegation** (`roverCtx`):
+
+- The outer host (`ToolbarAria`) publishes itself as the active ambient rover: `roverCtx.set(this)`.
+- When the nested composite (`RadioGroupAria`) initializes, it detects the enclosing rover via `roverCtx.get()`.
+- The nested composite automatically yields its keyboard listeners to the parent toolbar.
+- The parent toolbar roves seamlessly across all controls—from standalone buttons through the radio options and back—without event collisions or manual configuration.
+
+## Next Steps
+
+- **[Atomic Widgets](../widgets)** — Explore standalone accessible controls including buttons, switches, checkboxes, radios, and textboxes.
+- **[Selection Engine](../selection)** — Learn about the low-level selection architecture that coordinates state across composite groups.

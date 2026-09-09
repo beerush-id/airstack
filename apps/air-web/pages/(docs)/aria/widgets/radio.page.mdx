@@ -1,0 +1,183 @@
+---
+title: 'Radio'
+description: 'Headless accessible radio button widget for custom selectable cards, tiles, and grouped options.'
+nav: 'Radio'
+nav-priority: 240
+---
+
+:::interactive{rendered=false}
+```tsx
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type RadioGroupProps = ComponentProps<'div'> & {
+  value?: string;
+  disabled?: boolean;
+};
+
+const RadioGroup = setup<RadioGroupProps>((props) => {
+  const group = aria('radiogroup', props);
+  const restProps = props.$omit([...group.ownKeys, 'value', 'disabled', 'children', 'className']);
+
+  return () => (
+    <div ref={group.ref} {...restProps} {...group.attributes} className={props.className}>
+      {props.children}
+    </div>
+  );
+}, 'RadioGroup');
+```
+:::
+
+# Radio
+
+Modern interfaces often present choices as rich pricing cards, selectable tiles, or segmented pills rather than browser default circles. Custom `<div>` elements, however, lack native radio semantics, keyboard accessibility, and automatic mutual exclusion with their siblings.
+
+`@airlib/aria` provides headless behavioral bridges for radio options. It turns any custom element or native `<input type="radio">` into an accessible choice button, coordinates selection state with enclosing groups, and projects required WAI-ARIA attributes onto your elements without dictating markup or styles.
+
+You compose a radio control using this piece:
+
+- **Radio**: The choice button or card that reflects `aria-checked` from the parent group's active value.
+
+## What you get
+
+- **Works on any element.** Binds cleanly to native `<input type="radio">` or turns custom `<div>` cards into accessible radios via `native: false`.
+- **Automatic group synchronization.** Derives its `aria-checked` state by matching its `value` against the parent group's selection.
+- **Idempotent selection.** Once selected, activating the radio again remains selected.
+- **Clean disabled semantics.** Disabled radio buttons ignore input, prevent keyboard activation, and reflect `aria-disabled`.
+
+## Radio
+
+In Aria, Radio is the choice button widget created with `aria('radio')` that reflects selection state and forwards change events.
+
+```ts
+aria<E extends BaseElement = HTMLInputElement, T extends Primitive = Primitive>(
+  role: 'radio',
+  props?: RadioProps<T>,
+  options?: RadioOptions
+): RadioAria<E>
+```
+
+### Parameters
+
+- `props.value` *(Primitive, optional)*: Choice candidate value matching the parent group's active value.
+- `props.name` *(string, optional)*: Native HTML form field name pass-through.
+- `props.checked` *(boolean, optional)*: Explicit checked state when used standalone.
+- `props.disabled` *(boolean, optional)*: Disables the radio option.
+- `options.native` *(boolean, optional, default `true`)*: Pass `false` when wrapping custom non-input elements (such as `<div>` cards).
+
+### How it behaves
+
+When bound to a native `<input type="radio">`, explicit `role` is omitted (implicit in HTML) and native `.checked` state is kept in sync. When bound to a custom element (`native: false`), it compiles `role="radio"`, manages `tabindex` (`0` when checked, `-1` when unchecked), and polyfills Space key toggling. Activating an already selected radio is idempotent.
+
+:::note[Enclosing Group]
+While `Radio` can operate standalone, mutually exclusive selection and arrow-key roving focus are coordinated by enclosing radios inside a [Radio Group](../composites/radiogroup).
+:::
+
+### Usage
+
+To use Radio, create the radio instance with `aria('radio', props, { native: false })` for custom cards, then pass `radio.ref` and spread `radio.attributes` onto your card element:
+
+:::code-group
+
+```tsx [React] executable
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type RadioCardProps = ComponentProps<'div'> & {
+  value: string;
+  name?: string;
+  disabled?: boolean;
+  title: string;
+  price: string;
+};
+
+const RadioCard = setup<RadioCardProps>((props) => {
+  const radio = aria('radio', props, { native: false });
+  const restProps = props.$omit([...radio.ownKeys, 'title', 'price', 'children', 'className']);
+
+  return () => (
+    <div ref={radio.ref} {...restProps} {...radio.attributes} className={props.className}>
+      <strong>{props.title}</strong>
+      <span>{props.price}</span>
+    </div>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type RadioCardProps = ComponentProps<'div'> & {
+  value: string;
+  name?: string;
+  disabled?: boolean;
+  title: string;
+  price: string;
+};
+
+const RadioCard = setup<RadioCardProps>((props) => {
+  const radio = aria('radio', props, { native: false });
+  const restProps = props.$omit([...radio.ownKeys, 'title', 'price', 'children', 'className']);
+
+  return (
+    <div ref={radio.ref} {...restProps} {...radio.attributes} className={props.className}>
+      <strong>{props.title}</strong>
+      <span>{props.price}</span>
+    </div>
+  );
+});
+```
+
+:::
+
+## Putting It Together
+
+Once your components are wired with `aria(...)`, compose them to build accessible radio cards:
+
+```tsx
+<RadioGroup value="pro">
+  <RadioCard value="starter" title="Starter Plan" price="$12 / mo" />
+  <RadioCard value="pro" title="Pro Plan" price="$29 / mo" />
+  <RadioCard value="enterprise" title="Enterprise Plan" price="$99 / mo" disabled={true} />
+</RadioGroup>
+```
+
+:::interactive[Radio Interactive Demo]
+<RadioGroup value="pro" className="flex flex-col gap-2.5 max-w-sm p-3 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50">
+  <RadioCard
+    value="starter"
+    title="Starter Plan"
+    price="$12 / mo"
+    className="flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:border-primary aria-checked:border-primary aria-checked:ring-1 aria-checked:ring-primary"
+  />
+  <RadioCard
+    value="pro"
+    title="Pro Plan"
+    price="$29 / mo"
+    className="flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:border-primary aria-checked:border-primary aria-checked:ring-1 aria-checked:ring-primary"
+  />
+  <RadioCard
+    value="enterprise"
+    title="Enterprise Plan"
+    price="$99 / mo"
+    disabled={true}
+    className="flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all opacity-50 cursor-not-allowed border-zinc-200 dark:border-zinc-800 bg-zinc-100/50 dark:bg-zinc-800/50"
+  />
+</RadioGroup>
+:::
+
+## Keyboard Navigation
+
+- **Tab**: Moves focus into the radio option or exits to the next focusable control.
+- **Space**: Selects the focused radio option.
+- **Arrow Keys**: When placed inside a [Radio Group](../composites/radiogroup), arrow keys navigate and select adjacent radio choices.
+
+## Next Steps
+
+- **[Radio Group](file:///Users/mahdaen/Domains/beerush.io/anchor/apps/air-web/pages/(docs)/aria/composites/radiogroup.page.mdx)**: Group mutually exclusive radio options with arrow-key roving focus.
+- **[Checkbox](file:///Users/mahdaen/Domains/beerush.io/anchor/apps/air-web/pages/(docs)/aria/widgets/checkbox.page.mdx)**: Build binary and tri-state toggle checkboxes.
+- **[Switch](file:///Users/mahdaen/Domains/beerush.io/anchor/apps/air-web/pages/(docs)/aria/widgets/switch.page.mdx)**: Build instant-action binary toggle switches.

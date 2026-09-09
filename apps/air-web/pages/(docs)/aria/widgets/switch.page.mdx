@@ -1,0 +1,161 @@
+---
+title: 'Switch'
+description: 'Headless accessible switch widget representing immediate binary on/off states with full keyboard toggling.'
+nav: 'Switch'
+nav-priority: 230
+---
+
+# Switch
+
+Settings panels, instant toggles, and feature flags require on/off controls that take effect the instant they are flipped (such as dark mode, mute, or airplane mode). Because HTML lacks a native `<switch>` element, custom toggle switches built from `<div>` or `<button>` elements must compile WAI-ARIA switch semantics and keyboard interactions by hand.
+
+`@airlib/aria` provides headless behavioral bridges for toggle switches. It compiles `role="switch"`, manages binary checked states via `aria-checked`, attaches keyboard listeners for instant Space and Enter toggling, and projects required attributes onto your elements without dictating markup or styles.
+
+You compose a switch using this piece:
+
+- **Switch**: The binary on/off toggle widget that compiles `role="switch"` and reflects immediate state changes.
+
+## What you get
+
+- **Accessible switch semantics.** Compiles `role="switch"` so assistive technologies announce an immediate on/off setting rather than a form checkbox.
+- **Instant keyboard toggling.** Clicking, `Space`, or `Enter` toggles the switch immediately.
+- **Flexible element binding.** Binds cleanly to `<button>` or custom `<div>` elements with full focus management.
+- **Clean disabled state.** Disables interaction, prevents keyboard toggling, and reflects `aria-disabled`.
+
+## Switch
+
+In Aria, Switch is the binary toggle widget created with `aria('switch')` that compiles `role="switch"` and synchronizes its checked state.
+
+```ts
+aria<E extends BaseElement = HTMLElement, T extends Primitive = Primitive>(
+  role: 'switch',
+  props?: SwitchProps<T>,
+  options?: SwitchOptions
+): SwitchAria<E>
+```
+
+### Parameters
+
+- `props.checked` *(boolean, optional, default `false`)*: Binary checked state, compiled to `aria-checked`.
+- `props.value` *(Primitive, optional)*: Choice candidate value when nested inside a selection group.
+- `props.name` *(string, optional)*: Form field name pass-through.
+- `props.disabled` *(boolean, optional)*: Disables the switch and removes it from the tab order.
+- `options.native` *(boolean, optional, default `false`)*: Set to `true` when bound to a native `<button>` host where the browser handles click events.
+
+### How it behaves
+
+HTML provides no native `<switch>` tag, so the switch engine compiles `role="switch"`, projects `aria-checked="true"` or `"false"`, and sets `tabindex="0"` (or `-1` if disabled). Activating the switch via click, `Space`, or `Enter` immediately inverts its `checked` state.
+
+:::tip[Checkbox vs Switch]
+Use a **Checkbox** when the option sits inside a form and takes effect upon submit ("agree to terms", "remember me"). Use a **Switch** when toggling takes effect immediately ("dark mode", "airplane mode").
+:::
+
+### Usage
+
+To use Switch, create the switch instance with `aria('switch', props)`, then pass `switch.ref` and spread `switch.attributes` onto your button element:
+
+:::code-group
+
+```tsx [React] executable
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type SwitchProps = ComponentProps<'button'> & {
+  checked?: boolean;
+  disabled?: boolean;
+};
+
+const Switch = setup<SwitchProps>((props) => {
+  const sw = aria('switch', props, { native: true });
+  const restProps = props.$omit([...sw.ownKeys, 'checked', 'disabled', 'children', 'className']);
+
+  return () => (
+    <button ref={sw.ref} {...restProps} {...sw.attributes} className={props.className}>
+      <span className="switch-thumb" />
+    </button>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type SwitchProps = ComponentProps<'button'> & {
+  checked?: boolean;
+  disabled?: boolean;
+};
+
+const Switch = setup<SwitchProps>((props) => {
+  const sw = aria('switch', props, { native: true });
+  const restProps = props.$omit([...sw.ownKeys, 'checked', 'disabled', 'children', 'className']);
+
+  return (
+    <button ref={sw.ref} {...restProps} {...sw.attributes} className={props.className}>
+      <span className="switch-thumb" />
+    </button>
+  );
+});
+```
+
+:::
+
+## Putting It Together
+
+Once your components are wired with `aria(...)`, compose them to build accessible toggle switches:
+
+```tsx
+<div className="flex flex-col gap-4">
+  <label className="flex items-center justify-between">
+    <span>Push Notifications</span>
+    <Switch checked={true} />
+  </label>
+  <label className="flex items-center justify-between">
+    <span>Dark Mode</span>
+    <Switch checked={false} />
+  </label>
+  <label className="flex items-center justify-between">
+    <span>Offline Sync (Disabled)</span>
+    <Switch disabled={true} />
+  </label>
+</div>
+```
+
+:::interactive[Switch Interactive Demo]
+<div className="flex flex-col gap-4 p-4 max-w-sm border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 text-sm">
+  <label className="flex items-center justify-between cursor-pointer text-zinc-800 dark:text-zinc-200">
+    <span>Push Notifications</span>
+    <Switch
+      checked={true}
+      className="relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors bg-zinc-300 dark:bg-zinc-700 aria-checked:bg-primary [&_.switch-thumb]:inline-block [&_.switch-thumb]:h-5 [&_.switch-thumb]:w-5 [&_.switch-thumb]:rounded-full [&_.switch-thumb]:bg-white [&_.switch-thumb]:shadow-sm [&_.switch-thumb]:translate-x-0 aria-checked:[&_.switch-thumb]:translate-x-5 [&_.switch-thumb]:transition-transform"
+    />
+  </label>
+  <label className="flex items-center justify-between cursor-pointer text-zinc-800 dark:text-zinc-200">
+    <span>Dark Mode</span>
+    <Switch
+      checked={false}
+      className="relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors bg-zinc-300 dark:bg-zinc-700 aria-checked:bg-primary [&_.switch-thumb]:inline-block [&_.switch-thumb]:h-5 [&_.switch-thumb]:w-5 [&_.switch-thumb]:rounded-full [&_.switch-thumb]:bg-white [&_.switch-thumb]:shadow-sm [&_.switch-thumb]:translate-x-0 aria-checked:[&_.switch-thumb]:translate-x-5 [&_.switch-thumb]:transition-transform"
+    />
+  </label>
+  <label className="flex items-center justify-between cursor-not-allowed text-zinc-400 dark:text-zinc-500">
+    <span>Offline Sync (Disabled)</span>
+    <Switch
+      disabled={true}
+      className="relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors bg-zinc-300 dark:bg-zinc-700 opacity-40 cursor-not-allowed [&_.switch-thumb]:inline-block [&_.switch-thumb]:h-5 [&_.switch-thumb]:w-5 [&_.switch-thumb]:rounded-full [&_.switch-thumb]:bg-white [&_.switch-thumb]:shadow-sm"
+    />
+  </label>
+</div>
+:::
+
+## Keyboard Navigation
+
+- **Tab**: Focuses into the switch or moves to the next focusable page element.
+- **Space / Enter**: Toggles the switch between on and off.
+
+## Next Steps
+
+- **[Checkbox](file:///Users/mahdaen/Domains/beerush.io/anchor/apps/air-web/pages/(docs)/aria/widgets/checkbox.page.mdx)**: Build binary and tri-state form checkboxes.
+- **[Button](file:///Users/mahdaen/Domains/beerush.io/anchor/apps/air-web/pages/(docs)/aria/widgets/button.page.mdx)**: Explore command triggers and two-state toggle buttons.
+- **[Toggle Group](file:///Users/mahdaen/Domains/beerush.io/anchor/apps/air-web/pages/(docs)/aria/composites/togglegroup.page.mdx)**: Group toggle buttons with shared selection models.

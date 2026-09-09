@@ -16,6 +16,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@airlib/aria": "workspace:*",
     "@airlib/react": "workspace:*",
     "@airlib/react-form": "workspace:*",
     "@irpclib/http": "workspace:*",

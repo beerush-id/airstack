@@ -1,0 +1,695 @@
+---
+title: 'Menu'
+description: 'Headless menu and menubar engine with roving focus, checkable items, and radio groups.'
+nav: 'Menu'
+nav-priority: 360
+---
+
+# Menu
+
+Building an accessible menu by hand means juggling reciprocal attributes (`aria-controls`, `aria-expanded`), managing roving focus across items without trapping `Tab`, and isolating group selections without breaking keyboard navigation.
+
+The `@airlib/aria` menu engine bridges your component props to the DOM—compiling accessibility attributes, routing keyboard roving focus, and synchronizing trigger expansion, while leaving markup, styling, and popup positioning in your hands.
+
+You compose a menu using these pieces:
+
+- **Menu**: Synchronizes `open` state and the shared ID between a trigger and its popup panel.
+- **Menu Button**: The trigger element that reflects `aria-expanded` and connects to the panel via `aria-controls`.
+- **Menu Panel**: The container element that compiles `role="menu"` and roves focus across items.
+- **Menu Item**: The action button that hooks into roving focus and Space/Enter execution without overriding your `onClick` handler.
+- **Menu Item Checkbox**: The independent toggle button that manages its own `role="menuitemcheckbox"` state.
+- **Menu Group**: A section container that compiles `role="group"` to scope child radio options to a shared value.
+- **Menubar**: A top-level horizontal bar that coordinates roving focus across multiple menus.
+
+## What you get
+
+- **One Tab stop.** The entire menu acts as one stop in the page flow; arrow keys move focus across items without trapping `Tab`.
+- **Focus separated from activation.** Moving focus never executes an action; items activate only on click, Space, or Enter.
+- **Coordinated trigger & panel.** Automatically synchronizes `aria-expanded` and linked IDs between trigger and panel.
+- **Independent toggles & grouped radios.** Checkable items manage their own state; radio items synchronize exclusively within their group.
+- **Escape & rover boundaries.** Intercepts `Escape` to close the menu, and defers navigation to parent rovers when nested in menubars or toolbars.
+
+## Menu
+
+In Aria, a Menu is the pair orchestrator created with `aria('menu')` that synchronizes your trigger and popup panel, coordinating their linked IDs and `open` state without manual prop-drilling.
+
+```ts
+aria<E extends BaseElement = HTMLElement>(role: 'menu', props?: MenuProps): MenuAria<E>
+```
+
+### Parameters
+
+- `props.id` *(string, optional)*: Scopes the identifier namespace for the pair (auto-generated if omitted).
+- `props.open` *(boolean, optional)*: Whether the paired popup panel is open (`false` by default).
+
+### How it behaves
+
+The pair scopes one trigger and one panel under a shared ID namespace. Activating the trigger toggles `open`, projecting `aria-expanded` and linking `aria-controls` to the panel. Pressing `Escape` inside the panel sets `open` to `false`.
+
+:::tip[Multiple Paths]
+You can coordinate triggers and panels through ambient context inside a menu wrapper, or instantiate them directly from the controller instance:
+```ts
+const menu = aria('menu', { id: 'file-menu' });
+const trigger = menu.button();
+const panel = menu.panel({ label: 'File actions' });
+```
+:::
+
+### Usage
+
+To use Menu, create the menu instance with `aria('menu', props)`, then pass `menu.ref` and spread `menu.attributes` onto your wrapper element:
+
+:::code-group
+
+```tsx [React] executable
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type MenuProps = ComponentProps<'div'> & {
+  id?: string;
+  open?: boolean;
+};
+
+const Menu = setup<MenuProps>((props) => {
+  const menu = aria('menu', props);
+  const restProps = props.$omit([...menu.ownKeys, 'children', 'className']);
+
+  return () => (
+    <div ref={menu.ref} {...restProps} {...menu.attributes} className={props.className}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type MenuProps = ComponentProps<'div'> & {
+  id?: string;
+  open?: boolean;
+};
+
+const Menu = setup<MenuProps>((props) => {
+  const menu = aria('menu', props);
+  const restProps = props.$omit([...menu.ownKeys, 'children', 'className']);
+
+  return (
+    <div ref={menu.ref} {...restProps} {...menu.attributes} className={props.className}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
+
+## Menu Button
+
+In Aria, a Menu Button is the trigger bridge created with `aria('menu-button')` that connects your button element to the menu pair, automatically projecting `aria-haspopup`, `aria-expanded`, and `aria-controls`.
+
+```ts
+aria<E extends BaseElement = HTMLButtonElement>(role: 'menu-button', props?: MenuButtonProps, options?: MenuItemOptions): MenuButtonAria<E>
+```
+
+### Parameters
+
+- `props.disabled` *(boolean, optional)*: Prevents user interaction.
+- `options.native` *(boolean, optional, default `true`)*: Set to `false` on non-button elements (like `<div>`) to attach Space and Enter key handlers.
+
+### How it behaves
+
+Activating the button toggles the paired menu's `open` state and updates `aria-expanded`. It projects `aria-haspopup="menu"`, points `aria-controls` to the panel ID, and ignores click, Space, and Enter activation when `disabled`.
+
+### Usage
+
+To use Menu Button, create the trigger instance with `aria('menu-button', props)`, then pass `button.ref` and spread `button.attributes` onto your button element:
+
+:::code-group
+
+```tsx [React] executable
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type MenuButtonProps = ComponentProps<'button'> & {
+  disabled?: boolean;
+};
+
+const MenuButton = setup<MenuButtonProps>((props) => {
+  const button = aria('menu-button', props);
+  const restProps = props.$omit([...button.ownKeys, 'children', 'className']);
+
+  return () => (
+    <button ref={button.ref} {...restProps} {...button.attributes} className={props.className}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type MenuButtonProps = ComponentProps<'button'> & {
+  disabled?: boolean;
+};
+
+const MenuButton = setup<MenuButtonProps>((props) => {
+  const button = aria('menu-button', props);
+  const restProps = props.$omit([...button.ownKeys, 'children', 'className']);
+
+  return (
+    <button ref={button.ref} {...restProps} {...button.attributes} className={props.className}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+:::
+
+## Menu Panel
+
+In Aria, a Menu Panel is the container bridge created with `aria('menu-panel')` that compiles `role="menu"` onto your list element, managing roving `tabindex` and arrow navigation across child items.
+
+```ts
+aria<E extends BaseElement = HTMLElement>(role: 'menu-panel', props?: MenuPanelProps): MenuPanelAria<E>
+```
+
+### Parameters
+
+- `props.id` *(string, optional)*: Explicit element identifier (overrides the derived pair ID).
+- `props.label` *(string, optional)*: Accessible text label announced by screen readers.
+- `props.labelledby` *(string, optional)*: ID of an element providing the accessible label.
+- `props.orientation` *('vertical' | 'horizontal', optional, default `'vertical'`)*: Navigation axis along which arrow keys move focus.
+
+### How it behaves
+
+The panel acts as a single tab stop with `role="menu"`. Arrow keys move roving focus across enabled items (Up/Down for vertical, Left/Right for horizontal), Home and End jump to the boundaries, and disabled items are skipped. Pressing `Escape` while focus is inside closes the paired menu.
+
+:::note[DOM Visibility]
+`@airlib/aria` manages accessibility attributes and keyboard focus, not DOM visibility. Control panel visibility (`{menu.open && <MenuPanel />}` or CSS popover styles) in your application layer.
+:::
+
+### Usage
+
+To use Menu Panel, create the panel instance with `aria('menu-panel', props)`, then pass `panel.ref` and spread `panel.attributes` onto your list container element:
+
+:::code-group
+
+```tsx [React] executable
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type MenuPanelProps = ComponentProps<'div'> & {
+  id?: string;
+  label?: string;
+  labelledby?: string;
+  orientation?: 'horizontal' | 'vertical';
+};
+
+const MenuPanel = setup<MenuPanelProps>((props) => {
+  const panel = aria('menu-panel', props);
+  const restProps = props.$omit([...panel.ownKeys, 'label', 'labelledby', 'orientation', 'children', 'className']);
+
+  return () => (
+    <div ref={panel.ref} {...restProps} {...panel.attributes} className={props.className}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type MenuPanelProps = ComponentProps<'div'> & {
+  id?: string;
+  label?: string;
+  labelledby?: string;
+  orientation?: 'horizontal' | 'vertical';
+};
+
+const MenuPanel = setup<MenuPanelProps>((props) => {
+  const panel = aria('menu-panel', props);
+  const restProps = props.$omit([...panel.ownKeys, 'label', 'labelledby', 'orientation', 'children', 'className']);
+
+  return (
+    <div ref={panel.ref} {...restProps} {...panel.attributes} className={props.className}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
+
+## Menu Item
+
+In Aria, a Menu Item is an action bridge created with `aria('menu-item')` that connects your button element to the menu's roving focus and Space/Enter execution without intercepting your `onClick` handler.
+
+```ts
+aria<E extends BaseElement = HTMLButtonElement>(role: 'menu-item', props?: MenuItemProps, options?: MenuItemOptions): MenuItemAria<E>
+```
+
+### Parameters
+
+- `props.name` *(string, optional)*: Semantic identifier for the item.
+- `props.disabled` *(boolean, optional)*: Disables interaction and removes the item from keyboard navigation.
+- `options.native` *(boolean, optional, default `true`)*: Pass `false` on non-button elements to attach Space and Enter key handlers.
+
+### How it behaves
+
+Renders with `role="menuitem"` and participates in the panel's roving `tabindex`. Pressing Enter or Space triggers its `onClick` action. When `disabled`, the item ignores input and is skipped during keyboard navigation.
+
+### Usage
+
+To use Menu Item, create the item instance with `aria('menu-item', props)`, then pass `item.ref` and spread `item.attributes` onto each action button element:
+
+:::code-group
+
+```tsx [React] executable
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type MenuItemProps = ComponentProps<'button'> & {
+  name?: string;
+  disabled?: boolean;
+};
+
+const MenuItem = setup<MenuItemProps>((props) => {
+  const item = aria('menu-item', props);
+  const restProps = props.$omit([...item.ownKeys, 'name', 'disabled', 'children', 'className']);
+
+  return () => (
+    <button ref={item.ref} {...restProps} {...item.attributes} className={props.className}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type MenuItemProps = ComponentProps<'button'> & {
+  name?: string;
+  disabled?: boolean;
+};
+
+const MenuItem = setup<MenuItemProps>((props) => {
+  const item = aria('menu-item', props);
+  const restProps = props.$omit([...item.ownKeys, 'name', 'disabled', 'children', 'className']);
+
+  return (
+    <button ref={item.ref} {...restProps} {...item.attributes} className={props.className}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+:::
+
+## Menu Item Checkbox
+
+In Aria, a Menu Item Checkbox is a standalone toggle bridge created with `aria('menu-item-checkbox')` that compiles `role="menuitemcheckbox"` and manages its `aria-checked` state directly on its own props.
+
+```ts
+aria<E extends BaseElement = HTMLButtonElement>(role: 'menu-item-checkbox', props?: MenuItemCheckboxProps, options?: MenuItemOptions): MenuItemCheckboxAria<E>
+```
+
+### Parameters
+
+- `props.checked` *(boolean | 'mixed', optional, default `false`)*: Toggle state. An indeterminate `'mixed'` state resolves to `true` on the first toggle.
+- `props.disabled` *(boolean, optional)*: Disables interaction and keyboard focus.
+- `props.name` *(string, optional)*: Semantic identifier for the toggle.
+- `options.native` *(boolean, optional, default `true`)*: Pass `false` on custom non-button elements.
+
+### How it behaves
+
+Toggles an independent on/off state with `role="menuitemcheckbox"`, reflecting `aria-checked` from its own `checked` prop. Activating an indeterminate (`'mixed'`) item resolves it to `true`. Its selection state is standalone and never coordinates with sibling items.
+
+### Usage
+
+To use Menu Item Checkbox, create the checkbox instance with `aria('menu-item-checkbox', props)`, then pass `checkbox.ref` and spread `checkbox.attributes` onto your toggle button element:
+
+:::code-group
+
+```tsx [React] executable
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type MenuItemCheckboxProps = ComponentProps<'button'> & {
+  name?: string;
+  disabled?: boolean;
+  checked?: boolean | 'mixed';
+};
+
+const MenuItemCheckbox = setup<MenuItemCheckboxProps>((props) => {
+  const checkbox = aria('menu-item-checkbox', props);
+  const restProps = props.$omit([...checkbox.ownKeys, 'name', 'disabled', 'checked', 'children', 'className']);
+
+  return () => (
+    <button ref={checkbox.ref} {...restProps} {...checkbox.attributes} className={props.className}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type MenuItemCheckboxProps = ComponentProps<'button'> & {
+  name?: string;
+  disabled?: boolean;
+  checked?: boolean | 'mixed';
+};
+
+const MenuItemCheckbox = setup<MenuItemCheckboxProps>((props) => {
+  const checkbox = aria('menu-item-checkbox', props);
+  const restProps = props.$omit([...checkbox.ownKeys, 'name', 'disabled', 'checked', 'children', 'className']);
+
+  return (
+    <button ref={checkbox.ref} {...restProps} {...checkbox.attributes} className={props.className}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+:::
+
+## Menu Group
+
+In Aria, a Menu Group is a section container created with `aria('menu-group')` that compiles `role="group"` to isolate a group of items under a shared label or selection context.
+
+```ts
+aria<E extends BaseElement = HTMLElement>(role: 'menu-group', props?: MenuGroupProps): MenuGroupAria<E>
+```
+
+### Parameters
+
+- `props.value` *(Primitive, optional)*: Current selected value token shared across child selection items.
+- `props.label` *(string, optional)*: Accessible section title announced to screen readers.
+- `props.labelledby` *(string, optional)*: ID of element providing the accessible section title.
+
+### How it behaves
+
+The group establishes a `role="group"` section for organizing related menu items. When a `value` is provided, it manages an isolated selection scope for nested selection items (such as radio options). Selection state is strictly scoped and never affects items in sibling groups.
+
+### Usage
+
+To use Menu Group, create the group instance with `aria('menu-group', props)`, then pass `group.ref` and spread `group.attributes` onto your section element:
+
+:::code-group
+
+```tsx [React] executable
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type MenuGroupProps = ComponentProps<'div'> & {
+  label?: string;
+  labelledby?: string;
+  value?: string;
+};
+
+const MenuGroup = setup<MenuGroupProps>((props) => {
+  const group = aria('menu-group', props);
+  const restProps = props.$omit([...group.ownKeys, 'label', 'labelledby', 'value', 'children', 'className']);
+
+  return () => (
+    <div ref={group.ref} {...restProps} {...group.attributes} className={props.className}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type MenuGroupProps = ComponentProps<'div'> & {
+  label?: string;
+  labelledby?: string;
+  value?: string;
+};
+
+const MenuGroup = setup<MenuGroupProps>((props) => {
+  const group = aria('menu-group', props);
+  const restProps = props.$omit([...group.ownKeys, 'label', 'labelledby', 'value', 'children', 'className']);
+
+  return (
+    <div ref={group.ref} {...restProps} {...group.attributes} className={props.className}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
+
+## Menu Item Radio
+
+In Aria, a Menu Item Radio is an exclusive choice action created with `aria('menu-item-radio')` that compiles `role="menuitemradio"`, coordinating with an enclosing group for single selection.
+
+```ts
+aria<E extends BaseElement = HTMLButtonElement, T extends Primitive = Primitive>(role: 'menu-item-radio', props?: MenuItemRadioProps<T>, options?: MenuItemOptions): MenuItemRadioAria<E>
+```
+
+### Parameters
+
+- `props.value` *(Primitive, required)*: Choice candidate value matching the enclosing group's `value`.
+- `props.disabled` *(boolean, optional)*: Disables the radio option.
+- `options.native` *(boolean, optional, default `true`)*: Pass `false` on non-button elements to attach Space and Enter key handlers.
+
+### How it behaves
+
+Renders with `role="menuitemradio"` and participates in the panel's roving focus. It compares its `value` against the parent group's active value, projecting `aria-checked="true"` on match and `aria-checked="false"` otherwise. Pressing Enter or Space selects the radio item. Once selected, activating it again remains selected.
+
+:::note[Semantic Context]
+On a menu, `MenuItemRadio` must be wrapped in a [Menu Group](#menu-group) to fulfill its accessibility semantics and receive its shared selection state.
+:::
+
+### Usage
+
+To use Menu Item Radio, create the radio instance with `aria('menu-item-radio', props)`, then pass `radio.ref` and spread `radio.attributes` onto your choice button element:
+
+:::code-group
+
+```tsx [React] executable
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type MenuItemRadioProps = ComponentProps<'button'> & {
+  name?: string;
+  disabled?: boolean;
+  value: string;
+};
+
+const MenuItemRadio = setup<MenuItemRadioProps>((props) => {
+  const radio = aria('menu-item-radio', props);
+  const restProps = props.$omit([...radio.ownKeys, 'name', 'disabled', 'value', 'children', 'className']);
+
+  return () => (
+    <button ref={radio.ref} {...restProps} {...radio.attributes} className={props.className}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type MenuItemRadioProps = ComponentProps<'button'> & {
+  name?: string;
+  disabled?: boolean;
+  value: string;
+};
+
+const MenuItemRadio = setup<MenuItemRadioProps>((props) => {
+  const radio = aria('menu-item-radio', props);
+  const restProps = props.$omit([...radio.ownKeys, 'name', 'disabled', 'value', 'children', 'className']);
+
+  return (
+    <button ref={radio.ref} {...restProps} {...radio.attributes} className={props.className}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+:::
+
+```tsx
+<MenuGroup label="Text alignment" value="left">
+  <MenuItemRadio value="left">Left</MenuItemRadio>
+  <MenuItemRadio value="center">Center</MenuItemRadio>
+  <MenuItemRadio value="right">Right</MenuItemRadio>
+</MenuGroup>
+```
+
+## Menubar
+
+In Aria, a Menubar is a top-level container created with `aria('menubar')` that compiles `role="menubar"`, coordinating horizontal roving focus across multiple menu triggers.
+
+```ts
+aria<E extends BaseElement = HTMLElement>(role: 'menubar', props?: MenubarProps): MenubarAria<E>
+```
+
+### Parameters
+
+- `props.label` *(string, optional)*: Accessible title announced to screen readers.
+- `props.orientation` *('horizontal' | 'vertical', optional, default `'horizontal'`)*: Axis along which top-level triggers rove.
+
+### How it behaves
+
+The menubar coordinates top-level menus as a single horizontal tab stop with `role="menubar"`. Left and Right arrow keys move roving focus across top-level triggers, while Home and End jump to the boundaries. When a child popup menu is opened, vertical arrow navigation roves within the active panel while horizontal arrows move to the adjacent top-level menu.
+
+### Usage
+
+To use Menubar, create the menubar instance with `aria('menubar', props)`, then pass `menubar.ref` and spread `menubar.attributes` onto your top-level container element:
+
+:::code-group
+
+```tsx [React] executable
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type MenubarProps = ComponentProps<'div'> & {
+  label?: string;
+  labelledby?: string;
+  orientation?: 'horizontal' | 'vertical';
+};
+
+const Menubar = setup<MenubarProps>((props) => {
+  const menubar = aria('menubar', props);
+  const restProps = props.$omit([...menubar.ownKeys, 'label', 'labelledby', 'orientation', 'children', 'className']);
+
+  return () => (
+    <div ref={menubar.ref} {...restProps} {...menubar.attributes} className={props.className}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type MenubarProps = ComponentProps<'div'> & {
+  label?: string;
+  labelledby?: string;
+  orientation?: 'horizontal' | 'vertical';
+};
+
+const Menubar = setup<MenubarProps>((props) => {
+  const menubar = aria('menubar', props);
+  const restProps = props.$omit([...menubar.ownKeys, 'label', 'labelledby', 'orientation', 'children', 'className']);
+
+  return (
+    <div ref={menubar.ref} {...restProps} {...menubar.attributes} className={props.className}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
+
+## Putting It Together
+
+Once your components are wired with `aria(...)`, you compose them to build accessible menus:
+
+```tsx
+<Menu id="editor-menu">
+  <MenuButton>Options</MenuButton>
+  <MenuPanel label="Editor options">
+    <MenuItem name="new-file">New file</MenuItem>
+    <MenuItem name="open-file">Open…</MenuItem>
+    <MenuItem name="save-file" disabled={true}>Save (disabled)</MenuItem>
+    
+    <MenuItemCheckbox name="word-wrap" checked={true}>
+      Word wrap
+    </MenuItemCheckbox>
+
+    <MenuGroup label="Text alignment" value="left">
+      <MenuItemRadio value="left">Align left</MenuItemRadio>
+      <MenuItemRadio value="center">Align center</MenuItemRadio>
+    </MenuGroup>
+  </MenuPanel>
+</Menu>
+```
+
+:::interactive[Menu Interactive Demo]
+<Menu id="editor-menu">
+  <MenuButton className="px-3.5 py-2 rounded-lg text-sm font-medium border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 shadow-sm hover:bg-zinc-50 dark:hover:bg-zinc-700/60 focus-visible:outline-2 focus-visible:outline-primary">
+    Options Menu
+  </MenuButton>
+  <MenuPanel label="Editor options" className="flex flex-col gap-1 mt-2 border border-zinc-200 dark:border-zinc-800 rounded-xl p-2 bg-white dark:bg-zinc-900 shadow-lg max-w-xs">
+    <MenuItem name="new-file" className="px-3 py-1.5 rounded-lg text-sm font-medium text-left transition-colors cursor-pointer text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-primary">
+      New file
+    </MenuItem>
+    <MenuItem name="open-file" className="px-3 py-1.5 rounded-lg text-sm font-medium text-left transition-colors cursor-pointer text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-primary">
+      Open…
+    </MenuItem>
+    <MenuItem name="save-file" disabled={true} className="px-3 py-1.5 rounded-lg text-sm font-medium text-left text-zinc-400 dark:text-zinc-600 cursor-not-allowed opacity-60">
+      Save (disabled)
+    </MenuItem>
+    <div className="my-1 border-t border-zinc-200 dark:border-zinc-800" />
+    <MenuItemCheckbox name="word-wrap" checked={true} className="flex items-center justify-between px-3 py-1.5 rounded-lg text-sm font-medium text-left transition-colors cursor-pointer text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-primary">
+      Word wrap
+    </MenuItemCheckbox>
+    <div className="my-1 border-t border-zinc-200 dark:border-zinc-800" />
+    <MenuGroup label="Text alignment" value="left" className="flex flex-col gap-1">
+      <div className="px-3 py-1 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Alignment</div>
+      <MenuItemRadio value="left" className="px-3 py-1.5 rounded-lg text-sm font-medium text-left transition-colors cursor-pointer text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-primary">
+        Align left
+      </MenuItemRadio>
+      <MenuItemRadio value="center" className="px-3 py-1.5 rounded-lg text-sm font-medium text-left transition-colors cursor-pointer text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-primary">
+        Align center
+      </MenuItemRadio>
+    </MenuGroup>
+  </MenuPanel>
+</Menu>
+:::
+
+## Keyboard Navigation
+
+- **ArrowDown / ArrowUp**: Moves roving focus to the next or previous enabled item in a vertical menu.
+- **ArrowRight / ArrowLeft**: Moves between top-level menus in a menubar, or across items in a horizontal menu.
+- **Home / End**: Moves focus directly to the first or last enabled item.
+- **Enter / Space**: Activates the focused item (executing click handlers or toggling checked states).
+- **Escape**: Closes the active menu pair.
+
+## Next Steps
+
+- **[Toolbar](file:///Users/mahdaen/Domains/beerush.io/anchor/apps/air-web/pages/(docs)/aria/composites/toolbar.page.mdx)**: Group tools and actions into an always-visible horizontal or vertical bar.
+- **[Listbox](file:///Users/mahdaen/Domains/beerush.io/anchor/apps/air-web/pages/(docs)/aria/composites/listbox.page.mdx)**: Build selectable option lists that manage single or multi-value input selection.
+- **[Accordion](file:///Users/mahdaen/Domains/beerush.io/anchor/apps/air-web/pages/(docs)/aria/composites/accordion.page.mdx)**: Coordinate collapsible disclosure sections with roving header focus.
