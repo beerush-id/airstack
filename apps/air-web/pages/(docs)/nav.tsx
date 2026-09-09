@@ -1,14 +1,13 @@
 import type { NavItem } from '@airlib/react/mdx';
 import ariaCompositesMeta from '@airlib-cache/metadata/(docs)/aria/composites/index.js';
 import ariaMeta from '@airlib-cache/metadata/(docs)/aria/index.js';
-import ariaWidgetsMeta from '@airlib-cache/metadata/(docs)/aria/widgets/index.js';
 import formMeta from '@airlib-cache/metadata/(docs)/form/index.js';
 import docsMeta from '@airlib-cache/metadata/(docs)/index.js';
-import componentsMeta from '@airlib-cache/metadata/(docs)/material-css/components/index.js';
-import extensionsMeta from '@airlib-cache/metadata/(docs)/material-css/extensions/index.js';
-import materialMeta from '@airlib-cache/metadata/(docs)/material-css/index.js';
-import layoutMeta from '@airlib-cache/metadata/(docs)/material-css/layout/index.js';
-import materialUtilitiesMeta from '@airlib-cache/metadata/(docs)/material-css/utilities/index.js';
+// import componentsMeta from '@airlib-cache/metadata/(docs)/material-css/components/index.js';
+// import extensionsMeta from '@airlib-cache/metadata/(docs)/material-css/extensions/index.js';
+// import materialMeta from '@airlib-cache/metadata/(docs)/material-css/index.js';
+// import layoutMeta from '@airlib-cache/metadata/(docs)/material-css/layout/index.js';
+// import materialUtilitiesMeta from '@airlib-cache/metadata/(docs)/material-css/utilities/index.js';
 import remoteFunctionMeta from '@airlib-cache/metadata/(docs)/remote-function/index.js';
 import routingMeta from '@airlib-cache/metadata/(docs)/routing/index.js';
 import stateMeta from '@airlib-cache/metadata/(docs)/state-management/index.js';
@@ -155,22 +154,26 @@ export const navs: NavItem[] = [
     items: toNavItems(formMeta),
   },
   {
-    text: 'Accessibility (ARIA)',
+    text: 'ARIA',
     icon: () => <WidgetsIcon />,
     collapsed: true,
     items: [
-      toNavItems(ariaMeta).find((item) => item.href === '/docs/aria')!,
-      {
-        text: 'Widgets',
-        icon: () => <WidgetsIcon />,
-        items: toNavItems(ariaWidgetsMeta),
-      },
+      ...toNavItems(ariaMeta)
+        .filter((item) => item.href !== '/docs/aria/selection')
+        .sort((a, b) => a.href.localeCompare(b.href)),
+      { separator: true },
       {
         text: 'Composites',
         icon: () => <GridViewIcon />,
         items: toNavItems(ariaCompositesMeta),
+        collapsed: true,
       },
-      toNavItems(ariaMeta).find((item) => item.href === '/docs/aria/selection')!,
+      {
+        text: 'ARIA Utilities',
+        items: [toNavItems(ariaMeta).find((item) => item.href === '/docs/aria/selection')!],
+        collapsed: true,
+        icon: () => <BuildIcon />,
+      },
     ],
   },
   // {
