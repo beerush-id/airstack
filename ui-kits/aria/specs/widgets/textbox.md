@@ -11,7 +11,7 @@ A textbox is an input widget that allows users to enter and edit text.
 
 | Part / Role | HTML Semantic | WAI-ARIA Semantic | Aria Package Semantic Contract |
 | :--- | :--- | :--- | :--- |
-| **`textbox`** | Native `<input type="text">` or `<textarea>`. Handles text entry, selection, native form participation, `disabled`, `readonly`, `required`. | `role="textbox"` (omitted if native), `aria-multiline`, `aria-readonly`, `aria-required`, `aria-invalid`. | Form input controller managing live value synchronization and validity projection. |
+| **`textbox`** | Native `<input type="text">` or `<textarea>`. Handles text entry, selection, native form participation, `disabled`, `readonly`, `required`. | `role="textbox"` (omitted if native), `aria-readonly`, `aria-required`, `aria-invalid`, `aria-label`. | Form input controller managing live value synchronization and validity projection. |
 | **`searchbox`** | Native `<input type="search">`. Native clear button and search semantics. | `role="searchbox"` (omitted if native), `aria-label` / `aria-labelledby`. | Same mid controller with `role: 'searchbox'` locked by the Searchbox public face (see `searchbox`). |
 
 ---
@@ -35,8 +35,6 @@ export interface TextboxOptions {
 export interface TextboxProps {
   /** Live text value */
   value?: string;
-  /** Whether multiline text is supported (renders <textarea> when native) */
-  multiline?: boolean;
   /** Readonly indicator */
   readonly?: boolean;
   /** Disabled indicator */
@@ -47,6 +45,8 @@ export interface TextboxProps {
   invalid?: boolean | 'grammar' | 'spelling';
   /** Placeholder hint */
   placeholder?: string;
+  /** Accessible label compiled to aria-label */
+  label?: string;
 }
 ```
 

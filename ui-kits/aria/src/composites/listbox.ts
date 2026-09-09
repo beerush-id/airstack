@@ -2,14 +2,10 @@ import { $static, $symbol, createContext, uIndex } from '@airlib/core';
 import { roverCtx } from '../context.js';
 import { Aria } from '../core.js';
 import { selectionGroup } from '../selection.js';
-import type { AriaAttributes, AriaProps, BaseElement, Orientation, Primitive } from '../types.js';
+import type { AriaAttributes, AriaInvalid, AriaProps, BaseElement, Orientation, Primitive } from '../types.js';
+import { ariaBoolean, ariaInvalid, ariaRequired } from '../utils/attributes.js';
 import { handleRovingKey } from '../utils/navigation.js';
 import { OptionAria, type OptionOptions, type OptionProps } from '../widgets/option.js';
-
-/**
- * Visual and keyboard orientation of the listbox.
- */
-export type ListboxOrientation = Orientation;
 
 /**
  * Ambient instance context for the enclosing Listbox orchestrator.
@@ -38,7 +34,7 @@ export interface SingleListboxProps<T extends Primitive = Primitive> extends Ari
    * Focus movement axis and aria-orientation.
    * @default 'vertical'
    */
-  orientation?: ListboxOrientation;
+  orientation?: Orientation;
 
   /**
    * When true, arrows move focus without selecting until Enter/Space.
@@ -50,6 +46,11 @@ export interface SingleListboxProps<T extends Primitive = Primitive> extends Ari
    * Enforces a selection constraint requiring a non-empty value.
    */
   required?: boolean;
+
+  /**
+   * Invalid indicator compiled to aria-invalid.
+   */
+  invalid?: AriaInvalid;
 
   /**
    * Whether user interaction is disabled across the entire listbox.
@@ -79,12 +80,17 @@ export interface MultipleListboxProps<T extends Primitive = Primitive> extends A
    * Focus movement axis and aria-orientation.
    * @default 'vertical'
    */
-  orientation?: ListboxOrientation;
+  orientation?: Orientation;
 
   /**
    * Enforces a selection constraint requiring a non-empty value.
    */
   required?: boolean;
+
+  /**
+   * Invalid indicator compiled to aria-invalid.
+   */
+  invalid?: AriaInvalid;
 
   /**
    * Whether user interaction is disabled across the entire listbox.
@@ -106,13 +112,14 @@ export interface ListboxAttributes<E extends BaseElement = HTMLElement> extends 
   role?: 'listbox';
   tabindex?: number;
   'aria-multiselectable'?: 'true' | 'false';
-  'aria-orientation'?: ListboxOrientation;
+  'aria-orientation'?: Orientation;
   'aria-required'?: 'true' | 'false';
   'aria-disabled'?: 'true' | 'false';
+  'aria-invalid'?: 'true' | 'false' | 'grammar' | 'spelling';
 }
 
 const ROLE_LISTBOX = 'listbox';
-const DEFAULT_ORIENTATION: ListboxOrientation = 'vertical';
+const DEFAULT_ORIENTATION: Orientation = 'vertical';
 const OPTION_SELECTORS = '[role="option"]:not([aria-disabled="true"]):not([disabled])';
 
 /**
@@ -138,8 +145,8 @@ export class ListboxAria<
     listboxCtx.set(this as unknown as ListboxAria);
     roverCtx.set(this as unknown as Aria<BaseElement>);
     selectionGroup.set(this.props as Record<string, unknown>);
+    this.omittedAttrs.push('aria-orientation', 'aria-required', 'aria-invalid', 'aria-multiselectable');
 
-    this.omittedAttrs.push('role', 'aria-multiselectable', 'aria-orientation', 'aria-disabled');
     this.update();
   }
 
@@ -153,7 +160,7 @@ export class ListboxAria<
   /**
    * Visual and keyboard navigation orientation of the listbox.
    */
-  public get orientation(): ListboxOrientation {
+  public get orientation(): Orientation {
     return this.props.orientation ?? DEFAULT_ORIENTATION;
   }
 
@@ -191,9 +198,10 @@ export class ListboxAria<
       role: ROLE_LISTBOX,
       tabindex: disabled ? -1 : 0,
       'aria-orientation': orientation,
-      'aria-multiselectable': isMultiple ? 'true' : 'false',
-      'aria-required': this.props.required ? 'true' : undefined,
-      'aria-disabled': disabled ? 'true' : 'false',
+      'aria-multiselectable': ariaBoolean(isMultiple),
+      'aria-required': ariaRequired(this.props.required),
+      'aria-disabled': ariaBoolean(disabled),
+      'aria-invalid': ariaInvalid(this.props.invalid),
       onkeydown: (e: KeyboardEvent) => {
         if (disabled || this.parentRover) return;
 

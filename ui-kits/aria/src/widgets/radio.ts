@@ -74,11 +74,9 @@ export class RadioAria<
       role: 'radio',
       idempotent: true,
       key: 'checked',
-      valueKey: 'value',
       allowKeys: [' '],
     });
 
-    this.omittedAttrs.push('role', 'type', 'checked', 'aria-checked');
     this.update();
   }
 

@@ -427,4 +427,30 @@ describe('Checkbox - Contract Specifications', () => {
         expect(input.checked).toBe(true);
       }));
   });
+
+  describe('Validation & Invalid State Contract', () => {
+    it('compiles required and invalid states for native and custom checkboxes', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          // Native checkbox
+          const nativeCb = aria('checkbox', { required: true, invalid: true }, { native: true });
+          expect(nativeCb.attributes.required).toBe(true);
+          expect(nativeCb.attributes['aria-invalid']).toBe('true');
+
+          // Custom element checkbox
+          const customCb = aria('checkbox', { required: true, invalid: 'spelling' }, { native: false });
+          expect(customCb.attributes['aria-required']).toBe('true');
+          expect(customCb.attributes['aria-invalid']).toBe('spelling');
+
+          // Default state omits aria-invalid
+          const defaultCb = aria('checkbox');
+          expect(defaultCb.attributes['aria-invalid']).toBeUndefined();
+
+          // Explicit false compiles to string 'false'
+          const validCb = aria('checkbox', { invalid: false });
+          expect(validCb.attributes['aria-invalid']).toBe('false');
+        });
+      }));
+  });
 });

@@ -124,4 +124,22 @@ describe('RadioGroup - Composite Specifications', () => {
         roverCtx.set(undefined);
       });
     }));
+
+  it('compiles required and invalid states onto radiogroup container', () =>
+    scope.run(() => {
+      component().run(() => {
+        const group = aria('radiogroup', { required: true, invalid: true });
+        expect(group.attributes['aria-required']).toBe('true');
+        expect(group.attributes['aria-invalid']).toBe('true');
+
+        const spellingGroup = aria('radiogroup', { invalid: 'grammar' });
+        expect(spellingGroup.attributes['aria-invalid']).toBe('grammar');
+
+        const defaultGroup = aria('radiogroup');
+        expect(defaultGroup.attributes['aria-invalid']).toBeUndefined();
+
+        const validGroup = aria('radiogroup', { invalid: false });
+        expect(validGroup.attributes['aria-invalid']).toBe('false');
+      });
+    }));
 });

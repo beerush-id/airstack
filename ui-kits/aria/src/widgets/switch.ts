@@ -69,10 +69,8 @@ export class SwitchAria<
       ...options,
       role: 'switch',
       key: 'checked',
-      valueKey: 'value',
     });
 
-    this.omittedAttrs.push('role', 'aria-checked');
     this.update();
   }
 

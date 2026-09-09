@@ -63,20 +63,8 @@ export class OptionAria<
   O extends OptionOptions = OptionOptions,
 > extends SelectionAria<E, T, A, SelectionOptions> {
   public constructor(props: Partial<T> = {}, options: Partial<O> = {}) {
-    super(props, { native: false, ...options, role: ROLE_OPTION, key: 'selected', valueKey: 'value' });
-    this.omittedAttrs.push('role', 'aria-selected');
+    super(props, { native: false, ...options, role: ROLE_OPTION });
     this.update();
-  }
-
-  /**
-   * Whether the option is currently selected.
-   */
-  public override get selected(): boolean {
-    return super.selected;
-  }
-
-  public override set selected(value: boolean) {
-    super.selected = value;
   }
 
   /**

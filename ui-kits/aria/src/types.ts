@@ -8,6 +8,11 @@ export type { Primitive };
 export type Orientation = 'horizontal' | 'vertical';
 
 /**
+ * WAI-ARIA validation error indicator token.
+ */
+export type AriaInvalid = boolean | 'grammar' | 'spelling';
+
+/**
  * Base reactive input properties for Aria controllers.
  */
 export interface AriaProps {
@@ -222,6 +227,7 @@ export interface AriaAttributes<E extends BaseElement = HTMLElement> extends Glo
   'aria-modal'?: boolean | 'true' | 'false';
   'aria-readonly'?: boolean | 'true' | 'false';
   'aria-required'?: boolean | 'true' | 'false';
+  'aria-invalid'?: boolean | 'true' | 'false' | 'grammar' | 'spelling';
   'aria-multiline'?: boolean | 'true' | 'false';
   'aria-multiselectable'?: boolean | 'true' | 'false';
   'aria-valuenow'?: number;

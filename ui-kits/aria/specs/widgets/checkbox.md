@@ -11,8 +11,8 @@ A checkbox is a two-state or tri-state toggle widget that represents a binary ch
 
 | Context | HTML Semantic | WAI-ARIA Semantic | Aria Package Semantic Contract |
 | :--- | :--- | :--- | :--- |
-| **Native Checkbox** | Native `<input type="checkbox">`. Participates in native form submission (`name`, `value`, `checked`). Supports native `.indeterminate` IDL property. | Implicit `role="checkbox"`. Attribute omitted. | Syncs native `.checked` and `.indeterminate`. Forwards change events. |
-| **Custom Checkbox** | Non-native element (`<div>`, `<span>`). No native form participation or keyboard behavior. | `role="checkbox"`, `aria-checked` (`"true"` \| `"false"` \| `"mixed"`), `tabindex="0"` (or `-1` if disabled). | Polyfills Space key toggling, manages `this.checked` projection, and compiles ARIA attributes. |
+| **Native Checkbox** | Native `<input type="checkbox">`. Participates in native form submission (`name`, `value`, `checked`, `required`). Supports native `.indeterminate` IDL property. | Implicit `role="checkbox"`. Attribute omitted. Projects `aria-invalid` on validation failure. | Syncs native `.checked`, `.indeterminate`, and `.required`. Forwards change events and projects validity states. |
+| **Custom Checkbox** | Non-native element (`<div>`, `<span>`). No native form participation or keyboard behavior. | `role="checkbox"`, `aria-checked` (`"true"` \| `"false"` \| `"mixed"`), `aria-required`, `aria-invalid`, `tabindex="0"` (or `-1` if disabled). | Polyfills Space key toggling, manages `this.checked` projection, and compiles ARIA attributes. |
 
 ---
 
@@ -28,19 +28,23 @@ export interface CheckboxOptions {
 }
 ```
 
-#### `CheckboxProps<T extends Primitive = Primitive>`
+#### `CheckboxProps<T extends AnyType = AnyType>`
 ```ts
-export interface CheckboxProps<T extends Primitive = Primitive> {
+export interface CheckboxProps<T extends AnyType = AnyType> {
+  /** Whether the checkbox is in a checked state */
+  checked?: boolean;
+  /** Whether the checkbox is in a tri-state indeterminate/mixed condition */
+  indeterminate?: boolean;
+  /** Whether the checkbox is disabled from user interaction */
+  disabled?: boolean;
+  /** Whether a checked state is required for form validation */
+  required?: boolean;
+  /** Invalid indicator compiled to aria-invalid */
+  invalid?: boolean | 'grammar' | 'spelling';
+  /** Semantic identity key or field name on the parent group or form */
+  name?: string;
   /** Choice candidate value when nested inside a multi-selection group */
   value?: T;
-  /** Native HTML form field name pass-through */
-  name?: string;
-  /** Binary or tri-state checked state */
-  checked?: boolean | 'mixed';
-  /** Disabled state */
-  disabled?: boolean;
-  /** Required validation indicator */
-  required?: boolean;
 }
 ```
 
@@ -48,11 +52,11 @@ export interface CheckboxProps<T extends Primitive = Primitive> {
 
 ```ts
 // Checkbox: Binary/tri-state toggle (standalone, or multi-group member with `value`)
-export function aria<E extends BaseElement = HTMLInputElement, T extends Primitive = Primitive>(
+export function aria<E extends BaseElement = HTMLInputElement, T extends AnyType = AnyType>(
   role: 'checkbox',
   props?: CheckboxProps<T>,
   options?: CheckboxOptions
-): CheckboxAria<E>;
+): CheckboxAria<E, CheckboxProps<T>>;
 ```
 
 ---

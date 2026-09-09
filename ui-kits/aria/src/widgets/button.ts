@@ -55,7 +55,6 @@ export class ButtonAria<
       ...options,
     });
 
-    this.omittedAttrs.push('role', 'type', 'disabled', 'tabindex', 'aria-disabled');
     this.update();
   }
 
@@ -79,16 +78,18 @@ export class ButtonAria<
    * @returns Button attributes dictionary
    */
   protected override createAttributes(): A {
+    const base = super.createAttributes();
+
     if (this.isNative) {
-      return {
+      return Object.assign(base, {
         type: this.type,
         disabled: this.disabled,
-      } as unknown as A;
+      }) as A;
     }
 
     const isDisabled = this.disabled;
 
-    return {
+    return Object.assign(base, {
       role: 'button',
       tabindex: isDisabled ? -1 : 0,
       'aria-disabled': isDisabled ? 'true' : 'false',
@@ -118,6 +119,6 @@ export class ButtonAria<
           (e.currentTarget as HTMLElement)?.click?.();
         }
       },
-    } as unknown as A;
+    }) as A;
   }
 }

@@ -12,7 +12,7 @@ A radio group is a set of checkable buttons (radios) of which no more than one m
 
 | Part / Role | HTML Semantic | WAI-ARIA Semantic | Aria Package Semantic Contract |
 | :--- | :--- | :--- | :--- |
-| **`radiogroup`** | Form grouping (`<fieldset>` + `<legend>`). Participates in native form submission when children are native inputs. | `role="radiogroup"`, `aria-label` / `aria-labelledby`, `aria-required` (`"true"` \| `"false"`). | Single-only container group controller. Props: `RadioGroupProps` (no `multiple` flag; `manual` defaults `false`). Manages roving tabindex across radios. |
+| **`radiogroup`** | Form grouping (`<fieldset>` + `<legend>`). Participates in native form submission when children are native inputs. | `role="radiogroup"`, `aria-label` / `aria-labelledby`, `aria-required` (`"true"` \| `"false"`), `aria-invalid`. | Single-only container group controller. Props: `RadioGroupProps` (no `multiple` flag; `manual` defaults `false`). Manages roving tabindex across radios and validity state. |
 | **`radio`** | Native `<input type="radio">` with form participation (`name`, `value`, `checked`). | `role="radio"` (custom only), `aria-checked` (`"true"` \| `"false"`), roving `tabindex` (`0` if checked, `-1` if unchecked). | Choice candidate: `this.props.value`.<br>Active: `this.group.value === this.props.value`.<br>Activation: `this.group.value = this.props.value`. Always idempotent (never deselects, even when `!required`); group may start empty.<br>Form field: `this.props.name` passes through to native element. |
 
 ---
@@ -36,6 +36,8 @@ export interface RadioGroupProps<T extends Primitive = Primitive> {
   manual?: boolean;
   /** Enforces a selection constraint requiring a non-empty value */
   required?: boolean;
+  /** Invalid indicator compiled to aria-invalid */
+  invalid?: boolean | 'grammar' | 'spelling';
   disabled?: boolean;
 }
 ```

@@ -2,7 +2,8 @@ import { $static, $symbol, createContext, uIndex } from '@airlib/core';
 import { roverCtx } from '../context.js';
 import { Aria } from '../core.js';
 import { selectionGroup } from '../selection.js';
-import type { AriaAttributes, AriaProps, BaseElement, Orientation, Primitive } from '../types.js';
+import type { AriaAttributes, AriaInvalid, AriaProps, BaseElement, Orientation, Primitive } from '../types.js';
+import { ariaBoolean, ariaInvalid, ariaRequired } from '../utils/attributes.js';
 import { handleRovingKey } from '../utils/navigation.js';
 import { RadioAria, type RadioAttributes, type RadioOptions, type RadioProps } from '../widgets/radio.js';
 
@@ -61,6 +62,11 @@ export interface RadioGroupProps<T extends Primitive = Primitive> extends AriaPr
    * Enforces a selection constraint requiring a non-empty value.
    */
   required?: boolean;
+
+  /**
+   * Invalid indicator compiled to aria-invalid.
+   */
+  invalid?: AriaInvalid;
 }
 
 /**
@@ -73,6 +79,7 @@ export interface RadioGroupAttributes<E extends BaseElement = HTMLElement> exten
   'aria-orientation'?: Orientation;
   'aria-required'?: 'true' | 'false';
   'aria-disabled'?: 'true' | 'false';
+  'aria-invalid'?: 'true' | 'false' | 'grammar' | 'spelling';
 }
 
 /**
@@ -98,8 +105,8 @@ export class RadioGroupAria<
     radioGroupCtx.set(this as unknown as RadioGroupAria);
     roverCtx.set(this as unknown as Aria<BaseElement>);
     selectionGroup.set(this.props as Record<string, unknown>);
+    this.omittedAttrs.push('aria-orientation', 'aria-required', 'aria-invalid');
 
-    this.omittedAttrs.push('role', 'aria-orientation', 'aria-disabled');
     this.update();
   }
 
@@ -142,8 +149,9 @@ export class RadioGroupAria<
       id: this.props.id,
       role: ROLE_RADIOGROUP,
       'aria-orientation': orientation,
-      'aria-required': this.props.required ? 'true' : undefined,
-      'aria-disabled': disabled ? 'true' : 'false',
+      'aria-required': ariaRequired(this.props.required),
+      'aria-disabled': ariaBoolean(disabled),
+      'aria-invalid': ariaInvalid(this.props.invalid),
       onkeydown: (e: KeyboardEvent) => {
         if (disabled || this.parentRover) return;
 

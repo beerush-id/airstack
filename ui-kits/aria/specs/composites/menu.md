@@ -3,10 +3,25 @@
 A menu is a widget that offers a list of choices to the user, such as an application action menu, context menu, or menubar. ARIA menus are for application commands and actions, not standard website navigation (which uses `<nav>` and links).
 
 ### Composite Parts
+- **`Menu`** (`aria('menu')`): Root orchestrator pairing one trigger with one popup panel. Owns `open` state and the pair id namespace; renders un-roled.
 - **`Menubar`**: WAI-ARIA `menubar`
-- **`Menu`**: WAI-ARIA `menu`
+- **Menu button** (`aria('menu-button')`): Menu trigger button (`aria-haspopup="menu"`)
+- **Menu panel** (`aria('menu-panel')`): WAI-ARIA `menu` popup
 - **`MenuItem`**: WAI-ARIA `menuitem`
 - **`MenuGroup`**: WAI-ARIA `group`
+
+### Entity Hierarchy
+`Menubar` hosts menus. A menu hosts exactly one trigger and one panel. A panel hosts items, optionally wrapped in groups:
+
+```
+Menubar
+└─ Menu (trigger + popup pair)
+   ├─ Menu button (opens/closes, aria-expanded)
+   └─ Menu panel (role="menu")
+      ├─ MenuItem (menuitem / checkbox / radio)
+      └─ MenuGroup (role="group", optional)
+         └─ MenuItem
+```
 
 ---
 
@@ -14,12 +29,14 @@ A menu is a widget that offers a list of choices to the user, such as an applica
 
 | Part / Role | HTML Semantic | WAI-ARIA Semantic | Aria Package Semantic Contract |
 | :--- | :--- | :--- | :--- |
+| **`menu`** | Un-roled wrapper (`<div>`). | No role; projects `id` namespace only. | Pair orchestrator owning `open` state. Publishes ambient `menuCtx`; spawns trigger and panel. |
 | **`menubar`** | Layout bar (`<div>`). | `role="menubar"`, `aria-label` / `aria-labelledby`, `aria-orientation="horizontal"`. | Container group managing horizontal roving focus across top-level menus. |
-| **`menu`** | Popup/dropdown wrapper (`<div>`). | `role="menu"`, `aria-label` / `aria-labelledby`, `aria-orientation="vertical"`. | Focus trap and vertical roving focus manager. Closes on Escape. |
+| **menu panel** | Popup/dropdown wrapper (`<div>`). | `role="menu"`, `aria-label` / `aria-labelledby`, `aria-orientation="vertical"`. | Focus trap and vertical roving focus manager. Closes paired root on Escape. |
+| **menu button** | Trigger (`<button type="button">`). | No `role` when native; `aria-haspopup="menu"`, `aria-expanded`, `aria-controls` to the panel. | Flips root `open` on activation; inert without a root. |
 | **`menuitem`** | Action trigger (`<button type="button">`). Space/Enter activates. | `role="menuitem"`, roving `tabindex`, `aria-haspopup` (if submenu). | Action invoker: triggers command or expands submenu. |
 | **`menuitemcheckbox`** | Checkable item (`<button type="button">`). | `role="menuitemcheckbox"`, `aria-checked` (`"true"` \| `"false"` \| `"mixed"`). | Standalone toggle contract: keeps `checked` on its own props. Never bound to a group value. |
 | **`menuitemradio`** | Radio item (`<button type="button">`). | `role="menuitemradio"`, `aria-checked` (`"true"` \| `"false"`). | Single-selection contract inside a `multiple: false` subgroup. Active: `this.group.value === this.props.value`. Activation: `this.group.value = this.props.value`. Always idempotent (never deselects). |
-| **`group`** | Structural grouping (`<div>`). | `role="group"`, `aria-label` / `aria-labelledby`. | Subgroup container publishing an independent scoped selection value for its radio members; non-radio members are unaffected. Takes no `aria()` overload. |
+| **`group`** | Structural grouping (`<div>`). | `role="group"`, `aria-label` / `aria-labelledby`. | Subgroup container publishing an independent scoped selection value for its radio members; non-radio members are unaffected. Constructs via `aria('menu-group', props)` or `new MenuGroupAria()`. |
 
 ---
 
@@ -27,17 +44,23 @@ A menu is a widget that offers a list of choices to the user, such as an applica
 
 ### 1. Options & Props Contracts
 
-#### `MenuProps`
+#### `MenubarProps`
 ```ts
-export interface MenuProps {
-  /** Optional DOM element identifier */
-  id?: string;
+export interface MenubarProps {
   /** Accessible label */
   label?: string;
+  /** Bar axis orientation (default: 'horizontal') */
+  orientation?: 'vertical' | 'horizontal';
+}
+```
+
+#### `MenuPanelProps`
+```ts
+export interface MenuPanelProps extends MenubarProps {
+  /** Optional DOM element identifier */
+  id?: string;
   /** Element ID providing accessible label */
   labelledby?: string;
-  /** Menu axis orientation (default: 'vertical' for menu, 'horizontal' for menubar) */
-  orientation?: 'vertical' | 'horizontal';
 }
 ```
 
@@ -88,17 +111,23 @@ export interface MenuItemRadioProps<T extends Primitive = Primitive> extends Men
 ### 2. Overload Contracts
 
 ```ts
-// Menubar: Horizontal command bar
-export function aria<E extends BaseElement = HTMLElement>(
-  role: 'menubar',
-  props?: MenuProps
-): MenubarAria<E>;
-
-// Menu: Command menu / popup
+// Menu: Trigger + popup pair orchestrator
 export function aria<E extends BaseElement = HTMLElement>(
   role: 'menu',
   props?: MenuProps
 ): MenuAria<E>;
+
+// MenuPanel: Popup panel compiling role="menu"
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'menu-panel',
+  props?: MenuPanelProps
+): MenuPanelAria<E>;
+
+// Menubar: Horizontal command bar
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'menubar',
+  props?: MenubarProps
+): MenubarAria<E>;
 
 // MenuItem: Command action trigger
 export function aria<E extends BaseElement = HTMLButtonElement>(
@@ -106,6 +135,19 @@ export function aria<E extends BaseElement = HTMLButtonElement>(
   props?: MenuItemProps,
   options?: MenuItemOptions
 ): MenuItemAria<E>;
+
+// MenuButton: Popup trigger toggling root open state
+export function aria<E extends BaseElement = HTMLButtonElement>(
+  role: 'menu-button',
+  props?: MenuButtonProps,
+  options?: MenuItemOptions
+): MenuButtonAria<E>;
+
+// MenuGroup: Labelled section scoping radio selection
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'menu-group',
+  props?: MenuGroupProps
+): MenuGroupAria<E>;
 
 // MenuItemCheckbox: Checkable command item
 export function aria<E extends BaseElement = HTMLButtonElement>(
@@ -140,3 +182,9 @@ export function aria<E extends BaseElement = HTMLButtonElement, T extends Primit
 3. **Subgroup Radio Scoping**:
    - Menu subgroups render `<div role="group">` with an accessible label (`label` or `labelledby`).
    - When hosting `menu-item-radio` members, the subgroup publishes an independent ambient `selectionGroup` (`{ value: groupProps.value, multiple: false }`), scoping mutually exclusive radio selection strictly to that subgroup without affecting other menu items.
+
+4. **Pair Linkage & Open State**:
+   - The root owns `open` (default `false`) and the pair id namespace (`props.id`, generated `menu-*` fallback).
+   - The panel projects `id` as `props.id`, else `<root-id>-menu` when paired, else absent standalone.
+   - The trigger projects `aria-haspopup="menu"`, `aria-expanded` from root `open`, and `aria-controls` to the derived panel id; activation flips root `open`. Without a root the trigger stays closed and inert.
+   - `Escape` inside a paired panel sets root `open` to `false` (state only); DOM dismissal and focus-return stay with the trigger/popover layer.

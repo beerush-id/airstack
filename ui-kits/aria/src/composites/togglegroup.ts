@@ -3,6 +3,7 @@ import { roverCtx } from '../context.js';
 import { Aria } from '../core.js';
 import { selectionGroup } from '../selection.js';
 import type { AriaAttributes, AriaProps, BaseElement, Orientation, Primitive } from '../types.js';
+import { ariaBoolean } from '../utils/attributes.js';
 import { handleRovingKey } from '../utils/navigation.js';
 import { ToggleAria, type ToggleAttributes, type ToggleOptions, type ToggleProps } from '../widgets/toggle.js';
 
@@ -137,8 +138,8 @@ export class ToggleGroupAria<
     toggleGroupCtx.set(this as unknown as ToggleGroupAria);
     roverCtx.set(this as unknown as Aria<BaseElement>);
     selectionGroup.set(this.props as Record<string, unknown>);
+    this.omittedAttrs.push('aria-orientation');
 
-    this.omittedAttrs.push('role', 'aria-orientation', 'aria-disabled');
     this.update();
   }
 
@@ -181,7 +182,7 @@ export class ToggleGroupAria<
       id: this.props.id,
       role: 'group',
       'aria-orientation': orientation,
-      'aria-disabled': disabled ? 'true' : 'false',
+      'aria-disabled': ariaBoolean(disabled),
       onkeydown: (e: KeyboardEvent) => {
         if (disabled || this.parentRover) return;
 

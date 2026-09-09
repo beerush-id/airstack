@@ -1,5 +1,39 @@
 import { type AnyType, type ClassInput, classx, type StyleInput, stylex } from '@airlib/core';
-import type { BaseElement, NormalizedAttrs } from '../types.js';
+import type { AriaInvalid, BaseElement, NormalizedAttrs } from '../types.js';
+
+/**
+ * Normalizes a boolean state flag into an explicit WAI-ARIA state token ('true' | 'false').
+ *
+ * @param value - Boolean state flag
+ * @returns 'true' if truthy, otherwise 'false'
+ */
+export function ariaBoolean(value?: boolean): 'true' | 'false' {
+  return value ? 'true' : 'false';
+}
+
+/**
+ * Compiles a required state into aria-required ('true' | undefined).
+ * Per WAI-ARIA, false is the default and should be omitted.
+ *
+ * @param required - Whether input or selection is required
+ * @returns 'true' if required, or undefined if optional
+ */
+export function ariaRequired(required?: boolean): 'true' | undefined {
+  return required ? 'true' : undefined;
+}
+
+/**
+ * Compiles a validation error state into a valid aria-invalid attribute value.
+ * Supports boolean indicators and semantic error tokens ('grammar' | 'spelling').
+ *
+ * @param invalid - Boolean indicator or semantic error token
+ * @returns Compiled aria-invalid token, or undefined if valid/unspecified
+ */
+export function ariaInvalid(invalid?: AriaInvalid): 'true' | 'false' | 'grammar' | 'spelling' | undefined {
+  if (typeof invalid === 'string') return invalid;
+  if (invalid !== undefined) return invalid ? 'true' : 'false';
+  return undefined;
+}
 
 /**
  * Normalizes raw HTML and ARIA attributes by resolving classx inputs into strings

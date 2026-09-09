@@ -48,8 +48,6 @@ export interface MultipleAccordionProps {
   id?: string;
   /** Array of expanded item identifiers */
   value?: string[];
-  /** Enforces a selection constraint requiring a non-empty value */
-  required?: boolean;
   disabled?: boolean;
 }
 ```

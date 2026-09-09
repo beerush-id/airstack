@@ -1,11 +1,13 @@
-import type { AnyType } from '@airlib/core';
 import { SelectionAria, type SelectionAttributes, type SelectionOptions } from '../selection.js';
-import type { AriaOptions, AriaProps, BaseElement } from '../types.js';
+import type { AriaInvalid, AriaOptions, AriaProps, BaseElement, Primitive } from '../types.js';
+import { ariaInvalid, ariaRequired } from '../utils/attributes.js';
 
 /**
  * Reactive input properties for CheckboxAria.
+ *
+ * @template T - Value payload type extending Primitive
  */
-export interface CheckboxProps extends AriaProps {
+export interface CheckboxProps<T extends Primitive = Primitive> extends AriaProps {
   /**
    * Whether the checkbox is in a checked state.
    */
@@ -22,6 +24,16 @@ export interface CheckboxProps extends AriaProps {
   disabled?: boolean;
 
   /**
+   * Whether a checked state is required for form validation.
+   */
+  required?: boolean;
+
+  /**
+   * Invalid indicator compiled to aria-invalid.
+   */
+  invalid?: AriaInvalid;
+
+  /**
    * Semantic identity key or field name on the parent group or form.
    */
   name?: string;
@@ -29,7 +41,7 @@ export interface CheckboxProps extends AriaProps {
   /**
    * Value payload for collection membership or form submission.
    */
-  value?: AnyType;
+  value?: T;
 }
 
 /**
@@ -48,7 +60,10 @@ export interface CheckboxAttributes<E extends BaseElement = HTMLButtonElement | 
   type?: 'checkbox';
   checked?: boolean;
   indeterminate?: boolean;
+  required?: boolean;
   'aria-checked'?: 'true' | 'false' | 'mixed';
+  'aria-required'?: 'true' | 'false';
+  'aria-invalid'?: 'true' | 'false' | 'grammar' | 'spelling';
 }
 
 /**
@@ -72,11 +87,10 @@ export class CheckboxAria<
       ...options,
       role: 'checkbox',
       key: 'checked',
-      valueKey: 'value',
       allowKeys: [' '],
     });
 
-    this.omittedAttrs.push('role', 'type', 'checked', 'aria-checked');
+    this.omittedAttrs.push('name', 'indeterminate', 'required', 'aria-required', 'aria-invalid');
     this.update();
   }
 
@@ -126,18 +140,24 @@ export class CheckboxAria<
   protected override createAttributes(): A {
     const isChecked = this.checked;
     const isIndeterminate = this.props.indeterminate === true;
+    const isRequired = this.props.required === true;
+    const invalidAttr = ariaInvalid(this.props.invalid);
 
     if (this.isNative) {
       return Object.assign(super.createAttributes(), {
         type: 'checkbox',
         checked: isChecked,
         indeterminate: isIndeterminate,
+        required: isRequired,
+        'aria-invalid': invalidAttr,
       }) as A;
     }
 
     return Object.assign(super.createAttributes(), {
       role: 'checkbox',
       'aria-checked': isIndeterminate ? 'mixed' : isChecked ? 'true' : 'false',
+      'aria-required': ariaRequired(this.props.required),
+      'aria-invalid': invalidAttr,
     }) as A;
   }
 }

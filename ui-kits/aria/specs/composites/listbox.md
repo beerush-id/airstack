@@ -13,7 +13,7 @@ A listbox widget presents a list of options and allows a user to select one or m
 
 | Part / Role | HTML Semantic | WAI-ARIA Semantic | Aria Package Semantic Contract |
 | :--- | :--- | :--- | :--- |
-| **`listbox`** | Custom selectable list container (`<div>` or `<ul>`). Native `<select>` preferred for native form submission. | `role="listbox"`, `aria-label` / `aria-labelledby`, `aria-multiselectable` (`"true"` if multiple, `"false"` if single). | Container controller. Props: `SingleListboxProps` (default) \| `MultipleListboxProps` (`multiple: true`). Manages roving tabindex or `aria-activedescendant`. |
+| **`listbox`** | Custom selectable list container (`<div>` or `<ul>`). Native `<select>` preferred for native form submission. | `role="listbox"`, `aria-label` / `aria-labelledby`, `aria-multiselectable` (`"true"` if multiple, `"false"` if single), `aria-required`, `aria-invalid`. | Container controller. Props: `SingleListboxProps` (default) \| `MultipleListboxProps` (`multiple: true`). Manages roving tabindex or `aria-activedescendant` and validation states. |
 | **`option`** | Interactive list item (`<div>` or `<li>`). | `role="option"`, `aria-selected` (`"true"` \| `"false"`), `id`, `tabindex="-1"` (or `0` when focused). | Choice candidate: `this.props.value`.<br>- **Single Active**: `this.group.value === this.props.value`.<br>- **Multiple Active**: `this.group.value?.includes(this.props.value)`.<br>Activation sets or toggles selection. |
 | **`group`** | Structural group separator (`<div>`). | `role="group"`, `aria-label` / `aria-labelledby`. | Semantic category separator; preserves parent listbox scope. |
 
@@ -37,6 +37,8 @@ export interface SingleListboxProps<T extends Primitive = Primitive> {
   manual?: boolean;
   /** Enforces a selection constraint requiring a non-empty value */
   required?: boolean;
+  /** Invalid indicator compiled to aria-invalid */
+  invalid?: boolean | 'grammar' | 'spelling';
   disabled?: boolean;
 }
 ```
@@ -53,6 +55,8 @@ export interface MultipleListboxProps<T extends Primitive = Primitive> {
   orientation?: 'vertical' | 'horizontal';
   /** Enforces a selection constraint requiring a non-empty value */
   required?: boolean;
+  /** Invalid indicator compiled to aria-invalid */
+  invalid?: boolean | 'grammar' | 'spelling';
   disabled?: boolean;
 }
 ```

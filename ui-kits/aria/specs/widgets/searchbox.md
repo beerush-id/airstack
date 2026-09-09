@@ -11,8 +11,7 @@ A searchbox is a specialized type of textbox intended for entering search querie
 
 | Context | HTML Semantic | WAI-ARIA Semantic | Aria Package Semantic Contract |
 | :--- | :--- | :--- | :--- |
-| **Native Search** | Native `<input type="search">`. Native clear button, Enter submission, and search event. | `role="searchbox"` (omitted if native). `aria-label` or `aria-labelledby`. | Public face over the shared textbox mid controller with `role: 'searchbox'` (see `textbox`). Handles live query synchronization. |
-| **Custom Searchbox** | Non-native input container (`<div>`). | `role="searchbox"`, `aria-label` / `aria-labelledby`, `tabindex="0"`. | Polyfills text input behavior and search query dispatching. |
+| **Native Search** | Native `<input type="search">`. Native clear button, Enter submission, and search event. | `role="searchbox"` (omitted if native). `aria-label`, `aria-invalid`, `aria-required`. | Headless search query controller with `role: 'searchbox'`. Handles live query synchronization and validity reflection. |
 
 ---
 
@@ -22,30 +21,33 @@ A searchbox is a specialized type of textbox intended for entering search querie
 
 #### `SearchboxOptions`
 ```ts
-export interface SearchboxOptions {
-  /** Whether bound to native <input type="search"> (default: true) */
-  native?: boolean;
-}
+export interface SearchboxOptions extends AriaOptions {}
 ```
 
 #### `SearchboxProps`
 ```ts
-export interface SearchboxProps {
+export interface SearchboxProps extends AriaProps {
   /** Current search query value */
   value?: string;
   /** Accessible label */
   label?: string;
   /** Placeholder hint */
   placeholder?: string;
+  /** Readonly indicator */
+  readonly?: boolean;
   /** Disabled indicator */
   disabled?: boolean;
+  /** Required validation indicator */
+  required?: boolean;
+  /** Invalid indicator compiled to aria-invalid */
+  invalid?: boolean | 'grammar' | 'spelling';
 }
 ```
 
 ### 2. Overload Contract
 
 ```ts
-// Searchbox: Search-query face over the shared textbox mid controller
+// Searchbox: Search input controller (dedicated SearchboxAria controller)
 export function aria<E extends BaseElement = HTMLInputElement>(
   role: 'searchbox',
   props?: SearchboxProps,

@@ -6,10 +6,27 @@ import {
   AccordionPanelAria,
   type AccordionPanelProps,
   type AccordionProps,
-} from './composites/accordion.js';
-import { ListboxAria, type ListboxProps } from './composites/listbox.js';
-import { RadioGroupAria, type RadioGroupProps } from './composites/radiogroup.js';
-import {
+  ListboxAria,
+  type ListboxProps,
+  MenuAria,
+  MenuButtonAria,
+  type MenuButtonProps,
+  MenubarAria,
+  type MenubarProps,
+  MenuGroupAria,
+  type MenuGroupProps,
+  MenuItemAria,
+  MenuItemCheckboxAria,
+  type MenuItemCheckboxProps,
+  type MenuItemOptions,
+  type MenuItemProps,
+  MenuItemRadioAria,
+  type MenuItemRadioProps,
+  MenuPanelAria,
+  type MenuPanelProps,
+  type MenuProps,
+  RadioGroupAria,
+  type RadioGroupProps,
   TabAria,
   TabButtonAria,
   type TabButtonOptions,
@@ -19,23 +36,40 @@ import {
   TabPanelAria,
   type TabPanelProps,
   type TabProps,
-} from './composites/tabs.js';
-import { ToggleGroupAria, type ToggleGroupProps } from './composites/togglegroup.js';
-import { ToolbarAria, type ToolbarProps } from './composites/toolbar.js';
+  ToggleGroupAria,
+  type ToggleGroupProps,
+  ToolbarAria,
+  type ToolbarProps,
+} from './composites/index.js';
 import type { BaseElement, Primitive } from './types.js';
-import { ButtonAria, type ButtonOptions, type ButtonProps } from './widgets/button.js';
-import { CheckboxAria, type CheckboxOptions, type CheckboxProps } from './widgets/checkbox.js';
-import { OptionAria, type OptionOptions, type OptionProps } from './widgets/option.js';
-import { RadioAria, type RadioOptions, type RadioProps } from './widgets/radio.js';
-import { SwitchAria, type SwitchOptions, type SwitchProps } from './widgets/switch.js';
-import { ToggleAria, type ToggleOptions, type ToggleProps } from './widgets/toggle.js';
+import {
+  ButtonAria,
+  type ButtonOptions,
+  type ButtonProps,
+  CheckboxAria,
+  type CheckboxOptions,
+  type CheckboxProps,
+  OptionAria,
+  type OptionOptions,
+  type OptionProps,
+  RadioAria,
+  type RadioOptions,
+  type RadioProps,
+  SwitchAria,
+  type SwitchOptions,
+  type SwitchProps,
+  SearchboxAria,
+  type SearchboxOptions,
+  type SearchboxProps,
+  TextboxAria,
+  type TextboxOptions,
+  type TextboxProps,
+  ToggleAria,
+  type ToggleOptions,
+  type ToggleProps,
+} from './widgets/index.js';
 
-export * from './composites/accordion.js';
-export * from './composites/listbox.js';
-export * from './composites/radiogroup.js';
-export * from './composites/tabs.js';
-export * from './composites/togglegroup.js';
-export * from './composites/toolbar.js';
+export * from './composites/index.js';
 export * from './context.js';
 export * from './core.js';
 export * from './selection.js';
@@ -44,12 +78,7 @@ export * from './types.js';
 export * from './utils/attributes.js';
 export * from './utils/label.js';
 export * from './utils/navigation.js';
-export * from './widgets/button.js';
-export * from './widgets/checkbox.js';
-export * from './widgets/option.js';
-export * from './widgets/radio.js';
-export * from './widgets/switch.js';
-export * from './widgets/toggle.js';
+export * from './widgets/index.js';
 
 /**
  * Creates an ARIA behavioral controller for the specified role.
@@ -82,11 +111,11 @@ export function aria<E extends BaseElement = HTMLElement, T extends Primitive = 
   options?: SwitchOptions
 ): SwitchAria<E>;
 
-export function aria<E extends BaseElement = HTMLInputElement>(
+export function aria<E extends BaseElement = HTMLInputElement, T extends Primitive = Primitive>(
   role: 'checkbox',
-  props?: CheckboxProps,
+  props?: CheckboxProps<T>,
   options?: CheckboxOptions
-): CheckboxAria<E>;
+): CheckboxAria<E, CheckboxProps<T>>;
 
 export function aria<E extends BaseElement = HTMLInputElement, T extends Primitive = Primitive>(
   role: 'radio',
@@ -130,10 +159,58 @@ export function aria<E extends BaseElement = HTMLButtonElement>(
 ): TabButtonAria<E>;
 export function aria<E extends BaseElement = HTMLElement>(role: 'tab-panel', props: TabPanelProps): TabPanelAria<E>;
 
+export function aria<E extends BaseElement = HTMLInputElement>(
+  role: 'textbox',
+  props?: TextboxProps,
+  options?: TextboxOptions
+): TextboxAria<E>;
+
+export function aria<E extends BaseElement = HTMLInputElement>(
+  role: 'searchbox',
+  props?: SearchboxProps,
+  options?: SearchboxOptions
+): SearchboxAria<E>;
+
 export function aria<E extends BaseElement = HTMLElement>(role: 'toolbar', props?: ToolbarProps): ToolbarAria<E>;
+
+export function aria<E extends BaseElement = HTMLElement>(role: 'menu', props?: MenuProps): MenuAria<E>;
+
+export function aria<E extends BaseElement = HTMLElement>(role: 'menubar', props?: MenubarProps): MenubarAria<E>;
+
+export function aria<E extends BaseElement = HTMLElement>(role: 'menu-panel', props?: MenuPanelProps): MenuPanelAria<E>;
+
+export function aria<E extends BaseElement = HTMLButtonElement>(
+  role: 'menu-item',
+  props?: MenuItemProps,
+  options?: MenuItemOptions
+): MenuItemAria<E>;
+
+export function aria<E extends BaseElement = HTMLButtonElement>(
+  role: 'menu-button',
+  props?: MenuButtonProps,
+  options?: MenuItemOptions
+): MenuButtonAria<E>;
+
+export function aria<E extends BaseElement = HTMLElement>(role: 'menu-group', props?: MenuGroupProps): MenuGroupAria<E>;
+
+export function aria<E extends BaseElement = HTMLButtonElement>(
+  role: 'menu-item-checkbox',
+  props?: MenuItemCheckboxProps,
+  options?: MenuItemOptions
+): MenuItemCheckboxAria<E>;
+
+export function aria<E extends BaseElement = HTMLButtonElement, T extends Primitive = Primitive>(
+  role: 'menu-item-radio',
+  props?: MenuItemRadioProps<T>,
+  options?: MenuItemOptions
+): MenuItemRadioAria<E>;
 
 export function aria(role: string, init?: unknown, options?: unknown): unknown {
   switch (role) {
+    case 'textbox':
+      return new TextboxAria(init as never, { ...(options as object), role: 'textbox' } as never);
+    case 'searchbox':
+      return new SearchboxAria(init as never, options as never);
     case 'button':
       return new ButtonAria(init as never, options as never);
     case 'toggle':
@@ -168,6 +245,22 @@ export function aria(role: string, init?: unknown, options?: unknown): unknown {
       return new TabPanelAria(init as never);
     case 'toolbar':
       return new ToolbarAria(init as never);
+    case 'menu':
+      return new MenuAria(init as never);
+    case 'menubar':
+      return new MenubarAria(init as never);
+    case 'menu-panel':
+      return new MenuPanelAria(init as never);
+    case 'menu-item':
+      return new MenuItemAria(init as never, options as never);
+    case 'menu-button':
+      return new MenuButtonAria(init as never, options as never);
+    case 'menu-group':
+      return new MenuGroupAria(init as never);
+    case 'menu-item-checkbox':
+      return new MenuItemCheckboxAria(init as never, options as never);
+    case 'menu-item-radio':
+      return new MenuItemRadioAria(init as never, options as never);
     default:
       throw new Error(`Unsupported aria role: ${role}`);
   }

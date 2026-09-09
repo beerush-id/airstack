@@ -20,6 +20,16 @@ import type {
 import { applyAttributes, normalizeAttrs } from './utils/attributes.js';
 
 /**
+ * Non-DOM controller input tokens stripped from DOM assignment and JSX spreads.
+ */
+export const OMITTED_ATTRIBUTES = ['manual', 'multiple', 'orientation', 'invalid'];
+
+/**
+ * Core library-managed attributes common across all interactive Aria controllers.
+ */
+export const COMMON_ATTRIBUTES = ['role', 'type', 'disabled', 'tabindex', 'aria-disabled'];
+
+/**
  * Ambient context scope for active Aria controllers.
  * Enables nested overlays (Tooltips, Popovers) and child parts to self-discover
  * their enclosing parent controller without prop-drilling or provider wrappers.
@@ -68,7 +78,7 @@ export class Aria<
    * @returns Array of property names managed on the compiled attributes dictionary.
    */
   public get ownKeys(): string[] {
-    return Array.from(new Set([...Object.keys(this.attributes), ...this.omittedAttrs]));
+    return Array.from(new Set([...OMITTED_ATTRIBUTES, ...Object.keys(this.attributes), ...this.omittedAttrs]));
   }
 
   /**

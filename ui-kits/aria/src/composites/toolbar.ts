@@ -2,6 +2,7 @@ import { createContext } from '@airlib/core';
 import { roverCtx } from '../context.js';
 import { Aria } from '../core.js';
 import type { AriaAttributes, AriaProps, BaseElement, Orientation } from '../types.js';
+import { ariaBoolean } from '../utils/attributes.js';
 import { handleRovingKey } from '../utils/navigation.js';
 
 /**
@@ -56,8 +57,8 @@ export class ToolbarAria<
 
     roverCtx.set(this as unknown as Aria<BaseElement>);
     toolbarCtx.set(this as unknown as ToolbarAria);
+    this.omittedAttrs.push('aria-orientation');
 
-    this.omittedAttrs.push('role', 'aria-orientation', 'aria-disabled');
     this.update();
   }
 
@@ -87,7 +88,7 @@ export class ToolbarAria<
     return Object.assign(super.createAttributes(), {
       role: 'toolbar',
       'aria-orientation': orientation,
-      'aria-disabled': disabled ? 'true' : 'false',
+      'aria-disabled': ariaBoolean(disabled),
       onkeydown: (e: KeyboardEvent) => {
         if (disabled || this.parentRover) return;
 

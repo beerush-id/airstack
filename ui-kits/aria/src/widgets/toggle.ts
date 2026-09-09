@@ -66,10 +66,8 @@ export class ToggleAria<
       ...options,
       role: 'button',
       key: 'pressed',
-      valueKey: 'value',
     });
 
-    this.omittedAttrs.push('role', 'type', 'aria-pressed');
     this.update();
   }
 
@@ -89,17 +87,16 @@ export class ToggleAria<
    */
   protected override createAttributes(): A {
     const isPressed = this.pressed;
+    const attrs = Object.assign(super.createAttributes(), {
+      'aria-pressed': isPressed ? 'true' : 'false',
+    });
 
     if (this.isNative) {
-      return Object.assign(super.createAttributes(), {
-        type: 'button',
-        'aria-pressed': isPressed ? 'true' : 'false',
-      }) as A;
+      attrs.type = 'button';
+    } else {
+      attrs.role = 'button';
     }
 
-    return Object.assign(super.createAttributes(), {
-      role: 'button',
-      'aria-pressed': isPressed ? 'true' : 'false',
-    }) as A;
+    return attrs as A;
   }
 }

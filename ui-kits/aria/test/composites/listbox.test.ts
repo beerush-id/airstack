@@ -288,5 +288,23 @@ describe('Listbox - Composite Specifications', () => {
           roverCtx.set(undefined);
         });
       }));
+
+    it('compiles required and invalid states onto listbox container', () =>
+      scope.run(() => {
+        component().run(() => {
+          const listbox = aria('listbox', { required: true, invalid: true });
+          expect(listbox.attributes['aria-required']).toBe('true');
+          expect(listbox.attributes['aria-invalid']).toBe('true');
+
+          const multiListbox = aria('listbox', { multiple: true, invalid: 'grammar' });
+          expect(multiListbox.attributes['aria-invalid']).toBe('grammar');
+
+          const defaultListbox = aria('listbox');
+          expect(defaultListbox.attributes['aria-invalid']).toBeUndefined();
+
+          const validListbox = aria('listbox', { invalid: false });
+          expect(validListbox.attributes['aria-invalid']).toBe('false');
+        });
+      }));
   });
 });
