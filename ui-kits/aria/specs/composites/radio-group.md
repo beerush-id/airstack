@@ -2,9 +2,9 @@
 
 A radio group is a set of checkable buttons (radios) of which no more than one may be checked at a time. It enforces mutually exclusive single selection and handles Arrow key roving focus.
 
-### Composite Parts
-- **`RadioGroup`**: WAI-ARIA `radiogroup`
-- **`Radio`**: WAI-ARIA `radio`
+### Composite Parts (Entity Tree)
+- **`RadioGroup`**: Single-selection group entity (compiles WAI-ARIA `role="radiogroup"`)
+- **`Radio`**: Selectable option entity (compiles WAI-ARIA `role="radio"`)
 
 ---
 

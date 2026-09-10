@@ -1,0 +1,182 @@
+---
+title: 'Splitter'
+description: 'Movable accessible partition control with a tab stop, clamped range announcements, and arrow-key adjustment.'
+nav: 'Splitter'
+nav-priority: 291
+---
+
+# Splitter
+
+A resizable pane boundary is a real control that must take focus, announce where the split currently sits, and move under arrow keys.
+
+`@airlib/aria` offers a dedicated splitter entity with a tab stop, clamped `aria-valuenow`, and arrow-key adjustment for resizable pane boundaries.
+
+You compose a splitter using this piece:
+
+- **Splitter**: The movable partition control, owning a tab stop and keyboard-driven adjustment.
+
+## What you get
+
+- **A real splitter control.** A dedicated entity with a tab stop, announcing `aria-valuenow` against `aria-valuemin` and `aria-valuemax`.
+- **Clamped keyboard adjustment.** Arrow keys move the partition and hold it at the declared boundaries instead of overshooting.
+
+## Splitter
+
+In Aria, Splitter is the movable partition control created with `aria('splitter')` that compiles `role="separator"` with range semantics, a tab stop, and arrow-key adjustment. It binds to the element that receives focus and arrow keys — the track — and renders the fill and thumb as your own presentation.
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'splitter',
+  props?: SplitterProps,
+  options?: SplitterOptions
+): SplitterAria<E>
+```
+
+### Parameters
+
+- `props.value` *(number, optional)*: Current partition position; defaults to `min`.
+- `props.orientation` *('horizontal' | 'vertical', optional, default `'horizontal'`)*: Divider axis, announced as `aria-orientation` only when vertical.
+- `props.min` *(number, optional, default `0`)*: Lower partition bound, compiled to `aria-valuemin`.
+- `props.max` *(number, optional, default `100`)*: Upper partition bound, compiled to `aria-valuemax`.
+- `options.native` *(boolean, optional, default `true`)*: Pass `false` when binding to a custom `<div>` or `<span>` host.
+
+The controller compiles no accessible name of its own. Bind `aria-label` on the splitter so the partition it controls is announced.
+
+### How it behaves
+
+The mounted track carries `role="separator"`, `tabindex="0"`, `aria-valuenow`, `aria-valuemin`, and `aria-valuemax`. `ArrowRight` and `ArrowDown` advance the partition; `ArrowLeft` and `ArrowUp` retreat it, on either axis. Every write is clamped to the declared range, so holding an arrow key at a boundary keeps announcing the boundary value instead of drifting past it. Every other key is left to the browser.
+
+### Usage
+
+To use a splitter, create it with `aria('splitter', props)` and drive your fill and thumb from `splitter.value`:
+
+:::code-group
+
+```tsx [React] executable
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type SplitterProps = ComponentProps<'div'> & {
+  value?: number;
+  min?: number;
+  max?: number;
+  label?: string;
+};
+
+const Splitter = setup<SplitterProps>((props) => {
+  const splitter = aria('splitter', props);
+  const restProps = props.$omit([
+    ...splitter.ownKeys,
+    'value',
+    'min',
+    'max',
+    'label',
+    'children',
+    'className',
+  ]);
+
+  return () => {
+    const span = splitter.max - splitter.min;
+    const percent = span > 0 ? ((splitter.value - splitter.min) / span) * 100 : 0;
+
+    return (
+      <div
+        ref={splitter.ref}
+        aria-label={props.label}
+        {...restProps}
+        {...splitter.attributes}
+        className={props.className}
+      >
+        <span className="splitter-fill" style={{ width: `${percent}%` }} />
+        <span className="splitter-thumb" style={{ left: `${percent}%` }} />
+      </div>
+    );
+  };
+}, 'Splitter');
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type SplitterProps = ComponentProps<'div'> & {
+  value?: number;
+  min?: number;
+  max?: number;
+  label?: string;
+};
+
+const Splitter = setup<SplitterProps>((props) => {
+  const splitter = aria('splitter', props);
+  const restProps = props.$omit([
+    ...splitter.ownKeys,
+    'value',
+    'min',
+    'max',
+    'label',
+    'children',
+    'className',
+  ]);
+
+  const percent = () => {
+    const span = splitter.max - splitter.min;
+    return span > 0 ? ((splitter.value - splitter.min) / span) * 100 : 0;
+  };
+
+  return (
+    <div
+      ref={splitter.ref}
+      aria-label={props.label}
+      {...restProps}
+      {...splitter.attributes}
+      className={props.className}
+    >
+      <span className="splitter-fill" style={{ width: `${percent()}%` }} />
+      <span className="splitter-thumb" style={{ left: `${percent()}%` }} />
+    </div>
+  );
+});
+```
+
+:::
+
+## Putting It Together
+
+Once your component is wired with `aria('splitter')`, compose it into resizable layouts:
+
+```tsx
+<div className="flex flex-col gap-4">
+  <Splitter value={40} min={10} max={90} label="Resize preview pane" />
+</div>
+```
+
+:::interactive[Splitter Interactive Demo]
+<div className="flex flex-col gap-6 p-4 max-w-sm border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 text-sm">
+  <div className="flex flex-col gap-2">
+    <span className="font-medium text-zinc-800 dark:text-zinc-200">Movable splitter — focus it and use arrow keys</span>
+    <Splitter
+      value={40}
+      min={10}
+      max={90}
+      label="Resize preview pane"
+      className="relative h-2 w-full cursor-ew-resize rounded-full bg-zinc-200 dark:bg-zinc-800 outline-none focus-visible:ring-2 focus-visible:ring-primary [&_.splitter-fill]:absolute [&_.splitter-fill]:inset-y-0 [&_.splitter-fill]:left-0 [&_.splitter-fill]:rounded-full [&_.splitter-fill]:bg-primary/50 [&_.splitter-thumb]:absolute [&_.splitter-thumb]:top-1/2 [&_.splitter-thumb]:h-4 [&_.splitter-thumb]:w-4 [&_.splitter-thumb]:-translate-x-1/2 [&_.splitter-thumb]:-translate-y-1/2 [&_.splitter-thumb]:rounded-full [&_.splitter-thumb]:bg-white [&_.splitter-thumb]:shadow [&_.splitter-thumb]:ring-2 [&_.splitter-thumb]:ring-zinc-300 [&_.splitter-thumb]:dark:ring-zinc-600"
+    />
+  </div>
+</div>
+:::
+
+## Keyboard Navigation
+
+- **Tab**: Focuses the splitter.
+- **ArrowRight / ArrowDown**: Advances the partition by one step, holding at `max`.
+- **ArrowLeft / ArrowUp**: Retreats the partition by one step, holding at `min`.
+- **Every other key**: Left unclaimed for the browser and surrounding widgets.
+
+## Next Steps
+
+- **[Divider](/docs/aria/divider)**: The static structural divider that stays out of the tab order.
+- **[Menu](/docs/aria/menu)**: Group menu items with dividers that stay structural inside a roving focus collection.
+- **[Toolbar](/docs/aria/toolbar)**: Divide toolbar control groups without adding tab stops.
+- **[Progressbar](/docs/aria/progressbar)**: The read-only face of the same `aria-value*` range vocabulary.

@@ -17,7 +17,7 @@ type RadioGroupProps = ComponentProps<'div'> & {
 };
 
 const RadioGroup = setup<RadioGroupProps>((props) => {
-  const group = aria('radiogroup', props);
+  const group = aria('radio-group', props);
   const restProps = props.$omit([...group.ownKeys, 'value', 'disabled', 'children', 'className']);
 
   return () => (
@@ -71,7 +71,7 @@ aria<E extends BaseElement = HTMLInputElement, T extends Primitive = Primitive>(
 When bound to a native `<input type="radio">`, explicit `role` is omitted (implicit in HTML) and native `.checked` state is kept in sync. When bound to a custom element (`native: false`), it compiles `role="radio"`, manages `tabindex` (`0` when checked, `-1` when unchecked), and polyfills Space key toggling. Activating an already selected radio is idempotent.
 
 :::note[Enclosing Group]
-While `Radio` can operate standalone, mutually exclusive selection and arrow-key roving focus are coordinated by enclosing radios inside a [Radio Group](../composites/radiogroup).
+While `Radio` can operate standalone, mutually exclusive selection and arrow-key roving focus are coordinated by enclosing radios inside a [Radio Group](/docs/aria/radio-group).
 :::
 
 ### Usage
@@ -174,10 +174,10 @@ Once your components are wired with `aria(...)`, compose them to build accessibl
 
 - **Tab**: Moves focus into the radio option or exits to the next focusable control.
 - **Space**: Selects the focused radio option.
-- **Arrow Keys**: When placed inside a [Radio Group](../composites/radiogroup), arrow keys navigate and select adjacent radio choices.
+- **Arrow Keys**: When placed inside a [Radio Group](/docs/aria/radio-group), arrow keys navigate and select adjacent radio choices.
 
 ## Next Steps
 
-- **[Radio Group](file:///Users/mahdaen/Domains/beerush.io/anchor/apps/air-web/pages/(docs)/aria/composites/radiogroup.page.mdx)**: Group mutually exclusive radio options with arrow-key roving focus.
-- **[Checkbox](file:///Users/mahdaen/Domains/beerush.io/anchor/apps/air-web/pages/(docs)/aria/widgets/checkbox.page.mdx)**: Build binary and tri-state toggle checkboxes.
-- **[Switch](file:///Users/mahdaen/Domains/beerush.io/anchor/apps/air-web/pages/(docs)/aria/widgets/switch.page.mdx)**: Build instant-action binary toggle switches.
+- **[Radio Group](/docs/aria/radio-group)**: Group mutually exclusive radio options with arrow-key roving focus.
+- **[Checkbox](/docs/aria/checkbox)**: Build binary and tri-state toggle checkboxes.
+- **[Switch](/docs/aria/switch)**: Build instant-action binary toggle switches.

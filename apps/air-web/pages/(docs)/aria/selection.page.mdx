@@ -8,7 +8,7 @@ nav-priority: 400
 # Selection Foundation
 
 :::warning[Internal / Extensibility API]
-This page covers the internal architecture for authoring new custom controls (such as chips, segmented controls, or tree items). For everyday application components, use the pre-built widgets and composites (`Button`, `Checkbox`, `Radio`, `Option`, `Tabs`, `Listbox`) — the selection foundation documented here already powers them under the hood.
+This page covers the internal architecture for authoring new custom controls (such as chips, segmented controls, or tree items). For everyday application components, use the pre-built widgets and composites (`Button`, `Checkbox`, `Radio`, `Option`, `Tabs`, `Select`) — the selection foundation documented here already powers them under the hood.
 :::
 
 Custom selectable controls all share common behavioral requirements: tracking selected values, supporting single- or multi-selection modes, inheriting disabled state from a parent container, and handling `Space` and `Enter` keyboard activation. 
@@ -83,6 +83,6 @@ Any child control created within that reactive scope reads the ambient context v
 
 ## Next Steps
 
-- **[Atomic Widgets](./widgets)** — Explore the pre-built widgets powered by this selection foundation.
-- **[Composites Overview](./composites)** — Learn how multi-item composites manage roving tabindex and group selection.
-- **[Toggle Group](./composites/togglegroup)** — See how multi-selection is coordinated across button groups.
+- **Atomic Widgets** — Explore the pre-built widgets powered by this selection foundation: [Button](/docs/aria/button), [Checkbox](/docs/aria/checkbox), [Radio](/docs/aria/radio), and [Option](/docs/aria/option).
+- **[Composites Overview](/docs/aria#composites)** — Learn how multi-item composites manage roving tabindex and group selection.
+- **[Toggle Group](/docs/aria/toggle-group)** — See how multi-selection is coordinated across button groups.

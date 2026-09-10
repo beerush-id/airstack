@@ -26,10 +26,10 @@ You compose a radio group using these pieces:
 
 ## Radio Group
 
-In Aria, Radio Group is the container group controller created with `aria('radiogroup')` that compiles `role="radiogroup"` and coordinates mutual exclusivity across radio buttons.
+In Aria, Radio Group is the container group controller created with `aria('radio-group')` that compiles `role="radiogroup"` and coordinates mutual exclusivity across radio buttons.
 
 ```ts
-aria(role: 'radiogroup', props?: RadioGroupProps<T>): RadioGroupAria<E>
+aria(role: 'radio-group', props?: RadioGroupProps<T>): RadioGroupAria<E>
 ```
 
 ### Parameters
@@ -49,7 +49,7 @@ Compiles `role="radiogroup"` and acts as a single tab stop in the page tab order
 
 ### Usage
 
-To use Radio Group, create the group instance with `aria('radiogroup', props)`, then pass `group.ref` and spread `group.attributes` onto your container element:
+To use Radio Group, create the group instance with `aria('radio-group', props)`, then pass `group.ref` and spread `group.attributes` onto your container element:
 
 :::code-group
 
@@ -69,7 +69,7 @@ type RadioGroupProps = ComponentProps<'div'> & {
 };
 
 const RadioGroup = setup<RadioGroupProps>((props) => {
-  const group = aria('radiogroup', props);
+  const group = aria('radio-group', props);
   const restProps = props.$omit([...group.ownKeys, 'children', 'className']);
 
   return () => (
@@ -96,7 +96,7 @@ type RadioGroupProps = ComponentProps<'div'> & {
 };
 
 const RadioGroup = setup<RadioGroupProps>((props) => {
-  const group = aria('radiogroup', props);
+  const group = aria('radio-group', props);
   const restProps = props.$omit([...group.ownKeys, 'children', 'className']);
 
   return (
@@ -235,6 +235,6 @@ Once your components are wired with `aria(...)`, compose them to build accessibl
 
 ## Next Steps
 
-- **[Listbox](file:///Users/mahdaen/Domains/beerush.io/anchor/apps/air-web/pages/(docs)/aria/composites/listbox.page.mdx)**: Build scrollable option lists supporting single or multi-value selection.
-- **[Toggle Group](file:///Users/mahdaen/Domains/beerush.io/anchor/apps/air-web/pages/(docs)/aria/composites/togglegroup.page.mdx)**: Group toggle buttons with single or multiple active states.
-- **[Tabs](file:///Users/mahdaen/Domains/beerush.io/anchor/apps/air-web/pages/(docs)/aria/composites/tabs.page.mdx)**: Organize content panels with paired tab triggers and content sections.
+- **[Select](/docs/aria/select)**: Build scrollable option lists supporting single or multi-value selection.
+- **[Toggle Group](/docs/aria/toggle-group)**: Group toggle buttons with single or multiple active states.
+- **[Tabs](/docs/aria/tabs)**: Organize content panels with paired tab triggers and content sections.

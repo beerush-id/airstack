@@ -1,19 +1,19 @@
 ---
-title: 'Banner'
-description: 'Headless accessible banner landmark marking the prime header area of a document.'
-nav: 'Banner'
+title: 'Header'
+description: 'Headless accessible header landmark marking the prime header area of a document.'
+nav: 'Header'
 nav-priority: 510
 ---
 
-# Banner
+# Header
 
 Every page repeats the same header: identity, global navigation, maybe an account menu. Assistive technologies need that repetition identified once so it can be skipped, and a page with no `banner` landmark forces users to listen through it to find out where the content starts.
 
-`@airlib/aria` compiles the banner landmark onto the element you already render. Bound to a native `<header>` it emits no redundant role, because a body-level header already implies `banner`; bound to a `<div>` it supplies `role="banner"`, and it compiles the accessible name whenever more than one header needs telling apart.
+`@airlib/aria` compiles the header landmark onto the element you already render. Bound to a native `<header>` it emits no redundant role, because a body-level header already implies `banner`; bound to a `<div>` it supplies `role="banner"`, and it compiles the accessible name whenever more than one header needs telling apart.
 
-You compose a banner using this piece:
+You compose a header using this piece:
 
-- **Banner**: The prime header landmark that compiles `role="banner"` only when the host does not already imply it.
+- **Header**: The prime header landmark that compiles `role="banner"` only when the host does not already imply it.
 
 ## What you get
 
@@ -21,16 +21,16 @@ You compose a banner using this piece:
 - **Optional naming.** `label` and `labelledby` compile to `aria-label` and `aria-labelledby` for the rare page with more than one header.
 - **Structure only.** No focus, no keyboard handling, and no state — nothing to keep in sync.
 
-## Banner
+## Header
 
-In Aria, Banner is the header landmark created with `aria('banner')` that projects banner semantics onto a native or custom host.
+In Aria, Header is the page header landmark created with `aria('header')` that projects banner semantics onto a native or custom host.
 
 ```ts
 aria<E extends BaseElement = HTMLElement>(
-  role: 'banner',
-  props?: BannerProps,
-  options?: BannerOptions
-): BannerAria<E>
+  role: 'header',
+  props?: HeaderProps,
+  options?: HeaderOptions
+): HeaderAria<E>
 ```
 
 ### Parameters
@@ -44,12 +44,12 @@ aria<E extends BaseElement = HTMLElement>(
 With `native: true` the controller compiles only the accessible name, leaving the role to the host element. With `native: false` it adds `role="banner"`. The name is compiled whenever `label` or `labelledby` is present and omitted otherwise, so an unnamed page header carries no redundant `aria-label`.
 
 :::tip[Only the page header is a banner]
-A `<header>` nested inside `<main>`, `<article>`, `<aside>`, or `<section>` is not a banner landmark — it is the header of that section. `banner` belongs to the body-level header, and a page should hold at most one.
+A `<header>` nested inside `<main>`, `<article>`, `<aside>`, or `<section>` is not a banner landmark — it is the header of that section. The header entity belongs to the body-level header, and a page should hold at most one.
 :::
 
 ### Usage
 
-To use Banner, create the landmark with `aria('banner', props)`, then pass `banner.ref` and spread `banner.attributes` onto your header element:
+To use Header, create the landmark with `aria('header', props)`, then pass `header.ref` and spread `header.attributes` onto your header element:
 
 :::code-group
 
@@ -58,21 +58,21 @@ import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
 import type { ComponentProps } from 'react';
 
-type BannerProps = ComponentProps<'header'> & {
+type HeaderProps = ComponentProps<'header'> & {
   label?: string;
   labelledby?: string;
 };
 
-const Banner = setup<BannerProps>((props) => {
-  const banner = aria('banner', props);
-  const restProps = props.$omit([...banner.ownKeys, 'label', 'labelledby', 'children', 'className']);
+const Header = setup<HeaderProps>((props) => {
+  const header = aria('header', props);
+  const restProps = props.$omit([...header.ownKeys, 'label', 'labelledby', 'children', 'className']);
 
   return () => (
-    <header ref={banner.ref} {...restProps} {...banner.attributes} className={props.className}>
+    <header ref={header.ref} {...restProps} {...header.attributes} className={props.className}>
       {props.children}
     </header>
   );
-}, 'Banner');
+}, 'Header');
 ```
 
 ```tsx [SolidJS]
@@ -80,17 +80,17 @@ import { aria } from '@airlib/aria';
 import { setup } from '@airlib/solid';
 import type { ComponentProps } from 'solid-js';
 
-type BannerProps = ComponentProps<'header'> & {
+type HeaderProps = ComponentProps<'header'> & {
   label?: string;
   labelledby?: string;
 };
 
-const Banner = setup<BannerProps>((props) => {
-  const banner = aria('banner', props);
-  const restProps = props.$omit([...banner.ownKeys, 'label', 'labelledby', 'children', 'className']);
+const Header = setup<HeaderProps>((props) => {
+  const header = aria('header', props);
+  const restProps = props.$omit([...header.ownKeys, 'label', 'labelledby', 'children', 'className']);
 
   return (
-    <header ref={banner.ref} {...restProps} {...banner.attributes} className={props.className}>
+    <header ref={header.ref} {...restProps} {...header.attributes} className={props.className}>
       {props.children}
     </header>
   );
@@ -101,24 +101,24 @@ const Banner = setup<BannerProps>((props) => {
 
 ## Putting It Together
 
-Once your component is wired with `aria('banner')`, place it at the top of the document body:
+Once your component is wired with `aria('header')`, place it at the top of the document body:
 
 ```tsx
-<Banner>
+<Header>
   <strong>AirLib</strong>
   <nav>Docs · Blog · Sign in</nav>
-</Banner>
+</Header>
 ```
 
-:::interactive[Banner Interactive Demo]
-<Banner className="flex items-center justify-between gap-4 p-4 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50">
+:::interactive[Header Interactive Demo]
+<Header className="flex items-center justify-between gap-4 p-4 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50">
   <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">AirLib</span>
   <div className="flex items-center gap-3 text-sm text-zinc-600 dark:text-zinc-400">
     <span>Docs</span>
     <span>Blog</span>
     <span>Sign in</span>
   </div>
-</Banner>
+</Header>
 :::
 
 ## Keyboard Navigation
@@ -127,6 +127,6 @@ Once your component is wired with `aria('banner')`, place it at the top of the d
 
 ## Next Steps
 
-- **[Contentinfo](./contentinfo)**: The matching footer landmark at the end of the document.
-- **[Main](./main)**: The primary content the banner sits above.
-- **[Navigation](./navigation)**: The link collection a banner usually contains.
+- **[Footer](/docs/aria/footer)**: The matching footer landmark at the end of the document.
+- **[Main](/docs/aria/main)**: The primary content the header sits above.
+- **[Navigation](/docs/aria/navigation)**: The link collection a header usually contains.

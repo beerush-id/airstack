@@ -1,0 +1,141 @@
+---
+title: 'Divider'
+description: 'Headless accessible divider compiling static divider semantics with correct role projection.'
+nav: 'Divider'
+nav-priority: 290
+---
+
+# Divider
+
+A static rule only structures content, and announcing it as an interactive element is noise.
+
+`@airlib/aria` provides a headless behavioral bridge for static dividers. It keeps static dividers unfocusable and value-less, emits `role="separator"` only when the host element does not already imply it, and announces `aria-orientation` when the divider departs from horizontal.
+
+You compose a divider using this piece:
+
+- **Divider**: The static structural divider that stays out of the tab order.
+
+For resizable pane boundaries, see [Splitter](/docs/aria/splitter).
+
+## What you get
+
+- **Quiet static dividers.** No `tabindex`, no value attributes, and no redundant `role` on a native `<hr>`.
+- **Correct role projection.** `role="separator"` is compiled only for custom elements that do not imply it.
+
+## Divider
+
+In Aria, Divider is the static structural divider created with `aria('divider')` that compiles divider semantics with no focus, no value, and no keyboard behavior.
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'divider',
+  props?: DividerProps,
+  options?: DividerOptions
+): DividerAria<E>
+```
+
+### Parameters
+
+- `props.orientation` *('horizontal' | 'vertical', optional, default `'horizontal'`)*: Divider axis, announced as `aria-orientation` only when vertical.
+- `options.native` *(boolean, optional, default `true`)*: Pass `false` when binding to a custom `<div>` or `<span>` host.
+
+The controller compiles no accessible name of its own.
+
+### How it behaves
+
+A static divider is projection only: on a native `<hr>` nothing but `aria-orientation` is emitted, since the element already implies the role, and on a custom host `role="separator"` is added while `tabindex` and every `aria-value*` attribute stay off the element.
+
+:::tip[Divider or splitter is an authoring decision]
+The structural-or-interactive choice is made by picking the entity — `aria('divider')` versus `aria('splitter')` — so a template consumer never flips a static rule into a control. The arrow-key step is fixed at class-definition level; subclass the controller to rescale it for pixel-based partitions.
+:::
+
+### Usage
+
+To use Divider, create the divider with `aria('divider', props)`, then pass `divider.ref` and spread `divider.attributes` onto your rule element:
+
+:::code-group
+
+```tsx [React] executable
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type DividerProps = ComponentProps<'hr'> & {
+  orientation?: 'horizontal' | 'vertical';
+};
+
+const Divider = setup<DividerProps>((props) => {
+  const divider = aria('divider', props);
+  const restProps = props.$omit([...divider.ownKeys, 'className']);
+
+  return () => (
+    <hr ref={divider.ref} {...restProps} {...divider.attributes} className={props.className} />
+  );
+}, 'Divider');
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type DividerProps = ComponentProps<'hr'> & {
+  orientation?: 'horizontal' | 'vertical';
+};
+
+const Divider = setup<DividerProps>((props) => {
+  const divider = aria('divider', props);
+  const restProps = props.$omit([...divider.ownKeys, 'className']);
+
+  return <hr ref={divider.ref} {...restProps} {...divider.attributes} className={props.className} />;
+});
+```
+
+:::
+
+## Putting It Together
+
+Once your component is wired with `aria('divider')`, compose it into structured layouts:
+
+```tsx
+<div className="flex flex-col gap-4">
+  <div className="flex items-center gap-3">
+    <span>Sidebar</span>
+    <Divider className="flex-1" />
+    <span>Content</span>
+  </div>
+</div>
+```
+
+:::interactive[Divider Interactive Demo]
+<div className="flex flex-col gap-6 p-4 max-w-sm border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 text-sm">
+  <div className="flex flex-col gap-2">
+    <span className="font-medium text-zinc-800 dark:text-zinc-200">Static divider</span>
+    <div className="flex items-center gap-3 text-zinc-500 dark:text-zinc-400">
+      <span>Sidebar</span>
+      <Divider className="flex-1 border-zinc-300 dark:border-zinc-700" />
+      <span>Content</span>
+    </div>
+  </div>
+  <div className="flex flex-col gap-2">
+    <span className="font-medium text-zinc-800 dark:text-zinc-200">Vertical divider</span>
+    <div className="flex items-center gap-3 text-zinc-500 dark:text-zinc-400">
+      <span>Copy</span>
+      <Divider orientation="vertical" className="h-6 border-l border-zinc-300 dark:border-zinc-700" />
+      <span>Paste</span>
+    </div>
+  </div>
+</div>
+:::
+
+## Keyboard Navigation
+
+- **Tab**: Static dividers take no tab stop and are skipped entirely.
+- **Every other key**: Left unclaimed for the browser and surrounding widgets.
+
+## Next Steps
+
+- **[Splitter](/docs/aria/splitter)**: The movable partition control with a tab stop, clamped `aria-valuenow`, and arrow-key adjustment.
+- **[Menu](/docs/aria/menu)**: Group menu items with dividers that stay structural inside a roving focus collection.
+- **[Toolbar](/docs/aria/toolbar)**: Divide toolbar control groups without adding tab stops.
+- **[Progressbar](/docs/aria/progressbar)**: The read-only face of the same `aria-value*` range vocabulary.

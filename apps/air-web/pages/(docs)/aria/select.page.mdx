@@ -1,38 +1,38 @@
 ---
-title: 'Listbox'
-description: 'Headless accessible listbox composite supporting single and multi-selection with roving keyboard focus.'
-nav: 'Listbox'
+title: 'Select'
+description: 'Headless accessible select composite supporting single and multi-selection with roving keyboard focus.'
+nav: 'Select'
 nav-priority: 350
 ---
 
-# Listbox
+# Select
 
-A listbox presents a scrollable list of choices for single-selection dropdowns, multi-select pickers, or tag assigners. Forcing keyboard users to tab through every row clutters page navigation. A WAI-ARIA listbox acts as a single tab stop, using arrow keys to rove focus across options while reflecting selection state through assistive technology.
+A select presents a scrollable list of choices for single-selection dropdowns, multi-select pickers, or tag assigners. Forcing keyboard users to tab through every row clutters page navigation. A WAI-ARIA listbox acts as a single tab stop, using arrow keys to rove focus across options while reflecting selection state through assistive technology.
 
-`@airlib/aria` provides headless behavioral bridges for listboxes. It coordinates single and multi-selection models, manages keyboard roving focus with boundary wrapping, and projects required WAI-ARIA attributes onto your elements without dictating markup or styles.
+`@airlib/aria` provides headless behavioral bridges for selects. It coordinates single and multi-selection models, manages keyboard roving focus with boundary wrapping, and projects the compiled `listbox` role attributes onto your elements without dictating markup or styles.
 
-You compose a listbox using these pieces:
+You compose a select using these pieces:
 
-- **Listbox**: The container element that compiles `role="listbox"` and manages single or multi-value selection with roving focus.
-- **Listbox Option**: The selectable item that compiles `role="option"` and synchronizes its `aria-selected` state with the parent listbox.
+- **Select**: The container element that compiles `role="listbox"` and manages single or multi-value selection with roving focus.
+- **Select Option**: The selectable item that compiles `role="option"` and synchronizes its `aria-selected` state with the parent select.
 
 ## What you get
 
-- **One Tab stop.** Tabbing into the listbox lands on the active option; tabbing again exits the listbox completely.
+- **One Tab stop.** Tabbing into the select lands on the active option; tabbing again exits the select completely.
 - **Single or multi-selection.** Accepts a single value token or an array of values when `multiple={true}`.
 - **Focus separated from selection.** Arrow keys navigate between options without auto-selecting until `Space` or `Enter` is pressed (`manual: true` default in single mode).
 - **Configurable constraints.** Allows deselecting to empty by default, or enforces persistent selection via `required={true}`.
 - **Circular roving navigation.** Arrow keys rove through enabled options and wrap at list boundaries.
 
-## Listbox
+## Select
 
-In Aria, Listbox is the container controller created with `aria('listbox')` that compiles `role="listbox"` and manages option selection and roving focus.
+In Aria, Select is the container controller created with `aria('select')` that compiles `role="listbox"` and manages option selection and roving focus.
 
 ```ts
 aria<E extends BaseElement = HTMLElement, T extends Primitive = Primitive>(
-  role: 'listbox',
-  props?: ListboxProps<T>
-): ListboxAria<E>
+  role: 'select',
+  props?: SelectProps<T>
+): SelectAria<E>
 ```
 
 ### Parameters
@@ -44,7 +44,7 @@ aria<E extends BaseElement = HTMLElement, T extends Primitive = Primitive>(
 - `props.required` *(boolean, optional, default `false`)*: Enforces that at least one option must remain selected.
 - `props.invalid` *(boolean | 'grammar' | 'spelling', optional)*: Indicates an invalid input state, compiling to `aria-invalid`.
 - `props.id` *(string, optional)*: Namespace or DOM element identifier.
-- `props.disabled` *(boolean, optional)*: Disables the entire listbox.
+- `props.disabled` *(boolean, optional)*: Disables the entire select.
 
 ### How it behaves
 
@@ -52,7 +52,7 @@ Compiles `role="listbox"` and `aria-multiselectable` (`"true"` if multiple, `"fa
 
 ### Usage
 
-To use Listbox, create the listbox instance with `aria('listbox', props)`, then pass `listbox.ref` and spread `listbox.attributes` onto your list container element:
+To use Select, create the select instance with `aria('select', props)`, then pass `select.ref` and spread `select.attributes` onto your list container element:
 
 :::code-group
 
@@ -61,7 +61,7 @@ import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
 import type { ComponentProps } from 'react';
 
-type ListboxProps = ComponentProps<'ul'> & {
+type SelectProps = ComponentProps<'ul'> & {
   id?: string;
   value?: string | string[];
   multiple?: boolean;
@@ -71,12 +71,12 @@ type ListboxProps = ComponentProps<'ul'> & {
   disabled?: boolean;
 };
 
-const Listbox = setup<ListboxProps>((props) => {
-  const listbox = aria('listbox', props);
-  const restProps = props.$omit([...listbox.ownKeys, 'children', 'className']);
+const Select = setup<SelectProps>((props) => {
+  const select = aria('select', props);
+  const restProps = props.$omit([...select.ownKeys, 'children', 'className']);
 
   return () => (
-    <ul ref={listbox.ref} {...restProps} {...listbox.attributes} className={props.className}>
+    <ul ref={select.ref} {...restProps} {...select.attributes} className={props.className}>
       {props.children}
     </ul>
   );
@@ -88,7 +88,7 @@ import { aria } from '@airlib/aria';
 import { setup } from '@airlib/solid';
 import type { ComponentProps } from 'solid-js';
 
-type ListboxProps = ComponentProps<'ul'> & {
+type SelectProps = ComponentProps<'ul'> & {
   id?: string;
   value?: string | string[];
   multiple?: boolean;
@@ -98,12 +98,12 @@ type ListboxProps = ComponentProps<'ul'> & {
   disabled?: boolean;
 };
 
-const Listbox = setup<ListboxProps>((props) => {
-  const listbox = aria('listbox', props);
-  const restProps = props.$omit([...listbox.ownKeys, 'children', 'className']);
+const Select = setup<SelectProps>((props) => {
+  const select = aria('select', props);
+  const restProps = props.$omit([...select.ownKeys, 'children', 'className']);
 
   return (
-    <ul ref={listbox.ref} {...restProps} {...listbox.attributes} className={props.className}>
+    <ul ref={select.ref} {...restProps} {...select.attributes} className={props.className}>
       {props.children}
     </ul>
   );
@@ -112,9 +112,9 @@ const Listbox = setup<ListboxProps>((props) => {
 
 :::
 
-## Listbox Option
+## Select Option
 
-In Aria, a Listbox Option is a selectable choice item created with `aria('option')` that compiles `role="option"` and synchronizes its selected state with the parent listbox.
+In Aria, a Select Option is a selectable choice item created with `aria('option')` that compiles `role="option"` and synchronizes its selected state with the parent select.
 
 ```ts
 aria(role: 'option', props: OptionProps<T>, options?: OptionOptions): OptionAria<E>
@@ -122,22 +122,22 @@ aria(role: 'option', props: OptionProps<T>, options?: OptionOptions): OptionAria
 
 ### Parameters
 
-- `props.value` *(Primitive, required)*: Choice candidate value matching the listbox active value.
-- `props.selected` *(boolean, optional)*: Initial selection hint when the parent listbox is uncontrolled.
+- `props.value` *(Primitive, required)*: Choice candidate value matching the select active value.
+- `props.selected` *(boolean, optional)*: Initial selection hint when the parent select is uncontrolled.
 - `props.disabled` *(boolean, optional)*: Disables this option and causes keyboard navigation to skip it.
 - `options.native` *(boolean, optional, default `false`)*: Set to `true` when bound to a native `<option>` element.
 
 ### How it behaves
 
-Compiles `role="option"`, projects `aria-selected="true"` when matching the parent listbox's active selection, and reflects `aria-selected="false"` otherwise. It manages `tabindex` (`0` when focused, `-1` when inactive) to participate in the listbox's roving focus strip. Activating via click, `Space`, or `Enter` updates parent selection according to the listbox's single or multi-select rules.
+Compiles `role="option"`, projects `aria-selected="true"` when matching the parent select's active selection, and reflects `aria-selected="false"` otherwise. It manages `tabindex` (`0` when focused, `-1` when inactive) to participate in the select's roving focus strip. Activating via click, `Space`, or `Enter` updates parent selection according to the select's single or multi-select rules.
 
 :::note[Option Widget]
-`Option` is also used as a standalone widget in `@airlib/aria`. When nested inside a listbox, it coordinates automatically through ambient parent context.
+`Option` is also used as a standalone widget in `@airlib/aria`. When nested inside a select, it coordinates automatically through ambient parent context.
 :::
 
 ### Usage
 
-To use Listbox Option, create the option instance with `aria('option', props)`, then pass `option.ref` and spread `option.attributes` onto your list item element:
+To use Select Option, create the option instance with `aria('option', props)`, then pass `option.ref` and spread `option.attributes` onto your list item element:
 
 :::code-group
 
@@ -146,13 +146,13 @@ import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
 import type { ComponentProps } from 'react';
 
-type ListboxOptionProps = ComponentProps<'li'> & {
+type SelectOptionProps = ComponentProps<'li'> & {
   value: string;
   selected?: boolean;
   disabled?: boolean;
 };
 
-const ListboxOption = setup<ListboxOptionProps>((props) => {
+const SelectOption = setup<SelectOptionProps>((props) => {
   const option = aria('option', props);
   const restProps = props.$omit([...option.ownKeys, 'children', 'className']);
 
@@ -169,13 +169,13 @@ import { aria } from '@airlib/aria';
 import { setup } from '@airlib/solid';
 import type { ComponentProps } from 'solid-js';
 
-type ListboxOptionProps = ComponentProps<'li'> & {
+type SelectOptionProps = ComponentProps<'li'> & {
   value: string;
   selected?: boolean;
   disabled?: boolean;
 };
 
-const ListboxOption = setup<ListboxOptionProps>((props) => {
+const SelectOption = setup<SelectOptionProps>((props) => {
   const option = aria('option', props);
   const restProps = props.$omit([...option.ownKeys, 'children', 'className']);
 
@@ -191,60 +191,60 @@ const ListboxOption = setup<ListboxOptionProps>((props) => {
 
 ## Putting It Together
 
-Once your components are wired with `aria(...)`, compose them to build accessible listboxes:
+Once your components are wired with `aria(...)`, compose them to build accessible selects:
 
 ```tsx
-<Listbox value="apple">
-  <ListboxOption value="apple">
+<Select value="apple">
+  <SelectOption value="apple">
     <span>Apple</span>
     <span>Fruit</span>
-  </ListboxOption>
-  <ListboxOption value="banana">
+  </SelectOption>
+  <SelectOption value="banana">
     <span>Banana</span>
     <span>Fruit</span>
-  </ListboxOption>
-  <ListboxOption value="cherry">
+  </SelectOption>
+  <SelectOption value="cherry">
     <span>Cherry</span>
     <span>Fruit</span>
-  </ListboxOption>
-  <ListboxOption value="date">
+  </SelectOption>
+  <SelectOption value="date">
     <span>Date</span>
     <span>Fruit</span>
-  </ListboxOption>
-</Listbox>
+  </SelectOption>
+</Select>
 ```
 
-:::interactive[Listbox Interactive Demo]
-<Listbox value="apple" className="flex flex-col gap-1 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 bg-zinc-50/50 dark:bg-zinc-900/50 max-w-xs">
-  <ListboxOption
+:::interactive[Select Interactive Demo]
+<Select value="apple" className="flex flex-col gap-1 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 bg-zinc-50/50 dark:bg-zinc-900/50 max-w-xs">
+  <SelectOption
     value="apple"
     className="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200/60 dark:hover:bg-zinc-800/60 aria-selected:bg-primary aria-selected:text-white"
   >
     <span>Apple</span>
     <span className="text-xs opacity-75">Fruit</span>
-  </ListboxOption>
-  <ListboxOption
+  </SelectOption>
+  <SelectOption
     value="banana"
     className="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200/60 dark:hover:bg-zinc-800/60 aria-selected:bg-primary aria-selected:text-white"
   >
     <span>Banana</span>
     <span className="text-xs opacity-75">Fruit</span>
-  </ListboxOption>
-  <ListboxOption
+  </SelectOption>
+  <SelectOption
     value="cherry"
     className="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200/60 dark:hover:bg-zinc-800/60 aria-selected:bg-primary aria-selected:text-white"
   >
     <span>Cherry</span>
     <span className="text-xs opacity-75">Fruit</span>
-  </ListboxOption>
-  <ListboxOption
+  </SelectOption>
+  <SelectOption
     value="date"
     className="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200/60 dark:hover:bg-zinc-800/60 aria-selected:bg-primary aria-selected:text-white"
   >
     <span>Date</span>
     <span className="text-xs opacity-75">Fruit</span>
-  </ListboxOption>
-</Listbox>
+  </SelectOption>
+</Select>
 :::
 
 ## Keyboard Navigation
@@ -253,10 +253,10 @@ Once your components are wired with `aria(...)`, compose them to build accessibl
 - **ArrowUp / ArrowLeft**: Moves roving focus to the previous option in the list.
 - **Home / End**: Moves focus directly to the first or last enabled option.
 - **Space / Enter**: Selects the focused option (or toggles selection when `multiple: true`).
-- **Tab**: Exits the listbox completely and moves focus to the next element on the page.
+- **Tab**: Exits the select completely and moves focus to the next element on the page.
 
 ## Next Steps
 
-- **[Menu](file:///Users/mahdaen/Domains/beerush.io/anchor/apps/air-web/pages/(docs)/aria/composites/menu.page.mdx)**: Build action menus, popups, and menubars with roving focus.
-- **[Tabs](file:///Users/mahdaen/Domains/beerush.io/anchor/apps/air-web/pages/(docs)/aria/composites/tabs.page.mdx)**: Organize content panels with reciprocal tab triggers and panels.
-- **[Radio Group](file:///Users/mahdaen/Domains/beerush.io/anchor/apps/air-web/pages/(docs)/aria/composites/radiogroup.page.mdx)**: Build mutually exclusive radio choice selections.
+- **[Menu](/docs/aria/menu)**: Build action menus, popups, and menubars with roving focus.
+- **[Tabs](/docs/aria/tabs)**: Organize content panels with reciprocal tab triggers and panels.
+- **[Radio Group](/docs/aria/radio-group)**: Build mutually exclusive radio choice selections.

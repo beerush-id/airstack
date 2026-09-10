@@ -1,19 +1,19 @@
 ---
-title: 'Contentinfo'
-description: 'Headless accessible contentinfo landmark marking the prime footer area of a document.'
-nav: 'Contentinfo'
+title: 'Footer'
+description: 'Headless accessible footer landmark marking the prime footer area of a document.'
+nav: 'Footer'
 nav-priority: 550
 ---
 
-# Contentinfo
+# Footer
 
 Copyright notices, privacy links, and contact details sit at the end of every page. Users who need them want to jump straight there, and users who do not want them skipped — which requires the page footer to be identified as a landmark rather than as more content to listen through.
 
-`@airlib/aria` compiles the contentinfo landmark onto the element you already render. Bound to a native `<footer>` it emits no redundant role, because a body-level footer already implies `contentinfo`; bound to a `<div>` it supplies the role, and it compiles an accessible name when a document needs one.
+`@airlib/aria` compiles the footer landmark onto the element you already render. Bound to a native `<footer>` it emits no redundant role, because a body-level footer already implies `contentinfo`; bound to a `<div>` it supplies the role, and it compiles an accessible name when a document needs one.
 
-You compose a contentinfo landmark using this piece:
+You compose a footer landmark using this piece:
 
-- **Contentinfo**: The footer landmark that compiles `role="contentinfo"` only when the host does not already imply it.
+- **Footer**: The page footer landmark that compiles `role="contentinfo"` only when the host does not already imply it.
 
 ## What you get
 
@@ -21,16 +21,16 @@ You compose a contentinfo landmark using this piece:
 - **Optional naming.** `label` and `labelledby` compile to `aria-label` and `aria-labelledby`.
 - **Structure only.** No focus, no keyboard handling, and no state.
 
-## Contentinfo
+## Footer
 
-In Aria, Contentinfo is the footer landmark created with `aria('contentinfo')` that projects contentinfo semantics onto a native or custom host.
+In Aria, Footer is the page footer landmark created with `aria('footer')` that projects contentinfo semantics onto a native or custom host.
 
 ```ts
 aria<E extends BaseElement = HTMLElement>(
-  role: 'contentinfo',
-  props?: ContentinfoProps,
-  options?: ContentinfoOptions
-): ContentinfoAria<E>
+  role: 'footer',
+  props?: FooterProps,
+  options?: FooterOptions
+): FooterAria<E>
 ```
 
 ### Parameters
@@ -49,7 +49,7 @@ A `<footer>` inside `<main>`, `<article>`, `<aside>`, or `<section>` closes that
 
 ### Usage
 
-To use Contentinfo, create the landmark with `aria('contentinfo', props)`, then pass `contentinfo.ref` and spread `contentinfo.attributes` onto your footer element:
+To use Footer, create the landmark with `aria('footer', props)`, then pass `footer.ref` and spread `footer.attributes` onto your footer element:
 
 :::code-group
 
@@ -58,21 +58,21 @@ import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
 import type { ComponentProps } from 'react';
 
-type ContentinfoProps = ComponentProps<'footer'> & {
+type FooterProps = ComponentProps<'footer'> & {
   label?: string;
   labelledby?: string;
 };
 
-const Contentinfo = setup<ContentinfoProps>((props) => {
-  const contentinfo = aria('contentinfo', props);
-  const restProps = props.$omit([...contentinfo.ownKeys, 'label', 'labelledby', 'children', 'className']);
+const Footer = setup<FooterProps>((props) => {
+  const footer = aria('footer', props);
+  const restProps = props.$omit([...footer.ownKeys, 'label', 'labelledby', 'children', 'className']);
 
   return () => (
-    <footer ref={contentinfo.ref} {...restProps} {...contentinfo.attributes} className={props.className}>
+    <footer ref={footer.ref} {...restProps} {...footer.attributes} className={props.className}>
       {props.children}
     </footer>
   );
-}, 'Contentinfo');
+}, 'Footer');
 ```
 
 ```tsx [SolidJS]
@@ -80,17 +80,17 @@ import { aria } from '@airlib/aria';
 import { setup } from '@airlib/solid';
 import type { ComponentProps } from 'solid-js';
 
-type ContentinfoProps = ComponentProps<'footer'> & {
+type FooterProps = ComponentProps<'footer'> & {
   label?: string;
   labelledby?: string;
 };
 
-const Contentinfo = setup<ContentinfoProps>((props) => {
-  const contentinfo = aria('contentinfo', props);
-  const restProps = props.$omit([...contentinfo.ownKeys, 'label', 'labelledby', 'children', 'className']);
+const Footer = setup<FooterProps>((props) => {
+  const footer = aria('footer', props);
+  const restProps = props.$omit([...footer.ownKeys, 'label', 'labelledby', 'children', 'className']);
 
   return (
-    <footer ref={contentinfo.ref} {...restProps} {...contentinfo.attributes} className={props.className}>
+    <footer ref={footer.ref} {...restProps} {...footer.attributes} className={props.className}>
       {props.children}
     </footer>
   );
@@ -101,24 +101,24 @@ const Contentinfo = setup<ContentinfoProps>((props) => {
 
 ## Putting It Together
 
-Once your component is wired with `aria('contentinfo')`, close the document body with it:
+Once your component is wired with `aria('footer')`, close the document body with it:
 
 ```tsx
-<Contentinfo>
+<Footer>
   <span>© 2026 AirLib</span>
   <nav>Privacy · Terms · Contact</nav>
-</Contentinfo>
+</Footer>
 ```
 
-:::interactive[Contentinfo Interactive Demo]
-<Contentinfo className="flex flex-col gap-2 p-4 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 text-sm text-zinc-500 dark:text-zinc-400 sm:flex-row sm:items-center sm:justify-between">
+:::interactive[Footer Interactive Demo]
+<Footer className="flex flex-col gap-2 p-4 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 text-sm text-zinc-500 dark:text-zinc-400 sm:flex-row sm:items-center sm:justify-between">
   <span>© 2026 AirLib</span>
   <div className="flex items-center gap-3">
     <span>Privacy</span>
     <span>Terms</span>
     <span>Contact</span>
   </div>
-</Contentinfo>
+</Footer>
 :::
 
 ## Keyboard Navigation
@@ -127,6 +127,6 @@ Once your component is wired with `aria('contentinfo')`, close the document body
 
 ## Next Steps
 
-- **[Banner](./banner)**: The matching header landmark at the start of the document.
-- **[Main](./main)**: The primary content the footer closes.
-- **[Link](../link)**: The navigation triggers a footer is usually made of.
+- **[Header](/docs/aria/header)**: The matching header landmark at the start of the document.
+- **[Main](/docs/aria/main)**: The primary content the footer closes.
+- **[Link](/docs/aria/link)**: The navigation triggers a footer is usually made of.

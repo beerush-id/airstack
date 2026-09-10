@@ -1,19 +1,19 @@
 ---
-title: 'Spinbutton'
+title: 'Number Stepper'
 description: 'Headless accessible numeric stepper compiling bounded range announcements with arrow, page, and boundary keyboard stepping.'
-nav: 'Spinbutton'
+nav: 'Number Stepper'
 nav-priority: 265
 ---
 
-# Spinbutton
+# Number Stepper
 
 Quantities such as guest counts, quantities, and durations are picked from a range of discrete values, not typed freely. A plain text input accepts anything and announces nothing about bounds; a native `<input type="number">` handles the semantics but cannot be styled and cannot announce a human-readable value. Custom steppers built from `<div>` elements must compile the whole range vocabulary by hand — and usually forget to clamp, so arrow keys walk the value past its own bounds.
 
 `@airlib/aria` provides a headless behavioral bridge for numeric steppers. It compiles `role="spinbutton"` with `aria-valuenow`, `aria-valuemin`, `aria-valuemax`, and `aria-valuetext`, clamps every write to the declared bounds, polyfills arrow, page, and boundary stepping on custom hosts, and projects onto a native `<input type="number">` when you would rather the browser owned the field.
 
-You compose a spinbutton using this piece:
+You compose a number stepper using this piece:
 
-- **Spinbutton**: The discrete numeric stepper that owns the value, its bounds, and the keys that move it.
+- **Number Stepper**: The discrete numeric stepper that owns the value, its bounds, and the keys that move it.
 
 ## What you get
 
@@ -22,16 +22,16 @@ You compose a spinbutton using this piece:
 - **Readable value text.** `valuetext` announces meaningful units ("3 nights") where a bare number would not.
 - **Native equivalence.** Pass `native: true` to project onto `<input type="number">` with no redundant role, keeping the browser's own stepper and validation.
 
-## Spinbutton
+## Number Stepper
 
-In Aria, Spinbutton is the numeric stepper created with `aria('spinbutton')` that owns a clamped value within an optional range.
+In Aria, Number Stepper is the numeric stepper created with `aria('number-stepper')` that owns a clamped value within an optional range.
 
 ```ts
 aria<E extends BaseElement = HTMLInputElement>(
-  role: 'spinbutton',
-  props?: SpinbuttonProps,
-  options?: SpinbuttonOptions
-): SpinbuttonAria<E>
+  role: 'number-stepper',
+  props?: NumberStepperProps,
+  options?: NumberStepperOptions
+): NumberStepperAria<E>
 ```
 
 ### Parameters
@@ -60,7 +60,7 @@ The page-key multiplier is fixed at class-definition level, not exposed in JSX, 
 
 ### Usage
 
-To use Spinbutton, create the stepper with `aria('spinbutton', props)`, then pass `spin.ref` and spread `spin.attributes` onto the element that receives focus and arrow keys:
+To use Number Stepper, create the stepper with `aria('number-stepper', props)`, then pass `stepper.ref` and spread `stepper.attributes` onto the element that receives focus and arrow keys:
 
 :::code-group
 
@@ -69,7 +69,7 @@ import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
 import type { ComponentProps } from 'react';
 
-type SpinbuttonProps = ComponentProps<'div'> & {
+type NumberStepperProps = ComponentProps<'div'> & {
   value?: number;
   min?: number;
   max?: number;
@@ -79,10 +79,10 @@ type SpinbuttonProps = ComponentProps<'div'> & {
   label?: string;
 };
 
-const Spinbutton = setup<SpinbuttonProps>((props) => {
-  const spin = aria('spinbutton', props);
+const NumberStepper = setup<NumberStepperProps>((props) => {
+  const stepper = aria('number-stepper', props);
   const restProps = props.$omit([
-    ...spin.ownKeys,
+    ...stepper.ownKeys,
     'value',
     'min',
     'max',
@@ -94,7 +94,7 @@ const Spinbutton = setup<SpinbuttonProps>((props) => {
     'className',
   ]);
 
-  const locked = () => spin.disabled || spin.readonly;
+  const locked = () => stepper.disabled || stepper.readonly;
   const stepLabel = (verb: string) => (props.label ? `${verb} ${props.label}` : verb);
 
   return () => (
@@ -105,20 +105,20 @@ const Spinbutton = setup<SpinbuttonProps>((props) => {
         tabIndex={-1}
         disabled={locked()}
         onClick={() => {
-          spin.value -= spin.step;
+          stepper.value -= stepper.step;
         }}
         className="flex w-9 items-center justify-center rounded-l-lg border border-zinc-300 bg-white text-zinc-600 hover:bg-zinc-50 disabled:opacity-40 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
       >
         −
       </button>
       <div
-        ref={spin.ref}
+        ref={stepper.ref}
         aria-label={props.label}
         {...restProps}
-        {...spin.attributes}
+        {...stepper.attributes}
         className={props.className}
       >
-        {spin.value}
+        {stepper.value}
       </div>
       <button
         type="button"
@@ -126,7 +126,7 @@ const Spinbutton = setup<SpinbuttonProps>((props) => {
         tabIndex={-1}
         disabled={locked()}
         onClick={() => {
-          spin.value += spin.step;
+          stepper.value += stepper.step;
         }}
         className="flex w-9 items-center justify-center rounded-r-lg border border-zinc-300 bg-white text-zinc-600 hover:bg-zinc-50 disabled:opacity-40 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
       >
@@ -134,7 +134,7 @@ const Spinbutton = setup<SpinbuttonProps>((props) => {
       </button>
     </div>
   );
-}, 'Spinbutton');
+}, 'NumberStepper');
 ```
 
 ```tsx [SolidJS]
@@ -142,7 +142,7 @@ import { aria } from '@airlib/aria';
 import { setup } from '@airlib/solid';
 import type { ComponentProps } from 'solid-js';
 
-type SpinbuttonProps = ComponentProps<'div'> & {
+type NumberStepperProps = ComponentProps<'div'> & {
   value?: number;
   min?: number;
   max?: number;
@@ -152,10 +152,10 @@ type SpinbuttonProps = ComponentProps<'div'> & {
   label?: string;
 };
 
-const Spinbutton = setup<SpinbuttonProps>((props) => {
-  const spin = aria('spinbutton', props);
+const NumberStepper = setup<NumberStepperProps>((props) => {
+  const stepper = aria('number-stepper', props);
   const restProps = props.$omit([
-    ...spin.ownKeys,
+    ...stepper.ownKeys,
     'value',
     'min',
     'max',
@@ -167,7 +167,7 @@ const Spinbutton = setup<SpinbuttonProps>((props) => {
     'className',
   ]);
 
-  const locked = () => spin.disabled || spin.readonly;
+  const locked = () => stepper.disabled || stepper.readonly;
   const stepLabel = (verb: string) => (props.label ? `${verb} ${props.label}` : verb);
 
   return (
@@ -178,14 +178,14 @@ const Spinbutton = setup<SpinbuttonProps>((props) => {
         tabIndex={-1}
         disabled={locked()}
         onClick={() => {
-          spin.value -= spin.step;
+          stepper.value -= stepper.step;
         }}
         className="flex w-9 items-center justify-center rounded-l-lg border border-zinc-300 bg-white text-zinc-600 hover:bg-zinc-50 disabled:opacity-40 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
       >
         −
       </button>
-      <div ref={spin.ref} aria-label={props.label} {...restProps} {...spin.attributes} className={props.className}>
-        {spin.value}
+      <div ref={stepper.ref} aria-label={props.label} {...restProps} {...stepper.attributes} className={props.className}>
+        {stepper.value}
       </div>
       <button
         type="button"
@@ -193,7 +193,7 @@ const Spinbutton = setup<SpinbuttonProps>((props) => {
         tabIndex={-1}
         disabled={locked()}
         onClick={() => {
-          spin.value += spin.step;
+          stepper.value += stepper.step;
         }}
         className="flex w-9 items-center justify-center rounded-r-lg border border-zinc-300 bg-white text-zinc-600 hover:bg-zinc-50 disabled:opacity-40 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
       >
@@ -210,21 +210,21 @@ The stepper buttons duplicate the keyboard behavior, so they stay out of the tab
 
 ## Putting It Together
 
-Once your component is wired with `aria('spinbutton')`, compose it into bounded quantity fields:
+Once your component is wired with `aria('number-stepper')`, compose it into bounded quantity fields:
 
 ```tsx
 <div className="flex flex-col gap-4">
-  <Spinbutton label="Guests" value={2} min={1} max={8} />
-  <Spinbutton label="Nights" value={10} min={0} max={60} step={5} />
-  <Spinbutton label="Tax rate" value={11} readonly={true} />
+  <NumberStepper label="Guests" value={2} min={1} max={8} />
+  <NumberStepper label="Nights" value={10} min={0} max={60} step={5} />
+  <NumberStepper label="Tax rate" value={11} readonly={true} />
 </div>
 ```
 
-:::interactive[Spinbutton Interactive Demo]
+:::interactive[Number Stepper Interactive Demo]
 <div className="flex flex-col gap-5 p-4 max-w-sm border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 text-sm">
   <div className="flex flex-col gap-2">
     <span className="font-medium text-zinc-800 dark:text-zinc-200">Guests — focus the value and use arrow keys</span>
-    <Spinbutton
+    <NumberStepper
       label="Guests"
       value={2}
       min={1}
@@ -234,7 +234,7 @@ Once your component is wired with `aria('spinbutton')`, compose it into bounded 
   </div>
   <div className="flex flex-col gap-2">
     <span className="font-medium text-zinc-800 dark:text-zinc-200">Nights — steps by 5, page keys by 50</span>
-    <Spinbutton
+    <NumberStepper
       label="Nights"
       value={10}
       min={0}
@@ -245,7 +245,7 @@ Once your component is wired with `aria('spinbutton')`, compose it into bounded 
   </div>
   <div className="flex flex-col gap-2">
     <span className="font-medium text-zinc-400 dark:text-zinc-500">Tax rate — readonly, announced but immutable</span>
-    <Spinbutton
+    <NumberStepper
       label="Tax rate"
       value={11}
       readonly={true}
@@ -266,6 +266,6 @@ Once your component is wired with `aria('spinbutton')`, compose it into bounded 
 
 ## Next Steps
 
-- **[Textbox](/docs/aria/textbox)**: Free-text and search inputs with live value synchronization and validation state.
+- **[Text Input](/docs/aria/text-input)**: Free-text and search inputs with live value synchronization and validation state.
 - **[Progressbar](/docs/aria/progressbar)**: The read-only face of the same range vocabulary.
-- **[Separator](/docs/aria/separator)**: Movable splitters that step a partition through the same clamped bounds.
+- **[Splitter](/docs/aria/splitter)**: Splitters that step a partition through the same clamped bounds.

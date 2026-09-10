@@ -114,12 +114,56 @@ A primary goal of AirLib ARIA is to avoid redundant DOM work while ensuring comp
 - **Native Elements** (`native: true`, default): When attached to native HTML elements (`<button>`, `<input>`), the controller avoids setting redundant ARIA attributes (`role="button"`) and lets the browser handle native keyboard events and form submission.
 - **Custom Elements** (`native: false`): When building buttons or toggles from non-interactive tags (`<div>`, `<span>`), the controller polyfills the missing browser capabilities by injecting `role`, managing `tabindex` focusability, and handling `Enter` and `Space` keyboard activation.
 
-## Next Steps
+## Atomic Widgets
 
-Explore the ARIA documentation:
+Standalone accessible controls:
 
-- **[Atomic Widgets](/docs/aria/widgets)** — Standalone accessible controls including buttons, checkboxes, switches, radios, and options.
-- **[Composites](/docs/aria/composites)** — Multi-item navigable structures with single-tab-stop roving focus (tabs, accordions, toolbars, toggle groups, radio groups, listboxes).
-- **[Landmarks](/docs/aria/landmarks)** — Page structure assistive technologies can jump to: banner, main, navigation, complementary, contentinfo, search, form, and region.
-- **[Live Regions](/docs/aria/live)** — Dynamic regions that announce their own updates without taking focus: alert, status, log, timer, and marquee.
-- **[Selection Engine](/docs/aria/selection)** — Base controllers and ambient coordination context for authoring custom selectable widgets.
+- [Button](/docs/aria/button)
+- [Checkbox](/docs/aria/checkbox)
+- [Divider](/docs/aria/divider)
+- [Link](/docs/aria/link)
+- [Number Stepper](/docs/aria/number-stepper)
+- [Progressbar](/docs/aria/progressbar)
+- [Radio](/docs/aria/radio)
+- [Search Input](/docs/aria/search-input)
+- [Splitter](/docs/aria/splitter)
+- [Switch](/docs/aria/switch)
+- [Text Input](/docs/aria/text-input)
+
+## Composites
+
+Multi-item navigable structures with single-tab-stop roving focus:
+
+- [Accordion](/docs/aria/accordion)
+- [Menu](/docs/aria/menu)
+- [Radio Group](/docs/aria/radio-group)
+- [Select](/docs/aria/select)
+- [Tabs](/docs/aria/tabs)
+- [Toggle Group](/docs/aria/toggle-group)
+- [Toolbar](/docs/aria/toolbar)
+
+## Landmarks
+
+Page structure assistive technologies can jump to:
+
+- [Footer](/docs/aria/footer)
+- [Form](/docs/aria/form)
+- [Header](/docs/aria/header)
+- [Main](/docs/aria/main)
+- [Navigation](/docs/aria/navigation)
+- [Search](/docs/aria/search)
+- [Section](/docs/aria/section)
+- [Sidebar](/docs/aria/sidebar)
+
+## Live Regions
+
+A single announcer entity covering urgent alerts, advisory results, streams, counters, and tickers:
+
+- [Announcer](/docs/aria/announcer)
+
+## Selection
+
+Base controllers and ambient coordination context for authoring custom selectable widgets:
+
+- [Option](/docs/aria/option)
+- [Selection](/docs/aria/selection)

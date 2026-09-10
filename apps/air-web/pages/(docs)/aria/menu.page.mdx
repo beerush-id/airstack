@@ -554,10 +554,10 @@ const MenuItemRadio = setup<MenuItemRadioProps>((props) => {
 
 ## Menubar
 
-In Aria, a Menubar is a top-level container created with `aria('menubar')` that compiles `role="menubar"`, coordinating horizontal roving focus across multiple menu triggers.
+In Aria, a Menubar is a top-level container created with `aria('menu-bar')` that compiles `role="menubar"`, coordinating horizontal roving focus across multiple menu triggers.
 
 ```ts
-aria<E extends BaseElement = HTMLElement>(role: 'menubar', props?: MenubarProps): MenubarAria<E>
+aria<E extends BaseElement = HTMLElement>(role: 'menu-bar', props?: MenubarProps): MenubarAria<E>
 ```
 
 ### Parameters
@@ -571,7 +571,7 @@ The menubar coordinates top-level menus as a single horizontal tab stop with `ro
 
 ### Usage
 
-To use Menubar, create the menubar instance with `aria('menubar', props)`, then pass `menubar.ref` and spread `menubar.attributes` onto your top-level container element:
+To use Menubar, create the menubar instance with `aria('menu-bar', props)`, then pass `menubar.ref` and spread `menubar.attributes` onto your top-level container element:
 
 :::code-group
 
@@ -587,7 +587,7 @@ type MenubarProps = ComponentProps<'div'> & {
 };
 
 const Menubar = setup<MenubarProps>((props) => {
-  const menubar = aria('menubar', props);
+  const menubar = aria('menu-bar', props);
   const restProps = props.$omit([...menubar.ownKeys, 'label', 'labelledby', 'orientation', 'children', 'className']);
 
   return () => (
@@ -610,7 +610,7 @@ type MenubarProps = ComponentProps<'div'> & {
 };
 
 const Menubar = setup<MenubarProps>((props) => {
-  const menubar = aria('menubar', props);
+  const menubar = aria('menu-bar', props);
   const restProps = props.$omit([...menubar.ownKeys, 'label', 'labelledby', 'orientation', 'children', 'className']);
 
   return (
@@ -690,6 +690,6 @@ Once your components are wired with `aria(...)`, you compose them to build acces
 
 ## Next Steps
 
-- **[Toolbar](file:///Users/mahdaen/Domains/beerush.io/anchor/apps/air-web/pages/(docs)/aria/composites/toolbar.page.mdx)**: Group tools and actions into an always-visible horizontal or vertical bar.
-- **[Listbox](file:///Users/mahdaen/Domains/beerush.io/anchor/apps/air-web/pages/(docs)/aria/composites/listbox.page.mdx)**: Build selectable option lists that manage single or multi-value input selection.
-- **[Accordion](file:///Users/mahdaen/Domains/beerush.io/anchor/apps/air-web/pages/(docs)/aria/composites/accordion.page.mdx)**: Coordinate collapsible disclosure sections with roving header focus.
+- **[Toolbar](/docs/aria/toolbar)**: Group tools and actions into an always-visible horizontal or vertical bar.
+- **[Select](/docs/aria/select)**: Build selectable option lists that manage single or multi-value input selection.
+- **[Accordion](/docs/aria/accordion)**: Coordinate collapsible disclosure sections with roving header focus.

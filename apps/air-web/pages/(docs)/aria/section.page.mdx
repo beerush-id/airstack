@@ -1,36 +1,36 @@
 ---
-title: 'Region'
-description: 'Headless accessible region landmark exposing a significant named section as a navigable destination.'
-nav: 'Region'
+title: 'Section'
+description: 'Headless accessible section landmark exposing a significant named section as a navigable destination.'
+nav: 'Section'
 nav-priority: 580
 ---
 
-# Region
+# Section
 
-Long documents are hard to navigate by listening. A `region` landmark turns a significant, self-contained section into a destination in the assistive technology's landmark list — a table of contents for the page. The catch is that a section only becomes a region when it is named; an unnamed `<section>` is a generic container that appears in no list at all.
+Long documents are hard to navigate by listening. A `region` landmark turns a significant, self-contained section into a destination in the assistive technology's landmark list — a table of contents for the page. The catch is that a section only becomes a landmark when it is named; an unnamed `<section>` is a generic container that appears in no list at all.
 
-`@airlib/aria` compiles the region landmark onto the element you already render and enforces the naming rule: with `label` or `labelledby` it compiles `role="region"` plus the name, and without either it compiles no role, so an unnamed section is never announced as a landmark it does not qualify as.
+`@airlib/aria` compiles the section landmark onto the element you already render and enforces the naming rule: with `label` or `labelledby` it compiles `role="region"` plus the name, and without either it compiles no role, so an unnamed section is never announced as a landmark it does not qualify as.
 
-You compose a region using this piece:
+You compose a section using this piece:
 
-- **Region**: The named generic landmark that compiles `role="region"` only when it carries an accessible name.
+- **Section**: The named generic landmark that compiles `role="region"` only when it carries an accessible name.
 
 ## What you get
 
 - **Naming enforced by compilation.** No accessible name means no `role="region"`, keeping the landmark list free of anonymous entries.
-- **A `named` projection.** `region.named` tells your wrapper whether the section was actually exposed.
+- **A `named` projection.** `section.named` tells your wrapper whether the section was actually exposed.
 - **Native and custom hosts.** `<section>` and `<div>` both work, with the role compiled explicitly in either case when named.
 
-## Region
+## Section
 
-In Aria, Region is the named section landmark created with `aria('region')` that compiles the role only when the section carries an accessible name.
+In Aria, Section is the named section landmark created with `aria('section')` that compiles the role only when the section carries an accessible name.
 
 ```ts
 aria<E extends BaseElement = HTMLElement>(
-  role: 'region',
-  props?: RegionLandmarkProps,
-  options?: RegionLandmarkOptions
-): RegionAria<E>
+  role: 'section',
+  props?: SectionProps,
+  options?: SectionOptions
+): SectionAria<E>
 ```
 
 ### Parameters
@@ -49,7 +49,7 @@ A section almost always has a visible heading. Point `labelledby` at that headin
 
 ### Usage
 
-To use Region, create the landmark with `aria('region', props)`, then pass `region.ref` and spread `region.attributes` onto your section element:
+To use Section, create the landmark with `aria('section', props)`, then pass `section.ref` and spread `section.attributes` onto your section element:
 
 :::code-group
 
@@ -58,21 +58,21 @@ import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
 import type { ComponentProps } from 'react';
 
-type RegionProps = ComponentProps<'section'> & {
+type SectionProps = ComponentProps<'section'> & {
   label?: string;
   labelledby?: string;
 };
 
-const Region = setup<RegionProps>((props) => {
-  const region = aria('region', props);
-  const restProps = props.$omit([...region.ownKeys, 'label', 'labelledby', 'children', 'className']);
+const Section = setup<SectionProps>((props) => {
+  const section = aria('section', props);
+  const restProps = props.$omit([...section.ownKeys, 'label', 'labelledby', 'children', 'className']);
 
   return () => (
-    <section ref={region.ref} {...restProps} {...region.attributes} className={props.className}>
+    <section ref={section.ref} {...restProps} {...section.attributes} className={props.className}>
       {props.children}
     </section>
   );
-}, 'Region');
+}, 'Section');
 ```
 
 ```tsx [SolidJS]
@@ -80,17 +80,17 @@ import { aria } from '@airlib/aria';
 import { setup } from '@airlib/solid';
 import type { ComponentProps } from 'solid-js';
 
-type RegionProps = ComponentProps<'section'> & {
+type SectionProps = ComponentProps<'section'> & {
   label?: string;
   labelledby?: string;
 };
 
-const Region = setup<RegionProps>((props) => {
-  const region = aria('region', props);
-  const restProps = props.$omit([...region.ownKeys, 'label', 'labelledby', 'children', 'className']);
+const Section = setup<SectionProps>((props) => {
+  const section = aria('section', props);
+  const restProps = props.$omit([...section.ownKeys, 'label', 'labelledby', 'children', 'className']);
 
   return (
-    <section ref={region.ref} {...restProps} {...region.attributes} className={props.className}>
+    <section ref={section.ref} {...restProps} {...section.attributes} className={props.className}>
       {props.children}
     </section>
   );
@@ -101,30 +101,30 @@ const Region = setup<RegionProps>((props) => {
 
 ## Putting It Together
 
-Once your component is wired with `aria('region')`, name the sections worth jumping to and leave the rest unnamed:
+Once your component is wired with `aria('section')`, name the sections worth jumping to and leave the rest unnamed:
 
 ```tsx
-<Region labelledby="pricing-heading">
+<Section labelledby="pricing-heading">
   <h2 id="pricing-heading">Pricing</h2>
   <p>Plans and billing.</p>
-</Region>
+</Section>
 <section>
   <p>An ordinary section, deliberately not a landmark.</p>
 </section>
 ```
 
-:::interactive[Region Interactive Demo]
+:::interactive[Section Interactive Demo]
 <div className="flex flex-col gap-3 p-4 max-w-sm border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 text-sm">
-  <Region
+  <Section
     labelledby="pricing-heading"
     className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4"
   >
     <h2 id="pricing-heading" className="font-medium text-zinc-800 dark:text-zinc-200">Pricing</h2>
     <p className="text-zinc-500 dark:text-zinc-400">Named, so it appears in the landmark list.</p>
-  </Region>
-  <Region className="rounded-lg border border-dashed border-zinc-300 dark:border-zinc-700 p-4 text-zinc-400 dark:text-zinc-600">
+  </Section>
+  <Section className="rounded-lg border border-dashed border-zinc-300 dark:border-zinc-700 p-4 text-zinc-400 dark:text-zinc-600">
     Unnamed section — no role compiled, so it stays a generic container
-  </Region>
+  </Section>
 </div>
 :::
 
@@ -134,6 +134,6 @@ Once your component is wired with `aria('region')`, name the sections worth jump
 
 ## Next Steps
 
-- **[Form](./form)**: The other landmark exposed only when named.
-- **[Main](./main)**: The primary content that regions sit inside.
-- **[Complementary](./complementary)**: Supporting content that belongs beside main rather than inside it.
+- **[Form](/docs/aria/form)**: The other landmark exposed only when named.
+- **[Main](/docs/aria/main)**: The primary content that sections sit inside.
+- **[Sidebar](/docs/aria/sidebar)**: Supporting content that belongs beside main rather than inside it.
