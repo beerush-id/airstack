@@ -1,0 +1,63 @@
+---
+title: 'Overview'
+description: 'Structural page sections assistive technologies can jump to, compiled from native HTML5 elements or custom hosts.'
+nav: 'Overview'
+nav-priority: 500
+---
+
+# Landmarks Overview
+
+Landmarks divide a page into perceptible sections — `banner`, `main`, `navigation`, `complementary`, `contentinfo`, `search`, `form`, and `region` — so assistive technologies can skip repetitive content and jump straight to the part the user actually wants. Without them, a screen reader user listens through the header and the navigation on every single page before reaching the content.
+
+`@airlib/aria` compiles landmark semantics onto the elements you already render. Bound to a native HTML5 tag it emits no redundant `role`; bound to a `<div>` it supplies one. It compiles the accessible name from `label` or `labelledby`, and it withholds the role from `form` and `region` when they are unnamed, because an unnamed form or section is not a landmark at all.
+
+## What you get
+
+- **Native-first projection.** `<header>`, `<main>`, `<nav>`, `<aside>`, `<footer>`, and `<search>` keep their implicit roles; custom hosts receive an explicit one.
+- **Name compilation.** `label` compiles to `aria-label` and `labelledby` to `aria-labelledby`.
+- **Conditional landmarks.** `form` and `region` compile their role only when named, matching the HTML-to-ARIA mapping.
+- **No behavior to mismanage.** Landmarks take no focus, own no keyboard handling, and hold no state — they are pure structure.
+
+## Role Mapping & Naming Rules
+
+| Landmark | Native host | Rule |
+| :--- | :--- | :--- |
+| `banner` | `<header>` scoped to `<body>` | At most one per page. |
+| `main` | `<main>` | Exactly one per page. |
+| `navigation` | `<nav>` | Name each one when a page holds more than one. |
+| `complementary` | `<aside>` | Supporting content beside the main content. |
+| `contentinfo` | `<footer>` scoped to `<body>` | At most one per page. |
+| `search` | `<search>` | Identifies the site search facility. |
+| `form` | `<form>` | Exposed as a landmark only when named. |
+| `region` | `<section>` | Exposed as a landmark only when named. |
+
+A `<header>` or `<footer>` nested inside `<main>`, `<article>`, or `<aside>` is not a `banner` or `contentinfo` landmark — those roles belong to the page-level header and footer only, which is why the native mapping is scoped to `<body>`.
+
+## Shared Contract
+
+Every landmark takes the same props and the same single option:
+
+```ts
+props.label?: string;         // compiled to aria-label
+props.labelledby?: string;    // compiled to aria-labelledby
+options.native?: boolean;     // default true: omit the role a native host already implies
+```
+
+Controllers expose `label`, `labelledby`, and `named` as read-only projections, so a wrapper can tell whether the landmark it rendered is actually exposed.
+
+## Available Landmarks
+
+- **[Banner](./banner)** — Prime header area holding site identity and global controls.
+- **[Main](./main)** — Primary unique content, the target of every skip link.
+- **[Navigation](./navigation)** — Major collections of navigational links.
+- **[Complementary](./complementary)** — Supporting sidebars and related content.
+- **[Contentinfo](./contentinfo)** — Prime footer area with copyright and legal links.
+- **[Search](./search)** — The site search facility.
+- **[Form](./form)** — Significant form areas, exposed only when named.
+- **[Region](./region)** — Generic named sections worth listing in a table of contents.
+
+## Next Steps
+
+- **[Live Regions](../live)** — Announce dynamic content without moving the user's focus.
+- **[Composites](../composites)** — Multi-item widgets that rove focus inside a landmark.
+- **[Separator](../separator)** — Structural dividers for content inside a landmark.

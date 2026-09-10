@@ -1,0 +1,271 @@
+---
+title: 'Spinbutton'
+description: 'Headless accessible numeric stepper compiling bounded range announcements with arrow, page, and boundary keyboard stepping.'
+nav: 'Spinbutton'
+nav-priority: 265
+---
+
+# Spinbutton
+
+Quantities such as guest counts, quantities, and durations are picked from a range of discrete values, not typed freely. A plain text input accepts anything and announces nothing about bounds; a native `<input type="number">` handles the semantics but cannot be styled and cannot announce a human-readable value. Custom steppers built from `<div>` elements must compile the whole range vocabulary by hand — and usually forget to clamp, so arrow keys walk the value past its own bounds.
+
+`@airlib/aria` provides a headless behavioral bridge for numeric steppers. It compiles `role="spinbutton"` with `aria-valuenow`, `aria-valuemin`, `aria-valuemax`, and `aria-valuetext`, clamps every write to the declared bounds, polyfills arrow, page, and boundary stepping on custom hosts, and projects onto a native `<input type="number">` when you would rather the browser owned the field.
+
+You compose a spinbutton using this piece:
+
+- **Spinbutton**: The discrete numeric stepper that owns the value, its bounds, and the keys that move it.
+
+## What you get
+
+- **Bounded range announcements.** Compiles `aria-valuenow` against `aria-valuemin` and `aria-valuemax`, and leaves both out when you declare no limits.
+- **Clamping on every write.** Arrow keys, page keys, boundary jumps, typed input, and direct assignment all land inside the declared range.
+- **Readable value text.** `valuetext` announces meaningful units ("3 nights") where a bare number would not.
+- **Native equivalence.** Pass `native: true` to project onto `<input type="number">` with no redundant role, keeping the browser's own stepper and validation.
+
+## Spinbutton
+
+In Aria, Spinbutton is the numeric stepper created with `aria('spinbutton')` that owns a clamped value within an optional range.
+
+```ts
+aria<E extends BaseElement = HTMLInputElement>(
+  role: 'spinbutton',
+  props?: SpinbuttonProps,
+  options?: SpinbuttonOptions
+): SpinbuttonAria<E>
+```
+
+### Parameters
+
+- `props.value` *(number, optional)*: Current numeric value. Falls back to `min`, then to `0`.
+- `props.min` *(number, optional)*: Lower bound compiled to `aria-valuemin`. Omitted leaves the field unbounded below.
+- `props.max` *(number, optional)*: Upper bound compiled to `aria-valuemax`. Omitted leaves the field unbounded above.
+- `props.step` *(number, optional, default `1`)*: Increment applied per arrow keystroke.
+- `props.valuetext` *(string, optional)*: Human-readable value compiled to `aria-valuetext`.
+- `props.readonly` *(boolean, optional)*: Keeps the field focusable and announced while refusing every change.
+- `props.disabled` *(boolean, optional)*: Removes the field from the tab order and announces `aria-disabled`.
+- `props.required` *(boolean, optional)*: Required validation indicator, compiled to `aria-required` only when true.
+- `options.native` *(boolean, optional, default `false`)*: Set to `true` when bound to a native `<input type="number">`.
+
+The controller compiles no accessible name of its own. Bind `aria-label` or `aria-labelledby` on the element so the quantity being stepped is announced.
+
+### How it behaves
+
+On a custom host the controller compiles `role="spinbutton"`, sets `tabindex="0"` (or `-1` when disabled), and announces the value against whichever bounds you declared. `ArrowUp` and `ArrowDown` move by `step`, `PageUp` and `PageDown` move by ten times `step`, and `Home` and `End` jump to `min` and `max` — staying out of the way when a bound is undefined. Every write is clamped, including writes from a parent, so holding an arrow key at a boundary keeps announcing the boundary value. Readonly and disabled both refuse the keys.
+
+With `native: true` no role is emitted because `<input type="number">` implies it, the browser keeps its own stepper and arrow handling, and the controller synchronizes typed input back into `props.value` — clamped on the way in, and withdrawn rather than zeroed when the field is cleared.
+
+:::tip[Page step is a class decision]
+The page-key multiplier is fixed at class-definition level, not exposed in JSX, so a template consumer cannot turn a quantity stepper into something that jumps by arbitrary amounts. Subclass the controller to rescale it for coarse ranges.
+:::
+
+### Usage
+
+To use Spinbutton, create the stepper with `aria('spinbutton', props)`, then pass `spin.ref` and spread `spin.attributes` onto the element that receives focus and arrow keys:
+
+:::code-group
+
+```tsx [React] executable
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type SpinbuttonProps = ComponentProps<'div'> & {
+  value?: number;
+  min?: number;
+  max?: number;
+  step?: number;
+  readonly?: boolean;
+  disabled?: boolean;
+  label?: string;
+};
+
+const Spinbutton = setup<SpinbuttonProps>((props) => {
+  const spin = aria('spinbutton', props);
+  const restProps = props.$omit([
+    ...spin.ownKeys,
+    'value',
+    'min',
+    'max',
+    'step',
+    'readonly',
+    'disabled',
+    'label',
+    'children',
+    'className',
+  ]);
+
+  const locked = () => spin.disabled || spin.readonly;
+  const stepLabel = (verb: string) => (props.label ? `${verb} ${props.label}` : verb);
+
+  return () => (
+    <div className="inline-flex items-stretch">
+      <button
+        type="button"
+        aria-label={stepLabel('Decrease')}
+        tabIndex={-1}
+        disabled={locked()}
+        onClick={() => {
+          spin.value -= spin.step;
+        }}
+        className="flex w-9 items-center justify-center rounded-l-lg border border-zinc-300 bg-white text-zinc-600 hover:bg-zinc-50 disabled:opacity-40 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+      >
+        −
+      </button>
+      <div
+        ref={spin.ref}
+        aria-label={props.label}
+        {...restProps}
+        {...spin.attributes}
+        className={props.className}
+      >
+        {spin.value}
+      </div>
+      <button
+        type="button"
+        aria-label={stepLabel('Increase')}
+        tabIndex={-1}
+        disabled={locked()}
+        onClick={() => {
+          spin.value += spin.step;
+        }}
+        className="flex w-9 items-center justify-center rounded-r-lg border border-zinc-300 bg-white text-zinc-600 hover:bg-zinc-50 disabled:opacity-40 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+      >
+        +
+      </button>
+    </div>
+  );
+}, 'Spinbutton');
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type SpinbuttonProps = ComponentProps<'div'> & {
+  value?: number;
+  min?: number;
+  max?: number;
+  step?: number;
+  readonly?: boolean;
+  disabled?: boolean;
+  label?: string;
+};
+
+const Spinbutton = setup<SpinbuttonProps>((props) => {
+  const spin = aria('spinbutton', props);
+  const restProps = props.$omit([
+    ...spin.ownKeys,
+    'value',
+    'min',
+    'max',
+    'step',
+    'readonly',
+    'disabled',
+    'label',
+    'children',
+    'className',
+  ]);
+
+  const locked = () => spin.disabled || spin.readonly;
+  const stepLabel = (verb: string) => (props.label ? `${verb} ${props.label}` : verb);
+
+  return (
+    <div className="inline-flex items-stretch">
+      <button
+        type="button"
+        aria-label={stepLabel('Decrease')}
+        tabIndex={-1}
+        disabled={locked()}
+        onClick={() => {
+          spin.value -= spin.step;
+        }}
+        className="flex w-9 items-center justify-center rounded-l-lg border border-zinc-300 bg-white text-zinc-600 hover:bg-zinc-50 disabled:opacity-40 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+      >
+        −
+      </button>
+      <div ref={spin.ref} aria-label={props.label} {...restProps} {...spin.attributes} className={props.className}>
+        {spin.value}
+      </div>
+      <button
+        type="button"
+        aria-label={stepLabel('Increase')}
+        tabIndex={-1}
+        disabled={locked()}
+        onClick={() => {
+          spin.value += spin.step;
+        }}
+        className="flex w-9 items-center justify-center rounded-r-lg border border-zinc-300 bg-white text-zinc-600 hover:bg-zinc-50 disabled:opacity-40 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+      >
+        +
+      </button>
+    </div>
+  );
+});
+```
+
+:::
+
+The stepper buttons duplicate the keyboard behavior, so they stay out of the tab order — but they carry their own accessible names instead of `aria-hidden`. Hiding them is invalid: `tabIndex={-1}` only removes a button from the tab order, and clicking it still moves focus inside the hidden subtree, which browsers refuse to announce. The element carrying `role="spinbutton"` remains the only tab stop.
+
+## Putting It Together
+
+Once your component is wired with `aria('spinbutton')`, compose it into bounded quantity fields:
+
+```tsx
+<div className="flex flex-col gap-4">
+  <Spinbutton label="Guests" value={2} min={1} max={8} />
+  <Spinbutton label="Nights" value={10} min={0} max={60} step={5} />
+  <Spinbutton label="Tax rate" value={11} readonly={true} />
+</div>
+```
+
+:::interactive[Spinbutton Interactive Demo]
+<div className="flex flex-col gap-5 p-4 max-w-sm border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 text-sm">
+  <div className="flex flex-col gap-2">
+    <span className="font-medium text-zinc-800 dark:text-zinc-200">Guests — focus the value and use arrow keys</span>
+    <Spinbutton
+      label="Guests"
+      value={2}
+      min={1}
+      max={8}
+      className="flex min-w-14 items-center justify-center border-y border-zinc-300 bg-white px-3 py-2 tabular-nums text-zinc-800 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
+    />
+  </div>
+  <div className="flex flex-col gap-2">
+    <span className="font-medium text-zinc-800 dark:text-zinc-200">Nights — steps by 5, page keys by 50</span>
+    <Spinbutton
+      label="Nights"
+      value={10}
+      min={0}
+      max={60}
+      step={5}
+      className="flex min-w-14 items-center justify-center border-y border-zinc-300 bg-white px-3 py-2 tabular-nums text-zinc-800 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
+    />
+  </div>
+  <div className="flex flex-col gap-2">
+    <span className="font-medium text-zinc-400 dark:text-zinc-500">Tax rate — readonly, announced but immutable</span>
+    <Spinbutton
+      label="Tax rate"
+      value={11}
+      readonly={true}
+      className="flex min-w-14 items-center justify-center border-y border-zinc-300 bg-zinc-100 px-3 py-2 tabular-nums text-zinc-500 outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400"
+    />
+  </div>
+</div>
+:::
+
+## Keyboard Navigation
+
+- **Tab**: Focuses the stepper. A disabled field is skipped entirely (`tabindex="-1"`); a readonly field stays focusable.
+- **ArrowUp**: Increments the value by `step`, holding at `max`.
+- **ArrowDown**: Decrements the value by `step`, holding at `min`.
+- **PageUp / PageDown**: Increments or decrements by ten times `step`.
+- **Home / End**: Jumps to `min` or `max` when that bound is declared, and is left to the browser when it is not.
+- **Native hosts**: With `native: true` the browser owns every key above; the controller only synchronizes the resulting value.
+
+## Next Steps
+
+- **[Textbox](/docs/aria/textbox)**: Free-text and search inputs with live value synchronization and validation state.
+- **[Progressbar](/docs/aria/progressbar)**: The read-only face of the same range vocabulary.
+- **[Separator](/docs/aria/separator)**: Movable splitters that step a partition through the same clamped bounds.

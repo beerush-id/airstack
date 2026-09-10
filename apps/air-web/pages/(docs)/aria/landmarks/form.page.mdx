@@ -1,0 +1,152 @@
+---
+title: 'Form'
+description: 'Headless accessible form landmark exposing a significant form area only when it carries an accessible name.'
+nav: 'Form'
+nav-priority: 570
+---
+
+# Form
+
+A page can hold several forms: checkout, a filter panel, a comment box, account settings. When they are all just `<form>` elements, assistive technologies cannot list or jump to any of them, because HTML only exposes a form as a landmark when it has an accessible name. An unnamed form is a structural container, not a destination.
+
+`@airlib/aria` compiles the form landmark onto the element you already render, and it enforces the naming rule instead of leaving it to memory: when `label` or `labelledby` is present it compiles `role="form"` with the name, and when neither is present it compiles no role at all, leaving the element exactly as unnamed HTML would.
+
+You compose a form landmark using this piece:
+
+- **Form**: The named form area landmark that compiles `role="form"` only when it carries an accessible name.
+
+## What you get
+
+- **Naming enforced by compilation.** No accessible name means no `role="form"`, so a form can never be announced as a landmark it does not qualify as.
+- **A `named` projection.** `form.named` tells your wrapper whether the landmark was actually exposed.
+- **No form semantics.** The controller compiles no `name`, `value`, `action`, or `method` — it is a landmark, not a form engine.
+
+## Form
+
+In Aria, Form is the form area landmark created with `aria('form')` that compiles the role only when the container is named.
+
+```ts
+aria<E extends BaseElement = HTMLFormElement>(
+  role: 'form',
+  props?: FormLandmarkProps,
+  options?: FormLandmarkOptions
+): FormAria<E>
+```
+
+### Parameters
+
+- `props.label` *(string, optional)*: Accessible label compiled to `aria-label`. Required for the landmark to be exposed.
+- `props.labelledby` *(string, optional)*: Element ID providing the accessible name, compiled to `aria-labelledby`. Also satisfies the naming requirement.
+- `options.native` *(boolean, optional, default `true`)*: Pass `false` when binding to a custom `<div>` host.
+
+### How it behaves
+
+When `label` or `labelledby` is present, the controller compiles `role="form"` together with the accessible name — explicitly, even on a native `<form>`, because the HTML mapping only exposes a named form as a landmark. When neither is present, no role is compiled and the element stays a structural container. The name itself is always compiled from `label` to `aria-label` and from `labelledby` to `aria-labelledby`.
+
+:::tip[Name it after the task]
+Use the task the form performs, not the word "form": "Shipping address", "Payment details", "Filter results". That is the string announced in the landmark list, and "form" three times over tells a user nothing about which one to open.
+:::
+
+### Usage
+
+To use Form, create the landmark with `aria('form', props)`, then pass `form.ref` and spread `form.attributes` onto your form element:
+
+:::code-group
+
+```tsx [React] executable
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type FormLandmarkProps = ComponentProps<'form'> & {
+  label?: string;
+  labelledby?: string;
+};
+
+const FormLandmark = setup<FormLandmarkProps>((props) => {
+  const form = aria('form', props);
+  const restProps = props.$omit([...form.ownKeys, 'label', 'labelledby', 'children', 'className']);
+
+  return () => (
+    <form ref={form.ref} {...restProps} {...form.attributes} className={props.className}>
+      {props.children}
+    </form>
+  );
+}, 'FormLandmark');
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type FormLandmarkProps = ComponentProps<'form'> & {
+  label?: string;
+  labelledby?: string;
+};
+
+const FormLandmark = setup<FormLandmarkProps>((props) => {
+  const form = aria('form', props);
+  const restProps = props.$omit([...form.ownKeys, 'label', 'labelledby', 'children', 'className']);
+
+  return (
+    <form ref={form.ref} {...restProps} {...form.attributes} className={props.className}>
+      {props.children}
+    </form>
+  );
+});
+```
+
+:::
+
+The component is named `FormLandmark` rather than `Form` to stay clear of the package's own `FormAria` type and of form-library components in your app; the controller variable stays `form`.
+
+## Putting It Together
+
+Once your component is wired with `aria('form')`, name each form on the page after its task:
+
+```tsx
+<FormLandmark label="Shipping address">
+  <label>
+    Street
+    <input name="street" />
+  </label>
+  <button type="submit">Save address</button>
+</FormLandmark>
+```
+
+:::interactive[Form Interactive Demo]
+<div className="flex flex-col gap-3 p-4 max-w-sm border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 text-sm">
+  <FormLandmark
+    label="Shipping address"
+    className="flex flex-col gap-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4"
+  >
+    <span className="font-medium text-zinc-800 dark:text-zinc-200">Shipping address</span>
+    <input
+      name="street"
+      aria-label="Street"
+      placeholder="Street"
+      className="px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm outline-none focus:border-primary placeholder:text-zinc-400 dark:placeholder:text-zinc-600"
+    />
+    <button
+      type="button"
+      className="self-start px-3 py-1.5 rounded-lg bg-primary text-white text-sm font-medium hover:opacity-90"
+    >
+      Save address
+    </button>
+  </FormLandmark>
+  <FormLandmark className="rounded-lg border border-dashed border-zinc-300 dark:border-zinc-700 p-4 text-zinc-400 dark:text-zinc-600">
+    Unnamed form — no role compiled, so it is not a landmark
+  </FormLandmark>
+</div>
+:::
+
+## Keyboard Navigation
+
+- **None.** The landmark takes no tab stop of its own. Keyboard users interact with the fields and submit control inside it, and native form submission stays entirely yours to wire.
+
+## Next Steps
+
+- **[Region](./region)**: The other landmark that only exists when it is named.
+- **[Textbox](../textbox)**: The field controllers that live inside the form.
+- **[Search](./search)**: The search facility, which is its own landmark rather than a form.

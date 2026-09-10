@@ -1,0 +1,182 @@
+---
+title: 'Timer'
+description: 'Headless accessible timer live region holding elapsed or remaining time with announcements off by default.'
+nav: 'Timer'
+nav-priority: 640
+---
+
+# Timer
+
+A countdown or stopwatch changes every second. Declared as a polite live region, it would narrate the whole countdown and make the page unusable; declared as nothing at all, a user who cannot see the display never learns that the session is about to expire. The answer is a silent counter that speaks only at moments worth hearing.
+
+`@airlib/aria` compiles the timer live region onto the element you already render. It emits `role="timer"` with `aria-live="off"` by default and holds the current count as reactive state, so the display updates continuously while announcements stay deliberate.
+
+You compose a timer using this piece:
+
+- **Timer**: The silent counter that compiles `role="timer"` and holds elapsed or remaining time as state.
+
+## What you get
+
+- **Silent by default.** `aria-live="off"` is compiled, so a ticking second never interrupts the user.
+- **Reactive count.** `value` is a state projection with a setter, so the ticking source writes to it and the display follows.
+- **Deliberate milestones.** Politeness stays author-controlled, so a milestone can be announced through a separate region without making the counter itself live.
+- **No native host assumptions.** The role is compiled explicitly onto any container, `<div>` or `<time>`.
+
+## Timer
+
+In Aria, Timer is the counter live region created with `aria('timer')` that compiles silent-ticker semantics and holds the current count.
+
+```ts
+aria<E extends BaseElement = HTMLElement>(role: 'timer', props?: TimerProps): TimerAria<E>
+```
+
+### Parameters
+
+- `props.value` *(number | string, optional)*: Current elapsed or remaining time, held as reactive state and never compiled to an attribute.
+- `props.politeness` *('off' | 'polite' | 'assertive', optional, default `'off'`)*: Announcement priority, compiled to `aria-live`.
+- `props.atomic` *(boolean, optional)*: Whether the whole region is announced as one unit, compiled to `aria-atomic` when set or true.
+- `props.busy` *(boolean, optional)*: Suppresses announcements while the count is being recalculated, compiled to `aria-busy` when true.
+- `props.relevant` *(string, optional)*: Change kinds to monitor, compiled to `aria-relevant`.
+
+No ARIA attribute exists for elapsed time, so `value` compiles to nothing. The controller holds it as state; rendering the count and formatting it stay with the consumer. The controller also compiles no accessible name — bind `aria-label` so the counter is announced as "Time remaining" rather than as a bare number.
+
+### How it behaves
+
+The container is compiled with `role="timer"` and `aria-live` resolved from `politeness`, which defaults to `off`. `aria-atomic` is left unwritten unless the author sets it, and `aria-busy` and `aria-relevant` are emitted only when provided. Writing to `props.value`, or to the `value` setter, updates the reactive count and recompiles nothing — the attributes do not depend on it, which is what keeps a per-second tick from producing per-second attribute churn.
+
+:::tip[Announce milestones from somewhere else]
+Keep the timer silent and push "5 minutes remaining" or "Session expired" into a `status` or `alert` region when the moment arrives. Flipping the timer's own `politeness` to `polite` announces every tick, not just the milestone.
+:::
+
+### Usage
+
+To use Timer, create the counter with `aria('timer', props)`, then pass `timer.ref` and spread `timer.attributes` onto your display element:
+
+:::code-group
+
+```tsx [React] executable
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type TimerProps = ComponentProps<'div'> & {
+  value?: number | string;
+  politeness?: 'off' | 'polite' | 'assertive';
+  atomic?: boolean;
+  busy?: boolean;
+  label?: string;
+};
+
+const Timer = setup<TimerProps>((props) => {
+  const timer = aria('timer', props);
+  const restProps = props.$omit([
+    ...timer.ownKeys,
+    'value',
+    'politeness',
+    'atomic',
+    'busy',
+    'label',
+    'children',
+    'className',
+  ]);
+
+  return () => (
+    <div
+      ref={timer.ref}
+      aria-label={props.label}
+      {...restProps}
+      {...timer.attributes}
+      className={props.className}
+    >
+      {timer.value}
+    </div>
+  );
+}, 'Timer');
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type TimerProps = ComponentProps<'div'> & {
+  value?: number | string;
+  politeness?: 'off' | 'polite' | 'assertive';
+  atomic?: boolean;
+  busy?: boolean;
+  label?: string;
+};
+
+const Timer = setup<TimerProps>((props) => {
+  const timer = aria('timer', props);
+  const restProps = props.$omit([
+    ...timer.ownKeys,
+    'value',
+    'politeness',
+    'atomic',
+    'busy',
+    'label',
+    'children',
+    'className',
+  ]);
+
+  return (
+    <div
+      ref={timer.ref}
+      aria-label={props.label}
+      {...restProps}
+      {...timer.attributes}
+      className={props.className}
+    >
+      {timer.value}
+    </div>
+  );
+});
+```
+
+:::
+
+## Putting It Together
+
+Once your component is wired with `aria('timer')`, let the ticking source write the count and keep the region silent:
+
+```tsx
+<Timer label="Time remaining" value={formatRemaining(session.remainingSeconds)} />
+<Status label="Session notice">{session.expired ? 'Session expired' : ''}</Status>
+```
+
+:::interactive[Timer Interactive Demo]
+<div className="flex flex-col gap-3 p-4 max-w-sm border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 text-sm">
+  <div className="flex items-center justify-between gap-3">
+    <span className="text-zinc-500 dark:text-zinc-400">Time remaining</span>
+    <Timer
+      label="Time remaining"
+      value="02:35"
+      className="font-mono text-base tabular-nums text-zinc-900 dark:text-zinc-100"
+    />
+  </div>
+  <div className="flex items-center justify-between gap-3">
+    <span className="text-zinc-500 dark:text-zinc-400">Elapsed</span>
+    <Timer
+      label="Elapsed time"
+      value={1842}
+      className="font-mono text-base tabular-nums text-zinc-900 dark:text-zinc-100"
+    />
+  </div>
+  <div className="text-zinc-400 dark:text-zinc-600">
+    Both counters are silent: <code>aria-live="off"</code> is compiled, so the per-second tick is never announced.
+  </div>
+</div>
+:::
+
+## Announcement Behavior
+
+- **On every tick**: nothing. `aria-live="off"` keeps the counter silent no matter how fast `value` changes.
+- **On a milestone**: announce it from a separate `status` or `alert` region, or set `politeness` deliberately for a counter whose every change matters.
+- **Focus**: never moves, and the display takes no tab stop.
+
+## Next Steps
+
+- **[Marquee](./marquee)**: The other silently-changing region, for content that updates too fast to narrate.
+- **[Status](./status)**: Where a milestone announcement belongs.
+- **[Progressbar](../progressbar)**: Report progress as a bounded value instead of a count.

@@ -1,0 +1,155 @@
+---
+title: 'Link'
+description: 'Headless accessible link widget projecting navigation semantics onto native anchors and polyfilling them on custom elements.'
+nav: 'Link'
+nav-priority: 270
+---
+
+# Link
+
+Navigation triggers must announce themselves as links, expose their destination, and deactivate cleanly when that destination is unavailable. HTML `<a>` covers most of this natively, but it has no disabled state: an unavailable link either stays navigable or gets swapped for a `<span>`, which silently drops its semantics. Custom link elements built from `<span>` or `<div>` must add `role="link"`, a tab stop, and `Enter` activation by hand.
+
+`@airlib/aria` provides a headless behavioral bridge for navigation triggers. It projects `href` and `target`, announces `aria-disabled`, withholds the destination and blocks activation while disabled, and compiles `role="link"` with `Enter` activation only when the host element is not a native anchor.
+
+You compose a link using this piece:
+
+- **Link**: The navigation trigger that owns destination projection and disabled lockout.
+
+## What you get
+
+- **Native-first semantics.** Binds to `<a>` by default, so no redundant `role` is emitted and the browser keeps handling activation.
+- **A real disabled state.** Withholds `href`, announces `aria-disabled="true"`, and blocks activation — the state HTML anchors lack.
+- **Custom element support.** Compiles `role="link"`, manages `tabindex`, and activates on `Enter` for `<span>` and `<div>` hosts.
+- **Browser-accurate keys.** `Enter` activates a link; `Space` deliberately does not.
+
+## Link
+
+In Aria, Link is the navigation trigger created with `aria('link')` that projects anchor semantics and disabled lockout.
+
+```ts
+aria<E extends BaseElement = HTMLAnchorElement>(
+  role: 'link',
+  props?: LinkProps,
+  options?: LinkOptions
+): LinkAria<E>
+```
+
+### Parameters
+
+- `props.href` *(string, optional)*: Target resource URL. Withheld while the link is disabled.
+- `props.target` *(string, optional)*: Target browsing context, such as `_blank`.
+- `props.disabled` *(boolean, optional)*: Removes the destination, announces `aria-disabled`, and blocks activation.
+- `options.native` *(boolean, optional, default `true`)*: Pass `false` when binding to a custom `<span>` or `<div>` host.
+
+### How it behaves
+
+On a native `<a>`, no `role` is emitted because the element already carries link semantics, and `aria-disabled` is always projected since anchors expose no native disabled attribute. Disabling drops `href` from both the compiled dictionary and the mounted element, and prevents the click, so the destination becomes unreachable while the link stays announced. On a custom host (`native: false`), it compiles `role="link"`, sets `tabindex="0"` (or `-1` when disabled), and dispatches a click on `Enter`.
+
+:::tip[Disabled links]
+Keep the element in the DOM and pass `disabled` rather than swapping `<a>` for a `<span>`. The link stays announced, its destination is withheld, and assistive technologies report that it is unavailable instead of reporting nothing at all.
+:::
+
+### Usage
+
+To use Link, create the link instance with `aria('link', props)`, then pass `link.ref` and spread `link.attributes` onto your anchor element:
+
+:::code-group
+
+```tsx [React] executable
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type LinkProps = ComponentProps<'a'> & {
+  disabled?: boolean;
+};
+
+const Link = setup<LinkProps>((props) => {
+  const link = aria('link', props);
+  const restProps = props.$omit([...link.ownKeys, 'disabled', 'children', 'className']);
+
+  return () => (
+    <a ref={link.ref} {...restProps} {...link.attributes} className={props.className}>
+      {props.children}
+    </a>
+  );
+}, 'Link');
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type LinkProps = ComponentProps<'a'> & {
+  disabled?: boolean;
+};
+
+const Link = setup<LinkProps>((props) => {
+  const link = aria('link', props);
+  const restProps = props.$omit([...link.ownKeys, 'disabled', 'children', 'className']);
+
+  return (
+    <a ref={link.ref} {...restProps} {...link.attributes} className={props.className}>
+      {props.children}
+    </a>
+  );
+});
+```
+
+:::
+
+`disabled` is omitted explicitly: it is a controller input, not an anchor attribute, so forwarding it would leak an invalid `disabled` attribute onto the DOM.
+
+## Putting It Together
+
+Once your component is wired with `aria('link')`, compose it to build navigation that degrades honestly:
+
+```tsx
+<div className="flex flex-col gap-3">
+  <Link href="/docs/aria/button">Button documentation</Link>
+  <Link href="https://www.w3.org/WAI/ARIA/apg/patterns/" target="_blank">
+    WAI-ARIA Authoring Practices
+  </Link>
+  <Link href="/docs/aria/button" disabled={true}>
+    Restricted destination
+  </Link>
+</div>
+```
+
+:::interactive[Link Interactive Demo]
+<div className="flex flex-col gap-3 p-4 max-w-sm border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 text-sm">
+  <Link
+    href="/docs/aria/button"
+    className="text-zinc-800 dark:text-zinc-200 underline decoration-zinc-300 dark:decoration-zinc-700 underline-offset-4 hover:decoration-primary"
+  >
+    Button documentation
+  </Link>
+  <Link
+    href="https://www.w3.org/WAI/ARIA/apg/patterns/"
+    target="_blank"
+    className="text-primary underline underline-offset-4 hover:opacity-80"
+  >
+    WAI-ARIA Authoring Practices
+  </Link>
+  <Link
+    href="/docs/aria/button"
+    disabled={true}
+    className="text-zinc-400 dark:text-zinc-600 underline decoration-dashed underline-offset-4 cursor-not-allowed"
+  >
+    Restricted destination
+  </Link>
+</div>
+:::
+
+## Keyboard Navigation
+
+- **Tab**: Focuses the link, or skips it entirely when disabled on a custom host (`tabindex="-1"`).
+- **Enter**: Activates the link. Native anchors handle this in the browser; custom hosts receive the polyfill.
+- **Space**: Intentionally does nothing — `Space` activates buttons, not links.
+
+## Next Steps
+
+- **[Button](/docs/aria/button)**: Command triggers and two-state toggle buttons.
+- **[Toolbar](/docs/aria/composites/toolbar)**: Group navigation and action controls under a single tab stop.
+- **[Overview](/docs/aria)**: The attribute and ref contract every controller shares.

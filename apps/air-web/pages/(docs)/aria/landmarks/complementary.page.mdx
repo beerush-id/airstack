@@ -1,0 +1,151 @@
+---
+title: 'Complementary'
+description: 'Headless accessible complementary landmark marking supporting content that sits beside the main content.'
+nav: 'Complementary'
+nav-priority: 540
+---
+
+# Complementary
+
+Sidebars hold content that supports the main document without being part of it: related links, filters, notes, a table of contents. Users who need the main content should be able to skip that supporting material, and users who want it should be able to jump straight to it — which only works if it is identified as separate from `main`.
+
+`@airlib/aria` compiles the complementary landmark onto the element you already render. Bound to a native `<aside>` it emits no redundant role; bound to a `<div>` it supplies `role="complementary"`, and it compiles an accessible name when a page holds more than one sidebar.
+
+You compose a complementary landmark using this piece:
+
+- **Complementary**: The supporting content landmark that compiles `role="complementary"` only when the host does not already imply it.
+
+## What you get
+
+- **Native-first projection.** An `<aside>` keeps its implicit role; a custom host gets an explicit `role="complementary"`.
+- **Nameable sidebars.** `label` and `labelledby` compile to `aria-label` and `aria-labelledby` when a page holds several.
+- **Structure only.** No focus, no keyboard handling, and no state.
+
+## Complementary
+
+In Aria, Complementary is the supporting content landmark created with `aria('complementary')` that projects complementary semantics onto a native or custom host.
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'complementary',
+  props?: ComplementaryProps,
+  options?: ComplementaryOptions
+): ComplementaryAria<E>
+```
+
+### Parameters
+
+- `props.label` *(string, optional)*: Accessible label compiled to `aria-label`.
+- `props.labelledby` *(string, optional)*: Element ID providing the accessible name, compiled to `aria-labelledby`.
+- `options.native` *(boolean, optional, default `true`)*: Pass `false` when binding to a custom `<div>` host.
+
+### How it behaves
+
+With `native: true` the controller compiles only the accessible name and leaves the role to the host. With `native: false` it adds `role="complementary"`. The name is compiled when provided and omitted otherwise.
+
+:::tip[Keep it a sibling of main]
+An `<aside>` nested inside `<main>`, `<article>`, `<section>`, `<nav>`, or another `<aside>` is not a complementary landmark — the HTML mapping demotes it to a generic container. Render the sidebar as a sibling of `<main>` so the supporting content stays separate from the content it supports.
+:::
+
+### Usage
+
+To use Complementary, create the landmark with `aria('complementary', props)`, then pass `complementary.ref` and spread `complementary.attributes` onto your aside element:
+
+:::code-group
+
+```tsx [React] executable
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type ComplementaryProps = ComponentProps<'aside'> & {
+  label?: string;
+  labelledby?: string;
+};
+
+const Complementary = setup<ComplementaryProps>((props) => {
+  const complementary = aria('complementary', props);
+  const restProps = props.$omit([
+    ...complementary.ownKeys,
+    'label',
+    'labelledby',
+    'children',
+    'className',
+  ]);
+
+  return () => (
+    <aside ref={complementary.ref} {...restProps} {...complementary.attributes} className={props.className}>
+      {props.children}
+    </aside>
+  );
+}, 'Complementary');
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type ComplementaryProps = ComponentProps<'aside'> & {
+  label?: string;
+  labelledby?: string;
+};
+
+const Complementary = setup<ComplementaryProps>((props) => {
+  const complementary = aria('complementary', props);
+  const restProps = props.$omit([
+    ...complementary.ownKeys,
+    'label',
+    'labelledby',
+    'children',
+    'className',
+  ]);
+
+  return (
+    <aside ref={complementary.ref} {...restProps} {...complementary.attributes} className={props.className}>
+      {props.children}
+    </aside>
+  );
+});
+```
+
+:::
+
+## Putting It Together
+
+Once your component is wired with `aria('complementary')`, place it beside the main content rather than inside it:
+
+```tsx
+<div className="layout">
+  <Main id="content">Article body</Main>
+  <Complementary label="Related links">Related documentation</Complementary>
+</div>
+```
+
+:::interactive[Complementary Interactive Demo]
+<div className="flex gap-3 p-3 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 text-sm">
+  <div className="flex-1 rounded-lg bg-white dark:bg-zinc-900 p-4 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-800">
+    <p className="font-medium">main</p>
+    <p className="text-zinc-500 dark:text-zinc-400">The document the sidebar supports.</p>
+  </div>
+  <Complementary
+    label="On this page"
+    className="w-40 shrink-0 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 text-zinc-500 dark:text-zinc-400"
+  >
+    <p className="font-medium text-zinc-800 dark:text-zinc-200">On this page</p>
+    <p>Parameters</p>
+    <p>Usage</p>
+    <p>Next steps</p>
+  </Complementary>
+</div>
+:::
+
+## Keyboard Navigation
+
+- **None.** The landmark takes no tab stop and claims no keys; the controls inside it keep their own keyboard behavior.
+
+## Next Steps
+
+- **[Main](./main)**: The primary content the sidebar sits beside.
+- **[Navigation](./navigation)**: The link collection a sidebar often holds.
+- **[Region](./region)**: Name a significant section that is part of the content rather than beside it.

@@ -1,0 +1,145 @@
+---
+title: 'Navigation'
+description: 'Headless accessible navigation landmark marking major collections of links, named when a page holds more than one.'
+nav: 'Navigation'
+nav-priority: 530
+---
+
+# Navigation
+
+Most pages carry more than one set of links: a primary menu, breadcrumbs, a sidebar of related pages, a footer sitemap. Unnamed, they are all announced as "navigation", so jumping between them means listening to each one to find out which is which.
+
+`@airlib/aria` compiles the navigation landmark onto the element you already render. Bound to a native `<nav>` it emits no redundant role; bound to a `<div>` it supplies `role="navigation"`. It compiles the accessible name from `label` or `labelledby`, which is what tells two navigations on the same page apart.
+
+You compose a navigation landmark using this piece:
+
+- **Navigation**: The link collection landmark that compiles `role="navigation"` only when the host does not already imply it.
+
+## What you get
+
+- **Native-first projection.** A `<nav>` keeps its implicit role; a custom host gets an explicit `role="navigation"`.
+- **Distinguishable navigations.** `label` and `labelledby` compile to `aria-label` and `aria-labelledby` so each collection is announced by name.
+- **Structure only.** The links inside keep their own controllers; the landmark adds no focus and no keyboard behavior.
+
+## Navigation
+
+In Aria, Navigation is the link collection landmark created with `aria('navigation')` that projects navigation semantics onto a native or custom host.
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'navigation',
+  props?: NavigationProps,
+  options?: NavigationOptions
+): NavigationAria<E>
+```
+
+### Parameters
+
+- `props.label` *(string, optional)*: Accessible label compiled to `aria-label`, distinguishing this navigation from others on the page.
+- `props.labelledby` *(string, optional)*: Element ID providing the accessible name, compiled to `aria-labelledby`.
+- `options.native` *(boolean, optional, default `true`)*: Pass `false` when binding to a custom `<div>` host.
+
+### How it behaves
+
+With `native: true` the controller compiles only the accessible name and leaves the role to the host. With `native: false` it adds `role="navigation"`. The name is compiled whenever `label` or `labelledby` is present, and omitted otherwise — a page with a single navigation does not need one.
+
+:::tip[Reserve links for major collections]
+`navigation` is for major link collections, not every group of links on a page. Marking a footer's three legal links as a navigation landmark adds noise to the landmark list without helping anyone jump anywhere.
+:::
+
+### Usage
+
+To use Navigation, create the landmark with `aria('navigation', props)`, then pass `navigation.ref` and spread `navigation.attributes` onto your nav element:
+
+:::code-group
+
+```tsx [React] executable
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type NavigationProps = ComponentProps<'nav'> & {
+  label?: string;
+  labelledby?: string;
+};
+
+const Navigation = setup<NavigationProps>((props) => {
+  const navigation = aria('navigation', props);
+  const restProps = props.$omit([...navigation.ownKeys, 'label', 'labelledby', 'children', 'className']);
+
+  return () => (
+    <nav ref={navigation.ref} {...restProps} {...navigation.attributes} className={props.className}>
+      {props.children}
+    </nav>
+  );
+}, 'Navigation');
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type NavigationProps = ComponentProps<'nav'> & {
+  label?: string;
+  labelledby?: string;
+};
+
+const Navigation = setup<NavigationProps>((props) => {
+  const navigation = aria('navigation', props);
+  const restProps = props.$omit([...navigation.ownKeys, 'label', 'labelledby', 'children', 'className']);
+
+  return (
+    <nav ref={navigation.ref} {...restProps} {...navigation.attributes} className={props.className}>
+      {props.children}
+    </nav>
+  );
+});
+```
+
+:::
+
+## Putting It Together
+
+Once your component is wired with `aria('navigation')`, name every collection on the page:
+
+```tsx
+<Navigation label="Primary">
+  <a href="/docs">Docs</a>
+  <a href="/blog">Blog</a>
+</Navigation>
+<Navigation label="Breadcrumb">
+  <a href="/docs">Docs</a>
+  <span>Aria</span>
+</Navigation>
+```
+
+:::interactive[Navigation Interactive Demo]
+<div className="flex flex-col gap-3 p-4 max-w-sm border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 text-sm">
+  <Navigation label="Primary" className="flex items-center gap-3 text-zinc-800 dark:text-zinc-200">
+    <span className="font-medium text-primary">Docs</span>
+    <span>Blog</span>
+    <span>Support</span>
+  </Navigation>
+  <Navigation
+    label="Breadcrumb"
+    className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400"
+  >
+    <span>Docs</span>
+    <span aria-hidden="true">/</span>
+    <span>Aria</span>
+    <span aria-hidden="true">/</span>
+    <span className="text-zinc-800 dark:text-zinc-200">Navigation</span>
+  </Navigation>
+</div>
+:::
+
+## Keyboard Navigation
+
+- **None.** The landmark takes no tab stop of its own. Keyboard users traverse the links inside it, and assistive technologies jump to it by name.
+
+## Next Steps
+
+- **[Link](../link)**: The navigation triggers that live inside this landmark.
+- **[Menu](../composites/menu)**: A popup action collection, which is not a navigation landmark.
+- **[Complementary](./complementary)**: The sidebar a secondary navigation often sits in.

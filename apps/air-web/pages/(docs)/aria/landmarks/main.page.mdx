@@ -1,0 +1,132 @@
+---
+title: 'Main'
+description: 'Headless accessible main landmark marking the primary unique content of a document.'
+nav: 'Main'
+nav-priority: 520
+---
+
+# Main
+
+The reason a page has structure at all is so a user can get to its content. Without a `main` landmark, a screen reader user has no direct route past the header and navigation, and a skip link has nothing to target. A page with more than one `main` breaks that route just as thoroughly, because the destination stops being unique.
+
+`@airlib/aria` compiles the main landmark onto the element you already render. Bound to a native `<main>` it emits no redundant role; bound to a `<div>` it supplies `role="main"`, and it compiles an accessible name for the rare document that needs one.
+
+You compose a main landmark using this piece:
+
+- **Main**: The primary content landmark that compiles `role="main"` only when the host does not already imply it.
+
+## What you get
+
+- **Native-first projection.** A `<main>` keeps its implicit role; a custom host gets an explicit `role="main"`.
+- **A skip-link target.** Pair it with an `id` so `<a href="#content">` lands keyboard users directly inside it.
+- **Structure only.** No focus, no keyboard handling, and no state.
+
+## Main
+
+In Aria, Main is the primary content landmark created with `aria('main')` that projects main semantics onto a native or custom host.
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'main',
+  props?: MainProps,
+  options?: MainOptions
+): MainAria<E>
+```
+
+### Parameters
+
+- `props.label` *(string, optional)*: Accessible label compiled to `aria-label`.
+- `props.labelledby` *(string, optional)*: Element ID providing the accessible name, compiled to `aria-labelledby`.
+- `options.native` *(boolean, optional, default `true`)*: Pass `false` when binding to a custom `<div>` host.
+
+### How it behaves
+
+With `native: true` the controller compiles only the accessible name and leaves the role to the host. With `native: false` it adds `role="main"`. Nothing else is emitted: the landmark is structure, and every interactive element inside it keeps its own controller.
+
+:::tip[Exactly one, and give it an id]
+A document holds exactly one `main` landmark. Give the element an `id` and point your skip link at it — the landmark tells assistive technologies where the content is, and the `id` gives keyboard users a way to jump there.
+:::
+
+### Usage
+
+To use Main, create the landmark with `aria('main', props)`, then pass `main.ref` and spread `main.attributes` onto your content element:
+
+:::code-group
+
+```tsx [React] executable
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type MainProps = ComponentProps<'main'> & {
+  label?: string;
+  labelledby?: string;
+};
+
+const Main = setup<MainProps>((props) => {
+  const main = aria('main', props);
+  const restProps = props.$omit([...main.ownKeys, 'label', 'labelledby', 'children', 'className']);
+
+  return () => (
+    <main ref={main.ref} {...restProps} {...main.attributes} className={props.className}>
+      {props.children}
+    </main>
+  );
+}, 'Main');
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type MainProps = ComponentProps<'main'> & {
+  label?: string;
+  labelledby?: string;
+};
+
+const Main = setup<MainProps>((props) => {
+  const main = aria('main', props);
+  const restProps = props.$omit([...main.ownKeys, 'label', 'labelledby', 'children', 'className']);
+
+  return (
+    <main ref={main.ref} {...restProps} {...main.attributes} className={props.className}>
+      {props.children}
+    </main>
+  );
+});
+```
+
+:::
+
+## Putting It Together
+
+Once your component is wired with `aria('main')`, place it between the banner and the contentinfo as the skip-link target:
+
+```tsx
+<a href="#content">Skip to content</a>
+<Main id="content">
+  <article>Primary unique content of the page.</article>
+</Main>
+```
+
+:::interactive[Main Interactive Demo]
+<div className="border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden text-sm">
+  <div className="px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400">banner</div>
+  <Main id="content" className="px-4 py-6 bg-zinc-50/50 dark:bg-zinc-900/50 text-zinc-800 dark:text-zinc-200">
+    <p className="font-medium">Primary unique content</p>
+    <p className="text-zinc-500 dark:text-zinc-400">The target of the skip link, and exactly one per page.</p>
+  </Main>
+  <div className="px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400">contentinfo</div>
+</div>
+:::
+
+## Keyboard Navigation
+
+- **None.** The landmark itself takes no tab stop and claims no keys; a skip link pointing at its `id` is what moves focus into it.
+
+## Next Steps
+
+- **[Banner](./banner)**: The page header that precedes the main content.
+- **[Contentinfo](./contentinfo)**: The page footer that follows it.
+- **[Region](./region)**: Name significant sections inside the main content.

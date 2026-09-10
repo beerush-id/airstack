@@ -1,0 +1,132 @@
+---
+title: 'Contentinfo'
+description: 'Headless accessible contentinfo landmark marking the prime footer area of a document.'
+nav: 'Contentinfo'
+nav-priority: 550
+---
+
+# Contentinfo
+
+Copyright notices, privacy links, and contact details sit at the end of every page. Users who need them want to jump straight there, and users who do not want them skipped — which requires the page footer to be identified as a landmark rather than as more content to listen through.
+
+`@airlib/aria` compiles the contentinfo landmark onto the element you already render. Bound to a native `<footer>` it emits no redundant role, because a body-level footer already implies `contentinfo`; bound to a `<div>` it supplies the role, and it compiles an accessible name when a document needs one.
+
+You compose a contentinfo landmark using this piece:
+
+- **Contentinfo**: The footer landmark that compiles `role="contentinfo"` only when the host does not already imply it.
+
+## What you get
+
+- **Native-first projection.** A `<footer>` keeps its implicit role; a custom host gets an explicit `role="contentinfo"`.
+- **Optional naming.** `label` and `labelledby` compile to `aria-label` and `aria-labelledby`.
+- **Structure only.** No focus, no keyboard handling, and no state.
+
+## Contentinfo
+
+In Aria, Contentinfo is the footer landmark created with `aria('contentinfo')` that projects contentinfo semantics onto a native or custom host.
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'contentinfo',
+  props?: ContentinfoProps,
+  options?: ContentinfoOptions
+): ContentinfoAria<E>
+```
+
+### Parameters
+
+- `props.label` *(string, optional)*: Accessible label compiled to `aria-label`.
+- `props.labelledby` *(string, optional)*: Element ID providing the accessible name, compiled to `aria-labelledby`.
+- `options.native` *(boolean, optional, default `true`)*: Pass `false` when binding to a custom `<div>` host.
+
+### How it behaves
+
+With `native: true` the controller compiles only the accessible name and leaves the role to the host. With `native: false` it adds `role="contentinfo"`. The name is compiled when provided and omitted otherwise.
+
+:::tip[Only the page footer is contentinfo]
+A `<footer>` inside `<main>`, `<article>`, `<aside>`, or `<section>` closes that section, not the document, and the HTML mapping does not expose it as `contentinfo`. Keep the landmark on the body-level footer, and hold to one per page.
+:::
+
+### Usage
+
+To use Contentinfo, create the landmark with `aria('contentinfo', props)`, then pass `contentinfo.ref` and spread `contentinfo.attributes` onto your footer element:
+
+:::code-group
+
+```tsx [React] executable
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type ContentinfoProps = ComponentProps<'footer'> & {
+  label?: string;
+  labelledby?: string;
+};
+
+const Contentinfo = setup<ContentinfoProps>((props) => {
+  const contentinfo = aria('contentinfo', props);
+  const restProps = props.$omit([...contentinfo.ownKeys, 'label', 'labelledby', 'children', 'className']);
+
+  return () => (
+    <footer ref={contentinfo.ref} {...restProps} {...contentinfo.attributes} className={props.className}>
+      {props.children}
+    </footer>
+  );
+}, 'Contentinfo');
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type ContentinfoProps = ComponentProps<'footer'> & {
+  label?: string;
+  labelledby?: string;
+};
+
+const Contentinfo = setup<ContentinfoProps>((props) => {
+  const contentinfo = aria('contentinfo', props);
+  const restProps = props.$omit([...contentinfo.ownKeys, 'label', 'labelledby', 'children', 'className']);
+
+  return (
+    <footer ref={contentinfo.ref} {...restProps} {...contentinfo.attributes} className={props.className}>
+      {props.children}
+    </footer>
+  );
+});
+```
+
+:::
+
+## Putting It Together
+
+Once your component is wired with `aria('contentinfo')`, close the document body with it:
+
+```tsx
+<Contentinfo>
+  <span>© 2026 AirLib</span>
+  <nav>Privacy · Terms · Contact</nav>
+</Contentinfo>
+```
+
+:::interactive[Contentinfo Interactive Demo]
+<Contentinfo className="flex flex-col gap-2 p-4 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 text-sm text-zinc-500 dark:text-zinc-400 sm:flex-row sm:items-center sm:justify-between">
+  <span>© 2026 AirLib</span>
+  <div className="flex items-center gap-3">
+    <span>Privacy</span>
+    <span>Terms</span>
+    <span>Contact</span>
+  </div>
+</Contentinfo>
+:::
+
+## Keyboard Navigation
+
+- **None.** The landmark takes no tab stop and claims no keys; the links inside it keep their own keyboard behavior.
+
+## Next Steps
+
+- **[Banner](./banner)**: The matching header landmark at the start of the document.
+- **[Main](./main)**: The primary content the footer closes.
+- **[Link](../link)**: The navigation triggers a footer is usually made of.

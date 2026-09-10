@@ -1,0 +1,186 @@
+---
+title: 'Marquee'
+description: 'Headless accessible marquee live region for rapidly changing tickers, silent by default with a pause state.'
+nav: 'Marquee'
+nav-priority: 650
+---
+
+# Marquee
+
+Stock tickers, live scores, arrival boards, and breaking-news strips rotate content faster than anyone can read it aloud. Declaring such a region live turns it into an uninterrupted stream of announcements; hiding it entirely leaves a user with no way to know the information exists. A marquee has to be identified, stay silent, and offer a way to stop moving.
+
+`@airlib/aria` compiles the marquee live region onto the element you already render. It emits `role="marquee"` with `aria-live="off"` by default and holds the pause state as reactive props, so the region is identified without ever narrating its rotation.
+
+You compose a marquee using this piece:
+
+- **Marquee**: The rapidly changing region that compiles `role="marquee"` and holds a `paused` state.
+
+## What you get
+
+- **Silent by default.** `aria-live="off"` is compiled, so a rotating ticker never drowns out the rest of the page.
+- **Identified content.** The role tells assistive technologies what the region is, so it can be reached deliberately rather than stumbled into.
+- **Reactive pause state.** `paused` is a state projection with a setter, ready for the pause control the pattern requires.
+- **Author-controlled announcements.** Politeness stays overridable for the rare ticker whose every change genuinely matters.
+
+## Marquee
+
+In Aria, Marquee is the rapidly changing region created with `aria('marquee')` that compiles silent-ticker semantics and holds the pause state.
+
+```ts
+aria<E extends BaseElement = HTMLElement>(role: 'marquee', props?: MarqueeProps): MarqueeAria<E>
+```
+
+### Parameters
+
+- `props.paused` *(boolean, optional)*: Whether the scrolling or rotation is currently suspended, held as reactive state and never compiled to an attribute.
+- `props.politeness` *('off' | 'polite' | 'assertive', optional, default `'off'`)*: Announcement priority, compiled to `aria-live`.
+- `props.atomic` *(boolean, optional)*: Whether the whole region is announced as one unit, compiled to `aria-atomic` when set or true.
+- `props.busy` *(boolean, optional)*: Suppresses announcements while the ticker reloads, compiled to `aria-busy` when true.
+- `props.relevant` *(string, optional)*: Change kinds to monitor, compiled to `aria-relevant`.
+
+No ARIA attribute exists for a paused ticker, so `paused` compiles to nothing. The controller holds it as state; suspending the animation and rendering the control that toggles it stay with the consumer. The controller also compiles no accessible name — bind `aria-label` so the region is announced as "Market ticker" rather than as a strip of numbers.
+
+### How it behaves
+
+The container is compiled with `role="marquee"` and `aria-live` resolved from `politeness`, which defaults to `off`. `aria-atomic` is left unwritten unless the author sets it, and `aria-busy` and `aria-relevant` are emitted only when provided. Writing to `props.paused`, or to the `paused` setter, updates the reactive state and recompiles nothing, so a pause control toggling rapidly produces no attribute churn.
+
+:::tip[Always ship the pause control]
+The pattern is not complete without a way to stop the movement: a rotating ticker is unreadable for users who need more time, and a pause control is also what makes the content reachable. Wire the control to `paused` and suspend the animation yourself — the controller holds the state and compiles the semantics, but it owns no motion.
+:::
+
+### Usage
+
+To use Marquee, create the region with `aria('marquee', props)`, then pass `marquee.ref` and spread `marquee.attributes` onto your ticker container:
+
+:::code-group
+
+```tsx [React] executable
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type MarqueeProps = ComponentProps<'div'> & {
+  paused?: boolean;
+  politeness?: 'off' | 'polite' | 'assertive';
+  atomic?: boolean;
+  busy?: boolean;
+  label?: string;
+};
+
+const Marquee = setup<MarqueeProps>((props) => {
+  const marquee = aria('marquee', props);
+  const restProps = props.$omit([
+    ...marquee.ownKeys,
+    'paused',
+    'politeness',
+    'atomic',
+    'busy',
+    'label',
+    'children',
+    'className',
+  ]);
+
+  return () => (
+    <div
+      ref={marquee.ref}
+      aria-label={props.label}
+      {...restProps}
+      {...marquee.attributes}
+      className={props.className}
+    >
+      {props.children}
+    </div>
+  );
+}, 'Marquee');
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type MarqueeProps = ComponentProps<'div'> & {
+  paused?: boolean;
+  politeness?: 'off' | 'polite' | 'assertive';
+  atomic?: boolean;
+  busy?: boolean;
+  label?: string;
+};
+
+const Marquee = setup<MarqueeProps>((props) => {
+  const marquee = aria('marquee', props);
+  const restProps = props.$omit([
+    ...marquee.ownKeys,
+    'paused',
+    'politeness',
+    'atomic',
+    'busy',
+    'label',
+    'children',
+    'className',
+  ]);
+
+  return (
+    <div
+      ref={marquee.ref}
+      aria-label={props.label}
+      {...restProps}
+      {...marquee.attributes}
+      className={props.className}
+    >
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
+
+## Putting It Together
+
+Once your component is wired with `aria('marquee')`, pair it with the pause control that suspends the motion:
+
+```tsx
+<Marquee label="Market ticker" paused={ticker.paused}>
+  {ticker.items.map((item) => (
+    <span key={item.symbol}>{item.symbol} {item.change}</span>
+  ))}
+</Marquee>
+<button onClick={() => { ticker.paused = !ticker.paused; }}>
+  {ticker.paused ? 'Resume' : 'Pause'}
+</button>
+```
+
+:::interactive[Marquee Interactive Demo]
+<div className="flex flex-col gap-3 max-w-sm">
+  <Marquee
+    label="Market ticker"
+    className="flex items-center gap-4 overflow-hidden p-3 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 text-sm tabular-nums text-zinc-700 dark:text-zinc-300"
+  >
+    <span>AIR 128.40 +2.1%</span>
+    <span>RSH 64.12 −0.8%</span>
+    <span>ANR 310.05 +0.4%</span>
+  </Marquee>
+  <Marquee
+    label="Market ticker"
+    paused={true}
+    className="flex items-center gap-4 overflow-hidden p-3 border border-dashed border-zinc-300 dark:border-zinc-700 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 text-sm tabular-nums text-zinc-500 dark:text-zinc-400"
+  >
+    <span>AIR 128.40 +2.1%</span>
+    <span>RSH 64.12 −0.8%</span>
+    <span className="ml-auto text-xs uppercase tracking-wide">paused</span>
+  </Marquee>
+</div>
+:::
+
+## Announcement Behavior
+
+- **On rotation**: nothing. `aria-live="off"` keeps the ticker silent no matter how fast the content changes.
+- **On pause**: the content stops moving so it can be read, and the announcement policy is unchanged.
+- **Focus**: never moves, and the ticker takes no tab stop; the pause control beside it is what the user reaches.
+
+## Next Steps
+
+- **[Timer](./timer)**: The other silent region, for counts that change on a schedule.
+- **[Status](./status)**: Announce the one value from the stream that actually matters.
+- **[Region](../landmarks/region)**: Wrap a persistent ticker section as a named landmark.

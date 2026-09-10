@@ -1,6 +1,8 @@
 import type { NavItem } from '@airlib/react/mdx';
 import ariaCompositesMeta from '@airlib-cache/metadata/(docs)/aria/composites/index.js';
 import ariaMeta from '@airlib-cache/metadata/(docs)/aria/index.js';
+import ariaLandmarksMeta from '@airlib-cache/metadata/(docs)/aria/landmarks/index.js';
+import ariaLiveMeta from '@airlib-cache/metadata/(docs)/aria/live/index.js';
 import formMeta from '@airlib-cache/metadata/(docs)/form/index.js';
 import docsMeta from '@airlib-cache/metadata/(docs)/index.js';
 // import componentsMeta from '@airlib-cache/metadata/(docs)/material-css/components/index.js';
@@ -165,7 +167,19 @@ export const navs: NavItem[] = [
       {
         text: 'Composites',
         icon: () => <GridViewIcon />,
-        items: toNavItems(ariaCompositesMeta),
+        items: toNavItems(ariaCompositesMeta).sort((a, b) => a.href.localeCompare(b.href)),
+        collapsed: true,
+      },
+      {
+        text: 'Landmarks',
+        icon: () => <ArticleIcon />,
+        items: toNavItems(ariaLandmarksMeta),
+        collapsed: true,
+      },
+      {
+        text: 'Live Regions',
+        icon: () => <NewspaperIcon />,
+        items: toNavItems(ariaLiveMeta),
         collapsed: true,
       },
       {
