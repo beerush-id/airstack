@@ -245,6 +245,7 @@ export interface AriaAttributes<E extends BaseElement = HTMLElement> extends Glo
   'aria-live'?: 'off' | 'polite' | 'assertive';
   'aria-atomic'?: boolean | 'true' | 'false';
   'aria-busy'?: boolean | 'true' | 'false';
+  'aria-relevant'?: string;
   'aria-posinset'?: number;
   'aria-setsize'?: number;
 }

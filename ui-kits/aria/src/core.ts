@@ -22,7 +22,7 @@ import { applyAttributes, normalizeAttrs } from './utils/attributes.js';
 /**
  * Non-DOM controller input tokens stripped from DOM assignment and JSX spreads.
  */
-export const OMITTED_ATTRIBUTES = ['manual', 'multiple', 'orientation', 'invalid'];
+export const OMITTED_ATTRIBUTES = ['manual', 'multiple', 'movable', 'orientation', 'invalid'];
 
 /**
  * Core library-managed attributes common across all interactive Aria controllers.
