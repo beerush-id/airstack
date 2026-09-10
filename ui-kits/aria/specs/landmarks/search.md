@@ -1,9 +1,9 @@
 # Search Landmark Specification
 
-A search landmark designates a region that contains a collection of items and objects that, as a whole, combine to create a search facility.
+A search is the site search facility an author holds, combining a collection of items and objects that as a whole create search.
 
-- **Role**: `search`
-- **WAI-ARIA Role**: `search`
+- **Entity**: `search`
+- **WAI-ARIA Role**: `search` (compiled output)
 
 ---
 
@@ -11,7 +11,7 @@ A search landmark designates a region that contains a collection of items and ob
 
 | Context | HTML Semantic | WAI-ARIA Semantic | Aria Package Semantic Contract |
 | :--- | :--- | :--- | :--- |
-| **Native Search** | Native `<search>` element. | Implicit `role="search"`. Explicit `role` omitted. | Identifies site search landmark. |
+| **Native Search** | Native `<search>` element. | Implicit `role="search"`. Explicit `role` omitted. | Identifies site search entity. |
 | **Custom Search** | `<form role="search">` or `<div>`. | `role="search"`. | Compiles `role="search"`. |
 
 ---

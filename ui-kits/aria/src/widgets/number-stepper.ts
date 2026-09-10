@@ -4,9 +4,9 @@ import { ariaBoolean, ariaRequired } from '../utils/attributes.js';
 import { clampRange } from '../utils/range.js';
 
 /**
- * Reactive input properties for SpinbuttonAria.
+ * Reactive input properties for NumberStepperAria.
  */
-export interface SpinbuttonProps extends AriaProps {
+export interface NumberStepperProps extends AriaProps {
   /**
    * Current numeric value.
    */
@@ -49,16 +49,16 @@ export interface SpinbuttonProps extends AriaProps {
 }
 
 /**
- * Behavioral configuration options for SpinbuttonAria.
+ * Behavioral configuration options for NumberStepperAria.
  */
-export interface SpinbuttonOptions extends AriaOptions {}
+export interface NumberStepperOptions extends AriaOptions {}
 
 /**
- * Compiled HTML and ARIA attributes for a spinbutton element.
+ * Compiled HTML and ARIA attributes for a number-stepper element.
  *
  * @template E - Target Element type (defaults to HTMLInputElement)
  */
-export interface SpinbuttonAttributes<E extends BaseElement = HTMLInputElement> extends AriaAttributes<E> {
+export interface NumberStepperAttributes<E extends BaseElement = HTMLInputElement> extends AriaAttributes<E> {
   role?: 'spinbutton';
   type?: 'number';
   value?: number;
@@ -80,21 +80,21 @@ export interface SpinbuttonAttributes<E extends BaseElement = HTMLInputElement> 
 }
 
 /**
- * Headless WAI-ARIA spinbutton controller owning a discrete numeric value within an
+ * Headless number-stepper controller owning a discrete numeric value within an
  * optional range. On a native `<input type="number">` it synchronizes typed input and
- * leaves stepping to the browser; on a custom host it compiles the range announcements
- * and polyfills arrow, page, and boundary stepping itself.
+ * leaves stepping to the browser; on a custom host it compiles the spinbutton role
+ * announcements and polyfills arrow, page, and boundary stepping itself.
  *
  * @template E - Target Element type (defaults to HTMLInputElement)
  * @template T - Reactive props type
  * @template A - Attributes dictionary type
  * @template O - Options configuration type
  */
-export class SpinbuttonAria<
+export class NumberStepperAria<
   E extends BaseElement = HTMLInputElement,
-  T extends SpinbuttonProps = SpinbuttonProps,
-  A extends SpinbuttonAttributes<E> = SpinbuttonAttributes<E>,
-  O extends SpinbuttonOptions = SpinbuttonOptions,
+  T extends NumberStepperProps = NumberStepperProps,
+  A extends NumberStepperAttributes<E> = NumberStepperAttributes<E>,
+  O extends NumberStepperOptions = NumberStepperOptions,
 > extends Aria<E, T, A, O> {
   /**
    * Multiplier turning `step` into the page-sized increment. Fixed at class-definition
@@ -189,9 +189,9 @@ export class SpinbuttonAria<
   }
 
   /**
-   * Computes the HTML, ARIA, and event handler attributes for the spinbutton.
+   * Computes the HTML, ARIA, and event handler attributes for the number-stepper.
    *
-   * @returns Spinbutton attributes dictionary
+   * @returns Number-stepper attributes dictionary
    */
   protected override createAttributes(): A {
     const isDisabled = this.disabled;

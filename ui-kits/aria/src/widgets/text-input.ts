@@ -3,20 +3,20 @@ import type { AriaAttributes, AriaInvalid, AriaOptions, AriaProps, BaseElement }
 import { ariaInvalid } from '../utils/attributes.js';
 
 /**
- * Configuration options for TextboxAria.
+ * Configuration options for TextInputAria.
  */
-export interface TextboxOptions extends AriaOptions {
+export interface TextInputOptions extends AriaOptions {
   /**
-   * Mid-layer face flag set by the public Textbox/Searchbox overloads, never JSX.
-   * @default 'textbox'
+   * Mid-layer face flag set by the public TextInput/SearchInput overloads, never JSX.
+   * @default 'text-input'
    */
-  role?: 'textbox' | 'searchbox';
+  role?: 'text-input' | 'search-input';
 }
 
 /**
- * Reactive inputs for TextboxAria.
+ * Reactive inputs for TextInputAria.
  */
-export interface TextboxProps extends AriaProps {
+export interface TextInputProps extends AriaProps {
   /**
    * Live text value.
    */
@@ -54,11 +54,11 @@ export interface TextboxProps extends AriaProps {
 }
 
 /**
- * Compiled HTML and ARIA attributes for textbox elements.
+ * Compiled HTML and ARIA attributes for text-input elements.
  *
  * @template E - Target Element type (defaults to HTMLInputElement)
  */
-export interface TextboxAttributes<E extends BaseElement = HTMLInputElement> extends AriaAttributes<E> {
+export interface TextInputAttributes<E extends BaseElement = HTMLInputElement> extends AriaAttributes<E> {
   value?: string;
   defaultValue?: string;
   type?: 'text' | 'search';
@@ -70,21 +70,21 @@ export interface TextboxAttributes<E extends BaseElement = HTMLInputElement> ext
 }
 
 /**
- * Configuration options for SearchboxAria.
+ * Configuration options for SearchInputAria.
  */
-export interface SearchboxOptions extends AriaOptions {}
+export interface SearchInputOptions extends AriaOptions {}
 
 /**
- * Reactive inputs for SearchboxAria.
+ * Reactive inputs for SearchInputAria.
  */
-export interface SearchboxProps extends TextboxProps {}
+export interface SearchInputProps extends TextInputProps {}
 
 /**
- * Compiled HTML and ARIA attributes for searchbox elements.
+ * Compiled HTML and ARIA attributes for search-input elements.
  *
  * @template E - Target Element type (defaults to HTMLInputElement)
  */
-export interface SearchboxAttributes<E extends BaseElement = HTMLInputElement> extends TextboxAttributes<E> {
+export interface SearchInputAttributes<E extends BaseElement = HTMLInputElement> extends TextInputAttributes<E> {
   type?: 'search';
 }
 
@@ -96,15 +96,15 @@ export interface SearchboxAttributes<E extends BaseElement = HTMLInputElement> e
  * @template A - Compiled attributes dictionary type
  * @template O - Controller options type
  */
-export class TextboxAria<
+export class TextInputAria<
   E extends BaseElement = HTMLInputElement,
-  T extends TextboxProps = TextboxProps,
-  A extends TextboxAttributes<E> = TextboxAttributes<E>,
-  O extends TextboxOptions = TextboxOptions,
+  T extends TextInputProps = TextInputProps,
+  A extends TextInputAttributes<E> = TextInputAttributes<E>,
+  O extends TextInputOptions = TextInputOptions,
 > extends Aria<E, T, A, O> {
   public constructor(props: Partial<T> = {}, options: O = {} as O) {
     super(props, { ...options, native: true } as O);
-    if (!this.options.role) (this.options as O).role = 'textbox' as O['role'];
+    if (!this.options.role) (this.options as O).role = 'text-input' as O['role'];
     this.omittedAttrs.push('value', 'defaultValue', 'readonly', 'required', 'aria-required', 'aria-invalid');
     this.update();
   }
@@ -133,9 +133,9 @@ export class TextboxAria<
   }
 
   /**
-   * Computes the HTML, ARIA, and event handler attributes for the textbox.
+   * Computes the HTML, ARIA, and event handler attributes for the text-input.
    *
-   * @returns Textbox attributes dictionary
+   * @returns Text-input attributes dictionary
    */
   protected override createAttributes(): A {
     const { value, readonly, disabled, required, placeholder, label, invalid } = this.props;
@@ -147,7 +147,7 @@ export class TextboxAria<
       required: !!required,
       placeholder,
       'aria-label': label,
-      type: this.options.role === 'searchbox' ? 'search' : undefined,
+      type: this.options.role === 'search-input' ? 'search' : undefined,
       'aria-invalid': ariaInvalid(invalid) ?? 'false',
     }) as A;
   }
@@ -166,13 +166,13 @@ export class TextboxAria<
  * @template A - Compiled attributes dictionary type
  * @template O - Controller options type
  */
-export class SearchboxAria<
+export class SearchInputAria<
   E extends BaseElement = HTMLInputElement,
-  T extends SearchboxProps = SearchboxProps,
-  A extends SearchboxAttributes<E> = SearchboxAttributes<E>,
-  O extends SearchboxOptions = SearchboxOptions,
-> extends TextboxAria<E, T, A, O> {
+  T extends SearchInputProps = SearchInputProps,
+  A extends SearchInputAttributes<E> = SearchInputAttributes<E>,
+  O extends SearchInputOptions = SearchInputOptions,
+> extends TextInputAria<E, T, A, O> {
   public constructor(props?: Partial<T>, options?: Partial<O>) {
-    super(props, { ...options, role: 'searchbox' } as unknown as O);
+    super(props, { ...options, role: 'search-input' } as unknown as O);
   }
 }

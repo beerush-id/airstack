@@ -1,9 +1,9 @@
-# Spinbutton Specification
+# Number-Stepper Specification
 
-A spinbutton is a form widget for inputting a numeric value from a range of discrete values, allowing users to increment or decrement the value using stepper controls or keyboard arrow keys.
+A number-stepper is the numeric field an author holds for entering a discrete value from a range, stepping it with arrow keys or typed input.
 
-- **Role**: `spinbutton`
-- **WAI-ARIA Role**: `spinbutton`
+- **Entity**: `number-stepper`
+- **WAI-ARIA Role**: `spinbutton` (compiled output)
 
 ---
 
@@ -12,7 +12,7 @@ A spinbutton is a form widget for inputting a numeric value from a range of disc
 | Context | HTML Semantic | WAI-ARIA Semantic | Aria Package Semantic Contract |
 | :--- | :--- | :--- | :--- |
 | **Native Stepper** | Native `<input type="number">`. Built-in stepper controls and validation. | Implicit `role="spinbutton"`. Omitted if native. | Form input synchronization and native event forwarding. |
-| **Custom Spinbutton** | Custom input/stepper container (`<div>`). | `role="spinbutton"`, `aria-valuenow`, `aria-valuemin`, `aria-valuemax`, `aria-valuetext`, `tabindex="0"`. | Value stepper controller (`this.value: number`). Polyfills Arrow keys and Home/End. |
+| **Custom Stepper** | Custom input/stepper container (`<div>`). | `role="spinbutton"`, `aria-valuenow`, `aria-valuemin`, `aria-valuemax`, `aria-valuetext`, `tabindex="0"`. | Value stepper controller (`this.value: number`). Polyfills Arrow keys and Home/End. |
 
 ---
 
@@ -20,17 +20,17 @@ A spinbutton is a form widget for inputting a numeric value from a range of disc
 
 ### 1. Options & Props Contracts
 
-#### `SpinbuttonOptions`
+#### `NumberStepperOptions`
 ```ts
-export interface SpinbuttonOptions {
+export interface NumberStepperOptions {
   /** Whether bound to native <input type="number"> (default: false) */
   native?: boolean;
 }
 ```
 
-#### `SpinbuttonProps`
+#### `NumberStepperProps`
 ```ts
-export interface SpinbuttonProps {
+export interface NumberStepperProps {
   /** Current numeric value */
   value?: number;
   /** Minimum allowable value */
@@ -53,12 +53,12 @@ export interface SpinbuttonProps {
 ### 2. Overload Contract
 
 ```ts
-// Spinbutton: Discrete numeric stepper
+// Number-Stepper: Discrete numeric stepper
 export function aria<E extends BaseElement = HTMLInputElement>(
-  role: 'spinbutton',
-  props?: SpinbuttonProps,
-  options?: SpinbuttonOptions
-): SpinbuttonAria<E>;
+  role: 'number-stepper',
+  props?: NumberStepperProps,
+  options?: NumberStepperOptions
+): NumberStepperAria<E>;
 ```
 
 ---

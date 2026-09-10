@@ -1,9 +1,9 @@
 import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
-import { SpinbuttonAria, aria, type SpinbuttonProps } from '../../src/index.js';
+import { NumberStepperAria, aria, type NumberStepperProps } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
-describe('Spinbutton - Coverage & Edge Cases', () => {
+describe('NumberStepper - Coverage & Edge Cases', () => {
   const scope = createLifecycle();
 
   afterAll(() => {
@@ -14,7 +14,7 @@ describe('Spinbutton - Coverage & Edge Cases', () => {
     scope.run(() => {
       const tree = component();
       tree.run(() => {
-        const spin = new SpinbuttonAria();
+        const spin = new NumberStepperAria();
         expect(spin.isNative).toBe(false);
         expect(spin.value).toBe(0);
         expect(spin.min).toBeUndefined();
@@ -33,7 +33,7 @@ describe('Spinbutton - Coverage & Edge Cases', () => {
         // The defaultValue handover belongs to native inputs only
         expect('defaultValue' in spin.attributes).toBe(false);
 
-        const factorySpin = aria('spinbutton');
+        const factorySpin = aria('number-stepper');
         expect(factorySpin.value).toBe(0);
         expect(factorySpin.attributes.role).toBe('spinbutton');
       });
@@ -43,7 +43,7 @@ describe('Spinbutton - Coverage & Edge Cases', () => {
     scope.run(() => {
       const tree = component();
       tree.run(() => {
-        const spin = aria<HTMLDivElement>('spinbutton', { min: 20, max: 40 });
+        const spin = aria<HTMLDivElement>('number-stepper', { min: 20, max: 40 });
         expect(spin.value).toBe(20);
         expect(spin.attributes['aria-valuenow']).toBe(20);
 
@@ -60,7 +60,7 @@ describe('Spinbutton - Coverage & Edge Cases', () => {
     scope.run(() => {
       const tree = component();
       tree.run(() => {
-        const spin = aria<HTMLDivElement>('spinbutton', { value: 0 });
+        const spin = aria<HTMLDivElement>('number-stepper', { value: 0 });
         const el = bind(document.createElement('div'), spin);
 
         el.dispatchEvent(new KeyboardEvent('keydown', { key: 'PageUp', cancelable: true, bubbles: true }));
@@ -75,7 +75,7 @@ describe('Spinbutton - Coverage & Edge Cases', () => {
     scope.run(() => {
       const tree = component();
       tree.run(() => {
-        const spin = aria<HTMLDivElement>('spinbutton', { value: 5 });
+        const spin = aria<HTMLDivElement>('number-stepper', { value: 5 });
         const el = bind(document.createElement('div'), spin);
 
         for (const key of ['Tab', 'Enter', ' ', 'ArrowLeft', 'ArrowRight', 'Escape']) {
@@ -92,8 +92,8 @@ describe('Spinbutton - Coverage & Edge Cases', () => {
     scope.run(() => {
       const tree = component();
       tree.run(() => {
-        const props = mutable<SpinbuttonProps>({ value: 4, disabled: true });
-        const spin = aria<HTMLInputElement>('spinbutton', props, { native: true });
+        const props = mutable<NumberStepperProps>({ value: 4, disabled: true });
+        const spin = aria<HTMLInputElement>('number-stepper', props, { native: true });
         const el = bind(document.createElement('input'), spin);
 
         expect(el.disabled).toBe(true);
@@ -109,8 +109,8 @@ describe('Spinbutton - Coverage & Edge Cases', () => {
     scope.run(() => {
       const tree = component();
       tree.run(() => {
-        const props = mutable<SpinbuttonProps>({ value: 4 });
-        const spin = aria<HTMLInputElement>('spinbutton', props, { native: true });
+        const props = mutable<NumberStepperProps>({ value: 4 });
+        const spin = aria<HTMLInputElement>('number-stepper', props, { native: true });
         const el = bind(document.createElement('input'), spin);
 
         // A number input sanitizes bad input to an empty string; a text host hands it back raw.

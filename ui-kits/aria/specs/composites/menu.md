@@ -125,7 +125,7 @@ export function aria<E extends BaseElement = HTMLElement>(
 
 // Menubar: Horizontal command bar
 export function aria<E extends BaseElement = HTMLElement>(
-  role: 'menubar',
+  role: 'menu-bar',
   props?: MenubarProps
 ): MenubarAria<E>;
 

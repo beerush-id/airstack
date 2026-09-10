@@ -13,14 +13,14 @@ describe('RadioGroup - Composite Specifications', () => {
   it('renders role="radiogroup" and default vertical orientation attributes', () =>
     scope.run(() => {
       component().run(() => {
-        const group = aria('radiogroup');
+        const group = aria('radio-group');
         expect(group.attributes.role).toBe('radiogroup');
         expect(group.attributes['aria-orientation']).toBe('vertical');
 
-        const horizontalGroup = aria('radiogroup', { orientation: 'horizontal' });
+        const horizontalGroup = aria('radio-group', { orientation: 'horizontal' });
         expect(horizontalGroup.attributes['aria-orientation']).toBe('horizontal');
 
-        const requiredGroup = aria('radiogroup', { required: true });
+        const requiredGroup = aria('radio-group', { required: true });
         expect(requiredGroup.attributes['aria-required']).toBe('true');
       });
     }));
@@ -29,7 +29,7 @@ describe('RadioGroup - Composite Specifications', () => {
     scope.run(() => {
       component().run(() => {
         const props = mutable<RadioGroupProps>({ value: 'opt-1' });
-        const group = aria('radiogroup', props);
+        const group = aria('radio-group', props);
         const groupEl = bind(document.createElement('div'), group);
         document.body.appendChild(groupEl);
 
@@ -81,7 +81,7 @@ describe('RadioGroup - Composite Specifications', () => {
   it('ignores keyboard navigation when radiogroup is disabled', () =>
     scope.run(() => {
       component().run(() => {
-        const group = aria('radiogroup', { disabled: true, value: 'opt-1' });
+        const group = aria('radio-group', { disabled: true, value: 'opt-1' });
         const groupEl = bind(document.createElement('div'), group);
         document.body.appendChild(groupEl);
 
@@ -109,7 +109,7 @@ describe('RadioGroup - Composite Specifications', () => {
   it('supports manual navigation, orientation fallback, and parent rover keydown guard', () =>
     scope.run(() => {
       component().run(() => {
-        const manualGroup = aria('radiogroup', { manual: true });
+        const manualGroup = aria('radio-group', { manual: true });
         const manualEl = bind(document.createElement('div'), manualGroup);
         manualEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
 
@@ -118,7 +118,7 @@ describe('RadioGroup - Composite Specifications', () => {
 
         // Parent rover ignores keydown
         roverCtx.set(manualGroup as unknown as Aria<BaseElement>);
-        const childGroup = aria('radiogroup');
+        const childGroup = aria('radio-group');
         const childEl = bind(document.createElement('div'), childGroup);
         childEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
         roverCtx.set(undefined);
@@ -128,17 +128,17 @@ describe('RadioGroup - Composite Specifications', () => {
   it('compiles required and invalid states onto radiogroup container', () =>
     scope.run(() => {
       component().run(() => {
-        const group = aria('radiogroup', { required: true, invalid: true });
+        const group = aria('radio-group', { required: true, invalid: true });
         expect(group.attributes['aria-required']).toBe('true');
         expect(group.attributes['aria-invalid']).toBe('true');
 
-        const spellingGroup = aria('radiogroup', { invalid: 'grammar' });
+        const spellingGroup = aria('radio-group', { invalid: 'grammar' });
         expect(spellingGroup.attributes['aria-invalid']).toBe('grammar');
 
-        const defaultGroup = aria('radiogroup');
+        const defaultGroup = aria('radio-group');
         expect(defaultGroup.attributes['aria-invalid']).toBeUndefined();
 
-        const validGroup = aria('radiogroup', { invalid: false });
+        const validGroup = aria('radio-group', { invalid: false });
         expect(validGroup.attributes['aria-invalid']).toBe('false');
       });
     }));

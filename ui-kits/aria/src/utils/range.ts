@@ -1,7 +1,7 @@
 /**
  * Constrains a numeric value to an inclusive range, ignoring bounds left undefined.
  *
- * Shared by the range widgets (movable separator splitters, spinbuttons) so a value
+ * Shared by the range widgets (movable splitters, number-steppers) so a value
  * clamps identically whether it arrives from a parent assignment or keyboard stepping.
  *
  * @param value - Requested numeric value

@@ -268,7 +268,7 @@ describe('Toolbar - Composite Specifications', () => {
           toolbarEl.appendChild(undoBtn);
 
           // 2. Nested group (e.g. Alignment: Left, Center, Right)
-          const alignGroup = aria('radiogroup');
+          const alignGroup = aria('radio-group');
           const alignGroupEl = bind(document.createElement('div'), alignGroup);
           toolbarEl.appendChild(alignGroupEl);
 

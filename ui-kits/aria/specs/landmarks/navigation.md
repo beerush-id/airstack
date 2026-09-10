@@ -1,9 +1,9 @@
 # Navigation Landmark Specification
 
-A navigation landmark represents a major collection of navigational links or menus.
+A navigation is the major collection of navigational links or menus an author holds for moving around the site.
 
-- **Role**: `navigation`
-- **WAI-ARIA Role**: `navigation`
+- **Entity**: `navigation`
+- **WAI-ARIA Role**: `navigation` (compiled output)
 
 ---
 
@@ -11,7 +11,7 @@ A navigation landmark represents a major collection of navigational links or men
 
 | Context | HTML Semantic | WAI-ARIA Semantic | Aria Package Semantic Contract |
 | :--- | :--- | :--- | :--- |
-| **Native Nav** | Native `<nav>` element. | Implicit `role="navigation"`. Explicit `role` omitted. | Navigation landmark. When multiple exist on a page, each must be labeled. |
+| **Native Nav** | Native `<nav>` element. | Implicit `role="navigation"`. Explicit `role` omitted. | Navigation entity. When multiple exist on a page, each must be labeled. |
 | **Custom Navigation** | Non-semantic element (`<div>`). | `role="navigation"`. | Compiles `role="navigation"`. |
 
 ---

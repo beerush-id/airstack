@@ -1,9 +1,9 @@
-# Searchbox Specification
+# Search-Input Specification
 
-A searchbox is a specialized type of textbox intended for entering search queries.
+A search-input is the query field an author holds for entering search queries.
 
-- **Role**: `searchbox`
-- **WAI-ARIA Role**: `searchbox`
+- **Entity**: `search-input`
+- **WAI-ARIA Role**: none (native input with `type="search"`; no role compiled)
 
 ---
 
@@ -11,7 +11,7 @@ A searchbox is a specialized type of textbox intended for entering search querie
 
 | Context | HTML Semantic | WAI-ARIA Semantic | Aria Package Semantic Contract |
 | :--- | :--- | :--- | :--- |
-| **Native Search** | Native `<input type="search">`. Native clear button, Enter submission, and search event. | `role="searchbox"` (omitted if native). `aria-label`, `aria-invalid`, `aria-required`. | Headless search query controller with `role: 'searchbox'`. Handles live query synchronization and validity reflection. |
+| **Native Search** | Native `<input type="search">`. Native clear button, Enter submission, and search event. | No role compiled (native). `type="search"`, `aria-label`, `aria-invalid`, `aria-required`. | Headless search query controller with `role: 'search-input'`. Handles live query synchronization and validity reflection. |
 
 ---
 
@@ -19,14 +19,14 @@ A searchbox is a specialized type of textbox intended for entering search querie
 
 ### 1. Options & Props Contracts
 
-#### `SearchboxOptions`
+#### `SearchInputOptions`
 ```ts
-export interface SearchboxOptions extends AriaOptions {}
+export interface SearchInputOptions extends AriaOptions {}
 ```
 
-#### `SearchboxProps`
+#### `SearchInputProps`
 ```ts
-export interface SearchboxProps extends AriaProps {
+export interface SearchInputProps extends AriaProps {
   /** Current search query value */
   value?: string;
   /** Accessible label */
@@ -47,12 +47,12 @@ export interface SearchboxProps extends AriaProps {
 ### 2. Overload Contract
 
 ```ts
-// Searchbox: Search input controller (dedicated SearchboxAria controller)
+// Search-Input: Search input controller (dedicated SearchInputAria controller)
 export function aria<E extends BaseElement = HTMLInputElement>(
-  role: 'searchbox',
-  props?: SearchboxProps,
-  options?: SearchboxOptions
-): SearchboxAria<E>;
+  role: 'search-input',
+  props?: SearchInputProps,
+  options?: SearchInputOptions
+): SearchInputAria<E>;
 ```
 
 ---

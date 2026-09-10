@@ -1,9 +1,9 @@
 import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
-import { aria, type SpinbuttonProps } from '../../src/index.js';
+import { aria, type NumberStepperProps } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
-describe('Spinbutton - Contract Specifications', () => {
+describe('NumberStepper - Contract Specifications', () => {
   const scope = createLifecycle();
 
   afterAll(() => {
@@ -15,8 +15,8 @@ describe('Spinbutton - Contract Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const props = mutable<SpinbuttonProps>({ value: 5, min: 0, max: 10 });
-          const spin = aria<HTMLDivElement>('spinbutton', props);
+          const props = mutable<NumberStepperProps>({ value: 5, min: 0, max: 10 });
+          const spin = aria<HTMLDivElement>('number-stepper', props);
 
           // 1. SSR Phase: pre-mount deterministic compilation
           expect(spin.current).toBeNull();
@@ -54,7 +54,7 @@ describe('Spinbutton - Contract Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const spin = aria<HTMLDivElement>('spinbutton', { value: 50, min: 0, max: 100, step: 5 });
+          const spin = aria<HTMLDivElement>('number-stepper', { value: 50, min: 0, max: 100, step: 5 });
           const el = bind(document.createElement('div'), spin);
 
           // Page keys move ten times the declared step
@@ -88,7 +88,7 @@ describe('Spinbutton - Contract Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const spin = aria<HTMLDivElement>('spinbutton', { value: -3 });
+          const spin = aria<HTMLDivElement>('number-stepper', { value: -3 });
 
           // 1. SSR Phase: no bounds means no bound claims
           expect(spin.min).toBeUndefined();
@@ -125,7 +125,7 @@ describe('Spinbutton - Contract Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const spin = aria<HTMLDivElement>('spinbutton', { value: 5, max: 10, readonly: true });
+          const spin = aria<HTMLDivElement>('number-stepper', { value: 5, max: 10, readonly: true });
           const el = bind(document.createElement('div'), spin);
 
           expect(el.getAttribute('aria-readonly')).toBe('true');
@@ -143,7 +143,7 @@ describe('Spinbutton - Contract Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const spin = aria<HTMLDivElement>('spinbutton', { value: 5, max: 10, disabled: true });
+          const spin = aria<HTMLDivElement>('number-stepper', { value: 5, max: 10, disabled: true });
 
           // 1. SSR Phase
           expect(spin.attributes.tabindex).toBe(-1);
@@ -167,11 +167,11 @@ describe('Spinbutton - Contract Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const announced = aria<HTMLDivElement>('spinbutton', { value: 3, valuetext: '3 nights', required: true });
+          const announced = aria<HTMLDivElement>('number-stepper', { value: 3, valuetext: '3 nights', required: true });
           expect(announced.attributes['aria-valuetext']).toBe('3 nights');
           expect(announced.attributes['aria-required']).toBe('true');
 
-          const plain = aria<HTMLDivElement>('spinbutton', { value: 3 });
+          const plain = aria<HTMLDivElement>('number-stepper', { value: 3 });
           expect(plain.attributes['aria-valuetext']).toBeUndefined();
           expect(plain.attributes['aria-required']).toBeUndefined();
           expect(plain.attributes['aria-readonly']).toBeUndefined();
@@ -188,8 +188,8 @@ describe('Spinbutton - Contract Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const props = mutable<SpinbuttonProps>({ value: 7, min: 0, max: 10, step: 2 });
-          const spin = aria<HTMLInputElement>('spinbutton', props, { native: true });
+          const props = mutable<NumberStepperProps>({ value: 7, min: 0, max: 10, step: 2 });
+          const spin = aria<HTMLInputElement>('number-stepper', props, { native: true });
 
           // 1. SSR Phase: the browser supplies the spinbutton role and the live value
           expect(spin.attributes.role).toBeUndefined();
@@ -233,7 +233,7 @@ describe('Spinbutton - Contract Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const spin = aria<HTMLDivElement>('spinbutton', { value: 5 });
+          const spin = aria<HTMLDivElement>('number-stepper', { value: 5 });
           const el = bind(document.createElement('div'), spin);
 
           expect(spin.current).toBe(el);

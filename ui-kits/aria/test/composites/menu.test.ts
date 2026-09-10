@@ -36,7 +36,7 @@ describe('Menu - Composite Specifications', () => {
     it('renders role="menubar" and defaults to horizontal orientation', () =>
       scope.run(() => {
         component().run(() => {
-          const menubar = aria('menubar');
+          const menubar = aria('menu-bar');
           expect(menubar.attributes.role).toBe('menubar');
           expect(menubar.attributes['aria-orientation']).toBe('horizontal');
 
@@ -51,7 +51,7 @@ describe('Menu - Composite Specifications', () => {
           const menu = aria('menu-panel', { label: 'Actions' });
           expect(menu.attributes['aria-label']).toBe('Actions');
 
-          const menubar = aria('menubar', { label: 'Bar' });
+          const menubar = aria('menu-bar', { label: 'Bar' });
           expect(menubar.attributes['aria-label']).toBe('Bar');
 
           const labelled = aria('menu-panel', { labelledby: 'panel-label' });
@@ -277,7 +277,7 @@ describe('Menu - Composite Specifications', () => {
           expect(menu.attributes['aria-orientation']).toBe('horizontal');
           expect(menu.orientation).toBe('horizontal');
 
-          const bar = aria('menubar', { orientation: 'vertical' });
+          const bar = aria('menu-bar', { orientation: 'vertical' });
           expect(bar.attributes['aria-orientation']).toBe('vertical');
           expect(bar.orientation).toBe('vertical');
         });
@@ -352,7 +352,7 @@ describe('Menu - Composite Specifications', () => {
     it('roves focus with ArrowRight / ArrowLeft and Home / End inside menubars', () =>
       scope.run(() => {
         component().run(() => {
-          const menubar = aria('menubar');
+          const menubar = aria('menu-bar');
           const barEl = bind(document.createElement('div'), menubar);
           document.body.appendChild(barEl);
 
@@ -397,7 +397,7 @@ describe('Menu - Composite Specifications', () => {
     it('defers key handling to the outer rover when nested', () =>
       scope.run(() => {
         component().run(() => {
-          aria('menubar');
+          aria('menu-bar');
           const menu = aria('menu-panel');
           const menuEl = bind(document.createElement('div'), menu);
 

@@ -1,9 +1,9 @@
 import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
-import { aria, type SeparatorProps } from '../../src/index.js';
+import { aria, type SplitterProps } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
-describe('Separator - Contract Specifications', () => {
+describe('Divider - Contract Specifications', () => {
   const scope = createLifecycle();
 
   afterAll(() => {
@@ -15,11 +15,10 @@ describe('Separator - Contract Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const divider = aria('separator');
+          const divider = aria('divider');
 
           // 1. SSR Phase: <hr> carries the separator role implicitly
           expect(divider.current).toBeNull();
-          expect(divider.movable).toBe(false);
           expect(divider.attributes.role).toBeUndefined();
           expect(divider.attributes.tabindex).toBeUndefined();
           expect(divider.attributes['aria-valuenow']).toBeUndefined();
@@ -36,7 +35,7 @@ describe('Separator - Contract Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const divider = aria<HTMLDivElement>('separator', {}, { native: false });
+          const divider = aria<HTMLDivElement>('divider', {}, { native: false });
 
           // 1. SSR Phase
           expect(divider.attributes.role).toBe('separator');
@@ -54,7 +53,7 @@ describe('Separator - Contract Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const divider = aria('separator');
+          const divider = aria('divider');
           const el = bind(document.createElement('hr'), divider);
 
           const arrow = new KeyboardEvent('keydown', { key: 'ArrowRight', cancelable: true, bubbles: true });
@@ -71,8 +70,8 @@ describe('Separator - Contract Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const horizontal = aria('separator', { orientation: 'horizontal' });
-          const vertical = aria('separator', { orientation: 'vertical' });
+          const horizontal = aria('divider', { orientation: 'horizontal' });
+          const vertical = aria('divider', { orientation: 'vertical' });
 
           // 1. SSR Phase: horizontal is the default and stays unannounced
           expect(horizontal.orientation).toBe('horizontal');
@@ -93,11 +92,10 @@ describe('Separator - Contract Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const props = mutable<SeparatorProps>({ movable: true, value: 30, min: 0, max: 100 });
-          const splitter = aria('separator', props);
+          const props = mutable<SplitterProps>({ value: 30, min: 0, max: 100 });
+          const splitter = aria('splitter', props);
 
           // 1. SSR Phase
-          expect(splitter.movable).toBe(true);
           expect(splitter.attributes.role).toBe('separator');
           expect(splitter.attributes.tabindex).toBe(0);
           expect(splitter.attributes['aria-valuenow']).toBe(30);
@@ -135,7 +133,7 @@ describe('Separator - Contract Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const splitter = aria('separator', { movable: true, value: 100, min: 20, max: 100 });
+          const splitter = aria('splitter', { value: 100, min: 20, max: 100 });
           const el = bind(document.createElement('div'), splitter);
 
           // 1. Already at the upper boundary: advancing changes nothing
@@ -162,7 +160,7 @@ describe('Separator - Contract Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const splitter = aria('separator', { movable: true, orientation: 'vertical', value: 40 });
+          const splitter = aria('splitter', { orientation: 'vertical', value: 40 });
           const el = bind(document.createElement('div'), splitter);
 
           expect(el.getAttribute('aria-orientation')).toBe('vertical');
@@ -183,7 +181,7 @@ describe('Separator - Contract Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const splitter = aria('separator', { movable: true, value: 30 });
+          const splitter = aria('splitter', { value: 30 });
           const el = bind(document.createElement('div'), splitter);
 
           expect(splitter.current).toBe(el);

@@ -8,7 +8,7 @@ import type { AriaOptions, AriaProps, BaseElement, Primitive } from '../types.js
  */
 export interface OptionProps<T extends Primitive = Primitive> extends AriaProps {
   /**
-   * Choice candidate value matching listbox active value.
+   * Choice candidate value matching select active value.
    */
   value: T;
 
@@ -49,7 +49,7 @@ export interface OptionAttributes<E extends BaseElement = HTMLElement> extends S
 const ROLE_OPTION = 'option';
 
 /**
- * Headless WAI-ARIA Option item used in listbox, combobox, and select popups.
+ * Headless WAI-ARIA Option item used in select and combobox popups.
  *
  * @template E - Target Element type (defaults to HTMLElement)
  * @template T - Reactive props type

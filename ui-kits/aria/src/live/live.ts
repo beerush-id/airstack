@@ -8,11 +8,6 @@ import { ariaBoolean } from '../utils/attributes.js';
 export type Politeness = 'polite' | 'assertive' | 'off';
 
 /**
- * WAI-ARIA live region roles compiled by this family.
- */
-export type LiveRole = 'alert' | 'status' | 'log' | 'timer' | 'marquee';
-
-/**
  * Reactive input properties shared by every live region.
  */
 export interface LiveRegionProps extends AriaProps {
@@ -48,7 +43,7 @@ export interface LiveRegionOptions extends AriaOptions {}
  * @template E - Target Element type (defaults to HTMLElement)
  */
 export interface LiveRegionAttributes<E extends BaseElement = HTMLElement> extends AriaAttributes<E> {
-  role?: LiveRole;
+  role?: 'status';
   'aria-live'?: Politeness;
   'aria-atomic'?: 'true' | 'false';
   'aria-busy'?: 'true' | 'false';
@@ -75,7 +70,7 @@ export abstract class LiveRegionAria<
   /**
    * WAI-ARIA role compiled when the host element does not already imply it.
    */
-  protected abstract readonly liveRole: LiveRole;
+  protected abstract readonly liveRole: 'status';
 
   /**
    * Politeness the role announces with when the author sets none.
@@ -140,167 +135,35 @@ export abstract class LiveRegionAria<
 }
 
 /**
- * Reactive input properties for AlertAria.
+ * Reactive input properties for AnnouncerAria.
  */
-export interface AlertProps extends LiveRegionProps {}
+export interface AnnouncerProps extends LiveRegionProps {}
 
 /**
- * Headless WAI-ARIA alert live region announcing time-sensitive messages assertively
- * and atomically, without taking focus.
+ * Behavioral configuration options for AnnouncerAria.
+ */
+export interface AnnouncerOptions extends LiveRegionOptions {}
+
+/**
+ * Headless announcer live region owning polite, atomic announcements for advisory
+ * results, assertive interruptions, and append-only streams alike. Urgency is carried
+ * by the `politeness` prop rather than by a separate entity: the default stays polite
+ * and atomic, `politeness: 'assertive'` interrupts, and `politeness: 'off'` keeps a
+ * rapidly changing region identified but silent.
  *
  * @template E - Target Element type (defaults to HTMLElement)
  */
-export class AlertAria<
+export class AnnouncerAria<
   E extends BaseElement = HTMLElement,
-  T extends AlertProps = AlertProps,
+  T extends AnnouncerProps = AnnouncerProps,
   A extends LiveRegionAttributes<E> = LiveRegionAttributes<E>,
-> extends LiveRegionAria<E, T, A> {
-  protected override readonly liveRole: LiveRole = 'alert';
-  protected override readonly defaultPoliteness: Politeness = 'assertive';
-  protected override readonly defaultAtomic = true;
-
-  public constructor(props: Partial<T> = {}) {
-    super(props);
-  }
-}
-
-/**
- * Reactive input properties for StatusAria.
- */
-export interface StatusProps extends LiveRegionProps {}
-
-/**
- * Behavioral configuration options for StatusAria.
- */
-export interface StatusOptions extends LiveRegionOptions {}
-
-/**
- * Headless WAI-ARIA status live region announcing advisory messages politely and
- * atomically, bound to a native `<output>` element by default.
- *
- * @template E - Target Element type (defaults to HTMLElement)
- */
-export class StatusAria<
-  E extends BaseElement = HTMLElement,
-  T extends StatusProps = StatusProps,
-  A extends LiveRegionAttributes<E> = LiveRegionAttributes<E>,
-  O extends StatusOptions = StatusOptions,
+  O extends AnnouncerOptions = AnnouncerOptions,
 > extends LiveRegionAria<E, T, A, O> {
-  protected override readonly liveRole: LiveRole = 'status';
+  protected override readonly liveRole: 'status' = 'status';
   protected override readonly defaultPoliteness: Politeness = 'polite';
   protected override readonly defaultAtomic = true;
 
   public constructor(props: Partial<T> = {}, options: O = {} as O) {
-    super(props, {
-      native: true,
-      ...options,
-    });
-  }
-}
-
-/**
- * Reactive input properties for LogAria.
- */
-export interface LogProps extends LiveRegionProps {}
-
-/**
- * Headless WAI-ARIA log live region announcing an append-only stream politely, entry by
- * entry rather than as a whole, so history updates never interrupt each other.
- *
- * @template E - Target Element type (defaults to HTMLElement)
- */
-export class LogAria<
-  E extends BaseElement = HTMLElement,
-  T extends LogProps = LogProps,
-  A extends LiveRegionAttributes<E> = LiveRegionAttributes<E>,
-> extends LiveRegionAria<E, T, A> {
-  protected override readonly liveRole: LiveRole = 'log';
-  protected override readonly defaultPoliteness: Politeness = 'polite';
-  protected override readonly defaultAtomic = false;
-
-  public constructor(props: Partial<T> = {}) {
-    super(props);
-  }
-}
-
-/**
- * Reactive input properties for TimerAria.
- */
-export interface TimerProps extends LiveRegionProps {
-  /**
-   * Current elapsed or remaining time.
-   */
-  value?: number | string;
-}
-
-/**
- * Headless WAI-ARIA timer live region holding a counter with announcements off by
- * default, so a ticking second never interrupts the user. The elapsed value is held as
- * reactive state for the consumer to render and to announce at meaningful milestones.
- *
- * @template E - Target Element type (defaults to HTMLElement)
- */
-export class TimerAria<
-  E extends BaseElement = HTMLElement,
-  T extends TimerProps = TimerProps,
-  A extends LiveRegionAttributes<E> = LiveRegionAttributes<E>,
-> extends LiveRegionAria<E, T, A> {
-  protected override readonly liveRole: LiveRole = 'timer';
-  protected override readonly defaultPoliteness: Politeness = 'off';
-
-  public constructor(props: Partial<T> = {}) {
-    super(props);
-  }
-
-  /**
-   * Current elapsed or remaining time.
-   */
-  public get value(): number | string | undefined {
-    return this.props.value;
-  }
-
-  public set value(next: number | string | undefined) {
-    this.props.value = next;
-  }
-}
-
-/**
- * Reactive input properties for MarqueeAria.
- */
-export interface MarqueeProps extends LiveRegionProps {
-  /**
-   * Whether the ticker stream is currently paused.
-   */
-  paused?: boolean;
-}
-
-/**
- * Headless WAI-ARIA marquee live region holding a rapidly changing ticker with
- * announcements off by default. The pause state is held as reactive state; suspending
- * the animation itself belongs to the consumer.
- *
- * @template E - Target Element type (defaults to HTMLElement)
- */
-export class MarqueeAria<
-  E extends BaseElement = HTMLElement,
-  T extends MarqueeProps = MarqueeProps,
-  A extends LiveRegionAttributes<E> = LiveRegionAttributes<E>,
-> extends LiveRegionAria<E, T, A> {
-  protected override readonly liveRole: LiveRole = 'marquee';
-  protected override readonly defaultPoliteness: Politeness = 'off';
-
-  public constructor(props: Partial<T> = {}) {
-    super(props);
-  }
-
-  /**
-   * Whether the ticker stream is currently paused.
-   */
-  public get paused(): boolean {
-    return !!this.props.paused;
-  }
-
-  public set paused(next: boolean) {
-    this.props.paused = next;
+    super(props, options);
   }
 }

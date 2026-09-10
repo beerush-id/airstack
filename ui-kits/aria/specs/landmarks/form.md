@@ -1,9 +1,9 @@
 # Form Landmark Specification
 
-A form landmark designates a region that contains a collection of items and objects that, as a whole, combine to create a form when that form requires identification as a landmark.
+A form is the significant form area an author holds when that form requires identification as a landmark.
 
-- **Role**: `form`
-- **WAI-ARIA Role**: `form`
+- **Entity**: `form`
+- **WAI-ARIA Role**: `form` (compiled output, only when named)
 
 ---
 
@@ -11,7 +11,7 @@ A form landmark designates a region that contains a collection of items and obje
 
 | Context | HTML Semantic | WAI-ARIA Semantic | Aria Package Semantic Contract |
 | :--- | :--- | :--- | :--- |
-| **Native Form** | Native `<form>` element. | `role="form"`. In HTML-to-ARIA mapping, a `<form>` is only exposed as a landmark if it has an accessible name. | Form landmark controller. Compiles `aria-label` or `aria-labelledby`. |
+| **Native Form** | Native `<form>` element. | `role="form"`. In HTML-to-ARIA mapping, a `<form>` is only exposed as a landmark if it has an accessible name. | Form entity controller. Compiles `aria-label` or `aria-labelledby`. |
 
 ---
 

@@ -69,7 +69,7 @@ export abstract class LandmarkAria<
   /**
    * Whether the landmark is exposed as a landmark only when it carries an accessible name.
    */
-  protected readonly requiresName = false;
+  protected readonly requiresName: boolean = false;
 
   public constructor(props: Partial<T> = {}, options: O = {} as O) {
     super(props, {
@@ -124,24 +124,24 @@ export abstract class LandmarkAria<
 }
 
 /**
- * Reactive input properties for BannerAria.
+ * Reactive input properties for HeaderAria.
  */
-export interface BannerProps extends LandmarkProps {}
+export interface HeaderProps extends LandmarkProps {}
 
 /**
- * Behavioral configuration options for BannerAria.
+ * Behavioral configuration options for HeaderAria.
  */
-export interface BannerOptions extends LandmarkOptions {}
+export interface HeaderOptions extends LandmarkOptions {}
 
 /**
- * Headless WAI-ARIA banner landmark marking the prime header area of a document,
- * bound to a native `<header>` by default.
+ * Headless header landmark marking the prime header area of a document,
+ * bound to a native `<header>` by default. Compiles the banner role output.
  *
  * @template E - Target Element type (defaults to HTMLElement)
  */
-export class BannerAria<
+export class HeaderAria<
   E extends BaseElement = HTMLElement,
-  T extends BannerProps = BannerProps,
+  T extends HeaderProps = HeaderProps,
   A extends LandmarkAttributes<E> = LandmarkAttributes<E>,
 > extends LandmarkAria<E, T, A> {
   protected override readonly landmarkRole: LandmarkRole = 'banner';
@@ -197,48 +197,49 @@ export class NavigationAria<
 }
 
 /**
- * Reactive input properties for ComplementaryAria.
+ * Reactive input properties for SidebarAria.
  */
-export interface ComplementaryProps extends LandmarkProps {}
+export interface SidebarProps extends LandmarkProps {}
 
 /**
- * Behavioral configuration options for ComplementaryAria.
+ * Behavioral configuration options for SidebarAria.
  */
-export interface ComplementaryOptions extends LandmarkOptions {}
+export interface SidebarOptions extends LandmarkOptions {}
 
 /**
- * Headless WAI-ARIA complementary landmark marking supporting content beside the main
- * content, bound to a native `<aside>` by default.
+ * Headless sidebar landmark marking supporting content beside the main
+ * content, bound to a native `<aside>` by default. Compiles the complementary
+ * role output.
  *
  * @template E - Target Element type (defaults to HTMLElement)
  */
-export class ComplementaryAria<
+export class SidebarAria<
   E extends BaseElement = HTMLElement,
-  T extends ComplementaryProps = ComplementaryProps,
+  T extends SidebarProps = SidebarProps,
   A extends LandmarkAttributes<E> = LandmarkAttributes<E>,
 > extends LandmarkAria<E, T, A> {
   protected override readonly landmarkRole: LandmarkRole = 'complementary';
 }
 
 /**
- * Reactive input properties for ContentinfoAria.
+ * Reactive input properties for FooterAria.
  */
-export interface ContentinfoProps extends LandmarkProps {}
+export interface FooterProps extends LandmarkProps {}
 
 /**
- * Behavioral configuration options for ContentinfoAria.
+ * Behavioral configuration options for FooterAria.
  */
-export interface ContentinfoOptions extends LandmarkOptions {}
+export interface FooterOptions extends LandmarkOptions {}
 
 /**
- * Headless WAI-ARIA contentinfo landmark marking the prime footer area of a document,
- * bound to a native `<footer>` by default.
+ * Headless footer landmark marking the prime footer area of a document,
+ * bound to a native `<footer>` by default. Compiles the contentinfo role output.
  *
  * @template E - Target Element type (defaults to HTMLElement)
  */
-export class ContentinfoAria<
+export class FooterAria<
   E extends BaseElement = HTMLElement,
-  T extends ContentinfoProps = ContentinfoProps,
+  T extends FooterProps = FooterProps,
   A extends LandmarkAttributes<E> = LandmarkAttributes<E>,
 > extends LandmarkAria<E, T, A> {
   protected override readonly landmarkRole: LandmarkRole = 'contentinfo';
@@ -295,25 +296,25 @@ export class FormAria<
 }
 
 /**
- * Reactive input properties for RegionAria.
+ * Reactive input properties for SectionAria.
  */
-export interface RegionLandmarkProps extends LandmarkProps {}
+export interface SectionProps extends LandmarkProps {}
 
 /**
- * Behavioral configuration options for RegionAria.
+ * Behavioral configuration options for SectionAria.
  */
-export interface RegionLandmarkOptions extends LandmarkOptions {}
+export interface SectionOptions extends LandmarkOptions {}
 
 /**
- * Headless WAI-ARIA region landmark marking a significant self-contained section. A
- * region is only computed as a landmark when named, so the role is compiled solely when
- * `label` or `labelledby` is present; unnamed it stays a generic container.
+ * Headless section landmark marking a significant self-contained section. A
+ * section is only computed as a landmark when named, so the region role is compiled
+ * solely when `label` or `labelledby` is present; unnamed it stays a generic container.
  *
  * @template E - Target Element type (defaults to HTMLElement)
  */
-export class RegionAria<
+export class SectionAria<
   E extends BaseElement = HTMLElement,
-  T extends RegionLandmarkProps = RegionLandmarkProps,
+  T extends SectionProps = SectionProps,
   A extends LandmarkAttributes<E> = LandmarkAttributes<E>,
 > extends LandmarkAria<E, T, A> {
   protected override readonly landmarkRole: LandmarkRole = 'region';

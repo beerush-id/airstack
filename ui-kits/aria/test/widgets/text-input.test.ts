@@ -1,9 +1,9 @@
 import { createLifecycle } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
-import { aria, TextboxAria } from '../../src/index.js';
+import { aria, TextInputAria } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
-describe('Textbox - Contract Specifications', () => {
+describe('TextInput - Contract Specifications', () => {
   const scope = createLifecycle();
 
   afterAll(() => {
@@ -15,7 +15,7 @@ describe('Textbox - Contract Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const input = aria('textbox', { value: 'hi' });
+          const input = aria('text-input', { value: 'hi' });
 
           // 1. SSR Phase: public spread carries defaultValue, never value or handlers
           expect(input.current).toBeNull();
@@ -42,22 +42,22 @@ describe('Textbox - Contract Specifications', () => {
       }));
   });
 
-  describe('Searchbox Face Contract', () => {
-    it('defaults role to textbox on direct construction', () =>
+  describe('Search-Input Face Contract', () => {
+    it('defaults role to text-input on direct construction', () =>
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const input = new TextboxAria({ value: 'direct' });
+          const input = new TextInputAria({ value: 'direct' });
           expect(input.value).toBe('direct');
           expect((input.attributes as Record<string, unknown>).type).toBeUndefined();
         });
       }));
 
-    it('locks role to searchbox with native search type', () =>
+    it('locks role to search-input with native search type', () =>
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const search = aria('searchbox', { value: 'q' });
+          const search = aria('search-input', { value: 'q' });
 
           expect(search.current).toBeNull();
           expect((search.attributes as Record<string, unknown>).type).toBe('search');
@@ -74,7 +74,7 @@ describe('Textbox - Contract Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const input = aria('textbox', {
+          const input = aria('text-input', {
             readonly: true,
             disabled: true,
             required: true,
@@ -100,7 +100,7 @@ describe('Textbox - Contract Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const input = aria('textbox');
+          const input = aria('text-input');
           expect(input.attributes['aria-invalid']).toBe('false');
         });
       }));
@@ -109,8 +109,8 @@ describe('Textbox - Contract Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          expect(aria('textbox', { invalid: true }).attributes['aria-invalid']).toBe('true');
-          expect(aria('textbox', { invalid: false }).attributes['aria-invalid']).toBe('false');
+          expect(aria('text-input', { invalid: true }).attributes['aria-invalid']).toBe('true');
+          expect(aria('text-input', { invalid: false }).attributes['aria-invalid']).toBe('false');
         });
       }));
 
@@ -118,9 +118,9 @@ describe('Textbox - Contract Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const input = aria('textbox');
+          const input = aria('text-input');
           expect(input.value).toBe('');
-          expect(aria('textbox', { value: null as never }).value).toBe('');
+          expect(aria('text-input', { value: null as never }).value).toBe('');
           expect(input.attributes.readonly).toBe(false);
           expect(input.attributes.disabled).toBe(false);
           expect(input.attributes.required).toBe(false);
@@ -136,7 +136,7 @@ describe('Textbox - Contract Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const input = aria('textbox', { value: 'hi', disabled: true });
+          const input = aria('text-input', { value: 'hi', disabled: true });
           const el = bind(document.createElement('input'), input);
 
           el.value = 'blocked';
@@ -151,7 +151,7 @@ describe('Textbox - Contract Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const input = aria('textbox', { value: 'hi' });
+          const input = aria('text-input', { value: 'hi' });
           const unrefine = input.refine(() => ({ value: 'hacked', disabled: true }) as never);
 
           expect(input.value).toBe('hi');
@@ -168,7 +168,7 @@ describe('Textbox - Contract Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const input = aria('textbox', { value: 'hi' });
+          const input = aria('text-input', { value: 'hi' });
           const el = bind(document.createElement('input'), input);
 
           expect(input.current).toBe(el);
@@ -182,7 +182,7 @@ describe('Textbox - Contract Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const input = aria('textbox');
+          const input = aria('text-input');
           const el = bind(document.createElement('input'), input);
 
           expect(input.current).toBe(el);

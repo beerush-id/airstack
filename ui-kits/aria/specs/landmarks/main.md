@@ -1,9 +1,9 @@
 # Main Landmark Specification
 
-A main landmark identifies the primary unique content area of a document, enabling users of assistive technologies to quickly skip repetitive site navigation.
+A main is the primary unique content area an author holds in a document, enabling users of assistive technologies to quickly skip repetitive site navigation.
 
-- **Role**: `main`
-- **WAI-ARIA Role**: `main`
+- **Entity**: `main`
+- **WAI-ARIA Role**: `main` (compiled output)
 
 ---
 
@@ -11,7 +11,7 @@ A main landmark identifies the primary unique content area of a document, enabli
 
 | Context | HTML Semantic | WAI-ARIA Semantic | Aria Package Semantic Contract |
 | :--- | :--- | :--- | :--- |
-| **Native Main** | Native `<main>` element. | Implicit `role="main"`. Explicit `role` omitted. | Primary landmark. Exactly 1 per document. |
+| **Native Main** | Native `<main>` element. | Implicit `role="main"`. Explicit `role` omitted. | Primary entity. Exactly 1 per document. |
 | **Custom Main** | Non-semantic element (`<div>`). | `role="main"`. | Compiles `role="main"`. |
 
 ---

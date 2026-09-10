@@ -1,9 +1,9 @@
-# Complementary Landmark Specification
+# Sidebar Landmark Specification
 
-A complementary landmark represents a supporting section of the document designed to be complementary to the main content (e.g. sidebars, related links, quick notes).
+A sidebar is the supporting section an author holds beside the main content (e.g. sidebars, related links, quick notes).
 
-- **Role**: `complementary`
-- **WAI-ARIA Role**: `complementary`
+- **Entity**: `sidebar`
+- **WAI-ARIA Role**: `complementary` (compiled output)
 
 ---
 
@@ -12,7 +12,7 @@ A complementary landmark represents a supporting section of the document designe
 | Context | HTML Semantic | WAI-ARIA Semantic | Aria Package Semantic Contract |
 | :--- | :--- | :--- | :--- |
 | **Native Aside** | Native `<aside>` element. | Implicit `role="complementary"`. Explicit `role` omitted. | Supporting landmark. |
-| **Custom Complementary** | Non-semantic element (`<div>`). | `role="complementary"`. | Compiles `role="complementary"`. |
+| **Custom Sidebar** | Non-semantic element (`<div>`). | `role="complementary"`. | Compiles `role="complementary"`. |
 
 ---
 
@@ -21,12 +21,12 @@ A complementary landmark represents a supporting section of the document designe
 ### 1. Options & Props Contracts
 
 ```ts
-export interface ComplementaryOptions {
+export interface SidebarOptions {
   /** Whether bound to native <aside> (default: true) */
   native?: boolean;
 }
 
-export interface ComplementaryProps {
+export interface SidebarProps {
   /** Accessible label */
   label?: string;
   /** Element ID providing the accessible name */
@@ -37,10 +37,10 @@ export interface ComplementaryProps {
 ### 2. Overload Contract
 
 ```ts
-// Complementary: Supporting section landmark
+// Sidebar: Supporting section landmark
 export function aria<E extends BaseElement = HTMLElement>(
-  role: 'complementary',
-  props?: ComplementaryProps,
-  options?: ComplementaryOptions
-): ComplementaryAria<E>;
+  role: 'sidebar',
+  props?: SidebarProps,
+  options?: SidebarOptions
+): SidebarAria<E>;
 ```

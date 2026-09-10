@@ -6,8 +6,8 @@ import {
   AccordionPanelAria,
   type AccordionPanelProps,
   type AccordionProps,
-  ListboxAria,
-  type ListboxProps,
+  SelectAria,
+  type SelectProps,
   MenuAria,
   MenuButtonAria,
   type MenuButtonProps,
@@ -42,15 +42,15 @@ import {
   type ToolbarProps,
 } from './composites/index.js';
 import {
-  BannerAria,
-  type BannerOptions,
-  type BannerProps,
-  ComplementaryAria,
-  type ComplementaryOptions,
-  type ComplementaryProps,
-  ContentinfoAria,
-  type ContentinfoOptions,
-  type ContentinfoProps,
+  HeaderAria,
+  type HeaderOptions,
+  type HeaderProps,
+  SidebarAria,
+  type SidebarOptions,
+  type SidebarProps,
+  FooterAria,
+  type FooterOptions,
+  type FooterProps,
   FormAria,
   type FormLandmarkOptions,
   type FormLandmarkProps,
@@ -60,25 +60,17 @@ import {
   NavigationAria,
   type NavigationOptions,
   type NavigationProps,
-  RegionAria,
-  type RegionLandmarkOptions,
-  type RegionLandmarkProps,
+  SectionAria,
+  type SectionOptions,
+  type SectionProps,
   SearchAria,
   type SearchLandmarkOptions,
   type SearchLandmarkProps,
 } from './landmarks/index.js';
 import {
-  AlertAria,
-  type AlertProps,
-  LogAria,
-  type LogProps,
-  MarqueeAria,
-  type MarqueeProps,
-  StatusAria,
-  type StatusOptions,
-  type StatusProps,
-  TimerAria,
-  type TimerProps,
+  AnnouncerAria,
+  type AnnouncerOptions,
+  type AnnouncerProps,
 } from './live/index.js';
 import type { BaseElement, Primitive } from './types.js';
 import {
@@ -103,18 +95,21 @@ import {
   SwitchAria,
   type SwitchOptions,
   type SwitchProps,
-  SearchboxAria,
-  type SearchboxOptions,
-  type SearchboxProps,
-  SeparatorAria,
-  type SeparatorOptions,
-  type SeparatorProps,
-  SpinbuttonAria,
-  type SpinbuttonOptions,
-  type SpinbuttonProps,
-  TextboxAria,
-  type TextboxOptions,
-  type TextboxProps,
+  SearchInputAria,
+  type SearchInputOptions,
+  type SearchInputProps,
+  DividerAria,
+  type DividerOptions,
+  type DividerProps,
+  SplitterAria,
+  type SplitterOptions,
+  type SplitterProps,
+  NumberStepperAria,
+  type NumberStepperOptions,
+  type NumberStepperProps,
+  TextInputAria,
+  type TextInputOptions,
+  type TextInputProps,
   ToggleAria,
   type ToggleOptions,
   type ToggleProps,
@@ -135,10 +130,10 @@ export * from './utils/range.js';
 export * from './widgets/index.js';
 
 /**
- * Creates an ARIA behavioral controller for the specified role.
+ * Creates an ARIA behavioral controller for the specified entity.
  *
  * @template E - Target Element type
- * @param role - Target WAI-ARIA role
+ * @param role - Target Aria entity name
  * @param props - Reactive props dictionary
  * @param options - Static controller configuration
  */
@@ -178,14 +173,14 @@ export function aria<E extends BaseElement = HTMLInputElement, T extends Primiti
 ): RadioAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement, T extends Primitive = Primitive>(
-  role: 'radiogroup',
+  role: 'radio-group',
   props?: RadioGroupProps<T>
 ): RadioGroupAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement, T extends Primitive = Primitive>(
-  role: 'listbox',
-  props?: ListboxProps<T>
-): ListboxAria<E>;
+  role: 'select',
+  props?: SelectProps<T>
+): SelectAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement, T extends Primitive = Primitive>(
   role: 'option',
@@ -214,16 +209,16 @@ export function aria<E extends BaseElement = HTMLButtonElement>(
 export function aria<E extends BaseElement = HTMLElement>(role: 'tab-panel', props: TabPanelProps): TabPanelAria<E>;
 
 export function aria<E extends BaseElement = HTMLInputElement>(
-  role: 'textbox',
-  props?: TextboxProps,
-  options?: TextboxOptions
-): TextboxAria<E>;
+  role: 'text-input',
+  props?: TextInputProps,
+  options?: TextInputOptions
+): TextInputAria<E>;
 
 export function aria<E extends BaseElement = HTMLInputElement>(
-  role: 'searchbox',
-  props?: SearchboxProps,
-  options?: SearchboxOptions
-): SearchboxAria<E>;
+  role: 'search-input',
+  props?: SearchInputProps,
+  options?: SearchInputOptions
+): SearchInputAria<E>;
 
 export function aria<E extends BaseElement = HTMLAnchorElement>(
   role: 'link',
@@ -238,22 +233,28 @@ export function aria<E extends BaseElement = HTMLElement>(
 ): ProgressbarAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement>(
-  role: 'separator',
-  props?: SeparatorProps,
-  options?: SeparatorOptions
-): SeparatorAria<E>;
+  role: 'divider',
+  props?: DividerProps,
+  options?: DividerOptions
+): DividerAria<E>;
+
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'splitter',
+  props?: SplitterProps,
+  options?: SplitterOptions
+): SplitterAria<E>;
 
 export function aria<E extends BaseElement = HTMLInputElement>(
-  role: 'spinbutton',
-  props?: SpinbuttonProps,
-  options?: SpinbuttonOptions
-): SpinbuttonAria<E>;
+  role: 'number-stepper',
+  props?: NumberStepperProps,
+  options?: NumberStepperOptions
+): NumberStepperAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement>(role: 'toolbar', props?: ToolbarProps): ToolbarAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement>(role: 'menu', props?: MenuProps): MenuAria<E>;
 
-export function aria<E extends BaseElement = HTMLElement>(role: 'menubar', props?: MenubarProps): MenubarAria<E>;
+export function aria<E extends BaseElement = HTMLElement>(role: 'menu-bar', props?: MenubarProps): MenubarAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement>(role: 'menu-panel', props?: MenuPanelProps): MenuPanelAria<E>;
 
@@ -284,10 +285,10 @@ export function aria<E extends BaseElement = HTMLButtonElement, T extends Primit
 ): MenuItemRadioAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement>(
-  role: 'banner',
-  props?: BannerProps,
-  options?: BannerOptions
-): BannerAria<E>;
+  role: 'header',
+  props?: HeaderProps,
+  options?: HeaderOptions
+): HeaderAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement>(
   role: 'main',
@@ -302,16 +303,16 @@ export function aria<E extends BaseElement = HTMLElement>(
 ): NavigationAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement>(
-  role: 'complementary',
-  props?: ComplementaryProps,
-  options?: ComplementaryOptions
-): ComplementaryAria<E>;
+  role: 'sidebar',
+  props?: SidebarProps,
+  options?: SidebarOptions
+): SidebarAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement>(
-  role: 'contentinfo',
-  props?: ContentinfoProps,
-  options?: ContentinfoOptions
-): ContentinfoAria<E>;
+  role: 'footer',
+  props?: FooterProps,
+  options?: FooterOptions
+): FooterAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement>(
   role: 'search',
@@ -326,39 +327,33 @@ export function aria<E extends BaseElement = HTMLFormElement>(
 ): FormAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement>(
-  role: 'region',
-  props?: RegionLandmarkProps,
-  options?: RegionLandmarkOptions
-): RegionAria<E>;
-
-export function aria<E extends BaseElement = HTMLElement>(role: 'alert', props?: AlertProps): AlertAria<E>;
+  role: 'section',
+  props?: SectionProps,
+  options?: SectionOptions
+): SectionAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement>(
-  role: 'status',
-  props?: StatusProps,
-  options?: StatusOptions
-): StatusAria<E>;
-
-export function aria<E extends BaseElement = HTMLElement>(role: 'log', props?: LogProps): LogAria<E>;
-
-export function aria<E extends BaseElement = HTMLElement>(role: 'timer', props?: TimerProps): TimerAria<E>;
-
-export function aria<E extends BaseElement = HTMLElement>(role: 'marquee', props?: MarqueeProps): MarqueeAria<E>;
+  role: 'announcer',
+  props?: AnnouncerProps,
+  options?: AnnouncerOptions
+): AnnouncerAria<E>;
 
 export function aria(role: string, init?: unknown, options?: unknown): unknown {
   switch (role) {
-    case 'textbox':
-      return new TextboxAria(init as never, { ...(options as object), role: 'textbox' } as never);
-    case 'searchbox':
-      return new SearchboxAria(init as never, options as never);
+    case 'text-input':
+      return new TextInputAria(init as never, { ...(options as object), role: 'text-input' } as never);
+    case 'search-input':
+      return new SearchInputAria(init as never, options as never);
     case 'link':
       return new LinkAria(init as never, options as never);
     case 'progressbar':
       return new ProgressbarAria(init as never, options as never);
-    case 'separator':
-      return new SeparatorAria(init as never, options as never);
-    case 'spinbutton':
-      return new SpinbuttonAria(init as never, options as never);
+    case 'divider':
+      return new DividerAria(init as never, options as never);
+    case 'splitter':
+      return new SplitterAria(init as never, options as never);
+    case 'number-stepper':
+      return new NumberStepperAria(init as never, options as never);
     case 'button':
       return new ButtonAria(init as never, options as never);
     case 'toggle':
@@ -371,10 +366,10 @@ export function aria(role: string, init?: unknown, options?: unknown): unknown {
       return new CheckboxAria(init as never, options as never);
     case 'radio':
       return new RadioAria(init as never, options as never);
-    case 'radiogroup':
+    case 'radio-group':
       return new RadioGroupAria(init as never);
-    case 'listbox':
-      return new ListboxAria(init as never);
+    case 'select':
+      return new SelectAria(init as never);
     case 'option':
       return new OptionAria(init as never, options as never);
     case 'accordion':
@@ -395,7 +390,7 @@ export function aria(role: string, init?: unknown, options?: unknown): unknown {
       return new ToolbarAria(init as never);
     case 'menu':
       return new MenuAria(init as never);
-    case 'menubar':
+    case 'menu-bar':
       return new MenubarAria(init as never);
     case 'menu-panel':
       return new MenuPanelAria(init as never);
@@ -409,32 +404,24 @@ export function aria(role: string, init?: unknown, options?: unknown): unknown {
       return new MenuItemCheckboxAria(init as never, options as never);
     case 'menu-item-radio':
       return new MenuItemRadioAria(init as never, options as never);
-    case 'banner':
-      return new BannerAria(init as never, options as never);
+    case 'header':
+      return new HeaderAria(init as never, options as never);
     case 'main':
       return new MainAria(init as never, options as never);
     case 'navigation':
       return new NavigationAria(init as never, options as never);
-    case 'complementary':
-      return new ComplementaryAria(init as never, options as never);
-    case 'contentinfo':
-      return new ContentinfoAria(init as never, options as never);
+    case 'sidebar':
+      return new SidebarAria(init as never, options as never);
+    case 'footer':
+      return new FooterAria(init as never, options as never);
     case 'search':
       return new SearchAria(init as never, options as never);
     case 'form':
       return new FormAria(init as never, options as never);
-    case 'region':
-      return new RegionAria(init as never, options as never);
-    case 'alert':
-      return new AlertAria(init as never);
-    case 'status':
-      return new StatusAria(init as never, options as never);
-    case 'log':
-      return new LogAria(init as never);
-    case 'timer':
-      return new TimerAria(init as never);
-    case 'marquee':
-      return new MarqueeAria(init as never);
+    case 'section':
+      return new SectionAria(init as never, options as never);
+    case 'announcer':
+      return new AnnouncerAria(init as never, options as never);
     default:
       throw new Error(`Unsupported aria role: ${role}`);
   }

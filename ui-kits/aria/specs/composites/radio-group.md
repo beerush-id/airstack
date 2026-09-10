@@ -68,7 +68,7 @@ export interface RadioProps<T extends Primitive = Primitive> {
 ```ts
 // RadioGroup: Container group controller (single-only, no options)
 export function aria<E extends BaseElement = HTMLElement, T extends Primitive = Primitive>(
-  role: 'radiogroup',
+  role: 'radio-group',
   props?: RadioGroupProps<T>
 ): RadioGroupAria<E>;
 

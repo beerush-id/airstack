@@ -8,16 +8,16 @@ import { handleRovingKey } from '../utils/navigation.js';
 import { OptionAria, type OptionOptions, type OptionProps } from '../widgets/option.js';
 
 /**
- * Ambient instance context for the enclosing Listbox orchestrator.
+ * Ambient instance context for the enclosing Select orchestrator.
  */
-export const listboxCtx = createContext<ListboxAria>();
+export const selectCtx = createContext<SelectAria>();
 
 /**
- * Reactive input properties for single-select ListboxAria.
+ * Reactive input properties for single-select SelectAria.
  *
  * @template T - Candidate option value type
  */
-export interface SingleListboxProps<T extends Primitive = Primitive> extends AriaProps {
+export interface SingleSelectProps<T extends Primitive = Primitive> extends AriaProps {
   multiple?: false;
 
   /**
@@ -53,17 +53,17 @@ export interface SingleListboxProps<T extends Primitive = Primitive> extends Ari
   invalid?: AriaInvalid;
 
   /**
-   * Whether user interaction is disabled across the entire listbox.
+   * Whether user interaction is disabled across the entire select.
    */
   disabled?: boolean;
 }
 
 /**
- * Reactive input properties for multi-select ListboxAria.
+ * Reactive input properties for multi-select SelectAria.
  *
  * @template T - Candidate option value type
  */
-export interface MultipleListboxProps<T extends Primitive = Primitive> extends AriaProps {
+export interface MultipleSelectProps<T extends Primitive = Primitive> extends AriaProps {
   multiple: true;
 
   /**
@@ -93,22 +93,22 @@ export interface MultipleListboxProps<T extends Primitive = Primitive> extends A
   invalid?: AriaInvalid;
 
   /**
-   * Whether user interaction is disabled across the entire listbox.
+   * Whether user interaction is disabled across the entire select.
    */
   disabled?: boolean;
 }
 
 /**
- * Reactive input properties for the Listbox container orchestrator.
+ * Reactive input properties for the Select container orchestrator.
  */
-export type ListboxProps<T extends Primitive = Primitive> = SingleListboxProps<T> | MultipleListboxProps<T>;
+export type SelectProps<T extends Primitive = Primitive> = SingleSelectProps<T> | MultipleSelectProps<T>;
 
 /**
- * Compiled HTML and ARIA attributes for a listbox container element.
+ * Compiled HTML and ARIA attributes for a select container element.
  *
  * @template E - Target Element type
  */
-export interface ListboxAttributes<E extends BaseElement = HTMLElement> extends AriaAttributes<E> {
+export interface SelectAttributes<E extends BaseElement = HTMLElement> extends AriaAttributes<E> {
   role?: 'listbox';
   tabindex?: number;
   'aria-multiselectable'?: 'true' | 'false';
@@ -118,31 +118,33 @@ export interface ListboxAttributes<E extends BaseElement = HTMLElement> extends 
   'aria-invalid'?: 'true' | 'false' | 'grammar' | 'spelling';
 }
 
-const ROLE_LISTBOX = 'listbox';
+const ROLE_SELECT = 'select';
+const COMPILED_ROLE = 'listbox';
 const DEFAULT_ORIENTATION: Orientation = 'vertical';
 const OPTION_SELECTORS = '[role="option"]:not([aria-disabled="true"]):not([disabled])';
 
 /**
- * Headless WAI-ARIA Listbox coordinator managing option selection,
- * roving tabindex keyboard navigation, and ambient context.
+ * Headless Select coordinator managing option selection,
+ * roving tabindex keyboard navigation, and ambient context. Compiles the
+ * listbox role output.
  *
  * @template E - Target Element type (defaults to HTMLElement)
  * @template T - Reactive props type
  * @template A - Compiled attributes dictionary type
  */
-export class ListboxAria<
+export class SelectAria<
   E extends BaseElement = HTMLElement,
-  T extends ListboxProps = ListboxProps,
-  A extends ListboxAttributes<E> = ListboxAttributes<E>,
+  T extends SelectProps = SelectProps,
+  A extends SelectAttributes<E> = SelectAttributes<E>,
 > extends Aria<E, T, A> {
   private parentRover = roverCtx.get();
 
   public constructor(props: Partial<T> = {}) {
     super(props);
     $static(() => {
-      this.props.id = this.props.id ?? `${ROLE_LISTBOX}-${uIndex($symbol(ROLE_LISTBOX), true)}`;
+      this.props.id = this.props.id ?? `${ROLE_SELECT}-${uIndex($symbol(ROLE_SELECT), true)}`;
     });
-    listboxCtx.set(this as unknown as ListboxAria);
+    selectCtx.set(this as unknown as SelectAria);
     roverCtx.set(this as unknown as Aria<BaseElement>);
     selectionGroup.set(this.props as Record<string, unknown>);
     this.omittedAttrs.push('aria-orientation', 'aria-required', 'aria-invalid', 'aria-multiselectable');
@@ -151,14 +153,14 @@ export class ListboxAria<
   }
 
   /**
-   * Whether user interaction is disabled across the entire listbox.
+   * Whether user interaction is disabled across the entire select.
    */
   public get disabled(): boolean {
     return !!this.props.disabled;
   }
 
   /**
-   * Visual and keyboard navigation orientation of the listbox.
+   * Visual and keyboard navigation orientation of the select.
    */
   public get orientation(): Orientation {
     return this.props.orientation ?? DEFAULT_ORIENTATION;
@@ -172,7 +174,7 @@ export class ListboxAria<
   }
 
   /**
-   * Spawns an OptionAria controller bound to this listbox.
+   * Spawns an OptionAria controller bound to this select.
    *
    * @param props - Reactive option properties
    * @param options - Controller configuration options
@@ -186,7 +188,7 @@ export class ListboxAria<
   }
 
   /**
-   * Computes HTML and ARIA attributes for the listbox container.
+   * Computes HTML and ARIA attributes for the select container.
    */
   protected override createAttributes(): A {
     const disabled = this.disabled;
@@ -195,7 +197,7 @@ export class ListboxAria<
 
     return Object.assign(super.createAttributes(), {
       id: this.props.id,
-      role: ROLE_LISTBOX,
+      role: COMPILED_ROLE,
       tabindex: disabled ? -1 : 0,
       'aria-orientation': orientation,
       'aria-multiselectable': ariaBoolean(isMultiple),

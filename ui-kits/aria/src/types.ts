@@ -56,67 +56,6 @@ export interface AriaOptions {
 }
 
 /**
- * All supported WAI-ARIA role identifiers.
- */
-export type AriaRoleName =
-  | 'button'
-  | 'togglebutton'
-  | 'switch'
-  | 'checkbox'
-  | 'slider'
-  | 'spinbutton'
-  | 'progressbar'
-  | 'textbox'
-  | 'searchbox'
-  | 'scrollbar'
-  | 'separator'
-  | 'tooltip'
-  | 'tablist'
-  | 'tab'
-  | 'tabpanel'
-  | 'radiogroup'
-  | 'radio'
-  | 'dialog'
-  | 'alertdialog'
-  | 'menu'
-  | 'menubar'
-  | 'menuitem'
-  | 'menuitemcheckbox'
-  | 'menuitemradio'
-  | 'group'
-  | 'listbox'
-  | 'option'
-  | 'combobox'
-  | 'accordion'
-  | 'tree'
-  | 'treeitem'
-  | 'grid'
-  | 'treegrid'
-  | 'row'
-  | 'gridcell'
-  | 'columnheader'
-  | 'rowheader'
-  | 'rowgroup'
-  | 'toolbar'
-  | 'feed'
-  | 'article'
-  | 'alert'
-  | 'status'
-  | 'log'
-  | 'timer'
-  | 'marquee'
-  | 'banner'
-  | 'main'
-  | 'navigation'
-  | 'complementary'
-  | 'contentinfo'
-  | 'search'
-  | 'region'
-  | 'form'
-  | 'presentation'
-  | 'none';
-
-/**
  * Generic DOM event handler signature with strongly typed currentTarget element.
  *
  * @template Ev - Native Event type

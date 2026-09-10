@@ -118,7 +118,7 @@ Authoring properties are structured around the **four behavioral archetypes** of
 - **Member**: `name` (identity key linking trigger to panel) + initial state hints (`selected`, `expanded`) + `disabled`.
 - **Coordinate Derivation**: Member DOM IDs and ARIA linkage derive deterministically via `f(parentId, name)`.
 
-#### 2. Value Choice Composites (`RadioGroup`, `Listbox`)
+#### 2. Value Choice Composites (`RadioGroup`, `Select`)
 - **Primary Concern**: Selection of a candidate value within an input collection (`group.value === member.value`).
 - **Container**: `value` (current selected value) + concern props (`orientation`, `manual`, `required`, `disabled`). Group `id` is optional and not required for coordination (no external panels).
 - **Member**: `value` (candidate value matching `group.value`) + `disabled`.
@@ -328,7 +328,7 @@ Member active state evaluation depends on the widget archetype:
      ```
    - **Activation**: Mutates `this.group.value` with `this.props.value`.
    - **Radio Exception**: Radios are never toggle controls. Once checked, re-activation is always idempotent, even when `!this.group.required`. A radiogroup may still start empty (`value === undefined`).
-   - **Option Toggle**: In single-select listbox, selecting an active option deselects it only when `!this.group.required`.
+   - **Option Toggle**: In single-select select, selecting an active option deselects it only when `!this.group.required`.
 
 3. **Initial Selection & Claiming Strategy**:
    When a single-selection group has no value present (`this.group.value === undefined`):
@@ -401,12 +401,12 @@ Navigation conforms to `aria-orientation`:
 
 **Toolbar roving takeover**: A `toolbar` owns the single tab stop and arrow travel across everything inside it. Inner selection groups keep their value semantics but surrender their own roving handlers when scoped inside a toolbar; grouping inside collapses to `role="group"` for AT semantics only. Scope detection runs over the ambient scope chain (nearest toolbar controller); see [Toolbar](specs/composites/toolbar.md).
 
-In automatic selection, focus movement invokes `next.click()` immediately. In manual selection (`props.manual: true`), focus moves without selection until explicitly activated via `Enter` or `Space`. `manual` exists only on single-select focus-moving containers (`tab`, single `accordion`, `radio-group`, single `listbox`, single `toggle-group`, single `tree`); multi-select, action, and grid/menu/toolbar containers never select on focus, so they declare no `manual` prop. Defaults are per-role, never global.
+In automatic selection, focus movement invokes `next.click()` immediately. In manual selection (`props.manual: true`), focus moves without selection until explicitly activated via `Enter` or `Space`. `manual` exists only on single-select focus-moving containers (`tab`, single `accordion`, `radiogroup`, single `select`, single `toggle-group`, single `tree`); multi-select, action, and grid/menu/toolbar containers never select on focus, so they declare no `manual` prop. Defaults are per-role, never global.
 
 ---
 
 #### 7. Overlay Lifecycle & Document Orchestration
-Modals and overlays (`dialog`, `alertdialog`) implement document-level event listeners and focus containment within the `protected attach()` lifecycle hook:
+Modals and overlays (`dialog`, `confirm`) implement document-level event listeners and focus containment within the `protected attach()` lifecycle hook:
 
 ```ts
 // Inside DialogAria.attach()
@@ -503,8 +503,8 @@ Because compiled `this.attrs` dictionaries are non-reactive snapshots recomputed
 4. **Disabled composition**: effective disabled is group `disabled` OR member `disabled`.
 5. **`required` on multi-select**: `required: true` demands a non-empty array; `[]` and `undefined` are both unselected. First-mount claiming does not apply to multi-select; single-select claiming follows §3.
 6. **Form attribute isolation**: `.attributes` never synthesizes or emits HTML form attributes (`name`, `value`, `form`). In value choice composites (radio, option), group matching evaluates member `value` against `group.value`. Form field naming (`props.name`) is preserved unmutated for template binding.
-7. **Structural `group` parts** (listbox/tree/menu inner groups): render `role="group"` with a label, pass the ambient scope through unchanged, and take no `aria()` overload — except menu subgroups, which publish an independent scoped selection value for their radio members (see `menu`).
-8. **Group `id` scoping**: Paired composite roots (`Tab`, `Accordion`) accept `id?: string`, defaulting to a generated namespace, so child triggers and panels derive paired coordinate IDs. Non-paired groups (`RadioGroup`, `Listbox`, `ToggleGroup`, `Toolbar`) do not require a group `id` for internal coordination.
+7. **Structural `group` parts** (select/tree/menu inner groups): render `role="group"` with a label, pass the ambient scope through unchanged, and take no `aria()` overload — except menu subgroups, which publish an independent scoped selection value for their radio members (see `menu`).
+8. **Group `id` scoping**: Paired composite roots (`Tab`, `Accordion`) accept `id?: string`, defaulting to a generated namespace, so child triggers and panels derive paired coordinate IDs. Non-paired groups (`RadioGroup`, `Select`, `ToggleGroup`, `Toolbar`) do not require a group `id` for internal coordination.
 
 ### Behavioral Capabilities & Architectural Layers
 
@@ -514,7 +514,7 @@ Controllers are organized across three capability layers:
 - **Behavioral Capabilities**: shared state machinery. Selection capability coordinates group value, activation/toggle rules, claiming, and roving tabindex; disclosure capability coordinates overlay trigger wiring, light-dismiss, Escape handling, and focus restoration.
 - **Public Roles** (`TabAria`, `TabButtonAria`, `RadioGroupAria`, …): role compilation + locked per-role contracts in `specs/`.
 
-Capability options are set by the public-class definition or the parent controller — never forwarded from JSX. The test is the setter: anything a template author passes in JSX **must** be props (Direct Forwarding Rule); anything fixed at class-definition level **may** be options. Per rulings: `movable`, `selectionMode`, and live-region `politeness`/`atomic` are author-set and live on props; textbox `role` is set by the public Textbox/Searchbox faces and stays in options.
+Capability options are set by the public-class definition or the parent controller — never forwarded from JSX. The test is the setter: anything a template author passes in JSX **must** be props (Direct Forwarding Rule); anything fixed at class-definition level **may** be options. Per rulings: `orientation`, `selectionMode`, and live-region `politeness`/`atomic` are author-set and live on props; text-input `role` is set by the public TextInput/SearchInput faces and stays in options.
 
 ## Role Specifications Index
 
@@ -523,13 +523,13 @@ Role-specific architectural options, props contracts, state projections, and key
 ### Composites ([`specs/composites/`](specs/composites/))
 - [Tab](specs/composites/tabs.md) (`tab` + `tab-list` + `tab-button` + `tab-panel`)
 - [Accordion](specs/composites/accordion.md) (`accordion` + `accordion-item` + `accordion-button` + `accordion-panel`)
-- [Menu & Menubar](specs/composites/menu.md) (`menubar` / `menu` + `menu-item` + `menu-item-checkbox` + `menu-item-radio` + `group`)
-- [Listbox](specs/composites/listbox.md) (`listbox` + `option` + `group`)
+- [Menu & Menubar](specs/composites/menu.md) (`menu-bar` / `menu` + `menu-item` + `menu-item-checkbox` + `menu-item-radio` + `group`)
+- [Select](specs/composites/select.md) (`select` + `option` + `group`)
 - [Combobox](specs/composites/combobox.md) (`combobox` + popup `listbox` / `grid` / `tree` / `dialog`)
 - [Treeview](specs/composites/tree.md) (`tree` + `tree-item` + `group`)
 - [Grid & Treegrid](specs/composites/grid.md) (`grid` / `treegrid` + `row` + `gridcell`)
-- [Radio Group](specs/composites/radio-group.md) (`radiogroup` + `radio`)
-- [Toggle Group](specs/composites/togglegroup.md) (`toggle-group` + `toggle`)
+- [Radio Group](specs/composites/radio-group.md) (`radio-group` + `radio`)
+- [Toggle Group](specs/composites/toggle-group.md) (`toggle-group` + `toggle`)
 - [Toolbar](specs/composites/toolbar.md) (`toolbar` + controls)
 - [Feed](specs/composites/feed.md) (`feed` + `feed-article`)
 
@@ -538,39 +538,36 @@ Role-specific architectural options, props contracts, state projections, and key
 - [Toggle](specs/widgets/toggle.md) (`toggle` two-state button)
 - [Checkbox](specs/widgets/checkbox.md) (`checkbox` binary & tri-state)
 - [Radio](specs/widgets/radio.md) (`radio` single-selection member)
-- [Option](specs/widgets/option.md) (`option` listbox/combobox member)
+- [Option](specs/widgets/option.md) (`option` select/combobox member)
 - [Switch](specs/widgets/switch.md) (`switch` boolean toggle)
-- [Textbox](specs/widgets/textbox.md) (`textbox` text input)
-- [Searchbox](specs/widgets/searchbox.md) (`searchbox` search input)
+- [Text-Input](specs/widgets/text-input.md) (`text-input` text input)
+- [Search-Input](specs/widgets/search-input.md) (`search-input` search input)
 - [Slider](specs/widgets/slider.md) (`slider` numeric range)
-- [Spinbutton](specs/widgets/spinbutton.md) (`spinbutton` number stepper)
+- [Number-Stepper](specs/widgets/number-stepper.md) (`number-stepper` number stepper)
 - [Progressbar](specs/widgets/progressbar.md) (`progressbar` deterministic & indeterminate)
 - [Scrollbar](specs/widgets/scrollbar.md) (`scrollbar` container sync)
-- [Separator](specs/widgets/separator.md) (`separator` static & movable splitter)
+- [Divider](specs/widgets/divider.md) (`divider` static divider)
+- [Splitter](specs/widgets/splitter.md) (`splitter` movable splitter)
 - [Dialog](specs/widgets/dialog.md) (`dialog` modal overlay)
-- [Alertdialog](specs/widgets/alertdialog.md) (`alertdialog` urgent modal overlay)
+- [Confirm](specs/widgets/confirm.md) (`confirm` urgent modal overlay)
 - [Tooltip](specs/widgets/tooltip.md) (`tooltip` advisory overlay)
 - [Popover](specs/widgets/popover.md) (`popover` disclosure overlay)
 - [Link](specs/widgets/link.md) (`link` navigation trigger)
 
 ### Landmarks ([`specs/landmarks/`](specs/landmarks/))
 - [Overview](specs/landmarks/landmarks.md)
-- [Banner](specs/landmarks/banner.md) (`banner`)
+- [Header](specs/landmarks/header.md) (`header`)
 - [Main](specs/landmarks/main.md) (`main`)
 - [Navigation](specs/landmarks/navigation.md) (`navigation`)
-- [Complementary](specs/landmarks/complementary.md) (`complementary`)
-- [Contentinfo](specs/landmarks/contentinfo.md) (`contentinfo`)
+- [Sidebar](specs/landmarks/sidebar.md) (`sidebar`)
+- [Footer](specs/landmarks/footer.md) (`footer`)
 - [Search](specs/landmarks/search.md) (`search`)
 - [Form](specs/landmarks/form.md) (`form`)
-- [Region](specs/landmarks/region.md) (`region`)
+- [Section](specs/landmarks/section.md) (`section`)
 
 ### Live Regions ([`specs/live/`](specs/live/))
 - [Overview](specs/live/live-regions.md)
-- [Alert](specs/live/alert.md) (`alert`)
-- [Status](specs/live/status.md) (`status`)
-- [Log](specs/live/log.md) (`log`)
-- [Timer](specs/live/timer.md) (`timer`)
-- [Marquee](specs/live/marquee.md) (`marquee`)
+- [Announcer](specs/live/announcer.md) (`announcer`)
 
 ---
 

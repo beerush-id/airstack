@@ -1,9 +1,9 @@
-# Banner Landmark Specification
+# Header Landmark Specification
 
-A banner landmark represents the prime header area for a page, typically containing site identity, logo, or global navigation controls.
+A header is the prime header area an author holds at the start of a page, typically containing site identity, logo, or global navigation controls.
 
-- **Role**: `banner`
-- **WAI-ARIA Role**: `banner`
+- **Entity**: `header`
+- **WAI-ARIA Role**: `banner` (compiled output)
 
 ---
 
@@ -12,7 +12,7 @@ A banner landmark represents the prime header area for a page, typically contain
 | Context | HTML Semantic | WAI-ARIA Semantic | Aria Package Semantic Contract |
 | :--- | :--- | :--- | :--- |
 | **Native Header** | Native `<header>` element scoped directly to `<body>`. | Implicit `role="banner"`. Explicit `role` omitted. | Static landmark. Max 1 per document. |
-| **Custom Banner** | Non-semantic element (`<div>`). | `role="banner"`. | Compiles `role="banner"`. |
+| **Custom Header** | Non-semantic element (`<div>`). | `role="banner"`. | Compiles `role="banner"`. |
 
 ---
 
@@ -21,13 +21,13 @@ A banner landmark represents the prime header area for a page, typically contain
 ### 1. Options & Props Contracts
 
 ```ts
-export interface BannerOptions {
+export interface HeaderOptions {
   /** Whether bound to native <header> (default: true) */
   native?: boolean;
 }
 
-export interface BannerProps {
-  /** Accessible label if multiple banners exist */
+export interface HeaderProps {
+  /** Accessible label if multiple headers exist */
   label?: string;
   /** Element ID providing accessible label */
   labelledby?: string;
@@ -37,10 +37,10 @@ export interface BannerProps {
 ### 2. Overload Contract
 
 ```ts
-// Banner: Prime header landmark
+// Header: Prime header landmark
 export function aria<E extends BaseElement = HTMLElement>(
-  role: 'banner',
-  props?: BannerProps,
-  options?: BannerOptions
-): BannerAria<E>;
+  role: 'header',
+  props?: HeaderProps,
+  options?: HeaderOptions
+): HeaderAria<E>;
 ```
