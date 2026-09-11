@@ -1,0 +1,359 @@
+---
+nav: 'Storage'
+nav-priority: 20
+title: 'Image Storage'
+description: 'Isomorphic image storage, eager variant generation, client pre-rendering, progress tracking, and cascading deletion.'
+keywords:
+  - Image Storage
+  - Image Upload
+  - IRPCFile
+  - Reactive Storage
+  - Client-Side Pre-Rendering
+  - Cascading Deletion
+---
+
+# Image Storage
+
+The storage API manages image files in Cloudflare R2, coordinating uploads, eager responsive variant generation, reactive progress tracking, and cascading deletion.
+
+## Reactive Uploads
+
+Uploads an image file to R2 via IRPC. It supports eager server-side variant generation before resolving, pre-rendered client variants, and reactive `.later()` lifecycle bindings for component integration.
+
+```ts
+upload(path: string, file: IRPCFile, options?: ImageUploadOptions): RemoteState<ImageUploadState>
+```
+
+### Parameters
+
+- `path` *(string)*: Destination storage path in R2 (e.g. `'users/1/avatar.png'`).
+- `file` *(IRPCFile)*: Binary asset packaged with file metadata (`name`, `size`, `type`).
+- `options` *(ImageUploadOptions, optional)*: Eager server resize presets or pre-rendered client variants.
+  - `options.sizes` *(Resize[], optional)*: Target variant dimensions for eager server-side container resizing.
+  - `options.variants` *(Variant[], optional)*: Pre-rendered client variants to store directly in R2.
+
+### Return State
+
+Returns a reactive `RemoteState<ImageUploadState>` that doubles as a `Promise<ImageUploadState>`. In reactive UI components, the state updates automatically through each stage:
+
+- `state.step` *('original' | 'variants' | 'resize' | 'complete')*: The active phase of the upload pipeline.
+- `state.progress` *(string)*: Human-readable status description for the current step.
+- `state.path` *(string)*: Normalized destination storage path.
+- `state.type` *(string)*: MIME type of the uploaded file.
+- `state.size` *(number)*: Total size in bytes of the stored primary asset.
+
+### Usage
+
+:::code-group
+
+```tsx [React]
+import { IRPCFile } from '@irpclib/irpc';
+import { upload } from '@irpclib/r2-image';
+import { setup } from '@airlib/react';
+
+export const AvatarUploader = setup(() => {
+  const uploader = upload.later();
+
+  const onFileChange = (event: Event) => {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    const payload = new IRPCFile(
+      { name: file.name, size: file.size, type: file.type },
+      file
+    );
+    uploader.dispatch('users/avatar.png', payload, {
+      sizes: [
+        { name: 'thumb', width: 128, height: 128, format: 'webp' },
+        { name: 'preview', size: 800, format: 'webp' },
+      ],
+    });
+  };
+
+  return () => {
+    if (uploader.status === 'pending') {
+      return (
+        <div>
+          <span>{uploader.data?.progress}</span>
+        </div>
+      );
+    }
+
+    return (
+      <input type="file" accept="image/*" onChange={onFileChange} />
+    );
+  };
+});
+```
+
+```tsx [SolidJS]
+import { IRPCFile } from '@irpclib/irpc';
+import { upload } from '@irpclib/r2-image';
+import { setup } from '@airlib/solid';
+
+export const AvatarUploader = setup(() => {
+  const uploader = upload.later();
+
+  const onFileChange = (event: Event) => {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    const payload = new IRPCFile(
+      { name: file.name, size: file.size, type: file.type },
+      file
+    );
+    uploader.dispatch('users/avatar.png', payload, {
+      sizes: [
+        { name: 'thumb', width: 128, height: 128, format: 'webp' },
+        { name: 'preview', size: 800, format: 'webp' },
+      ],
+    });
+  };
+
+  return () => {
+    if (uploader.status === 'pending') {
+      return (
+        <div>
+          <span>{uploader.data?.progress}</span>
+        </div>
+      );
+    }
+
+    return (
+      <input type="file" accept="image/*" onChange={onFileChange} />
+    );
+  };
+});
+```
+
+```ts [Universal]
+import { IRPCFile } from '@irpclib/irpc';
+import { upload } from '@irpclib/r2-image';
+
+const payload = new IRPCFile(
+  { name: file.name, size: file.size, type: file.type },
+  file
+);
+
+const result = await upload('banners/hero.jpg', payload, {
+  sizes: [
+    { name: 'mobile', size: 480, format: 'webp' },
+    { name: 'desktop', size: 1200, format: 'webp' },
+  ],
+});
+
+console.log('Stored:', result.path, result.size);
+```
+
+:::
+
+## Eager Variant Presets
+
+If you need specific variant sizes generated immediately upon upload, pass `sizes` to `upload()`. The server renders and stores those variants alongside the original file in R2 before completing the request.
+
+```ts
+interface Resize {
+  name?: string;
+  size?: number;
+  width?: number;
+  height?: number;
+  format?: 'webp' | 'avif' | 'png' | 'jpeg';
+  quality?: number;
+  fit?: 'cover' | 'contain' | 'inside';
+  blur?: number;
+}
+```
+
+### Parameters
+
+- `name` *(string, optional)*: Semantic preset name (e.g. `'thumb'`, `'preview'`) accessible via `?name=preset` delivery URLs.
+- `size` *(number, optional)*: Target bounding box capping the longest edge in pixels, preserving aspect ratio.
+- `width` *(number, optional)*: Explicit target width in pixels.
+- `height` *(number, optional)*: Explicit target height in pixels.
+- `format` *('webp' | 'avif' | 'png' | 'jpeg', optional, default `'webp'`)*: Output image compression format.
+- `quality` *(number, optional, default `80`)*: Compression quality between `1` and `100`.
+- `fit` *('cover' | 'contain' | 'inside', optional)*: Dimension fitting strategy.
+- `blur` *(number, optional)*: Gaussian blur radius (useful for generating Low-Quality Image Placeholders / LQIP).
+
+### Usage
+
+```ts [src/upload.ts]
+await upload('products/item-1.jpg', file, {
+  sizes: [
+    { name: 'thumb', width: 120, height: 120, format: 'webp' },
+    { name: 'catalog', size: 600, format: 'webp' },
+    { name: 'zoom', size: 1600, format: 'webp' },
+  ],
+});
+```
+
+## Client-Side Pre-Rendering
+
+If you need to eliminate server container execution costs entirely, you can resize variants directly on the client before uploading. Pre-rendered variants are passed to `upload()` and saved straight to R2.
+
+```ts
+resize(source: ImageSource, options?: Resize): Promise<IRPCFile>
+```
+
+### Parameters
+
+- `source` *(ImageSource)*: Input image source (`IRPCFile | Blob | Uint8Array | ArrayBuffer`).
+- `options` *(Resize, optional)*: Target dimensions, format, quality, and blur radius.
+
+### Variant Interface
+
+```ts
+interface Variant extends Resize {
+  file: IRPCFile;
+}
+```
+
+- `file` *(IRPCFile)*: Client-rendered binary file to persist into storage.
+
+### Usage
+
+```ts [src/client-crop.ts]
+import { resize, upload } from '@irpclib/r2-image';
+
+// Pre-render variant on the client device to avoid server container execution
+const thumbFile = await resize(rawFile, {
+  width: 128,
+  height: 128,
+  format: 'webp',
+});
+
+// Upload original and pre-rendered variant directly to R2
+await upload('users/avatar.png', rawFile, {
+  variants: [
+    { name: 'thumb', file: thumbFile, format: 'webp' },
+  ],
+});
+```
+
+:::warning
+In browser runtimes, `resize()` executes `@napi-rs/image` via WebAssembly (`.wasm`). This is an explicit trade-off: you offload server container billing to the client device, at the cost of additional network payload (uploading multiple files) and client WASM bundle size.
+:::
+
+## Upload Progress Tracking
+
+If you need to track upload progress or display step-by-step status in your UI, you can subscribe to the state returned by `upload()`. It emits reactive updates as each stage completes.
+
+```ts [src/progress.ts]
+const task = upload('gallery/photo.png', file, {
+  sizes: [{ name: 'thumb', width: 100, height: 100 }],
+});
+
+task.subscribe((state) => {
+  console.log(`Current step: ${state.step}`);
+  console.log(`Status: ${state.progress}`);
+});
+
+const result = await task;
+console.log(`File saved to ${result.path} (${result.size} bytes)`);
+```
+
+## Storage Metadata
+
+Retrieves metadata for a stored image in R2.
+
+```ts
+info(path: string): Promise<ImageMetadata | undefined>
+```
+
+### Parameters
+
+- `path` *(string)*: Destination storage path in R2.
+
+### Return Type
+
+Returns an `ImageMetadata` object when found, or `undefined` if the object does not exist:
+
+```ts
+interface ImageMetadata {
+  path: string;
+  type: string;
+  size: number;
+  uploadedAt: string;
+  etag: string;
+}
+```
+
+- `path` *(string)*: Normalized path in storage (e.g. `'/photos/vacation.png'`).
+- `type` *(string)*: MIME type matching standard File/Blob dictionaries.
+- `size` *(number)*: Total file size in bytes.
+- `uploadedAt` *(string)*: ISO timestamp of object creation.
+- `etag` *(string)*: Entity tag (ETag) of the R2 object.
+
+### Usage
+
+```ts [src/meta.ts]
+import { info } from '@irpclib/r2-image';
+
+const metadata = await info('users/avatar.png');
+if (metadata) {
+  console.log(`Size: ${metadata.size}, Type: ${metadata.type}, Uploaded: ${metadata.uploadedAt}`);
+}
+```
+
+## Cascading Asset Deletion
+
+Deletes an original image along with every co-located variant matching the file prefix without leaving orphaned files behind.
+
+```ts
+remove(path: string): Promise<boolean>
+```
+
+### Parameters
+
+- `path` *(string)*: Destination storage path in R2 whose primary asset and matching variants will be purged.
+
+### Return Value
+
+Returns `Promise<boolean>`, resolving to `true` when deletion completes successfully.
+
+### Usage
+
+```ts [src/cleanup.ts]
+import { remove } from '@irpclib/r2-image';
+
+// Purges the source asset and every associated variant in R2.
+await remove('users/avatar.png');
+```
+
+## Client Configuration
+
+Configures the base URL for public image delivery and optional API key credentials for signed mutation calls.
+
+```ts
+configure(config: ClientConfig): void
+```
+
+### Parameters
+
+```ts
+interface ClientConfig {
+  baseUrl?: string;
+  apiKey?: string;
+}
+```
+
+- `config.baseUrl` *(string, optional)*: Base URL of the image service worker (e.g. `'https://images.example.com'`). Automatically prepended by `url()`.
+- `config.apiKey` *(string, optional)*: Shared secret API key sent via authorization headers for upload and deletion operations when protection is configured.
+
+### Usage
+
+```ts [src/config.ts]
+import { configure } from '@irpclib/r2-image';
+
+configure({
+  baseUrl: 'https://images.example.com',
+  apiKey: process.env.IMAGE_SERVICE_API_KEY,
+});
+```
+
+## Next Steps
+
+- **[Image Delivery](/docs/r2-image/delivery)** — Learn about URL parameters, edge caching, and orientation-agnostic sizing
+- **[Worker & Container Deployment](/docs/r2-image/deployment)** — Deploy the worker and container resizer to Cloudflare

@@ -1,0 +1,135 @@
+---
+nav: 'Deployment'
+nav-priority: 40
+title: 'Worker & Container Deployment'
+description: 'Deploying R2 Image on Cloudflare Workers, Cloudflare Containers, and R2 with Wrangler.'
+keywords:
+  - Cloudflare Containers
+  - Cloudflare Workers
+  - Cloudflare R2
+  - Wrangler Deployment
+  - Docker Image
+---
+
+# Deployment
+
+Deploying R2 Image combines a Cloudflare Worker edge router with a private container resizer and an R2 storage bucket. The Worker mediates all client requests and calls the container privately via internal Durable Object RPC without exposing the container to the public internet.
+
+## Worker Configuration
+
+Initializes the Cloudflare Worker fetch handler, routing incoming traffic between the internal IRPC router and high-speed Edge image delivery.
+
+```ts
+createWorker<Env extends ImageWorkerEnv = ImageWorkerEnv>(config?: ImageWorkerConfig<Env>): ImageWorkerHandler<Env>
+```
+
+### Parameters
+
+```ts
+interface ImageWorkerConfig<Env = ImageWorkerEnv> {
+  bucket?: keyof Env | ((env: Env) => R2Bucket);
+  resizer?: keyof Env | ((env: Env) => DurableObjectNamespace | Fetcher | string);
+  sizes?: Resize[];
+  allowedSizes?: (number | Resize)[];
+  onDemand?: boolean;
+  cache?: {
+    browserTtl?: number;
+    edgeTtl?: number;
+  };
+}
+```
+
+- `config.sizes` *(Resize[], optional)*: Default eager variants rendered automatically on upload.
+- `config.allowedSizes` *((number | Resize)[], optional)*: Whitelist of allowed dimensions or presets to prevent compute exhaustion.
+- `config.onDemand` *(boolean, optional, default `true`)*: Enables dynamic container transformation on cache misses. When set to `false`, only pre-rendered variants stored in R2 are served.
+- `config.cache.browserTtl` *(number, optional, default `86400`)*: Browser `Cache-Control: max-age` in seconds (1 day).
+- `config.cache.edgeTtl` *(number, optional, default `2592000`)*: Cloudflare Edge Cache `s-maxage` in seconds (30 days).
+- `config.bucket` *(keyof Env | function, optional, default `'IMAGES'`)*: Custom R2 bucket binding name or factory resolver.
+- `config.resizer` *(keyof Env | function, optional, default `'RESIZER'`)*: Custom container binding name or factory resolver.
+
+### Usage
+
+```ts [src/index.ts]
+import { Container } from '@cloudflare/containers';
+import { createWorker } from '@irpclib/r2-image/worker';
+
+export class ImageResizer extends Container {
+  defaultPort = 8080;
+}
+
+export default createWorker({
+  sizes: [
+    { name: 'thumb', width: 128, height: 128, format: 'webp' },
+    { name: 'display', size: 1024, format: 'webp' },
+  ],
+  allowedSizes: [128, 256, 512, 1024],
+  onDemand: true,
+  cache: {
+    browserTtl: 86400,
+    edgeTtl: 2592000,
+  },
+});
+```
+
+## Wrangler Configuration
+
+Cloudflare Workers consume prebuilt container images directly from GitHub Container Registry without maintaining a local Docker build:
+
+```jsonc [wrangler.jsonc]
+{
+  "name": "media-service",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-11",
+  "r2_buckets": [
+    {
+      "binding": "IMAGES",
+      "bucket_name": "app-media"
+    }
+  ],
+  "containers": [
+    {
+      "class_name": "ImageResizer",
+      "image": "ghcr.io/beerush-id/r2-image:latest",
+      "max_instances": 5
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "RESIZER",
+        "class_name": "ImageResizer"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["ImageResizer"]
+    }
+  ]
+}
+```
+
+## Private Container Isolation
+
+Cloudflare Containers run inside a private network boundary without public IP addresses or DNS routes:
+
+- **No Public Ingress** — Direct internet access to the container is impossible.
+- **Worker Mediation** — All invocations occur exclusively via internal Durable Object RPC (`env.RESIZER.get(...)`).
+- **Edge Cache Shield** — Repeat requests are served directly from Cloudflare Edge Cache or R2 storage. The container is never invoked for cached variants.
+- **On-Demand Lockdown** — Setting `onDemand: false` completely disables dynamic transforms, returning 404 for uncached sizes and eliminating container compute for public visitors.
+
+## Environment Bindings Reference
+
+| Binding | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `IMAGES` | R2 Bucket Binding | Yes | Storage bucket for original media and cached variants. |
+| `RESIZER` | Container / Service Binding | Yes | Durable Object container namespace or Service Binding for container resizing. |
+| `R2_IMAGE_API_KEY` | Secret | No | When defined, mutating operations (`upload`, `remove`) require a matching `apiKey`. |
+| `R2_IMAGE_ORIGINS` | Variable | No | Comma-separated allowed origins (e.g. `https://example.com`) for CORS enforcement. |
+
+## Next Steps
+
+- **[Overview](/docs/r2-image)** — Overview and three-tier media architecture
+- **[Image Storage](/docs/r2-image/storage)** — Upload files, stream progress, and prepare eager variants
+- **[Image Delivery](/docs/r2-image/delivery)** — Edge caching, orientation-agnostic sizing, and dimension whitelisting

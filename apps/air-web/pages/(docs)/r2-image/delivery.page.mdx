@@ -1,0 +1,105 @@
+---
+nav: 'Delivery'
+nav-priority: 30
+title: 'Image Delivery'
+description: 'Fast edge delivery, permanent variant caching, orientation-agnostic sizing, and dimension whitelisting.'
+keywords:
+  - Image Delivery
+  - Edge Caching
+  - Cloudflare Edge
+  - Longest Edge Sizing
+  - Allowed Sizes Whitelist
+---
+
+# Image Delivery
+
+Images stored in R2 are served through standard HTTP GET requests using plain `<img>` tags. When an image is requested with transformation parameters, the Cloudflare Worker checks for an existing variant in R2. On a cache hit, the variant is returned immediately from storage with edge cache headers; on a cache miss, the container resizer generates the variant, persists it back to R2, and serves it.
+
+## Delivery URLs
+
+Constructs a public delivery URL with requested transformations, automatically prepending your configured base URL.
+
+```ts
+url(path: string, options?: Resize, base?: string): string
+```
+
+### Parameters
+
+- `path` *(string)*: Stored image path in R2 (e.g. `'photos/hero.jpg'`).
+- `options` *(Resize, optional)*: Transformation parameters (`size`, `width`, `height`, `format`, `quality`, `fit`, `blur`, `name`).
+- `base` *(string, optional)*: Optional base URL override (defaults to the value set via `configure({ baseUrl })`).
+
+### Return Value
+
+Returns a formatted URL string with query parameters (e.g. `'https://cdn.example.com/photos/hero.jpg?s=640&f=webp'`).
+
+### Usage
+
+```tsx
+import { url } from '@irpclib/r2-image';
+
+// Standard HTML <img> tag with manually constructed query
+<img src="https://cdn.example.com/photos/hero.jpg?s=640&f=webp" alt="Hero" />
+
+// Or constructed with the url() helper
+<img src={url('photos/hero.jpg', { size: 640, format: 'webp' })} alt="Hero" />
+```
+
+## Longest-Edge Orientation Normalization
+
+If you need to resize images with mixed orientations (such as portrait and landscape photos) without distorting aspect ratios, you can use the `size` (or `s`) parameter. It caps whichever edge is longest and scales the opposing axis proportionally:
+
+- **Landscape images**: caps the width and scales the height proportionally.
+- **Portrait images**: caps the height and scales the width proportionally.
+- **Square images**: scales both axes equally.
+
+```ts [src/gallery.ts]
+import { url } from '@irpclib/r2-image';
+
+// Bounds the longest edge to 640px regardless of whether the photo is landscape or portrait.
+const photoUrl = url('gallery/photo.jpg', { size: 640, format: 'webp' });
+// Generated URL: /gallery/photo.jpg?s=640&f=webp
+```
+
+## Abuse Prevention with Allowed Sizes
+
+If you need to protect your infrastructure from arbitrary resizing queries and uncontrolled compute costs, you can declare an `allowedSizes` whitelist in your worker configuration.
+
+```ts [src/worker.ts]
+import { createWorker } from '@irpclib/r2-image/worker';
+
+export default createWorker({
+  sizes: [
+    { name: 'thumbnail', width: 128, height: 128, format: 'webp' },
+  ],
+  allowedSizes: [
+    128,
+    256,
+    640,
+    1024,
+    { name: 'cover', width: 1200, height: 630, format: 'webp' },
+  ],
+});
+```
+
+When an incoming query requests dimensions outside the permitted whitelist, the worker skips container transformation entirely and serves the original image with standard caching headers.
+
+## Query Parameters Reference
+
+The delivery worker supports these query parameters on image URLs:
+
+| Parameter | Query Key | Description |
+| :--- | :--- | :--- |
+| Named Preset | `name`, `v` | Resolves a pre-configured variant defined in the worker configuration. |
+| Longest Edge | `s`, `size` | Constrains the maximum dimension across width and height while maintaining aspect ratio. |
+| Target Width | `w`, `width` | Sets an explicit pixel width. |
+| Target Height | `h`, `height` | Sets an explicit pixel height. |
+| Image Format | `f`, `format` | Encodes output as WebP, AVIF, PNG, or JPEG. |
+| Quality | `q`, `quality` | Sets compression quality from 1 to 100. |
+| Fit Strategy | `fit` | Controls content fitting (`cover`, `contain`, `inside`). |
+| Blur Radius | `b`, `blur` | Applies Gaussian blur for low-quality image placeholders. |
+
+## Next Steps
+
+- **[Image Storage](/docs/r2-image/storage)** — Upload files, stream progress, and prepare eager variants
+- **[Worker & Container Deployment](/docs/r2-image/deployment)** — Deploy the worker and container resizer to Cloudflare

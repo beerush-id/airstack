@@ -1,0 +1,152 @@
+---
+nav: 'Getting Started'
+nav-priority: 15
+title: 'Getting Started'
+description: 'Install @irpclib/r2-image, set up your Cloudflare Worker with R2 and Containers, and deliver your first optimized image.'
+keywords:
+  - R2 Image Getting Started
+  - Installation
+  - Quickstart
+  - Cloudflare Worker Image Resizing
+---
+
+# Getting Started
+
+**Set Up Self-Hosted Image Optimization in Minutes**
+
+In this guide, you will install `@irpclib/r2-image`, configure a Cloudflare Worker with R2 storage and a private container resizer, upload an image, and render a responsive thumbnail in an `<img>` tag.
+
+## Installation
+
+Install the core package and its peer dependency:
+
+:::code-group
+
+```sh [Bun]
+bun add @irpclib/r2-image @irpclib/irpc
+bun add -D @cloudflare/containers
+```
+
+```sh [NPM]
+npm install @irpclib/r2-image @irpclib/irpc
+npm install -D @cloudflare/containers
+```
+
+```sh [PNPM]
+pnpm add @irpclib/r2-image @irpclib/irpc
+pnpm add -D @cloudflare/containers
+```
+
+```sh [Yarn]
+yarn add @irpclib/r2-image @irpclib/irpc
+yarn add -D @cloudflare/containers
+```
+
+:::
+
+## 1. Create the Worker
+
+Create your worker entrypoint. Export the container class alongside the worker fetch handler:
+
+```ts [src/worker.ts]
+import { Container } from '@cloudflare/containers';
+import { createWorker } from '@irpclib/r2-image/worker';
+
+export class ImageResizer extends Container {
+  defaultPort = 8080;
+}
+
+export default createWorker({
+  sizes: [
+    { name: 'thumbnail', width: 128, height: 128, format: 'webp' },
+    { name: 'preview', size: 800, format: 'webp' },
+  ],
+  allowedSizes: [128, 256, 800, 1200],
+});
+```
+
+## 2. Configure Cloudflare Bindings
+
+Configure your `wrangler.jsonc` file with your R2 bucket and container bindings. Cloudflare pulls the prebuilt resizer image directly from GitHub Container Registry:
+
+```jsonc [wrangler.jsonc]
+{
+  "name": "media-service",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-09-11",
+  "r2_buckets": [
+    {
+      "binding": "IMAGES",
+      "bucket_name": "app-media"
+    }
+  ],
+  "containers": [
+    {
+      "class_name": "ImageResizer",
+      "image": "ghcr.io/beerush-id/r2-image:latest",
+      "max_instances": 5
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "RESIZER",
+        "class_name": "ImageResizer"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["ImageResizer"]
+    }
+  ]
+}
+```
+
+## 3. Upload an Image
+
+Upload an asset using `upload()`. Variants defined in your worker configuration (or passed in the call) are rendered and stored in R2 immediately:
+
+```ts [src/upload.ts]
+import { IRPCFile } from '@irpclib/irpc';
+import { upload } from '@irpclib/r2-image';
+
+const avatar = new IRPCFile(
+  { name: file.name, size: file.size, type: file.type },
+  file
+);
+
+// Uploads original and generates thumbnail in R2
+await upload('users/1/avatar.png', avatar, {
+  sizes: [
+    { name: 'thumbnail', width: 128, height: 128, format: 'webp' },
+  ],
+});
+```
+
+## 4. Render the Image
+
+Because variants are generated eagerly and stored directly in R2, your delivery URLs work on the very first render with sub-second response times:
+
+```html
+<!-- Named preset -->
+<img src="https://images.example.com/users/1/avatar.png?name=thumbnail" />
+
+<!-- Dynamic orientation-agnostic sizing -->
+<img src="https://images.example.com/users/1/avatar.png?s=640&f=webp" />
+```
+
+Or generate URLs programmatically with the `url()` helper:
+
+```ts
+import { url } from '@irpclib/r2-image';
+
+const src = url('users/1/avatar.png', { name: 'thumbnail' });
+```
+
+## Next Steps
+
+- **[Image Storage](/docs/r2-image/storage)** — Progress streaming, client-side pre-rendering, and cascading asset deletion
+- **[Image Delivery](/docs/r2-image/delivery)** — Edge caching, orientation-agnostic sizing, and dimension whitelisting
+- **[Worker & Container Deployment](/docs/r2-image/deployment)** — Production deployment, security, and environment bindings

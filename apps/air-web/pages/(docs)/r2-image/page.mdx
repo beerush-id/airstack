@@ -1,0 +1,217 @@
+---
+nav: 'Overview'
+nav-icon: storage
+nav-priority: 10
+title: 'AirLib R2 Image'
+description: 'Zero-egress image optimization and delivery on Cloudflare Workers, R2, and Containers.'
+keywords:
+  - R2 Image
+  - Cloudflare R2
+  - Cloudflare Workers
+  - Cloudflare Containers
+  - Zero Egress
+  - Image Optimization
+  - Image Resizing
+  - Sharp Alternative
+  - Vercel Image Alternative
+---
+
+# AirLib R2 Image
+
+**Self-Hosted, Zero-Egress Image Optimization on Cloudflare**
+
+At its core, image optimization exists for one line of HTML:
+
+```html
+<img src="https://cdn.mydomain.com/users/93/avatar.png?name=thumbnail" />
+```
+
+Delivering fast, responsive images directly to user interfaces is what drives modern web performance and user experience. But behind that single image tag lies a massive infrastructure cost.
+
+:::details[The $59,000/year image optimization tax]
+To deliver responsive images today, developers are traditionally trapped between two costly extremes:
+
+- **SaaS image CDNs (Vercel, Cloudinary, Imgix)**: Quick to set up, but they charge steep per-transformation fees that grow aggressively with traffic. Optimizing 1,000,000 unique images per month costs **$59,000 a year on Vercel** ($5 per 1,000 transformations after included plan limits). Basic responsive images become a massive recurring cloud bill.
+- **Self-hosted image clusters (EC2, ECS, Fly.io)**: You escape SaaS markups, but inherit infrastructure overhead: managing auto-scaling container fleets, handling memory spikes during traffic bursts, and paying heavy data egress fees just to pull original assets out of AWS S3.
+:::
+
+:::tip[What if:]
+**1,000,000 image transformations cost ~$15/month on your own Cloudflare infrastructure?**
+:::
+
+R2 Image combines **Cloudflare Workers** (edge routing and caching), **Cloudflare R2** (zero data egress storage), and private **Cloudflare Containers** (isolated container compute for image transformations) into a single self-hosted media engine:
+
+**Setup your worker**
+
+```ts [src/worker.ts]
+import { createWorker } from '@irpclib/r2-image/worker';
+
+export default createWorker();
+```
+
+**Upload the file**
+
+```ts [src/upload.ts]
+import { upload } from '@irpclib/r2-image';
+
+await upload('users/avatar.png', file);
+```
+
+**Display on native image**
+
+```html
+<img src="https://cdn.mydomain.com/users/avatar.png?s=640&f=webp" />
+```
+
+Subsequent requests hit Cloudflare Edge Cache or R2 storage directly, incurring zero container compute and zero egress fees.
+
+## Too Good To Be True?
+
+A **~$200/year** vs. **$59,000/year** difference may sound too good to be true. But, here is how the benchmark data grounds the pricing:
+
+:::info[Benchmark Payload]
+**AI-generated Image**: 1376×768 JPEG (992 KB) → 320×180 WebP thumbnail.
+:::
+
+| Metric | Measured Value | Pricing Impact |
+| :--- | :---: | :--- |
+| **Active Processing Time** | **80 ms** (Cloudflare server vCPU) | 1,000,000 transforms consume only **~22 hours of total vCPU compute** |
+| **Container Memory** | **~120 MiB** | Negligible footprint (< 3% of provisioned RAM; zero OOM risk) |
+| **Output Size** | **19.6 KB** (98% reduction) | 1,000,000 variants require only **~19 GB** in R2 |
+
+**Cloudflare Line-Item Cost Breakdown**
+
+- **Cloudflare Workers Paid**: **$5.00/month** (includes 10M requests; additional requests are only **$0.30 per million**).
+- **Container Compute (Scale-to-Zero)**: **~$1.50 – $8.00/month** (1M transforms × ~80 ms consumes ~80,000 instance-seconds; micro-metered by the millisecond).
+- **Container Compute (Dedicated 24/7 Pool)**: **~$27 – $40/month** (running a dedicated instance 24/7 without scale-to-zero for zero cold starts; sustains ~12–16 transforms/sec continuously).
+- **Cloudflare R2 Storage**: **~$0.15/month** (1M variant writes are free within R2's monthly quota; ~19 GB stored is $0.15 after the 10 GB free tier; **$0 data egress**).
+- **Repeat Views & Delivery**: Cached at Cloudflare Edge Cache or served directly from R2 at **$0 container compute** and **$0 egress** (10M views included free in Workers Paid, then **$0.30 per million views**).
+
+:::tip[Estimated Pricing]
+- **On-Demand (Scale-to-Zero)**: **~$10 – $15/month** (~$150–$200/year) vs. **$4,995/month** ($59,000/year) on **Vercel**.
+- **Heavy Delivery (e.g. 50M views)**: Even with 50,000,000 cached views, the extra 40M Worker requests add only **~$12.00** ($0.30/million), totaling **~$22 – $27/month**.
+- **Always-On (Without Scale-to-Zero)**: Even running 24/7 continuously, total infrastructure is only **~$32 – $45/month**—with enough headroom on that single instance to process **over 15,000,000 transforms/month** (~12 req/s sustained).
+:::
+
+## Image Storage
+
+When a user uploads an avatar or photo, you need thumbnails ready immediately. In traditional setups, you upload to storage, wait on a background job to resize the image, and deal with broken images while the user waits for the worker to finish.
+
+:::details[The friction of multi-step upload pipelines]
+To upload and resize an image today, you typically have to stitch together multiple services:
+
+- Generate presigned upload URLs on your API server.
+- Upload raw files from the browser to S3 or GCS.
+- Set up bucket event triggers and message queues (SNS/SQS).
+- Run background workers (Lambda or ECS) to generate thumbnails.
+- Poll the database or wire WebSockets to update the UI when processing finishes.
+:::
+
+:::tip[What if:]
+**Uploading an image and preparing variants is just calling a function?**
+:::
+
+```ts [src/upload.ts]
+import { IRPCFile } from '@irpclib/irpc';
+import { upload } from '@irpclib/r2-image';
+
+const avatar = new IRPCFile(
+  { name: file.name, size: file.size, type: file.type },
+  file
+);
+
+// Upload original and eagerly generate responsive variants in R2.
+await upload('users/93/avatar.png', avatar, {
+  sizes: [
+    { name: 'thumbnail', width: 128, height: 128, format: 'webp' },
+    { name: 'cover', size: 1024, format: 'webp' },
+  ],
+});
+```
+
+:::note[Learn more about Storage]
+- **[Image Storage](/docs/r2-image/storage)** — Progress streaming, client-side pre-rendering, and cascading asset deletion.
+:::
+
+## Image Delivery
+
+Showing optimized images in modern applications shouldn't force you into framework-specific wrapper components or proprietary vendor URL domains.
+
+:::details[The friction of modern image serving]
+Displaying optimized images typically forces trade-offs on frontend developers:
+
+- **Framework lock-in**: Meta-frameworks like Next.js require proprietary `<Image />` components that inject DOM wrappers, add client runtime, and enforce rigid width and height props.
+- **Vendor URL lock-in**: Hosted services like Cloudflare Images lock your assets behind `imagedelivery.net/<hash>/<id>` URLs, polluting your database with vendor IDs that break if you ever migrate.
+- **Orientation distortion**: Hardcoded width and height parameters break card and grid layouts when users upload portrait smartphone photos instead of landscape banners.
+:::
+
+:::tip[What if:]
+**Optimized images serve through plain HTML `<img>` tags on your own domain with zero framework components?**
+:::
+
+```html
+<!-- Named preset declared in worker config -->
+<img src="https://cdn.example.com/users/93/avatar.png?name=thumbnail" />
+
+<!-- Dynamic orientation-agnostic cap on the longest edge -->
+<img src="https://cdn.example.com/photos/vacation.jpg?s=640&f=webp" />
+```
+
+Or generate URLs programmatically with the `url()` helper:
+
+```ts
+import { url } from '@irpclib/r2-image';
+
+const src = url('photos/vacation.jpg', { size: 640, format: 'webp' });
+```
+
+:::note[Learn more about Delivery]
+- **[Image Delivery](/docs/r2-image/delivery)** — Orientation-agnostic sizing, dimension whitelisting (`allowedSizes`), and query parameter reference.
+:::
+
+## Image Resizing
+
+Running an image optimization backend shouldn't force you into managing multi-tier server clusters or giving up code-level control to third-party dashboards.
+
+:::details[The friction of self-hosted image backends]
+Building and operating an image optimization backend forces teams to handle extensive infrastructure and configuration hurdles:
+
+- **Server and routing boilerplate**: Writing custom HTTP servers to parse transform queries, validate sizes, and handle file uploads and deletions.
+- **Storage plumbing**: Writing S3 or R2 streaming code to fetch original files, persist transformed variants, and manage MIME types and ETags.
+- **Container fleet management**: Deploying, provisioning, and auto-scaling standalone Docker resizer instances (ECS, Fly.io, or VPS).
+- **Private networking overhead**: Configuring VPCs, firewalls, and internal proxy bridges to prevent exposing your image resizers to the public internet.
+- **Custom caching and defense**: Writing manual edge cache-control headers and dimension cycling guards from scratch.
+- **Loss of repository control in alternatives**: Managed platforms force compromises—Next.js lacks named presets and longest-edge constraints, while Cloudflare Images forces you to configure variants in web dashboard GUIs instead of version-controlled code.
+:::
+
+:::tip[What if:]
+**Your entire image backend—private container, named presets, R2 storage, and abuse guards—is configured in a single file?**
+:::
+
+```ts [src/worker.ts]
+import { Container } from '@cloudflare/containers';
+import { createWorker } from '@irpclib/r2-image/worker';
+
+export class ImageResizer extends Container {
+  defaultPort = 8080;
+}
+
+export default createWorker({
+  sizes: [
+    { name: 'thumbnail', width: 128, height: 128, format: 'webp' },
+    { name: 'cover', size: 1024, format: 'webp' },
+  ],
+  allowedSizes: [128, 256, 640, 1024],
+});
+```
+
+:::note[Learn more about Deployment]
+- **[Worker & Container Deployment](/docs/r2-image/deployment)** — Setting up Cloudflare Workers, Container bindings, and Wrangler configurations.
+:::
+
+## Next Steps
+
+- **[Getting Started](/docs/r2-image/getting-started)** — Install the packages and set up your first media service
+- **[Image Storage](/docs/r2-image/storage)** — Upload files, stream progress, and prepare eager variants
+- **[Image Delivery](/docs/r2-image/delivery)** — Edge caching, orientation-agnostic sizing, and dimension whitelisting
+- **[Worker & Container Deployment](/docs/r2-image/deployment)** — Deploy the service worker and container on Cloudflare
