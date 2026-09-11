@@ -1,7 +1,6 @@
-import { HTTPTransport } from '@irpclib/http';
 import { HTTPRouter } from '@irpclib/http/router';
 import { implement } from './constructor.js';
-import { imageModule } from './index.js';
+import { transport } from './index.js';
 import { handleImageDelivery } from './lib/index.js';
 import type { ExecutionContext, ImageWorkerConfig, ImageWorkerEnv, ImageWorkerHandler } from './types.js';
 import { handleCorsPreflight, isOriginAllowed } from './utils/index.js';
@@ -10,7 +9,7 @@ export * from './types.js';
 
 /**
  * Creates the primary Cloudflare Worker fetch handler.
- * Dispatches between the IRPC router (at /irpc) and high-speed Edge image delivery.
+ * Dispatches between the IRPC router and high-speed Edge image delivery.
  *
  * @param config Optional worker configuration overrides
  * @returns Standard Cloudflare Worker handler
@@ -18,15 +17,12 @@ export * from './types.js';
 export function createWorker<Env extends ImageWorkerEnv = ImageWorkerEnv>(
   config: ImageWorkerConfig<Env> = {}
 ): ImageWorkerHandler<Env> {
-  const irpcEndpoint = config.routes?.irpcEndpoint || '/irpc';
-  const variantPrefix = config.routes?.variantPrefix || '.variants/';
+  const variantPrefix = config.variantPrefix;
   const browserTtl = config.cache?.browserTtl || 86400;
   const edgeTtl = config.cache?.edgeTtl || 2592000;
 
-  // Bind server-side IRPC transport and router
-  const serverTransport = new HTTPTransport({ endpoint: irpcEndpoint });
-  imageModule.use(serverTransport);
-  const router = new HTTPRouter(serverTransport);
+  // Bind server-side router to the package transport
+  const router = new HTTPRouter(transport);
 
   // Wire up IRPC constructors
   implement({
@@ -50,8 +46,8 @@ export function createWorker<Env extends ImageWorkerEnv = ImageWorkerEnv>(
         return handleCorsPreflight(request, env.R2_IMAGE_ORIGINS);
       }
 
-      // 3. IRPC Operations Plane (/irpc)
-      if (url.pathname === irpcEndpoint || url.pathname.startsWith(`${irpcEndpoint}/`)) {
+      // 3. IRPC Operations Plane (only POST to transport.endpoint)
+      if (request.method === 'POST' && url.pathname === transport.endpoint) {
         return router.resolve(request, [
           ['env', env],
           ['ctx', ctx],

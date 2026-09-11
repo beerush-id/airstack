@@ -8,7 +8,7 @@ import {
 } from '@irpclib/irpc';
 import { Transformer } from '@napi-rs/image';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { handler as containerHandler } from '../container/index.js';
+import { handler as containerHandler } from '../src/container.js';
 import { info, remove, resize, upload, url } from '../src/index.js';
 import type {
   DurableObjectNamespace,
@@ -159,7 +159,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
     it('uploads user avatar with client-rendered preview thumbnail and tracks progress', async () => {
       await withContext(createContextStore(), async () => {
         const mockBucket = createMockBucket();
-        createWorker({ routes: { variantPrefix: '.variants/' } });
+        createWorker({ variantPrefix: '.variants/' });
 
         const env: ImageWorkerEnv = {
           IMAGES: mockBucket as unknown as R2Bucket,
@@ -233,9 +233,9 @@ describe('User Journey: Media Asset Lifecycle', () => {
       await stream;
 
       expect(steps).toEqual(['original', 'variants', 'complete']);
-      expect(mockBucket.store.has('.variants/gallery/photo.png/w_50_h_50.webp')).toBe(true);
-      expect(mockBucket.store.has('.variants/gallery/photo.png/w_300_h_300.webp')).toBe(false);
-      expect(mockBucket.store.has('.variants/gallery/photo.png/w_200_h_200.webp')).toBe(false);
+      expect(mockBucket.store.has('gallery/photo.png-w_50_h_50.webp')).toBe(true);
+      expect(mockBucket.store.has('gallery/photo.png-w_300_h_300.webp')).toBe(false);
+      expect(mockBucket.store.has('gallery/photo.png-w_200_h_200.webp')).toBe(false);
     });
   });
 
@@ -270,8 +270,8 @@ describe('User Journey: Media Asset Lifecycle', () => {
       await stream;
 
       expect(steps).toEqual(['original', 'resize', 'complete']);
-      expect(mockBucket.store.has('.variants/banners/banner.png/w_350_h_350.webp')).toBe(true);
-      expect(mockBucket.store.has('.variants/banners/banner.png/w_200_h_200.webp')).toBe(false);
+      expect(mockBucket.store.has('banners/banner.png-w_350_h_350.webp')).toBe(true);
+      expect(mockBucket.store.has('banners/banner.png-w_200_h_200.webp')).toBe(false);
     });
   });
 
@@ -304,7 +304,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
       await stream;
 
       expect(steps).toEqual(['original', 'resize', 'complete']);
-      expect(mockBucket.store.has('.variants/items/item.png/w_150_h_150.webp')).toBe(true);
+      expect(mockBucket.store.has('items/item.png-w_150_h_150.webp')).toBe(true);
     });
   });
 
@@ -336,7 +336,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
 
       expect(steps).toEqual(['original', 'complete']);
       expect(mockBucket.store.has('raw/raw.png')).toBe(true);
-      const listed = await mockBucket.list({ prefix: '.variants/raw/raw.png/' });
+      const listed = await mockBucket.list({ prefix: 'raw/raw.png-' });
       expect(listed.objects.length).toBe(0);
     });
   });
@@ -344,7 +344,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
   it('uploads media generating multiple responsive breakpoint variants', async () => {
     await withContext(createContextStore(), async () => {
       const mockBucket = createMockBucket();
-      createWorker({ routes: { variantPrefix: '.variants/' } });
+      createWorker({ variantPrefix: '.variants/' });
 
       const env: ImageWorkerEnv = {
         IMAGES: mockBucket as unknown as R2Bucket,
@@ -406,8 +406,8 @@ describe('User Journey: Media Asset Lifecycle', () => {
         ],
       });
 
-      expect(mockBucket.store.has('.variants/catalog/product.png/thumbnail.webp')).toBe(true);
-      expect(mockBucket.store.has('.variants/catalog/product.png/hero.webp')).toBe(true);
+      expect(mockBucket.store.has('catalog/product.png-thumbnail.webp')).toBe(true);
+      expect(mockBucket.store.has('catalog/product.png-hero.webp')).toBe(true);
 
       const thumbUrl = url('/catalog/product.png', { name: 'thumbnail' });
       const thumbRes = await worker.fetch(new Request(`https://cdn.example.com${thumbUrl}`), env, mockCtx);
@@ -438,7 +438,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
         variants: [{ name: 'avatar-sm', file: clientAvatar, format: 'webp' }],
       });
 
-      expect(mockBucket.store.has('.variants/users/u_1/avatar.png/avatar-sm.webp')).toBe(true);
+      expect(mockBucket.store.has('users/u_1/avatar.png-avatar-sm.webp')).toBe(true);
 
       const avatarUrl = url('/users/u_1/avatar.png', { name: 'avatar-sm' });
       const avatarRes = await worker.fetch(new Request(`https://cdn.example.com${avatarUrl}`), env, mockCtx);
@@ -467,7 +467,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
         resize: [{ width: 32, height: 24, blur: 10, format: 'webp' }],
       });
 
-      expect(mockBucket.store.has('.variants/gallery/landscape.png/w_32_h_24_b_10.webp')).toBe(true);
+      expect(mockBucket.store.has('gallery/landscape.png-w_32_h_24_b_10.webp')).toBe(true);
 
       const lqipUrl = url('/gallery/landscape.png', { width: 32, height: 24, blur: 10, format: 'webp' });
       const lqipRes = await worker.fetch(new Request(`https://cdn.example.com${lqipUrl}`), env, mockCtx);
@@ -495,7 +495,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
         resize: [{ name: 'lqip', width: 20, height: 20, blur: 15, format: 'webp' }],
       });
 
-      expect(mockBucket.store.has('.variants/blog/cover.png/lqip.webp')).toBe(true);
+      expect(mockBucket.store.has('blog/cover.png-lqip.webp')).toBe(true);
     });
   });
 
@@ -622,7 +622,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
 
   it('delivers pre-rendered responsive variants from storage', async () => {
     const mockBucket = createMockBucket();
-    const worker = createWorker({ routes: { variantPrefix: '.variants/' } });
+    const worker = createWorker({ variantPrefix: '.variants/' });
     const env: ImageWorkerEnv = {
       IMAGES: mockBucket as unknown as R2Bucket,
       RESIZER: createContainerResizer(),
@@ -680,7 +680,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
     expect(webpRes.status).toBe(200);
     expect(webpRes.headers.get('Content-Type')).toBe('image/webp');
 
-    expect(mockBucket.store.has('.variants/products/shoes/sneaker.png/w_320_h_213_q_75.webp')).toBe(true);
+    expect(mockBucket.store.has('products/shoes/sneaker.png-w_320_h_213_q_75.webp')).toBe(true);
 
     const cachedWebpRes = await worker.fetch(new Request(`https://cdn.example.com${webpUrl}`), env, mockCtx);
     expect(cachedWebpRes.status).toBe(200);
@@ -690,7 +690,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
     const avifRes = await worker.fetch(new Request(`https://cdn.example.com${avifUrl}`), env, mockCtx);
     expect(avifRes.status).toBe(200);
     expect(avifRes.headers.get('Content-Type')).toBe('image/avif');
-    expect(mockBucket.store.has('.variants/products/shoes/sneaker.png/w_640_h_426_q_80.avif')).toBe(true);
+    expect(mockBucket.store.has('products/shoes/sneaker.png-w_640_h_426_q_80.avif')).toBe(true);
   });
 
   it('adapts media to container layouts using fit modes', async () => {
@@ -710,17 +710,17 @@ describe('User Journey: Media Asset Lifecycle', () => {
     const coverUrl = url('/banners/hero.png', { width: 200, height: 200, fit: 'cover' });
     const coverRes = await worker.fetch(new Request(`https://cdn.example.com${coverUrl}`), env, mockCtx);
     expect(coverRes.status).toBe(200);
-    expect(mockBucket.store.has('.variants/banners/hero.png/w_200_h_200_fit_cover.webp')).toBe(true);
+    expect(mockBucket.store.has('banners/hero.png-w_200_h_200_fit_cover.webp')).toBe(true);
 
     const containUrl = url('/banners/hero.png', { width: 200, height: 200, fit: 'contain' });
     const containRes = await worker.fetch(new Request(`https://cdn.example.com${containUrl}`), env, mockCtx);
     expect(containRes.status).toBe(200);
-    expect(mockBucket.store.has('.variants/banners/hero.png/w_200_h_200_fit_contain.webp')).toBe(true);
+    expect(mockBucket.store.has('banners/hero.png-w_200_h_200_fit_contain.webp')).toBe(true);
 
     const insideUrl = url('/banners/hero.png', { width: 300, height: 300, fit: 'inside' });
     const insideRes = await worker.fetch(new Request(`https://cdn.example.com${insideUrl}`), env, mockCtx);
     expect(insideRes.status).toBe(200);
-    expect(mockBucket.store.has('.variants/banners/hero.png/w_300_h_300_fit_inside.webp')).toBe(true);
+    expect(mockBucket.store.has('banners/hero.png-w_300_h_300_fit_inside.webp')).toBe(true);
   });
 
   it('serves pre-generated variants while blocking dynamic transforms in lockdown mode', async () => {
@@ -738,7 +738,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
       data: rawImage,
       options: { httpMetadata: { contentType: 'image/png' } },
     });
-    mockBucket.store.set('.variants/secure/article.png/w_200_h_150.webp', {
+    mockBucket.store.set('secure/article.png-w_200_h_150.webp', {
       data: thumbImage,
       options: { httpMetadata: { contentType: 'image/webp' } },
     });
@@ -786,8 +786,8 @@ describe('User Journey: Media Asset Lifecycle', () => {
 
       await upload('users/42/profile.png', redFile);
 
-      expect(mockBucket.store.has('.variants/users/42/profile.png/w_100_h_100.webp')).toBe(true);
-      const oldVariantBytes = mockBucket.store.get('.variants/users/42/profile.png/w_100_h_100.webp')!.data;
+      expect(mockBucket.store.has('users/42/profile.png-w_100_h_100.webp')).toBe(true);
+      const oldVariantBytes = mockBucket.store.get('users/42/profile.png-w_100_h_100.webp')!.data;
 
       const variantUrl = url('/users/42/profile.png', { width: 100, height: 100 });
       const initialRes = await worker.fetch(new Request(`https://cdn.example.com${variantUrl}`), env, mockCtx);
@@ -810,8 +810,8 @@ describe('User Journey: Media Asset Lifecycle', () => {
       expect(updateResult.path).toBe('/users/42/profile.png');
       expect(updateResult.size).toBe(greenBuffer.byteLength);
 
-      expect(mockBucket.store.has('.variants/users/42/profile.png/w_100_h_100.webp')).toBe(true);
-      const newVariantBytes = mockBucket.store.get('.variants/users/42/profile.png/w_100_h_100.webp')!.data;
+      expect(mockBucket.store.has('users/42/profile.png-w_100_h_100.webp')).toBe(true);
+      const newVariantBytes = mockBucket.store.get('users/42/profile.png-w_100_h_100.webp')!.data;
       expect(newVariantBytes).not.toEqual(oldVariantBytes);
 
       (globalThis as unknown as { caches: { default: unknown } }).caches = {
@@ -843,8 +843,8 @@ describe('User Journey: Media Asset Lifecycle', () => {
 
       await upload('assets', fileA);
       expect(mockBucket.store.has('assets/logo.png')).toBe(true);
-      expect(mockBucket.store.has('.variants/assets/logo.png/w_100_h_100.webp')).toBe(true);
-      const variantBytesA = mockBucket.store.get('.variants/assets/logo.png/w_100_h_100.webp')!.data;
+      expect(mockBucket.store.has('assets/logo.png-w_100_h_100.webp')).toBe(true);
+      const variantBytesA = mockBucket.store.get('assets/logo.png-w_100_h_100.webp')!.data;
 
       const rawB = await createTestImage(400, 400, 240);
       const fileB = new IRPCFile({ name: 'logo.png', size: rawB.byteLength, type: 'image/png' }, new Blob([rawB as BlobPart]));
@@ -852,8 +852,8 @@ describe('User Journey: Media Asset Lifecycle', () => {
       await upload('assets', fileB);
 
       expect(mockBucket.store.has('assets/logo.png')).toBe(true);
-      expect(mockBucket.store.has('.variants/assets/logo.png/w_100_h_100.webp')).toBe(true);
-      const variantBytesB = mockBucket.store.get('.variants/assets/logo.png/w_100_h_100.webp')!.data;
+      expect(mockBucket.store.has('assets/logo.png-w_100_h_100.webp')).toBe(true);
+      const variantBytesB = mockBucket.store.get('assets/logo.png-w_100_h_100.webp')!.data;
       expect(variantBytesB).not.toEqual(variantBytesA);
     });
   });
@@ -873,7 +873,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
       await upload('content/card.png', fileA, {
         resize: [{ name: 'preview', width: 200, height: 200, format: 'webp' }],
       });
-      expect(mockBucket.store.has('.variants/content/card.png/preview.webp')).toBe(true);
+      expect(mockBucket.store.has('content/card.png-preview.webp')).toBe(true);
 
       const rawB = await createTestImage(500, 500);
       const fileB = new IRPCFile({ name: 'card.png', size: rawB.byteLength, type: 'image/png' }, new Blob([rawB as BlobPart]));
@@ -882,8 +882,8 @@ describe('User Journey: Media Asset Lifecycle', () => {
         resize: [{ name: 'hero', width: 400, height: 200, format: 'webp' }],
       });
 
-      expect(mockBucket.store.has('.variants/content/card.png/preview.webp')).toBe(false);
-      expect(mockBucket.store.has('.variants/content/card.png/hero.webp')).toBe(true);
+      expect(mockBucket.store.has('content/card.png-preview.webp')).toBe(false);
+      expect(mockBucket.store.has('content/card.png-hero.webp')).toBe(true);
       expect(mockBucket.store.has('content/card.png')).toBe(true);
     });
   });
@@ -945,17 +945,17 @@ describe('User Journey: Media Asset Lifecycle', () => {
       const rawImage = await createTestImage(600, 400);
 
       mockBucket.store.set('blog/featured-post.jpg', { data: rawImage });
-      mockBucket.store.set('.variants/blog/featured-post.jpg/w_300.webp', { data: rawImage });
-      mockBucket.store.set('.variants/blog/featured-post.jpg/w_600.webp', { data: rawImage });
-      mockBucket.store.set('.variants/blog/featured-post.jpg/w_150_h_100.webp', { data: rawImage });
+      mockBucket.store.set('blog/featured-post.jpg-w_300.webp', { data: rawImage });
+      mockBucket.store.set('blog/featured-post.jpg-w_600.webp', { data: rawImage });
+      mockBucket.store.set('blog/featured-post.jpg-w_150_h_100.webp', { data: rawImage });
 
       const removed = await remove('blog/featured-post.jpg');
       expect(removed).toBe(true);
 
       expect(mockBucket.store.has('blog/featured-post.jpg')).toBe(false);
-      expect(mockBucket.store.has('.variants/blog/featured-post.jpg/w_300.webp')).toBe(false);
-      expect(mockBucket.store.has('.variants/blog/featured-post.jpg/w_600.webp')).toBe(false);
-      expect(mockBucket.store.has('.variants/blog/featured-post.jpg/w_150_h_100.webp')).toBe(false);
+      expect(mockBucket.store.has('blog/featured-post.jpg-w_300.webp')).toBe(false);
+      expect(mockBucket.store.has('blog/featured-post.jpg-w_600.webp')).toBe(false);
+      expect(mockBucket.store.has('blog/featured-post.jpg-w_150_h_100.webp')).toBe(false);
 
       expect(await info('blog/featured-post.jpg')).toBeUndefined();
     });
@@ -980,17 +980,17 @@ describe('User Journey: Media Asset Lifecycle', () => {
       await upload('products', fileB, { resize: [{ width: 200, height: 200 }] });
 
       expect(mockBucket.store.has('products/shoe.png')).toBe(true);
-      expect(mockBucket.store.has('.variants/products/shoe.png/w_200_h_200.webp')).toBe(true);
+      expect(mockBucket.store.has('products/shoe.png-w_200_h_200.webp')).toBe(true);
       expect(mockBucket.store.has('products/shirt.png')).toBe(true);
-      expect(mockBucket.store.has('.variants/products/shirt.png/w_200_h_200.webp')).toBe(true);
+      expect(mockBucket.store.has('products/shirt.png-w_200_h_200.webp')).toBe(true);
 
       await remove('/products/shoe.png');
 
       expect(mockBucket.store.has('products/shoe.png')).toBe(false);
-      expect(mockBucket.store.has('.variants/products/shoe.png/w_200_h_200.webp')).toBe(false);
+      expect(mockBucket.store.has('products/shoe.png-w_200_h_200.webp')).toBe(false);
 
       expect(mockBucket.store.has('products/shirt.png')).toBe(true);
-      expect(mockBucket.store.has('.variants/products/shirt.png/w_200_h_200.webp')).toBe(true);
+      expect(mockBucket.store.has('products/shirt.png-w_200_h_200.webp')).toBe(true);
     });
   });
 
@@ -1118,7 +1118,7 @@ describe('User Journey: Edge Infrastructure and High Availability', () => {
       expect(res.headers.get('Content-Type')).toBe('image/webp');
     }
 
-    expect(mockBucket.store.has('.variants/events/keynote.png/w_400_h_240.webp')).toBe(true);
+    expect(mockBucket.store.has('events/keynote.png-w_400_h_240.webp')).toBe(true);
   });
 
   it('routes transformation requests through Cloudflare Service Binding', async () => {

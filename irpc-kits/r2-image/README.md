@@ -1,41 +1,189 @@
-# IRPC R2 Image
+# AirLib R2 Image
 
-High-performance image delivery, edge caching, and isomorphic uploads for Cloudflare Workers, R2, and Cloudflare Containers.
+High-performance media delivery, edge caching, and isomorphic uploads for Cloudflare Workers, Cloudflare R2, and Cloudflare Containers.
 
 Built on [**IRPC**](https://airlib.dev/docs/remote-function) and [**@napi-rs/image**](https://image.napi.rs).
 
 ---
 
-## Features
+## Architecture & Core Concerns
 
-- **Dual-Plane Architecture**:
-  - **IRPC Plane (`/irpc`)**: Type-safe isomorphic file uploads (`IRPCFile`), metadata inspection, and deletions with reactive `.later()` bindings.
-  - **Edge Delivery Plane (`GET /*`)**: Instant binary streaming for `<img>` tags powered by Cloudflare `caches.default`.
-- **Private Container Resizer**: Executes inside a native Cloudflare Container (Durable Object) using `@napi-rs/image` Rust `Transformer`. Zero public exposure, scale-to-zero when idle.
-- **Zero Egress Fees**: Stores raw originals and generated variants directly in Cloudflare R2.
-- **Eager Variant Generation**: Generates responsive variants synchronously during upload so they are instantly warm and cached when the user finishes uploading.
+**AirLib R2 Image** unifies asset ingestion, transformation, and distribution into a dual-plane architecture designed for zero egress fees and minimal edge compute overhead:
+
+- **Ingestion & Control Plane (`/irpc`)**: A type-safe isomorphic RPC surface providing streaming file uploads (`IRPCFile`), observable progress tracking, metadata inspection, and cascading lifecycle mutations.
+- **Edge Delivery Plane (`GET /*`)**: A high-throughput binary delivery pipeline serving `<img>` tags and HTTP clients directly from Cloudflare Edge Cache (`caches.default`) and R2 storage.
+- **Dedicated Container Resizer**: Offloads CPU-intensive image resizing to private Cloudflare Containers (Durable Objects) or Service Bindings powered by native Rust image transformations (`@napi-rs/image`).
+- **Eager Variant Generation & Lockdown Mode**: Generates responsive variants and blurred placeholders (LQIP) during upload so they are warm on delivery. In strict environments (`onDemand: false`), dynamic transforms are locked down to prevent compute spikes.
 
 ---
 
-## 1. Cloudflare Worker Deployment
+## Installation
 
-### `wrangler.jsonc`
+```bash
+bun add @irpclib/r2-image @irpclib/irpc
+```
+
+When deploying containerized resizers with Cloudflare Workers:
+
+```bash
+bun add -D @cloudflare/containers
+```
+
+---
+
+## Media Asset Lifecycle
+
+Every asset flows through a four-stage lifecycle designed for predictability and zero cache desynchronization:
+
+### 1. Ingestion: Uploading & Variant Preparation
+
+Clients can generate server-side presets and responsive breakpoints eagerly during upload, or provide client pre-rendered crops directly. Progress is streamed over an observable RPC channel.
+
+#### Server-Side Eager Variants
+```ts
+import { IRPCFile } from '@irpclib/irpc';
+import { upload } from '@irpclib/r2-image';
+
+async function uploadAvatar(file: File) {
+  const avatar = new IRPCFile(
+    { name: file.name, size: file.size, type: file.type },
+    file
+  );
+
+  // Eagerly generates and warms variants in R2 during upload
+  const stream = upload('users/u_42/avatar.png', avatar, {
+    resize: [
+      { name: 'display', width: 256, height: 256, format: 'webp' },
+      { name: 'thumb', width: 64, height: 64, format: 'webp' },
+      { name: 'lqip', width: 24, height: 24, blur: 10, format: 'webp' },
+    ],
+  });
+
+  // Track upload and transformation steps
+  stream.subscribe((state) => {
+    console.log(`[${state.step}] progress: ${state.progress}%`);
+  });
+
+  const result = await stream;
+  console.log('Saved to:', result.path); // '/users/u_42/avatar.png'
+}
+```
+
+#### Client Pre-Rendered Variants
+When variants are cropped or generated in the browser/client, pass `variants` to store them directly without container invocation:
+
+```ts
+import { resize, upload } from '@irpclib/r2-image';
+
+// Pre-render crop in client to save network bandwidth and compute
+const clientThumb = await resize(avatar, { width: 64, height: 64, format: 'webp' });
+
+// Stored directly to R2, bypassing container resizer
+await upload('users/u_42/avatar.png', avatar, {
+  variants: [{ name: 'thumb', file: clientThumb, format: 'webp' }],
+});
+```
+
+### 2. Delivery: Serving & Edge Caching
+
+Deterministic URLs map to original assets or rendered variants. Assets are cached at the Cloudflare edge with immutable headers and ETag validation.
+
+```ts
+import { url } from '@irpclib/r2-image';
+
+// Semantic named presets
+const thumbUrl = url('/users/u_42/avatar.png', { name: 'thumb' });
+
+// Dynamic dimension and format targeting
+const heroUrl = url('/catalog/hero.png', {
+  width: 800,
+  height: 450,
+  fit: 'cover',
+  format: 'webp',
+  quality: 80,
+});
+```
+
+When `onDemand: false` is configured, only pre-rendered variants and originals are delivered, returning clean 404s for arbitrary dynamic transforms.
+
+### 3. Mutation: Asset Replacement & Cache Invalidation
+
+Overwriting an asset at an existing path automatically purges all stale variants and eagerly regenerates active variants defined in the request or worker config.
+
+```ts
+// Overwriting photo.png immediately purges old variants and warms new presets
+await upload('users/u_42/avatar.png', newAvatarFile, {
+  resize: [{ name: 'display', width: 256, height: 256, format: 'webp' }],
+});
+```
+
+### 4. Teardown: Deleting & Storage Cleanup
+
+Deleting an asset triggers a cascading purge across all pre-rendered and on-demand variants in R2 without affecting sibling files in the same directory.
+
+```ts
+import { info, remove } from '@irpclib/r2-image';
+
+// Inspect asset metadata and dimensions
+const metadata = await info('/users/u_42/avatar.png');
+console.log(metadata?.size, metadata?.uploadedAt);
+
+// Atomically delete original asset and all associated variants
+await remove('/users/u_42/avatar.png');
+```
+
+---
+
+## Security & Access Control
+
+- **Mutation Gating**: Protects `upload` and `remove` behind `R2_IMAGE_API_KEY` while keeping binary delivery endpoints (`GET /*`) open for public consumption.
+- **Origin Validation & Hotlink Protection**: Restricts asset delivery to domains specified in `R2_IMAGE_ORIGINS`, responding to browser CORS preflight (`OPTIONS`) requests automatically.
+- **Private Container Network Isolation**: Containers run in a private network sandbox without public IP addresses or routes. All traffic is mediated by the Worker.
+
+---
+
+## Deployment & Setup
+
+### 1. Worker Entrypoint (`src/index.ts`)
+
+Export the `ImageResizer` class extending `Container` from `@cloudflare/containers` alongside the primary worker fetch handler:
+
+```ts
+import { Container } from '@cloudflare/containers';
+import { createWorker } from '@irpclib/r2-image/worker';
+
+export class ImageResizer extends Container {
+  defaultPort = 8080;
+}
+
+export default createWorker({
+  onDemand: true, // Set to false to disable dynamic transformations
+  cache: {
+    browserTtl: 86400,
+    edgeTtl: 604800,
+  },
+});
+```
+
+### 2. Cloudflare Bindings (`wrangler.jsonc`)
+
+Cloudflare Workers can pull the prebuilt container image directly from GHCR without maintaining a local `Dockerfile`:
 
 ```jsonc
 {
-  "name": "image-service",
+  "name": "media-service",
   "main": "src/index.ts",
   "compatibility_date": "2026-09-11",
   "r2_buckets": [
     {
       "binding": "IMAGES",
-      "bucket_name": "my-images-bucket"
+      "bucket_name": "production-images"
     }
   ],
   "containers": [
     {
       "class_name": "ImageResizer",
-      "image": "./Dockerfile", // or "ghcr.io/airlib-dev/r2-image-resizer:latest"
+      "image": "ghcr.io/beerush-id/r2-image:latest",
       "max_instances": 5
     }
   ],
@@ -56,113 +204,31 @@ Built on [**IRPC**](https://airlib.dev/docs/remote-function) and [**@napi-rs/ima
 }
 ```
 
-### Worker Entry (`src/index.ts`)
+> [!TIP]
+> To build a custom container image instead of using the prebuilt registry image, refer to [DOCKER.md](file:///Users/mahdaen/Domains/beerush.io/anchor/irpc-kits/r2-image/DOCKER.md).
 
-```ts
-import { createWorker } from '@irpclib/r2-image/worker';
+### 3. Container Privacy & Network Boundaries
 
-export default createWorker();
-```
+| Concern | Guarantee |
+| :--- | :--- |
+| **Public Exposure** | **Strictly Private.** Cloudflare Containers have no public IPs or DNS routes. Direct internet access is impossible. |
+| **Ingress Path** | Invocations occur exclusively via internal Durable Object RPC (`env.RESIZER.get(...)`). |
+| **Edge Cache Shield** | Repeat requests are served from `caches.default`. The container is never invoked for cached variants. |
+| **Lockdown Defense** | When `onDemand: false` is set, unrendered dynamic transforms are rejected at the edge with 404, preventing container execution by public clients. |
+| **Flexible Topologies** | `RESIZER` also accepts a Cloudflare Service Binding (`Fetcher`) or private HTTP URL (`string`). |
 
----
-
-## 2. Client Application Usage
-
-### Installation
-
-```bash
-bun add @irpclib/r2-image @irpclib/irpc @irpclib/http
-```
-
-### Configuration (Optional for Cross-Origin / Auth)
-
-If your worker runs on a dedicated domain or requires an API key for uploads:
-```ts
-import { configure } from '@irpclib/r2-image';
-
-configure({
-  baseUrl: 'https://images.example.com', // Base domain for both IRPC and url()
-  apiKey: 'sk_live_my_upload_key', // Optional: only if R2_IMAGE_API_KEY is configured
-});
-```
-
-### Uploading Images
-
-Destination `path` supports folders (preserves `file.name`) or explicit filepaths. Stored path is always normalized to `'/path/to/file.ext'`:
-
-```ts
-import { resize, upload, url } from '@irpclib/r2-image';
-import { IRPCFile } from '@irpclib/irpc';
-
-async function handleUpload(file: File) {
-  const irpcFile = new IRPCFile(
-    { name: file.name, size: file.size, type: file.type },
-    file
-  );
-
-  // 1. Client-side pre-resized variant (stored directly without container invocation)
-  const thumb = await resize(irpcFile, { width: 128, height: 128, fit: 'cover', format: 'webp' });
-
-  // 2. Upload to folder (e.g. '/avatars' -> '/avatars/photo.png') or explicit filepath
-  const stream = upload('/avatars', irpcFile, {
-    variants: [{ file: thumb, width: 128, height: 128, format: 'webp' }],
-    resize: [{ width: 512, height: 512, fit: 'cover', format: 'webp' }],
-  });
-
-  // 3. Track step and progress updates in real-time
-  stream.subscribe((state) => {
-    console.log(`[${state.step}] ${state.progress}`);
-  });
-
-  const result = await stream;
-  console.log('Stored path:', result.path); // e.g. '/avatars/photo.png'
-  console.log('Public URL:', url(result.path, { width: 128, height: 128 }));
-}
-```
-
-### Image Rendering & URLs
-
-Use `url()` to generate deterministic variant URLs:
-
-```ts
-import { url } from '@irpclib/r2-image';
-
-// Format: /photos/vacation.png?w=600&h=400&f=webp&q=85&fit=cover
-const cardImageUrl = url('/photos/vacation.png', {
-  width: 600,
-  height: 400,
-  format: 'webp',
-  quality: 85,
-  fit: 'cover',
-});
-```
-
-### Inspecting & Deleting Images
-
-```ts
-import { info, remove } from '@irpclib/r2-image';
-
-// Inspect metadata
-const meta = await info('/avatars/photo.png');
-console.log(meta?.path, meta?.type, meta?.size);
-
-// Delete original and all generated variants
-await remove('/avatars/photo.png');
-```
-
----
-
-## 3. Environment Variables & Security
+### 4. Environment Variables & Bindings
 
 | Variable | Type | Description |
 | :--- | :--- | :--- |
-| `IMAGES` | R2 Bucket Binding | Cloudflare R2 bucket for storing originals and cached variants. |
-| `RESIZER` | Container Binding | Durable Object Container namespace or Service Binding. |
-| `R2_IMAGE_API_KEY` | Secret (Optional) | Secret key required for mutating operations (`upload`, `delete`). |
-| `R2_IMAGE_ORIGINS` | Var (Optional) | Comma-separated allowed origins (e.g. `https://myapp.com,https://admin.myapp.com`) for CORS and hotlink protection. |
+| `IMAGES` | R2 Bucket Binding | Cloudflare R2 bucket storing original media and cached variants. |
+| `RESIZER` | Container / Service Binding | Durable Object namespace, Service Binding Fetcher, or HTTP URL for the resizer container. |
+| `R2_IMAGE_API_KEY` | Secret (Optional) | Required authentication token for mutating RPC operations (`upload`, `remove`). |
+| `R2_IMAGE_ORIGINS` | Var (Optional) | Comma-separated allowed origins (e.g. `https://myapp.com`) for CORS and hotlink enforcement. |
 
 ---
 
 ## License
 
 MIT © [AirLib](https://airlib.dev)
+

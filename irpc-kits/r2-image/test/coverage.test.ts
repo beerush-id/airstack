@@ -443,7 +443,7 @@ describe('Coverage: Edge Cases & Boundary Handling', () => {
       expect(key).toBe('.variants/path/to/img.png/w_100_fit_cover.webp');
 
       const originalKey = getVariantKey('img.png', {});
-      expect(originalKey).toBe('.variants/img.png/original.webp');
+      expect(originalKey).toBe('img.png-original.webp');
     });
 
     it('parses image requests with fit, quality boundaries, and jpg format', () => {
@@ -472,7 +472,10 @@ describe('Coverage: Edge Cases & Boundary Handling', () => {
 
     it('formats quality and dimensions in variant key', () => {
       const key = getVariantKey('avatar.png', { width: 80, height: 80, quality: 75 });
-      expect(key).toBe('.variants/avatar.png/w_80_h_80_q_75.webp');
+      expect(key).toBe('avatar.png-w_80_h_80_q_75.webp');
+
+      const customKey = getVariantKey('avatar.png', { width: 80, height: 80, quality: 75 }, '.variants');
+      expect(customKey).toBe('.variants/avatar.png/w_80_h_80_q_75.webp');
     });
 
     it('returns undefined when image metadata object is missing', async () => {
@@ -483,8 +486,13 @@ describe('Coverage: Edge Cases & Boundary Handling', () => {
 
     it('purges variants with default prefix using deleteVariants', async () => {
       const mockBucket = createMockBucket();
-      mockBucket.store.set('.variants/test.png/thumb.webp', { data: new Uint8Array([1]) });
+      mockBucket.store.set('test.png-thumb.webp', { data: new Uint8Array([1]) });
       await deleteVariants(mockBucket as unknown as R2Bucket, 'test.png');
+      expect(mockBucket.store.has('test.png-thumb.webp')).toBe(false);
+
+      // Custom prefix purge
+      mockBucket.store.set('.variants/test.png/thumb.webp', { data: new Uint8Array([1]) });
+      await deleteVariants(mockBucket as unknown as R2Bucket, 'test.png', '.variants');
       expect(mockBucket.store.has('.variants/test.png/thumb.webp')).toBe(false);
     });
 

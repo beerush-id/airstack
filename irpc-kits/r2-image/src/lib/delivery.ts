@@ -10,7 +10,7 @@ import { resizeImage, resolveBucket, resolveResizer } from './resizer.js';
 import { getOriginal, getVariant, getVariantKey, putVariant } from './storage.js';
 
 export interface DeliveryOptions<Env> {
-  variantPrefix: string;
+  variantPrefix?: string;
   browserTtl: number;
   edgeTtl: number;
   bucketResolver?: keyof Env | ((env: Env) => R2Bucket);

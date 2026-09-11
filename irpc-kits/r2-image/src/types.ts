@@ -40,8 +40,11 @@ export interface ImageWorkerHandler<Env = ImageWorkerEnv> {
  */
 export interface ImageConstructorConfig<Env extends ImageWorkerEnv = ImageWorkerEnv> {
   /**
-   * Folder prefix under which rendered variants are stored in R2.
-   * @default '.variants/'
+   * Optional folder prefix under which rendered variants are stored in R2.
+   * When undefined (default), variants are stored co-located alongside the original file
+   * as `${file}-${variant}.${ext}` for predictable public bucket URLs.
+   *
+   * @default undefined
    */
   variantPrefix?: string;
 
@@ -67,20 +70,8 @@ export interface ImageConstructorConfig<Env extends ImageWorkerEnv = ImageWorker
 /**
  * Top-level configuration options for initializing the image service worker.
  */
-export interface ImageWorkerConfig<Env extends ImageWorkerEnv = ImageWorkerEnv> {
-  /**
-   * Binding name or custom resolver for the R2 bucket.
-   * @default 'IMAGES'
-   */
-  bucket?: keyof Env | ((env: Env) => R2Bucket);
-
-  /**
-   * Binding name or custom resolver for the resizer container.
-   * Supports Cloudflare Durable Object Containers, Service Bindings, or an external URL string.
-   * @default 'RESIZER'
-   */
-  resizer?: keyof Env | ((env: Env) => DurableObjectNamespace | Fetcher | string);
-
+export interface ImageWorkerConfig<Env extends ImageWorkerEnv = ImageWorkerEnv>
+  extends ImageConstructorConfig<Env> {
   /**
    * Whether on-demand dynamic resizing via the container is permitted on cache misses.
    * When false, only pre-rendered variants stored in R2 will be served.
@@ -88,27 +79,6 @@ export interface ImageWorkerConfig<Env extends ImageWorkerEnv = ImageWorkerEnv> 
    */
   onDemand?: boolean;
 
-  /**
-   * Default resize variants to generate automatically on upload when not explicitly provided.
-   */
-  resize?: Resize[];
-
-  /**
-   * Storage and route path configuration.
-   */
-  routes?: {
-    /**
-     * Endpoint path where the IRPC router is mounted.
-     * @default '/irpc'
-     */
-    irpcEndpoint?: string;
-
-    /**
-     * Folder prefix under which rendered variants are stored in R2.
-     * @default '.variants/'
-     */
-    variantPrefix?: string;
-  };
 
   /**
    * Cache control parameters.

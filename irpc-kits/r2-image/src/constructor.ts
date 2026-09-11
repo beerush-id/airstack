@@ -23,7 +23,7 @@ export function implement<Env extends ImageWorkerEnv = ImageWorkerEnv>(
   options?: ImageConstructorConfig<Env> | string
 ): void {
   const config = typeof options === 'string' ? { variantPrefix: options } : options || {};
-  const variantPrefix = config.variantPrefix || '.variants/';
+  const variantPrefix = config.variantPrefix;
 
   // Guard mutating operations with API key if configured in environment
   imageModule.guard(async (req) => {
@@ -257,8 +257,8 @@ interface UploadWorkflowContext {
   /** Resolved R2 destination key path. */
   destinationPath: string;
 
-  /** R2 folder prefix for variants. */
-  variantPrefix: string;
+  /** Optional R2 folder prefix for variants. */
+  variantPrefix?: string;
 
   /** Optional upload configuration and variants. */
   options?: ImageUploadOptions;

@@ -28,10 +28,16 @@
     "./worker": {
       "types": "./dist/worker.d.ts",
       "import": "./dist/worker.js"
+    },
+    "./container": {
+      "types": "./dist/container.d.ts",
+      "import": "./dist/container.js"
     }
   },
+  "bin": "./bin/index.js",
   "files": [
-    "dist"
+    "dist",
+    "bin"
   ],
   "directories": {
     "dist": "./dist"
@@ -40,7 +46,7 @@
     "access": "public"
   },
   "scripts": {
-    "start": "bun run container/index.ts",
+    "start": "bun run src/container.ts",
     "dev": "rimraf dist && tsdown --watch ./src",
     "clean": "rimraf dist",
     "build": "bun run clean && tsdown && publint",

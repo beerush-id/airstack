@@ -8,35 +8,41 @@ const cleanPrefix = (prefix: string): string => (prefix.endsWith('/') ? prefix :
  *
  * @param path Original image path (e.g. '/photos/vacation.png')
  * @param transforms Transformation parameters applied
- * @param prefix Variant folder prefix in R2
- * @returns Deterministic variant key (e.g. '.variants/photos/vacation.png/w_256_q_80.webp')
+ * @param prefix Optional variant folder prefix in R2
+ * @returns Deterministic variant key (e.g. 'photos/vacation.png-thumb.webp' or '.variants/photos/vacation.png/thumb.webp')
  */
 export function getVariantKey(
   path: string,
   transforms: Resize,
-  prefix = '.variants/'
+  prefix?: string
 ): string {
   const format = transforms.format || 'webp';
+  const clean = cleanPath(path);
 
+  let paramString: string;
   if (transforms.name) {
-    return `${cleanPrefix(prefix)}${cleanPath(path)}/${transforms.name}.${format}`;
+    paramString = transforms.name;
+  } else {
+    const parts: string[] = [];
+    /* istanbul ignore else */
+    if (transforms.width) parts.push(`w_${transforms.width}`);
+    /* istanbul ignore else */
+    if (transforms.height) parts.push(`h_${transforms.height}`);
+    /* istanbul ignore else */
+    if (transforms.quality) parts.push(`q_${transforms.quality}`);
+    /* istanbul ignore else */
+    if (transforms.fit) parts.push(`fit_${transforms.fit}`);
+    /* istanbul ignore else */
+    if (transforms.blur) parts.push(`b_${transforms.blur}`);
+
+    paramString = parts.length > 0 ? parts.join('_') : 'original';
   }
 
-  const parts: string[] = [];
-  /* istanbul ignore else */
-  if (transforms.width) parts.push(`w_${transforms.width}`);
-  /* istanbul ignore else */
-  if (transforms.height) parts.push(`h_${transforms.height}`);
-  /* istanbul ignore else */
-  if (transforms.quality) parts.push(`q_${transforms.quality}`);
-  /* istanbul ignore else */
-  if (transforms.fit) parts.push(`fit_${transforms.fit}`);
-  /* istanbul ignore else */
-  if (transforms.blur) parts.push(`b_${transforms.blur}`);
+  if (prefix) {
+    return `${cleanPrefix(prefix)}${clean}/${paramString}.${format}`;
+  }
 
-  const paramString = parts.length > 0 ? parts.join('_') : 'original';
-
-  return `${cleanPrefix(prefix)}${cleanPath(path)}/${paramString}.${format}`;
+  return `${clean}-${paramString}.${format}`;
 }
 
 /**
@@ -109,10 +115,10 @@ function putStorageObject(
 export async function deleteVariants(
   bucket: R2Bucket,
   path: string,
-  prefix = '.variants/'
+  prefix?: string
 ): Promise<void> {
   const targetKey = cleanPath(path);
-  const variantPrefix = `${cleanPrefix(prefix)}${targetKey}/`;
+  const variantPrefix = prefix ? `${cleanPrefix(prefix)}${targetKey}/` : `${targetKey}-`;
 
   let cursor: string | undefined;
   do {
@@ -132,7 +138,7 @@ export async function deleteVariants(
 export async function deleteImage(
   bucket: R2Bucket,
   path: string,
-  prefix = '.variants/'
+  prefix?: string
 ): Promise<boolean> {
   const targetKey = cleanPath(path);
 
