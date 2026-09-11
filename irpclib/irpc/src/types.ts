@@ -284,6 +284,28 @@ export type IRPCInit<R, I extends IRPCInputs, O extends IRPCOutput> = {
 export type IRPCInferInit<R> = R extends IRPCDefined ? { seed: () => R } : { seed?: () => R };
 
 /**
+ * Determines whether an RPC function stub requires a seed factory.
+ * Seed is NOT required if the return type includes `undefined` or `void`.
+ */
+export type IRPCSeedRequired<F> =
+  undefined extends IRPCReturnOf<F> ? false : void extends IRPCReturnOf<F> ? false : true;
+
+/**
+ * Parameter list for declaring an RPC stub by name.
+ * Enforces seed argument only if the return type requires it.
+ */
+export type IRPCDeclareArgs<F, I extends IRPCInputs, O extends IRPCOutput> =
+  IRPCSeedRequired<F> extends true
+    ? [
+        seedOrConfig: (() => IRPCReturnOf<F>) | (IRPCDeclareConfig<I, O> & IRPCInferInit<IRPCReturnOf<F>>),
+        config?: IRPCDeclareConfig<I, O>,
+      ]
+    : [
+        seedOrConfig?: (() => IRPCReturnOf<F>) | (IRPCDeclareConfig<I, O> & IRPCInferInit<IRPCReturnOf<F>>),
+        config?: IRPCDeclareConfig<I, O>,
+      ];
+
+/**
  * Extracts the data type from a function's return type by unwrapping
  * RemoteState and Promise wrappers.
  *
