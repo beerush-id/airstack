@@ -23,6 +23,8 @@ export async function resizeImage(
   const query = new URLSearchParams();
 
   /* istanbul ignore else */
+  if (transforms.size) query.set('s', String(transforms.size));
+  /* istanbul ignore else */
   if (transforms.width) query.set('w', String(transforms.width));
   /* istanbul ignore else */
   if (transforms.height) query.set('h', String(transforms.height));

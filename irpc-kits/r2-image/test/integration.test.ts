@@ -9,7 +9,7 @@ import {
 import { Transformer } from '@napi-rs/image';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { handler as containerHandler } from '../src/container.js';
-import { info, remove, resize, upload, url } from '../src/index.js';
+import { configure, info, remove, resize, upload, url } from '../src/index.js';
 import type {
   DurableObjectNamespace,
   ExecutionContext,
@@ -150,6 +150,7 @@ const mockCtx: ExecutionContext = {
 
 describe('User Journey: Media Asset Lifecycle', () => {
   beforeEach(() => {
+    configure({ baseUrl: '' });
     (globalThis as unknown as { caches: { default: unknown } }).caches = {
       default: createMockCache(),
     };

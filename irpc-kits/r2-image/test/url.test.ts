@@ -1,8 +1,11 @@
 import { createContextStore, withContext } from '@irpclib/irpc';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { configure, transport, url } from '../src/index.js';
 
 describe('url() and configure()', () => {
+  beforeEach(() => {
+    configure({ baseUrl: '' });
+  });
   it('formats image url with relative path by default', () => {
     const result = url('photos/avatar.png');
     expect(result).toBe('/photos/avatar.png');
@@ -17,6 +20,11 @@ describe('url() and configure()', () => {
       fit: 'cover',
     });
     expect(result).toBe('/photos/avatar.png?w=400&h=300&f=webp&q=80&fit=cover');
+  });
+
+  it('formats image url with size parameter', () => {
+    const result = url('photos/avatar.png', { size: 512 });
+    expect(result).toBe('/photos/avatar.png?s=512');
   });
 
   it('uses configured baseUrl across subsequent url() calls', () => {

@@ -6,9 +6,9 @@ import { configure, remove, resize, upload, url } from '../src/index.js';
 import { handleImageDelivery } from '../src/lib/delivery.js';
 import { resizeImage, resolveBucket, resolveResizer } from '../src/lib/resizer.js';
 import { deleteImage, deleteVariants, getImageMetadata, getVariantKey, putVariant } from '../src/lib/storage.js';
-import type { DurableObjectNamespace, ExecutionContext, Fetcher, ImageWorkerEnv, R2Bucket } from '../src/types.js';
+import type { DurableObjectNamespace, ExecutionContext, Fetcher, ImageWorkerEnv, R2Bucket, Resize } from '../src/types.js';
 import { formatImageUrl, parseImageRequest } from '../src/utils/request.js';
-import { handleCorsPreflight, isOriginAllowed } from '../src/utils/security.js';
+import { handleCorsPreflight, isOriginAllowed, isSizeAllowed } from '../src/utils/security.js';
 import { createWorker } from '../src/worker.js';
 
 async function createTestImage(width = 50, height = 50): Promise<Uint8Array> {
@@ -435,12 +435,45 @@ describe('Coverage: Edge Cases & Boundary Handling', () => {
       expect(res.status).toBe(204);
       expect(res.headers.get('Access-Control-Allow-Origin')).toBe('*');
     });
+
+    it('validates allowedSizes with numbers, objects, and empty filters', () => {
+      // Empty or undefined allows all
+      expect(isSizeAllowed({ width: 500 })).toBe(true);
+      expect(isSizeAllowed({ width: 500 }, [])).toBe(true);
+
+      // Number whitelist matching size, width, or height
+      expect(isSizeAllowed({ size: 320 }, [320, 640])).toBe(true);
+      expect(isSizeAllowed({ width: 320 }, [320, 640])).toBe(true);
+      expect(isSizeAllowed({ height: 640 }, [320, 640])).toBe(true);
+      expect(isSizeAllowed({ width: 500 }, [320, 640])).toBe(false);
+      expect(isSizeAllowed({ size: 500 }, [320, 640])).toBe(false);
+
+      // Preset object matching
+      const allowedPresets = [
+        { name: 'avatar', width: 128, height: 128, format: 'webp' },
+        { size: 512 },
+        { width: 300 },
+      ];
+      expect(isSizeAllowed({ name: 'avatar', width: 128, height: 128, format: 'webp' }, allowedPresets)).toBe(true);
+      expect(isSizeAllowed({ name: 'avatar', width: 128, height: 128, format: 'png' }, allowedPresets)).toBe(false);
+      expect(isSizeAllowed({ name: 'other', width: 128, height: 128, format: 'webp' }, allowedPresets)).toBe(false);
+      expect(isSizeAllowed({ size: 512 }, allowedPresets)).toBe(true);
+      expect(isSizeAllowed({ size: 256 }, allowedPresets)).toBe(false);
+      expect(isSizeAllowed({ width: 300 }, allowedPresets)).toBe(true);
+      expect(isSizeAllowed({ width: 400 }, allowedPresets)).toBe(false);
+
+      // Non-matching type / null fallback
+      expect(isSizeAllowed({ width: 100 }, ['invalid' as unknown as number, null as unknown as number])).toBe(false);
+    });
   });
 
   describe('storage & query parsing edge cases', () => {
     it('generates variant keys with fit options and custom prefixes without trailing slash', () => {
       const key = getVariantKey('path/to/img.png', { width: 100, fit: 'cover' }, '.variants');
       expect(key).toBe('.variants/path/to/img.png/w_100_fit_cover.webp');
+
+      const sizeKey = getVariantKey('img.png', { size: 512 });
+      expect(sizeKey).toBe('img.png-s_512.webp');
 
       const originalKey = getVariantKey('img.png', {});
       expect(originalKey).toBe('img.png-original.webp');
@@ -454,6 +487,12 @@ describe('Coverage: Edge Cases & Boundary Handling', () => {
       expect(parsed.transforms.quality).toBe(95);
       expect(parsed.transforms.fit).toBe('cover');
 
+      const parsedS = parseImageRequest(new URL('http://localhost/photo.png?s=512'));
+      expect(parsedS.transforms.size).toBe(512);
+
+      const parsedSize = parseImageRequest(new URL('http://localhost/photo.png?size=1024'));
+      expect(parsedSize.transforms.size).toBe(1024);
+
       // Boundary quality > 100 or <= 0 ignored
       const invalidQuality = parseImageRequest(new URL('http://localhost/photo.png?q=150'));
       expect(invalidQuality.transforms.quality).toBeUndefined();
@@ -461,6 +500,7 @@ describe('Coverage: Edge Cases & Boundary Handling', () => {
 
     it('formats clean URL without transformation options', () => {
       expect(formatImageUrl('photos/dog.png')).toBe('/photos/dog.png');
+      expect(formatImageUrl('photos/dog.png', { size: 512 })).toBe('/photos/dog.png?s=512');
       expect(formatImageUrl('photos/dog.png', { width: 100, fit: 'cover' })).toBe('/photos/dog.png?w=100&fit=cover');
     });
 
@@ -618,10 +658,218 @@ describe('Coverage: Edge Cases & Boundary Handling', () => {
         );
 
         const stream = upload('/', file, {
-          resize: [{ width: 50 }, { height: 50 }],
+          resize: [{ width: 50 }, { height: 50 }, { size: 50 }],
         });
         const result = (await stream) as { step?: string };
         expect(result.step).toBe('complete');
+      });
+    });
+  });
+
+  describe('allowedSizes & sizes alias guardrails', () => {
+    it('supports sizes alias in createWorker and skips disallowed variants on upload', async () => {
+      await withContext(createContextStore(), async () => {
+        const mockBucket = createMockBucket();
+        const rawImage = await createTestImage(20, 20);
+        const env: ImageWorkerEnv = {
+          IMAGES: mockBucket as unknown as R2Bucket,
+          RESIZER: {
+            fetch: async () => new Response(rawImage as never, { headers: { 'content-type': 'image/webp' } }),
+          },
+        };
+        setContext('env', env);
+
+        // Worker configured with sizes alias and allowedSizes whitelist
+        createWorker({
+          sizes: [{ width: 80 }, { width: 999 }],
+          allowedSizes: [80],
+        });
+
+        const file = new IRPCFile(
+          { name: 'pic.png', size: rawImage.byteLength, type: 'image/png' },
+          new Blob([rawImage as BlobPart])
+        );
+
+        await upload('/gallery', file);
+
+        // Only allowed width 80 variant should exist; width 999 should be skipped
+        expect(mockBucket.store.has('gallery/pic.png')).toBe(true);
+        expect(mockBucket.store.has('gallery/pic.png-w_80.webp')).toBe(true);
+        expect(mockBucket.store.has('gallery/pic.png-w_999.webp')).toBe(false);
+      });
+    });
+
+    it('skips client variants that are not in allowedSizes', async () => {
+      await withContext(createContextStore(), async () => {
+        const mockBucket = createMockBucket();
+        const rawImage = await createTestImage(20, 20);
+        const env: ImageWorkerEnv = {
+          IMAGES: mockBucket as unknown as R2Bucket,
+          RESIZER: {
+            fetch: async () => new Response(rawImage as never, { headers: { 'content-type': 'image/webp' } }),
+          },
+        };
+        setContext('env', env);
+
+        createWorker({
+          allowedSizes: [{ name: 'thumb', width: 64, height: 64 }],
+        });
+
+        const original = new IRPCFile(
+          { name: 'item.png', size: rawImage.byteLength, type: 'image/png' },
+          new Blob([rawImage as BlobPart])
+        );
+        const thumbFile = new IRPCFile(
+          { name: 'item-thumb.webp', size: 100, type: 'image/webp' },
+          new Blob([rawImage as BlobPart])
+        );
+        const hugeFile = new IRPCFile(
+          { name: 'item-huge.webp', size: 500, type: 'image/webp' },
+          new Blob([rawImage as BlobPart])
+        );
+
+        await upload('/items', original, {
+          variants: [
+            { name: 'thumb', width: 64, height: 64, file: thumbFile },
+            { name: 'huge', width: 4000, height: 4000, file: hugeFile },
+          ],
+        });
+
+        expect(mockBucket.store.has('items/item.png')).toBe(true);
+        expect(mockBucket.store.has('items/item.png-thumb.webp')).toBe(true);
+        expect(mockBucket.store.has('items/item.png-huge.webp')).toBe(false);
+      });
+    });
+
+    it('skips on-demand transform and serves original image when size is not allowed', async () => {
+      const mockBucket = createMockBucket();
+      const rawImage = await createTestImage(20, 20);
+      await mockBucket.put('photo.png', rawImage, {
+        httpMetadata: { contentType: 'image/png' },
+      });
+
+      let resizerCalled = false;
+      const env: ImageWorkerEnv = {
+        IMAGES: mockBucket as unknown as R2Bucket,
+        RESIZER: {
+          fetch: async () => {
+            resizerCalled = true;
+            return new Response(rawImage as never, { headers: { 'content-type': 'image/webp' } });
+          },
+        },
+      };
+
+      const ctx: ExecutionContext = {
+        waitUntil: () => {},
+        passThroughOnException: () => {},
+      };
+
+      // 1. Request with disallowed size -> skips transform, serves original image, container not called
+      const disallowedReq = new Request('http://localhost/photo.png?w=9999');
+      const disallowedRes = await handleImageDelivery(
+        disallowedReq,
+        new URL('http://localhost/photo.png?w=9999'),
+        env,
+        ctx,
+        {
+          allowedSizes: [320, 640],
+          browserTtl: 86400,
+          edgeTtl: 2592000,
+        }
+      );
+
+      expect(disallowedRes.status).toBe(200);
+      expect(disallowedRes.headers.get('content-type')).toBe('image/png');
+      expect(resizerCalled).toBe(false);
+      expect(mockBucket.store.has('photo.png-w_9999.webp')).toBe(false);
+
+      // 2. Request with allowed size -> invokes resizer and caches variant
+      const allowedReq = new Request('http://localhost/photo.png?w=320');
+      const allowedRes = await handleImageDelivery(
+        allowedReq,
+        new URL('http://localhost/photo.png?w=320'),
+        env,
+        ctx,
+        {
+          allowedSizes: [320, 640],
+          browserTtl: 86400,
+          edgeTtl: 2592000,
+        }
+      );
+
+      expect(allowedRes.status).toBe(200);
+      expect(allowedRes.headers.get('content-type')).toBe('image/webp');
+      expect(resizerCalled).toBe(true);
+      expect(mockBucket.store.has('photo.png-w_320.webp')).toBe(true);
+    });
+
+    it('handles realistic pattern with named sizes presets and numeric allowedSizes whitelist', async () => {
+      await withContext(createContextStore(), async () => {
+        const mockBucket = createMockBucket();
+        const rawImage = await createTestImage(50, 50);
+        let lastResizedOptions: Resize | undefined;
+        const env: ImageWorkerEnv = {
+          IMAGES: mockBucket as unknown as R2Bucket,
+          RESIZER: {
+            fetch: async (req: Request | string) => {
+              const url = new URL(typeof req === 'string' ? req : req.url);
+              lastResizedOptions = {
+                width: url.searchParams.get('w') ? parseInt(url.searchParams.get('w')!, 10) : undefined,
+                height: url.searchParams.get('h') ? parseInt(url.searchParams.get('h')!, 10) : undefined,
+              };
+              return new Response(rawImage as never, { headers: { 'content-type': 'image/webp' } });
+            },
+          },
+        };
+        setContext('env', env);
+
+        const worker = createWorker({
+          sizes: [
+            { name: 'preview', width: 1024, height: 1024 },
+            { name: 'thumbnail', width: 256, height: 256 },
+          ],
+          allowedSizes: [128, 256, 512, 1024, 2048],
+        });
+
+        const ctx: ExecutionContext = {
+          waitUntil: () => {},
+          passThroughOnException: () => {},
+        };
+
+        // 1. Upload creates both 'preview' and 'thumbnail' variants automatically
+        const file = new IRPCFile(
+          { name: 'banner.png', size: rawImage.byteLength, type: 'image/png' },
+          new Blob([rawImage as BlobPart])
+        );
+        await upload('/posts', file);
+
+        expect(mockBucket.store.has('posts/banner.png')).toBe(true);
+        expect(mockBucket.store.has('posts/banner.png-preview.webp')).toBe(true);
+        expect(mockBucket.store.has('posts/banner.png-thumbnail.webp')).toBe(true);
+
+        // 2. On-demand GET with ?name=thumbnail resolves preset and serves cached variant
+        const nameReq = new Request('https://cdn.example.com/posts/banner.png?name=thumbnail');
+        const nameRes = await worker.fetch(nameReq, env, ctx);
+        expect(nameRes.status).toBe(200);
+
+        // 3. On-demand GET with ?w=512 is in allowedSizes -> invokes resizer and returns webp
+        const allowedReq = new Request('https://cdn.example.com/posts/banner.png?w=512');
+        const allowedRes = await worker.fetch(allowedReq, env, ctx);
+        expect(allowedRes.status).toBe(200);
+        expect(allowedRes.headers.get('content-type')).toBe('image/webp');
+        expect(lastResizedOptions?.width).toBe(512);
+
+        // 4. On-demand GET with ?w=333 is NOT in allowedSizes -> skips transform, serves original image
+        const disallowedReq = new Request('https://cdn.example.com/posts/banner.png?w=333');
+        const disallowedRes = await worker.fetch(disallowedReq, env, ctx);
+        expect(disallowedRes.status).toBe(200);
+        expect(disallowedRes.headers.get('content-type')).toBe('image/png');
+
+        // 5. On-demand GET with unknown preset name -> preset not found, size not in allowedSizes -> serves original
+        const unknownNameReq = new Request('https://cdn.example.com/posts/banner.png?name=unknown');
+        const unknownNameRes = await worker.fetch(unknownNameReq, env, ctx);
+        expect(unknownNameRes.status).toBe(200);
+        expect(unknownNameRes.headers.get('content-type')).toBe('image/png');
       });
     });
   });

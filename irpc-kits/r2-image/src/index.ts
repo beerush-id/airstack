@@ -1,21 +1,18 @@
 import { HTTPTransport } from '@irpclib/http';
-import { createPackage } from '@irpclib/irpc';
 import type { IRPCFile, RemoteState } from '@irpclib/irpc';
+import { createPackage } from '@irpclib/irpc';
 import { resize } from './resize.js';
 import type { ClientConfig, ImageMetadata, ImageUploadOptions, ImageUploadState, Resize } from './types.js';
 import { formatImageUrl } from './utils/index.js';
 
 export * from './resize.js';
 export * from './types.js';
+export { isSizeAllowed } from './utils/index.js';
 
 /**
  * IRPC stub function signature for uploading an image with reactive stream tracking.
  */
-export type UploadFn = (
-  path: string,
-  file: IRPCFile,
-  options?: ImageUploadOptions
-) => RemoteState<ImageUploadState>;
+export type UploadFn = (path: string, file: IRPCFile, options?: ImageUploadOptions) => RemoteState<ImageUploadState>;
 
 /**
  * IRPC stub function signature for deleting an image and its variants.
@@ -53,8 +50,8 @@ imageModule.use(transport);
  */
 export function configure(config: ClientConfig): void {
   /* istanbul ignore else */
-  if (config.baseUrl) {
-    baseUrl = config.baseUrl.replace(/\/+$/, '');
+  if (config.baseUrl !== undefined) {
+    baseUrl = config.baseUrl ? config.baseUrl.replace(/\/+$/, '') : '';
     transport.config.baseURL = baseUrl;
   }
 
@@ -73,11 +70,7 @@ export function configure(config: ClientConfig): void {
  * @param base Optional base URL override (defaults to configured baseUrl)
  * @returns Clean, formatted image URL
  */
-export function url(
-  path: string,
-  options?: Resize,
-  base = baseUrl
-): string {
+export function url(path: string, options?: Resize, base = baseUrl): string {
   return formatImageUrl(path, options, base);
 }
 

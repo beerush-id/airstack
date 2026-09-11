@@ -14,6 +14,7 @@ export function parseImageRequest(url: URL): {
   const path = decodeURIComponent(url.pathname.replace(/^\/+/, ''));
   const params = url.searchParams;
 
+  const sizeParam = params.get('s') || params.get('size');
   const widthParam = params.get('w') || params.get('width');
   const heightParam = params.get('h') || params.get('height');
   const formatParam = (params.get('f') || params.get('format') || '').toLowerCase();
@@ -26,6 +27,12 @@ export function parseImageRequest(url: URL): {
 
   if (nameParam) {
     transforms.name = nameParam;
+  }
+
+  if (sizeParam) {
+    const parsed = parseInt(sizeParam, 10);
+    /* istanbul ignore else */
+    if (!Number.isNaN(parsed) && parsed > 0) transforms.size = parsed;
   }
 
   if (widthParam) {
@@ -93,6 +100,8 @@ export function formatImageUrl(
   const query = new URLSearchParams();
   /* istanbul ignore else */
   if (transforms.name) query.set('name', transforms.name);
+  /* istanbul ignore else */
+  if (transforms.size) query.set('s', String(transforms.size));
   /* istanbul ignore else */
   if (transforms.width) query.set('w', String(transforms.width));
   /* istanbul ignore else */

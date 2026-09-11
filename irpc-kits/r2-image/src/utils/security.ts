@@ -63,3 +63,38 @@ export function handleCorsPreflight(request: Request, allowedOrigins?: string): 
 
   return new Response(null, { status: 204, headers });
 }
+
+/**
+ * Checks whether requested resize dimensions are permitted by the allowedSizes whitelist.
+ * If allowedSizes is undefined or empty, all dimensions are permitted.
+ *
+ * @param target Desired target dimensions and parameters
+ * @param allowedSizes Whitelist of allowed dimensions (numbers or Resize presets)
+ * @returns True if the target dimensions are permitted
+ */
+export function isSizeAllowed(
+  target: { size?: number; width?: number; height?: number; name?: string; format?: string },
+  allowedSizes?: (number | { size?: number; width?: number; height?: number; name?: string; format?: string })[]
+): boolean {
+  if (!allowedSizes || allowedSizes.length === 0) {
+    return true;
+  }
+
+  return allowedSizes.some((allowed) => {
+    if (typeof allowed === 'number') {
+      return target.size === allowed || target.width === allowed || target.height === allowed;
+    }
+
+    if (typeof allowed === 'object' && allowed !== null) {
+      const sizeMatch = !allowed.size || allowed.size === target.size;
+      const widthMatch = !allowed.width || allowed.width === target.width;
+      const heightMatch = !allowed.height || allowed.height === target.height;
+      const formatMatch = !allowed.format || allowed.format === target.format;
+      const nameMatch = !allowed.name || allowed.name === target.name;
+      return sizeMatch && widthMatch && heightMatch && formatMatch && nameMatch;
+    }
+
+    return false;
+  });
+}
+

@@ -94,7 +94,10 @@ import { url } from '@irpclib/r2-image';
 // Semantic named presets
 const thumbUrl = url('/users/u_42/avatar.png', { name: 'thumb' });
 
-// Dynamic dimension and format targeting
+// Orientation-agnostic cap on the longest edge (?s=640)
+const feedUrl = url('/photos/travel.jpg', { size: 640 });
+
+// Dynamic dimension and format targeting (?w=800&h=450&fit=cover&f=webp&q=80)
 const heroUrl = url('/catalog/hero.png', {
   width: 800,
   height: 450,
@@ -137,6 +140,9 @@ await remove('/users/u_42/avatar.png');
 ## Security & Access Control
 
 - **Mutation Gating**: Protects `upload` and `remove` behind `R2_IMAGE_API_KEY` while keeping binary delivery endpoints (`GET /*`) open for public consumption.
+- **Allowed Sizes Whitelist (`allowedSizes`)**: Guards against DoS and uncontrolled compute by restricting allowed transformation dimensions or presets. Disallowed sizes are gracefully skipped:
+  - **On upload**: Disallowed variant specifications are skipped without error.
+  - **On on-demand delivery**: Dynamic transformation is skipped and the original image is served directly, preventing container execution and cache pollution.
 - **Origin Validation & Hotlink Protection**: Restricts asset delivery to domains specified in `R2_IMAGE_ORIGINS`, responding to browser CORS preflight (`OPTIONS`) requests automatically.
 - **Private Container Network Isolation**: Containers run in a private network sandbox without public IP addresses or routes. All traffic is mediated by the Worker.
 
@@ -157,6 +163,16 @@ export class ImageResizer extends Container {
 }
 
 export default createWorker({
+  // Default variants to generate on upload when not specified in upload()
+  sizes: [
+    { name: 'display', width: 800, height: 600, format: 'webp' },
+    { name: 'thumb', width: 120, height: 120, format: 'webp' },
+  ],
+  // Whitelist guard: numbers match width/height; objects match exact presets
+  allowedSizes: [
+    120, 256, 800,
+    { name: 'thumb', width: 120, height: 120, format: 'webp' },
+  ],
   onDemand: true, // Set to false to disable dynamic transformations
   cache: {
     browserTtl: 86400,

@@ -25,6 +25,8 @@ export function getVariantKey(
   } else {
     const parts: string[] = [];
     /* istanbul ignore else */
+    if (transforms.size) parts.push(`s_${transforms.size}`);
+    /* istanbul ignore else */
     if (transforms.width) parts.push(`w_${transforms.width}`);
     /* istanbul ignore else */
     if (transforms.height) parts.push(`h_${transforms.height}`);

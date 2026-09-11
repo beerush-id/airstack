@@ -3,6 +3,7 @@ import { anchor } from '@irpclib/irpc/core';
 import { imageModule, info, remove, upload } from './index.js';
 import { resizeImage, resolveBucket, resolveResizer } from './lib/resizer.js';
 import { deleteImage, deleteVariants, getImageMetadata, getVariantKey, putOriginal, putVariant } from './lib/storage.js';
+import { isSizeAllowed } from './utils/index.js';
 import type {
   DurableObjectNamespace,
   Fetcher,
@@ -62,7 +63,8 @@ export function implement<Env extends ImageWorkerEnv = ImageWorkerEnv>(
             contentType,
             destinationPath,
             variantPrefix,
-            defaultResize: config.resize,
+            defaultResize: config.sizes || config.resize,
+            allowedSizes: config.allowedSizes,
             options: uploadOptions,
           });
 
@@ -106,8 +108,9 @@ function requireWorkerEnv<Env extends ImageWorkerEnv>(): Env {
 /**
  * Formats a concise dimension label for progress reporting.
  */
-function formatResizeLabel(opts: { name?: string; width?: number; height?: number }): string {
+function formatResizeLabel(opts: { name?: string; size?: number; width?: number; height?: number }): string {
   if (opts.name) return opts.name;
+  if (opts.size) return `${opts.size}`;
   return `${opts.width ?? ''}x${opts.height ?? ''}`;
 }
 
@@ -179,6 +182,9 @@ async function saveVariants(ctx: UploadWorkflowContext): Promise<UploadWorkflowC
   /* istanbul ignore else */
   if (ctx.options?.variants && ctx.options.variants.length > 0) {
     for (const variant of ctx.options.variants) {
+      if (!isSizeAllowed(variant, ctx.allowedSizes as (number | Resize)[] | undefined)) {
+        continue;
+      }
       const label = formatResizeLabel(variant);
       anchor.assign(ctx.state.data, {
         step: 'variants',
@@ -206,9 +212,13 @@ async function resizeVariants(ctx: UploadWorkflowContext): Promise<UploadWorkflo
     return ctx;
   }
 
-  const serverResizes = ctx.options?.resize ?? ctx.defaultResize;
+  const rawResizes = (ctx.options?.sizes ?? ctx.options?.resize ?? ctx.defaultResize) as Resize[] | undefined;
+  const serverResizes = rawResizes
+    ? rawResizes.filter((r) => isSizeAllowed(r, ctx.allowedSizes as (number | Resize)[] | undefined))
+    : [];
+
   /* istanbul ignore else */
-  if (serverResizes && serverResizes.length > 0) {
+  if (serverResizes.length > 0) {
     for (const resizeOptions of serverResizes) {
       const label = formatResizeLabel(resizeOptions);
       anchor.assign(ctx.state.data, {

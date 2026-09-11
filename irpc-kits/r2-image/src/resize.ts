@@ -37,7 +37,15 @@ export async function resize(source: ImageSource, options: Resize = {}): Promise
   let targetWidth = options.width;
   let targetHeight = options.height;
 
-  if (targetWidth && !targetHeight) {
+  if (options.size && !targetWidth && !targetHeight) {
+    if (meta.width >= meta.height) {
+      targetWidth = options.size;
+      targetHeight = Math.max(1, Math.round(meta.height * (options.size / meta.width)));
+    } else {
+      targetHeight = options.size;
+      targetWidth = Math.max(1, Math.round(meta.width * (options.size / meta.height)));
+    }
+  } else if (targetWidth && !targetHeight) {
     targetHeight = Math.max(1, Math.round(meta.height * (targetWidth / meta.width)));
   } else if (targetHeight && !targetWidth) {
     targetWidth = Math.max(1, Math.round(meta.width * (targetHeight / meta.height)));

@@ -4,8 +4,9 @@ import type {
   Fetcher,
   ImageWorkerEnv,
   R2Bucket,
+  Resize,
 } from '../types.js';
-import { parseImageRequest } from '../utils/index.js';
+import { isSizeAllowed, parseImageRequest } from '../utils/index.js';
 import { resizeImage, resolveBucket, resolveResizer } from './resizer.js';
 import { getOriginal, getVariant, getVariantKey, putVariant } from './storage.js';
 
@@ -16,6 +17,8 @@ export interface DeliveryOptions<Env> {
   bucketResolver?: keyof Env | ((env: Env) => R2Bucket);
   resizerResolver?: keyof Env | ((env: Env) => DurableObjectNamespace | Fetcher | string);
   onDemand?: boolean;
+  allowedSizes?: (number | Resize)[];
+  sizes?: Resize[];
 }
 
 /**
@@ -43,10 +46,22 @@ export async function handleImageDelivery<Env extends ImageWorkerEnv>(
     return cached;
   }
 
-  const { path, transforms, isOriginal } = parseImageRequest(url);
+  const { path, transforms, isOriginal: rawIsOriginal } = parseImageRequest(url);
   if (!path) {
     return new Response('Image not found', { status: 404 });
   }
+
+  // Resolve preset dimensions from worker sizes if named preset requested
+  if (transforms.name && options.sizes) {
+    const preset = options.sizes.find((s) => s.name === transforms.name);
+    if (preset) {
+      Object.assign(transforms, { ...preset, ...transforms });
+    }
+  }
+
+  // If transforms are not allowed by whitelist, skip the transform and serve original image
+  const isAllowed = rawIsOriginal || isSizeAllowed(transforms, options.allowedSizes);
+  const isOriginal = rawIsOriginal || !isAllowed;
 
   const bucket = resolveBucket(env, options.bucketResolver);
   const resizer = resolveResizer(env, options.resizerResolver);
@@ -55,7 +70,7 @@ export async function handleImageDelivery<Env extends ImageWorkerEnv>(
     'Cache-Control': `public, max-age=${options.browserTtl}, s-maxage=${options.edgeTtl}, immutable`,
   };
 
-  // 2. Original Image Requested
+  // 2. Original Image Requested (or transform skipped)
   if (isOriginal) {
     const original = await getOriginal(bucket, path);
     if (!original) {

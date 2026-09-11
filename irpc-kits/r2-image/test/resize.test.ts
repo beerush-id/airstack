@@ -60,4 +60,20 @@ describe('resize()', () => {
     const smallBuffer = await createTestImage(10, 10);
     await expect(resize(smallBuffer)).resolves.toBeDefined();
   });
+
+  it('caps longest edge using size for landscape and portrait images', async () => {
+    // Landscape: width (200) > height (100) -> width capped to 80, height is 40
+    const landscape = await createTestImage(200, 100);
+    const resLandscape = await resize(landscape, { size: 80 });
+    const metaLandscape = await new Transformer(Buffer.from(await resLandscape.data.arrayBuffer())).metadata();
+    expect(metaLandscape.width).toBe(80);
+    expect(metaLandscape.height).toBe(40);
+
+    // Portrait: height (200) > width (100) -> height capped to 80, width is 40
+    const portrait = await createTestImage(100, 200);
+    const resPortrait = await resize(portrait, { size: 80 });
+    const metaPortrait = await new Transformer(Buffer.from(await resPortrait.data.arrayBuffer())).metadata();
+    expect(metaPortrait.width).toBe(40);
+    expect(metaPortrait.height).toBe(80);
+  });
 });
