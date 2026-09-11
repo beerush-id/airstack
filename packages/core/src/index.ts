@@ -2,7 +2,7 @@ export * from './common/index.js';
 export * from './engine/anchor.js';
 export * from './engine/broadcast.js';
 export * from './engine/config.js';
-export { inherit } from './engine/proxy.js';
+export { inherit, override } from './engine/proxy.js';
 export { $module } from './module.js';
 export * from './reactive/event.js';
 export * from './reactive/observation.js';

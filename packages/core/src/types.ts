@@ -295,6 +295,25 @@ export type MutationKey<T> =
 
 export type MergedType<T> = { [P in keyof T]: T[P] } & {};
 
+/**
+ * Merges two object types where properties of Patch override properties of Base.
+ */
+export type OverrideProps<Base, Patch> = MergedType<Omit<Base, keyof Patch> & Patch>;
+
+/**
+ * Computes a composite type from a sequence of sources, where subsequent sources override
+ * properties from earlier ones.
+ */
+export type MergeSources<T extends readonly unknown[], Acc = {}> = T extends readonly []
+  ? MergedType<Acc>
+  : T extends readonly [infer Head, ...infer Tail]
+    ? MergeSources<Tail, Head extends object ? OverrideProps<Acc, NonNullable<Head>> : Acc>
+    : T extends readonly (infer Element)[]
+      ? Element extends object
+        ? OverrideProps<Acc, NonNullable<Element>>
+        : MergedType<Acc>
+      : MergedType<Acc>;
+
 export type MutablePart<T, K extends MutationKey<T>[]> =
   T extends ReadonlyMap<infer M, infer V>
     ? T & {

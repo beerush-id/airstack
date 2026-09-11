@@ -3,6 +3,7 @@ import type {
   AnyType,
   KeyLike,
   Linkable,
+  MergeSources,
   MethodLike,
   MutablePart,
   MutationKey,
@@ -13,11 +14,11 @@ import type {
   StatePropGetter,
   TrapOverrides,
 } from '../types.js';
+import { isObjectLike } from '../utils/index.js';
 import { createArrayMutator } from './array.js';
 import { createCollectionMutator } from './collection.js';
 import { CONTROLLER_REGISTRY, INIT_GATEWAY_REGISTRY, META_REGISTRY, STATE_REGISTRY } from './registry.js';
 import { createGetter } from './trap.js';
-import { isObjectLike } from '../utils/index.js';
 
 /**
  * Creates a ProxyHandler for the given state object based on its mutability configuration.
@@ -221,4 +222,84 @@ export function inherit<T extends Record<string, AnyType>>(...sources: (Partial<
       },
     }
   ) as T;
+}
+
+/**
+ * Creates a shallow proxy that delegates property access across multiple target sources,
+ * allowing subsequent sources to override earlier ones without breaking reactivity.
+ *
+ * Designed for non-destructive props merging and overrides (avoiding object spreading
+ * `{ ...props, ...overrides }` which eagerly evaluates getters and strips fine-grained reactivity).
+ *
+ * - Reading resolves from sources in reverse order based on key presence (`key in target`), accessing
+ *   the property directly on the owning source to preserve getter tracking and explicit `undefined` values.
+ * - Writing (`set`) targets the source that already contains the key, defaulting to the latest source
+ *   if the key does not exist in any source.
+ * - Deletion (`deleteProperty`) removes the property from whichever source currently defines it.
+ *
+ * @template R - Explicit return type override (defaults to the automatically merged tuple type)
+ * @template T - Variadic tuple of source objects
+ * @param sources - Target source objects to compose with override precedence
+ * @returns A proxy object delegating to the sources with merged typings
+ */
+export function override<
+  R = never,
+  T extends readonly (object | null | undefined)[] = (object | null | undefined)[]
+>(
+  ...sources: [...T]
+): [R] extends [never] ? MergeSources<T> : R {
+  const targets = sources.map((s) => (s ?? {}) as Record<string | symbol, unknown>).reverse();
+
+  return new Proxy(
+    {},
+    {
+      get(_, prop) {
+        const target = targets.find((t) => prop in t);
+        if (target) {
+          return target[prop as never];
+        }
+      },
+      set(_, prop, value) {
+        if (!targets.length) return true;
+        const target = targets.find((t) => prop in t) ?? targets[0];
+        target[prop as never] = value;
+        return true;
+      },
+      deleteProperty(_, prop) {
+        if (!targets.length) return true;
+        const target = targets.find((t) => prop in t);
+        if (target) {
+          delete target[prop as never];
+        }
+        return true;
+      },
+      has(_target, prop) {
+        return targets.some((t) => prop in t);
+      },
+      ownKeys() {
+        const keys = new Set<string | symbol>();
+
+        for (const target of targets) {
+          for (const key of Reflect.ownKeys(target)) {
+            keys.add(key);
+          }
+        }
+
+        return Array.from(keys);
+      },
+      getOwnPropertyDescriptor(_, prop) {
+        const target = targets.find((t) => prop in t);
+        if (target) {
+          return (
+            Object.getOwnPropertyDescriptor(target, prop) ?? {
+              configurable: true,
+              enumerable: true,
+              writable: true,
+              value: target[prop as never],
+            }
+          );
+        }
+      },
+    }
+  ) as [R] extends [never] ? MergeSources<T> : R;
 }
