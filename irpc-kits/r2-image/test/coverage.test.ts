@@ -658,7 +658,7 @@ describe('Coverage: Edge Cases & Boundary Handling', () => {
         );
 
         const stream = upload('/', file, {
-          resize: [{ width: 50 }, { height: 50 }, { size: 50 }],
+          sizes: [{ width: 50 }, { height: 50 }, { size: 50 }],
         });
         const result = (await stream) as { step?: string };
         expect(result.step).toBe('complete');
@@ -666,8 +666,8 @@ describe('Coverage: Edge Cases & Boundary Handling', () => {
     });
   });
 
-  describe('allowedSizes & sizes alias guardrails', () => {
-    it('supports sizes alias in createWorker and skips disallowed variants on upload', async () => {
+  describe('allowedSizes & sizes guardrails', () => {
+    it('supports sizes in createWorker and skips disallowed variants on upload', async () => {
       await withContext(createContextStore(), async () => {
         const mockBucket = createMockBucket();
         const rawImage = await createTestImage(20, 20);

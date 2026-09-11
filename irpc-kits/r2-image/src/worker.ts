@@ -29,7 +29,6 @@ export function createWorker<Env extends ImageWorkerEnv = ImageWorkerEnv>(
     variantPrefix,
     bucket: config.bucket,
     resizer: config.resizer,
-    resize: config.resize,
     sizes: config.sizes,
     allowedSizes: config.allowedSizes,
   });
@@ -67,7 +66,7 @@ export function createWorker<Env extends ImageWorkerEnv = ImageWorkerEnv>(
           resizerResolver: config.resizer,
           onDemand: config.onDemand,
           allowedSizes: config.allowedSizes,
-          sizes: config.sizes || config.resize,
+          sizes: config.sizes,
         });
       }
 

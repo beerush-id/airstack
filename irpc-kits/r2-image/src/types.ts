@@ -64,11 +64,6 @@ export interface ImageConstructorConfig<Env extends ImageWorkerEnv = ImageWorker
   /**
    * Default resize variants to generate automatically on upload when not explicitly provided.
    */
-  resize?: Resize[];
-
-  /**
-   * Alias for default resize variants.
-   */
   sizes?: Resize[];
 
   /**
@@ -195,9 +190,6 @@ export type ImageSource = IRPCFile | Blob | Uint8Array | ArrayBuffer;
  */
 export interface ImageUploadOptions {
   /** Target sizes for eager server-side resizing via the container. */
-  resize?: Resize[];
-
-  /** Alias for target sizes for eager server-side resizing. */
   sizes?: Resize[];
 
   /** Client-resized variants to store directly into R2. */

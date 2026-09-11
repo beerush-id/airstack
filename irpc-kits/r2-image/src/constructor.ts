@@ -63,7 +63,7 @@ export function implement<Env extends ImageWorkerEnv = ImageWorkerEnv>(
             contentType,
             destinationPath,
             variantPrefix,
-            defaultResize: config.sizes || config.resize,
+            defaultResize: config.sizes,
             allowedSizes: config.allowedSizes,
             options: uploadOptions,
           });
@@ -212,7 +212,7 @@ async function resizeVariants(ctx: UploadWorkflowContext): Promise<UploadWorkflo
     return ctx;
   }
 
-  const rawResizes = (ctx.options?.sizes ?? ctx.options?.resize ?? ctx.defaultResize) as Resize[] | undefined;
+  const rawResizes = (ctx.options?.sizes ?? ctx.defaultResize) as Resize[] | undefined;
   const serverResizes = rawResizes
     ? rawResizes.filter((r) => isSizeAllowed(r, ctx.allowedSizes as (number | Resize)[] | undefined))
     : [];

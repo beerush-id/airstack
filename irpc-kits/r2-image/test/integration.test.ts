@@ -204,7 +204,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
     await withContext(createContextStore(), async () => {
       const mockBucket = createMockBucket();
       createWorker({
-        resize: [{ width: 200, height: 200, format: 'webp' }],
+        sizes: [{ width: 200, height: 200, format: 'webp' }],
       });
       setContext('env', {
         IMAGES: mockBucket as unknown as R2Bucket,
@@ -222,7 +222,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
       const steps: string[] = [];
       const stream = upload('gallery/photo.png', file, {
         variants: [{ file: clientThumb, width: 50, height: 50, format: 'webp' }],
-        resize: [{ width: 300, height: 300, format: 'webp' }],
+        sizes: [{ width: 300, height: 300, format: 'webp' }],
       });
 
       stream.subscribe((state) => {
@@ -244,7 +244,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
     await withContext(createContextStore(), async () => {
       const mockBucket = createMockBucket();
       createWorker({
-        resize: [{ width: 200, height: 200, format: 'webp' }],
+        sizes: [{ width: 200, height: 200, format: 'webp' }],
       });
       setContext('env', {
         IMAGES: mockBucket as unknown as R2Bucket,
@@ -259,7 +259,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
 
       const steps: string[] = [];
       const stream = upload('banners/banner.png', file, {
-        resize: [{ width: 350, height: 350, format: 'webp' }],
+        sizes: [{ width: 350, height: 350, format: 'webp' }],
       });
 
       stream.subscribe((state) => {
@@ -280,7 +280,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
     await withContext(createContextStore(), async () => {
       const mockBucket = createMockBucket();
       createWorker({
-        resize: [{ width: 150, height: 150, format: 'webp' }],
+        sizes: [{ width: 150, height: 150, format: 'webp' }],
       });
       setContext('env', {
         IMAGES: mockBucket as unknown as R2Bucket,
@@ -361,7 +361,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
 
       const steps: string[] = [];
       const stream = upload('users/u_42/avatar.png', avatarFile, {
-        resize: [
+        sizes: [
           { width: 256, height: 256, format: 'webp' },
           { width: 128, height: 128, format: 'webp' },
         ],
@@ -401,7 +401,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
       );
 
       await upload('catalog/product.png', file, {
-        resize: [
+        sizes: [
           { name: 'thumbnail', width: 120, height: 120, format: 'webp' },
           { name: 'hero', width: 600, height: 300, fit: 'cover', format: 'webp' },
         ],
@@ -465,7 +465,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
       );
 
       await upload('gallery/landscape.png', file, {
-        resize: [{ width: 32, height: 24, blur: 10, format: 'webp' }],
+        sizes: [{ width: 32, height: 24, blur: 10, format: 'webp' }],
       });
 
       expect(mockBucket.store.has('gallery/landscape.png-w_32_h_24_b_10.webp')).toBe(true);
@@ -493,7 +493,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
       );
 
       await upload('blog/cover.png', file, {
-        resize: [{ name: 'lqip', width: 20, height: 20, blur: 15, format: 'webp' }],
+        sizes: [{ name: 'lqip', width: 20, height: 20, blur: 15, format: 'webp' }],
       });
 
       expect(mockBucket.store.has('blog/cover.png-lqip.webp')).toBe(true);
@@ -764,7 +764,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
       const mockBucket = createMockBucket();
       const worker = createWorker({
         onDemand: false,
-        resize: [{ width: 100, height: 100, format: 'webp' }],
+        sizes: [{ width: 100, height: 100, format: 'webp' }],
       });
       const env: ImageWorkerEnv = {
         IMAGES: mockBucket as unknown as R2Bucket,
@@ -831,7 +831,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
     await withContext(createContextStore(), async () => {
       const mockBucket = createMockBucket();
       createWorker({
-        resize: [{ width: 100, height: 100, format: 'webp' }],
+        sizes: [{ width: 100, height: 100, format: 'webp' }],
       });
       const env: ImageWorkerEnv = {
         IMAGES: mockBucket as unknown as R2Bucket,
@@ -872,7 +872,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
       const fileA = new IRPCFile({ name: 'card.png', size: rawA.byteLength, type: 'image/png' }, new Blob([rawA as BlobPart]));
 
       await upload('content/card.png', fileA, {
-        resize: [{ name: 'preview', width: 200, height: 200, format: 'webp' }],
+        sizes: [{ name: 'preview', width: 200, height: 200, format: 'webp' }],
       });
       expect(mockBucket.store.has('content/card.png-preview.webp')).toBe(true);
 
@@ -880,7 +880,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
       const fileB = new IRPCFile({ name: 'card.png', size: rawB.byteLength, type: 'image/png' }, new Blob([rawB as BlobPart]));
 
       await upload('content/card.png', fileB, {
-        resize: [{ name: 'hero', width: 400, height: 200, format: 'webp' }],
+        sizes: [{ name: 'hero', width: 400, height: 200, format: 'webp' }],
       });
 
       expect(mockBucket.store.has('content/card.png-preview.webp')).toBe(false);
@@ -977,8 +977,8 @@ describe('User Journey: Media Asset Lifecycle', () => {
       const fileA = new IRPCFile({ name: 'shoe.png', size: rawA.byteLength, type: 'image/png' }, new Blob([rawA as BlobPart]));
       const fileB = new IRPCFile({ name: 'shirt.png', size: rawB.byteLength, type: 'image/png' }, new Blob([rawB as BlobPart]));
 
-      await upload('products', fileA, { resize: [{ width: 200, height: 200 }] });
-      await upload('products', fileB, { resize: [{ width: 200, height: 200 }] });
+      await upload('products', fileA, { sizes: [{ width: 200, height: 200 }] });
+      await upload('products', fileB, { sizes: [{ width: 200, height: 200 }] });
 
       expect(mockBucket.store.has('products/shoe.png')).toBe(true);
       expect(mockBucket.store.has('products/shoe.png-w_200_h_200.webp')).toBe(true);

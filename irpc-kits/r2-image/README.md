@@ -52,7 +52,7 @@ async function uploadAvatar(file: File) {
 
   // Eagerly generates and warms variants in R2 during upload
   const stream = upload('users/u_42/avatar.png', avatar, {
-    resize: [
+    sizes: [
       { name: 'display', width: 256, height: 256, format: 'webp' },
       { name: 'thumb', width: 64, height: 64, format: 'webp' },
       { name: 'lqip', width: 24, height: 24, blur: 10, format: 'webp' },
@@ -116,7 +116,7 @@ Overwriting an asset at an existing path automatically purges all stale variants
 ```ts
 // Overwriting photo.png immediately purges old variants and warms new presets
 await upload('users/u_42/avatar.png', newAvatarFile, {
-  resize: [{ name: 'display', width: 256, height: 256, format: 'webp' }],
+  sizes: [{ name: 'display', width: 256, height: 256, format: 'webp' }],
 });
 ```
 
