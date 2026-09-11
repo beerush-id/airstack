@@ -28,6 +28,7 @@ export default defineConfig({
       'ui-kits/react-form',
       'ui-kits/solid-form',
       'ui-kits/aria',
+      'irpc-kits/r2-image',
     ],
     exclude: ['packages/react-classic'],
     reporters: ['default', 'html'],
