@@ -56,6 +56,11 @@ export function configure(config: ClientConfig): void {
   }
 
   /* istanbul ignore else */
+  if (config.endpoint !== undefined) {
+    transport.config.endpoint = config.endpoint;
+  }
+
+  /* istanbul ignore else */
   if (config.apiKey) {
     transport.sign({ apiKey: config.apiKey });
   }

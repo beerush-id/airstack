@@ -2,6 +2,7 @@ import type { NavItem } from '@airlib/react/mdx';
 import ariaMeta from '@airlib-cache/metadata/(docs)/aria/index.js';
 import formMeta from '@airlib-cache/metadata/(docs)/form/index.js';
 import docsMeta from '@airlib-cache/metadata/(docs)/index.js';
+import r2ImageMeta from '@airlib-cache/metadata/(docs)/r2-image/index.js';
 // import componentsMeta from '@airlib-cache/metadata/(docs)/material-css/components/index.js';
 // import extensionsMeta from '@airlib-cache/metadata/(docs)/material-css/extensions/index.js';
 // import materialMeta from '@airlib-cache/metadata/(docs)/material-css/index.js';
@@ -11,7 +12,6 @@ import remoteFunctionMeta from '@airlib-cache/metadata/(docs)/remote-function/in
 import routingMeta from '@airlib-cache/metadata/(docs)/routing/index.js';
 import stateMeta from '@airlib-cache/metadata/(docs)/state-management/index.js';
 import storageMeta from '@airlib-cache/metadata/(docs)/storage/index.js';
-import r2ImageMeta from '@airlib-cache/metadata/(docs)/r2-image/index.js';
 import uiMeta from '@airlib-cache/metadata/(docs)/user-interface/index.js';
 import workflowMeta from '@airlib-cache/metadata/(docs)/workflow/index.js';
 import type { ComponentType } from 'react';
@@ -154,7 +154,7 @@ export const navs: NavItem[] = [
     items: toNavItems(formMeta),
   },
   {
-    text: 'ARIA',
+    text: 'Aria Kits',
     icon: () => <WidgetsIcon />,
     collapsed: true,
     items: [
@@ -163,12 +163,18 @@ export const navs: NavItem[] = [
         .sort((a, b) => a.href.localeCompare(b.href)),
       { separator: true },
       {
-        text: 'ARIA Utilities',
+        text: 'Aria Utilities',
         items: [toNavItems(ariaMeta).find((item) => item.href === '/docs/aria/selection')!],
         collapsed: true,
         icon: () => <BuildIcon />,
       },
     ],
+  },
+  {
+    text: 'R2 Image',
+    icon: () => <StorageIcon />,
+    collapsed: true,
+    items: toNavItems(r2ImageMeta),
   },
   // {
   //   text: 'AirLib Material 3 CSS',
@@ -203,12 +209,6 @@ export const navs: NavItem[] = [
     icon: () => <StorageIcon />,
     collapsed: true,
     items: toNavItems(storageMeta),
-  },
-  {
-    text: 'R2 Image',
-    icon: () => <StorageIcon />,
-    collapsed: true,
-    items: toNavItems(r2ImageMeta),
   },
   {
     text: 'Utilities',

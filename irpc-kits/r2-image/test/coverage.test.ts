@@ -2,11 +2,18 @@ import { createContextStore, IRPCFile, setContext, withContext } from '@irpclib/
 import { Transformer } from '@napi-rs/image';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { implement } from '../src/constructor.js';
-import { configure, remove, resize, upload, url } from '../src/index.js';
+import { configure, remove, resize, transport, upload, url } from '../src/index.js';
 import { handleImageDelivery } from '../src/lib/delivery.js';
 import { resizeImage, resolveBucket, resolveResizer } from '../src/lib/resizer.js';
 import { deleteImage, deleteVariants, getImageMetadata, getVariantKey, putVariant } from '../src/lib/storage.js';
-import type { DurableObjectNamespace, ExecutionContext, Fetcher, ImageWorkerEnv, R2Bucket, Resize } from '../src/types.js';
+import type {
+  DurableObjectNamespace,
+  ExecutionContext,
+  Fetcher,
+  ImageWorkerEnv,
+  R2Bucket,
+  Resize,
+} from '../src/types.js';
 import { formatImageUrl, parseImageRequest } from '../src/utils/request.js';
 import { handleCorsPreflight, isOriginAllowed, isSizeAllowed } from '../src/utils/security.js';
 import { createWorker } from '../src/worker.js';
@@ -623,7 +630,10 @@ describe('Coverage: Edge Cases & Boundary Handling', () => {
         expect(resRoot.path).toBe('/photo.png');
 
         // 4. Folder path with unnamed file defaulting to uuid
-        const unnamedFile = new IRPCFile({ size: rawImage.byteLength, type: 'image/png' }, new Blob([rawImage as BlobPart]));
+        const unnamedFile = new IRPCFile(
+          { size: rawImage.byteLength, type: 'image/png' },
+          new Blob([rawImage as BlobPart])
+        );
         const resUnnamed = (await upload('uploads', unnamedFile)) as { path?: string };
         expect(resUnnamed.path).toMatch(/^\/uploads\/[0-9a-f-]{36}\.png$/);
         expect(mockBucket.store.has(resUnnamed.path!.replace(/^\/+/, ''))).toBe(true);
@@ -785,17 +795,11 @@ describe('Coverage: Edge Cases & Boundary Handling', () => {
 
       // 2. Request with allowed size -> invokes resizer and caches variant
       const allowedReq = new Request('http://localhost/photo.png?w=320');
-      const allowedRes = await handleImageDelivery(
-        allowedReq,
-        new URL('http://localhost/photo.png?w=320'),
-        env,
-        ctx,
-        {
-          allowedSizes: [320, 640],
-          browserTtl: 86400,
-          edgeTtl: 2592000,
-        }
-      );
+      const allowedRes = await handleImageDelivery(allowedReq, new URL('http://localhost/photo.png?w=320'), env, ctx, {
+        allowedSizes: [320, 640],
+        browserTtl: 86400,
+        edgeTtl: 2592000,
+      });
 
       expect(allowedRes.status).toBe(200);
       expect(allowedRes.headers.get('content-type')).toBe('image/webp');
@@ -871,6 +875,26 @@ describe('Coverage: Edge Cases & Boundary Handling', () => {
         expect(unknownNameRes.status).toBe(200);
         expect(unknownNameRes.headers.get('content-type')).toBe('image/png');
       });
+    });
+
+    it('supports custom IRPC endpoint path for embedding in full-stack apps', async () => {
+      configure({ endpoint: '/r2-image-irpc' });
+      expect(transport.endpoint).toBe('/r2-image-irpc');
+
+      const customWorker = createWorker({ endpoint: '/r2-image-irpc' });
+      const env = {
+        IMAGES: createMockBucket() as unknown as R2Bucket,
+        RESIZER: { fetch: async () => new Response() },
+      };
+      const ctx = { waitUntil: vi.fn(), passThroughOnException: vi.fn() };
+
+      // POST to the custom endpoint should be handled by the router (not 405)
+      const res = await customWorker.fetch(new Request('http://localhost/r2-image-irpc', { method: 'POST' }), env, ctx);
+      expect(res.status).not.toBe(405);
+
+      // Reset endpoint
+      configure({ endpoint: '/irpc' });
+      expect(transport.endpoint).toBe('/irpc');
     });
   });
 });

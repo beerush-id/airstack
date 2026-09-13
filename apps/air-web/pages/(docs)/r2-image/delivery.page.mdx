@@ -84,6 +84,19 @@ export default createWorker({
 
 When an incoming query requests dimensions outside the permitted whitelist, the worker skips container transformation entirely and serves the original image with standard caching headers.
 
+## Delivery Gateway for Existing Buckets
+
+If your application already stores images in an R2 bucket (uploaded via S3 API, Django, Rails, Laravel, Node.js, or external pipelines), you don't need to adopt the upload client or migrate existing files.
+
+R2 Image functions as a drop-in optimization CDN layer on top of any existing bucket:
+
+- **Original Passthrough**: Requesting an existing asset without parameters (e.g. `/photos/avatar.png`) streams the original file directly from R2 with permanent edge cache headers.
+- **On-Demand First View**: Requesting with transformation parameters (e.g. `/photos/avatar.png?s=640&f=webp`):
+  1. Checks R2 variant storage for an existing copy.
+  2. On a cache miss, reads the original file from your bucket, transforms it via the private container resizer, and saves the new variant to R2 in the background.
+  3. Serves the optimized WebP to the visitor.
+- **Subsequent Views**: All subsequent requests are served straight from Cloudflare Edge Cache or R2 storage with zero container execution.
+
 ## Query Parameters Reference
 
 The delivery worker supports these query parameters on image URLs:

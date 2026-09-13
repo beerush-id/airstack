@@ -29,6 +29,7 @@ createWorker<Env extends ImageWorkerEnv = ImageWorkerEnv>(config?: ImageWorkerCo
 interface ImageWorkerConfig<Env = ImageWorkerEnv> {
   bucket?: keyof Env | ((env: Env) => R2Bucket);
   resizer?: keyof Env | ((env: Env) => DurableObjectNamespace | Fetcher | string);
+  endpoint?: string;
   sizes?: Resize[];
   allowedSizes?: (number | Resize)[];
   onDemand?: boolean;
@@ -39,6 +40,7 @@ interface ImageWorkerConfig<Env = ImageWorkerEnv> {
 }
 ```
 
+- `config.endpoint` *(string, optional, default `'/irpc'`)*: Custom IRPC endpoint path for upload and mutation operations. Useful when embedding within a full-stack application to prevent route collision.
 - `config.sizes` *(Resize[], optional)*: Default eager variants rendered automatically on upload.
 - `config.allowedSizes` *((number | Resize)[], optional)*: Whitelist of allowed dimensions or presets to prevent compute exhaustion.
 - `config.onDemand` *(boolean, optional, default `true`)*: Enables dynamic container transformation on cache misses. When set to `false`, only pre-rendered variants stored in R2 are served.
@@ -47,7 +49,78 @@ interface ImageWorkerConfig<Env = ImageWorkerEnv> {
 - `config.bucket` *(keyof Env | function, optional, default `'IMAGES'`)*: Custom R2 bucket binding name or factory resolver.
 - `config.resizer` *(keyof Env | function, optional, default `'RESIZER'`)*: Custom container binding name or factory resolver.
 
-### Usage
+### Full-Stack Usage
+
+Hosting R2 Image directly inside your full-stack application (such as AirLib, Remix, Astro, or Hono) provides zero-friction deployment:
+- **Zero extra services**: Deployed with your existing application in a single pipeline.
+- **Same-origin performance**: No extra DNS lookups, no TLS negotiation delay, and zero CORS preflight (`OPTIONS`) round-trips on upload calls.
+- **Isolated compute**: Container transforms execute in private Durable Object containers without affecting your application's V8 isolate or event loop.
+
+To prevent route collisions between your application's primary RPC or API routes and image mutations, configure a dedicated endpoint on both the client and server.
+
+#### 1. Server Delegation
+
+In your AirLib worker entrypoint, export the container class, initialize the image worker, and intercept matching routes before falling through to your application router:
+
+```ts [server/worker.ts]
+import { Container } from '@cloudflare/containers';
+import { createWorker } from '@irpclib/r2-image/worker';
+import worker from '../dist/server/worker.js';
+
+export class ImageResizer extends Container {
+  defaultPort = 8080;
+}
+
+const images = createWorker({
+  endpoint: '/r2-image-irpc',
+  sizes: [
+    { name: 'thumb', width: 128, height: 128, format: 'webp' },
+    { name: 'display', size: 1024, format: 'webp' },
+  ],
+  allowedSizes: [128, 256, 512, 1024],
+});
+
+export default {
+  async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    const url = new URL(req.url);
+
+    // 1. Intercept Image IRPC operations (upload, delete, metadata)
+    if (url.pathname === '/r2-image-irpc') {
+      return images.fetch(req, env, ctx);
+    }
+
+    // 2. Intercept Image Delivery requests (e.g. /images/*)
+    if (url.pathname.startsWith('/images/')) {
+      return images.fetch(req, env, ctx);
+    }
+
+    // 3. The existing worker configs (e.g. WebSockets, custom routes)
+    if (env.DURABLE_LINK && url.pathname.startsWith('/ws/')) {
+      const id = env.DURABLE_LINK.idFromName('global-link');
+      return env.DURABLE_LINK.get(id).fetch(req);
+    }
+
+    // 4. Primary AirLib application handler (SSR, pages, main IRPC)
+    return worker.fetch(req, env, req.signal);
+  },
+};
+```
+
+#### 2. Client Configuration
+
+Configure the client transport to send mutations to your custom endpoint:
+
+```ts [src/client.ts]
+import { configure } from '@irpclib/r2-image';
+
+configure({
+  endpoint: '/r2-image-irpc',
+});
+```
+
+### Standalone Usage
+
+If you prefer a dedicated image microservice or a separate image domain (e.g. `images.example.com`), export the resizer container and the fetch handler directly as your default worker export:
 
 ```ts [src/index.ts]
 import { Container } from '@cloudflare/containers';
@@ -69,6 +142,36 @@ export default createWorker({
     edgeTtl: 2592000,
   },
 });
+```
+
+### Delivery-Only Gateway (Existing Buckets)
+
+If your architecture already manages image uploads externally and you only need on-demand optimization and edge delivery on top of your existing bucket, scope the worker handler exclusively to `GET` requests:
+
+```ts [src/index.ts]
+import { Container } from '@cloudflare/containers';
+import { createWorker } from '@irpclib/r2-image/worker';
+
+export class ImageResizer extends Container {
+  defaultPort = 8080;
+}
+
+const r2Worker = createWorker({
+  allowedSizes: [128, 256, 640, 1024, 1600],
+  onDemand: true,
+});
+
+export default {
+  async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    const url = new URL(req.url);
+
+    if (req.method === 'GET' && url.pathname.startsWith('/images/')) {
+      return r2Worker.fetch(req, env, ctx);
+    }
+
+    return new Response('Not Found', { status: 404 });
+  },
+};
 ```
 
 ## Wrangler Configuration

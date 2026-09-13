@@ -76,8 +76,7 @@ export interface ImageConstructorConfig<Env extends ImageWorkerEnv = ImageWorker
 /**
  * Top-level configuration options for initializing the image service worker.
  */
-export interface ImageWorkerConfig<Env extends ImageWorkerEnv = ImageWorkerEnv>
-  extends ImageConstructorConfig<Env> {
+export interface ImageWorkerConfig<Env extends ImageWorkerEnv = ImageWorkerEnv> extends ImageConstructorConfig<Env> {
   /**
    * Whether on-demand dynamic resizing via the container is permitted on cache misses.
    * When false, only pre-rendered variants stored in R2 will be served.
@@ -85,6 +84,12 @@ export interface ImageWorkerConfig<Env extends ImageWorkerEnv = ImageWorkerEnv>
    */
   onDemand?: boolean;
 
+  /**
+   * Custom IRPC endpoint path for upload and mutation operations.
+   * Useful when embedding within a full-stack application to prevent route collision.
+   * @default '/irpc'
+   */
+  endpoint?: string;
 
   /**
    * Cache control parameters.
@@ -112,6 +117,12 @@ export interface ClientConfig {
    * Base URL of the image service (e.g. 'https://images.example.com').
    */
   baseUrl?: string;
+
+  /**
+   * Custom IRPC endpoint path for upload and mutation operations (e.g. '/r2-image-irpc').
+   * @default '/irpc'
+   */
+  endpoint?: string;
 
   /**
    * Optional secret API key for signing mutating operations.

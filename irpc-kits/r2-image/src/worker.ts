@@ -21,8 +21,10 @@ export function createWorker<Env extends ImageWorkerEnv = ImageWorkerEnv>(
   const browserTtl = config.cache?.browserTtl || 86400;
   const edgeTtl = config.cache?.edgeTtl || 2592000;
 
+  const endpoint = config.endpoint || transport.endpoint;
+
   // Bind server-side router to the package transport
-  const router = new HTTPRouter(transport);
+  const router = new HTTPRouter(transport, { endpoint });
 
   // Wire up IRPC constructors
   implement({
@@ -47,8 +49,8 @@ export function createWorker<Env extends ImageWorkerEnv = ImageWorkerEnv>(
         return handleCorsPreflight(request, env.R2_IMAGE_ORIGINS);
       }
 
-      // 3. IRPC Operations Plane (only POST to transport.endpoint)
-      if (request.method === 'POST' && url.pathname === transport.endpoint) {
+      // 3. IRPC Operations Plane (only POST to endpoint)
+      if (request.method === 'POST' && url.pathname === endpoint) {
         return router.resolve(request, [
           ['env', env],
           ['ctx', ctx],

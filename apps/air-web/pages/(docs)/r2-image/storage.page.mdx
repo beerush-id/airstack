@@ -335,11 +335,13 @@ configure(config: ClientConfig): void
 ```ts
 interface ClientConfig {
   baseUrl?: string;
+  endpoint?: string;
   apiKey?: string;
 }
 ```
 
 - `config.baseUrl` *(string, optional)*: Base URL of the image service worker (e.g. `'https://images.example.com'`). Automatically prepended by `url()`.
+- `config.endpoint` *(string, optional, default `'/irpc'`)*: Custom IRPC endpoint path for upload and mutation operations (e.g. `'/r2-image-irpc'`).
 - `config.apiKey` *(string, optional)*: Shared secret API key sent via authorization headers for upload and deletion operations when protection is configured.
 
 ### Usage
