@@ -16,6 +16,10 @@
     "./server": {
       "types": "./dist/server/index.d.ts",
       "import": "./dist/server/index.js"
+    },
+    "./wrangler": {
+      "types": "./dist/wrangler/index.d.ts",
+      "import": "./dist/wrangler/index.js"
     }
   },
   "files": [

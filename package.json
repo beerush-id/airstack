@@ -4,7 +4,7 @@
   "version": "2.1.0",
   "description": "Reactive State Management for Javascript",
   "scripts": {
-    "dev": "bpkg run dev",
+    "dev": "mpkg run dev -f packages/* irpclib/* ui-kits/* irpc-kits/* -e create-airlib",
     "dev:core": "bpkg run dev -f packages/core",
     "dev:next": "bpkg run dev -f apps/next",
     "dev:react": "bpkg run dev -f apps/react",

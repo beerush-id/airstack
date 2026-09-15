@@ -18,6 +18,8 @@ import type { IRPCReader } from './reader.js';
 import type { RemoteState } from './state.js';
 import type { IRPCTransport } from './transport.js';
 
+export type { AnyType } from '@airlib/core';
+
 /**
  * A registry that maps IRPCHandlers to their corresponding IRPCHosts.
  * Uses WeakMap to avoid memory leaks by not preventing garbage collection of handlers.
