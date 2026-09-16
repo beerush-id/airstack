@@ -45,6 +45,7 @@ describe('R2Driver write', () => {
       'r2write/overwrite.txt',
       'r2write/rollback-new.txt',
       'r2write/rollback-overwrite.txt',
+      'r2write/inlined-write.txt',
     ]);
   });
 
@@ -282,7 +283,7 @@ describe('R2Driver write', () => {
     });
   });
 
-  it('skips blob upload when ctx.info indicates payload was already inlined in D1', async () => {
+  it('persists the canonical blob even when ctx.info is populated', async () => {
     await withFs({}, async () => {
       const ctx: DriverContext<FileInfo> = createDriverCtx();
       ctx.info = {
@@ -297,7 +298,9 @@ describe('R2Driver write', () => {
       await normalize.write(ctx, '/r2write/inlined-write.txt', 'small payload', { type: 'text/plain' });
       await driver.write(ctx, '/r2write/inlined-write.txt', 'small payload', { type: 'text/plain' });
 
-      expect(await bucket.head('r2write/inlined-write.txt')).toBeNull();
+      const stored = await bucket.get('r2write/inlined-write.txt');
+      expect(stored).not.toBeNull();
+      expect(await stored?.text()).toBe('small payload');
     });
   });
 });

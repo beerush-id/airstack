@@ -68,7 +68,6 @@ export class R2Driver implements FileDriver {
 
   /** Uploads the blob and seals authoritative `FileInfo`; restores prior state on rollback. */
   async write(ctx: DriverContext<FileInfo>, _path: string, data: FileInput, options?: WriteOptions): Promise<void> {
-    if (ctx.info !== undefined) return;
     const canonical = ctx.path!;
     const key = canonical.slice(1);
     const type = options?.type ?? 'application/octet-stream';
@@ -260,7 +259,7 @@ export class R2Driver implements FileDriver {
     return;
   }
 
-  /** Duplicates blob and metadata; inspects `ctx.info` for inlined skips. */
+  /** Duplicates the canonical blob and metadata to the destination. */
   async copy(ctx: DriverContext<boolean>, _source: string, _destination: string, options?: CopyOptions): Promise<void> {
     const srcCanonical = ctx.path!;
     const dstCanonical = ctx.destination!;
@@ -270,10 +269,6 @@ export class R2Driver implements FileDriver {
       customMetadata?: R2Metadata;
     } | null;
     if (srcHead === null) {
-      if (ctx.info !== undefined) {
-        ctx.result = true;
-        return;
-      }
       throw new HandlerError(
         'ENOENT',
         'Resource not found',
@@ -323,7 +318,7 @@ export class R2Driver implements FileDriver {
     });
   }
 
-  /** Relocates blob and metadata; inspects `ctx.info` for inlined skips. */
+  /** Relocates the canonical blob and metadata to the destination. */
   async move(
     ctx: DriverContext<boolean>,
     _source: string,
@@ -340,10 +335,6 @@ export class R2Driver implements FileDriver {
       size?: number;
     } | null;
     if (srcHead === null) {
-      if (ctx.info !== undefined) {
-        ctx.result = true;
-        return;
-      }
       throw new HandlerError(
         'ENOENT',
         'Resource not found',

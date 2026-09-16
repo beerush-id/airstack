@@ -190,7 +190,7 @@ describe('R2Driver copy and move', () => {
     });
   });
 
-  it('skips blob copy when ctx.info indicates payload was purely inlined', async () => {
+  it('halts copy with ENOENT for a missing canonical source even when ctx.info is set', async () => {
     await withFs({}, async () => {
       const ctx: DriverContext<boolean> = createDriverCtx();
       ctx.info = {
@@ -203,14 +203,19 @@ describe('R2Driver copy and move', () => {
       };
 
       await normalize.copy(ctx, '/r2copymove/inlined.txt', '/r2copymove/inlined-dest.txt');
-      await driver.copy(ctx, '/r2copymove/inlined.txt', '/r2copymove/inlined-dest.txt');
 
-      expect(ctx.result).toBe(true);
+      await expectDenial(
+        () => {
+          return driver.copy(ctx, '/r2copymove/inlined.txt', '/r2copymove/inlined-dest.txt');
+        },
+        'ENOENT',
+        '/r2copymove/inlined.txt'
+      );
       expect(await bucket.head('r2copymove/inlined-dest.txt')).toBeNull();
     });
   });
 
-  it('skips blob move when ctx.info indicates payload was purely inlined', async () => {
+  it('halts move with ENOENT for a missing canonical source even when ctx.info is set', async () => {
     await withFs({}, async () => {
       const ctx: DriverContext<boolean> = createDriverCtx();
       ctx.info = {
@@ -223,9 +228,14 @@ describe('R2Driver copy and move', () => {
       };
 
       await normalize.move(ctx, '/r2copymove/inlined-move.txt', '/r2copymove/inlined-move-dest.txt');
-      await driver.move(ctx, '/r2copymove/inlined-move.txt', '/r2copymove/inlined-move-dest.txt');
 
-      expect(ctx.result).toBe(true);
+      await expectDenial(
+        () => {
+          return driver.move(ctx, '/r2copymove/inlined-move.txt', '/r2copymove/inlined-move-dest.txt');
+        },
+        'ENOENT',
+        '/r2copymove/inlined-move.txt'
+      );
       expect(await bucket.head('r2copymove/inlined-move-dest.txt')).toBeNull();
     });
   });
