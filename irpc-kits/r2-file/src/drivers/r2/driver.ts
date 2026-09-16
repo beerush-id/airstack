@@ -139,7 +139,8 @@ export class R2Driver implements FileDriver {
         return;
       }
       const info = this.describeHead(canonical, head, meta);
-      ctx.result = trashedAt === undefined ? info : { ...info, deletedAt: parseDeletedAt(trashedAt) };
+      const resolved = meta?._fs_link !== undefined ? await this.resolveLinkTarget(meta._fs_link, info) : info;
+      ctx.result = trashedAt === undefined ? resolved : { ...resolved, deletedAt: parseDeletedAt(trashedAt) };
       return;
     }
     if (await this.hasChildren(key)) {
@@ -151,7 +152,7 @@ export class R2Driver implements FileDriver {
 
   /** Confirms presence; honors trash filter options. */
   async exists(ctx: DriverContext<boolean>, _path: string, options?: ExistsOptions): Promise<void> {
-    if ('result' in ctx) return;
+    if (ctx.result === true) return;
     const canonical = ctx.path!;
     const key = canonical.slice(1);
     const allowTrash = (options as { trash?: boolean } | undefined)?.trash === true;
@@ -485,6 +486,31 @@ export class R2Driver implements FileDriver {
     return meta?._fs_type === 'inode/directory'
       ? directoryInfo(canonical, head as HeadShape, meta)
       : fileInfoFromHead(canonical, head as HeadShape, meta);
+  }
+
+  /**
+   * Overlays a symlink target's live metadata onto the alias descriptor.
+   *
+   * @param link - Canonical target path referenced by the alias.
+   * @param alias - Alias `FileInfo` carrying the link's own path, name, and reference.
+   * @returns The alias enriched with the target's size, type, and timestamps, or the untouched alias when the target is absent or trashed.
+   */
+  private async resolveLinkTarget(link: string, alias: FileInfo): Promise<FileInfo> {
+    const targetKey = link.slice(1);
+    const targetHead = (await this.bucket.head(targetKey)) ?? (await this.bucket.head(`${targetKey}/`));
+    if (targetHead === null) return alias;
+    const targetMeta = (targetHead as unknown as { customMetadata?: R2Metadata }).customMetadata;
+    if (targetMeta?._fs_deleted !== undefined) return alias;
+    const target = this.describeHead(link, targetHead, targetMeta);
+    return {
+      ...alias,
+      size: target.size,
+      type: target.type,
+      mtime: target.mtime,
+      etag: target.etag,
+      isDirectory: target.isDirectory,
+      ...(target.metadata ? { metadata: target.metadata } : {}),
+    };
   }
 
   /** Stamps the owner identity under `_fs_<ownerKey>` over caller metadata. */

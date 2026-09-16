@@ -38,6 +38,11 @@ describe('R2Driver stat and exists', () => {
       'r2stat/public.txt',
       'r2stat/hidden.txt',
       'r2stat/soft.txt',
+      'r2stat/unindexed.txt',
+      'r2stat/link-target.txt',
+      'r2stat/resolved-link.txt',
+      'r2stat/trashed-target.txt',
+      'r2stat/trashed-link.txt',
     ]);
   });
 
@@ -223,6 +228,70 @@ describe('R2Driver stat and exists', () => {
 
       await driver.exists(existsCtx, '/r2stat/upstream.txt');
       expect(existsCtx.result).toBe(true);
+    });
+  });
+
+  it('re-checks canonical storage when upstream sealed exists as false', async () => {
+    await withFs({}, async () => {
+      const seed: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.write(seed, '/r2stat/unindexed.txt', 'x', { type: 'text/plain' });
+      await driver.write(seed, '/r2stat/unindexed.txt', 'x', { type: 'text/plain' });
+
+      const ctx: DriverContext<boolean> = createDriverCtx();
+      await normalize.exists(ctx, '/r2stat/unindexed.txt');
+      ctx.result = false;
+      await driver.exists(ctx, '/r2stat/unindexed.txt');
+
+      expect(ctx.result).toBe(true);
+    });
+  });
+
+  it('resolves the target live metadata in stat when the symlink target exists', async () => {
+    await withFs({}, async () => {
+      const tgt: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.write(tgt, '/r2stat/link-target.txt', 'target body', { type: 'text/plain', metadata: { kind: 'doc' } });
+      await driver.write(tgt, '/r2stat/link-target.txt', 'target body', { type: 'text/plain', metadata: { kind: 'doc' } });
+
+      const linkCtx: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.link(linkCtx, '/r2stat/link-target.txt', '/r2stat/resolved-link.txt');
+      await driver.link(linkCtx, '/r2stat/link-target.txt', '/r2stat/resolved-link.txt');
+
+      const ctx: DriverContext<FileInfo | undefined> = createDriverCtx();
+      await normalize.stat(ctx, '/r2stat/resolved-link.txt');
+      await driver.stat(ctx, '/r2stat/resolved-link.txt');
+
+      const info = ctx.result as FileInfo;
+      expect(info.path).toBe('/r2stat/resolved-link.txt');
+      expect(info.link).toBe('/r2stat/link-target.txt');
+      expect(info.size).toBe(11);
+      expect(info.type).toBe('text/plain');
+      expect(info.metadata?.kind).toBe('doc');
+    });
+  });
+
+  it('falls back to the alias marker in stat when the symlink target is trashed', async () => {
+    await withFs({}, async () => {
+      const soft = new R2Driver(bucket, { softDelete: true });
+      const tgt: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.write(tgt, '/r2stat/trashed-target.txt', 'body', { type: 'text/plain' });
+      await soft.write(tgt, '/r2stat/trashed-target.txt', 'body', { type: 'text/plain' });
+
+      const rem: DriverContext<boolean> = createDriverCtx();
+      await normalize.remove(rem, '/r2stat/trashed-target.txt');
+      await soft.remove(rem, '/r2stat/trashed-target.txt');
+
+      const linkCtx: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.link(linkCtx, '/r2stat/trashed-target.txt', '/r2stat/trashed-link.txt');
+      await driver.link(linkCtx, '/r2stat/trashed-target.txt', '/r2stat/trashed-link.txt');
+
+      const ctx: DriverContext<FileInfo | undefined> = createDriverCtx();
+      await normalize.stat(ctx, '/r2stat/trashed-link.txt');
+      await driver.stat(ctx, '/r2stat/trashed-link.txt');
+
+      const info = ctx.result as FileInfo;
+      expect(info.link).toBe('/r2stat/trashed-target.txt');
+      expect(info.type).toBe('inode/symlink');
+      expect(info.size).toBe(0);
     });
   });
 });
