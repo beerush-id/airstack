@@ -1,4 +1,5 @@
 import type { D1Database } from '@cloudflare/workers-types';
+import { HandlerError } from '@irpclib/irpc';
 import { resolveBinding } from '@irpclib/irpc/wrangler';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createDriverCtx } from '../../../src/context.js';
@@ -161,7 +162,7 @@ describe('D1Driver resilience and error propagation', () => {
     expect(check?.total).toBe(10);
   });
 
-  it('propagates underlying database query failures as catchable errors', async () => {
+  it('propagates underlying database query failures as typed HandlerError', async () => {
     const failingDb = {
       prepare() {
         return {
@@ -179,13 +180,25 @@ describe('D1Driver resilience and error propagation', () => {
           },
         };
       },
+      batch: async () => {
+        throw new Error('D1_SIMULATED_FAILURE: disk I/O error');
+      },
     } as unknown as D1Database;
 
     const brokenDriver = new D1Driver(failingDb);
     const ctx = createDriverCtx<FileInfo>();
 
-    await expect(brokenDriver.write(ctx, '/d1base/fail/write.txt', 'content', { type: 'text/plain' })).rejects.toThrow(
-      'D1_SIMULATED_FAILURE'
+    const failure = await brokenDriver.write(ctx, '/d1base/fail/write.txt', 'content', { type: 'text/plain' }).then(
+      () => undefined,
+      (error: unknown) => error
     );
+
+    expect(failure).toBeInstanceOf(HandlerError);
+    const denial = failure as HandlerError & { code: unknown; cause: unknown };
+    expect(denial.code).toBe('EIO');
+    expect(denial.message).toBe('Failed to write');
+    expect(denial.message).not.toMatch(/[/\\]/);
+    expect(denial.cause).toBeInstanceOf(Error);
+    expect((denial.cause as Error).message).toContain('D1_SIMULATED_FAILURE');
   });
 });

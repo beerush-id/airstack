@@ -1,4 +1,4 @@
-import { type AnyType, IRPCFile } from '@irpclib/irpc';
+import { type AnyType, HandlerError, IRPCFile } from '@irpclib/irpc';
 import { DEFAULT_MAX_ENCODING_SIZE } from '../../context.js';
 import type { FileEncoding, FileInfo, FileInput, WriteOptions } from '../../types.js';
 import { parseSize } from '../../utils/type.js';
@@ -38,15 +38,19 @@ export function preparePayload(
   }
 
   let content: string;
-  if (options?.encoding === 'base64' && typeof data === 'string') {
-    content = Buffer.from(data, 'base64').toString('utf-8');
-  } else if (options?.encoding === 'data-url' && typeof data === 'string') {
-    const raw = data.slice(data.indexOf(',') + 1);
-    content = data.includes(';base64') ? Buffer.from(raw, 'base64').toString('utf-8') : decodeURIComponent(raw);
-  } else if (typeof data === 'string') {
-    content = data;
-  } else {
-    content = JSON.stringify(data);
+  try {
+    if (options?.encoding === 'base64' && typeof data === 'string') {
+      content = Buffer.from(data, 'base64').toString('utf-8');
+    } else if (options?.encoding === 'data-url' && typeof data === 'string') {
+      const raw = data.slice(data.indexOf(',') + 1);
+      content = data.includes(';base64') ? Buffer.from(raw, 'base64').toString('utf-8') : decodeURIComponent(raw);
+    } else if (typeof data === 'string') {
+      content = data;
+    } else {
+      content = JSON.stringify(data);
+    }
+  } catch (cause) {
+    throw new HandlerError('EINVAL', 'Invalid file content', cause as Error);
   }
 
   const size = Buffer.byteLength(content, 'utf-8');
@@ -71,7 +75,7 @@ export function decodePayload(raw: string, type: string, encoding?: FileEncoding
     return raw;
   }
   if (encoding === 'json') {
-    return JSON.parse(raw);
+    return parseJson(raw, 'EINVAL', 'Invalid JSON content');
   }
   if (encoding === 'base64') {
     return Buffer.from(raw, 'utf-8').toString('base64');
@@ -104,6 +108,23 @@ export function toFileInfo(row: Record<string, AnyType>, targetRow?: Record<stri
     hidden: Boolean(effective.hidden),
     link: row.link ?? undefined,
     deletedAt: row.deleted_at ? new Date(row.deleted_at) : undefined,
-    metadata: effective.metadata ? JSON.parse(effective.metadata) : undefined,
+    metadata: effective.metadata ? parseJson(effective.metadata, 'EIO', 'Failed to read file metadata') : undefined,
   };
+}
+
+/**
+ * Parses JSON while retaining decoding failures as internal causes of filesystem errors.
+ *
+ * @param raw - Serialized JSON value.
+ * @param code - Filesystem error code for invalid content or corrupt metadata.
+ * @param message - Safe public description of the failure.
+ * @returns The decoded JSON value.
+ * @throws {HandlerError} When the value cannot be parsed as JSON.
+ */
+function parseJson(raw: string, code: 'EINVAL' | 'EIO', message: string): AnyType {
+  try {
+    return JSON.parse(raw);
+  } catch (cause) {
+    throw new HandlerError(code, message, cause as Error);
+  }
 }

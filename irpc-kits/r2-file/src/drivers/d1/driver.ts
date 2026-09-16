@@ -1,4 +1,4 @@
-import type { D1Database } from '@cloudflare/workers-types';
+import type { D1Database, D1PreparedStatement } from '@cloudflare/workers-types';
 import { type AnyType, HandlerError } from '@irpclib/irpc';
 import type { FileDriver } from '../../adapter.js';
 import { DEFAULT_MAX_ENCODING_SIZE, DEFAULT_OWNER_KEY, fsContext } from '../../context.js';
@@ -9,6 +9,7 @@ import type {
   ExistsOptions,
   FileInfo,
   FileInput,
+  FileOperation,
   FileOptions,
   LinkOptions,
   ListOptions,
@@ -74,30 +75,32 @@ export class D1Driver implements FileDriver {
     const pub = options?.public ? 1 : 0;
     const meta = options?.metadata ? JSON.stringify(options.metadata) : null;
 
-    await this.db
-      .prepare(
-        `INSERT INTO _r2_files (path, name, size, type, mtime, etag, directory, link, hidden, public, deleted_at, metadata, "${this.ownerKey}")
-        VALUES (?, ?, 0, 'inode/directory', ?, NULL, ?, NULL, 0, ?, NULL, ?, ?)
-        ON CONFLICT(path) DO UPDATE SET
-          name = excluded.name,
-          size = excluded.size,
-          type = excluded.type,
-          mtime = excluded.mtime,
-          etag = excluded.etag,
-          directory = excluded.directory,
-          link = excluded.link,
-          hidden = excluded.hidden,
-          public = excluded.public,
-          deleted_at = NULL,
-          metadata = excluded.metadata,
-          "${this.ownerKey}" = excluded."${this.ownerKey}"`
-      )
-      .bind(target, name, mtime, dir, pub, meta, owner)
-      .run();
-
-    ctx.rollback.add(async () => {
-      await this.db.prepare('DELETE FROM _r2_files WHERE path = ?').bind(target).run();
-    });
+    await this.mutate(
+      ctx,
+      'mkdir',
+      [target],
+      [
+        this.db
+          .prepare(
+            `INSERT INTO _r2_files (path, name, size, type, mtime, etag, directory, link, hidden, public, deleted_at, metadata, "${this.ownerKey}")
+          VALUES (?, ?, 0, 'inode/directory', ?, NULL, ?, NULL, 0, ?, NULL, ?, ?)
+          ON CONFLICT(path) DO UPDATE SET
+            name = excluded.name,
+            size = excluded.size,
+            type = excluded.type,
+            mtime = excluded.mtime,
+            etag = excluded.etag,
+            directory = excluded.directory,
+            link = excluded.link,
+            hidden = excluded.hidden,
+            public = excluded.public,
+            deleted_at = NULL,
+            metadata = excluded.metadata,
+            "${this.ownerKey}" = excluded."${this.ownerKey}"`
+          )
+          .bind(target, name, mtime, dir, pub, meta, owner),
+      ]
+    );
 
     ctx.result = {
       path: target,
@@ -133,43 +136,42 @@ export class D1Driver implements FileDriver {
 
     const prepared = preparePayload(data, options, this.maxEncodingBytes);
 
-    await this.db
-      .prepare(
-        `INSERT INTO _r2_files (path, name, size, type, mtime, etag, directory, link, hidden, public, deleted_at, metadata, "${this.ownerKey}")
-        VALUES (?, ?, ?, ?, ?, NULL, ?, NULL, ?, ?, NULL, ?, ?)
-        ON CONFLICT(path) DO UPDATE SET
-          name = excluded.name,
-          size = excluded.size,
-          type = excluded.type,
-          mtime = excluded.mtime,
-          etag = excluded.etag,
-          directory = excluded.directory,
-          link = excluded.link,
-          hidden = excluded.hidden,
-          public = excluded.public,
-          deleted_at = NULL,
-          metadata = excluded.metadata,
-          "${this.ownerKey}" = excluded."${this.ownerKey}"`
-      )
-      .bind(target, name, prepared.size, prepared.type ?? null, mtime, dir, hidden, pub, meta, owner)
-      .run();
+    const statements = [
+      this.db
+        .prepare(
+          `INSERT INTO _r2_files (path, name, size, type, mtime, etag, directory, link, hidden, public, deleted_at, metadata, "${this.ownerKey}")
+          VALUES (?, ?, ?, ?, ?, NULL, ?, NULL, ?, ?, NULL, ?, ?)
+          ON CONFLICT(path) DO UPDATE SET
+            name = excluded.name,
+            size = excluded.size,
+            type = excluded.type,
+            mtime = excluded.mtime,
+            etag = excluded.etag,
+            directory = excluded.directory,
+            link = excluded.link,
+            hidden = excluded.hidden,
+            public = excluded.public,
+            deleted_at = NULL,
+            metadata = excluded.metadata,
+            "${this.ownerKey}" = excluded."${this.ownerKey}"`
+        )
+        .bind(target, name, prepared.size, prepared.type ?? null, mtime, dir, hidden, pub, meta, owner),
+    ];
 
     if (prepared.shouldInline && prepared.content !== null) {
-      await this.db
-        .prepare(
-          `INSERT INTO _r2_contents (path, content) VALUES (?, ?)
-          ON CONFLICT(path) DO UPDATE SET content = excluded.content`
-        )
-        .bind(target, prepared.content)
-        .run();
+      statements.push(
+        this.db
+          .prepare(
+            `INSERT INTO _r2_contents (path, content) VALUES (?, ?)
+            ON CONFLICT(path) DO UPDATE SET content = excluded.content`
+          )
+          .bind(target, prepared.content)
+      );
     } else {
-      await this.db.prepare('DELETE FROM _r2_contents WHERE path = ?').bind(target).run();
+      statements.push(this.db.prepare('DELETE FROM _r2_contents WHERE path = ?').bind(target));
     }
 
-    ctx.rollback.add(async () => {
-      await this.db.prepare('DELETE FROM _r2_contents WHERE path = ?').bind(target).run();
-      await this.db.prepare('DELETE FROM _r2_files WHERE path = ?').bind(target).run();
-    });
+    await this.mutate(ctx, 'write', [target], statements);
 
     ctx.result = {
       path: target,
@@ -352,39 +354,40 @@ export class D1Driver implements FileDriver {
     const isPublic = options?.public !== undefined ? (options.public ? 1 : 0) : sourceRow.public;
     const owner = this.getOwner();
 
-    await this.db
-      .prepare(
-        `INSERT INTO _r2_files (path, name, size, type, mtime, etag, directory, link, hidden, public, deleted_at, metadata, "${this.ownerKey}")
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)
-        ON CONFLICT(path) DO UPDATE SET
-          name = excluded.name,
-          size = excluded.size,
-          type = excluded.type,
-          mtime = excluded.mtime,
-          etag = excluded.etag,
-          directory = excluded.directory,
-          link = excluded.link,
-          hidden = excluded.hidden,
-          public = excluded.public,
-          deleted_at = NULL,
-          metadata = excluded.metadata,
-          "${this.ownerKey}" = excluded."${this.ownerKey}"`
-      )
-      .bind(
-        dest,
-        destName,
-        sourceRow.size,
-        sourceRow.type,
-        mtime,
-        sourceRow.etag,
-        destDir,
-        sourceRow.link,
-        sourceRow.hidden,
-        isPublic,
-        sourceRow.metadata,
-        owner
-      )
-      .run();
+    const statements = [
+      this.db
+        .prepare(
+          `INSERT INTO _r2_files (path, name, size, type, mtime, etag, directory, link, hidden, public, deleted_at, metadata, "${this.ownerKey}")
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)
+          ON CONFLICT(path) DO UPDATE SET
+            name = excluded.name,
+            size = excluded.size,
+            type = excluded.type,
+            mtime = excluded.mtime,
+            etag = excluded.etag,
+            directory = excluded.directory,
+            link = excluded.link,
+            hidden = excluded.hidden,
+            public = excluded.public,
+            deleted_at = NULL,
+            metadata = excluded.metadata,
+            "${this.ownerKey}" = excluded."${this.ownerKey}"`
+        )
+        .bind(
+          dest,
+          destName,
+          sourceRow.size,
+          sourceRow.type,
+          mtime,
+          sourceRow.etag,
+          destDir,
+          sourceRow.link,
+          sourceRow.hidden,
+          isPublic,
+          sourceRow.metadata,
+          owner
+        ),
+    ];
 
     const contentRow = await this.db
       .prepare('SELECT content FROM _r2_contents WHERE path = ?')
@@ -392,19 +395,19 @@ export class D1Driver implements FileDriver {
       .first<{ content: string }>();
 
     if (contentRow && contentRow.content !== null) {
-      await this.db
-        .prepare(
-          `INSERT INTO _r2_contents (path, content) VALUES (?, ?)
-          ON CONFLICT(path) DO UPDATE SET content = excluded.content`
-        )
-        .bind(dest, contentRow.content)
-        .run();
+      statements.push(
+        this.db
+          .prepare(
+            `INSERT INTO _r2_contents (path, content) VALUES (?, ?)
+            ON CONFLICT(path) DO UPDATE SET content = excluded.content`
+          )
+          .bind(dest, contentRow.content)
+      );
+    } else {
+      statements.push(this.db.prepare('DELETE FROM _r2_contents WHERE path = ?').bind(dest));
     }
 
-    ctx.rollback.add(async () => {
-      await this.db.prepare('DELETE FROM _r2_contents WHERE path = ?').bind(dest).run();
-      await this.db.prepare('DELETE FROM _r2_files WHERE path = ?').bind(dest).run();
-    });
+    await this.mutate(ctx, 'copy', [dest], statements);
 
     ctx.result = true;
   }
@@ -437,64 +440,41 @@ export class D1Driver implements FileDriver {
     }
 
     ctx.info = toFileInfo(sourceRow);
-    const destName = basename(dest);
-    const destDir = dirname(dest);
+    if (src === dest) {
+      ctx.result = true;
+      return;
+    }
 
-    await this.db.prepare('DELETE FROM _r2_contents WHERE path = ?').bind(dest).run();
-    await this.db.prepare('DELETE FROM _r2_files WHERE path = ?').bind(dest).run();
-
-    await this.db
-      .prepare(
-        `INSERT INTO _r2_files (
-          path, name, size, type, mtime, etag, directory, link, hidden, public, deleted_at, metadata, "${this.ownerKey}"
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-      )
-      .bind(
-        dest,
-        destName,
-        sourceRow.size,
-        sourceRow.type,
-        Date.now(),
-        sourceRow.etag,
-        destDir,
-        sourceRow.link,
-        sourceRow.hidden,
-        sourceRow.public,
-        sourceRow.deleted_at,
-        sourceRow.metadata,
-        sourceRow[this.ownerKey] ?? null
-      )
-      .run();
-
-    await this.db.prepare('UPDATE _r2_contents SET path = ? WHERE path = ?').bind(dest, src).run();
-    await this.db.prepare('DELETE FROM _r2_files WHERE path = ?').bind(src).run();
-
-    ctx.rollback.add(async () => {
-      await this.db
-        .prepare(
-          `INSERT INTO _r2_files (
-            path, name, size, type, mtime, etag, directory, link, hidden, public, deleted_at, metadata, "${this.ownerKey}"
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-        )
-        .bind(
-          src,
-          sourceRow.name,
-          sourceRow.size,
-          sourceRow.type,
-          sourceRow.mtime,
-          sourceRow.etag,
-          sourceRow.directory,
-          sourceRow.link,
-          sourceRow.hidden,
-          sourceRow.public,
-          sourceRow.deleted_at,
-          sourceRow.metadata,
-          sourceRow[this.ownerKey] ?? null
-        )
-        .run();
-      await this.db.prepare('UPDATE _r2_contents SET path = ? WHERE path = ?').bind(src, dest).run();
-      await this.db.prepare('DELETE FROM _r2_files WHERE path = ?').bind(dest).run();
-    });
+    await this.mutate(
+      ctx,
+      'move',
+      [src, dest],
+      [
+        this.db.prepare('DELETE FROM _r2_files WHERE path = ?').bind(dest),
+        this.db
+          .prepare(
+            `INSERT INTO _r2_files (path, name, size, type, mtime, etag, directory, link, hidden, public, deleted_at, metadata, "${this.ownerKey}")
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          )
+          .bind(
+            dest,
+            basename(dest),
+            sourceRow.size,
+            sourceRow.type,
+            Date.now(),
+            sourceRow.etag,
+            dirname(dest),
+            sourceRow.link,
+            sourceRow.hidden,
+            sourceRow.public,
+            sourceRow.deleted_at,
+            sourceRow.metadata,
+            sourceRow[this.ownerKey] ?? null
+          ),
+        this.db.prepare('UPDATE _r2_contents SET path = ? WHERE path = ?').bind(dest, src),
+        this.db.prepare('DELETE FROM _r2_files WHERE path = ?').bind(src),
+      ]
+    );
 
     ctx.result = true;
   }
@@ -518,30 +498,32 @@ export class D1Driver implements FileDriver {
     const pub = options?.public ? 1 : 0;
     const meta = options?.metadata ? JSON.stringify(options.metadata) : null;
 
-    await this.db
-      .prepare(
-        `INSERT INTO _r2_files (path, name, size, type, mtime, etag, directory, link, hidden, public, deleted_at, metadata, "${this.ownerKey}")
-        VALUES (?, ?, 0, 'inode/symlink', ?, NULL, ?, ?, 0, ?, NULL, ?, ?)
-        ON CONFLICT(path) DO UPDATE SET
-          name = excluded.name,
-          size = excluded.size,
-          type = excluded.type,
-          mtime = excluded.mtime,
-          etag = excluded.etag,
-          directory = excluded.directory,
-          link = excluded.link,
-          hidden = excluded.hidden,
-          public = excluded.public,
-          deleted_at = NULL,
-          metadata = excluded.metadata,
-          "${this.ownerKey}" = excluded."${this.ownerKey}"`
-      )
-      .bind(linkPath, name, mtime, dir, targetPath, pub, meta, owner)
-      .run();
-
-    ctx.rollback.add(async () => {
-      await this.db.prepare('DELETE FROM _r2_files WHERE path = ?').bind(linkPath).run();
-    });
+    await this.mutate(
+      ctx,
+      'link',
+      [linkPath],
+      [
+        this.db
+          .prepare(
+            `INSERT INTO _r2_files (path, name, size, type, mtime, etag, directory, link, hidden, public, deleted_at, metadata, "${this.ownerKey}")
+          VALUES (?, ?, 0, 'inode/symlink', ?, NULL, ?, ?, 0, ?, NULL, ?, ?)
+          ON CONFLICT(path) DO UPDATE SET
+            name = excluded.name,
+            size = excluded.size,
+            type = excluded.type,
+            mtime = excluded.mtime,
+            etag = excluded.etag,
+            directory = excluded.directory,
+            link = excluded.link,
+            hidden = excluded.hidden,
+            public = excluded.public,
+            deleted_at = NULL,
+            metadata = excluded.metadata,
+            "${this.ownerKey}" = excluded."${this.ownerKey}"`
+          )
+          .bind(linkPath, name, mtime, dir, targetPath, pub, meta, owner),
+      ]
+    );
 
     ctx.result = {
       path: linkPath,
@@ -568,7 +550,7 @@ export class D1Driver implements FileDriver {
     await ensureSchema(this.db, this.ownerKey);
     const target = ctx.path!;
     const isRecursive = options?.recursive ?? false;
-    const isSoft = options?.soft === true || (this.softDelete && !options?.force);
+    const isSoft = !options?.force && (options?.soft === true || this.softDelete);
 
     const childCountRow = await this.db
       .prepare(
@@ -665,6 +647,65 @@ export class D1Driver implements FileDriver {
     });
 
     ctx.result = toFileInfo({ ...row, deleted_at: null });
+  }
+
+  /**
+   * Atomically captures affected entries and applies a mutation, preserving their prior state for compensation.
+   *
+   * @typeParam T - Pipeline result type.
+   * @param ctx - Pipeline context receiving the compensation handler after a successful batch.
+   * @param op - Operation name used to derive the safe public `EIO` message on failure.
+   * @param paths - Entry paths whose metadata and inline content may change.
+   * @param statements - Mutation statements executed after the snapshots in the same transaction.
+   * @returns A promise that resolves once the mutation and compensation registration complete.
+   */
+  private async mutate<T>(
+    ctx: DriverContext<T>,
+    op: FileOperation,
+    paths: string[],
+    statements: D1PreparedStatement[]
+  ): Promise<void> {
+    const targets = [...new Set(paths)];
+    const snapshots = await this.db
+      .batch<Record<string, AnyType>>([
+        ...targets.flatMap((path) => [
+          this.db.prepare('SELECT * FROM _r2_files WHERE path = ?').bind(path),
+          this.db.prepare('SELECT content FROM _r2_contents WHERE path = ?').bind(path),
+        ]),
+        ...statements,
+      ])
+      .catch((cause: Error) => {
+        throw new HandlerError('EIO', `Failed to ${op}`, cause);
+      });
+
+    ctx.rollback.add(async () => {
+      const rollback: D1PreparedStatement[] = [];
+      for (let index = 0; index < targets.length; index++) {
+        const path = targets[index];
+        const row = snapshots[index * 2].results[0];
+        const content = snapshots[index * 2 + 1].results[0];
+        rollback.push(this.db.prepare('DELETE FROM _r2_files WHERE path = ?').bind(path));
+
+        if (row) {
+          const columns = Object.keys(row);
+          const names = columns.map((column) => `"${column.replaceAll('"', '""')}"`).join(', ');
+          const placeholders = columns.map(() => '?').join(', ');
+          rollback.push(
+            this.db
+              .prepare(`INSERT INTO _r2_files (${names}) VALUES (${placeholders})`)
+              .bind(...columns.map((column) => row[column]))
+          );
+          if (content) {
+            rollback.push(
+              this.db.prepare('INSERT INTO _r2_contents (path, content) VALUES (?, ?)').bind(path, content.content)
+            );
+          }
+        }
+      }
+      await this.db.batch(rollback).catch((cause: Error) => {
+        throw new HandlerError('EIO', `Failed to ${op}`, cause);
+      });
+    });
   }
 
   private getOwner(): string | null {

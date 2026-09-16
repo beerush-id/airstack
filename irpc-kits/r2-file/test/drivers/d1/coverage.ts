@@ -1,5 +1,5 @@
 import type { D1Database } from '@cloudflare/workers-types';
-import { IRPCFile } from '@irpclib/irpc';
+import { HandlerError, IRPCFile } from '@irpclib/irpc';
 import { resolveBinding } from '@irpclib/irpc/wrangler';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createDriverCtx } from '../../../src/context.js';
@@ -92,6 +92,38 @@ describe('D1Driver auxiliary functions and branch coverage', () => {
       expect(decodePayload('hello', 'text/plain', 'data-url')).toBe('data:text/plain;base64,aGVsbG8=');
       expect(decodePayload('hello', 'text/plain', undefined)).toBe('hello');
       expect(decodePayload('hello', 'text/plain', 'unknown' as never)).toBe('hello');
+    });
+
+    it('wraps malformed data-url encoding failures as EINVAL HandlerError', () => {
+      let failure: unknown;
+      try {
+        preparePayload('data:text/plain,%', { encoding: 'data-url', type: 'text/plain' });
+      } catch (error) {
+        failure = error;
+      }
+
+      expect(failure).toBeInstanceOf(HandlerError);
+      const denial = failure as HandlerError & { code: unknown; cause: unknown };
+      expect(denial.code).toBe('EINVAL');
+      expect(denial.message).toBe('Invalid file content');
+      expect(denial.message).not.toMatch(/[/\\]/);
+      expect(denial.cause).toBeInstanceOf(Error);
+    });
+
+    it('wraps invalid JSON decode failures as EINVAL HandlerError', () => {
+      let failure: unknown;
+      try {
+        decodePayload('not-json', 'text/plain', 'json');
+      } catch (error) {
+        failure = error;
+      }
+
+      expect(failure).toBeInstanceOf(HandlerError);
+      const denial = failure as HandlerError & { code: unknown; cause: unknown };
+      expect(denial.code).toBe('EINVAL');
+      expect(denial.message).toBe('Invalid JSON content');
+      expect(denial.message).not.toMatch(/[/\\]/);
+      expect(denial.cause).toBeInstanceOf(Error);
     });
   });
 
@@ -229,6 +261,99 @@ describe('D1Driver auxiliary functions and branch coverage', () => {
         await normalize.write(ctx, '/d1cov/notype.txt', 'no type content');
         await driver.write(ctx, '/d1cov/notype.txt', 'no type content');
         expect(ctx.result?.path).toBe('/d1cov/notype.txt');
+      });
+    });
+
+    it('short-circuits a self-move without destroying the record', async () => {
+      const normalize = new NormalizerDriver();
+      const driver = new D1Driver(db);
+      await withFs({ ownerId: 'cov' }, async () => {
+        const seed: DriverContext<FileInfo> = createDriverCtx();
+        await normalize.write(seed, '/d1cov/selfmove.txt', 'keep me', { type: 'text/plain' });
+        await driver.write(seed, '/d1cov/selfmove.txt', 'keep me', { type: 'text/plain' });
+
+        const moveCtx: DriverContext<boolean> = createDriverCtx();
+        moveCtx.path = '/d1cov/selfmove.txt';
+        moveCtx.destination = '/d1cov/selfmove.txt';
+        await driver.move(moveCtx, '/d1cov/selfmove.txt', '/d1cov/selfmove.txt');
+
+        expect(moveCtx.result).toBe(true);
+        expect(
+          await db.prepare('SELECT content FROM _r2_contents WHERE path = ?').bind('/d1cov/selfmove.txt').first()
+        ).not.toBeNull();
+      });
+    });
+
+    it('wraps rollback batch failures as typed EIO HandlerError', async () => {
+      let batchCalls = 0;
+      const failingRollbackDb = {
+        prepare() {
+          return {
+            bind() {
+              return this;
+            },
+            first: async () => null,
+            all: async () => ({ results: [] }),
+            run: async () => ({ success: true }),
+          };
+        },
+        batch: async (statements: unknown[]) => {
+          batchCalls++;
+          if (batchCalls === 1) return statements.map(() => ({ results: [], success: true }));
+          throw new Error('D1_ROLLBACK_FAILURE: compensation I/O error');
+        },
+      } as unknown as D1Database;
+
+      const driver = new D1Driver(failingRollbackDb);
+      const ctx = createDriverCtx<FileInfo>();
+      await driver.write(ctx, '/d1cov/rollback-fail.txt', 'data', { type: 'text/plain' });
+
+      expect(ctx.rollback.size).toBe(1);
+      const [rollback] = [...ctx.rollback];
+
+      let failure: unknown;
+      try {
+        await rollback();
+      } catch (error) {
+        failure = error;
+      }
+
+      expect(failure).toBeInstanceOf(HandlerError);
+      const denial = failure as HandlerError & { code: unknown; cause: unknown };
+      expect(denial.code).toBe('EIO');
+      expect(denial.message).toBe('Failed to write');
+      expect(denial.message).not.toMatch(/[/\\]/);
+      expect(denial.cause).toBeInstanceOf(Error);
+      expect((denial.cause as Error).message).toContain('D1_ROLLBACK_FAILURE');
+    });
+
+    it('restores an overwritten spilled record without inline content on rollback', async () => {
+      const normalize = new NormalizerDriver();
+      const driver = new D1Driver(db);
+      await withFs({ ownerId: 'cov' }, async () => {
+        const spilled = new IRPCFile(
+          { name: 'spill.txt', size: 7, type: 'text/plain' },
+          new Blob([new TextEncoder().encode('stream1')], { type: 'text/plain' })
+        );
+        const seed: DriverContext<FileInfo> = createDriverCtx();
+        await normalize.write(seed, '/d1cov/spill-rb.txt', spilled, { type: 'text/plain' });
+        await driver.write(seed, '/d1cov/spill-rb.txt', spilled, { type: 'text/plain' });
+
+        const overCtx: DriverContext<FileInfo> = createDriverCtx();
+        await normalize.write(overCtx, '/d1cov/spill-rb.txt', 'inline now', { type: 'text/plain' });
+        await driver.write(overCtx, '/d1cov/spill-rb.txt', 'inline now', { type: 'text/plain' });
+
+        expect(overCtx.rollback.size).toBe(1);
+        for (const rb of overCtx.rollback) await rb();
+
+        const restored = await db
+          .prepare('SELECT size FROM _r2_files WHERE path = ?')
+          .bind('/d1cov/spill-rb.txt')
+          .first<{ size: number }>();
+        expect(restored?.size).toBe(7);
+        expect(
+          await db.prepare('SELECT content FROM _r2_contents WHERE path = ?').bind('/d1cov/spill-rb.txt').first()
+        ).toBeNull();
       });
     });
   });
