@@ -1,7 +1,9 @@
 import { HandlerError } from '@irpclib/irpc';
-import type { DriverContext, FileDriver } from '../adapter.js';
+import type { FileDriver } from '../adapter.js';
+import { DEFAULT_MAX_ENCODING_SIZE } from '../context.js';
 import type {
   CopyOptions,
+  DriverContext,
   ExistsOptions,
   FileDriverOptions,
   FileEncoding,
@@ -20,8 +22,6 @@ import type {
 } from '../types.js';
 import { resolve } from '../utils/path.js';
 import { isSizeAllowed, isTypeAllowed, validateType } from '../utils/type.js';
-
-const DEFAULT_MAX_ENCODING_SIZE = '500kb';
 
 const encoder = new TextEncoder();
 
@@ -53,6 +53,7 @@ export class NormalizerDriver implements FileDriver {
   async mkdir(ctx: DriverContext<FileInfo>, path: string, options?: MkdirOptions): Promise<void> {
     const info = resolve(this.mountPoint, path, options?.cwd, 'mkdir');
     ctx.path = info.path;
+    ctx.name = info.name;
     ctx.dirname = info.directory;
     ctx.cwd = info.cwd;
   }
@@ -63,6 +64,7 @@ export class NormalizerDriver implements FileDriver {
     this.checkType(options?.type);
     this.checkWriteSize(data, options?.encoding);
     ctx.path = info.path;
+    ctx.name = info.name;
     ctx.dirname = info.directory;
     ctx.cwd = info.cwd;
   }
@@ -72,6 +74,7 @@ export class NormalizerDriver implements FileDriver {
     const info = resolve(this.mountPoint, path, options?.cwd, 'read');
     this.checkEncodedRead(options?.encoding);
     ctx.path = info.path;
+    ctx.name = info.name;
     ctx.dirname = info.directory;
     ctx.cwd = info.cwd;
   }
@@ -80,6 +83,7 @@ export class NormalizerDriver implements FileDriver {
   async stat(ctx: DriverContext<FileInfo | undefined>, path: string, options?: StatOptions): Promise<void> {
     const info = resolve(this.mountPoint, path, options?.cwd, 'stat');
     ctx.path = info.path;
+    ctx.name = info.name;
     ctx.dirname = info.directory;
     ctx.cwd = info.cwd;
   }
@@ -88,6 +92,7 @@ export class NormalizerDriver implements FileDriver {
   async exists(ctx: DriverContext<boolean>, path: string, options?: ExistsOptions): Promise<void> {
     const info = resolve(this.mountPoint, path, options?.cwd, 'exists');
     ctx.path = info.path;
+    ctx.name = info.name;
     ctx.dirname = info.directory;
     ctx.cwd = info.cwd;
   }
@@ -97,13 +102,18 @@ export class NormalizerDriver implements FileDriver {
     const target = path ?? '';
     const info = resolve(this.mountPoint, target, options?.cwd, 'list');
     ctx.path = info.path;
+    ctx.name = info.name;
     ctx.dirname = info.directory;
     ctx.cwd = info.cwd;
   }
 
-  /** Validates boundaries (`EACCES`). Populates `ctx.cwd` only. */
+  /** Validates boundaries (`EACCES`). Populates `ctx.path`, `ctx.name`, `ctx.dirname`, and `ctx.cwd`. */
   async search(ctx: DriverContext<ListResult>, _query: string, options?: SearchOptions): Promise<void> {
-    ctx.cwd = resolve(this.mountPoint, '', options?.cwd, 'search').cwd;
+    const info = resolve(this.mountPoint, '', options?.cwd, 'search');
+    ctx.path = info.path;
+    ctx.name = info.name;
+    ctx.dirname = info.directory;
+    ctx.cwd = info.cwd;
   }
 
   /** Validates boundaries for source and destination (`EACCES`). Populates `ctx.path`, `ctx.dirname`, and `ctx.cwd` from the source and `ctx.destination` from the destination. */
@@ -111,6 +121,7 @@ export class NormalizerDriver implements FileDriver {
     const origin = resolve(this.mountPoint, source, options?.cwd, 'copy');
     const target = resolve(this.mountPoint, destination, options?.cwd, 'copy');
     ctx.path = origin.path;
+    ctx.name = origin.name;
     ctx.dirname = origin.directory;
     ctx.cwd = origin.cwd;
     ctx.destination = target.path;
@@ -121,6 +132,7 @@ export class NormalizerDriver implements FileDriver {
     const origin = resolve(this.mountPoint, source, options?.cwd, 'move');
     const target = resolve(this.mountPoint, destination, options?.cwd, 'move');
     ctx.path = origin.path;
+    ctx.name = origin.name;
     ctx.dirname = origin.directory;
     ctx.cwd = origin.cwd;
     ctx.destination = target.path;
@@ -131,6 +143,7 @@ export class NormalizerDriver implements FileDriver {
     const origin = resolve(this.mountPoint, target, options?.cwd, 'link');
     const info = resolve(this.mountPoint, path, options?.cwd, 'link');
     ctx.path = info.path;
+    ctx.name = info.name;
     ctx.dirname = info.directory;
     ctx.cwd = info.cwd;
     ctx.destination = origin.path;
@@ -140,6 +153,7 @@ export class NormalizerDriver implements FileDriver {
   async remove(ctx: DriverContext<boolean>, path: string, options?: RemoveOptions): Promise<void> {
     const info = resolve(this.mountPoint, path, options?.cwd, 'remove');
     ctx.path = info.path;
+    ctx.name = info.name;
     ctx.dirname = info.directory;
     ctx.cwd = info.cwd;
   }
@@ -148,6 +162,7 @@ export class NormalizerDriver implements FileDriver {
   async restore(ctx: DriverContext<FileInfo>, path: string, options?: RemoveOptions): Promise<void> {
     const info = resolve(this.mountPoint, path, options?.cwd, 'restore');
     ctx.path = info.path;
+    ctx.name = info.name;
     ctx.dirname = info.directory;
     ctx.cwd = info.cwd;
   }

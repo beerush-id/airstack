@@ -149,9 +149,13 @@ export type ReadOptions<E extends FileEncoding | undefined = FileEncoding | unde
 /**
  * Scoped lookup for entry metadata.
  *
- * Concern: pins stat calls to the same per-call scope as all queries.
+ * Concern: pins stat calls to the same per-call scope as all queries, and
+ * exposes the same `trash` opt-in as listings so a soft-deleted entry can be
+ * resolved deliberately instead of only read as absent.
  */
-export type StatOptions = FileOptions;
+export type StatOptions = FileOptions & {
+  trash?: boolean;
+};
 
 /**
  * Scoped lookup for entry presence.
@@ -385,9 +389,10 @@ export type RollbackFn = () => Promise<void> | void;
  * @template T Terminal result shape sealed by the capable driver.
  */
 export type DriverContext<T = unknown> = {
-  path?: string;
-  dirname?: string;
-  cwd?: string;
+  path: string;
+  name: string;
+  dirname: string;
+  cwd: string;
   destination?: string;
   info?: FileInfo;
   rollback: Set<RollbackFn>;

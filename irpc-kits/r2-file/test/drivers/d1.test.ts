@@ -1,0 +1,12 @@
+import './d1/base.js';
+import './d1/write.js';
+import './d1/read.js';
+import './d1/stat.js';
+import './d1/mkdir.js';
+import './d1/list.js';
+import './d1/search.js';
+import './d1/copy-move.js';
+import './d1/link.js';
+import './d1/remove-restore.js';
+import './d1/sequence.js';
+import './d1/coverage.js';

@@ -1,7 +1,7 @@
 import { createContextStore, HandlerError, withContext } from '@irpclib/irpc';
 import { describe, expect, it } from 'vitest';
 import { fsContext } from '../../src/context.js';
-import { resolve, resolveCwd } from '../../src/utils/path.js';
+import { mountAt, resolve, resolveCwd, stripMount } from '../../src/utils/path.js';
 
 const run = <T>(fn: () => Promise<T> | T) => withContext(createContextStore(), fn);
 
@@ -1216,5 +1216,56 @@ describe('denial contract facets', () => {
         op: 'write',
         gated: true,
       });
+    }));
+});
+
+describe('mount mapping', () => {
+  it('prepends a tenant mount to the canonical path', () =>
+    run(() => {
+      expect(mountAt('/tenants/acme', '/shared/hero.png')).toBe('/tenants/acme/shared/hero.png');
+    }));
+
+  it('passes the canonical path through on the root mount', () =>
+    run(() => {
+      expect(mountAt('/', '/shared/hero.png')).toBe('/shared/hero.png');
+    }));
+
+  it('joins a relative path under the mount', () =>
+    run(() => {
+      expect(mountAt('/mnt/storage', 'docs/spec.md')).toBe('/mnt/storage/docs/spec.md');
+    }));
+
+  it('collapses a trailing-slash mount', () =>
+    run(() => {
+      expect(mountAt('/tenants/acme/', '/hero.png')).toBe('/tenants/acme/hero.png');
+    }));
+});
+
+describe('mount stripping', () => {
+  it('hides the tenant prefix recovering the canonical path', () =>
+    run(() => {
+      expect(stripMount('/tenants/acme', '/tenants/acme/shared/hero.png')).toBe('/shared/hero.png');
+    }));
+
+  it('leaves the path unchanged on the root mount', () =>
+    run(() => {
+      expect(stripMount('/', '/shared/hero.png')).toBe('/shared/hero.png');
+    }));
+
+  it('leaves foreign mounts untouched', () =>
+    run(() => {
+      expect(stripMount('/tenants/acme', '/tenants/globex/hero.png')).toBe('/tenants/globex/hero.png');
+    }));
+
+  it('leaves the bare mount path itself untouched', () =>
+    run(() => {
+      expect(stripMount('/tenants/acme', '/tenants/acme')).toBe('/tenants/acme');
+    }));
+
+  it('round-trips mapping and stripping', () =>
+    run(() => {
+      expect(stripMount('/tenants/acme', mountAt('/tenants/acme', '/shared/hero.png'))).toBe(
+        '/shared/hero.png'
+      );
     }));
 });

@@ -109,16 +109,67 @@ const baseResolve = (mountPoint: string, path: string, cwd?: string, action?: Fi
   }
 
   const storagePath = normalizeSegments(`${mountPoint}/${canonical}`);
-  const idx = storagePath.lastIndexOf('/');
   return {
     path: storagePath,
-    name: storagePath.slice(idx + 1),
-    directory: idx === 0 ? '/' : storagePath.slice(0, idx),
+    name: basename(storagePath),
+    directory: dirname(storagePath),
     cwd: effectiveCwd,
   };
 };
 
 export const resolve: PathResolver = Object.assign(baseResolve, { cwd: resolveCwd });
+
+/**
+ * Extracts the file or folder name from a path.
+ *
+ * @param path - Normalized or raw path string.
+ * @returns Basename string.
+ */
+export function basename(path: string): string {
+  const clean = path.endsWith('/') && path.length > 1 ? path.slice(0, -1) : path;
+  const idx = clean.lastIndexOf('/');
+  return idx === -1 ? clean : clean.slice(idx + 1);
+}
+
+/**
+ * Extracts the parent directory path from a path.
+ *
+ * @param path - Normalized or raw path string.
+ * @returns Directory path string.
+ */
+export function dirname(path: string): string {
+  const clean = path.endsWith('/') && path.length > 1 ? path.slice(0, -1) : path;
+  const idx = clean.lastIndexOf('/');
+  if (idx <= 0) return '/';
+  return clean.slice(0, idx);
+}
+
+/**
+ * Maps a canonical path onto its physical storage location under a mount.
+ *
+ * @param mountPoint - Storage mount prepended without evaluation.
+ * @param path - Canonical path relative to the mount root.
+ * @returns Physical storage path.
+ */
+export function mountAt(mountPoint: string, path: string): string {
+  return normalizeSegments(`${mountPoint}/${path}`);
+}
+
+/**
+ * Recovers the outward canonical path by removing the physical mount prefix.
+ *
+ * @param mountPoint - Storage mount the physical path was scoped under.
+ * @param path - Physical storage path.
+ * @returns Canonical path with the mount hidden, unchanged when unmounted.
+ */
+export function stripMount(mountPoint: string, path: string): string {
+  const mount = normalizeSegments(mountPoint);
+  const target = normalizeSegments(path);
+  if (mount === '/') {
+    return target;
+  }
+  return target.startsWith(`${mount}/`) ? normalizeSegments(target.slice(mount.length)) : target;
+}
 
 /**
  * Evaluates whether a virtual path matches an access rule pattern.
@@ -182,7 +233,7 @@ function isSubpath(target: string, root: string): boolean {
  * @param rawPath - Unnormalized raw path string.
  * @returns Normalized absolute path.
  */
-function normalizeSegments(rawPath: string): string {
+export function normalizeSegments(rawPath: string): string {
   const parts = rawPath.split('/').filter(Boolean);
   const stack: string[] = [];
 

@@ -1,0 +1,22 @@
+# Source & internal files
+src/
+test/
+container/
+coverage/
+
+# Development configurations
+tsconfig.json
+tsdown.config.ts
+vitest.config.ts
+Dockerfile
+.dockerignore
+
+# Git & CI
+.git
+.gitignore
+.github
+
+# Environment & Logs
+*.log
+.DS_Store
+.env*

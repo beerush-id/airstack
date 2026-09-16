@@ -1,52 +1,14 @@
-import { createContextStore, HandlerError, withContext } from '@irpclib/irpc';
 import { describe, expect, it } from 'vitest';
-import type { DriverContext } from '../../src/adapter';
-import type { FsContext } from '../../src/context';
-import { fsContext } from '../../src/context';
-import { NormalizerDriver } from '../../src/drivers/normalize';
+import { createDriverCtx } from '../../src/context.js';
+import { NormalizerDriver } from '../../src/drivers/normalize.js';
+import { expectDenial, withFs } from '../helpers.js';
 
 const OWNER = 'alice';
 const HOME = '/users/alice';
 const TENANT_MOUNT = '/tenants/acme';
 
-const PUBLIC_MESSAGE = {
-  EACCES: 'Permission denied',
-  EINVAL: 'Invalid file type',
-  EFBIG: 'File size exceeds limit',
-} as const;
-
-async function expectDenial(
-  probe: () => Promise<unknown>,
-  code: keyof typeof PUBLIC_MESSAGE,
-  causeFragment: string,
-  sealed?: string
-): Promise<void> {
-  const failure = await Promise.resolve()
-    .then(probe)
-    .then(
-      () => {
-        throw new Error('expected ' + code + ' denial, probe resolved');
-      },
-      (error: unknown) => error
-    );
-  expect(failure).toBeInstanceOf(HandlerError);
-  const denial = failure as Error & { code: unknown; cause: unknown };
-  expect(denial.code).toBe(code);
-  expect(denial.message).toBe(PUBLIC_MESSAGE[code]);
-  expect(denial.cause).toBeInstanceOf(Error);
-  expect((denial.cause as Error).message).toContain(causeFragment);
-  if (sealed !== undefined) expect(denial.message).not.toContain(sealed);
-}
-
-async function withFs<T>(value: FsContext, probe: () => Promise<T>): Promise<T> {
-  return withContext(createContextStore(), () => {
-    fsContext.set(value);
-    return probe();
-  });
-}
-
-function freshCtx(): DriverContext<any> {
-  return { rollback: new Set() };
+function freshCtx() {
+  return createDriverCtx<any>();
 }
 
 describe('NormalizerDriver', () => {
