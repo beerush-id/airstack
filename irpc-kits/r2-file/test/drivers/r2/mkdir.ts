@@ -30,7 +30,13 @@ describe('R2Driver mkdir', () => {
   beforeEach(async () => {
     normalize = new NormalizerDriver();
     driver = new R2Driver(bucket);
-    await bucket.delete(['r2mkdir/docs', 'r2mkdir/docs/', 'r2mkdir/public-dir', 'r2mkdir/meta-dir']);
+    await bucket.delete([
+      'r2mkdir/docs',
+      'r2mkdir/docs/',
+      'r2mkdir/public-dir',
+      'r2mkdir/meta-dir',
+      'r2mkdir/existing',
+    ]);
   });
 
   it('records a directory marker sealing FileInfo', async () => {
@@ -113,6 +119,26 @@ describe('R2Driver mkdir', () => {
 
       expect((second.result as FileInfo).isDirectory).toBe(true);
       expect((second.result as FileInfo).path).toBe('/r2mkdir/docs');
+    });
+  });
+
+  it('restores a pre-existing entry at the path on mkdir rollback', async () => {
+    await withFs({}, async () => {
+      const seed: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.write(seed, '/r2mkdir/existing', 'a file', { type: 'text/plain' });
+      await driver.write(seed, '/r2mkdir/existing', 'a file', { type: 'text/plain' });
+
+      const ctx: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.mkdir(ctx, '/r2mkdir/existing');
+      await driver.mkdir(ctx, '/r2mkdir/existing');
+
+      for (const rollback of Array.from(ctx.rollback).reverse()) {
+        await rollback();
+      }
+
+      const restored = await bucket.get('r2mkdir/existing');
+      expect(await restored?.text()).toBe('a file');
+      expect(restored?.customMetadata?._fs_type).not.toBe('inode/directory');
     });
   });
 });

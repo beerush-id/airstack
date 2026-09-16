@@ -39,6 +39,8 @@ describe('R2Driver remove and restore', () => {
       'r2remove/back.txt',
       'r2remove/rb-soft.txt',
       'r2remove/rb-restore.txt',
+      'r2remove/nonempty/child.txt',
+      'r2remove/slashed/',
     ]);
   });
 
@@ -248,6 +250,39 @@ describe('R2Driver remove and restore', () => {
         'ENOENT',
         '/r2remove/never.txt'
       );
+    });
+  });
+
+  it('rejects non-recursive removal of a non-empty directory with ENOTEMPTY', async () => {
+    await withFs({}, async () => {
+      const seed: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.write(seed, '/r2remove/nonempty/child.txt', 'child', { type: 'text/plain' });
+      await driver.write(seed, '/r2remove/nonempty/child.txt', 'child', { type: 'text/plain' });
+
+      const ctx: DriverContext<boolean> = createDriverCtx();
+      await normalize.remove(ctx, '/r2remove/nonempty');
+
+      await expectDenial(
+        () => {
+          return driver.remove(ctx, '/r2remove/nonempty');
+        },
+        'ENOTEMPTY',
+        '/r2remove/nonempty'
+      );
+      expect(await bucket.head('r2remove/nonempty/child.txt')).not.toBeNull();
+    });
+  });
+
+  it('removes a trailing-slash directory marker by its resolved key', async () => {
+    await withFs({}, async () => {
+      await bucket.put('r2remove/slashed/', '', { httpMetadata: { contentType: 'inode/directory' } });
+
+      const ctx: DriverContext<boolean> = createDriverCtx();
+      await normalize.remove(ctx, '/r2remove/slashed');
+      await driver.remove(ctx, '/r2remove/slashed');
+
+      expect(ctx.result).toBe(true);
+      expect(await bucket.head('r2remove/slashed/')).toBeNull();
     });
   });
 });

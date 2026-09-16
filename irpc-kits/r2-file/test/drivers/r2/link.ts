@@ -36,6 +36,7 @@ describe('R2Driver link', () => {
       'r2link/pub-alias.txt',
       'r2link/meta-alias.txt',
       'r2link/rb-alias.txt',
+      'r2link/rb-existing.txt',
     ]);
   });
 
@@ -119,6 +120,26 @@ describe('R2Driver link', () => {
       const marker = await bucket.head('r2link/alias.txt');
       expect(marker).not.toBeNull();
       expect(marker?.customMetadata?._fs_link).toBe('/r2link/target.txt');
+    });
+  });
+
+  it('restores a pre-existing file at the alias path on link rollback', async () => {
+    await withFs({}, async () => {
+      const seed: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.write(seed, '/r2link/rb-existing.txt', 'existing file', { type: 'text/plain' });
+      await driver.write(seed, '/r2link/rb-existing.txt', 'existing file', { type: 'text/plain' });
+
+      const ctx: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.link(ctx, '/r2link/target.txt', '/r2link/rb-existing.txt');
+      await driver.link(ctx, '/r2link/target.txt', '/r2link/rb-existing.txt');
+
+      for (const rollback of Array.from(ctx.rollback).reverse()) {
+        await rollback();
+      }
+
+      const restored = await bucket.get('r2link/rb-existing.txt');
+      expect(await restored?.text()).toBe('existing file');
+      expect(restored?.customMetadata?._fs_link).toBeUndefined();
     });
   });
 });

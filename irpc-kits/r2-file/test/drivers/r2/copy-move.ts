@@ -39,6 +39,11 @@ describe('R2Driver copy and move', () => {
       'r2copymove/rb-copy.txt',
       'r2copymove/rb-move.txt',
       'r2copymove/rb-move-dest.txt',
+      'r2copymove/self.txt',
+      'r2copymove/rb-src2.txt',
+      'r2copymove/rb-dst2.txt',
+      'r2copymove/rb-msrc.txt',
+      'r2copymove/rb-mdst.txt',
     ]);
   });
 
@@ -237,6 +242,69 @@ describe('R2Driver copy and move', () => {
         '/r2copymove/inlined-move.txt'
       );
       expect(await bucket.head('r2copymove/inlined-move-dest.txt')).toBeNull();
+    });
+  });
+
+  it('treats a self-move as a no-op that preserves the object', async () => {
+    await withFs({}, async () => {
+      const seed: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.write(seed, '/r2copymove/self.txt', 'keep me', { type: 'text/plain' });
+      await driver.write(seed, '/r2copymove/self.txt', 'keep me', { type: 'text/plain' });
+
+      const ctx: DriverContext<boolean> = createDriverCtx();
+      ctx.path = '/r2copymove/self.txt';
+      ctx.destination = '/r2copymove/self.txt';
+      await driver.move(ctx, '/r2copymove/self.txt', '/r2copymove/self.txt');
+
+      expect(ctx.result).toBe(true);
+      expect(ctx.rollback.size).toBe(0);
+      expect(await (await bucket.get('r2copymove/self.txt'))?.text()).toBe('keep me');
+    });
+  });
+
+  it('restores a pre-existing destination on copy rollback', async () => {
+    await withFs({}, async () => {
+      const srcSeed: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.write(srcSeed, '/r2copymove/rb-src2.txt', 'new copy', { type: 'text/plain' });
+      await driver.write(srcSeed, '/r2copymove/rb-src2.txt', 'new copy', { type: 'text/plain' });
+
+      const dstSeed: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.write(dstSeed, '/r2copymove/rb-dst2.txt', 'dest original', { type: 'text/plain' });
+      await driver.write(dstSeed, '/r2copymove/rb-dst2.txt', 'dest original', { type: 'text/plain' });
+
+      const ctx: DriverContext<boolean> = createDriverCtx();
+      await normalize.copy(ctx, '/r2copymove/rb-src2.txt', '/r2copymove/rb-dst2.txt');
+      await driver.copy(ctx, '/r2copymove/rb-src2.txt', '/r2copymove/rb-dst2.txt');
+      expect(await (await bucket.get('r2copymove/rb-dst2.txt'))?.text()).toBe('new copy');
+
+      for (const rollback of Array.from(ctx.rollback).reverse()) {
+        await rollback();
+      }
+
+      expect(await (await bucket.get('r2copymove/rb-dst2.txt'))?.text()).toBe('dest original');
+    });
+  });
+
+  it('restores source and a pre-existing destination on move rollback', async () => {
+    await withFs({}, async () => {
+      const srcSeed: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.write(srcSeed, '/r2copymove/rb-msrc.txt', 'source data', { type: 'text/plain' });
+      await driver.write(srcSeed, '/r2copymove/rb-msrc.txt', 'source data', { type: 'text/plain' });
+
+      const dstSeed: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.write(dstSeed, '/r2copymove/rb-mdst.txt', 'dest original', { type: 'text/plain' });
+      await driver.write(dstSeed, '/r2copymove/rb-mdst.txt', 'dest original', { type: 'text/plain' });
+
+      const ctx: DriverContext<boolean> = createDriverCtx();
+      await normalize.move(ctx, '/r2copymove/rb-msrc.txt', '/r2copymove/rb-mdst.txt');
+      await driver.move(ctx, '/r2copymove/rb-msrc.txt', '/r2copymove/rb-mdst.txt');
+
+      for (const rollback of Array.from(ctx.rollback).reverse()) {
+        await rollback();
+      }
+
+      expect(await (await bucket.get('r2copymove/rb-msrc.txt'))?.text()).toBe('source data');
+      expect(await (await bucket.get('r2copymove/rb-mdst.txt'))?.text()).toBe('dest original');
     });
   });
 });

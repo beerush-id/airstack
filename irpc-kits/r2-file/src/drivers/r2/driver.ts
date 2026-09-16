@@ -55,15 +55,12 @@ export class R2Driver implements FileDriver {
       ...(options?.public === true ? { _fs_public: 'true' } : {}),
       ...(options?.metadata ?? {}),
     });
+    await this.preserve(ctx, key);
     const put = (await this.bucket.put(key, '', {
       httpMetadata: { contentType: 'inode/directory' },
       customMetadata,
     }))!;
     ctx.result = directoryInfo(canonical, put as HeadShape, customMetadata);
-    ctx.rollback.add(async () => {
-      await this.bucket.delete(key);
-      await this.bucket.delete(`${key}/`);
-    });
   }
 
   /** Uploads the blob and seals authoritative `FileInfo`; restores prior state on rollback. */
@@ -78,34 +75,12 @@ export class R2Driver implements FileDriver {
       ...(options?.metadata ?? {}),
     });
 
-    const previous = await this.bucket.get(key);
-    let prevBody: ArrayBuffer | undefined;
-    let prevHttp: Record<string, string> | undefined;
-    let prevMeta: Record<string, string> | undefined;
-    if (previous !== null) {
-      prevBody = (await (previous as unknown as { arrayBuffer(): Promise<ArrayBuffer> }).arrayBuffer()).slice(0);
-      prevHttp = (previous as unknown as { httpMetadata?: Record<string, string> }).httpMetadata;
-      prevMeta = (previous as unknown as { customMetadata?: Record<string, string> }).customMetadata;
-    }
-
+    await this.preserve(ctx, key);
     const put = (await this.bucket.put(key, body as string, {
       httpMetadata: { contentType: type },
       customMetadata,
     }))!;
     ctx.result = fileInfoFromHead(canonical, put as HeadShape, customMetadata);
-
-    if (prevBody !== undefined) {
-      ctx.rollback.add(async () => {
-        await this.bucket.put(key, prevBody, {
-          httpMetadata: prevHttp,
-          customMetadata: prevMeta,
-        });
-      });
-    } else {
-      ctx.rollback.add(async () => {
-        await this.bucket.delete(key);
-      });
-    }
   }
 
   /** Returns stored bytes or decoded representation; seals `undefined` on absence. */
@@ -283,6 +258,7 @@ export class R2Driver implements FileDriver {
         new Error(`copy: Source path '${srcCanonical}' does not exist`)
       );
     }
+    await this.preserve(ctx, dstKey);
     if (meta?._fs_type === 'inode/directory') {
       const customMetadata = this.stamped(options?.onBehalf, {
         _fs_type: 'inode/directory',
@@ -293,9 +269,6 @@ export class R2Driver implements FileDriver {
         customMetadata,
       });
       ctx.result = true;
-      ctx.rollback.add(async () => {
-        await this.bucket.delete(dstKey);
-      });
       return;
     }
     const srcObj = (await this.bucket.get(srcKey))!;
@@ -313,9 +286,6 @@ export class R2Driver implements FileDriver {
     const body = await (srcObj as unknown as { arrayBuffer(): Promise<ArrayBuffer> }).arrayBuffer();
     await this.bucket.put(dstKey, body, { httpMetadata, customMetadata });
     ctx.result = true;
-    ctx.rollback.add(async () => {
-      await this.bucket.delete(dstKey);
-    });
   }
 
   /** Relocates the canonical blob and metadata to the destination. */
@@ -349,12 +319,17 @@ export class R2Driver implements FileDriver {
         new Error(`move: Source path '${srcCanonical}' does not exist`)
       );
     }
+    if (srcKey === dstKey) {
+      ctx.result = true;
+      return;
+    }
     const srcObj = (await this.bucket.get(srcKey))!;
     const srcMeta = (srcObj as unknown as { customMetadata: R2Metadata }).customMetadata;
     const httpMetadata = (srcObj as unknown as { httpMetadata?: Record<string, string> }).httpMetadata;
     const customMetadata = this.stamped(undefined, { ...srcMeta } as Record<string, string>);
     const body = await (srcObj as unknown as { arrayBuffer(): Promise<ArrayBuffer> }).arrayBuffer();
     const snapshot = body.slice(0);
+    await this.preserve(ctx, dstKey);
     await this.bucket.put(dstKey, body, { httpMetadata, customMetadata });
     await this.bucket.delete(srcKey);
     ctx.result = true;
@@ -363,7 +338,6 @@ export class R2Driver implements FileDriver {
         httpMetadata,
         customMetadata: { ...srcMeta } as Record<string, string>,
       });
-      await this.bucket.delete(dstKey);
     });
   }
 
@@ -378,11 +352,9 @@ export class R2Driver implements FileDriver {
       ...(options?.public === true ? { _fs_public: 'true' } : {}),
       ...(options?.metadata ?? {}),
     });
+    await this.preserve(ctx, aliasKey);
     const put = (await this.bucket.put(aliasKey, '', { customMetadata }))!;
     ctx.result = fileInfoFromHead(aliasCanonical, put as HeadShape, customMetadata);
-    ctx.rollback.add(async () => {
-      await this.bucket.delete(aliasKey);
-    });
   }
 
   /** Purges or soft-stamps; strict non-empty directories require context enforcement. */
@@ -461,14 +433,21 @@ export class R2Driver implements FileDriver {
       });
       return;
     }
-    const current = (await this.bucket.get(key))!;
+    if (children.length > 0) {
+      throw new HandlerError(
+        'ENOTEMPTY',
+        'Directory not empty',
+        new Error(`remove: Directory '${canonical}' is not empty without recursive removal`)
+      );
+    }
+    const current = (await this.bucket.get(targetKey!))!;
     const httpMetadata = (current as unknown as { httpMetadata?: Record<string, string> }).httpMetadata;
     const meta = (current as unknown as { customMetadata?: Record<string, string> }).customMetadata;
     const snapshot = (await (current as unknown as { arrayBuffer(): Promise<ArrayBuffer> }).arrayBuffer()).slice(0);
-    await this.bucket.delete(key);
+    await this.bucket.delete(targetKey!);
     ctx.result = true;
     ctx.rollback.add(async () => {
-      await this.bucket.put(key, snapshot, { httpMetadata, customMetadata: meta });
+      await this.bucket.put(targetKey!, snapshot, { httpMetadata, customMetadata: meta });
     });
   }
 
@@ -515,6 +494,29 @@ export class R2Driver implements FileDriver {
     return { ...base, [this.ownerKey]: actor };
   }
 
+  /**
+   * Captures the prior state of a bucket key and registers compensation that restores it.
+   *
+   * @param ctx - Pipeline context receiving the compensation handler.
+   * @param key - Bucket key whose pre-operation state is preserved.
+   * @returns A promise that resolves once the prior state is captured and the rollback is registered.
+   */
+  private async preserve(ctx: DriverContext<unknown>, key: string): Promise<void> {
+    const previous = await this.bucket.get(key);
+    if (previous === null) {
+      ctx.rollback.add(async () => {
+        await this.bucket.delete(key);
+      });
+      return;
+    }
+    const body = (await (previous as unknown as { arrayBuffer(): Promise<ArrayBuffer> }).arrayBuffer()).slice(0);
+    const httpMetadata = (previous as unknown as { httpMetadata?: Record<string, string> }).httpMetadata;
+    const customMetadata = (previous as unknown as { customMetadata?: Record<string, string> }).customMetadata;
+    ctx.rollback.add(async () => {
+      await this.bucket.put(key, body, { httpMetadata, customMetadata });
+    });
+  }
+
   /** Reports whether any object lives under the directory prefix. */
   private async hasChildren(key: string): Promise<boolean> {
     const page = await this.bucket.list({ prefix: `${key}/`, limit: 1 });
@@ -539,7 +541,9 @@ export class R2Driver implements FileDriver {
     let cursor: string | undefined;
     do {
       const page = await this.bucket.list({ prefix: `${key}/`, cursor });
-      for (const object of page.objects as unknown as { key: string }[]) keys.push(object.key);
+      for (const object of page.objects as unknown as { key: string }[]) {
+        if (object.key !== `${key}/`) keys.push(object.key);
+      }
       cursor = (page as unknown as { truncated?: boolean; cursor?: string }).truncated
         ? (page as unknown as { cursor?: string }).cursor
         : undefined;
