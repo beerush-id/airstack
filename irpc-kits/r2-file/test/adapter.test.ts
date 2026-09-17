@@ -162,6 +162,30 @@ describe('FileAdapter pipeline orchestration', () => {
     });
   });
 
+  it('un-mounts a result path at the mount root back to canonical /', async () => {
+    await withFs(SCOPE, async () => {
+      const driver = {
+        async mkdir(ctx: DriverContext<FileInfo>): Promise<void> {
+          ctx.result = {
+            path: '/tenants/acme',
+            name: 'acme',
+            size: 0,
+            type: 'inode/directory',
+            mtime: new Date('2026-01-01T00:00:00.000Z'),
+            isDirectory: true,
+          };
+          return;
+        },
+      } as FileDriver;
+      const adapter = new FileAdapter({ mountPoint: '/tenants/acme' }).use(driver);
+
+      const result = await adapter.mkdir('/');
+
+      expect(result.path).toBe('/');
+      return;
+    });
+  });
+
   it('halts mkdir without a capable driver', async () => {
     await withFs(SCOPE, async () => {
       const adapter = new FileAdapter();

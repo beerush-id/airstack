@@ -2,6 +2,7 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
+    fileParallelism: false,
     include: ['test/**/*.{test,spec}.{ts,js}'],
     reporters: ['default', 'html'],
     outputFile: './coverage/index.html',

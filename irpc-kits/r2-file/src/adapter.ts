@@ -56,11 +56,12 @@ export interface FileDriver {
 /**
  * Standalone filesystem engine orchestrating a chain of storage drivers.
  *
- * Concern: pure pipeline orchestration. The adapter is 100% blind — it never
- * resolves, normalizes, or inspects paths or storage content, delegating
- * `(path, options)` untouched to the registered drivers. It owns exactly two
- * things the drivers cannot: reverse-order rollback compensation when a
- * driver halts, and terminal resolution when no driver sealed a result.
+ * Concern: pure pipeline orchestration. The adapter never resolves, normalizes,
+ * or inspects storage content, delegating `(path, options)` untouched to the
+ * registered drivers. It owns exactly three things the drivers cannot:
+ * reverse-order rollback compensation when a driver halts, terminal resolution
+ * when no driver sealed a result, and stripping the storage `mountPoint` from
+ * result paths so callers only ever receive canonical paths.
  */
 export class FileAdapter {
   /** Wiring the adapter was constructed with, readable by callers that re-scope drivers. */
@@ -80,12 +81,12 @@ export class FileAdapter {
 
   /** Creates a directory across every medium. */
   mkdir(path: string, options?: MkdirOptions): Promise<FileInfo> {
-    return this.mutate<FileInfo>('mkdir', [path, options]);
+    return this.mutate<FileInfo>('mkdir', [path, options]).then((info) => this.unmountInfo(info));
   }
 
   /** Persists a payload across every medium. */
   write(path: string, data: FileInput, options?: WriteOptions): Promise<FileInfo> {
-    return this.mutate<FileInfo>('write', [path, data, options]);
+    return this.mutate<FileInfo>('write', [path, data, options]).then((info) => this.unmountInfo(info));
   }
 
   /** Reads the binary delivery reference for a stored file. */
@@ -100,7 +101,9 @@ export class FileAdapter {
 
   /** Describes a stored entry, or `undefined` when absent. */
   stat(path: string, options?: StatOptions): Promise<FileInfo | undefined> {
-    return this.query<FileInfo | undefined>('stat', [path, options], undefined);
+    return this.query<FileInfo | undefined>('stat', [path, options], undefined).then((info) =>
+      info === undefined ? undefined : this.unmountInfo(info)
+    );
   }
 
   /** Reports whether a stored entry is present and active. */
@@ -110,12 +113,14 @@ export class FileAdapter {
 
   /** Pages the entries of a directory. */
   list(path?: string, options?: ListOptions): Promise<ListResult> {
-    return this.query<ListResult>('list', [path, options], { entries: [] });
+    return this.query<ListResult>('list', [path, options], { entries: [] }).then((result) => this.unmountList(result));
   }
 
   /** Pages the entries matching a name or metadata query. */
   search(query: string, options?: SearchOptions): Promise<ListResult> {
-    return this.query<ListResult>('search', [query, options], { entries: [] });
+    return this.query<ListResult>('search', [query, options], { entries: [] }).then((result) =>
+      this.unmountList(result)
+    );
   }
 
   /** Duplicates an entry across every medium. */
@@ -130,7 +135,7 @@ export class FileAdapter {
 
   /** Records a symbolic link to a target across every medium. */
   link(target: string, path: string, options?: LinkOptions): Promise<FileInfo> {
-    return this.mutate<FileInfo>('link', [target, path, options]);
+    return this.mutate<FileInfo>('link', [target, path, options]).then((info) => this.unmountInfo(info));
   }
 
   /** Purges or trashes an entry across every medium. */
@@ -140,7 +145,7 @@ export class FileAdapter {
 
   /** Returns a trashed entry to active state across every medium. */
   restore(path: string, options?: FileOptions): Promise<FileInfo> {
-    return this.mutate<FileInfo>('restore', [path, options]);
+    return this.mutate<FileInfo>('restore', [path, options]).then((info) => this.unmountInfo(info));
   }
 
   /** Mutating terminal: an unsealed pipeline means no medium could fulfil it. */
@@ -176,6 +181,32 @@ export class FileAdapter {
       throw error;
     }
     return ctx;
+  }
+
+  /**
+   * Strips the storage `mountPoint` prefix from a mounted result path.
+   *
+   * Concern: the mount is an absolute physical storage detail applied on input;
+   * callers must only ever see canonical paths, so the adapter removes it on the
+   * way out, guaranteeing the contract regardless of which driver sealed the result.
+   *
+   * @param path - Stored (mounted) path taken from a sealed driver result.
+   * @returns The canonical path with the mount prefix removed.
+   */
+  private unmount(path: string): string {
+    const mount = this.options.mountPoint ?? '/';
+    if (mount === '/' || !path.startsWith(mount)) return path;
+    return path.slice(mount.length) || '/';
+  }
+
+  /** Returns a copy of `info` reporting its canonical (un-mounted) path. */
+  private unmountInfo(info: FileInfo): FileInfo {
+    return { ...info, path: this.unmount(info.path) };
+  }
+
+  /** Returns a copy of `result` reporting canonical (un-mounted) entry paths. */
+  private unmountList(result: ListResult): ListResult {
+    return { ...result, entries: result.entries.map((entry) => this.unmountInfo(entry)) };
   }
 }
 
