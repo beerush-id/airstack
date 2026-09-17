@@ -3,6 +3,7 @@ import type {
   R2GetOptions,
   R2ListOptions,
   R2ObjectBody,
+  R2Objects,
   R2PutOptions,
   R2Range,
 } from '@cloudflare/workers-types';
@@ -28,6 +29,7 @@ import type {
   StatOptions,
   WriteOptions,
 } from '../../types.js';
+import { decodeCursor, encodeCursor } from '../../utils/cursor.js';
 import { assertEncodingBudget, parseSize } from '../../utils/type.js';
 import type { Decodable } from './codec.js';
 import { decodeBody, toStorable } from './codec.js';
@@ -59,6 +61,11 @@ function guardBucket(bucket: R2Bucket): R2Bucket {
     delete: (keys: string | string[]) => guard('remove', () => bucket.delete(keys)),
     list: (options?: R2ListOptions) => guard('list', () => bucket.list(options)),
   } as unknown as R2Bucket;
+}
+
+/** Coerces a listing filter time bound into epoch milliseconds. */
+function toMillis(value: Date | number): number {
+  return value instanceof Date ? value.getTime() : value;
 }
 
 /**
@@ -218,55 +225,99 @@ export class R2Driver implements FileDriver {
     ctx.result = false;
   }
 
-  /** Lists standalone prefix pages; applies in-memory sorting and hidden/trash filters. */
+  /** Lists the standalone prefix, applying the full filter set and over-fetching to `limit`. */
   async list(ctx: DriverContext<ListResult>, _path?: string, options?: ListOptions): Promise<void> {
     if ('result' in ctx) return;
     const canonical = ctx.path!;
     const stripped = canonical === '/' ? '' : canonical.slice(1).replace(/\/$/, '');
     const prefix = stripped === '' ? '' : `${stripped}/`;
-    const page = await this.bucket.list({
-      prefix,
-      delimiter: options?.recursive ? undefined : '/',
-      limit: options?.limit,
-      cursor: options?.cursor,
-    });
+    const delimiter = options?.recursive ? undefined : '/';
+    const limit = options?.limit;
+    const target = limit === undefined ? undefined : limit + 1;
+    const offset = decodeCursor(options?.cursor);
 
     const entries: FileInfo[] = [];
+    let cursor: string | undefined;
+    let skipped = 0;
+    let filled = false;
 
-    for (const p of page.delimitedPrefixes) {
-      const clean = p.replace(/\/$/, '');
-      const itemCanonical = `/${clean}`;
-      const name = clean.slice(clean.lastIndexOf('/') + 1);
-      /* istanbul ignore next */
-      if (!options?.all && name.startsWith('.')) continue;
-      entries.push(directoryInfo(itemCanonical));
-    }
-
-    for (const object of page.objects as unknown as ListedShape[]) {
-      if (object.key === `${stripped}/`) continue;
-
-      const meta =
-        object.customMetadata && Object.keys(object.customMetadata).length > 0
-          ? object.customMetadata
-          : ((await this.bucket.head(object.key)) as unknown as { customMetadata?: R2Metadata }).customMetadata;
-      const deleted = meta?._fs_deleted !== undefined;
-      if (!options?.trash && !options?.filter?.deleted && deleted) continue;
-      if (options?.filter?.deleted === true && !deleted) continue;
-
-      const entry = listEntry(object, meta);
-      if (!options?.all && (entry.name.startsWith('.') || entry.hidden === true)) continue;
-      entries.push(entry);
-    }
+    do {
+      const page = await this.bucket.list({ prefix, delimiter, cursor });
+      for (const entry of await this.pageEntries(page, stripped, options)) {
+        if (skipped < offset) {
+          skipped++;
+          continue;
+        }
+        entries.push(entry);
+        if (target !== undefined && entries.length >= target) {
+          filled = true;
+          break;
+        }
+      }
+      cursor = page.truncated ? (page as unknown as { cursor?: string }).cursor : undefined;
+    } while (!filled && cursor !== undefined);
 
     if (options?.sort) {
       applySort(entries, options.sort);
     }
 
-    if (page.truncated && typeof (page as unknown as { cursor?: unknown }).cursor === 'string') {
-      ctx.result = { entries, nextCursor: (page as unknown as { cursor: string }).cursor };
-    } else {
-      ctx.result = { entries };
+    if (target !== undefined && entries.length >= target) {
+      entries.length = limit!;
+      ctx.result = { entries, nextCursor: encodeCursor(offset + limit!) };
+      return;
     }
+    ctx.result = { entries };
+  }
+
+  /** Builds the qualifying entries from one R2 list page, resolving metadata and applying the filter set. */
+  private async pageEntries(page: R2Objects, stripped: string, options?: ListOptions): Promise<FileInfo[]> {
+    const entries: FileInfo[] = [];
+    for (const p of page.delimitedPrefixes) {
+      const clean = p.replace(/\/$/, '');
+      const name = clean.slice(clean.lastIndexOf('/') + 1);
+      /* istanbul ignore next */
+      if (!options?.all && name.startsWith('.')) continue;
+      const entry = directoryInfo(`/${clean}`);
+      if (this.qualifies(entry, options)) entries.push(entry);
+    }
+    for (const object of page.objects as unknown as ListedShape[]) {
+      if (object.key === `${stripped}/`) continue;
+      // R2 list may omit per-object metadata; resolve the authoritative head when the listing carries none.
+      const resolved =
+        object.customMetadata && Object.keys(object.customMetadata).length > 0
+          ? object
+          : ((await this.bucket.head(object.key)) as unknown as ListedShape);
+      const entry = listEntry(resolved, resolved.customMetadata);
+      if (this.qualifies(entry, options)) entries.push(entry);
+    }
+    return entries;
+  }
+
+  /** Reports whether an entry satisfies the trash, hidden, and `FileFilter` predicates, mirroring the D1 index. */
+  private qualifies(entry: FileInfo, options?: ListOptions): boolean {
+    const filter = options?.filter;
+    const deleted = entry.deletedAt !== undefined;
+    if (filter?.deleted !== undefined) {
+      if (deleted !== filter.deleted) return false;
+    } else if (options?.trash === true) {
+      if (!deleted) return false;
+    } else if (deleted) {
+      return false;
+    }
+    if (options?.all !== true && entry.hidden === true) return false;
+    if (filter === undefined) return true;
+    if (filter.public !== undefined && (entry.public ?? false) !== filter.public) return false;
+    if (filter.type !== undefined && entry.type !== filter.type) return false;
+    if (filter.size?.min !== undefined && entry.size < filter.size.min) return false;
+    if (filter.size?.max !== undefined && entry.size > filter.size.max) return false;
+    if (filter.mtime?.min !== undefined && entry.mtime.getTime() < toMillis(filter.mtime.min)) return false;
+    if (filter.mtime?.max !== undefined && entry.mtime.getTime() > toMillis(filter.mtime.max)) return false;
+    if (filter.metadata) {
+      for (const [key, value] of Object.entries(filter.metadata)) {
+        if (entry.metadata?.[key] !== value) return false;
+      }
+    }
+    return true;
   }
 
   /** Passes unconditionally: key-addressed storage has no index for text queries. */
@@ -316,7 +367,7 @@ export class R2Driver implements FileDriver {
     ctx: DriverContext<boolean>,
     _source: string,
     _destination: string,
-    _options?: MoveOptions
+    options?: MoveOptions
   ): Promise<void> {
     const srcCanonical = ctx.path!;
     const dstCanonical = ctx.destination!;
@@ -344,7 +395,10 @@ export class R2Driver implements FileDriver {
       const obj = await this.bucket.get(src);
       /* istanbul ignore next */
       if (obj === null) continue;
-      const customMetadata = this.entryMeta(obj.customMetadata, undefined, undefined);
+      const customMetadata =
+        options?.onBehalf === undefined
+          ? { ...obj.customMetadata }
+          : this.stamped(options.onBehalf, { ...obj.customMetadata });
       await this.copyBody(dst, obj, { httpMetadata: obj.httpMetadata, customMetadata });
     }
     await this.deleteKeys(pairs.map(([src]) => src));

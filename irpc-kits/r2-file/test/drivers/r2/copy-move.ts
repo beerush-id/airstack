@@ -60,6 +60,10 @@ describe('R2Driver copy and move', () => {
       'r2copymove/ts-dst/',
       'r2copymove/ts-msrc/',
       'r2copymove/ts-mdst/',
+      'r2copymove/own-src.txt',
+      'r2copymove/own-kept.txt',
+      'r2copymove/behalf-src.txt',
+      'r2copymove/behalf-dst.txt',
     ]);
   });
 
@@ -400,6 +404,42 @@ describe('R2Driver copy and move', () => {
       expect(ctx.result).toBe(true);
       expect(await bucket.head('r2copymove/ts-mdst/')).not.toBeNull();
       expect(await bucket.head('r2copymove/ts-msrc/')).toBeNull();
+    });
+  });
+
+  it('move preserves the source owner across actors', async () => {
+    await withFs({ ownerId: 'alice', homeDir: '/users/alice' }, async () => {
+      const seed: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.write(seed, '/r2copymove/own-src.txt', 'data', { type: 'text/plain' });
+      await driver.write(seed, '/r2copymove/own-src.txt', 'data', { type: 'text/plain' });
+    });
+    await withFs({ ownerId: 'bob', homeDir: '/users/bob' }, async () => {
+      const ctx: DriverContext<boolean> = createDriverCtx();
+      await normalize.move(ctx, '/r2copymove/own-src.txt', '/r2copymove/own-kept.txt');
+      await driver.move(ctx, '/r2copymove/own-src.txt', '/r2copymove/own-kept.txt');
+
+      const head = (await bucket.head('r2copymove/own-kept.txt')) as unknown as {
+        customMetadata: Record<string, string>;
+      };
+      expect(head.customMetadata._fs_user_id).toBe('alice');
+    });
+  });
+
+  it('move re-stamps ownership under an explicit onBehalf', async () => {
+    await withFs({ ownerId: 'alice', homeDir: '/users/alice' }, async () => {
+      const seed: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.write(seed, '/r2copymove/behalf-src.txt', 'data', { type: 'text/plain' });
+      await driver.write(seed, '/r2copymove/behalf-src.txt', 'data', { type: 'text/plain' });
+    });
+    await withFs({ ownerId: 'bob', homeDir: '/users/bob' }, async () => {
+      const ctx: DriverContext<boolean> = createDriverCtx();
+      await normalize.move(ctx, '/r2copymove/behalf-src.txt', '/r2copymove/behalf-dst.txt', { onBehalf: 'carol' });
+      await driver.move(ctx, '/r2copymove/behalf-src.txt', '/r2copymove/behalf-dst.txt', { onBehalf: 'carol' });
+
+      const head = (await bucket.head('r2copymove/behalf-dst.txt')) as unknown as {
+        customMetadata: Record<string, string>;
+      };
+      expect(head.customMetadata._fs_user_id).toBe('carol');
     });
   });
 });

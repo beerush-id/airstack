@@ -1,5 +1,8 @@
 import type { AnyType } from '@irpclib/irpc';
 import type { FileFilter, ListOptions, SearchOptions, Sort } from '../../types.js';
+import { decodeCursor, encodeCursor } from '../../utils/cursor.js';
+
+export { decodeCursor, encodeCursor };
 
 export type PreparedQuery = {
   sql: string;
@@ -160,28 +163,6 @@ export function buildOrderBy(sort?: Sort): string {
   }
 
   return parts.join(', ');
-}
-
-/**
- * Decodes a base64 pagination cursor into a numeric row offset.
- *
- * @param cursor - Base64 encoded cursor string.
- * @returns Numeric offset, defaulting to 0 if absent or invalid.
- */
-export function decodeCursor(cursor?: string): number {
-  if (!cursor) return 0;
-  const parsed = parseInt(Buffer.from(cursor, 'base64').toString('utf-8'), 10);
-  return Number.isNaN(parsed) ? 0 : parsed;
-}
-
-/**
- * Encodes a numeric row offset into a base64 pagination cursor.
- *
- * @param offset - Numeric offset.
- * @returns Base64 cursor string.
- */
-export function encodeCursor(offset: number): string {
-  return Buffer.from(String(offset)).toString('base64');
 }
 
 function applyPredicates(

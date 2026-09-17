@@ -277,4 +277,22 @@ describe('D1Driver copy and move operations', () => {
       ).toBeNull();
     });
   });
+
+  it('move re-stamps ownership under an explicit onBehalf', async () => {
+    await withFs({ ownerId: 'alice', homeDir: '/users/alice' }, async () => {
+      const seed: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.write(seed, '/d1copymove/own/src.txt', 'data', { type: 'text/plain' });
+      await driver.write(seed, '/d1copymove/own/src.txt', 'data', { type: 'text/plain' });
+
+      const ctx: DriverContext<boolean> = createDriverCtx();
+      await normalize.move(ctx, '/d1copymove/own/src.txt', '/d1copymove/own/dst.txt', { onBehalf: 'carol' });
+      await driver.move(ctx, '/d1copymove/own/src.txt', '/d1copymove/own/dst.txt', { onBehalf: 'carol' });
+
+      const row = await db
+        .prepare('SELECT user_id FROM _r2_files WHERE path = ?')
+        .bind('/d1copymove/own/dst.txt')
+        .first<{ user_id: string | null }>();
+      expect(row?.user_id).toBe('carol');
+    });
+  });
 });

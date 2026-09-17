@@ -406,7 +406,7 @@ export class D1Driver implements FileDriver {
     ctx: DriverContext<boolean>,
     _source: string,
     _destination: string,
-    _options?: MoveOptions
+    options?: MoveOptions
   ): Promise<void> {
     await ensureSchema(this.db, this.ownerKey);
     const src = ctx.path!;
@@ -454,7 +454,7 @@ export class D1Driver implements FileDriver {
             row.public,
             row.deleted_at,
             row.metadata,
-            row[this.ownerKey] ?? null
+            options?.onBehalf ?? row[this.ownerKey] ?? null
           )
       );
     });

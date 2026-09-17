@@ -22,33 +22,21 @@ const SIZE_UNITS: Record<string, number> = {
  */
 export function validateType(type: string): [string, string] {
   if (!type) {
-    throw new HandlerError(
-      'EINVAL',
-      'Invalid file type',
-      new Error(`validateType: Unsupported MIME type '${type}'`)
-    );
+    throw new HandlerError('EINVAL', 'Invalid file type', new Error(`validateType: Unsupported MIME type '${type}'`));
   }
 
   const base = type.split(';')[0].trim();
   const slashIndex = base.indexOf('/');
 
   if (slashIndex <= 0 || slashIndex >= base.length - 1) {
-    throw new HandlerError(
-      'EINVAL',
-      'Invalid file type',
-      new Error(`validateType: Unsupported MIME type '${type}'`)
-    );
+    throw new HandlerError('EINVAL', 'Invalid file type', new Error(`validateType: Unsupported MIME type '${type}'`));
   }
 
   const mainType = base.slice(0, slashIndex).trim();
   const subType = base.slice(slashIndex + 1).trim();
 
   if (!mainType || !subType || subType.includes('/')) {
-    throw new HandlerError(
-      'EINVAL',
-      'Invalid file type',
-      new Error(`validateType: Unsupported MIME type '${type}'`)
-    );
+    throw new HandlerError('EINVAL', 'Invalid file type', new Error(`validateType: Unsupported MIME type '${type}'`));
   }
 
   return [mainType, subType];
