@@ -30,7 +30,7 @@ import type {
   WriteOptions,
 } from '../../types.js';
 import { decodeCursor, encodeCursor } from '../../utils/cursor.js';
-import { assertEncodingBudget, parseSize } from '../../utils/type.js';
+import { assertEncodingBudget, parseSize, resolveType } from '../../utils/type.js';
 import type { Decodable } from './codec.js';
 import { decodeBody, toStorable } from './codec.js';
 import type { HeadShape, ListedShape, R2Metadata } from './entry.js';
@@ -111,7 +111,7 @@ export class R2Driver implements FileDriver {
   async write(ctx: DriverContext<FileInfo>, _path: string, data: FileInput, options?: WriteOptions): Promise<void> {
     const canonical = ctx.path!;
     const key = canonical.slice(1);
-    const type = options?.type ?? 'application/octet-stream';
+    const type = resolveType(data, options);
     const body = await toStorable(data, options);
     const customMetadata = this.stamped(options?.onBehalf, {
       ...(options?.public === true ? { _fs_public: 'true' } : {}),

@@ -21,7 +21,7 @@ import type {
   WriteOptions,
 } from '../types.js';
 import { resolve } from '../utils/path.js';
-import { isSizeAllowed, isTypeAllowed, validateType } from '../utils/type.js';
+import { isSizeAllowed, isTypeAllowed, resolveType, validateType } from '../utils/type.js';
 
 const encoder = new TextEncoder();
 
@@ -61,7 +61,7 @@ export class NormalizerDriver implements FileDriver {
   /** Validates boundaries (`EACCES`), MIME format and `allowedTypes` (`EINVAL`), and payload size against `maxSize`/`maxEncodingSize` (`EFBIG`). Populates `ctx.path`, `ctx.dirname`, and `ctx.cwd`. */
   async write(ctx: DriverContext<FileInfo>, path: string, data: FileInput, options?: WriteOptions): Promise<void> {
     const info = resolve(this.mountPoint, path, options?.cwd, 'write');
-    this.checkType(options?.type);
+    this.checkType(resolveType(data, options));
     this.checkWriteSize(data, options?.encoding);
     ctx.path = info.path;
     ctx.name = info.name;
@@ -167,10 +167,7 @@ export class NormalizerDriver implements FileDriver {
     ctx.cwd = info.cwd;
   }
 
-  private checkType(type: string | undefined): void {
-    if (type === undefined) {
-      return;
-    }
+  private checkType(type: string): void {
     validateType(type);
     if (!isTypeAllowed(type, this.allowedTypes)) {
       throw new HandlerError('EINVAL', 'Invalid file type', new Error(`validateType: Unsupported MIME type '${type}'`));

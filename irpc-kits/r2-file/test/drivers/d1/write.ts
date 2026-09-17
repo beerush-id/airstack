@@ -33,6 +33,21 @@ describe('D1Driver write and tiered inlining', () => {
     await db.prepare('DELETE FROM _r2_files WHERE path LIKE ?').bind('/d1write/tier%').run();
   });
 
+  it('infers application/json for an object write without an explicit type', async () => {
+    await withFs({}, async () => {
+      const ctx = createDriverCtx<FileInfo>();
+      await normalize.write(ctx, '/d1write/tier/infer-obj.json', { hello: 'world' });
+      await driver.write(ctx, '/d1write/tier/infer-obj.json', { hello: 'world' });
+
+      expect((ctx.result as FileInfo).type).toBe('application/json');
+      const row = await db
+        .prepare('SELECT type FROM _r2_files WHERE path = ?')
+        .bind('/d1write/tier/infer-obj.json')
+        .first<{ type: string }>();
+      expect(row?.type).toBe('application/json');
+    });
+  });
+
   it('inlines a small text payload with its metadata row', async () => {
     await withFs({}, async () => {
       const ctx = createDriverCtx<FileInfo>();

@@ -764,7 +764,7 @@ describe('R2Driver rollback and branch coverage', () => {
       await normalize.stat(stCtx, '/r2cov/.pub-sym');
       await driver.stat(stCtx, '/r2cov/.pub-sym');
 
-      expect(stCtx.result?.type).toBe('application/octet-stream');
+      expect(stCtx.result?.type).toBe('text/plain');
       expect(stCtx.result?.link).toBe('/r2cov/sym-target.txt');
       expect(stCtx.result?.public).toBe(true);
       expect(stCtx.result?.hidden).toBe(true);

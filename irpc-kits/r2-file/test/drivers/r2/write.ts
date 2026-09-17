@@ -46,7 +46,45 @@ describe('R2Driver write', () => {
       'r2write/rollback-new.txt',
       'r2write/rollback-overwrite.txt',
       'r2write/inlined-write.txt',
+      'r2write/infer-obj.json',
+      'r2write/infer-str.txt',
+      'r2write/infer-bin.png',
     ]);
+  });
+
+  it('infers application/json for an object write without an explicit type', async () => {
+    await withFs({}, async () => {
+      const ctx: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.write(ctx, '/r2write/infer-obj.json', { a: 1 });
+      await driver.write(ctx, '/r2write/infer-obj.json', { a: 1 });
+
+      expect((ctx.result as FileInfo).type).toBe('application/json');
+    });
+  });
+
+  it('infers text/plain for a string write without an explicit type', async () => {
+    await withFs({}, async () => {
+      const ctx: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.write(ctx, '/r2write/infer-str.txt', 'hello');
+      await driver.write(ctx, '/r2write/infer-str.txt', 'hello');
+
+      expect((ctx.result as FileInfo).type).toBe('text/plain');
+    });
+  });
+
+  it('infers the IRPCFile MIME for a binary write without an explicit type', async () => {
+    await withFs({}, async () => {
+      const bytes = new Uint8Array([1, 2, 3]);
+      const input = new IRPCFile(
+        { name: 'i.png', size: bytes.length, type: 'image/png' },
+        new Blob([bytes], { type: 'image/png' })
+      );
+      const ctx: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.write(ctx, '/r2write/infer-bin.png', input);
+      await driver.write(ctx, '/r2write/infer-bin.png', input);
+
+      expect((ctx.result as FileInfo).type).toBe('image/png');
+    });
   });
 
   it('stores UTF-8 text sealing FileInfo with the owner stamp', async () => {

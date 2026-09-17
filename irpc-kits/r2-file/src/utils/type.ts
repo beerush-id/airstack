@@ -1,5 +1,5 @@
-import { HandlerError } from '@irpclib/irpc';
-import type { FileEncoding } from '../types.js';
+import { HandlerError, IRPCFile } from '@irpclib/irpc';
+import type { FileEncoding, FileInput, WriteOptions } from '../types.js';
 
 const SIZE_UNITS: Record<string, number> = {
   b: 1,
@@ -134,4 +134,22 @@ export function parseSize(size: number | string): number {
 
   const multiplier = SIZE_UNITS[unit] ?? 1;
   return Math.round(value * multiplier);
+}
+
+/**
+ * Resolves the stored MIME type for a write, deriving it from the input data
+ * shape when the caller does not declare one.
+ *
+ * Concern: the payload already declares what it is — an object or array is JSON,
+ * a string is text, an `IRPCFile` carries its own MIME — so the type is known,
+ * never guessed. An explicit `options.type` always wins.
+ *
+ * @param data - Input payload whose shape declares the content type.
+ * @param options - Write options; an explicit `type` overrides inference.
+ * @returns The MIME type to store.
+ */
+export function resolveType(data: FileInput, options?: WriteOptions): string {
+  if (options?.type !== undefined) return options.type;
+  if (data instanceof IRPCFile) return data.meta.type;
+  return typeof data === 'string' ? 'text/plain' : 'application/json';
 }

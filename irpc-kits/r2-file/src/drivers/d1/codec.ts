@@ -1,7 +1,7 @@
 import { type AnyType, HandlerError, IRPCFile } from '@irpclib/irpc';
 import { DEFAULT_MAX_ENCODING_SIZE } from '../../context.js';
 import type { FileEncoding, FileInfo, FileInput, WriteOptions } from '../../types.js';
-import { parseSize } from '../../utils/type.js';
+import { parseSize, resolveType } from '../../utils/type.js';
 
 const DEFAULT_MAX_ENCODING_BYTES = parseSize(DEFAULT_MAX_ENCODING_SIZE);
 
@@ -57,7 +57,7 @@ export function preparePayload(
   return {
     content,
     size,
-    type: options?.type as string,
+    type: resolveType(data, options),
     shouldInline: size <= maxEncodingBytes,
   };
 }

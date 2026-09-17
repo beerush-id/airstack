@@ -155,7 +155,7 @@ export class D1Driver implements FileDriver {
             metadata = excluded.metadata,
             "${this.ownerKey}" = excluded."${this.ownerKey}"`
         )
-        .bind(target, name, prepared.size, prepared.type ?? null, mtime, dir, hidden, pub, meta, owner),
+        .bind(target, name, prepared.size, prepared.type, mtime, dir, hidden, pub, meta, owner),
     ];
 
     if (prepared.shouldInline && prepared.content !== null) {
