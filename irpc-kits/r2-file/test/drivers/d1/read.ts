@@ -85,8 +85,8 @@ describe('D1Driver read operations and wire decoding', () => {
     await withFs({ ownerId: 'bob', homeDir: '/users/bob' }, async () => {
       const ctx = createDriverCtx<string>();
 
-      await normalize.read(ctx, '/d1read/ghost.txt');
-      await driver.read(ctx, '/d1read/ghost.txt');
+      await normalize.read(ctx, '/d1read/ghost.txt', { encoding: 'text' });
+      await driver.read(ctx, '/d1read/ghost.txt', { encoding: 'text' });
 
       expect('result' in ctx).toBe(false);
     });
@@ -128,14 +128,14 @@ describe('D1Driver read operations and wire decoding', () => {
       await driver.mkdir(dirCtx, '/d1read/dir');
 
       const ctx = createDriverCtx<FileInput | undefined>();
-      await normalize.read(ctx, '/d1read/dir');
-      await driver.read(ctx, '/d1read/dir');
+      await normalize.read(ctx, '/d1read/dir', { encoding: 'text' });
+      await driver.read(ctx, '/d1read/dir', { encoding: 'text' });
 
       expect('result' in ctx).toBe(false);
     });
   });
 
-  it('reads with undefined encoding defaulting to raw string', async () => {
+  it('passes a non-encoded read through to the canonical medium', async () => {
     await withFs({ ownerId: 'bob', homeDir: '/users/bob' }, async () => {
       const seed = createDriverCtx<FileInfo>();
       await normalize.write(seed, '/d1read/raw-def.txt', 'raw text', { type: 'text/plain' });
@@ -145,7 +145,8 @@ describe('D1Driver read operations and wire decoding', () => {
       await normalize.read(ctx, '/d1read/raw-def.txt');
       await driver.read(ctx, '/d1read/raw-def.txt');
 
-      expect(ctx.result).toBe('raw text');
+      // D1 caches text for encoded reads only; a blob request is not its capability.
+      expect('result' in ctx).toBe(false);
     });
   });
 
@@ -161,8 +162,8 @@ describe('D1Driver read operations and wire decoding', () => {
       await soft.remove(remCtx, '/d1read/trashed.txt');
 
       const readCtx = createDriverCtx<string>();
-      await normalize.read(readCtx, '/d1read/trashed.txt');
-      await driver.read(readCtx, '/d1read/trashed.txt');
+      await normalize.read(readCtx, '/d1read/trashed.txt', { encoding: 'text' });
+      await driver.read(readCtx, '/d1read/trashed.txt', { encoding: 'text' });
 
       expect('result' in readCtx).toBe(false);
     });
@@ -193,21 +194,6 @@ describe('D1Driver read operations and wire decoding', () => {
       await normalize.read(ctx, '/d1read/big.txt', { encoding: 'text' });
 
       await expectDenial(() => small.read(ctx, '/d1read/big.txt', { encoding: 'text' }), 'EFBIG', '64');
-    });
-  });
-
-  it('leaves a default read open when it exceeds maxEncodingSize', async () => {
-    await withFs({ ownerId: 'bob', homeDir: '/users/bob' }, async () => {
-      const seed = createDriverCtx<FileInfo>();
-      await normalize.write(seed, '/d1read/open.txt', 'x'.repeat(64), { type: 'text/plain' });
-      await driver.write(seed, '/d1read/open.txt', 'x'.repeat(64), { type: 'text/plain' });
-
-      const small = new D1Driver(db, { maxEncodingSize: 8 });
-      const ctx = createDriverCtx<string>();
-      await normalize.read(ctx, '/d1read/open.txt');
-      await small.read(ctx, '/d1read/open.txt');
-
-      expect(ctx.result).toBe('x'.repeat(64));
     });
   });
 });

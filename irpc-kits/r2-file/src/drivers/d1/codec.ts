@@ -70,7 +70,7 @@ export function preparePayload(
  * @param encoding - Requested wire representation.
  * @returns Decoded value formatted as requested.
  */
-export function decodePayload(raw: string, type: string, encoding?: FileEncoding): AnyType {
+export function decodePayload(raw: string, type: string, encoding: FileEncoding): AnyType {
   if (encoding === 'text') {
     return raw;
   }

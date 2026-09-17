@@ -187,13 +187,18 @@ export class D1Driver implements FileDriver {
   }
 
   /**
-   * Resolves inlined content from SQLite, delegating to downstream media if absent.
+   * Resolves encoded reads from the inlined SQLite cache. A non-encoded (blob)
+   * request or a cache miss is outside this driver's capability, so it passes
+   * through untouched and the canonical R2 medium serves the bytes.
    *
    * @param ctx - Pipeline execution context.
    * @param path - Target file path.
    * @param options - Read options and wire decoding requested.
    */
   async read(ctx: DriverContext<FileInput | undefined>, _path: string, options?: ReadOptions): Promise<void> {
+    if (!options?.encoding) {
+      return;
+    }
     await ensureSchema(this.db, this.ownerKey);
     const target = ctx.path!;
     const fileRow = await this.db
@@ -214,8 +219,8 @@ export class D1Driver implements FileDriver {
       return;
     }
 
-    assertEncodingBudget(fileRow.size, this.maxEncodingBytes, options?.encoding);
-    ctx.result = decodePayload(contentRow.content, fileRow.type, options?.encoding);
+    assertEncodingBudget(fileRow.size, this.maxEncodingBytes, options.encoding);
+    ctx.result = decodePayload(contentRow.content, fileRow.type, options.encoding);
   }
 
   /**
@@ -402,12 +407,7 @@ export class D1Driver implements FileDriver {
    * @param destination - Destination path.
    * @param _options - Move options.
    */
-  async move(
-    ctx: DriverContext<boolean>,
-    _source: string,
-    _destination: string,
-    options?: MoveOptions
-  ): Promise<void> {
+  async move(ctx: DriverContext<boolean>, _source: string, _destination: string, options?: MoveOptions): Promise<void> {
     await ensureSchema(this.db, this.ownerKey);
     const src = ctx.path!;
     const dest = ctx.destination!;
