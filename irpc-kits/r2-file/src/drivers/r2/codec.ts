@@ -33,9 +33,11 @@ export async function toStorable(data: FileInput, options?: WriteOptions): Promi
       data?: { arrayBuffer?: () => Promise<ArrayBuffer> };
       arrayBuffer?: () => Promise<ArrayBuffer>;
     };
-    const bufferFn = target.data?.arrayBuffer ?? target.arrayBuffer;
-    if (typeof bufferFn === 'function') {
-      return bufferFn.call(target.data);
+    if (typeof target.data?.arrayBuffer === 'function') {
+      return target.data.arrayBuffer();
+    }
+    if (typeof target.arrayBuffer === 'function') {
+      return target.arrayBuffer();
     }
   }
   return JSON.stringify(data);

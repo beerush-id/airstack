@@ -154,6 +154,18 @@ export function applySort(entries: FileInfo[], sort: string | string[]): void {
         case 'mtime':
           cmp = a.mtime.getTime() - b.mtime.getTime();
           break;
+        case 'type':
+          cmp = a.type.localeCompare(b.type);
+          break;
+        case 'hidden':
+          cmp = Number(a.hidden ?? false) - Number(b.hidden ?? false);
+          break;
+        case 'public':
+          cmp = Number(a.public ?? false) - Number(b.public ?? false);
+          break;
+        case 'deletedAt':
+          cmp = (a.deletedAt?.getTime() ?? 0) - (b.deletedAt?.getTime() ?? 0);
+          break;
       }
       if (cmp !== 0) return desc ? -cmp : cmp;
     }

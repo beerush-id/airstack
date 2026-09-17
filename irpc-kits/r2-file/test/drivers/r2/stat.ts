@@ -249,8 +249,14 @@ describe('R2Driver stat and exists', () => {
   it('resolves the target live metadata in stat when the symlink target exists', async () => {
     await withFs({}, async () => {
       const tgt: DriverContext<FileInfo> = createDriverCtx();
-      await normalize.write(tgt, '/r2stat/link-target.txt', 'target body', { type: 'text/plain', metadata: { kind: 'doc' } });
-      await driver.write(tgt, '/r2stat/link-target.txt', 'target body', { type: 'text/plain', metadata: { kind: 'doc' } });
+      await normalize.write(tgt, '/r2stat/link-target.txt', 'target body', {
+        type: 'text/plain',
+        metadata: { kind: 'doc' },
+      });
+      await driver.write(tgt, '/r2stat/link-target.txt', 'target body', {
+        type: 'text/plain',
+        metadata: { kind: 'doc' },
+      });
 
       const linkCtx: DriverContext<FileInfo> = createDriverCtx();
       await normalize.link(linkCtx, '/r2stat/link-target.txt', '/r2stat/resolved-link.txt');

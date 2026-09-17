@@ -4,6 +4,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createDriverCtx } from '../../../src/context.js';
 import { R2Driver } from '../../../src/drivers/index.js';
 import { NormalizerDriver } from '../../../src/drivers/normalize.js';
+import { toStorable } from '../../../src/drivers/r2/codec.js';
+import { applySort } from '../../../src/drivers/r2/entry.js';
 import type { DriverContext, FileInfo, ListResult } from '../../../src/types.js';
 import { withFs } from '../../helpers.js';
 
@@ -932,13 +934,15 @@ describe('R2Driver rollback and branch coverage', () => {
           if (opts?.prefix?.startsWith('r2cov/cached-meta/') && !listCalled) {
             listCalled = true;
             return {
-              objects: [{
-                key: 'r2cov/cached-meta/f.txt',
-                size: 1,
-                uploaded: new Date(),
-                etag: '1',
-                customMetadata: { author: 'bob' },
-              }] as any,
+              objects: [
+                {
+                  key: 'r2cov/cached-meta/f.txt',
+                  size: 1,
+                  uploaded: new Date(),
+                  etag: '1',
+                  customMetadata: { author: 'bob' },
+                },
+              ] as any,
               delimitedPrefixes: [],
               truncated: false,
             };
@@ -977,7 +981,9 @@ describe('R2Driver rollback and branch coverage', () => {
 
       const moveCtx: DriverContext<boolean> = createDriverCtx();
       await normalize.move(moveCtx, '/r2cov/trash-move-src.txt', '/r2cov/trash-move-dst.txt');
-      await expect(softDriver.move(moveCtx, '/r2cov/trash-move-src.txt', '/r2cov/trash-move-dst.txt')).rejects.toThrow();
+      await expect(
+        softDriver.move(moveCtx, '/r2cov/trash-move-src.txt', '/r2cov/trash-move-dst.txt')
+      ).rejects.toThrow();
     });
   });
 
@@ -1034,4 +1040,45 @@ describe('R2Driver rollback and branch coverage', () => {
   });
 });
 
+describe('R2 codec and entry units', () => {
+  it('reads a top-level arrayBuffer payload with the correct receiver', async () => {
+    const bytes = new TextEncoder().encode('blob body');
+    const blob = new Blob([bytes], { type: 'text/plain' });
+    const result = await toStorable(blob as never);
+    expect(new Uint8Array(result as ArrayBuffer)).toEqual(bytes);
+  });
 
+  it('sorts entries by type, hidden, public, and deletedAt', () => {
+    const base = { path: '/x', name: 'x', size: 0, type: 'text/plain', mtime: new Date(0), isDirectory: false };
+    const mk = (o: Partial<FileInfo>): FileInfo => ({ ...base, ...o }) as FileInfo;
+
+    const byType = [mk({ type: 'text/plain' }), mk({ type: 'application/json' })];
+    applySort(byType, 'type');
+    expect(byType.map((e) => e.type)).toEqual(['application/json', 'text/plain']);
+
+    const byPublic = [mk({ public: true }), mk({})];
+    applySort(byPublic, 'public');
+    expect(byPublic.map((e) => e.public)).toEqual([undefined, true]);
+    const byPublicRev = [mk({}), mk({ public: true })];
+    applySort(byPublicRev, 'public');
+    expect(byPublicRev.map((e) => e.public)).toEqual([undefined, true]);
+
+    const byHidden = [mk({ hidden: true }), mk({})];
+    applySort(byHidden, 'hidden');
+    expect(byHidden.map((e) => e.hidden)).toEqual([undefined, true]);
+    const byHiddenRev = [mk({}), mk({ hidden: true })];
+    applySort(byHiddenRev, 'hidden');
+    expect(byHiddenRev.map((e) => e.hidden)).toEqual([undefined, true]);
+
+    const byDeleted = [mk({ deletedAt: new Date(2000) }), mk({})];
+    applySort(byDeleted, 'deletedAt');
+    expect(byDeleted.map((e) => e.deletedAt?.getTime())).toEqual([undefined, 2000]);
+    const byDeletedRev = [mk({}), mk({ deletedAt: new Date(2000) })];
+    applySort(byDeletedRev, 'deletedAt');
+    expect(byDeletedRev.map((e) => e.deletedAt?.getTime())).toEqual([undefined, 2000]);
+
+    const byDeletedDesc = [mk({ deletedAt: new Date(1000) }), mk({ deletedAt: new Date(2000) })];
+    applySort(byDeletedDesc, '-deletedAt');
+    expect(byDeletedDesc.map((e) => e.deletedAt?.getTime())).toEqual([2000, 1000]);
+  });
+});
