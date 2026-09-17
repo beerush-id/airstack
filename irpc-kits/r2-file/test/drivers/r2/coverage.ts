@@ -1,10 +1,11 @@
 import type { R2Bucket } from '@cloudflare/workers-types';
+import { HandlerError } from '@irpclib/irpc';
 import { resolveBinding } from '@irpclib/irpc/wrangler';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createDriverCtx } from '../../../src/context.js';
 import { R2Driver } from '../../../src/drivers/index.js';
 import { NormalizerDriver } from '../../../src/drivers/normalize.js';
-import { toStorable } from '../../../src/drivers/r2/codec.js';
+import { decodeBody, toStorable } from '../../../src/drivers/r2/codec.js';
 import { applySort } from '../../../src/drivers/r2/entry.js';
 import type { DriverContext, FileInfo, ListResult } from '../../../src/types.js';
 import { withFs } from '../../helpers.js';
@@ -1080,5 +1081,86 @@ describe('R2 codec and entry units', () => {
     const byDeletedDesc = [mk({ deletedAt: new Date(1000) }), mk({ deletedAt: new Date(2000) })];
     applySort(byDeletedDesc, '-deletedAt');
     expect(byDeletedDesc.map((e) => e.deletedAt?.getTime())).toEqual([2000, 1000]);
+  });
+});
+
+describe('R2 typed error wrapping', () => {
+  const codeOf = (failure: unknown): unknown => (failure as Error & { code: unknown }).code;
+
+  it('wraps a JSON decode failure as EINVAL', async () => {
+    const bad = { text: async () => 'not json', arrayBuffer: async () => new ArrayBuffer(0) };
+    const failure = await decodeBody(bad, 'json').then(
+      () => undefined,
+      (error: unknown) => error
+    );
+    expect(failure).toBeInstanceOf(HandlerError);
+    expect(codeOf(failure)).toBe('EINVAL');
+  });
+
+  it('wraps an encode failure as EINVAL', async () => {
+    const circular: Record<string, unknown> = {};
+    circular.self = circular;
+    const failure = await toStorable(circular as never).then(
+      () => undefined,
+      (error: unknown) => error
+    );
+    expect(failure).toBeInstanceOf(HandlerError);
+    expect(codeOf(failure)).toBe('EINVAL');
+  });
+
+  it('wraps a bucket rejection as EIO', async () => {
+    const failing = {
+      get: async () => {
+        throw new Error('R2 unavailable');
+      },
+    } as unknown as R2Bucket;
+    const broken = new R2Driver(failing);
+    const ctx: DriverContext<Blob | undefined> = createDriverCtx();
+    ctx.path = '/r2cov/down.txt';
+
+    const failure = await broken.read(ctx, '/r2cov/down.txt').then(
+      () => undefined,
+      (error: unknown) => error
+    );
+    expect(failure).toBeInstanceOf(HandlerError);
+    expect(codeOf(failure)).toBe('EIO');
+  });
+});
+
+describe('R2 caller metadata screening', () => {
+  const metaOf = (head: unknown): Record<string, string> =>
+    (head as { customMetadata: Record<string, string> }).customMetadata;
+
+  it('strips reserved _fs_* keys from caller metadata but keeps custom keys', async () => {
+    await withFs({ ownerId: 'alice', homeDir: '/users/alice' }, async () => {
+      const normalize = new NormalizerDriver();
+      const driver = new R2Driver(bucket);
+      const options = {
+        type: 'text/plain',
+        metadata: { _fs_user_id: 'evil', _fs_deleted: '1', safe: 'keep' },
+      };
+      const ctx: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.write(ctx, '/r2cov/screened.txt', 'data', options);
+      await driver.write(ctx, '/r2cov/screened.txt', 'data', options);
+
+      const meta = metaOf(await bucket.head('r2cov/screened.txt'));
+      expect(meta.safe).toBe('keep');
+      expect(meta._fs_user_id).toBe('alice');
+      expect(meta._fs_deleted).toBeUndefined();
+    });
+  });
+
+  it('cannot spoof ownership through caller metadata when no actor is present', async () => {
+    await withFs({}, async () => {
+      const normalize = new NormalizerDriver();
+      const driver = new R2Driver(bucket);
+      const options = { metadata: { _fs_user_id: 'evil' } };
+      const ctx: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.write(ctx, '/r2cov/anon.txt', 'data', options);
+      await driver.write(ctx, '/r2cov/anon.txt', 'data', options);
+
+      const meta = metaOf(await bucket.head('r2cov/anon.txt'));
+      expect(meta._fs_user_id).toBeUndefined();
+    });
   });
 });

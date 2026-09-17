@@ -23,7 +23,7 @@ import type {
   WriteOptions,
 } from '../../types.js';
 import { basename, dirname } from '../../utils/path.js';
-import { parseSize } from '../../utils/type.js';
+import { assertEncodingBudget, parseSize } from '../../utils/type.js';
 import { decodePayload, preparePayload, toFileInfo } from './codec.js';
 import { buildListQuery, buildSearchQuery, encodeCursor } from './query.js';
 import { ensureSchema } from './schema.js';
@@ -199,7 +199,7 @@ export class D1Driver implements FileDriver {
     const fileRow = await this.db
       .prepare('SELECT * FROM _r2_files WHERE path = ? AND deleted_at IS NULL')
       .bind(target)
-      .first<{ type: string }>();
+      .first<{ type: string; size: number }>();
 
     if (!fileRow) {
       return;
@@ -214,6 +214,7 @@ export class D1Driver implements FileDriver {
       return;
     }
 
+    assertEncodingBudget(fileRow.size, this.maxEncodingBytes, options?.encoding);
     ctx.result = decodePayload(contentRow.content, fileRow.type, options?.encoding);
   }
 
@@ -348,66 +349,47 @@ export class D1Driver implements FileDriver {
     }
 
     ctx.info = toFileInfo(sourceRow);
-    const destName = basename(dest);
-    const destDir = dirname(dest);
+    const rows = await this.subtreeRows(src, sourceRow);
+    const destPaths = rows.map((row) => dest + (row.path as string).slice(src.length));
+    await this.assertNoConflict('copy', destPaths);
+
+    const contents = await this.subtreeContents(src);
     const mtime = Date.now();
-    const isPublic = options?.public !== undefined ? (options.public ? 1 : 0) : sourceRow.public;
     const owner = this.getOwner();
-
-    const statements = [
-      this.db
-        .prepare(
-          `INSERT INTO _r2_files (path, name, size, type, mtime, etag, directory, link, hidden, public, deleted_at, metadata, "${this.ownerKey}")
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)
-          ON CONFLICT(path) DO UPDATE SET
-            name = excluded.name,
-            size = excluded.size,
-            type = excluded.type,
-            mtime = excluded.mtime,
-            etag = excluded.etag,
-            directory = excluded.directory,
-            link = excluded.link,
-            hidden = excluded.hidden,
-            public = excluded.public,
-            deleted_at = NULL,
-            metadata = excluded.metadata,
-            "${this.ownerKey}" = excluded."${this.ownerKey}"`
-        )
-        .bind(
-          dest,
-          destName,
-          sourceRow.size,
-          sourceRow.type,
-          mtime,
-          sourceRow.etag,
-          destDir,
-          sourceRow.link,
-          sourceRow.hidden,
-          isPublic,
-          sourceRow.metadata,
-          owner
-        ),
-    ];
-
-    const contentRow = await this.db
-      .prepare('SELECT content FROM _r2_contents WHERE path = ?')
-      .bind(src)
-      .first<{ content: string }>();
-
-    if (contentRow && contentRow.content !== null) {
+    const statements: D1PreparedStatement[] = [];
+    rows.forEach((row, index) => {
+      const destPath = destPaths[index];
+      const isPublic = row.path === src && options?.public !== undefined ? (options.public ? 1 : 0) : row.public;
       statements.push(
         this.db
           .prepare(
-            `INSERT INTO _r2_contents (path, content) VALUES (?, ?)
-            ON CONFLICT(path) DO UPDATE SET content = excluded.content`
+            `INSERT INTO _r2_files (path, name, size, type, mtime, etag, directory, link, hidden, public, deleted_at, metadata, "${this.ownerKey}")
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)`
           )
-          .bind(dest, contentRow.content)
+          .bind(
+            destPath,
+            basename(destPath),
+            row.size,
+            row.type,
+            mtime,
+            row.etag,
+            dirname(destPath),
+            row.link,
+            row.hidden,
+            isPublic,
+            row.metadata,
+            owner
+          )
       );
-    } else {
-      statements.push(this.db.prepare('DELETE FROM _r2_contents WHERE path = ?').bind(dest));
-    }
+      const content = contents.get(row.path as string);
+      if (content !== undefined) {
+        statements.push(
+          this.db.prepare('INSERT INTO _r2_contents (path, content) VALUES (?, ?)').bind(destPath, content)
+        );
+      }
+    });
 
-    await this.mutate(ctx, 'copy', [dest], statements);
+    await this.mutate(ctx, 'copy', destPaths, statements);
 
     ctx.result = true;
   }
@@ -445,36 +427,47 @@ export class D1Driver implements FileDriver {
       return;
     }
 
-    await this.mutate(
-      ctx,
-      'move',
-      [src, dest],
-      [
-        this.db.prepare('DELETE FROM _r2_files WHERE path = ?').bind(dest),
+    const rows = await this.subtreeRows(src, sourceRow);
+    const srcPaths = rows.map((row) => row.path as string);
+    const destPaths = rows.map((row) => dest + (row.path as string).slice(src.length));
+    await this.assertNoConflict('move', destPaths);
+
+    const mtime = Date.now();
+    const statements: D1PreparedStatement[] = [];
+    rows.forEach((row, index) => {
+      statements.push(
         this.db
           .prepare(
             `INSERT INTO _r2_files (path, name, size, type, mtime, etag, directory, link, hidden, public, deleted_at, metadata, "${this.ownerKey}")
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
           )
           .bind(
-            dest,
-            basename(dest),
-            sourceRow.size,
-            sourceRow.type,
-            Date.now(),
-            sourceRow.etag,
-            dirname(dest),
-            sourceRow.link,
-            sourceRow.hidden,
-            sourceRow.public,
-            sourceRow.deleted_at,
-            sourceRow.metadata,
-            sourceRow[this.ownerKey] ?? null
-          ),
-        this.db.prepare('UPDATE _r2_contents SET path = ? WHERE path = ?').bind(dest, src),
-        this.db.prepare('DELETE FROM _r2_files WHERE path = ?').bind(src),
-      ]
-    );
+            destPaths[index],
+            basename(destPaths[index]),
+            row.size,
+            row.type,
+            mtime,
+            row.etag,
+            dirname(destPaths[index]),
+            row.link,
+            row.hidden,
+            row.public,
+            row.deleted_at,
+            row.metadata,
+            row[this.ownerKey] ?? null
+          )
+      );
+    });
+    rows.forEach((_row, index) => {
+      statements.push(
+        this.db.prepare('UPDATE _r2_contents SET path = ? WHERE path = ?').bind(destPaths[index], srcPaths[index])
+      );
+    });
+    for (const srcPath of srcPaths) {
+      statements.push(this.db.prepare('DELETE FROM _r2_files WHERE path = ?').bind(srcPath));
+    }
+
+    await this.mutate(ctx, 'move', [...srcPaths, ...destPaths], statements);
 
     ctx.result = true;
   }
@@ -706,6 +699,39 @@ export class D1Driver implements FileDriver {
         throw new HandlerError('EIO', `Failed to ${op}`, cause);
       });
     });
+  }
+
+  /** Returns the source record plus, for a directory, every active descendant record. */
+  private async subtreeRows(src: string, sourceRow: Record<string, AnyType>): Promise<Record<string, AnyType>[]> {
+    if (sourceRow.type !== 'inode/directory') return [sourceRow];
+    const { results } = await this.db
+      .prepare('SELECT * FROM _r2_files WHERE (path = ? OR path LIKE ?) AND deleted_at IS NULL')
+      .bind(src, `${src}/%`)
+      .all<Record<string, AnyType>>();
+    return results;
+  }
+
+  /** Halts with `EEXIST` when any destination path already has a record, before any mutation. */
+  private async assertNoConflict(op: string, destPaths: string[]): Promise<void> {
+    for (const destPath of destPaths) {
+      const existing = await this.db.prepare('SELECT 1 FROM _r2_files WHERE path = ?').bind(destPath).first();
+      if (existing) {
+        throw new HandlerError(
+          'EEXIST',
+          'Destination exists',
+          new Error(`${op}: Destination path '${destPath}' already exists`)
+        );
+      }
+    }
+  }
+
+  /** Maps each source path in the subtree to its inlined content, when present. */
+  private async subtreeContents(src: string): Promise<Map<string, string>> {
+    const { results } = await this.db
+      .prepare('SELECT path, content FROM _r2_contents WHERE path = ? OR path LIKE ?')
+      .bind(src, `${src}/%`)
+      .all<{ path: string; content: string }>();
+    return new Map(results.map((row) => [row.path, row.content]));
   }
 
   private getOwner(): string | null {

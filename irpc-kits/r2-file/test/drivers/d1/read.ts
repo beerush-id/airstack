@@ -6,7 +6,7 @@ import { createDriverCtx } from '../../../src/context.js';
 import { D1Driver } from '../../../src/drivers/index.js';
 import { NormalizerDriver } from '../../../src/drivers/normalize.js';
 import type { FileEncoding, FileInfo, FileInput } from '../../../src/types.js';
-import { withFs } from '../../helpers.js';
+import { expectDenial, withFs } from '../../helpers.js';
 
 let db!: D1Database;
 
@@ -179,6 +179,35 @@ describe('D1Driver read operations and wire decoding', () => {
       await driver.read(ctx, '/d1read/unknown-enc.txt', { encoding: 'unsupported' as FileEncoding });
 
       expect(ctx.result).toBe('raw payload');
+    });
+  });
+
+  it('rejects an encoded read exceeding maxEncodingSize with EFBIG', async () => {
+    await withFs({ ownerId: 'bob', homeDir: '/users/bob' }, async () => {
+      const seed = createDriverCtx<FileInfo>();
+      await normalize.write(seed, '/d1read/big.txt', 'x'.repeat(64), { type: 'text/plain' });
+      await driver.write(seed, '/d1read/big.txt', 'x'.repeat(64), { type: 'text/plain' });
+
+      const small = new D1Driver(db, { maxEncodingSize: 8 });
+      const ctx = createDriverCtx<string>();
+      await normalize.read(ctx, '/d1read/big.txt', { encoding: 'text' });
+
+      await expectDenial(() => small.read(ctx, '/d1read/big.txt', { encoding: 'text' }), 'EFBIG', '64');
+    });
+  });
+
+  it('leaves a default read open when it exceeds maxEncodingSize', async () => {
+    await withFs({ ownerId: 'bob', homeDir: '/users/bob' }, async () => {
+      const seed = createDriverCtx<FileInfo>();
+      await normalize.write(seed, '/d1read/open.txt', 'x'.repeat(64), { type: 'text/plain' });
+      await driver.write(seed, '/d1read/open.txt', 'x'.repeat(64), { type: 'text/plain' });
+
+      const small = new D1Driver(db, { maxEncodingSize: 8 });
+      const ctx = createDriverCtx<string>();
+      await normalize.read(ctx, '/d1read/open.txt');
+      await small.read(ctx, '/d1read/open.txt');
+
+      expect(ctx.result).toBe('x'.repeat(64));
     });
   });
 });

@@ -1,7 +1,14 @@
-import type { R2Bucket, R2GetOptions, R2ObjectBody, R2PutOptions, R2Range } from '@cloudflare/workers-types';
+import type {
+  R2Bucket,
+  R2GetOptions,
+  R2ListOptions,
+  R2ObjectBody,
+  R2PutOptions,
+  R2Range,
+} from '@cloudflare/workers-types';
 import { HandlerError } from '@irpclib/irpc';
 import type { FileDriver } from '../../adapter.js';
-import { DEFAULT_OWNER_KEY, fsContext } from '../../context.js';
+import { DEFAULT_MAX_ENCODING_SIZE, DEFAULT_OWNER_KEY, fsContext } from '../../context.js';
 import type {
   CopyOptions,
   DriverContext,
@@ -21,10 +28,38 @@ import type {
   StatOptions,
   WriteOptions,
 } from '../../types.js';
+import { assertEncodingBudget, parseSize } from '../../utils/type.js';
 import type { Decodable } from './codec.js';
 import { decodeBody, toStorable } from './codec.js';
 import type { HeadShape, ListedShape, R2Metadata } from './entry.js';
 import { applySort, directoryInfo, fileInfoFromHead, listEntry, parseDeletedAt } from './entry.js';
+
+/**
+ * Decorates an `R2Bucket` so every binding rejection surfaces as a typed `EIO`
+ * instead of a bare error, honoring the zero-plain-errors contract at the single
+ * point where the driver touches storage. Only the five methods the driver calls
+ * are guarded; the underlying binding is otherwise used as-is.
+ *
+ * @param bucket - Raw R2 binding supplied by the runtime.
+ * @returns The same binding with `head`/`get`/`put`/`delete`/`list` wrapped.
+ */
+function guardBucket(bucket: R2Bucket): R2Bucket {
+  const guard = async <T>(op: string, run: () => Promise<T>): Promise<T> => {
+    try {
+      return await run();
+    } catch (cause) {
+      throw new HandlerError('EIO', `Failed to ${op}`, cause as Error);
+    }
+  };
+  return {
+    head: (key: string) => guard('stat', () => bucket.head(key)),
+    get: (key: string, options?: R2GetOptions) => guard('read', () => bucket.get(key, options)),
+    put: (key: string, value: Parameters<R2Bucket['put']>[1], options?: R2PutOptions) =>
+      guard('write', () => bucket.put(key, value, options)),
+    delete: (keys: string | string[]) => guard('remove', () => bucket.delete(keys)),
+    list: (options?: R2ListOptions) => guard('list', () => bucket.list(options)),
+  } as unknown as R2Bucket;
+}
 
 /**
  * Cloudflare R2 storage driver persisting blobs and directory markers.
@@ -37,13 +72,15 @@ export class R2Driver implements FileDriver {
   private readonly ownerKey: string;
   private readonly strict: boolean;
   private readonly softDelete: boolean;
+  private readonly maxEncodingBytes: number;
 
   /** Binds blob persistence to `bucket` with tenancy, strict, and trash policy. */
   constructor(bucket: R2Bucket, options?: R2DriverOptions) {
-    this.bucket = bucket;
+    this.bucket = guardBucket(bucket);
     this.ownerKey = options?.ownerKey ?? `_fs_${DEFAULT_OWNER_KEY}`;
     this.strict = options?.strict ?? false;
     this.softDelete = options?.softDelete ?? false;
+    this.maxEncodingBytes = parseSize(options?.maxEncodingSize ?? DEFAULT_MAX_ENCODING_SIZE);
   }
 
   /** Records a directory marker unconditionally and seals `FileInfo`. */
@@ -53,7 +90,7 @@ export class R2Driver implements FileDriver {
     const customMetadata = this.stamped(options?.onBehalf, {
       _fs_type: 'inode/directory',
       ...(options?.public === true ? { _fs_public: 'true' } : {}),
-      ...(options?.metadata ?? {}),
+      ...this.callerMetadata(options?.metadata),
     });
     await this.preserve(ctx, key);
     const put = (await this.bucket.put(key, '', {
@@ -72,7 +109,7 @@ export class R2Driver implements FileDriver {
     const customMetadata = this.stamped(options?.onBehalf, {
       ...(options?.public === true ? { _fs_public: 'true' } : {}),
       ...(options?.hidden === true ? { _fs_hidden: 'true' } : {}),
-      ...(options?.metadata ?? {}),
+      ...this.callerMetadata(options?.metadata),
     });
 
     await this.preserve(ctx, key);
@@ -116,9 +153,11 @@ export class R2Driver implements FileDriver {
         ctx.result = undefined;
         return;
       }
+      assertEncodingBudget(target.size, this.maxEncodingBytes, options?.encoding);
       ctx.result = await decodeBody(target as unknown as Decodable, options?.encoding);
       return;
     }
+    assertEncodingBudget(found.size, this.maxEncodingBytes, options?.encoding);
     ctx.result = await decodeBody(found as unknown as Decodable, options?.encoding);
   }
 
@@ -331,7 +370,7 @@ export class R2Driver implements FileDriver {
       _fs_link: targetCanonical,
       _fs_type: 'inode/symlink',
       ...(options?.public === true ? { _fs_public: 'true' } : {}),
-      ...(options?.metadata ?? {}),
+      ...this.callerMetadata(options?.metadata),
     });
     await this.preserve(ctx, aliasKey);
     const put = (await this.bucket.put(aliasKey, '', { customMetadata }))!;
@@ -491,6 +530,21 @@ export class R2Driver implements FileDriver {
       isDirectory: target.isDirectory,
       ...(target.metadata ? { metadata: target.metadata } : {}),
     };
+  }
+
+  /**
+   * Screens caller-supplied metadata, dropping reserved `_fs_*` keys.
+   *
+   * Concern: system state (type, visibility, trash, links) and ownership are
+   * driver-authoritative; letting a caller inject `_fs_*` keys would allow
+   * spoofing an owner or forging a deleted, public, or link flag.
+   *
+   * @param metadata - Raw metadata object from the caller's write options.
+   * @returns Only the caller's non-reserved metadata keys.
+   */
+  private callerMetadata(metadata?: Record<string, string>): Record<string, string> {
+    if (metadata === undefined) return {};
+    return Object.fromEntries(Object.entries(metadata).filter(([key]) => !key.startsWith('_fs_')));
   }
 
   /** Stamps the owner identity under `_fs_<ownerKey>` over caller metadata. */

@@ -5,7 +5,7 @@ import { createDriverCtx } from '../../../src/context.js';
 import { R2Driver } from '../../../src/drivers/index.js';
 import { NormalizerDriver } from '../../../src/drivers/normalize.js';
 import type { DriverContext, FileInfo } from '../../../src/types.js';
-import { withFs } from '../../helpers.js';
+import { expectDenial, withFs } from '../../helpers.js';
 
 let bucket!: R2Bucket;
 
@@ -39,6 +39,8 @@ describe('R2Driver read', () => {
       'r2read/dir/',
       'r2read/soft.txt',
       'r2read/range.txt',
+      'r2read/big.txt',
+      'r2read/open.txt',
     ]);
   });
 
@@ -189,6 +191,35 @@ describe('R2Driver read', () => {
       if (ctx.result !== undefined) {
         expect(ctx.result).toBe('456789');
       }
+    });
+  });
+
+  it('rejects an encoded read exceeding maxEncodingSize with EFBIG', async () => {
+    await withFs({}, async () => {
+      const seed: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.write(seed, '/r2read/big.txt', 'x'.repeat(64), { type: 'text/plain' });
+      await driver.write(seed, '/r2read/big.txt', 'x'.repeat(64), { type: 'text/plain' });
+
+      const small = new R2Driver(bucket, { maxEncodingSize: 8 });
+      const ctx: DriverContext<string | undefined> = createDriverCtx();
+      await normalize.read(ctx, '/r2read/big.txt', { encoding: 'text' });
+
+      await expectDenial(() => small.read(ctx, '/r2read/big.txt', { encoding: 'text' }), 'EFBIG', '64');
+    });
+  });
+
+  it('leaves a default read open when it exceeds maxEncodingSize', async () => {
+    await withFs({}, async () => {
+      const seed: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.write(seed, '/r2read/open.txt', 'x'.repeat(64), { type: 'text/plain' });
+      await driver.write(seed, '/r2read/open.txt', 'x'.repeat(64), { type: 'text/plain' });
+
+      const small = new R2Driver(bucket, { maxEncodingSize: 8 });
+      const ctx: DriverContext<Blob | undefined> = createDriverCtx();
+      await normalize.read(ctx, '/r2read/open.txt');
+      await small.read(ctx, '/r2read/open.txt');
+
+      expect(await (ctx.result as Blob).text()).toBe('x'.repeat(64));
     });
   });
 });

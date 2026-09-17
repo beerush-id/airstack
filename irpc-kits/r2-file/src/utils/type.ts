@@ -1,4 +1,5 @@
 import { HandlerError } from '@irpclib/irpc';
+import type { FileEncoding } from '../types.js';
 
 const SIZE_UNITS: Record<string, number> = {
   b: 1,
@@ -97,6 +98,30 @@ export function isSizeAllowed(size: number, maxSize?: number | string): boolean 
   }
 
   return size <= parseSize(maxSize);
+}
+
+/**
+ * Enforces the encoded-transfer budget on read at the storage layer, where the
+ * stored byte size first becomes known.
+ *
+ * Concern: an encoded read pulls the whole payload into memory to transform it,
+ * so the budget the normalizer cannot verify upfront is gated per object here.
+ * A raw read (no encoding) streams and stays unconstrained.
+ *
+ * @param size - Stored payload size in bytes.
+ * @param maxEncodingBytes - Resolved encoded-transfer budget in bytes.
+ * @param encoding - Requested wire encoding; `undefined` streams raw bytes.
+ * @throws {HandlerError} With `EFBIG` when an encoded read exceeds the budget.
+ */
+export function assertEncodingBudget(size: number, maxEncodingBytes: number, encoding?: FileEncoding): void {
+  if (encoding === undefined || isSizeAllowed(size, maxEncodingBytes)) {
+    return;
+  }
+  throw new HandlerError(
+    'EFBIG',
+    'File size exceeds limit',
+    new Error(`File size ${size} exceeds maxEncodingSize ${maxEncodingBytes}`)
+  );
 }
 
 /**

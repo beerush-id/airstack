@@ -150,7 +150,7 @@ describe('D1Driver copy and move operations', () => {
     });
   });
 
-  it('copies spilled payloads and allows overriding public status and overwriting destinations', async () => {
+  it('copies spilled payloads and allows overriding public status', async () => {
     await withFs({}, async () => {
       const spilled = new IRPCFile(
         { name: 'spill.txt', size: 6, type: 'text/plain' },
@@ -175,50 +175,105 @@ describe('D1Driver copy and move operations', () => {
         .first<{ public: number; size: number }>();
       expect(destRow?.public).toBe(1);
       expect(destRow?.size).toBe(6);
-
-      const inlined: DriverContext<FileInfo> = createDriverCtx();
-      await normalize.write(inlined, '/d1copymove/copy/overwrite-src.txt', 'new data', { type: 'text/plain' });
-      await driver.write(inlined, '/d1copymove/copy/overwrite-src.txt', 'new data', { type: 'text/plain' });
-
-      const overwriteCopy: DriverContext<boolean> = createDriverCtx();
-      await normalize.copy(overwriteCopy, '/d1copymove/copy/overwrite-src.txt', '/d1copymove/copy/spilled-dest.txt');
-      await driver.copy(overwriteCopy, '/d1copymove/copy/overwrite-src.txt', '/d1copymove/copy/spilled-dest.txt');
-      expect(overwriteCopy.result).toBe(true);
-
-      const content = await db
-        .prepare('SELECT content FROM _r2_contents WHERE path = ?')
-        .bind('/d1copymove/copy/spilled-dest.txt')
-        .first<{ content: string }>();
-      expect(content?.content).toBe('new data');
     });
   });
 
-  it('moves spilled payloads and overwrites existing destination', async () => {
+  it('rejects copy with EEXIST when the destination record exists', async () => {
     await withFs({}, async () => {
-      const spilled = new IRPCFile(
-        { name: 'spill-move.txt', size: 11, type: 'text/plain' },
-        new Blob([new TextEncoder().encode('move-stream')], { type: 'text/plain' })
+      const srcSeed: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.write(srcSeed, '/d1copymove/copy/ex-src.txt', 'new data', { type: 'text/plain' });
+      await driver.write(srcSeed, '/d1copymove/copy/ex-src.txt', 'new data', { type: 'text/plain' });
+
+      const dstSeed: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.write(dstSeed, '/d1copymove/copy/ex-dest.txt', 'existing', { type: 'text/plain' });
+      await driver.write(dstSeed, '/d1copymove/copy/ex-dest.txt', 'existing', { type: 'text/plain' });
+
+      const ctx: DriverContext<boolean> = createDriverCtx();
+      await normalize.copy(ctx, '/d1copymove/copy/ex-src.txt', '/d1copymove/copy/ex-dest.txt');
+
+      await expectDenial(
+        () => driver.copy(ctx, '/d1copymove/copy/ex-src.txt', '/d1copymove/copy/ex-dest.txt'),
+        'EEXIST',
+        '/d1copymove/copy/ex-dest.txt'
       );
-      const s1: DriverContext<FileInfo> = createDriverCtx();
-      await normalize.write(s1, '/d1copymove/move/spilled-src.txt', spilled, { type: 'text/plain' });
-      await driver.write(s1, '/d1copymove/move/spilled-src.txt', spilled, { type: 'text/plain' });
+      const content = await db
+        .prepare('SELECT content FROM _r2_contents WHERE path = ?')
+        .bind('/d1copymove/copy/ex-dest.txt')
+        .first<{ content: string }>();
+      expect(content?.content).toBe('existing');
+    });
+  });
 
-      const d1: DriverContext<FileInfo> = createDriverCtx();
-      await normalize.write(d1, '/d1copymove/move/existing-dest.txt', 'existing', { type: 'text/plain' });
-      await driver.write(d1, '/d1copymove/move/existing-dest.txt', 'existing', { type: 'text/plain' });
+  it('rejects move with EEXIST when the destination record exists', async () => {
+    await withFs({}, async () => {
+      const srcSeed: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.write(srcSeed, '/d1copymove/move/ex-src.txt', 'source', { type: 'text/plain' });
+      await driver.write(srcSeed, '/d1copymove/move/ex-src.txt', 'source', { type: 'text/plain' });
 
-      const moveCtx: DriverContext<boolean> = createDriverCtx();
-      await normalize.move(moveCtx, '/d1copymove/move/spilled-src.txt', '/d1copymove/move/existing-dest.txt');
-      await driver.move(moveCtx, '/d1copymove/move/spilled-src.txt', '/d1copymove/move/existing-dest.txt');
-      expect(moveCtx.result).toBe(true);
+      const dstSeed: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.write(dstSeed, '/d1copymove/move/ex-dest.txt', 'existing', { type: 'text/plain' });
+      await driver.write(dstSeed, '/d1copymove/move/ex-dest.txt', 'existing', { type: 'text/plain' });
 
-      const destRow = await db
-        .prepare('SELECT size FROM _r2_files WHERE path = ?')
-        .bind('/d1copymove/move/existing-dest.txt')
-        .first<{ size: number }>();
-      expect(destRow?.size).toBe(11);
+      const ctx: DriverContext<boolean> = createDriverCtx();
+      await normalize.move(ctx, '/d1copymove/move/ex-src.txt', '/d1copymove/move/ex-dest.txt');
+
+      await expectDenial(
+        () => driver.move(ctx, '/d1copymove/move/ex-src.txt', '/d1copymove/move/ex-dest.txt'),
+        'EEXIST',
+        '/d1copymove/move/ex-dest.txt'
+      );
       expect(
-        await db.prepare('SELECT 1 FROM _r2_files WHERE path = ?').bind('/d1copymove/move/spilled-src.txt').first()
+        await db.prepare('SELECT 1 FROM _r2_files WHERE path = ?').bind('/d1copymove/move/ex-src.txt').first()
+      ).not.toBeNull();
+    });
+  });
+
+  it('copies a directory subtree recursively', async () => {
+    await withFs({}, async () => {
+      const dirCtx: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.mkdir(dirCtx, '/d1copymove/dir-src');
+      await driver.mkdir(dirCtx, '/d1copymove/dir-src');
+      const aCtx: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.write(aCtx, '/d1copymove/dir-src/a.txt', 'aaa', { type: 'text/plain' });
+      await driver.write(aCtx, '/d1copymove/dir-src/a.txt', 'aaa', { type: 'text/plain' });
+
+      const ctx: DriverContext<boolean> = createDriverCtx();
+      await normalize.copy(ctx, '/d1copymove/dir-src', '/d1copymove/dir-dst');
+      await driver.copy(ctx, '/d1copymove/dir-src', '/d1copymove/dir-dst');
+
+      expect(ctx.result).toBe(true);
+      expect(
+        await db.prepare('SELECT 1 FROM _r2_files WHERE path = ?').bind('/d1copymove/dir-dst/a.txt').first()
+      ).not.toBeNull();
+      const content = await db
+        .prepare('SELECT content FROM _r2_contents WHERE path = ?')
+        .bind('/d1copymove/dir-dst/a.txt')
+        .first<{ content: string }>();
+      expect(content?.content).toBe('aaa');
+    });
+  });
+
+  it('moves a directory subtree recursively', async () => {
+    await withFs({}, async () => {
+      const dirCtx: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.mkdir(dirCtx, '/d1copymove/mv-dir-src');
+      await driver.mkdir(dirCtx, '/d1copymove/mv-dir-src');
+      const aCtx: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.write(aCtx, '/d1copymove/mv-dir-src/a.txt', 'aaa', { type: 'text/plain' });
+      await driver.write(aCtx, '/d1copymove/mv-dir-src/a.txt', 'aaa', { type: 'text/plain' });
+
+      const ctx: DriverContext<boolean> = createDriverCtx();
+      await normalize.move(ctx, '/d1copymove/mv-dir-src', '/d1copymove/mv-dir-dst');
+      await driver.move(ctx, '/d1copymove/mv-dir-src', '/d1copymove/mv-dir-dst');
+
+      expect(ctx.result).toBe(true);
+      const content = await db
+        .prepare('SELECT content FROM _r2_contents WHERE path = ?')
+        .bind('/d1copymove/mv-dir-dst/a.txt')
+        .first<{ content: string }>();
+      expect(content?.content).toBe('aaa');
+      expect(
+        await db.prepare('SELECT 1 FROM _r2_files WHERE path = ?').bind('/d1copymove/mv-dir-src/a.txt').first()
       ).toBeNull();
     });
   });
