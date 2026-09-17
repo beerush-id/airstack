@@ -277,7 +277,12 @@ export class R2Driver implements FileDriver {
       const name = clean.slice(clean.lastIndexOf('/') + 1);
       /* istanbul ignore next */
       if (!options?.all && name.startsWith('.')) continue;
-      const entry = directoryInfo(`/${clean}`);
+      const marker = ((await this.bucket.head(clean)) ?? (await this.bucket.head(p))) as unknown as {
+        customMetadata?: R2Metadata;
+      } | null;
+      const stamp = marker?.customMetadata?._fs_deleted;
+      const base = directoryInfo(`/${clean}`);
+      const entry = stamp !== undefined ? { ...base, deletedAt: parseDeletedAt(stamp) } : base;
       if (this.qualifies(entry, options)) entries.push(entry);
     }
     for (const object of page.objects as unknown as ListedShape[]) {
@@ -363,12 +368,7 @@ export class R2Driver implements FileDriver {
   }
 
   /** Relocates the source subtree into a fresh destination, streaming each object. */
-  async move(
-    ctx: DriverContext<boolean>,
-    _source: string,
-    _destination: string,
-    options?: MoveOptions
-  ): Promise<void> {
+  async move(ctx: DriverContext<boolean>, _source: string, _destination: string, options?: MoveOptions): Promise<void> {
     const srcCanonical = ctx.path!;
     const dstCanonical = ctx.destination!;
     const srcKey = srcCanonical.slice(1);
@@ -453,26 +453,13 @@ export class R2Driver implements FileDriver {
     }
     const soft = options?.force === true ? false : (options?.soft ?? this.softDelete);
     if (soft) {
-      const activeKey = targetKey ?? children[0];
-      const target = (await this.bucket.get(activeKey))!;
-      const meta = (target as unknown as { customMetadata?: R2Metadata }).customMetadata;
-      if (meta?._fs_deleted !== undefined) {
-        ctx.result = true;
-        return;
-      }
-      const httpMetadata = (target as unknown as { httpMetadata?: Record<string, string> }).httpMetadata;
+      const keys = targetKey !== undefined ? [targetKey, ...children] : children;
       const stampedAt = Date.now().toString();
-      const body = await (target as unknown as { arrayBuffer(): Promise<ArrayBuffer> }).arrayBuffer();
-      const snapshot = body.slice(0);
-      const before = { ...meta } as Record<string, string>;
-      await this.bucket.put(activeKey, body, {
-        httpMetadata,
-        customMetadata: { ...meta, _fs_deleted: stampedAt } as Record<string, string>,
-      });
+      const changed = await this.rewriteSubtree(keys, (meta) =>
+        meta._fs_deleted !== undefined ? null : { ...meta, _fs_deleted: stampedAt }
+      );
       ctx.result = true;
-      ctx.rollback.add(async () => {
-        await this.bucket.put(activeKey, snapshot, { httpMetadata, customMetadata: before });
-      });
+      ctx.rollback.add(this.rollbackSubtree(changed));
       return;
     }
     if (options?.recursive === true && children.length > 0) {
@@ -525,34 +512,75 @@ export class R2Driver implements FileDriver {
     });
   }
 
-  /** Clears the soft-delete stamp; halts `ENOENT` when the path was never trashed. */
+  /** Clears the soft-delete stamp across the subtree; halts `ENOENT` when the path was never trashed. */
   async restore(ctx: DriverContext<FileInfo>, _path: string, _options?: FileOptions): Promise<void> {
     const canonical = ctx.path!;
     const key = canonical.slice(1);
-    const head = (await this.bucket.head(key)) as unknown as {
-      customMetadata?: R2Metadata;
-    } | null;
-    const trashedAt = head?.customMetadata?._fs_deleted;
-    if (head === null || trashedAt === undefined) {
+    const directHead = await this.bucket.head(key);
+    const slashedHead = directHead === null ? await this.bucket.head(`${key}/`) : null;
+    const head = (directHead ?? slashedHead) as unknown as { customMetadata?: R2Metadata } | null;
+    if (head === null || head.customMetadata?._fs_deleted === undefined) {
       throw new HandlerError(
         'ENOENT',
         'Resource not found',
         new Error(`restore: Source path '${canonical}' does not exist`)
       );
     }
-    const current = (await this.bucket.get(key))!;
-    const meta = { ...(current as unknown as { customMetadata: Record<string, string> }).customMetadata };
-    delete meta._fs_deleted;
-    const httpMetadata = (current as unknown as { httpMetadata?: Record<string, string> }).httpMetadata;
-    const body = (await (current as unknown as { arrayBuffer(): Promise<ArrayBuffer> }).arrayBuffer()).slice(0);
-    const put = (await this.bucket.put(key, body, { httpMetadata, customMetadata: meta }))!;
-    ctx.result = this.describeHead(canonical, put, meta);
-    ctx.rollback.add(async () => {
-      await this.bucket.put(key, body, {
-        httpMetadata,
-        customMetadata: { ...meta, _fs_deleted: trashedAt },
-      });
+    const targetKey = directHead !== null ? key : `${key}/`;
+    const children = await this.listKeys(key);
+    const changed = await this.rewriteSubtree([targetKey, ...children], (meta) => {
+      const next = { ...meta };
+      delete next._fs_deleted;
+      return next;
     });
+    const updated = (await this.bucket.head(targetKey)) as unknown as HeadShape;
+    ctx.result = this.describeHead(canonical, updated, updated.customMetadata);
+    ctx.rollback.add(this.rollbackSubtree(changed));
+  }
+
+  /**
+   * Rewrites each object under `keys` whose metadata the transform accepts, one
+   * body at a time so peak memory stays flat. Returns the prior metadata of every
+   * rewritten key so compensation can replay it without holding any body.
+   *
+   * @param keys - Object keys to visit (a resolved target plus its descendants).
+   * @param transform - Returns the next metadata, or `null` to leave the object untouched.
+   * @returns The key and prior metadata of each rewritten object.
+   */
+  private async rewriteSubtree(
+    keys: string[],
+    transform: (meta: R2Metadata) => R2Metadata | null
+  ): Promise<{ key: string; before: R2Metadata }[]> {
+    const changed: { key: string; before: R2Metadata }[] = [];
+    for (const key of keys) {
+      const obj = await this.bucket.get(key);
+      /* istanbul ignore next */
+      if (obj === null) continue;
+      const before = (obj as unknown as { customMetadata: R2Metadata }).customMetadata;
+      const after = transform(before);
+      if (after === null) continue;
+      await this.bucket.put(key, await (obj as unknown as { arrayBuffer(): Promise<ArrayBuffer> }).arrayBuffer(), {
+        httpMetadata: (obj as unknown as { httpMetadata?: Record<string, string> }).httpMetadata,
+        customMetadata: after as Record<string, string>,
+      });
+      changed.push({ key, before });
+    }
+    return changed;
+  }
+
+  /** Builds compensation reinstating each rewritten key's prior metadata, re-fetching bodies on replay. */
+  private rollbackSubtree(changed: { key: string; before: R2Metadata }[]): () => Promise<void> {
+    return async () => {
+      for (const { key, before } of changed) {
+        const obj = await this.bucket.get(key);
+        /* istanbul ignore next */
+        if (obj === null) continue;
+        await this.bucket.put(key, await (obj as unknown as { arrayBuffer(): Promise<ArrayBuffer> }).arrayBuffer(), {
+          httpMetadata: (obj as unknown as { httpMetadata?: Record<string, string> }).httpMetadata,
+          customMetadata: before as Record<string, string>,
+        });
+      }
+    };
   }
 
   private describeHead(canonical: string, head: unknown, meta?: R2Metadata): FileInfo {

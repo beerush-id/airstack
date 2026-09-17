@@ -42,6 +42,53 @@ describe('D1Driver remove and restore operations', () => {
     });
   });
 
+  it('soft-deletes a directory across its whole subtree', async () => {
+    await withFs({ ownerId: 'alice', homeDir: '/users/alice' }, async () => {
+      const soft = new D1Driver(db, { softDelete: true });
+      const dir: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.mkdir(dir, '/d1remove/sub');
+      await soft.mkdir(dir, '/d1remove/sub');
+      const f: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.write(f, '/d1remove/sub/a.txt', 'x', { type: 'text/plain' });
+      await soft.write(f, '/d1remove/sub/a.txt', 'x', { type: 'text/plain' });
+
+      const rm: DriverContext<boolean> = createDriverCtx();
+      await normalize.remove(rm, '/d1remove/sub');
+      await soft.remove(rm, '/d1remove/sub');
+
+      const child = await db
+        .prepare('SELECT deleted_at FROM _r2_files WHERE path = ?')
+        .bind('/d1remove/sub/a.txt')
+        .first<{ deleted_at: number | null }>();
+      expect(child?.deleted_at).not.toBeNull();
+    });
+  });
+
+  it('restores a directory across its whole subtree', async () => {
+    await withFs({ ownerId: 'alice', homeDir: '/users/alice' }, async () => {
+      const soft = new D1Driver(db, { softDelete: true });
+      const dir: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.mkdir(dir, '/d1remove/rsub');
+      await soft.mkdir(dir, '/d1remove/rsub');
+      const f: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.write(f, '/d1remove/rsub/a.txt', 'x', { type: 'text/plain' });
+      await soft.write(f, '/d1remove/rsub/a.txt', 'x', { type: 'text/plain' });
+
+      const rm: DriverContext<boolean> = createDriverCtx();
+      await normalize.remove(rm, '/d1remove/rsub');
+      await soft.remove(rm, '/d1remove/rsub');
+      const rs: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.restore(rs, '/d1remove/rsub');
+      await soft.restore(rs, '/d1remove/rsub');
+
+      const child = await db
+        .prepare('SELECT deleted_at FROM _r2_files WHERE path = ?')
+        .bind('/d1remove/rsub/a.txt')
+        .first<{ deleted_at: number | null }>();
+      expect(child?.deleted_at).toBeNull();
+    });
+  });
+
   it('removes a file row and its content unconditionally', async () => {
     await withFs({ ownerId: 'alice', homeDir: '/users/alice' }, async () => {
       const seed: DriverContext<FileInfo> = createDriverCtx();

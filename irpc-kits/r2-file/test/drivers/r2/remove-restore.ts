@@ -4,7 +4,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createDriverCtx } from '../../../src/context.js';
 import { R2Driver } from '../../../src/drivers/index.js';
 import { NormalizerDriver } from '../../../src/drivers/normalize.js';
-import type { DriverContext, FileInfo } from '../../../src/types.js';
+import type { DriverContext, FileInfo, ListResult } from '../../../src/types.js';
 import { expectDenial, withFs } from '../../helpers.js';
 
 let bucket!: R2Bucket;
@@ -41,6 +41,19 @@ describe('R2Driver remove and restore', () => {
       'r2remove/rb-restore.txt',
       'r2remove/nonempty/child.txt',
       'r2remove/slashed/',
+      'r2remove/sub',
+      'r2remove/sub/a.txt',
+      'r2remove/sub/b.txt',
+      'r2remove/rsub',
+      'r2remove/rsub/a.txt',
+      'r2remove/rbsub',
+      'r2remove/rbsub/a.txt',
+      'r2remove/plist/active',
+      'r2remove/plist/gone',
+      'r2remove/plist/gone/x.txt',
+      'r2remove/rslash/',
+      'r2remove/rslash/a.txt',
+      'r2remove/twice.txt',
     ]);
   });
 
@@ -283,6 +296,132 @@ describe('R2Driver remove and restore', () => {
 
       expect(ctx.result).toBe(true);
       expect(await bucket.head('r2remove/slashed/')).toBeNull();
+    });
+  });
+
+  const seedSubtree = async (soft: R2Driver, dir: string, files: string[]): Promise<void> => {
+    const dirCtx: DriverContext<FileInfo> = createDriverCtx();
+    await normalize.mkdir(dirCtx, dir);
+    await soft.mkdir(dirCtx, dir);
+    for (const name of files) {
+      const f: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.write(f, `${dir}/${name}`, 'x', { type: 'text/plain' });
+      await soft.write(f, `${dir}/${name}`, 'x', { type: 'text/plain' });
+    }
+  };
+  const stampOf = async (key: string): Promise<string | undefined> => {
+    const head = (await bucket.head(key)) as unknown as { customMetadata?: Record<string, string> } | null;
+    return head?.customMetadata?._fs_deleted;
+  };
+
+  it('soft-deletes a directory across its whole subtree', async () => {
+    await withFs({ ownerId: 'alice', homeDir: '/users/alice' }, async () => {
+      const soft = new R2Driver(bucket, { softDelete: true });
+      await seedSubtree(soft, '/r2remove/sub', ['a.txt', 'b.txt']);
+
+      const rm: DriverContext<boolean> = createDriverCtx();
+      await normalize.remove(rm, '/r2remove/sub');
+      await soft.remove(rm, '/r2remove/sub');
+
+      expect(rm.result).toBe(true);
+      for (const key of ['r2remove/sub/a.txt', 'r2remove/sub/b.txt']) {
+        expect(await stampOf(key), key).toBeDefined();
+      }
+    });
+  });
+
+  it('restores a directory across its whole subtree', async () => {
+    await withFs({ ownerId: 'alice', homeDir: '/users/alice' }, async () => {
+      const soft = new R2Driver(bucket, { softDelete: true });
+      await seedSubtree(soft, '/r2remove/rsub', ['a.txt']);
+
+      const rm: DriverContext<boolean> = createDriverCtx();
+      await normalize.remove(rm, '/r2remove/rsub');
+      await soft.remove(rm, '/r2remove/rsub');
+      const rs: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.restore(rs, '/r2remove/rsub');
+      await soft.restore(rs, '/r2remove/rsub');
+
+      for (const key of ['r2remove/rsub/a.txt']) {
+        expect(await stampOf(key), key).toBeUndefined();
+      }
+    });
+  });
+
+  it('restores a slashed-marker directory across its subtree', async () => {
+    await withFs({ ownerId: 'alice', homeDir: '/users/alice' }, async () => {
+      const soft = new R2Driver(bucket, { softDelete: true });
+      await bucket.put('r2remove/rslash/', '', {
+        httpMetadata: { contentType: 'inode/directory' },
+        customMetadata: { _fs_type: 'inode/directory' },
+      });
+      const f: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.write(f, '/r2remove/rslash/a.txt', 'x', { type: 'text/plain' });
+      await soft.write(f, '/r2remove/rslash/a.txt', 'x', { type: 'text/plain' });
+
+      const rm: DriverContext<boolean> = createDriverCtx();
+      await normalize.remove(rm, '/r2remove/rslash');
+      await soft.remove(rm, '/r2remove/rslash');
+      const rs: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.restore(rs, '/r2remove/rslash');
+      await soft.restore(rs, '/r2remove/rslash');
+
+      expect(await stampOf('r2remove/rslash/')).toBeUndefined();
+      expect(await stampOf('r2remove/rslash/a.txt')).toBeUndefined();
+    });
+  });
+
+  it('rolls back a subtree soft-delete across every stamped key', async () => {
+    await withFs({ ownerId: 'alice', homeDir: '/users/alice' }, async () => {
+      const soft = new R2Driver(bucket, { softDelete: true });
+      await seedSubtree(soft, '/r2remove/rbsub', ['a.txt']);
+
+      const rm: DriverContext<boolean> = createDriverCtx();
+      await normalize.remove(rm, '/r2remove/rbsub');
+      await soft.remove(rm, '/r2remove/rbsub');
+      for (const fn of Array.from(rm.rollback).reverse()) await fn();
+
+      for (const key of ['r2remove/rbsub/a.txt']) {
+        expect(await stampOf(key), key).toBeUndefined();
+      }
+    });
+  });
+
+  it('hides a soft-deleted directory in the parent listing while an active sibling stays', async () => {
+    await withFs({ ownerId: 'alice', homeDir: '/users/alice' }, async () => {
+      const soft = new R2Driver(bucket, { softDelete: true });
+      await seedSubtree(soft, '/r2remove/plist/active', []);
+      await seedSubtree(soft, '/r2remove/plist/gone', ['x.txt']);
+      const rm: DriverContext<boolean> = createDriverCtx();
+      await normalize.remove(rm, '/r2remove/plist/gone');
+      await soft.remove(rm, '/r2remove/plist/gone');
+
+      const ctx: DriverContext<ListResult> = createDriverCtx();
+      await normalize.list(ctx, '/r2remove/plist');
+      await soft.list(ctx, '/r2remove/plist');
+      const names = (ctx.result as ListResult).entries.map((e) => e.name);
+      expect(names).toContain('active');
+      expect(names).not.toContain('gone');
+    });
+  });
+
+  it('leaves an already-trashed object untouched on a repeated soft-delete', async () => {
+    await withFs({ ownerId: 'alice', homeDir: '/users/alice' }, async () => {
+      const soft = new R2Driver(bucket, { softDelete: true });
+      const f: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.write(f, '/r2remove/twice.txt', 'x', { type: 'text/plain' });
+      await soft.write(f, '/r2remove/twice.txt', 'x', { type: 'text/plain' });
+
+      const first: DriverContext<boolean> = createDriverCtx();
+      await normalize.remove(first, '/r2remove/twice.txt');
+      await soft.remove(first, '/r2remove/twice.txt');
+      const before = await stampOf('r2remove/twice.txt');
+      const second: DriverContext<boolean> = createDriverCtx();
+      await normalize.remove(second, '/r2remove/twice.txt');
+      await soft.remove(second, '/r2remove/twice.txt');
+
+      expect(second.result).toBe(true);
+      expect(await stampOf('r2remove/twice.txt')).toBe(before);
     });
   });
 });

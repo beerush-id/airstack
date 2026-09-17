@@ -563,11 +563,12 @@ export class D1Driver implements FileDriver {
       );
     }
 
-    const sqlFind = isRecursive
+    const subtree = isRecursive || isSoft;
+    const sqlFind = subtree
       ? 'SELECT path, deleted_at FROM _r2_files WHERE path = ? OR path LIKE ?'
       : 'SELECT path, deleted_at FROM _r2_files WHERE path = ?';
 
-    const params = isRecursive ? [target, `${target}/%`] : [target];
+    const params = subtree ? [target, `${target}/%`] : [target];
     const existing = await this.db
       .prepare(sqlFind)
       .bind(...params)
@@ -580,14 +581,10 @@ export class D1Driver implements FileDriver {
 
     if (isSoft) {
       const now = Date.now();
-      if (isRecursive) {
-        await this.db
-          .prepare('UPDATE _r2_files SET deleted_at = ? WHERE path = ? OR path LIKE ?')
-          .bind(now, target, `${target}/%`)
-          .run();
-      } else {
-        await this.db.prepare('UPDATE _r2_files SET deleted_at = ? WHERE path = ?').bind(now, target).run();
-      }
+      await this.db
+        .prepare('UPDATE _r2_files SET deleted_at = ? WHERE (path = ? OR path LIKE ?) AND deleted_at IS NULL')
+        .bind(now, target, `${target}/%`)
+        .run();
       ctx.rollback.add(async () => {
         for (const r of existing.results) {
           await this.db.prepare('UPDATE _r2_files SET deleted_at = ? WHERE path = ?').bind(r.deleted_at, r.path).run();
@@ -619,10 +616,11 @@ export class D1Driver implements FileDriver {
   async restore(ctx: DriverContext<FileInfo>, _path: string, _options?: FileOptions): Promise<void> {
     await ensureSchema(this.db, this.ownerKey);
     const target = ctx.path!;
-    const row = await this.db
-      .prepare('SELECT * FROM _r2_files WHERE path = ? AND deleted_at IS NOT NULL')
-      .bind(target)
-      .first<Record<string, AnyType>>();
+    const trashed = await this.db
+      .prepare('SELECT * FROM _r2_files WHERE (path = ? OR path LIKE ?) AND deleted_at IS NOT NULL')
+      .bind(target, `${target}/%`)
+      .all<Record<string, AnyType>>();
+    const row = trashed.results.find((r) => r.path === target);
 
     if (!row) {
       throw new HandlerError(
@@ -632,11 +630,16 @@ export class D1Driver implements FileDriver {
       );
     }
 
-    await this.db.prepare('UPDATE _r2_files SET deleted_at = NULL WHERE path = ?').bind(target).run();
+    await this.db
+      .prepare('UPDATE _r2_files SET deleted_at = NULL WHERE (path = ? OR path LIKE ?) AND deleted_at IS NOT NULL')
+      .bind(target, `${target}/%`)
+      .run();
 
-    const prevDeleted = row.deleted_at;
+    const prior = trashed.results.map((r) => ({ path: r.path as string, deleted_at: r.deleted_at }));
     ctx.rollback.add(async () => {
-      await this.db.prepare('UPDATE _r2_files SET deleted_at = ? WHERE path = ?').bind(prevDeleted, target).run();
+      for (const r of prior) {
+        await this.db.prepare('UPDATE _r2_files SET deleted_at = ? WHERE path = ?').bind(r.deleted_at, r.path).run();
+      }
     });
 
     ctx.result = toFileInfo({ ...row, deleted_at: null });
