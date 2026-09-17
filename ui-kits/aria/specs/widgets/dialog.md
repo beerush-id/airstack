@@ -1,9 +1,17 @@
 # Dialog Specification
 
-A dialog is an overlay window that prompts the user for input or confirmation.
+A dialog is an overlay window that prompts the user for input or interaction. Supports modal and non-modal modes across native `<dialog>` and custom elements.
 
-- **Role**: `dialog`
+- **Entity**: `dialog`
 - **WAI-ARIA Role**: `dialog`
+
+### Parts (Entity Tree)
+- **`Dialog`**: Container coordinator hosting ambient `open`, `modality`, and `dismissable` state.
+- **`DialogTrigger`**: Interactive button opening dialog (`aria-haspopup="dialog"`, `aria-expanded`, `aria-controls`).
+- **`DialogPanel`**: Overlay panel (`role="dialog"`, `aria-modal="true"`/`"false"`, `aria-labelledby`, `aria-describedby`).
+- **`DialogTitle`**: Dialog title element (referenced by `aria-labelledby`).
+- **`DialogDescription`**: Dialog description element (referenced by `aria-describedby`).
+- **`DialogClose`**: Close button (Button contract).
 
 ---
 
@@ -11,8 +19,9 @@ A dialog is an overlay window that prompts the user for input or confirmation.
 
 | Part / Role | HTML Semantic | WAI-ARIA Semantic | Aria Package Semantic Contract |
 | :--- | :--- | :--- | :--- |
-| **`dialog`** | Native `<dialog>` element. Handles `.showModal()`, native backdrop, and Esc dismissal. | `role="dialog"`, `aria-modal="true"` (if modal), `aria-labelledby`, `aria-describedby`. | Overlay controller (`this.open: boolean`). In `attach()`, manages focus trapping, body scroll lock, Escape key dismissal, and focus restoration upon close. Urgent variants: see `confirm`. |
-| **`confirm`** | Urgent dialog window. | `role="alertdialog"`, `aria-modal="true"`, `aria-labelledby`, `aria-describedby`. | See [`confirm`](confirm.md) (canonical spec; initial focus lands on the least destructive control). |
+| **`Dialog`** | Native `<dialog>` or `<div>`. | `role="dialog"`, `aria-modal="true"` (modal) \| `"false"` (nonmodal). | Overlay controller (`open: boolean`, `modality`, `dismissable`). Manages focus trap, `inert`, Esc dismissal, and focus restoration. |
+| **`DialogTrigger`** | Native `<button type="button">`. | `aria-haspopup="dialog"`, `aria-expanded`, `aria-controls`. | Follows Button contract, toggles dialog. |
+| **`DialogClose`** | Native `<button type="button">`. | Follows Button contract. | Commits `open = false`. |
 
 ---
 
@@ -23,41 +32,47 @@ A dialog is an overlay window that prompts the user for input or confirmation.
 #### `DialogProps`
 ```ts
 export interface DialogProps {
-  /** Optional DOM element identifier */
   id?: string;
-  /** Accessible label */
-  label?: string;
-  /** Element ID providing accessible label (heading) */
-  labelledby?: string;
-  /** Element ID providing detailed description */
-  describedby?: string;
-  /** Visibility state */
   open?: boolean;
-  /** Whether the dialog is modal (traps focus and blocks backdrop, compiled to aria-modal) */
-  modal?: boolean;
+  modality?: 'modal' | 'nonmodal';
+  dismissable?: boolean;
 }
 ```
 
-### 2. Overload Contract
+### 2. Overload Contracts
 
 ```ts
-// Dialog: Overlay window controller
+// Dialog: Container
 export function aria<E extends BaseElement = HTMLElement>(
   role: 'dialog',
   props?: DialogProps
 ): DialogAria<E>;
+
+// DialogTrigger
+export function aria<E extends BaseElement = HTMLButtonElement>(
+  role: 'dialog-trigger',
+  props?: AriaProps
+): DialogTriggerAria<E>;
+
+// DialogClose
+export function aria<E extends BaseElement = HTMLButtonElement>(
+  role: 'dialog-close',
+  props?: AriaProps
+): DialogCloseAria<E>;
 ```
 
 ---
 
 ## State & Lifecycle Rules
 
-1. **State Projection**: `open` reads and writes `props.open`. Props is the single source of state.
+1. **Native `<dialog>` vs Custom**:
+   - Native: `showModal()` under `modal`, `show()` under `nonmodal`. Native backdrop and `inert` pass through.
+   - Custom: `role="dialog"`, background gets `inert` while modal open.
 
 2. **Focus Management**:
-   - **On Open**: Captures `document.activeElement`. If `modal: true`, traps keyboard focus within first and last focusable elements inside the dialog.
-   - **On Close**: Restores focus to the originally captured trigger element.
-   - **Confirm**: Initial focus must land on the least destructive control (e.g. Cancel).
+   - On open: Focus moves to declared target or first focusable element inside panel.
+   - On close: Focus restores to opening trigger.
 
-3. **Escape Dismissal**:
-   - Pressing `Escape` invokes `dialog.close()`, unless explicitly prevented.
+3. **Dismissal**:
+   - Under `dismissable: true`: `Escape` or outside click initiates dismissal.
+   - Dispatches cancelable `cancel` event, and `close` event after `open = false`.

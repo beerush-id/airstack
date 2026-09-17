@@ -1,9 +1,13 @@
 # Slider Specification
 
-A slider is an input widget where the user selects a numeric value from within a given range by moving an indicator or thumb along a horizontal or vertical track.
+The bounded numeric entry unit. Guarantees stepped value clamping, keyboard stepping, pointer drag, and dual-thumb accessibility across single and dual-thumb range configurations.
 
-- **Role**: `slider`
-- **WAI-ARIA Role**: `slider`
+- **Entity**: `slider`
+- **WAI-ARIA Role**: `slider` (on thumbs; omitted on native `<input type="range">`), `role="group"` on track for dual-thumb
+
+### Parts (Entity Tree)
+- **`Slider`**: Track container coordinator (compiles `role="group"` when dual-thumb).
+- **`SliderThumb`**: Value point thumb (`role="slider"`, `tabindex="0"`). Exactly one thumb for `value: number`; low and high thumbs for `value: [number, number]`.
 
 ---
 
@@ -11,8 +15,8 @@ A slider is an input widget where the user selects a numeric value from within a
 
 | Context | HTML Semantic | WAI-ARIA Semantic | Aria Package Semantic Contract |
 | :--- | :--- | :--- | :--- |
-| **Native Slider** | Native `<input type="range">`. Native stepping, min/max constraints, and keyboard stepping. | Implicit `role="slider"`. Omitted if native. | Form input synchronization and native event forwarding. |
-| **Custom Slider** | Custom thumb/track element (`<div>`). | `role="slider"`, `aria-valuenow`, `aria-valuemin`, `aria-valuemax`, `aria-valuetext`, `aria-orientation`, `tabindex="0"`. | Value range controller (`this.value: number`). Polyfills Arrow keys, PageUp/PageDown, Home/End, and pointer tracking. |
+| **Native `<input type="range">`** | Native range input. | Implicit `role="slider"`. Role omitted. | Form input synchronization and native event forwarding. |
+| **Custom Slider** | Custom thumb/track element (`<div>`). | `role="slider"` on thumbs, `role="group"` on dual-thumb track, `aria-valuenow`, `aria-valuemin`, `aria-valuemax`, `aria-valuetext`, `aria-orientation`, `tabindex="0"`. | Value range controller (`value: number \| [number, number]`). Stepping, dragging, and bounds enforcement. |
 
 ---
 
@@ -31,45 +35,50 @@ export interface SliderOptions {
 #### `SliderProps`
 ```ts
 export interface SliderProps {
-  /** Current numeric value */
-  value?: number;
-  /** Slider orientation (default: 'horizontal') */
+  /** Current numeric value or dual-thumb tuple */
+  value?: number | [number, number];
   orientation?: 'horizontal' | 'vertical';
-  /** Minimum allowable value (default: 0) */
   min?: number;
-  /** Maximum allowable value (default: 100) */
   max?: number;
-  /** Granular stepping increment (default: 1) */
   step?: number;
-  /** Human-readable string representation of the value */
-  valuetext?: string;
-  /** Disabled indicator */
+  page?: number;
+  valuetext?: string | ((val: number) => string);
   disabled?: boolean;
 }
 ```
 
-### 2. Overload Contract
+### 2. Overload Contracts
 
 ```ts
-// Slider: Numeric range controller
+// Slider: Track container or single slider
 export function aria<E extends BaseElement = HTMLElement>(
   role: 'slider',
   props?: SliderProps,
   options?: SliderOptions
 ): SliderAria<E>;
+
+// SliderThumb
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'slider-thumb',
+  props?: AriaProps
+): SliderThumbAria<E>;
 ```
 
 ---
 
 ## State & Lifecycle Rules
 
-1. **State Projection (`value`)**:
-   - Numeric getter and setter clamped within `[min, max]` and quantized to `step`.
+1. **Bounds & Clamping**:
+   - Single numeric `value` clamped to `[min, max]` snapped to `step`.
+   - Dual-thumb tuple enforces `low <= high`.
+   - Both thumbs hold `tabindex="0"` when enabled.
 
-2. **Keyboard Navigation (`!native`)**:
-   - `ArrowRight` / `ArrowUp`: Increments value by `step`.
-   - `ArrowLeft` / `ArrowDown`: Decrements value by `step`.
-   - `PageUp`: Increments value by larger step (e.g. `10 * step`).
-   - `PageDown`: Decrements value by larger step.
-   - `Home`: Sets value to `min`.
-   - `End`: Sets value to `max`.
+2. **Keyboard Stepping**:
+   - `Right` / `Up`: Increments by `step`.
+   - `Left` / `Down`: Decrements by `step`.
+   - `PageUp` / `PageDown`: Steps by `page` (default: 10).
+   - `Home` / `End`: Bounds `min` / `max`.
+
+3. **Events**:
+   - `input` — Dispatched during interaction with `detail: value`.
+   - `change` — Dispatched on drag end / keyboard commit with `detail: value`.

@@ -25,6 +25,8 @@ A toolbar is a container for grouping a set of interactive controls, such as but
 export interface ToolbarProps {
   /** Focus movement axis and aria-orientation (default: 'horizontal') */
   orientation?: 'horizontal' | 'vertical';
+  /** Accessible name for the toolbar landmark */
+  label?: string;
   disabled?: boolean;
 }
 ```
@@ -47,7 +49,7 @@ Members are native controls (`button`, `toggle`, `checkbox`, `link`, …) with t
 
 1. **Stateless Focus Management**:
    - Toolbar holds no selection value. Active state lives on each control's own props (`pressed`, `checked`).
-   - Single tab stop for the toolbar container (`tabindex="0"` on active item, `tabindex="-1"` on others).
+   - Single tab stop for the toolbar container: the active control (or the first enabled control initially) receives `tabindex="0"`, all other controls receive `tabindex="-1"`. Disabled controls have `tabindex` removed.
    - Arrow keys (`ArrowLeft` / `ArrowRight`, or `ArrowDown` / `ArrowUp` when vertical) move focus among enabled controls with circular wrap. Arrows never activate; `Enter`/`Space` activates the focused control.
    - Toolbar declares no `manual` prop.
 

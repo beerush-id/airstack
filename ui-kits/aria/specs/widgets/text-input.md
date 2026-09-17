@@ -1,9 +1,9 @@
 # Text-Input Specification
 
-A text-input is the text field an author holds for entering and editing plain text.
+A text-input is the single-line or multiline text field an author holds for entering and editing text across native `<input>`, `<textarea>`, and custom textboxes.
 
 - **Entity**: `text-input`
-- **WAI-ARIA Role**: none (native input; no role compiled)
+- **WAI-ARIA Role**: `searchbox` (when `kind: 'search'` on custom host), `textbox` (on custom host), none on native `<input>`/`<textarea>`.
 
 ---
 
@@ -11,8 +11,8 @@ A text-input is the text field an author holds for entering and editing plain te
 
 | Part / Role | HTML Semantic | WAI-ARIA Semantic | Aria Package Semantic Contract |
 | :--- | :--- | :--- | :--- |
-| **`text-input`** | Native `<input type="text">` or `<textarea>`. Handles text entry, selection, native form participation, `disabled`, `readonly`, `required`. | No role compiled (native). `aria-readonly`, `aria-required`, `aria-invalid`, `aria-label`. | Form input controller managing live value synchronization and validity projection. |
-| **`search-input`** | Native `<input type="search">`. Native clear button and search semantics. | No role compiled (native). `type="search"`, `aria-label` / `aria-labelledby`. | Same mid controller with `role: 'search-input'` locked by the SearchInput public face (see `search-input`). |
+| **Native `<input>` / `<textarea>`** | Native input or textarea. Handles text entry, selection, native form participation, `disabled`, `readonly`, `required`. | No role compiled (native). `aria-invalid` when invalid. | Form input controller managing live value synchronization and native event forwarding. |
+| **Custom Textbox** | Custom element (`<div>`). | `role="searchbox"` (when `kind="search"`), `role="textbox"` (default), `aria-multiline="true"` (when multiline), `tabindex="0"`, `aria-readonly`, `aria-disabled`, `aria-required`. | Polyfills editing, tab stop, and dispatches synthetic `input` and `change` events. |
 
 ---
 
@@ -25,8 +25,6 @@ A text-input is the text field an author holds for entering and editing plain te
 export interface TextInputOptions {
   /** Whether bound to native <input> or <textarea> (default: true) */
   native?: boolean;
-  /** Mid-layer flag set by the public TextInput/SearchInput faces, never JSX (default: 'text-input') */
-  role?: 'text-input' | 'search-input';
 }
 ```
 
@@ -35,6 +33,10 @@ export interface TextInputOptions {
 export interface TextInputProps {
   /** Live text value */
   value?: string;
+  /** Text input kind */
+  kind?: 'text' | 'password' | 'search' | 'email' | 'tel' | 'url';
+  /** Multiline flag */
+  multiline?: boolean;
   /** Readonly indicator */
   readonly?: boolean;
   /** Disabled indicator */
@@ -53,7 +55,7 @@ export interface TextInputProps {
 ### 2. Overload Contract
 
 ```ts
-// Text-Input: Text input controller (public face with `role: 'text-input'`)
+// Text-Input: Text input controller
 export function aria<E extends BaseElement = HTMLInputElement>(
   role: 'text-input',
   props?: TextInputProps,
@@ -65,10 +67,10 @@ export function aria<E extends BaseElement = HTMLInputElement>(
 
 ## State & Lifecycle Rules
 
-1. **State Projection (`value`)**:
-   - Reflects the string value of the input.
-   - For native elements, synchronizes with DOM `.value` property.
-
-2. **Readonly & Disabled**:
-   - Native elements receive native boolean attributes `readonly` and `disabled`.
-   - Custom non-native elements compile `aria-readonly` and `aria-disabled`.
+1. **Host-Aware Role Emission**:
+   - Native `<input>` and `<textarea>` emit no role.
+   - Non-input hosts emit `role="searchbox"` when `kind: 'search'`, otherwise `role="textbox"`.
+   - `multiline: true` compiles `aria-multiline="true"` on custom hosts.
+2. **Events**:
+   - Native elements: browser `input` and `change` pass through.
+   - Custom hosts: dispatches `CustomEvent<string>('input', { bubbles: true, detail: value })` on edit, and `CustomEvent<string>('change', { bubbles: true, detail: value })` on blur with diff.
