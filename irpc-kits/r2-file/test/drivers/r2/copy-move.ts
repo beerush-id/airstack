@@ -44,6 +44,22 @@ describe('R2Driver copy and move', () => {
       'r2copymove/rb-dst2.txt',
       'r2copymove/rb-msrc.txt',
       'r2copymove/rb-mdst.txt',
+      'r2copymove/srcdir',
+      'r2copymove/srcdir/a.txt',
+      'r2copymove/srcdir/b.txt',
+      'r2copymove/dstdir',
+      'r2copymove/dstdir/a.txt',
+      'r2copymove/dstdir/b.txt',
+      'r2copymove/mvsrc',
+      'r2copymove/mvsrc/a.txt',
+      'r2copymove/mvsrc/b.txt',
+      'r2copymove/mvdst',
+      'r2copymove/mvdst/a.txt',
+      'r2copymove/mvdst/b.txt',
+      'r2copymove/ts-src/',
+      'r2copymove/ts-dst/',
+      'r2copymove/ts-msrc/',
+      'r2copymove/ts-mdst/',
     ]);
   });
 
@@ -262,7 +278,7 @@ describe('R2Driver copy and move', () => {
     });
   });
 
-  it('restores a pre-existing destination on copy rollback', async () => {
+  it('rejects copy with EEXIST when the destination already exists', async () => {
     await withFs({}, async () => {
       const srcSeed: DriverContext<FileInfo> = createDriverCtx();
       await normalize.write(srcSeed, '/r2copymove/rb-src2.txt', 'new copy', { type: 'text/plain' });
@@ -274,18 +290,20 @@ describe('R2Driver copy and move', () => {
 
       const ctx: DriverContext<boolean> = createDriverCtx();
       await normalize.copy(ctx, '/r2copymove/rb-src2.txt', '/r2copymove/rb-dst2.txt');
-      await driver.copy(ctx, '/r2copymove/rb-src2.txt', '/r2copymove/rb-dst2.txt');
-      expect(await (await bucket.get('r2copymove/rb-dst2.txt'))?.text()).toBe('new copy');
 
-      for (const rollback of Array.from(ctx.rollback).reverse()) {
-        await rollback();
-      }
-
+      await expectDenial(
+        () => {
+          return driver.copy(ctx, '/r2copymove/rb-src2.txt', '/r2copymove/rb-dst2.txt');
+        },
+        'EEXIST',
+        '/r2copymove/rb-dst2.txt'
+      );
       expect(await (await bucket.get('r2copymove/rb-dst2.txt'))?.text()).toBe('dest original');
+      expect(await (await bucket.get('r2copymove/rb-src2.txt'))?.text()).toBe('new copy');
     });
   });
 
-  it('restores source and a pre-existing destination on move rollback', async () => {
+  it('rejects move with EEXIST when the destination already exists', async () => {
     await withFs({}, async () => {
       const srcSeed: DriverContext<FileInfo> = createDriverCtx();
       await normalize.write(srcSeed, '/r2copymove/rb-msrc.txt', 'source data', { type: 'text/plain' });
@@ -297,14 +315,91 @@ describe('R2Driver copy and move', () => {
 
       const ctx: DriverContext<boolean> = createDriverCtx();
       await normalize.move(ctx, '/r2copymove/rb-msrc.txt', '/r2copymove/rb-mdst.txt');
-      await driver.move(ctx, '/r2copymove/rb-msrc.txt', '/r2copymove/rb-mdst.txt');
 
-      for (const rollback of Array.from(ctx.rollback).reverse()) {
-        await rollback();
-      }
-
+      await expectDenial(
+        () => {
+          return driver.move(ctx, '/r2copymove/rb-msrc.txt', '/r2copymove/rb-mdst.txt');
+        },
+        'EEXIST',
+        '/r2copymove/rb-mdst.txt'
+      );
       expect(await (await bucket.get('r2copymove/rb-msrc.txt'))?.text()).toBe('source data');
       expect(await (await bucket.get('r2copymove/rb-mdst.txt'))?.text()).toBe('dest original');
+    });
+  });
+
+  it('copies a directory subtree recursively into a fresh destination', async () => {
+    await withFs({}, async () => {
+      const dirCtx: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.mkdir(dirCtx, '/r2copymove/srcdir');
+      await driver.mkdir(dirCtx, '/r2copymove/srcdir');
+      const aCtx: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.write(aCtx, '/r2copymove/srcdir/a.txt', 'aaa', { type: 'text/plain' });
+      await driver.write(aCtx, '/r2copymove/srcdir/a.txt', 'aaa', { type: 'text/plain' });
+      const bCtx: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.write(bCtx, '/r2copymove/srcdir/b.txt', 'bbb', { type: 'text/plain' });
+      await driver.write(bCtx, '/r2copymove/srcdir/b.txt', 'bbb', { type: 'text/plain' });
+
+      const ctx: DriverContext<boolean> = createDriverCtx();
+      await normalize.copy(ctx, '/r2copymove/srcdir', '/r2copymove/dstdir');
+      await driver.copy(ctx, '/r2copymove/srcdir', '/r2copymove/dstdir');
+
+      expect(ctx.result).toBe(true);
+      expect(await bucket.head('r2copymove/dstdir')).not.toBeNull();
+      expect(await (await bucket.get('r2copymove/dstdir/a.txt'))?.text()).toBe('aaa');
+      expect(await (await bucket.get('r2copymove/dstdir/b.txt'))?.text()).toBe('bbb');
+      expect(await (await bucket.get('r2copymove/srcdir/a.txt'))?.text()).toBe('aaa');
+    });
+  });
+
+  it('moves a directory subtree recursively into a fresh destination', async () => {
+    await withFs({}, async () => {
+      const dirCtx: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.mkdir(dirCtx, '/r2copymove/mvsrc');
+      await driver.mkdir(dirCtx, '/r2copymove/mvsrc');
+      const aCtx: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.write(aCtx, '/r2copymove/mvsrc/a.txt', 'aaa', { type: 'text/plain' });
+      await driver.write(aCtx, '/r2copymove/mvsrc/a.txt', 'aaa', { type: 'text/plain' });
+      const bCtx: DriverContext<FileInfo> = createDriverCtx();
+      await normalize.write(bCtx, '/r2copymove/mvsrc/b.txt', 'bbb', { type: 'text/plain' });
+      await driver.write(bCtx, '/r2copymove/mvsrc/b.txt', 'bbb', { type: 'text/plain' });
+
+      const ctx: DriverContext<boolean> = createDriverCtx();
+      await normalize.move(ctx, '/r2copymove/mvsrc', '/r2copymove/mvdst');
+      await driver.move(ctx, '/r2copymove/mvsrc', '/r2copymove/mvdst');
+
+      expect(ctx.result).toBe(true);
+      expect(await (await bucket.get('r2copymove/mvdst/a.txt'))?.text()).toBe('aaa');
+      expect(await (await bucket.get('r2copymove/mvdst/b.txt'))?.text()).toBe('bbb');
+      expect(await bucket.head('r2copymove/mvsrc')).toBeNull();
+      expect(await bucket.head('r2copymove/mvsrc/a.txt')).toBeNull();
+    });
+  });
+
+  it('copies a source stored at the trailing-slash marker key', async () => {
+    await withFs({}, async () => {
+      await bucket.put('r2copymove/ts-src/', '', { httpMetadata: { contentType: 'inode/directory' } });
+
+      const ctx: DriverContext<boolean> = createDriverCtx();
+      await normalize.copy(ctx, '/r2copymove/ts-src', '/r2copymove/ts-dst');
+      await driver.copy(ctx, '/r2copymove/ts-src', '/r2copymove/ts-dst');
+
+      expect(ctx.result).toBe(true);
+      expect(await bucket.head('r2copymove/ts-dst/')).not.toBeNull();
+    });
+  });
+
+  it('moves a source stored at the trailing-slash marker key', async () => {
+    await withFs({}, async () => {
+      await bucket.put('r2copymove/ts-msrc/', '', { httpMetadata: { contentType: 'inode/directory' } });
+
+      const ctx: DriverContext<boolean> = createDriverCtx();
+      await normalize.move(ctx, '/r2copymove/ts-msrc', '/r2copymove/ts-mdst');
+      await driver.move(ctx, '/r2copymove/ts-msrc', '/r2copymove/ts-mdst');
+
+      expect(ctx.result).toBe(true);
+      expect(await bucket.head('r2copymove/ts-mdst/')).not.toBeNull();
+      expect(await bucket.head('r2copymove/ts-msrc/')).toBeNull();
     });
   });
 });

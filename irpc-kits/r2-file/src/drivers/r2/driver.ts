@@ -1,4 +1,4 @@
-import type { R2Bucket, R2GetOptions, R2Range } from '@cloudflare/workers-types';
+import type { R2Bucket, R2GetOptions, R2ObjectBody, R2PutOptions, R2Range } from '@cloudflare/workers-types';
 import { HandlerError } from '@irpclib/irpc';
 import type { FileDriver } from '../../adapter.js';
 import { DEFAULT_OWNER_KEY, fsContext } from '../../context.js';
@@ -235,61 +235,44 @@ export class R2Driver implements FileDriver {
     return;
   }
 
-  /** Duplicates the canonical blob and metadata to the destination. */
+  /** Duplicates the source subtree into a fresh destination, streaming each object. */
   async copy(ctx: DriverContext<boolean>, _source: string, _destination: string, options?: CopyOptions): Promise<void> {
     const srcCanonical = ctx.path!;
     const dstCanonical = ctx.destination!;
     const srcKey = srcCanonical.slice(1);
     const dstKey = dstCanonical.slice(1);
-    const srcHead = ((await this.bucket.head(srcKey)) ?? (await this.bucket.head(`${srcKey}/`))) as unknown as {
-      customMetadata?: R2Metadata;
-    } | null;
-    if (srcHead === null) {
+    const directSrc = await this.bucket.head(srcKey);
+    const slashedSrc = directSrc === null ? await this.bucket.head(`${srcKey}/`) : null;
+    const srcHead = (directSrc ?? slashedSrc) as unknown as { customMetadata?: R2Metadata } | null;
+    if (srcHead === null || srcHead.customMetadata?._fs_deleted !== undefined) {
       throw new HandlerError(
         'ENOENT',
         'Resource not found',
         new Error(`copy: Source path '${srcCanonical}' does not exist`)
       );
     }
-    const meta = srcHead.customMetadata;
-    if (meta?._fs_deleted !== undefined) {
-      throw new HandlerError(
-        'ENOENT',
-        'Resource not found',
-        new Error(`copy: Source path '${srcCanonical}' does not exist`)
+    const resolvedSrcKey = directSrc !== null ? srcKey : `${srcKey}/`;
+    const pairs = await this.subtreePairs(srcKey, resolvedSrcKey, dstKey);
+    await this.assertNoConflict('copy', dstCanonical, pairs);
+
+    for (const [src, dst] of pairs) {
+      const obj = await this.bucket.get(src);
+      /* istanbul ignore next */
+      if (obj === null) continue;
+      const customMetadata = this.entryMeta(
+        obj.customMetadata,
+        options?.onBehalf,
+        src === resolvedSrcKey ? options?.public : undefined
       );
-    }
-    await this.preserve(ctx, dstKey);
-    if (meta?._fs_type === 'inode/directory') {
-      const customMetadata = this.stamped(options?.onBehalf, {
-        _fs_type: 'inode/directory',
-        ...(options?.public === true ? { _fs_public: 'true' } : {}),
+      await this.copyBody(dst, obj, { httpMetadata: obj.httpMetadata, customMetadata });
+      ctx.rollback.add(async () => {
+        await this.bucket.delete(dst);
       });
-      await this.bucket.put(dstKey, '', {
-        httpMetadata: { contentType: 'inode/directory' },
-        customMetadata,
-      });
-      ctx.result = true;
-      return;
     }
-    const srcObj = (await this.bucket.get(srcKey))!;
-    const srcMeta = (srcObj as unknown as { customMetadata: R2Metadata }).customMetadata;
-    const httpMetadata = (srcObj as unknown as { httpMetadata?: Record<string, string> }).httpMetadata;
-    const preserved = { ...srcMeta };
-    if (options?.public !== undefined) {
-      if (options.public) {
-        preserved._fs_public = 'true';
-      } else {
-        delete preserved._fs_public;
-      }
-    }
-    const customMetadata = this.stamped(options?.onBehalf, preserved as Record<string, string>);
-    const body = await (srcObj as unknown as { arrayBuffer(): Promise<ArrayBuffer> }).arrayBuffer();
-    await this.bucket.put(dstKey, body, { httpMetadata, customMetadata });
     ctx.result = true;
   }
 
-  /** Relocates the canonical blob and metadata to the destination. */
+  /** Relocates the source subtree into a fresh destination, streaming each object. */
   async move(
     ctx: DriverContext<boolean>,
     _source: string,
@@ -300,20 +283,10 @@ export class R2Driver implements FileDriver {
     const dstCanonical = ctx.destination!;
     const srcKey = srcCanonical.slice(1);
     const dstKey = dstCanonical.slice(1);
-    const srcHead = ((await this.bucket.head(srcKey)) ?? (await this.bucket.head(`${srcKey}/`))) as unknown as {
-      customMetadata?: R2Metadata;
-      httpMetadata?: Record<string, string>;
-      size?: number;
-    } | null;
-    if (srcHead === null) {
-      throw new HandlerError(
-        'ENOENT',
-        'Resource not found',
-        new Error(`move: Source path '${srcCanonical}' does not exist`)
-      );
-    }
-    const meta = srcHead.customMetadata;
-    if (meta?._fs_deleted !== undefined) {
+    const directSrc = await this.bucket.head(srcKey);
+    const slashedSrc = directSrc === null ? await this.bucket.head(`${srcKey}/`) : null;
+    const srcHead = (directSrc ?? slashedSrc) as unknown as { customMetadata?: R2Metadata } | null;
+    if (srcHead === null || srcHead.customMetadata?._fs_deleted !== undefined) {
       throw new HandlerError(
         'ENOENT',
         'Resource not found',
@@ -324,21 +297,28 @@ export class R2Driver implements FileDriver {
       ctx.result = true;
       return;
     }
-    const srcObj = (await this.bucket.get(srcKey))!;
-    const srcMeta = (srcObj as unknown as { customMetadata: R2Metadata }).customMetadata;
-    const httpMetadata = (srcObj as unknown as { httpMetadata?: Record<string, string> }).httpMetadata;
-    const customMetadata = this.stamped(undefined, { ...srcMeta } as Record<string, string>);
-    const body = await (srcObj as unknown as { arrayBuffer(): Promise<ArrayBuffer> }).arrayBuffer();
-    const snapshot = body.slice(0);
-    await this.preserve(ctx, dstKey);
-    await this.bucket.put(dstKey, body, { httpMetadata, customMetadata });
-    await this.bucket.delete(srcKey);
+    const resolvedSrcKey = directSrc !== null ? srcKey : `${srcKey}/`;
+    const pairs = await this.subtreePairs(srcKey, resolvedSrcKey, dstKey);
+    await this.assertNoConflict('move', dstCanonical, pairs);
+
+    for (const [src, dst] of pairs) {
+      const obj = await this.bucket.get(src);
+      /* istanbul ignore next */
+      if (obj === null) continue;
+      const customMetadata = this.entryMeta(obj.customMetadata, undefined, undefined);
+      await this.copyBody(dst, obj, { httpMetadata: obj.httpMetadata, customMetadata });
+    }
+    await this.deleteKeys(pairs.map(([src]) => src));
     ctx.result = true;
     ctx.rollback.add(async () => {
-      await this.bucket.put(srcKey, snapshot, {
-        httpMetadata,
-        customMetadata: { ...srcMeta } as Record<string, string>,
-      });
+      for (const [src, dst] of pairs) {
+        const obj = await this.bucket.get(dst);
+        /* istanbul ignore next */
+        if (obj !== null) {
+          await this.copyBody(src, obj, { httpMetadata: obj.httpMetadata, customMetadata: obj.customMetadata });
+        }
+        await this.bucket.delete(dst);
+      }
     });
   }
 
@@ -541,6 +521,51 @@ export class R2Driver implements FileDriver {
     ctx.rollback.add(async () => {
       await this.bucket.put(key, body, { httpMetadata, customMetadata });
     });
+  }
+
+  /** Maps the resolved source marker and every descendant to its destination key. */
+  private async subtreePairs(srcKey: string, resolvedSrcKey: string, dstKey: string): Promise<[string, string][]> {
+    const sourceKeys = [resolvedSrcKey, ...(await this.listKeys(srcKey))];
+    return sourceKeys.map((src) => [src, dstKey + src.slice(srcKey.length)] as [string, string]);
+  }
+
+  /** Halts with `EEXIST` when any mapped destination key already exists, before any mutation. */
+  private async assertNoConflict(op: string, dstCanonical: string, pairs: [string, string][]): Promise<void> {
+    for (const [, dst] of pairs) {
+      if (await this.bucket.head(dst)) {
+        throw new HandlerError(
+          'EEXIST',
+          'Destination exists',
+          new Error(`${op}: Destination path '${dstCanonical}' already exists`)
+        );
+      }
+    }
+  }
+
+  /** Derives destination metadata from a source entry, applying the owner stamp and an optional public override. */
+  private entryMeta(
+    srcMeta: Record<string, string> | undefined,
+    onBehalf: string | undefined,
+    publicOverride?: boolean
+  ): Record<string, string> {
+    const preserved = { ...srcMeta };
+    if (publicOverride !== undefined) {
+      if (publicOverride) preserved._fs_public = 'true';
+      else delete preserved._fs_public;
+    }
+    return this.stamped(onBehalf, preserved);
+  }
+
+  /** Deletes keys in chunks within the R2 per-call limit. */
+  private async deleteKeys(keys: string[]): Promise<void> {
+    for (let offset = 0; offset < keys.length; offset += 1000) {
+      await this.bucket.delete(keys.slice(offset, offset + 1000));
+    }
+  }
+
+  /** Copies a stored object's body into a destination key, buffering one object at a time. */
+  private async copyBody(dstKey: string, source: R2ObjectBody, options: R2PutOptions): Promise<void> {
+    await this.bucket.put(dstKey, await source.arrayBuffer(), options);
   }
 
   /** Reports whether any object lives under the directory prefix. */
