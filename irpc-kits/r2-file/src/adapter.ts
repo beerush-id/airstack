@@ -151,9 +151,15 @@ export class FileAdapter {
   /** Mutating terminal: an unsealed pipeline means no medium could fulfil it. */
   private async mutate<T>(operation: FileOperation, args: unknown[]): Promise<T> {
     const ctx = await this.dispatch<T>(operation, args);
+
     if ('result' in ctx) {
+      if (ctx.result && typeof ctx.result === 'object') {
+        ctx.result = this.unmountInfo(ctx.result as AnyType) as AnyType;
+      }
+
       return ctx.result as T;
     }
+
     throw new HandlerError(
       'EIO',
       `Failed to ${operation}`,
@@ -201,7 +207,11 @@ export class FileAdapter {
 
   /** Returns a copy of `info` reporting its canonical (un-mounted) path. */
   private unmountInfo(info: FileInfo): FileInfo {
-    return { ...info, path: this.unmount(info.path) };
+    const result = { ...info, path: this.unmount(info.path) };
+    if (result.link) {
+      result.link = this.unmount(result.link);
+    }
+    return result;
   }
 
   /** Returns a copy of `result` reporting canonical (un-mounted) entry paths. */

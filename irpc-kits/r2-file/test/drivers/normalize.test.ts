@@ -805,7 +805,7 @@ describe('NormalizerDriver', () => {
         await driver.write(ctx, 'notes.txt', 'hello');
         expect(ctx.path).toBe('/tenants/acme/users/alice/notes.txt');
         expect(ctx.dirname).toBe('/tenants/acme/users/alice');
-        expect(ctx.cwd).toBe('/users/alice');
+        expect(ctx.cwd).toBe('/tenants/acme/users/alice');
         expect('result' in ctx).toBe(false);
       });
     });

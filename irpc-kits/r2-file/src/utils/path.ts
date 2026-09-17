@@ -74,37 +74,33 @@ const baseResolve = (mountPoint: string, path: string, cwd?: string, action?: Fi
     canonical = normalizeSegments(path ? `${effectiveCwd}/${path}` : effectiveCwd);
   }
 
-  if (!isSubpath(canonical, normHome)) {
-    if (rules?.length) {
-      const matching = rules.find((rule) => {
-        const pattern = typeof rule === 'string' ? rule : rule.path;
-        return matchPattern(canonical, pattern);
-      });
-      if (matching) {
-        if (typeof matching !== 'string' && matching.allow?.length && action) {
-          if (!matching.allow.includes(action)) {
-            throw new HandlerError(
-              'EACCES',
-              'Permission denied',
-              new Error(`Operation '${action}' not permitted on '${canonical}' outside accessRules`)
-            );
-          }
+  if (!isSubpath(canonical, normHome) && Array.isArray(rules)) {
+    const matching = rules.find((rule) => {
+      const pattern = typeof rule === 'string' ? rule : rule.path;
+      return matchPattern(canonical, pattern);
+    });
+    if (matching) {
+      if (typeof matching !== 'string' && matching.allow?.length && action) {
+        if (!matching.allow.includes(action)) {
+          throw new HandlerError(
+            'EACCES',
+            'Permission denied',
+            new Error(`Operation '${action}' not permitted on '${canonical}' outside accessRules`)
+          );
         }
-      } else if (action) {
-        throw new HandlerError(
-          'EACCES',
-          'Permission denied',
-          new Error(
-            `Permission denied for path '${canonical}' outside accessRules (operation '${action}' not permitted)`
-          )
-        );
-      } else {
-        throw new HandlerError(
-          'EACCES',
-          'Permission denied',
-          new Error(`Permission denied for path '${canonical}' outside accessRules`)
-        );
       }
+    } else if (action) {
+      throw new HandlerError(
+        'EACCES',
+        'Permission denied',
+        new Error(`Permission denied for path '${canonical}' outside accessRules (operation '${action}' not permitted)`)
+      );
+    } else {
+      throw new HandlerError(
+        'EACCES',
+        'Permission denied',
+        new Error(`Permission denied for path '${canonical}' outside accessRules`)
+      );
     }
   }
 
@@ -113,7 +109,7 @@ const baseResolve = (mountPoint: string, path: string, cwd?: string, action?: Fi
     path: storagePath,
     name: basename(storagePath),
     directory: dirname(storagePath),
-    cwd: effectiveCwd,
+    cwd: normalizeSegments(`${mountPoint}/${effectiveCwd}`),
   };
 };
 

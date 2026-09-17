@@ -58,7 +58,7 @@ describe('resolve identity', () => {
       expect(info.path).toBe('/tenants/acme/users/alice/notes.txt');
       expect(info.name).toBe('notes.txt');
       expect(info.directory).toBe('/tenants/acme/users/alice');
-      expect(info.cwd).toBe('/users/alice');
+      expect(info.cwd).toBe('/tenants/acme/users/alice');
     }));
 
   it('returns PathInfo on globex tenant mount', () =>
@@ -68,7 +68,7 @@ describe('resolve identity', () => {
       expect(info.path).toBe('/tenants/globex/users/bob/notes.txt');
       expect(info.name).toBe('notes.txt');
       expect(info.directory).toBe('/tenants/globex/users/bob');
-      expect(info.cwd).toBe('/users/bob');
+      expect(info.cwd).toBe('/tenants/globex/users/bob');
     }));
 });
 
@@ -103,7 +103,7 @@ describe('home expansion', () => {
       expect(info.path).toBe('/tenants/acme/users/alice');
       expect(info.name).toBe('alice');
       expect(info.directory).toBe('/tenants/acme/users');
-      expect(info.cwd).toBe('/users/alice');
+      expect(info.cwd).toBe('/tenants/acme/users/alice');
     }));
 
   it('expands tilde notes path to bob home on globex mount', () =>
@@ -113,7 +113,7 @@ describe('home expansion', () => {
       expect(info.path).toBe('/tenants/globex/users/bob/notes.txt');
       expect(info.name).toBe('notes.txt');
       expect(info.directory).toBe('/tenants/globex/users/bob');
-      expect(info.cwd).toBe('/users/bob');
+      expect(info.cwd).toBe('/tenants/globex/users/bob');
     }));
 
   it('expands tilde notes path to default home absent homeDir', () =>
@@ -123,7 +123,7 @@ describe('home expansion', () => {
       expect(info.path).toBe('/tenants/acme/home/notes.txt');
       expect(info.name).toBe('notes.txt');
       expect(info.directory).toBe('/tenants/acme/home');
-      expect(info.cwd).toBe('/home');
+      expect(info.cwd).toBe('/tenants/acme/home');
     }));
 
   it('ignores cwd during tilde expansion', () =>
@@ -131,7 +131,7 @@ describe('home expansion', () => {
       fsContext.set({ ownerId: 'alice', homeDir: '/users/alice' });
       const info = resolve('/tenants/acme', '~/notes.txt', '/projects/app');
       expect(info.path).toBe('/tenants/acme/users/alice/notes.txt');
-      expect(info.cwd).toBe('/projects/app');
+      expect(info.cwd).toBe('/tenants/acme/projects/app');
     }));
 });
 
@@ -190,7 +190,7 @@ describe('relative resolution', () => {
       expect(info.path).toBe('/tenants/acme/projects/app/config.json');
       expect(info.name).toBe('config.json');
       expect(info.directory).toBe('/tenants/acme/projects/app');
-      expect(info.cwd).toBe('/projects/app');
+      expect(info.cwd).toBe('/tenants/acme/projects/app');
     }));
 
   it('resolves dot and dot-dot segments against cwd', () =>
@@ -207,7 +207,7 @@ describe('relative resolution', () => {
       fsContext.set({ ownerId: 'bob', homeDir: '/users/bob' });
       const info = resolve('/tenants/globex', 'notes.txt');
       expect(info.path).toBe('/tenants/globex/users/bob/notes.txt');
-      expect(info.cwd).toBe('/users/bob');
+      expect(info.cwd).toBe('/tenants/globex/users/bob');
     }));
 
   it('resolves relative name against default home absent cwd and homeDir', () =>
@@ -215,7 +215,7 @@ describe('relative resolution', () => {
       fsContext.set({});
       const info = resolve('/tenants/acme', 'notes.txt');
       expect(info.path).toBe('/tenants/acme/home/notes.txt');
-      expect(info.cwd).toBe('/home');
+      expect(info.cwd).toBe('/tenants/acme/home');
     }));
 
   it('empty relative resolves to effective cwd itself on acme tenant', () =>
@@ -225,12 +225,12 @@ describe('relative resolution', () => {
       expect(explicit.path).toBe('/tenants/acme/projects/app');
       expect(explicit.name).toBe('app');
       expect(explicit.directory).toBe('/tenants/acme/projects');
-      expect(explicit.cwd).toBe('/projects/app');
+      expect(explicit.cwd).toBe('/tenants/acme/projects/app');
       const homed = resolve('/tenants/acme', '');
       expect(homed.path).toBe('/tenants/acme/users/alice');
       expect(homed.name).toBe('alice');
       expect(homed.directory).toBe('/tenants/acme/users');
-      expect(homed.cwd).toBe('/users/alice');
+      expect(homed.cwd).toBe('/tenants/acme/users/alice');
     }));
 });
 
@@ -519,7 +519,7 @@ describe('path forms across scopes', () => {
       expect(info.path).toBe('/tenants/acme/home');
       expect(info.name).toBe('home');
       expect(info.directory).toBe('/tenants/acme');
-      expect(info.cwd).toBe('/home');
+      expect(info.cwd).toBe('/tenants/acme/home');
     }));
 
   it('bare tilde resolves to alice home in user scope', () =>
@@ -529,7 +529,7 @@ describe('path forms across scopes', () => {
       expect(info.path).toBe('/tenants/acme/users/alice');
       expect(info.name).toBe('alice');
       expect(info.directory).toBe('/tenants/acme/users');
-      expect(info.cwd).toBe('/users/alice');
+      expect(info.cwd).toBe('/tenants/acme/users/alice');
     }));
 
   it('bare tilde resolves to bob home in multi-tenant scope', () =>
@@ -539,7 +539,7 @@ describe('path forms across scopes', () => {
       expect(info.path).toBe('/tenants/globex/users/bob');
       expect(info.name).toBe('bob');
       expect(info.directory).toBe('/tenants/globex/users');
-      expect(info.cwd).toBe('/users/bob');
+      expect(info.cwd).toBe('/tenants/globex/users/bob');
     }));
 
   it('tilde subpath resolves against default home in open scope', () =>
@@ -549,7 +549,7 @@ describe('path forms across scopes', () => {
       expect(info.path).toBe('/tenants/acme/home/notes.txt');
       expect(info.name).toBe('notes.txt');
       expect(info.directory).toBe('/tenants/acme/home');
-      expect(info.cwd).toBe('/home');
+      expect(info.cwd).toBe('/tenants/acme/home');
     }));
 
   it('tilde subpath resolves against alice home in user scope', () =>
@@ -559,7 +559,7 @@ describe('path forms across scopes', () => {
       expect(info.path).toBe('/tenants/acme/users/alice/notes.txt');
       expect(info.name).toBe('notes.txt');
       expect(info.directory).toBe('/tenants/acme/users/alice');
-      expect(info.cwd).toBe('/users/alice');
+      expect(info.cwd).toBe('/tenants/acme/users/alice');
     }));
 
   it('tilde subpath resolves against bob home in multi-tenant scope', () =>
@@ -569,7 +569,7 @@ describe('path forms across scopes', () => {
       expect(info.path).toBe('/tenants/globex/users/bob/notes.txt');
       expect(info.name).toBe('notes.txt');
       expect(info.directory).toBe('/tenants/globex/users/bob');
-      expect(info.cwd).toBe('/users/bob');
+      expect(info.cwd).toBe('/tenants/globex/users/bob');
     }));
 
   it('absolute resolves stable against explicit cwd in open scope', () =>
@@ -579,7 +579,7 @@ describe('path forms across scopes', () => {
       expect(info.path).toBe('/tenants/acme/shared/spec.md');
       expect(info.name).toBe('spec.md');
       expect(info.directory).toBe('/tenants/acme/shared');
-      expect(info.cwd).toBe('/projects/app');
+      expect(info.cwd).toBe('/tenants/acme/projects/app');
     }));
 
   it('absolute resolves stable against explicit cwd in user scope', () =>
@@ -589,7 +589,7 @@ describe('path forms across scopes', () => {
       expect(info.path).toBe('/tenants/acme/shared/spec.md');
       expect(info.name).toBe('spec.md');
       expect(info.directory).toBe('/tenants/acme/shared');
-      expect(info.cwd).toBe('/projects/app');
+      expect(info.cwd).toBe('/tenants/acme/projects/app');
     }));
 
   it('absolute resolves stable against explicit cwd in multi-tenant scope', () =>
@@ -599,7 +599,7 @@ describe('path forms across scopes', () => {
       expect(info.path).toBe('/tenants/globex/shared/spec.md');
       expect(info.name).toBe('spec.md');
       expect(info.directory).toBe('/tenants/globex/shared');
-      expect(info.cwd).toBe('/projects/app');
+      expect(info.cwd).toBe('/tenants/globex/projects/app');
     }));
 
   it('bare relative resolves against default home in open scope', () =>
@@ -609,7 +609,7 @@ describe('path forms across scopes', () => {
       expect(info.path).toBe('/tenants/acme/home/notes.txt');
       expect(info.name).toBe('notes.txt');
       expect(info.directory).toBe('/tenants/acme/home');
-      expect(info.cwd).toBe('/home');
+      expect(info.cwd).toBe('/tenants/acme/home');
     }));
 
   it('bare relative resolves against alice home in user scope', () =>
@@ -617,7 +617,7 @@ describe('path forms across scopes', () => {
       fsContext.set({ ownerId: 'alice', homeDir: '/users/alice', accessRules: ['/'] });
       const info = resolve('/tenants/acme', 'notes.txt');
       expect(info.path).toBe('/tenants/acme/users/alice/notes.txt');
-      expect(info.cwd).toBe('/users/alice');
+      expect(info.cwd).toBe('/tenants/acme/users/alice');
     }));
 
   it('bare relative resolves against bob home in multi-tenant scope', () =>
@@ -625,7 +625,7 @@ describe('path forms across scopes', () => {
       fsContext.set({ ownerId: 'bob', homeDir: '/users/bob', accessRules: ['/'] });
       const info = resolve('/tenants/globex', 'notes.txt');
       expect(info.path).toBe('/tenants/globex/users/bob/notes.txt');
-      expect(info.cwd).toBe('/users/bob');
+      expect(info.cwd).toBe('/tenants/globex/users/bob');
     }));
 
   it('dot relative resolves against explicit cwd in open scope', () =>
@@ -634,7 +634,7 @@ describe('path forms across scopes', () => {
       const info = resolve('/tenants/acme', './src/button.tsx', '/projects/app');
       expect(info.path).toBe('/tenants/acme/projects/app/src/button.tsx');
       expect(info.name).toBe('button.tsx');
-      expect(info.cwd).toBe('/projects/app');
+      expect(info.cwd).toBe('/tenants/acme/projects/app');
     }));
 
   it('dot relative resolves against explicit cwd in user scope', () =>
@@ -642,7 +642,7 @@ describe('path forms across scopes', () => {
       fsContext.set({ ownerId: 'alice', homeDir: '/users/alice', accessRules: ['/'] });
       const info = resolve('/tenants/acme', './src/button.tsx', '/projects/app');
       expect(info.path).toBe('/tenants/acme/projects/app/src/button.tsx');
-      expect(info.cwd).toBe('/projects/app');
+      expect(info.cwd).toBe('/tenants/acme/projects/app');
     }));
 
   it('dot relative resolves against explicit cwd in multi-tenant scope', () =>
@@ -650,7 +650,7 @@ describe('path forms across scopes', () => {
       fsContext.set({ ownerId: 'bob', homeDir: '/users/bob', accessRules: ['/'] });
       const info = resolve('/tenants/globex', './src/button.tsx', '/projects/app');
       expect(info.path).toBe('/tenants/globex/projects/app/src/button.tsx');
-      expect(info.cwd).toBe('/projects/app');
+      expect(info.cwd).toBe('/tenants/globex/projects/app');
     }));
 
   it('dotdot relative resolves against explicit cwd in open scope', () =>
@@ -1023,7 +1023,7 @@ describe('mountPoint variance', () => {
       const info = resolve('/Volumes/SSD1', '~/notes.txt');
       expect(info.path).toBe('/Volumes/SSD1/users/alice/notes.txt');
       expect(info.name).toBe('notes.txt');
-      expect(info.cwd).toBe('/users/alice');
+      expect(info.cwd).toBe('/Volumes/SSD1/users/alice');
     }));
 
   it('tilde subpath resolves under mnt storage mount', () =>
@@ -1032,7 +1032,7 @@ describe('mountPoint variance', () => {
       const info = resolve('/mnt/storage', '~/notes.txt');
       expect(info.path).toBe('/mnt/storage/users/alice/notes.txt');
       expect(info.name).toBe('notes.txt');
-      expect(info.cwd).toBe('/users/alice');
+      expect(info.cwd).toBe('/mnt/storage/users/alice');
     }));
 
   it('same team input partitions across tenant mounts', () =>
@@ -1059,7 +1059,7 @@ describe('multi-user tenant variance', () => {
       expect(info.path).toBe('/tenants/acme/users/bob/notes.txt');
       expect(info.name).toBe('notes.txt');
       expect(info.directory).toBe('/tenants/acme/users/bob');
-      expect(info.cwd).toBe('/users/bob');
+      expect(info.cwd).toBe('/tenants/acme/users/bob');
     }));
 
   it('alice tilde binds to alice home on globex mount', () =>
@@ -1067,7 +1067,7 @@ describe('multi-user tenant variance', () => {
       fsContext.set({ ownerId: 'alice', homeDir: '/users/alice' });
       const info = resolve('/tenants/globex', '~/notes.txt');
       expect(info.path).toBe('/tenants/globex/users/alice/notes.txt');
-      expect(info.cwd).toBe('/users/alice');
+      expect(info.cwd).toBe('/tenants/globex/users/alice');
     }));
 
   it('default identity falls back to default home on globex mount', () =>
@@ -1075,7 +1075,7 @@ describe('multi-user tenant variance', () => {
       fsContext.set({});
       const info = resolve('/tenants/globex', 'notes.txt');
       expect(info.path).toBe('/tenants/globex/home/notes.txt');
-      expect(info.cwd).toBe('/home');
+      expect(info.cwd).toBe('/tenants/globex/home');
     }));
 
   it('bob relative binds to bob home on acme mount', () =>
@@ -1083,7 +1083,7 @@ describe('multi-user tenant variance', () => {
       fsContext.set({ ownerId: 'bob', homeDir: '/users/bob' });
       const info = resolve('/tenants/acme', 'notes.txt');
       expect(info.path).toBe('/tenants/acme/users/bob/notes.txt');
-      expect(info.cwd).toBe('/users/bob');
+      expect(info.cwd).toBe('/tenants/acme/users/bob');
     }));
 
   it('alice relative binds to alice home on globex mount', () =>
@@ -1091,7 +1091,7 @@ describe('multi-user tenant variance', () => {
       fsContext.set({ ownerId: 'alice', homeDir: '/users/alice' });
       const info = resolve('/tenants/globex', 'notes.txt');
       expect(info.path).toBe('/tenants/globex/users/alice/notes.txt');
-      expect(info.cwd).toBe('/users/alice');
+      expect(info.cwd).toBe('/tenants/globex/users/alice');
     }));
 });
 
