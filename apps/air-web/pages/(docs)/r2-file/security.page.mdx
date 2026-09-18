@@ -1,0 +1,231 @@
+---
+nav: 'Paths & Access'
+nav-priority: 30
+title: 'Paths & Access Control'
+description: 'POSIX path resolution, ambient context, tenancy isolation, and capability access rules in @irpclib/r2-file.'
+keywords:
+  - POSIX Paths
+  - Access Control
+  - Multi-Tenancy
+  - Cloudflare R2 Security
+  - Access Rules
+  - Single Boundary Clamping
+---
+
+# Paths & Access Control
+
+**POSIX Path Normalization, Multi-Tenancy, and Granular Capability Gating**
+
+Handling paths across distributed systems often leads to path drift, leaking physical storage details, and difficult tenancy boundaries. `@irpclib/r2-file` implements strict POSIX path semantics, ambient execution context, and declarative capability rules.
+
+## POSIX Path Conventions
+
+R2 File resolves all paths using standard POSIX rules, ensuring consistent behavior across client stubs and edge workers:
+
+### Home-Relative Paths
+
+Expands directly to the user's `$HOME` directory (`ctx.homeDir ?? '/home'`):
+
+```ts
+// If ctx.homeDir is '/users/alice':
+await write('~/notes.txt', 'Alice notes');
+// Resolves to: /users/alice/notes.txt
+
+// If ctx.homeDir is not set, defaults to /home:
+await write('~/notes.txt', 'Default user notes');
+// Resolves to: /home/notes.txt
+```
+
+### Mount-Root Absolute Paths
+
+A canonical path across the entire mount partition:
+
+```ts
+await read('/shared/team-a/spec.md');
+```
+
+- **Immune to Path Drift**: Absolute paths are unaffected by the active user's home directory or working directory (`cwd`). Storing `/shared/team-a/spec.md` in database records ensures every collaborator accesses the exact same resource.
+- **Access Rule Validation**: If active access rules are in place and the canonical path falls outside the user's `homeDir`, access is granted only if an authorized rule matches.
+
+### Working-Directory Relative Paths
+
+Resolves relative to the active `cwd`:
+
+```ts
+// If cwd is '/users/alice/projects/app':
+await read('./config.json');
+// Resolves to: /users/alice/projects/app/config.json
+```
+
+## Universal Root Clamping
+
+In naive systems, path resolution often silently clamps parent traversal at artificial user directories (e.g., resolving `~/../..` back to `~/`). This causes silent data corruption where a user attempts to traverse up but is redirected back into their own folder.
+
+R2 File uses a single universal clamping boundary at the mount root `/`:
+
+```ts
+/.. === /
+/users/alice/../../.. === /
+```
+
+- **Clean Syntactic Resolution**: Traversal into parent folders (e.g., `~/..` &rarr; `/users`) is syntactically preserved and resolved accurately.
+- **Explicit Access Boundary**: Escaping a user's home directory is stopped by explicit access control (`HandlerError('EACCES', 'Permission denied')`), never by silent path redirection.
+
+## Storage Mount Isolation
+
+When configuring a filesystem instance or worker, you can assign a physical `mountPoint`:
+
+```ts [src/worker.ts]
+import { createWorker } from '@irpclib/r2-file/worker';
+
+export default createWorker({
+  mountPoint: '/tenants/org_alpha',
+});
+```
+
+- **Inward Resolution**: The physical `mountPoint` is automatically prepended to storage keys before querying R2 or D1.
+- **Outward Stripping**: Returned `FileInfo.path` values always reflect the canonical path from the caller's perspective (e.g., `/documents/report.pdf`). The physical storage partition `/tenants/org_alpha` is completely invisible and never leaked across the network.
+
+## Ambient Execution Context
+
+Execution context is carried ambiently using `fsContext`, allowing authentication middleware to inject tenancy and security context without threading arguments through every function call:
+
+```ts
+export type FsContext = {
+  ownerId?: string;             // Active user or actor ID
+  onBehalf?: string;            // Impersonated actor ID
+  homeDir?: string;             // User's home folder ($HOME)
+  accessRules?: AccessRuleEntry[]; // Declarative path & capability rules
+  enforced?: boolean;           // Privileged admin override flag
+};
+```
+
+### Setting Context via Worker Router
+
+Use `setContext()` from `@irpclib/irpc` within `worker.router.use()` on your file worker instance to populate `fsContext` for incoming requests:
+
+```ts [src/server.ts]
+import { setContext } from '@irpclib/irpc';
+import { createWorker } from '@irpclib/r2-file/worker';
+import { fsContext } from '@irpclib/r2-file';
+
+const fileWorker = createWorker({
+  endpoint: '/r2-file-irpc',
+});
+
+fileWorker.router.use(async () => {
+  const user = await authenticateRequest();
+
+  // Populate ambient filesystem context for all downstream operations
+  setContext(fsContext, {
+    ownerId: user.id,
+    homeDir: `/users/${user.id}`,
+    accessRules: [
+      `/teams/${user.teamId}/**`,          // Full access to team files
+      { path: '/public/**', allow: ['read', 'list'] }, // Read-only public access
+    ],
+  });
+});
+```
+
+Downstream filesystem operations automatically resolve the ambient context for the active request.
+
+## Declarative Access Rules
+
+Access rules govern paths outside a user's `homeDir`. Rules specify target path patterns and permitted operations:
+
+```ts
+export type FileOperation =
+  | 'mkdir'
+  | 'write'
+  | 'read'
+  | 'stat'
+  | 'exists'
+  | 'list'
+  | 'search'
+  | 'copy'
+  | 'move'
+  | 'link'
+  | 'remove'
+  | 'restore';
+
+export type AccessRule = {
+  path: string;            // Target pattern
+  allow?: FileOperation[]; // Permitted operations (full access when omitted)
+};
+```
+
+### Pattern Semantics
+
+- **Exact Match (No wildcards)**: E.g., `'/shared/config.json'` matches only that exact file.
+- **Shallow Wildcard (`*`)**: E.g., `'/teams/*'` matches immediate children inside `/teams`, excluding subdirectories.
+- **Recursive Wildcard (`**`)**: E.g., `'/projects/**'` matches the directory itself and all descendants at any depth.
+- **Universal Root (`/**` or `/`)**: Matches all files across the filesystem.
+
+### Examples
+
+```ts
+const accessRules: AccessRuleEntry[] = [
+  // Full access to project directory and descendants
+  '/projects/alpha/**',
+
+  // Read-only access to assets folder
+  {
+    path: '/assets/**',
+    allow: ['read', 'stat', 'exists', 'list'],
+  },
+
+  // Exact file capability grant
+  {
+    path: '/shared/company-handbook.pdf',
+    allow: ['read'],
+  },
+];
+```
+
+If an operation attempts to access an unauthorized path or perform a forbidden action, it rejects immediately with:
+
+```ts
+HandlerError('EACCES', 'Permission denied')
+```
+
+## Deployment Scopes
+
+R2 File is designed to scale across three common deployment architectures:
+
+### Open System
+- **Use Case**: Application asset storage, public download mirrors, or global static file pipelines.
+- **Configuration**: Root is `'/'`, no tenant isolation, universal rules.
+- **Path Behavior**: Paths resolve directly from the mount root.
+
+### User-Scoped System
+- **Use Case**: SaaS applications with personal user files and shared team folders.
+- **Configuration**: Each user is assigned `homeDir: '/users/:userId'` (`~`).
+- **Path Behavior**: User files live under `~`. Shared collaboration occurs via canonical `/shared/...` paths governed by `accessRules`.
+
+### Multi-Tenant System
+- **Use Case**: B2B platforms hosting completely isolated organizations.
+- **Configuration**: Each organization is mounted via `mountPoint: '/tenants/:orgId'`.
+- **Path Behavior**: Zero possibility of cross-tenant leakage. Paths inside the organization resolve cleanly starting from `/`.
+
+## Strict Deletion Policy
+
+To protect mission-critical environments from catastrophic recursive deletions (such as accidental `remove('/', { recursive: true })`), drivers support `strict` mode:
+
+```ts [src/worker.ts]
+import { createWorker } from '@irpclib/r2-file/worker';
+
+export default createWorker({
+  strict: true, // Prevent deleting non-empty directories without server enforcement
+});
+```
+
+When `strict: true` is enabled:
+- Empty directories can be deleted normally.
+- Deleting a non-empty directory via `remove(path, { recursive: true })` **halts immediately with `ENOTEMPTY`**, even if `{ force: true }` is passed in client options.
+- Purging a non-empty directory requires explicit server-side context enforcement (`fsContext.enforced = true`), ensuring only privileged administrative workflows can perform recursive wipes.
+
+## Next Steps
+
+- **[Filesystem Operations](/docs/r2-file/filesystem)** — Review the complete operations guide.
+- **[Worker & Edge Delivery](/docs/r2-file/deployment)** — Learn how to configure HTTP 206 Range streaming, signed URLs, and worker options.

@@ -1,0 +1,429 @@
+---
+nav: 'Operations'
+nav-priority: 20
+title: 'Filesystem Operations'
+description: 'Complete developer guide to write, read, stat, list, search, copy, move, link, and restore operations in @irpclib/r2-file.'
+keywords:
+  - Filesystem Operations
+  - File Upload
+  - File Read
+  - Directory Listing
+  - Symlinks
+  - Soft Delete
+  - Recycle Bin
+---
+
+# Filesystem Operations
+
+**The Complete Developer Guide to Isomorphic File & Directory Lifecycle**
+
+The `@irpclib/r2-file` kit provides a clean, unified filesystem interface. Whether calling remote edge workers from a browser or running directly in Cloudflare Workers via `createFs`, the same symmetric operations apply.
+
+## Writing Content
+
+The `write()` operation persists content to storage, supporting binary file streaming as well as discriminated string and JSON encodings. Data shapes like strings and JSON values derive standard MIME types (`text/plain` and `application/json`), while binary assets declare their MIME type explicitly when creating the `IRPCFile` instance.
+
+```ts
+// Binary payload via IRPCFile
+write(path: string, data: IRPCFile, options?: WriteOptions): Promise<FileInfo>
+
+// String payload with discriminated encoding
+write(path: string, data: string, options?: WriteOptions<'text' | 'base64' | 'data-url'>): Promise<FileInfo>
+
+// JSON value (Object or Array)
+write(path: string, data: Record<string, any> | any[], options?: WriteOptions<'json'>): Promise<FileInfo>
+```
+
+### Writing Binary Files
+
+All binary data across the wire is encapsulated in an `IRPCFile`. The file descriptor must declare its MIME `type`, along with its `name` and `size`:
+
+```ts
+import { write } from '@irpclib/r2-file';
+import { IRPCFile } from '@irpclib/irpc';
+
+const file = new IRPCFile(
+  { name: 'document.pdf', size: 1048576, type: 'application/pdf' },
+  fileBlob
+);
+
+const info = await write('~/docs/document.pdf', file, {
+  public: true, // Make publicly accessible via direct GET
+  metadata: { department: 'finance', author: 'Alice' },
+});
+```
+
+### Writing Text & Discriminated Encodings
+
+You can write plain text, Base64 strings, or data URLs directly. Stored files derive their MIME type automatically or from explicit options:
+
+```ts
+// Plain text (inferred as text/plain)
+await write('~/logs/app.log', 'Application started successfully');
+
+// Base64 string
+await write('~/images/icon.png', base64String, {
+  encoding: 'base64',
+  type: 'image/png',
+});
+
+// Data URL
+await write('~/images/avatar.jpg', 'data:image/jpeg;base64,...', {
+  encoding: 'data-url',
+});
+```
+
+### Writing JSON Values
+
+Passing an object or array automatically writes the content as formatted `application/json`. For files under `maxEncodingSize` (500KB), the payload is cached write-through in D1 for instantaneous reads:
+
+```ts
+await write('~/settings/theme.json', {
+  mode: 'dark',
+  accentColor: '#3b82f6',
+  fontSize: 14,
+});
+```
+
+### Write Constraints & Limits
+
+- **`maxSize` (Default: 25MB)**: Prevents uploading files exceeding the size limit. If exceeded, the call rejects immediately with `EFBIG` before transferring bytes.
+- **`maxEncodingSize` (Default: 500KB)**: Limits inline string and JSON transfers to protect worker memory. Payloads larger than this must be written as binary `IRPCFile` streams.
+
+## Reading Content
+
+The `read()` operation retrieves file content. It adapts its return type based on the requested `encoding`:
+
+```ts
+// Binary delivery returning an IRPCBlob
+read(path: string, options?: ReadOptions): Promise<IRPCBlob | undefined>
+
+// Decoded string representation
+read(path: string, options: ReadOptions<'text' | 'base64' | 'data-url'>): Promise<string | undefined>
+
+// Parsed JSON value
+read<T>(path: string, options: ReadOptions<'json'>): Promise<T | undefined>
+```
+
+### Reading Binary Content
+
+When reading without an explicit encoding option, `read()` resolves through an `IRPCBlob`. Depending on how you invoke the call, you can download the file immediately or defer the transfer on demand:
+
+**Imperative**: Awaiting `read()` immediately downloads and returns the native `Blob`.
+
+```ts
+import { read } from '@irpclib/r2-file';
+
+// Imperative: Resolves pointer and instantly downloads the native Blob
+const blob = await read('~/media/video.mp4');
+
+if (blob) {
+  console.log(blob.size, blob.type);
+  const url = URL.createObjectURL(blob);
+}
+```
+
+**Reactive**: Calling `read.later()` fetches the pointer reference first, letting you defer the byte transfer or trigger it on demand via `.load()`.
+
+:::code-group
+```tsx [React]
+export const DownloadButton = setup((props) => {
+  const video = read.later();
+
+  async function download() {
+    video.dispatch(props.href);
+  }
+
+  return () => {
+    if (video.status === 'pending' || video.data?.status === 'pending') {
+      return (<div>Downloading... {video.data?.downloaded ?? '0'}</div>);
+    }
+
+    return (<button onClick={download}>Download</button>);
+  };
+});
+```
+```tsx [Solid]
+export const DownloadButton = setup((props) => {
+  const video = read.later();
+
+  async function download() {
+    video.dispatch(props.href);
+  }
+
+  return () => {
+    if (video.status === 'pending' || video.data?.status === 'pending') {
+      return (<div>Downloading... {video.data?.downloaded ?? '0'}</div>);
+    }
+
+    return (<button onClick={download}>Download</button>);
+  };
+});
+```
+:::
+
+:::note[Learn more about IRPCBlob]
+- **[Downloading Files](/docs/remote-function/function#downloading-files)** — Deep dive into deferred downloads, `IRPCBlob` wrappers, and reactive progress tracking.
+:::
+
+### Reading Parsed JSON
+
+Read and deserialize JSON documents with full TypeScript type safety. If the file is stored in D1's write-through cache, this executes as a sub-millisecond SQLite query:
+
+```ts
+interface UserConfig {
+  mode: 'light' | 'dark';
+  accentColor: string;
+}
+
+const config = await read<UserConfig>('~/settings/theme.json', {
+  encoding: 'json',
+});
+
+console.log(config?.mode); // 'dark'
+```
+
+### Reading Text and Data URLs
+
+```ts
+// Plain text
+const notes = await read('~/notes.txt', { encoding: 'text' });
+
+// Base64
+const base64 = await read('~/avatar.png', { encoding: 'base64' });
+
+// Dynamic Data URL (synthesized with the file's authoritative MIME type)
+const dataUrl = await read('~/avatar.png', { encoding: 'data-url' });
+```
+
+## Metadata & Existence
+
+### Inspecting Metadata
+
+`stat()` returns a pure `FileInfo` stat descriptor without downloading file bytes. For symbolic links, it dynamically resolves and returns the target's current metadata:
+
+```ts
+import { stat } from '@irpclib/r2-file';
+
+const info = await stat('~/documents/report.pdf');
+
+if (info) {
+  console.log(info.path);        // Canonical path: '/home/documents/report.pdf'
+  console.log(info.name);        // 'report.pdf'
+  console.log(info.size);        // Size in bytes
+  console.log(info.type);        // 'application/pdf'
+  console.log(info.mtime);       // Date instance
+  console.log(info.etag);        // Entity tag for caching
+  console.log(info.isDirectory); // false
+  console.log(info.public);      // true / false
+  console.log(info.metadata);    // Custom metadata tags
+}
+```
+
+:::tip[Inspecting Trashed Files]
+Pass `{ trash: true }` to resolve metadata for a soft-deleted file in the recycle bin:
+```ts
+const trashedInfo = await stat('~/old-file.txt', { trash: true });
+```
+:::
+
+### Checking Presence
+
+A fast boolean check to see if an entry exists. Soft-deleted items return `false`:
+
+```ts
+import { exists } from '@irpclib/r2-file';
+
+if (await exists('~/documents/report.pdf')) {
+  console.log('Report is ready');
+}
+```
+
+## Directories & Listings
+
+### Creating Directories
+
+Creates a directory marker in R2 and records the directory in D1:
+
+```ts
+import { mkdir } from '@irpclib/r2-file';
+
+await mkdir('~/projects/air-stack', {
+  public: false,
+  metadata: { project: 'air' },
+});
+```
+
+### Listing Directories
+
+`list()` returns a paginated list of entries inside a directory. With D1 attached, listings execute as indexed SQLite queries with sorting and multi-field filtering:
+
+```ts
+import { list } from '@irpclib/r2-file';
+
+const { entries, nextCursor } = await list('~/projects', {
+  limit: 50,
+  sort: '-mtime', // Newest first
+  filter: {
+    type: 'application/pdf',
+    size: { min: 1024, max: 10485760 }, // Between 1KB and 10MB
+  },
+});
+```
+
+### Sorting Options
+
+Sort by any field with an optional `-` prefix for descending order:
+
+```ts
+// Compound sorting: sort by type descending, then by name ascending
+await list('~/media', {
+  sort: ['-type', 'name'],
+});
+```
+
+Supported sort fields: `'name'`, `'size'`, `'mtime'`, `'type'`, `'hidden'`, `'public'`, `'deletedAt'`.
+
+### Filtering Options
+
+Narrow results server-side with rich predicates:
+
+- `filter.public` *(boolean)*: Filter by public or protected visibility.
+- `filter.type` *(string)*: Exact MIME type matching.
+- `filter.deleted` *(boolean)*: Filter by soft-deleted state.
+- `filter.size` *(`{ min?: number, max?: number }`)*: Bounded byte range.
+- `filter.mtime` *(`{ min?: Date | number, max?: Date | number }`)*: Modification timestamp range.
+- `filter.metadata` *(`Record<string, string>`)*: Match custom metadata key/value pairs.
+
+### Recursive Listings
+
+Pass `recursive: true` to traverse the entire folder hierarchy:
+
+```ts
+const { entries } = await list('~/src', { recursive: true });
+```
+
+## Indexed Search
+
+When D1 is attached, `search()` executes fast SQL queries across file names and configured `indexableKeys`:
+
+```ts
+import { search } from '@irpclib/r2-file';
+
+// Searches matching file names and indexed tags within the current working directory
+const results = await search('invoice-2026', {
+  limit: 20,
+  sort: '-mtime',
+});
+```
+
+## Copying & Moving
+
+### Copying Resources
+
+Copies a file or an entire directory tree. Both storage and metadata are duplicated:
+
+```ts
+import { copy } from '@irpclib/r2-file';
+
+// Copy a single file
+await copy('~/drafts/spec.md', '~/releases/spec.md');
+
+// Copy an entire directory recursively
+await copy('~/templates/react-app', '~/projects/my-new-app');
+```
+
+:::warning[Overwrite Protection]
+`copy()` and `move()` **never overwrite** existing destinations. If the destination path already exists, the operation halts immediately with `HandlerError('EEXIST', 'Destination exists')`. To replace an existing destination, remove it first.
+:::
+
+### Moving Resources
+
+Relocates a file or directory tree to a new path:
+
+```ts
+import { move } from '@irpclib/r2-file';
+
+await move('~/temp/upload.tmp', '~/archive/upload-final.zip');
+```
+
+## Symbolic Links
+
+Creates an alias pointing to a target file. Dynamic metadata and content resolution ensures symlinks never point to stale data:
+
+```ts
+import { link, stat, read } from '@irpclib/r2-file';
+
+// Create a shortcut
+await link('/shared/library/standard.css', '~/styles/app.css');
+
+// Reading the symlink transparently returns the target file's content
+const css = await read('~/styles/app.css', { encoding: 'text' });
+
+// Statting the symlink returns the target's current size and timestamps
+const info = await stat('~/styles/app.css');
+console.log(info?.link); // '/shared/library/standard.css'
+```
+
+## Deletion, Trash & Recovery
+
+R2 File separates accidental deletion prevention, soft deletion, and permanent purges.
+
+### Permanent Removal
+
+By default, `remove()` permanently purges files and folders to prevent hidden storage bills:
+
+```ts
+import { remove } from '@irpclib/r2-file';
+
+// Delete a single file
+await remove('~/temp/cache.json');
+
+// Delete an entire directory tree
+await remove('~/old-project', { recursive: true });
+```
+
+### Soft Delete (Recycle Bin)
+
+Pass `{ soft: true }` to move entries into the trash instead of permanently purging them:
+
+```ts
+// Soft delete a file
+await remove('~/important-report.pdf', { soft: true });
+
+// Soft-deleted files are immediately hidden from normal operations
+const fileExists = await exists('~/important-report.pdf'); // false
+const contents = await list('~'); // important-report.pdf is omitted
+```
+
+### Listing & Inspecting Trash
+
+Pass `{ trash: true }` to list soft-deleted entries:
+
+```ts
+import { list, stat } from '@irpclib/r2-file';
+
+// List files currently in the recycle bin
+const { entries } = await list('~', { trash: true });
+
+for (const item of entries) {
+  console.log(`${item.name} (deleted at: ${item.deletedAt})`);
+}
+```
+
+### Restoring Files
+
+Brings a soft-deleted file or directory tree back from the trash with its original metadata and structure intact:
+
+```ts
+import { restore } from '@irpclib/r2-file';
+
+// Restores the file back to active state
+const restoredInfo = await restore('~/important-report.pdf');
+console.log(restoredInfo.deletedAt); // undefined
+```
+
+## Next Steps
+
+- **[Paths & Access Control](/docs/r2-file/security)** — Learn about POSIX path expansions, user scopes, multi-tenancy, and `accessRules`.
+- **[Worker & Edge Delivery](/docs/r2-file/deployment)** — Configure HTTP Range requests (206), signed URLs, and production deployment.

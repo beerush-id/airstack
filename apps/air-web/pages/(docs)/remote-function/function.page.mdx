@@ -306,7 +306,7 @@ const avatar = getAvatar.later();
 // Later in the UI...
 <button onClick={async () => {
   await avatar.dispatch(props.userId); // Fetch the secure file reference
-  avatar.data?.load(); // Trigger download manually
+  console.log(avatar.data?.blob); // IRPCBlob
 }}>
   Download
 </button>

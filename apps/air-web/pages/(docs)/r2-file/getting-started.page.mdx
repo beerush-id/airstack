@@ -1,0 +1,215 @@
+---
+nav: 'Getting Started'
+nav-priority: 15
+title: 'Getting Started'
+description: 'Install @irpclib/r2-file, configure Cloudflare Worker with R2 and D1, and run your first isomorphic filesystem operations.'
+keywords:
+  - R2 File Getting Started
+  - Installation
+  - Quickstart
+  - Cloudflare R2 Filesystem
+  - Cloudflare D1 Indexing
+---
+
+# Getting Started
+
+**Set Up a Cloudflare R2 and D1 Filesystem in Minutes**
+
+In this guide, you will install `@irpclib/r2-file`, configure an edge worker with Cloudflare R2 storage and D1 relational indexing, connect a client, and perform your first read, write, and directory listing operations.
+
+## Installation
+
+Install `@irpclib/r2-file` and its peer transport dependencies:
+
+:::code-group
+
+```sh [Bun]
+bun add @irpclib/r2-file @irpclib/irpc @irpclib/http
+bun add -D @cloudflare/workers-types
+```
+
+```sh [NPM]
+npm install @irpclib/r2-file @irpclib/irpc @irpclib/http
+npm install -D @cloudflare/workers-types
+```
+
+```sh [PNPM]
+pnpm add @irpclib/r2-file @irpclib/irpc @irpclib/http
+pnpm add -D @cloudflare/workers-types
+```
+
+```sh [Yarn]
+yarn add @irpclib/r2-file @irpclib/irpc @irpclib/http
+yarn add -D @cloudflare/workers-types
+```
+
+:::
+
+## Create the Worker
+
+Create your worker entrypoint using `createWorker()`. The worker handles both the IRPC filesystem operations plane (via `POST /irpc`) and edge file delivery (via `GET /*`):
+
+```ts [src/worker.ts]
+import { createWorker } from '@irpclib/r2-file/worker';
+
+export default createWorker({
+  // Open direct GET access for public files; all others require signed URLs
+  public: ['public/**'],
+
+  // Storage limits (bytes)
+  maxSize: 25 * 1024 * 1024,          // 25MB
+  maxEncodingSize: 500 * 1024,        // 500KB
+
+  // Cache headers for static file delivery
+  cache: {
+    browserTtl: 86400,    // 1 day
+    edgeTtl: 2592000,     // 30 days
+  },
+});
+```
+
+## Configure Cloudflare Bindings
+
+Set up your `wrangler.jsonc` configuration file. Bind your R2 bucket and D1 database:
+
+```jsonc [wrangler.jsonc]
+{
+  "name": "file-service",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-09-11",
+  "r2_buckets": [
+    {
+      "binding": "BUCKET",
+      "bucket_name": "app-storage"
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "app-fs-db",
+      "database_id": "<YOUR_D1_DATABASE_ID>"
+    }
+  ],
+  "vars": {
+    "FILE_API_KEY": "your-secret-api-key"
+  }
+}
+```
+
+:::tip[Storage Bindings]
+- **`BUCKET`**: The Cloudflare R2 bucket where all binary objects are stored.
+- **`DB` (Optional)**: The Cloudflare D1 database powering fast B-tree metadata queries, search, and the write-through text/JSON cache. If omitted, R2 File operates in standalone R2-only mode.
+- **`FILE_API_KEY` (Optional)**: When set, client RPC calls must include this key in their headers.
+- **`FILE_SECRET` (Optional)**: Secret key used to sign and verify temporary delivery URLs.
+:::
+
+## Client Configuration
+
+When running within the same full-stack application origin, client calls work out of the box with zero setup.
+
+If accessing a separate worker domain or custom endpoint, point the transport using `configure()`:
+
+```ts [src/client.ts]
+import { configure } from '@irpclib/r2-file';
+
+// Only needed for cross-origin calls or custom endpoints
+configure({
+  baseUrl: 'https://files.mydomain.com',
+  apiKey: 'your-secret-api-key', // Matches FILE_API_KEY on the worker
+});
+```
+
+## Perform Filesystem Operations
+
+Now you can write, read, and list files across your remote filesystem:
+
+### Write Files
+
+```ts [src/examples.ts]
+import { write } from '@irpclib/r2-file';
+import { IRPCFile } from '@irpclib/irpc';
+
+// Write JSON directly (cached in D1 write-through cache)
+await write('~/config/settings.json', { theme: 'dark', notifications: true });
+
+// Write plain text
+await write('~/notes/todo.txt', '1. Complete documentation\n2. Ship product');
+
+// Write binary files using IRPCFile
+const fileInput = document.querySelector<HTMLInputElement>('#uploader')!;
+const domFile = fileInput.files![0];
+
+const binaryFile = new IRPCFile(
+  { name: domFile.name, size: domFile.size, type: domFile.type },
+  domFile
+);
+
+await write('~/uploads/photo.jpg', binaryFile);
+```
+
+### Read Files
+
+```ts [src/examples.ts]
+import { read } from '@irpclib/r2-file';
+
+// Parsed JSON
+const settings = await read<{ theme: string }>('~/config/settings.json', {
+  encoding: 'json',
+});
+console.log(settings?.theme); // 'dark'
+
+// Decoded text
+const notes = await read('~/notes/todo.txt', { encoding: 'text' });
+console.log(notes);
+
+// Binary file as IRPCBlob
+const photoBlob = await read('~/uploads/photo.jpg');
+if (photoBlob) {
+  const url = photoBlob.url; // Delivery URL
+  const arrayBuffer = await photoBlob.arrayBuffer(); // Binary bytes
+}
+```
+
+### List Directories
+
+```ts [src/examples.ts]
+import { list } from '@irpclib/r2-file';
+
+// List user's home directory with newest files first
+const { entries } = await list('~', {
+  sort: '-mtime',
+  limit: 20,
+});
+
+for (const entry of entries) {
+  console.log(`${entry.name} (${entry.size} bytes) [${entry.type}]`);
+}
+```
+
+## Direct Worker Usage
+
+If your application code runs directly inside a Cloudflare Worker that holds the `BUCKET` and `DB` bindings, you can create a direct filesystem instance without HTTP or RPC overhead:
+
+```ts [src/direct-worker.ts]
+import { createFs } from '@irpclib/r2-file/fs';
+
+export default {
+  async fetch(request: Request, env: Env): Promise<Response> {
+    // Create an in-memory filesystem instance wired directly to bindings
+    const fs = createFs({
+      bucket: env.BUCKET,
+      indexer: env.DB,
+    });
+
+    // Run direct filesystem operations
+    const file = await fs.read('/shared/config.json', { encoding: 'json' });
+    return Response.json(file);
+  },
+};
+```
+
+## Next Steps
+
+- **[Filesystem Operations](/docs/r2-file/filesystem)** — Explore all lifecycle methods: `mkdir`, `search`, `copy`, `move`, `link`, `remove`, and `restore`.
+- **[Paths & Access Control](/docs/r2-file/security)** — Configure user scopes (`homeDir`), multi-tenancy (`mountPoint`), and granular capability rules.
+- **[Worker & Edge Delivery](/docs/r2-file/deployment)** — Learn how to configure HTTP 206 Range seeking, signed download URLs, and public access gating.

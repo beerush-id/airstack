@@ -1,0 +1,372 @@
+---
+nav: 'Overview'
+nav-icon: storage
+nav-priority: 10
+title: 'AirLib R2 File'
+description: 'High-performance, isomorphic filesystem for Cloudflare R2, D1, and Workers with zero-egress delivery.'
+keywords:
+  - R2 File
+  - Cloudflare R2 Filesystem
+  - Cloudflare Workers
+  - Cloudflare D1
+  - Zero Egress
+  - Isomorphic Filesystem
+  - POSIX Paths
+  - Virtual Drive
+  - Object Storage Filesystem
+---
+
+# AirLib R2 File
+
+**Self-Hosted, Zero-Egress Isomorphic Filesystem on Cloudflare R2 and D1**
+
+At its core, a filesystem is just a place to store and organize files:
+
+```ts
+import { write, read } from '@irpclib/r2-file';
+
+// Save project workspace state directly as a native file
+await write('~/projects/kingdom-the-movie/meta.aivideo', projectState);
+
+// Read it back instantly as typed JSON
+const project = await read<MovieProject>(
+  '~/projects/kingdom-the-movie/meta.aivideo',
+  { encoding: 'json' }
+);
+```
+
+Native desktop software (like Photoshop, Final Cut, Blender, or VS Code) treats the filesystem as its primary persistence layer. Projects, user configurations, and creative workspaces are stored directly as native files.
+
+In web applications, developers traditionally force every piece of nested state into complex relational databases, writing ORM models, JOINs, and migration scripts just to store a project or user document.
+
+:::details[The friction of database-heavy web architectures]
+When building collaborative apps, creative suites, or document platforms on the web:
+
+- **Database Schema Tax**: Modeling user projects, documents, and folder trees in SQL/NoSQL requires complex schema migrations, foreign keys, and recursive tree queries.
+- **Painful Migrations**: Moving, cloning, or reorganizing user workspaces requires database transaction cascades, table locks, and data backfills.
+- **Separate Blob Storage & Database Split**: Assets live in S3/R2 while metadata lives in Postgres/Mongo, creating desync bugs and orphan files.
+- **Class B Read Operations**: Querying small configuration files or project metadata directly from raw S3/R2 incurs billable Class B operations that add up fast.
+:::
+
+:::tip[What if:]
+**Your web application works like a native desktop app—where the filesystem itself is your application database, and migrations are as simple as moving a folder?**
+:::
+
+R2 File combines **Cloudflare Workers** (edge routing, range streaming, and caching), **Cloudflare R2** (zero data egress blob storage), and **Cloudflare D1** (serverless relational SQLite indexing and write-through caching) into a unified filesystem engine:
+
+**Setup your edge worker**
+
+```ts [src/worker.ts]
+import { createWorker } from '@irpclib/r2-file/worker';
+
+export default createWorker({
+  public: ['public/**'],
+  maxSize: 25 * 1024 * 1024,
+});
+```
+
+**Write from client or edge**
+
+```ts [src/app.ts]
+import { write, read, list } from '@irpclib/r2-file';
+
+// Write JSON, text, or binary files
+await write('~/projects/air/spec.json', { version: '1.0.0', state: 'active' });
+
+// Fast sub-millisecond read served directly from the D1 write-through cache
+const config = await read('~/projects/air/spec.json', { encoding: 'json' });
+
+// Fast B-tree listing with sorting and metadata filtering
+const { entries } = await list('~/projects/air', { sort: '-mtime' });
+```
+
+**Bind reactively in UI components**
+
+:::code-group
+```tsx [React]
+export const DownloadButton = setup((props: { href: string }) => {
+  const file = read.later();
+
+  return () => {
+    if (file.status === 'pending' || file.data?.status === 'pending') {
+      return <div>Downloading... {file.data?.downloaded ?? '0'}</div>;
+    }
+
+    return (
+      <button onClick={() => file.dispatch(props.href)}>
+        Download
+      </button>
+    );
+  };
+});
+```
+```tsx [Solid]
+export const DownloadButton = setup((props: { href: string }) => {
+  const file = read.later();
+
+  return () => {
+    if (file.status === 'pending' || file.data?.status === 'pending') {
+      return <div>Downloading... {file.data?.downloaded ?? '0'}</div>;
+    }
+
+    return (
+      <button onClick={() => file.dispatch(props.href)}>
+        Download
+      </button>
+    );
+  };
+});
+```
+:::
+
+**Stream video/audio with native HTTP Range requests**
+
+```html
+<!-- Native 206 Partial Content video streaming straight from the edge -->
+<video src="https://cdn.mydomain.com/videos/demo.mp4" controls />
+```
+
+## Native-Like Application Architecture
+
+Traditional web development assumes every application needs a dedicated relational or document database. But creative suites, workspaces, and document apps naturally model their data as files:
+
+```ts
+import { write, read, list, copy, move } from '@irpclib/r2-file';
+
+// Save a complete project workspace directly as JSON
+await write('~/projects/kingdom-the-movie/meta.aivideo', {
+  title: 'Kingdom: The Movie',
+  scenes: 12,
+  resolution: '4K',
+  tracks: [],
+});
+
+// Load it directly with zero database queries or ORM parsing
+const project = await read<MovieProject>(
+  '~/projects/kingdom-the-movie/meta.aivideo',
+  { encoding: 'json' }
+);
+```
+
+### Why File-Driven Architecture Wins
+
+- **Zero Database Overhead**: User workspaces, projects, configs, and assets live together in the filesystem. You don't need to maintain relational database schemas or write ORM queries to store documents.
+- **Migrations are Just Moving Files**: Need to reorganize workspaces or upgrade folder structures? There are no table locks or complex schema migrations. Moving a project is simply `await move('~/v1/workspace', '~/v2/workspace')`.
+- **Trivial Backups and Duplication**: Creating project templates or duplicating workspaces is a single `copy()` call. Archiving or exporting an entire tenant or project requires zero SQL dumps.
+- **Format Evolution Without Downtime**: Self-contained project files with different versions co-exist naturally side-by-side in the filesystem without breaking backwards compatibility.
+
+## Architectural Performance & Cost Advantage
+
+By combining Cloudflare D1's serverless SQLite index with Cloudflare R2's zero-egress blob store, R2 File solves both the latency and cost problems of object storage:
+
+| Metric | Raw Object Storage (S3 / R2) | R2 File (D1 + R2 Driver Pipeline) |
+| :--- | :--- | :--- |
+| **Directory Listings** | Paginated prefix scans (~100–400 ms) | **Sub-millisecond B-tree queries** (< 5 ms) |
+| **Filtered Search** | Full bucket scans in memory | **Indexed SQL search** by name, size, type, or metadata |
+| **Small File Reads (< 500KB)** | Billable R2 Class B read per fetch | **Zero R2 Class B fees** (served from D1 cache) |
+| **Audio/Video Scrubbing** | Manual byte-range parsing headers | **Native HTTP 206 Range delivery** out of the box |
+| **Data Egress Fees** | High bandwidth egress on AWS / GCS | **$0 data egress** on Cloudflare |
+
+### Relational Indexing & Automatic Read Caching
+
+With an optional D1 database binding, your filesystem gains sub-millisecond querying and cost-efficient caching automatically:
+
+- **Instant Listings**: Directory listings, multi-field sorting, and metadata searches hit relational SQLite indexes, avoiding slow and expensive prefix scans.
+- **Write-Through Content Cache**: Small text and JSON files (up to 500KB) are automatically cached for fast reads with zero R2 Class B operation fees.
+- **Zero-Egress Canonical Storage**: Large binary files stream directly from R2, providing reliable, zero-egress object storage without memory pressure.
+
+## Core Capabilities
+
+### Unified Isomorphic Lifecycle
+
+Client stubs and direct server instances share the exact same clean lifecycle methods:
+
+```ts
+import {
+  mkdir,
+  write,
+  read,
+  stat,
+  exists,
+  list,
+  search,
+  copy,
+  move,
+  link,
+  remove,
+  restore,
+} from '@irpclib/r2-file';
+```
+
+Whether you run inside a Cloudflare Worker via `createFs({ bucket, indexer })` or in a browser via IRPC stubs, the API is 100% symmetric.
+
+:::note[Learn more about Operations]
+- **[Filesystem Operations](/docs/r2-file/filesystem)** — Complete reference for writing, reading, listing, sorting, symlinks, and lifecycle operations.
+:::
+
+### Reactive UI Components
+
+You can bind filesystem operations directly to frontend Components:
+
+:::code-group
+```tsx [React]
+export const FileExplorer = setup<{ path: string }>((props) => {
+  const dir = list.with(() => [props.path]);
+
+  return () => (
+    <>
+      <Show when={() => dir.status === 'pending'}>Loading directory...</Show>
+      <For each={() => dir.data?.entries}>
+        {(entry) => <div>{entry.name} ({entry.size} bytes)</div>}
+      </For>
+    </>
+  );
+});
+```
+```tsx [Solid]
+export const FileExplorer = setup<{ path: string }>((props) => {
+  const dir = list.with(() => [props.path]);
+
+  return () => (
+    <>
+      <Show when={dir.status === 'pending'}>Loading directory...</Show>
+      <For each={dir.data?.entries}>
+        {(entry) => <div>{entry.name} ({entry.size} bytes)</div>}
+      </For>
+    </>
+  );
+});
+```
+:::
+
+The component closure executes initialization once, while the returned render function tracks reactive status and directory entries.
+
+### Discriminated Encodings
+
+You don't need separate helper functions like `readJson` or `readText`. R2 File provides first-class discriminated encodings on both `write()` and `read()`:
+
+```ts
+import { write, read } from '@irpclib/r2-file';
+
+// JSON (Objects & Arrays)
+await write('~/data.json', { active: true });
+const data = await read<Config>('~/data.json', { encoding: 'json' });
+
+// Plain Text
+await write('~/notes.txt', 'Hello, world!');
+const text = await read('~/notes.txt', { encoding: 'text' });
+
+// Base64 & Data URLs
+await write('~/avatar.png', base64Data, { encoding: 'base64' });
+const dataUrl = await read('~/avatar.png', { encoding: 'data-url' });
+
+// Binary (IRPCBlob: resolves directly to native Blob)
+const blob = await read('~/media/podcast.mp3');
+```
+
+### Predictable POSIX Paths
+
+R2 File treats paths with true POSIX semantics:
+
+- **Home-Relative (`~` or `~/...`)**: Resolves directly to the user's active `$HOME` directory (e.g., `~/notes.md` &rarr; `/home/notes.md` or `/users/alice/notes.md`).
+- **Mount-Root Absolute (`/...`)**: Canonical absolute path across the entire filesystem partition. Eliminates path drift during cross-user sharing and database references.
+- **Working-Directory Relative (`./...`)**: Resolves relative to the active `cwd`.
+- **Single Clamping Boundary (`/`)**: All paths normalize uniformly and clamp exclusively at the mount root `/` (`/.. === /`). Traversal outside `homeDir` is caught cleanly by access control rules, never by silent path redirection.
+- **Outward Stripping**: Storage mount prefixes (`mountPoint: '/tenants/org_123'`) are automatically stripped from return values. Callers only ever see canonical, clean paths.
+
+:::note[Learn more about Paths & Security]
+- **[Paths & Access Control](/docs/r2-file/security)** — POSIX path rules, ambient `fsContext`, multi-tenancy, and granular capability ACLs.
+:::
+
+### Edge Delivery Plane
+
+Serve files through high-performance edge HTTP endpoints without extra infrastructure:
+
+```ts [src/worker.ts]
+import { createWorker } from '@irpclib/r2-file/worker';
+
+export default createWorker({
+  // Open access for matching patterns; all others require signed URLs
+  public: ['public/**', 'banners/*'],
+
+  // Topology: disable RPC to run as a dedicated streaming CDN
+  callable: true,
+
+  // Stream video and audio with 206 Partial Content support
+  cache: {
+    browserTtl: 86400,    // 1 day
+    edgeTtl: 2592000,     // 30 days
+  },
+});
+```
+
+- **HTTP 206 Partial Content**: Stream video and audio files with native range seeking and player scrubbing.
+- **Signed Expiring URLs**: Generate time-limited HMAC-SHA256 tokens (`?token=...&expires=...`) for protected downloads.
+
+:::note[Learn more about Edge Delivery]
+- **[Worker & Edge Delivery](/docs/r2-file/deployment)** — Setting up `createWorker()`, Range streaming, signed URLs, and production Wrangler bindings.
+:::
+
+## Combining with R2 Image
+
+When combining `@irpclib/r2-file` and `@irpclib/r2-image`, R2 File serves as the single authority for file mutations (writes, moves, deletions, and POSIX path permissions). R2 Image does not need its own IRPC mutation surface—it operates strictly as an on-demand delivery and optimization gateway:
+
+- **Storage via R2 File**: Write and organize images using absolute mount-root paths like `await write('/assets/images/banner.png', file)` (avoiding relative `cwd` or user directory resolution).
+- **Delivery via R2 Image**: Request images via `<img src="/assets/images/banner.png?s=640&f=webp" />`. The resizer pulls the original file from storage, optimizes it, and caches the variant at the edge.
+
+```ts [server/worker.ts]
+import { Container } from '@cloudflare/containers';
+import { createWorker as createImageWorker } from '@irpclib/r2-image/worker';
+import { createWorker as createFileWorker } from '@irpclib/r2-file/worker';
+import appWorker from '../dist/server/worker.js';
+
+export class ImageResizer extends Container {
+  defaultPort = 8080;
+}
+
+// Delivery-only gateway: on-demand resizing from shared bucket
+const imageDelivery = createImageWorker({
+  allowedSizes: [128, 256, 640, 1024],
+  onDemand: true,
+});
+
+// Operations & delivery plane for all filesystem storage
+const fileService = createFileWorker({
+  endpoint: '/r2-file-irpc',
+  public: ['public/**'],
+  maxSize: 25 * 1024 * 1024,
+});
+
+export default {
+  async fetch(req: Request, env: any, ctx: any): Promise<Response> {
+    const url = new URL(req.url);
+
+    // On-demand image optimization and delivery (e.g. /assets/images/*)
+    if (req.method === 'GET' && url.pathname.startsWith('/assets/images/')) {
+      return imageDelivery.fetch(req, env, ctx);
+    }
+
+    // Filesystem range streaming and IRPC operations (e.g. /files/*)
+    if (url.pathname === '/r2-file-irpc' || url.pathname.startsWith('/files/')) {
+      return fileService.fetch(req, env, ctx);
+    }
+
+    // Primary application handler (SSR, pages, application IRPC)
+    return appWorker.fetch(req, env, ctx);
+  },
+};
+```
+
+This co-located architecture gives you zero-egress file storage, sub-millisecond SQLite file indexing, and container-based WebP/AVIF transformations on a single origin with zero CORS friction.
+
+:::note[Learn more about R2 Image]
+- **[AirLib R2 Image Documentation](/docs/r2-image)** — Self-hosted, zero-egress image optimization, orientation-agnostic sizing, and container deployment.
+:::
+
+## Next Steps
+
+- **[Getting Started](/docs/r2-file/getting-started)** — Install the package, set up your Cloudflare Worker with R2 and D1, and run your first filesystem call.
+- **[Filesystem Operations](/docs/r2-file/filesystem)** — Learn how to write, read, list, filter, copy, link, and restore files.
+- **[Paths & Access Control](/docs/r2-file/security)** — Master POSIX path expansion, multi-tenancy, and `accessRules`.
+- **[Worker & Edge Delivery](/docs/r2-file/deployment)** — Configure HTTP Range streaming, caching, signing secrets, and Wrangler deployment.
+- **[AirLib R2 Image](/docs/r2-image)** — Explore self-hosted, zero-egress image optimization and container-based resizing.

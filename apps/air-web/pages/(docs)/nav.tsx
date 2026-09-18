@@ -2,6 +2,7 @@ import type { NavItem } from '@airlib/react/mdx';
 import ariaMeta from '@airlib-cache/metadata/(docs)/aria/index.js';
 import formMeta from '@airlib-cache/metadata/(docs)/form/index.js';
 import docsMeta from '@airlib-cache/metadata/(docs)/index.js';
+import r2FileMeta from '@airlib-cache/metadata/(docs)/r2-file/index.js';
 import r2ImageMeta from '@airlib-cache/metadata/(docs)/r2-image/index.js';
 // import componentsMeta from '@airlib-cache/metadata/(docs)/material-css/components/index.js';
 // import extensionsMeta from '@airlib-cache/metadata/(docs)/material-css/extensions/index.js';
@@ -169,6 +170,12 @@ export const navs: NavItem[] = [
         icon: () => <BuildIcon />,
       },
     ],
+  },
+  {
+    text: 'R2 File',
+    icon: () => <StorageIcon />,
+    collapsed: true,
+    items: toNavItems(r2FileMeta),
   },
   {
     text: 'R2 Image',
