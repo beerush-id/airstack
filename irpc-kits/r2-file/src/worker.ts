@@ -1,8 +1,9 @@
 import type { ExecutionContext, ExportedHandler } from '@cloudflare/workers-types';
 import { HTTPRouter } from '@irpclib/http/router';
+import type { AnyType } from '@irpclib/irpc';
 import type { FileAdapter } from './adapter.js';
-import { implement } from './constructor.js';
 import type { FileWorkerEnv } from './constructor.js';
+import { implement } from './constructor.js';
 import { transport } from './index.js';
 import type { FileAdapterOptions } from './types.js';
 import { matchPattern, mountAt, normalizeSegments } from './utils/path.js';
@@ -64,6 +65,7 @@ export function createWorker(config: FileWorkerConfig = {}): ExportedHandler<Fil
   }
 
   return {
+    router,
     async fetch(request: Request, env: FileWorkerEnv, ctx: ExecutionContext): Promise<Response> {
       const url = new URL(request.url);
 
@@ -88,7 +90,7 @@ export function createWorker(config: FileWorkerConfig = {}): ExportedHandler<Fil
 
       return new Response('Method Not Allowed', { status: 405 });
     },
-  };
+  } as unknown as ExportedHandler<FileWorkerEnv>;
 }
 
 /**
@@ -109,7 +111,10 @@ function respondPreflight(request: Request, cors?: CorsOptions): Response {
 /**
  * Resolves the ACAO value for a request origin, or `undefined` when disallowed.
  */
-function resolveAllowedOrigin(configured: string | string[] | boolean | undefined, origin: string | null): string | undefined {
+function resolveAllowedOrigin(
+  configured: string | string[] | boolean | undefined,
+  origin: string | null
+): string | undefined {
   if (configured === true) return origin ?? undefined;
   if (typeof configured === 'string') return configured;
   if (Array.isArray(configured) && origin !== null && configured.includes(origin)) return origin;
@@ -192,7 +197,7 @@ async function deliverFile(
   if (object === null) {
     return new Response('Not Found', { status: 404 });
   }
-  const response = new Response(object.body, { status: 200, headers });
+  const response = new Response(object.body as AnyType, { status: 200, headers });
   ctx.waitUntil(cache.put(request, response.clone()));
   return response;
 }
@@ -222,7 +227,7 @@ async function deliverRange(
     return new Response('Not Found', { status: 404 });
   }
   headers.set('Content-Range', `bytes ${start}-${end}/${size}`);
-  return new Response(object.body, { status: 206, headers });
+  return new Response(object.body as AnyType, { status: 206, headers });
 }
 
 /**
