@@ -4,7 +4,7 @@ AirLib supports two navigation patterns: declarative linking via the `<Link>` co
 
 ---
 
-## 1. The `<Link>` Component
+## The `<Link>` Component
 
 Use `<Link>` for client-side declarative navigation. It computes destination URLs dynamically, injects active state classes, and pre-fetches route assets:
 
@@ -48,7 +48,7 @@ export const NavMenu = template(() => (
 
 ---
 
-## 2. Active Link Styling
+## Active Link Styling
 
 When a route is active, `<Link>` automatically receives `aria-current="page"` and appends `activeClass`.
 
@@ -66,7 +66,7 @@ For index routes, matching is strict by default. To keep an index link active wh
 
 ---
 
-## 3. Link Preloading (`preload`)
+## Link Preloading (`preload`)
 
 To eliminate navigation latency, configure links to pre-fetch route data on user interaction via `preload="hover"` (as shown in `NavMenu` above). When the user hovers over the link, the router runs the target route's guards and data providers in the background.
 
@@ -81,7 +81,7 @@ export const profileRoute = usersRoute.route('/:user_id', {
 
 ---
 
-## 4. Programmatic Navigation (`navigate`)
+## Programmatic Navigation (`navigate`)
 
 Use `navigate()` inside event handlers, form actions, or async callbacks:
 
@@ -93,17 +93,17 @@ import profileRoute from '@/pages/users/[user_id]/route.js';
 
 export default page(usersRoute).render(() => {
   const handleSelectUser = (userId: string) => {
-    // 1. Navigate via route object (preferred)
+    // Navigate via route object (preferred)
     navigate(profileRoute, { params: { user_id: userId } });
   };
 
   const handlePaginate = (pageNumber: number) => {
-    // 2. Navigate with query parameters
+    // Navigate with query parameters
     navigate(usersRoute, { query: { page: pageNumber } });
   };
 
   const handleRedirect = (userId: string) => {
-    // 3. Replace current history entry instead of pushing
+    // Replace current history entry instead of pushing
     navigate(profileRoute, { params: { user_id: userId }, replace: true });
   };
 
@@ -119,7 +119,7 @@ export default page(usersRoute).render(() => {
 
 ---
 
-## 5. URL Generation (`route.url`)
+## URL Generation (`route.url`)
 
 Generate a valid URL string from a route definition without triggering navigation (useful for clipboard copy, sharing, or analytics):
 
@@ -135,7 +135,7 @@ const profileUrl = profileRoute.url(
 
 ---
 
-## 6. Global Navigation Progress
+## Global Navigation Progress
 
 The router tracks in-flight navigation progress on `router.state`. Use this to display a top-level loading progress bar:
 

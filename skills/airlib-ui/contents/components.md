@@ -4,7 +4,7 @@ This guide explains how to construct user interface elements in AirLib based on 
 
 ---
 
-## 1. UI Hierarchy: Choosing the Right Level
+## UI Hierarchy: Choosing the Right Level
 
 AirLib divides UI into three architectural tiers to prevent premature abstraction and unnecessary component overhead:
 
@@ -16,7 +16,7 @@ AirLib divides UI into three architectural tiers to prevent premature abstractio
 
 ---
 
-## 2. Static UI
+## Static UI
 
 Use plain HTML elements inline whenever the interface does not depend on reactive state:
 
@@ -36,7 +36,7 @@ Native HTML elements manage their own presentation and open/close states without
 
 ---
 
-## 3. Reactive UI (`template`)
+## Reactive UI (`template`)
 
 A Reactive UI presents external reactive data without owning it. It reads from a source (a prop, store, or state) and updates when that data changes, without maintaining its own internal state or lifecycle.
 
@@ -95,7 +95,7 @@ If a component does not maintain internal state (`mutable`), register lifecycle 
 
 ---
 
-## 4. Autonomous Components (`setup`)
+## Autonomous Components (`setup`)
 
 An autonomous component is a self-governing unit that owns its own state, behavior, and lifecycle.
 
@@ -142,16 +142,16 @@ TIP: **3. View Size Heuristic: When to Fragment**
 
 ---
 
-## 5. Two-Way State Binding (`$bind` and `Bindable<T>`)
+## Two-Way State Binding (`$bind` and `Bindable<T>`)
 
 ### The Problem: Parent Micromanagement
 In traditional one-way data flow, a parent often ends up micromanaging every child (e.g. tracking `isActive` for 10 buttons, passing 10 `onClick` callbacks).
 
 ### The AirLib Solution: Two-Way State Contracts
-1. The child component declares `value?: Bindable<T>`.
-2. The child determines its own active state and updates `props.value` directly.
-3. The parent connects state using `$bind(state, 'property')`. Updates propagate bidirectionally with zero callback plumbing.
-4. `onClick` is reserved strictly for **side effects** (e.g., analytics, closing a menu), not state control.
+- The child component declares `value?: Bindable<T>`.
+- The child determines its own active state and updates `props.value` directly.
+- The parent connects state using `$bind(state, 'property')`. Updates propagate bidirectionally with zero callback plumbing.
+- `onClick` is reserved strictly for **side effects** (e.g., analytics, closing a menu), not state control.
 
 ### Example: Standalone Autonomous Toggle
 
@@ -194,7 +194,7 @@ IMPORTANT:
 
 ---
 
-## 6. Lifecycle Hooks (`onMount`, `onCleanup`)
+## Lifecycle Hooks (`onMount`, `onCleanup`)
 
 AirLib components support standard lifecycle hooks for managing setup and teardown:
 
@@ -249,7 +249,7 @@ export const PollingWidget = setup(() => {
 
 ---
 
-## 7. Rendering Children: Direct `{children}` vs. `renderDynamic`
+## Rendering Children: Direct `{children}` vs. `renderDynamic`
 
 ### The Golden Rule
 IMPORTANT:
@@ -301,7 +301,7 @@ export const StatusCard = template<StatusCardProps>(({ loading, children }) => {
 ```
 
 ---
-## 8. Ambient Context & Compound Components (`createContext`)
+## Ambient Context & Compound Components (`createContext`)
 
 When building collection-based UI (e.g., `Accordion`, `Tabs`, `RadioGroup`, `Select`, `Breadcrumbs`), the parent container coordinates state and distributes it via ambient context.
 
@@ -312,20 +312,20 @@ In the member's `setup()` body, call `const state = ctx.get()`.
 This pattern is strongly preferred over bare `setContext` / `getContext` with manual symbol keys because it provides automatic type safety and clean ergonomics.
 
 ### Architectural Rule: Container Coordinates, Members Consume
-1. **Container (`<Accordion value={$bind(state, 'active')}>`)**:
+- **Container (`<Accordion value={$bind(state, 'active')}>`)**:
    - Accepts the state contract (`value?: Bindable<string>`).
    - In its `setup()` body, establishes ambient context via `accordionCtx.set(...)`.
    - Directly renders `{children}` — no cloning, no prop hijacking.
-2. **Member (`<Accordion.Item value="section-1">`)**:
+- **Member (`<Accordion.Item value="section-1">`)**:
    - Accepts its own identifier (`value: string`) and display content.
    - Retrieves ambient context via `accordionCtx.get()`.
    - Uses `derived()` to compute its active status (`derived(() => ctx?.value === props.value)`).
    - Calls `ctx?.select(props.value)` on interaction.
-3. **Consumer DX**: The caller binds once on the root container, avoiding redundant boilerplate across items.
+- **Consumer DX**: The caller binds once on the root container, avoiding redundant boilerplate across items.
 
 ### Example: Accordion Compound Component
 
-#### 1. Context Definition (`accordion.context.ts`)
+#### Context Definition (`accordion.context.ts`)
 ```ts
 import { createContext, type Bindable } from '@airlib/react'; // or '@airlib/solid'
 
@@ -338,7 +338,7 @@ export interface AccordionState {
 export const accordionCtx = createContext<AccordionState>();
 ```
 
-#### 2. Container (`Accordion.tsx`)
+#### Container (`Accordion.tsx`)
 ```tsx
 import { setup, type Bindable } from '@airlib/react'; // or '@airlib/solid'
 import type { ReactNode } from 'react';
@@ -369,7 +369,7 @@ export const Accordion = setup<AccordionProps>((props) => {
 }, 'Accordion');
 ```
 
-#### 3. Dual-Mode Member Item (`AccordionItem.tsx`)
+#### Dual-Mode Member Item (`AccordionItem.tsx`)
 ```tsx
 import { setup, derived, type Bindable } from '@airlib/react'; // or '@airlib/solid'
 import type { ReactNode } from 'react';
@@ -416,7 +416,7 @@ export const AccordionItem = setup<AccordionItemProps>((props) => {
 }, 'AccordionItem');
 ```
 
-#### 4. Clean Caller Usage
+#### Clean Caller Usage
 
 ```tsx
 import { setup, mutable, $bind } from '@airlib/react'; // or '@airlib/solid'
@@ -455,7 +455,7 @@ export const FAQ = setup(() => {
 
 ---
 
-## 9. Dependency Injection & Global Services (`createContext`)
+## Dependency Injection & Global Services (`createContext`)
 
 Similarly, for global services or shared application state, define a typed context handle at module level:
 
@@ -480,7 +480,7 @@ NOTE: Bare `setContext(key, value)` and `getContext(key)` exist as lower-level e
 
 ---
 
-## 10. Unique Identifiers & Scoped Counters (`uuid`, `shortId`, `uIndex`)
+## Unique Identifiers & Scoped Counters (`uuid`, `shortId`, `uIndex`)
 
 When generating stable DOM IDs, accessibility pairings, keys, or compound component indexes, use AirLib's built-in identifier utilities from `@airlib/react/utils` or `@airlib/solid/utils`:
 

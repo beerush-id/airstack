@@ -4,7 +4,7 @@ AirLib Form provides a global configuration API through `configureForm`. Calling
 
 ---
 
-## 1. Setting Up `configureForm()`
+## Setting Up `configureForm()`
 
 Call `configureForm()` at the root entry point of your application (e.g. `main.tsx` or `client.tsx`):
 
@@ -78,7 +78,7 @@ configureForm({
 
 ---
 
-## 2. Granular Input Type Customization
+## Granular Input Type Customization
 
 Different input controls often demand specialized styling (e.g. checkboxes and file pickers differ fundamentally from text inputs). Specific input keys merge on top of the base `input` defaults:
 
@@ -111,7 +111,7 @@ configureForm({
 
 ---
 
-## 3. Configuration Reference Table
+## Configuration Reference Table
 
 ### Structural Components
 
@@ -151,7 +151,7 @@ Each input accepts `{ class?: string, errorClass?: string }`:
 
 ---
 
-## 4. Local Instance Overrides
+## Local Instance Overrides
 
 Global settings establish the baseline. Any property passed directly to a component instance overrides the global default:
 

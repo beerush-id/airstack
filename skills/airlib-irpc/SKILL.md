@@ -43,7 +43,7 @@ Saw an unfamiliar symbol, method, or class in existing code? Look it up here to 
 
 ## Questions & Tasks Covered by Each Topic
 
-### 1. [Declarations & Client Execution](./contents/declarations.md)
+### [Declarations & Client Execution](./contents/declarations.md)
 Load this topic when you need to answer:
 - How do I define a type-safe contract between client and server without managing HTTP routes or endpoints?
 - How do I pass positional parameters, nested objects, or no arguments to a remote function?
@@ -54,7 +54,7 @@ Load this topic when you need to answer:
 - How do I avoid redundant network requests through caching, deduplicate simultaneous identical calls, or retry on connection failure?
 - How do I validate function arguments and return shapes at runtime before execution?
 
-### 2. [Server Handlers & Reactive Streaming](./contents/handlers.md)
+### [Server Handlers & Reactive Streaming](./contents/handlers.md)
 Load this topic when you need to answer:
 - How do I write the server-side implementation for a declared remote function?
 - How do I isolate request context across concurrent server requests so user sessions never leak?
@@ -67,7 +67,7 @@ Load this topic when you need to answer:
 - How do I read or set authentication cookies inside server functions without touching HTTP headers manually?
 - Why do server business logic errors fail immediately while network errors get retried?
 
-### 3. [Network Transports & Routers](./contents/transports.md)
+### [Network Transports & Routers](./contents/transports.md)
 Load this topic when you need to answer:
 - How do I switch network protocols (HTTP, WebSocket, or local thread) without changing any UI calls or business logic?
 - How do I batch multiple simultaneous UI function calls into a single HTTP request automatically?
@@ -78,7 +78,7 @@ Load this topic when you need to answer:
 - How are active connections and streams cleaned up when a user navigates away, times out, or disconnects?
 - How do I connect remote functions to a custom transport protocol?
 
-### 4. [Standardized CRUD & Driver Adapters](./contents/crud.md)
+### [Standardized CRUD & Driver Adapters](./contents/crud.md)
 Load this topic when you need to answer:
 - How do I generate standard database operations (create, read, update, delete) for an entity in a single declaration?
 - How do I restrict an entity to read-only or omit specific operations?
@@ -89,7 +89,7 @@ Load this topic when you need to answer:
 - How do I add custom generic operations (such as filtered list queries) to all entities?
 - When should I write a custom server handler for a single entity operation instead of using generic database drivers?
 
-### 5. [Interceptors, Guards & Spec Hooks](./contents/interceptors.md)
+### [Interceptors, Guards & Spec Hooks](./contents/interceptors.md)
 Load this topic when you need to answer:
 - What is the lifecycle order of requests from initial browser click to server handler execution?
 - How do I parse incoming headers (like authorization tokens) and build shared session data for all incoming calls?
@@ -97,7 +97,7 @@ Load this topic when you need to answer:
 - How do I reject unauthorized requests with standardized permission error codes?
 - How do I validate function arguments in the browser before sending and re-verify them on the server to prevent tampering?
 
-### 6. [Webhooks & REST Translation](./contents/webhooks.md)
+### [Webhooks & REST Translation](./contents/webhooks.md)
 Load this topic when you need to answer:
 - Why can't third-party webhooks (like Stripe or GitHub) talk directly to internal remote function protocols?
 - How do I define a remote function to receive an incoming JSON webhook payload?
@@ -106,7 +106,7 @@ Load this topic when you need to answer:
 - How do I return specific HTTP status codes (like 200 OK or plain text) required by webhook providers to acknowledge receipt?
 - How do I verify HMAC signatures or security headers on incoming webhook requests?
 
-### 7. [Distribution, Monitoring & Durable State](./contents/distribution.md)
+### [Distribution, Monitoring & Durable State](./contents/distribution.md)
 Load this topic when you need to answer:
 - How do package names and versions prevent silent contract mismatches between client and server?
 - How do I direct different groups of functions to separate backend microservices without an API gateway?

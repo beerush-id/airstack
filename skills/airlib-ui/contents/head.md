@@ -4,7 +4,7 @@ This guide explains how to manage page titles, meta descriptions, Open Graph pre
 
 ---
 
-## 1. Page Metadata Basics
+## Page Metadata Basics
 
 Render `<Head>` inside any page or component to configure document `<head>` properties. It works identically during Server-Side Rendering (SSR) and client-side navigation.
 
@@ -58,7 +58,7 @@ export default page(dashboardRoute).render(() => (
 
 ---
 
-## 2. Automatic Social Platform Fallbacks
+## Automatic Social Platform Fallbacks
 
 When you set basic metadata, `<Head>` automatically derives the required meta tags for Open Graph and Twitter/X:
 
@@ -70,7 +70,7 @@ When you set basic metadata, `<Head>` automatically derives the required meta ta
 
 ---
 
-## 3. Structured Data (JSON-LD)
+## Structured Data (JSON-LD)
 
 To provide rich snippets for search engines (e.g. articles, products, organizations), pass a JSON-LD object directly into `meta.jsonLd`:
 
@@ -94,7 +94,7 @@ To provide rich snippets for search engines (e.g. articles, products, organizati
 
 ---
 
-## 4. Metadata API Reference
+## Metadata API Reference
 
 | Field | Type | Description |
 |---|---|---|

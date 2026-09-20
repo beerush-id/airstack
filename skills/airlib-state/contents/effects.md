@@ -4,7 +4,7 @@ Side effects bridge reactive state with outside systems—such as mutating the D
 
 ---
 
-## 1. Automatic Dynamic Tracking (`effect`)
+## Automatic Dynamic Tracking (`effect`)
 
 `effect()` runs immediately on declaration and automatically subscribes to any reactive property read during synchronous execution. There are **no dependency arrays**:
 
@@ -53,11 +53,11 @@ appState.showDetails = true;
 
 ---
 
-## 2. Resource Cleanup
+## Resource Cleanup
 
 Effects can return a teardown function. The cleanup callback executes:
-1. Immediately before the effect re-runs (due to a dependency change).
-2. When the surrounding component or reactive scope unmounts.
+- Immediately before the effect re-runs (due to a dependency change).
+- When the surrounding component or reactive scope unmounts.
 
 ```ts
 import { mutable, effect } from '@airlib/react'; // or '@airlib/solid'
@@ -77,7 +77,7 @@ effect(() => {
 
 ---
 
-## 3. Untracking Dependencies (`untrack`)
+## Untracking Dependencies (`untrack`)
 
 When you need to read reactive data inside an effect without subscribing to its future updates, wrap the read or execution in `untrack()`:
 
@@ -89,13 +89,13 @@ export const authState = mutable({ token: 'bearer_123' });
 export const endpointState = mutable({ url: '/api/save' });
 
 effect(() => {
-  // 1. Reactive trigger: re-run whenever content changes
+  // Reactive trigger: re-run whenever content changes
   const body = documentState.content;
 
-  // 2. Untracked read: fetch latest endpoint without subscribing
+  // Untracked read: fetch latest endpoint without subscribing
   const url = untrack(() => endpointState.url);
 
-  // 3. Untracked execution: perform network call without subscribing to auth token
+  // Untracked execution: perform network call without subscribing to auth token
   untrack(() => {
     fetch(url, {
       method: 'POST',
@@ -108,7 +108,7 @@ effect(() => {
 
 ---
 
-## 4. Safe Serialization & Non-Reactive Snapshots
+## Safe Serialization & Non-Reactive Snapshots
 
 Because Anchor tracks every property accessed synchronously, calling `JSON.stringify(state)` or iterating through an entire object tree will subscribe the effect to every single property.
 
@@ -151,7 +151,7 @@ effect(() => {
 
 ---
 
-## 5. Client-Side Only Effects (`effect.client`)
+## Client-Side Only Effects (`effect.client`)
 
 To prevent hydration mismatches and avoid running DOM or browser APIs during Server-Side Rendering (SSR), use `effect.client()`. On the server, it evaluates as a no-op:
 
@@ -173,7 +173,7 @@ export function registerWindowResizeListener(onResize: () => void) {
 
 ---
 
-## 6. Async Effects (`effect.async` & `awaited`)
+## Async Effects (`effect.async` & `awaited`)
 
 Standard JavaScript `async` functions pause execution at `await`, which severs the synchronous tracking context. Any reactive property accessed *after* an unwrapped `await` fails to register as a dependency.
 
@@ -200,7 +200,7 @@ effect.async(async () => {
 
 ---
 
-## 7. Global Observability (`subscribe`)
+## Global Observability (`subscribe`)
 
 When building persistence layers or devtools that need to detect mutations anywhere in a state tree without manually reading every key, use `subscribe`:
 
@@ -220,7 +220,7 @@ const unsubscribe = subscribe(settings, (currentValue, event) => {
 
 ---
 
-## 8. Async and Timing Helpers
+## Async and Timing Helpers
 
 AirLib provides zero-dependency timing and execution scheduling primitives exported from `@airlib/react/utils` and `@airlib/solid/utils`:
 
@@ -298,8 +298,8 @@ scheduleBatch(() => syncActivityLog());
 
 ---
 
-## 9. Effect Best Practices
+## Effect Best Practices
 
-1. **Keep effects isolated by concern**: Never lump unrelated state synchronizations into one monolithic effect.
-2. **Avoid circular write cycles**: Never mutate a property inside an effect that directly or indirectly triggers that same effect.
-3. **Use `derived` for computed values**: If your goal is calculating data from other data, use `derived` or `derived.as` rather than writing into a second `mutable` inside an `effect`.
+- **Keep effects isolated by concern**: Never lump unrelated state synchronizations into one monolithic effect.
+- **Avoid circular write cycles**: Never mutate a property inside an effect that directly or indirectly triggers that same effect.
+- **Use `derived` for computed values**: If your goal is calculating data from other data, use `derived` or `derived.as` rather than writing into a second `mutable` inside an `effect`.

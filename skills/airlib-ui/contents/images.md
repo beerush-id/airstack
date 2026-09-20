@@ -4,17 +4,17 @@ This guide explains how to render optimized, responsive images with build-time W
 
 ---
 
-## 1. The Image Pipeline
+## The Image Pipeline
 
 Delivering responsive images typically requires manually generating multiple image variants, writing verbose `<picture>` and `srcset` tags, or paying high SaaS transformation fees.
 
 AirLib automates this at build time using the Vite asset pipeline:
-1. Importing an image with `?asset` generates modern WebP variants at target resolutions during build time.
-2. The universal `<Image>` component automatically injects the correct `srcset`, `sizes`, and intrinsic aspect ratios.
+- Importing an image with `?asset` generates modern WebP variants at target resolutions during build time.
+- The universal `<Image>` component automatically injects the correct `srcset`, `sizes`, and intrinsic aspect ratios.
 
 ---
 
-## 2. Using the `<Image>` Component
+## Using the `<Image>` Component
 
 ### React Example
 
@@ -61,7 +61,7 @@ export function HeroSection() {
 
 ---
 
-## 3. Props Reference
+## Props Reference
 
 | Prop | Type | Description |
 |---|---|---|
@@ -75,7 +75,7 @@ export function HeroSection() {
 
 ---
 
-## 4. Key Benefits
+## Key Benefits
 
 - **Zero Layout Shift (CLS)**: The `<Image>` component automatically preserves intrinsic width and height dimensions before the asset loads.
 - **Modern Formats**: Automatically converts heavy PNGs/JPEGs to optimized WebP formats at build time.

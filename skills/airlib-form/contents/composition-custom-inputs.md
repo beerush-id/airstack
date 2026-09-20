@@ -4,7 +4,7 @@ AirLib Form provides multiple composition patterns to adapt to any design system
 
 ---
 
-## 1. Named Field Slots (`<Component.Snippet>`)
+## Named Field Slots (`<Component.Snippet>`)
 
 Named field slots allow injecting custom elements or adornments into predefined layout regions while preserving the field's automated accessibility (`id`, `htmlFor`, `aria-invalid`, `aria-describedby`) and error container structure.
 
@@ -71,7 +71,7 @@ import { UserForm } from './UserForm.js';
 
 ---
 
-## 2. Headless Field Customization
+## Headless Field Customization
 
 When you need total control over the markup surrounding an input, pass a render function as `children` to `<UserForm.Field>`.
 
@@ -150,7 +150,7 @@ import { UserForm } from './UserForm.js';
 
 ---
 
-## 3. Headless Input Customization
+## Headless Input Customization
 
 All built-in inputs accept a function as `children`. When provided, the input calculates all required HTML attributes, ARIA roles, and event listeners, yielding `(props, input)`:
 
@@ -218,7 +218,7 @@ import { Checkbox, TextInput } from '@airlib/solid-form';
 
 ---
 
-## 4. Reusable Input Wrappers (`for={props}`)
+## Reusable Input Wrappers (`for={props}`)
 
 To create reusable design-system inputs without losing context wiring, forward incoming props through `for={props}`:
 
@@ -266,11 +266,11 @@ export const LabeledSearchInput = setup<TextInputProps>((props) => {
 
 ---
 
-## 5. Built-In Accessibility (a11y) Invariants
+## Built-In Accessibility (a11y) Invariants
 
 Every `<Field>` and input component adheres to accessibility specifications automatically:
 
-1. **Label Association**: The `<label>` element renders with `htmlFor="{fieldId}"`, pointing directly to the `<input id="{fieldId}">`.
-2. **Invalid State Indication**: When a field fails schema validation or cross-field matching, `aria-invalid="true"` is attached to the input element.
-3. **Error Identification**: The input receives `aria-describedby="{fieldId}-error"`. The accompanying error container renders with `id="{fieldId}-error"` and `role="alert"`.
-4. **Interaction Lockout**: When the parent form enters `pending` submission status, all inputs receive `disabled={true}`, preventing screen reader edits while network transactions are active.
+- **Label Association**: The `<label>` element renders with `htmlFor="{fieldId}"`, pointing directly to the `<input id="{fieldId}">`.
+- **Invalid State Indication**: When a field fails schema validation or cross-field matching, `aria-invalid="true"` is attached to the input element.
+- **Error Identification**: The input receives `aria-describedby="{fieldId}-error"`. The accompanying error container renders with `id="{fieldId}-error"` and `role="alert"`.
+- **Interaction Lockout**: When the parent form enters `pending` submission status, all inputs receive `disabled={true}`, preventing screen reader edits while network transactions are active.

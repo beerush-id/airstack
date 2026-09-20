@@ -4,7 +4,7 @@ Guards ensure components never mount in an unauthorized or invalid state. By eva
 
 ---
 
-## 1. Declaring Route Guards
+## Declaring Route Guards
 
 Attach one or more guards to a route using `.guard()`. A guard is a synchronous or asynchronous function that checks access conditions before the route can activate:
 
@@ -59,7 +59,7 @@ If any guard throws a redirect or an error, navigation immediately halts. The co
 
 ---
 
-## 2. Parallel Guard Execution
+## Parallel Guard Execution
 
 When multiple `.guard()` calls are registered on the same route segment, the router evaluates them concurrently using `Promise.all()`:
 
@@ -84,7 +84,7 @@ If any guard throws, navigation cancels immediately without waiting for remainin
 
 ---
 
-## 3. Hierarchical Protection
+## Hierarchical Protection
 
 Guards automatically cascade down the route tree. A guard attached to a parent route in `pages/settings/route.ts` automatically protects all child routes under `pages/settings/`:
 
@@ -126,7 +126,7 @@ If the parent guard fails, the router never traverses into or evaluates child ro
 
 ---
 
-## 4. Reactive Interception
+## Reactive Interception
 
 Guards execute within a reactive observer. If a guard reads an AirLib `mutable` or reactive signal, the router re-evaluates the guard whenever that state changes:
 
@@ -159,7 +159,7 @@ When `authState.isAuthenticated` changes from `true` to `false` (e.g. upon user 
 
 ---
 
-## 5. Redirecting Navigation (`redirect`)
+## Redirecting Navigation (`redirect`)
 
 To divert a user to another route, throw `redirect()`. It accepts route objects, route components, or string paths, alongside optional parameters:
 
@@ -181,7 +181,7 @@ throw redirect(loginRoute, undefined, { returnTo: '/dashboard' });
 
 ---
 
-## 6. Guard Errors & Fallback UI (`route.catch()`)
+## Guard Errors & Fallback UI (`route.catch()`)
 
 When a guard throws a standard `Error` (instead of `redirect()`), route activation halts immediately before normal components mount. The router catches the error and executes the route's `.catch()` fallback handler:
 

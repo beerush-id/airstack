@@ -95,7 +95,7 @@ When a task requires deep domain capabilities, load the specialized skill:
 | What are you building? | Load This Skill |
 |---|---|
 | **Components, slots, browser signals, images, dynamic classes/styles (`classx`/`stylex`), unique IDs (`uuid`/`shortId`/`uIndex`), `<Head>` SEO** | `airlib-ui` |
-| **Reactive mutable/immutable state, derived ViewModels, effects, async queries, collections, optimistic updates (`undoable`), timing helpers (`sleep`/`debouncer`/`microtask`), hierarchical layering (`inherit`), cookies** | `airlib-state` |
+| **Reactive mutable/immutable state, derived ViewModels, effects, async queries, collections, optimistic updates (`undoable`), timing helpers (`sleep`/`debouncer`/`microtask`), hierarchical layering (`inherit`), non-destructive props overrides (`override`), cookies** | `airlib-state` |
 | **Server RPC functions, handlers, streaming, transports, CRUD adapters, guards, webhooks** | `airlib-irpc` |
 | **Route declarations, programmatic navigation, data loaders (`.provide()`), route guards, modals, sitemaps** | `airlib-routing` |
 | **Form state management, input validation schemas, dirty tracking, submission handling** | `airlib-form` |
@@ -112,7 +112,7 @@ When a task requires deep domain capabilities, load the specialized skill:
 | Symbol / Keyword Seen in Code | Skill to Load |
 |---|---|
 | `setup`, `template`, `Slot`, `Snippet`, `LIVE_*`, `Image`, `classx`, `stylex`, `uuid`, `shortId`, `uIndex`, `Head`, `@airlib/react`, `@airlib/solid`, `@airlib/react/utils`, `@airlib/solid/utils` | `airlib-ui` |
-| `mutable`, `immutable`, `derived`, `effect`, `computed`, `ref`, `undoable`, `inherit`, `sleep`, `debouncer`, `microtask`, `microbatch`, `@airlib/core`, `@airlib/react`, `@airlib/solid`, `@airlib/react/utils`, `@airlib/solid/utils` | `airlib-state` |
+| `mutable`, `immutable`, `derived`, `effect`, `computed`, `ref`, `undoable`, `inherit`, `override`, `sleep`, `debouncer`, `microtask`, `microbatch`, `@airlib/core`, `@airlib/react`, `@airlib/solid`, `@airlib/react/utils`, `@airlib/solid/utils` | `airlib-state` |
 | `irpc`, `declare`, `construct`, `stream`, `RemoteState`, `IRPCTransport`, `@irpclib/irpc` | `airlib-irpc` |
 | `rootRoute`, `route`, `guard`, `provide`, `render`, `redirect`, `modal`, `sitemap`, `@airlib/router` | `airlib-routing` |
 | `createForm`, `TextInput`, `EmailInput`, `Textarea`, `formState`, `@airlib/react-form`, `@airlib/solid-form` | `airlib-form` |
@@ -148,6 +148,7 @@ Load this skill when you need to answer:
 - How do I update the UI immediately with isolated transactions and roll back on failure (`undoable`)?
 - How do I delay execution (`sleep`), debounce frequent events (`debouncer`), or schedule microtasks/microbatches (`microtask`, `microbatch`)?
 - How do I deeply layer and inherit configurations dynamically without mutation (`inherit`)?
+- How do I merge props non-destructively without stripping fine-grained reactivity (`override`)?
 
 ### `airlib-irpc` — Server Calls & Realtime
 Load this skill when you need to answer:

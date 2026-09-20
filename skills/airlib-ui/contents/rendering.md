@@ -4,7 +4,7 @@ AirLib provides dedicated control flow and fine-grained rendering primitives tha
 
 ---
 
-## 1. AirLib Primitives vs React Habits
+## AirLib Primitives vs React Habits
 
 Dragging standard React habits into AirLib degrades fine-grained reactivity and causes unnecessary parent component re-renders:
 
@@ -17,7 +17,7 @@ Dragging standard React habits into AirLib degrades fine-grained reactivity and 
 
 ---
 
-## 2. Conditional Rendering (`<Show>`)
+## Conditional Rendering (`<Show>`)
 
 `<Show>` provides declarative conditional rendering that manages DOM nodes with fine-grained reactivity.
 
@@ -63,7 +63,7 @@ export const UserCard = setup<{ id: string }>((props) => {
 
 ---
 
-## 3. List Iteration (`<For>`)
+## List Iteration (`<For>`)
 
 Never use `{items.map(...)}` in AirLib. Use `<For each={() => items}>` to ensure fine-grained list reconciliation:
 
@@ -101,7 +101,7 @@ export const TaskList = setup(() => {
 
 ---
 
-## 4. Isolated Leaf Updates with `<Snippet>`
+## Isolated Leaf Updates with `<Snippet>`
 
 `<Snippet>` isolates a reactive read to a single DOM fragment without re-rendering the surrounding component:
 
@@ -143,7 +143,7 @@ You can pass an entire object or getter function to `<Snippet>` to destructure r
 
 ---
 
-## 5. Semantic Boundaries (`snippet()`)
+## Semantic Boundaries (`snippet()`)
 
 When an isolated UI piece represents a distinct concept or is rendered multiple times, use the `snippet()` factory:
 
@@ -179,17 +179,17 @@ export const TelemetryDashboard = setup(() => {
 
 ---
 
-## 6. Reactive Boundary Rules & Fragmentation Heuristics
+## Reactive Boundary Rules & Fragmentation Heuristics
 
-1. **Setup Body is Static (Prohibited Reads)**:
+- **Setup Body is Static (Prohibited Reads)**:
    The outer `setup()` body executes **only once**. Any reactive read directly in the setup body is prohibited. To compute or react inside `setup()`, wrap logic in `derived(() => ...)` or `effect(() => ...)`.
 
-2. **Root Render Reads Re-render the Entire Block**:
+- **Root Render Reads Re-render the Entire Block**:
    When you read or destructure a property inside `return () => (...)` (e.g. `return ({ frequentProp }) => ...`), the **entire returned JSX block will re-render** on every mutation.
    - In small components (buttons, badges), re-rendering the full block is cheap and fine.
    - In heavy views (dashboards, tables), delegate localized reads to `<Snippet>`, `<Show>`, or `<For>`.
    - `({ children })` at the component root is safe because children rarely change.
 
-3. **View Size Heuristic (When to Fragment)**:
+- **View Size Heuristic (When to Fragment)**:
    - **Small views**: Simple buttons, badges, or toggles don't need excessive fragmentation.
    - **Large views**: Always isolate fast-updating pieces with `<Show>`, `<For>`, or `<Snippet>` to protect the surrounding layout from re-rendering.

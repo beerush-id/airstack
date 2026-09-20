@@ -4,7 +4,7 @@ AirLib Form treats the Zod schema as the foundational validation contract. Valid
 
 ---
 
-## 1. Schema Validation & Error Collections
+## Schema Validation & Error Collections
 
 Every validation rule defined on a Zod property executes when the corresponding field value changes:
 
@@ -31,7 +31,7 @@ When a field fails multiple rules, the engine collects all failure messages in a
 
 ---
 
-## 2. Interaction Signals: `touched` vs `changed`
+## Interaction Signals: `touched` vs `changed`
 
 AirLib Form maintains two granular interaction flags per field and at the root form level:
 
@@ -76,7 +76,7 @@ Show error messages only after a field has been touched to avoid displaying red 
 
 ---
 
-## 3. Cross-Field Matching (`match`)
+## Cross-Field Matching (`match`)
 
 Cross-field validation rules (such as confirming passwords or verifying date ranges) are handled using the `match` prop on `<Field>`.
 
@@ -201,7 +201,7 @@ The built-in `<Field>` handles display priority automatically:
 
 ---
 
-## 4. Asynchronous Validation & Form Blocking
+## Asynchronous Validation & Form Blocking
 
 When checking server-side uniqueness (e.g. username availability or organization domain checks), use `form.block()` and `form.unblock()` to coordinate submission gating:
 

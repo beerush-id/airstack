@@ -3,15 +3,15 @@
 Choosing the correct scope for state determines whether an application scales cleanly or suffers from cross-request data leaks, hydration mismatches, and difficult-to-test code.
 
 AirLib categorizes state management into five architectural scopes, ordered from most localized and safest to widest:
-1. **Local Component State**: Transient state initialized inside `setup()` and destroyed on unmount.
-2. **Headless Stores**: Reusable, testable "Data + Behavior" models (factories or classes) decoupled from UI.
-3. **Ambient Request Context**: Scoped to the active SSR request or component subtree via `createContext`.
-4. **Reactive Cookies**: Isomorphic persistent state synchronized across SSR requests and browser sessions.
-5. **Global Module State**: Top-level file variables (CSR-only or static constants; high risk in SSR).
+- **Local Component State**: Transient state initialized inside `setup()` and destroyed on unmount.
+- **Headless Stores**: Reusable, testable "Data + Behavior" models (factories or classes) decoupled from UI.
+- **Ambient Request Context**: Scoped to the active SSR request or component subtree via `createContext`.
+- **Reactive Cookies**: Isomorphic persistent state synchronized across SSR requests and browser sessions.
+- **Global Module State**: Top-level file variables (CSR-only or static constants; high risk in SSR).
 
 ---
 
-## 1. Scope Comparison & Decision Matrix
+## Scope Comparison & Decision Matrix
 
 | Scope Pattern | Lifecycle | SSR Safety | Recommended Use Case |
 |---|---|---|---|
@@ -23,7 +23,7 @@ AirLib categorizes state management into five architectural scopes, ordered from
 
 ---
 
-## 2. Local Component State (`setup`)
+## Local Component State (`setup`)
 
 When state is strictly private to a single component instance, initialize it inside `setup()`. It is created when the component mounts and automatically garbage-collected when it unmounts:
 
@@ -51,7 +51,7 @@ export const Toggle = setup(() => {
 
 ---
 
-## 3. Headless Stores (Data + Behavior)
+## Headless Stores (Data + Behavior)
 
 Headless state decouples business logic, data mutation, and validation rules from JSX presentation. Group state and domain methods together using standard JavaScript classes or factory functions:
 
@@ -109,7 +109,7 @@ export function createTabManager(defaultTab?: string) {
 
 ---
 
-## 4. Ambient Request-Scoped State (`createContext`)
+## Ambient Request-Scoped State (`createContext`)
 
 To share state across a layout or component tree safely during SSR without prop-drilling, use Anchor's context system. Each server request creates an isolated instance, eliminating cross-request data leaks:
 
@@ -150,7 +150,7 @@ export const RootLayout = setup<RootLayoutProps>(() => {
 
 ---
 
-## 5. Reactive Cookies (`cookies`)
+## Reactive Cookies (`cookies`)
 
 AirLib provides isomorphic reactive state backed by HTTP and browser cookies. Reading properties parses JSON payloads; mutating properties updates reactive observers and automatically serializes back into `document.cookie` (client) or emits `Set-Cookie` response headers (server).
 
@@ -205,7 +205,7 @@ export async function loginUser(credentials: LoginCredentials) {
 
 ---
 
-## 6. Static SSG Hydration Boundaries (`cookiePair`)
+## Static SSG Hydration Boundaries (`cookiePair`)
 
 On pre-generated static pages (SSG) or CDN-cached HTML, initial HTML was compiled at build time using fallback default values. If client hydration eagerly reads local browser cookies, a hydration mismatch occurs.
 
@@ -244,7 +244,7 @@ export const ThemeSwitch = setup(() => {
 
 ---
 
-## 7. Global Module State vs SSR Leak Risks (Caution)
+## Global Module State vs SSR Leak Risks (Caution)
 
 Defining reactive state as a top-level module export is convenient, but in Server-Side Rendering (SSR) environments, module variables are shared across **all concurrent incoming requests**:
 

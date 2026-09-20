@@ -8,7 +8,7 @@ NOTE: AirLib's IRPC stubs already provide built-in reactive bindings (`.with()`,
 
 ---
 
-## 1. Creating a Reactive Query (`query`)
+## Creating a Reactive Query (`query`)
 
 `query(asyncFn, initialData, options?)` accepts an asynchronous executor receiving an `AbortSignal`, plus a structural initial data object:
 
@@ -47,7 +47,7 @@ export const userQuery = query(
 
 ---
 
-## 2. Rendering Async UI by Status
+## Rendering Async UI by Status
 
 Because `status` and `data` are reactive proxies, components re-render with fine granularity as network states transition:
 
@@ -86,7 +86,7 @@ export const UserProfileView = setup(() => {
 
 ---
 
-## 3. Structural Initial Data (No Optional Chaining)
+## Structural Initial Data (No Optional Chaining)
 
 Always pass a structural initial data template that mirrors the resolved data shape. This guarantees that deep property access is always safe without repetitive optional chaining (`user?.profile?.name`):
 
@@ -106,7 +106,7 @@ console.log(projectQuery.data.members.length); // 0 while pending, updates on su
 
 ---
 
-## 4. Deferred Execution & Manual Triggering
+## Deferred Execution & Manual Triggering
 
 By default, queries run immediately when declared in the browser. To wait for user action (e.g. clicking a button or submitting a search), set `deferred: true`:
 
@@ -130,7 +130,7 @@ export function performSearch() {
 
 ---
 
-## 5. Automatic Cancellation & Search-As-You-Type
+## Automatic Cancellation & Search-As-You-Type
 
 Calling `start()` while a query is already in-flight automatically aborts the prior request via its `AbortSignal`. Combining a deferred query with `effect()` gives automatic search-as-you-type with zero race conditions:
 
@@ -158,7 +158,7 @@ effect(() => {
 
 ---
 
-## 6. Optimistic Updates (`undoable`)
+## Optimistic Updates (`undoable`)
 
 `undoable` creates an isolated transaction boundary around state mutations. When invoked, it takes an instant snapshot of the affected state and returns `[undo, commit]`:
 
@@ -228,7 +228,7 @@ const LikeButton = setup(() => {
 
 ---
 
-## 7. SSR & Server-Side Integration (`query.promise`)
+## SSR & Server-Side Integration (`query.promise`)
 
 Queries only auto-start in the **browser**. During Server-Side Rendering (SSR), queries stay in the `'pending'` or `'idle'` state to avoid uncontrolled background promises and server memory leaks.
 

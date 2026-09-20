@@ -37,21 +37,21 @@ Saw an unfamiliar symbol, method, or property in storage code? Look it up here t
 
 ## Questions & Tasks Covered by Each Topic
 
-### 1. [Persistent Storage (Local Storage)](./contents/local-storage.md)
+### [Persistent Storage (Local Storage)](./contents/local-storage.md)
 Load this topic when you need to answer:
 - How do I automatically synchronize a reactive state object with browser local storage?
 - How does the storage engine detect and mirror state mutations made from other open tabs?
 - How do I version persistent state schemas and migrate away old keys?
 - How do I disconnect a component or store from local storage sync to free memory?
 
-### 2. [Session Storage](./contents/session-storage.md)
+### [Session Storage](./contents/session-storage.md)
 Load this topic when you need to answer:
 - How do I preserve form drafts or active wizard steps across page refreshes within the same tab?
 - How do I ensure temporary user data is discarded when the tab or browser window closes?
 - How do I version session state keys?
 - How do I tear down session storage listeners on component unmount?
 
-### 3. [IndexedDB Key-Value Store](./contents/kv-store.md)
+### [IndexedDB Key-Value Store](./contents/kv-store.md)
 Load this topic when you need to answer:
 - When should I choose IndexedDB key-value storage over standard local storage?
 - How do I read and write to the global default key-value store?
@@ -59,7 +59,7 @@ Load this topic when you need to answer:
 - How do I await asynchronous IndexedDB write flushes before proceeding?
 - How do I seed initial key-value records when a database is first opened?
 
-### 4. [IndexedDB Structured Tables](./contents/indexed-tables.md)
+### [IndexedDB Structured Tables](./contents/indexed-tables.md)
 Load this topic when you need to answer:
 - How do I create structured, typed tables in IndexedDB?
 - How do I define indexes for fields to enable fast lookup and range filtering?

@@ -4,7 +4,7 @@ This guide establishes declarative conditional routing in AirLib Workflows using
 
 ---
 
-## 1. Key-Based Branching
+## Key-Based Branching
 
 When routing execution based on a known property value, pass the property key to `.switch()`. Each route receives an isolated branch builder:
 
@@ -63,7 +63,7 @@ export const PaymentForm = setup(() => {
 
 ---
 
-## 2. Matcher Function Branching
+## Matcher Function Branching
 
 When routing requires asynchronous queries or complex evaluation across multiple fields, supply a synchronous or asynchronous matcher function:
 

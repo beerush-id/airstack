@@ -4,7 +4,7 @@ This guide establishes the conventions for managing structured client-side relat
 
 ---
 
-## 1. Defining Structured Tables
+## Defining Structured Tables
 
 Use `createTable` to create a reactive, indexed table in IndexedDB. Specify field indexes to optimize search and filter operations:
 
@@ -33,7 +33,7 @@ export const productTable = createTable<Product, ProductRow>(
 
 ---
 
-## 2. CRUD Operations
+## CRUD Operations
 
 All table mutations update in-memory reactive state optimistically and flush to IndexedDB in the background. Use `table.promise()` when sequential execution must await database confirmation:
 
@@ -74,7 +74,7 @@ productTable.leave(productId);
 
 ---
 
-## 3. Querying & Index Searching
+## Querying & Index Searching
 
 ### List All Records
 ```typescript
@@ -114,7 +114,7 @@ await productTable.promise(highEnd);
 
 ---
 
-## 4. UI Component Integration
+## UI Component Integration
 
 Because `RowListState` is reactive, UI lists update automatically when records are added or removed:
 
@@ -198,7 +198,7 @@ export const ProductCatalog = setup(() => {
 
 ---
 
-## 5. Seeding Default Fixtures
+## Seeding Default Fixtures
 
 Seed tables with default data when the database is first initialized:
 

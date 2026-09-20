@@ -35,7 +35,7 @@ Saw an unfamiliar syntax, directive, or component in an MDX file? Look it up her
 
 ## Questions & Tasks Covered by Each Topic
 
-### 1. [MDX Pages & Route Integration](./contents/pages-routes.md)
+### [MDX Pages & Route Integration](./contents/pages-routes.md)
 Load this topic when you need to answer:
 - What is the difference between `page.mdx` (routed page) and `.mdx` (reusable component)?
 - How do I set navigation priorities, page titles, and search keywords in YAML frontmatter?
@@ -43,7 +43,7 @@ Load this topic when you need to answer:
 - How do I embed reactive primitives (`mutable`, `Show`, `For`) directly in markdown?
 - How do I import an `.mdx` file as a pre-compiled, zero-runtime component into a `.tsx` page?
 
-### 2. [Admonitions, Tables & Badges](./contents/admonitions-blocks.md)
+### [Admonitions, Tables & Badges](./contents/admonitions-blocks.md)
 Load this topic when you need to answer:
 - Which 9 admonition types are supported in AirLib Markdown?
 - How do I write callout blocks using either `:::type[Title]` or GitHub alert syntax (`> [!NOTE]`)?
@@ -52,7 +52,7 @@ Load this topic when you need to answer:
 - How do I add inline version or status badges (`:badge[...]`, `<Badge>`)?
 - How do GFM pipe tables render with column alignment (`:---:`) and automatic horizontal scrolling on mobile?
 
-### 3. [Code Blocks & Interactive Demos](./contents/code-demos.md)
+### [Code Blocks & Interactive Demos](./contents/code-demos.md)
 Load this topic when you need to answer:
 - How do I add floating file titles and language labels to code fences?
 - How do I execute code blocks inline (`executable`, `executable="hidden"`, `module`)?

@@ -39,7 +39,7 @@ Saw an unfamiliar symbol, method, or component in existing code? Look it up here
 
 ## Questions & Tasks Covered by Each Topic
 
-### 1. [Routes & Layouts](./contents/routes-layouts.md)
+### [Routes & Layouts](./contents/routes-layouts.md)
 Load this topic when you need to answer:
 - How do I define a tree of URL routes without central JSX route tables?
 - How do I separate route path definitions from UI rendering logic?
@@ -51,7 +51,7 @@ Load this topic when you need to answer:
 - How do I ship zero-JavaScript pages with no client hydration scripts (`noscript`)?
 - How do I catch route errors with global or per-route error boundaries?
 
-### 2. [Navigation](./contents/navigation.md)
+### [Navigation](./contents/navigation.md)
 Load this topic when you need to answer:
 - How do I link to routes type-safely using route objects instead of hardcoded URL strings?
 - How do I pass route parameters and query strings to links with compile-time type validation?
@@ -62,7 +62,7 @@ Load this topic when you need to answer:
 - How do I preload route data when a user hovers over a link?
 - How do I display a global navigation progress bar during page transitions?
 
-### 3. [Guards & Authentication](./contents/guards.md)
+### [Guards & Authentication](./contents/guards.md)
 Load this topic when you need to answer:
 - How do I verify user permissions and authentication before a route component mounts?
 - How do I redirect users to login or fallback pages during navigation?
@@ -71,7 +71,7 @@ Load this topic when you need to answer:
 - How do guards automatically re-evaluate when global reactive state changes?
 - How do I display custom access denied or error barrier components when guards fail?
 
-### 4. [Data Loaders & Providers](./contents/data-loaders.md)
+### [Data Loaders & Providers](./contents/data-loaders.md)
 Load this topic when you need to answer:
 - How do I load asynchronous data before a page component renders?
 - How do I pass URL parameters and query strings into data fetchers?
@@ -81,7 +81,7 @@ Load this topic when you need to answer:
 - How do I configure automatic retries with backoff delays for transient network failures?
 - What is the difference between route-scoped data (`state.data`) and tree-scoped data (`context.data`)?
 
-### 5. [Sitemaps](./contents/sitemaps.md)
+### [Sitemaps](./contents/sitemaps.md)
 Load this topic when you need to answer:
 - How does AirLib automatically serve `/sitemap.xml` for registered routes?
 - How do I exclude specific routes or entire subtrees (such as admin panels) from the sitemap?

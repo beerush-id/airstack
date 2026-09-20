@@ -4,7 +4,7 @@ AirLib Extended Markdown provides built-in callouts (admonitions), collapsible c
 
 ---
 
-## 1. Admonitions & Callouts Syntax
+## Admonitions & Callouts Syntax
 
 AirLib Extended Markdown supports both triple-colon directive syntax and GitHub-style alert callouts:
 
@@ -47,7 +47,7 @@ Danger blocks warn of breaking changes, security risks, or data loss.
 
 ---
 
-## 2. Available Admonition Types
+## Available Admonition Types
 
 | Type | Default Title | Intended Use Case |
 |---|---|---|
@@ -63,7 +63,7 @@ Danger blocks warn of breaking changes, security risks, or data loss.
 
 ---
 
-## 3. Collapsible Admonitions
+## Collapsible Admonitions
 
 Add the `{collapsible}` attribute to allow readers to expand or collapse long explanations on demand:
 
@@ -83,7 +83,7 @@ Deep technical options for custom WebSocket backoff intervals.
 
 ---
 
-## 4. Programmatic JSX Components
+## Programmatic JSX Components
 
 For dynamic views or programmatic assembly in `.tsx` files or MDX templates, import admonition components from `@airlib/react/mdx` or `@airlib/solid/mdx`:
 
@@ -107,7 +107,7 @@ import { Admonition, DangerBlock, NoteBlock, TipBlock, WarningBlock } from '@air
 
 ---
 
-## 5. Status & Version Badges
+## Status & Version Badges
 
 Badges display concise status, version, or category markers inline with prose:
 
@@ -137,7 +137,7 @@ import { Badge } from '@airlib/react/mdx';
 
 ---
 
-## 6. Tables & GitHub Flavored Markdown (GFM)
+## Tables & GitHub Flavored Markdown (GFM)
 
 AirLib Extended Markdown natively renders GitHub Flavored Markdown (GFM) tables with automatic responsive behavior and alternating row backgrounds:
 

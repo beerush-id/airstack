@@ -4,7 +4,7 @@ This guide establishes how to enforce runtime data boundaries and infer strict T
 
 ---
 
-## 1. Pipeline Boundary Validation
+## Pipeline Boundary Validation
 
 Provide `input` and `output` schemas to `plan()` to validate the entry and exit points of the entire pipeline. The input type is automatically inferred from the `input` schema, and schema transformations (such as `.default()`) are applied before the first step executes:
 
@@ -72,7 +72,7 @@ export const UserCreator = setup(() => {
 
 ---
 
-## 2. Step Boundary Validation
+## Step Boundary Validation
 
 Enforce validation at individual step boundaries to guarantee intermediate operations have not corrupted or malformed the accumulated state:
 

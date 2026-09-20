@@ -4,7 +4,7 @@ This guide establishes how to handle exceptions, recover pipeline state with fal
 
 ---
 
-## 1. Sequential Halting and Error Trapping
+## Sequential Halting and Error Trapping
 
 When an error is thrown inside any step of a workflow:
 1. Sequential execution halts immediately.
@@ -13,7 +13,7 @@ When an error is thrown inside any step of a workflow:
 
 ---
 
-## 2. Recovering Pipeline State (`.catch`)
+## Recovering Pipeline State (`.catch`)
 
 A `.catch()` block intercepts step failures and receives both the thrown `error` and the `originalInput` provided when the workflow was started.
 
@@ -74,7 +74,7 @@ export const DataView = setup((props: { id: string }) => {
 
 ---
 
-## 3. Guaranteed Cleanup (`.finally`)
+## Guaranteed Cleanup (`.finally`)
 
 Use `.finally()` to run teardown or resource-releasing logic (such as releasing mutexes, unlocking files, or closing handles).
 

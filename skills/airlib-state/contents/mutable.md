@@ -4,7 +4,7 @@ AirLib uses transparent JavaScript Proxies to upgrade plain objects and primitiv
 
 ---
 
-## 1. Creating Reactive State (`mutable`)
+## Creating Reactive State (`mutable`)
 
 ### Objects & Arrays
 Wrapping an object or array creates a deeply reactive Proxy. Any property read inside a reactive context (`template`, `effect`, `derived`, or component render function) is automatically tracked.
@@ -37,7 +37,7 @@ count.value++;            // Mutates state and notifies observers
 
 ---
 
-## 2. In-Place Direct Mutation
+## In-Place Direct Mutation
 
 Update state using standard assignment operators. The proxy intercepts the mutation and schedules fine-grained UI updates:
 
@@ -53,7 +53,7 @@ userState.tags.splice(0, 1);
 
 ---
 
-## 3. Inline Computed Getters
+## Inline Computed Getters
 
 You can embed derived logic directly within your state object using standard **JavaScript Getters**. Getters automatically track their underlying properties and re-evaluate when dependencies change:
 
@@ -77,7 +77,7 @@ console.log(cart.total); // 75
 
 ---
 
-## 4. Encapsulation & Headless Stores
+## Encapsulation & Headless Stores
 
 Group state and domain methods together using plain object methods or TypeScript classes. Methods modify state directly via `this`:
 
@@ -130,7 +130,7 @@ export function createTaskManager(initial?: string[]) {
 
 ---
 
-## 5. Performance & Reactivity Depth (`recursive`)
+## Performance & Reactivity Depth (`recursive`)
 
 By default, `mutable()` deeply wraps all nested objects and arrays in reactive proxies. For large collections, you can optimize memory and proxy allocation via the `recursive` option:
 
@@ -147,7 +147,7 @@ export const dataset = mutable(largeArrayOfObjects, { recursive: 'flat' });
 
 ---
 
-## 6. Advanced: Runtime Schema Validation (Optional)
+## Runtime Schema Validation (Optional)
 
 NOTE: Standard application state should rely on standard TypeScript interfaces. Runtime schema validation inside `mutable` is reserved strictly for complex domain boundaries or untrusted external inputs.
 

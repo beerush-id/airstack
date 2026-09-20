@@ -4,7 +4,7 @@ This guide establishes the conventions for building, chaining, and composing seq
 
 ---
 
-## 1. Initializing Sequential Pipelines
+## Initializing Sequential Pipelines
 
 Use `plan()` to initialize an executable pipeline. Sequential steps are chained with `.then()`, where each step receives the accumulated output of the preceding step:
 
@@ -28,7 +28,7 @@ irpc.construct(checkout, (cartId, userId) => {
 
 ---
 
-## 2. Component Integration
+## Component Integration
 
 To trigger workflows on user events and track execution status in UI components, use `.later()`:
 
@@ -72,7 +72,7 @@ export const CheckoutButton = setup((props: { cartId: string; userId: string }) 
 
 ---
 
-## 3. Reusing and Extending Base Pipelines
+## Reusing and Extending Base Pipelines
 
 When multiple workflows share common preliminary steps (such as token validation, permissions checks, or tenant resolution), define a base pipeline once and pass it to `plan()` to create independent, extended instances without duplicating logic:
 

@@ -4,7 +4,7 @@ This guide establishes the styling progression and conventions in AirLib—from 
 
 ---
 
-## 1. The Styling Progression
+## The Styling Progression
 
 AirLib recommends graduating styles according to their actual scope of reuse:
 
@@ -19,7 +19,7 @@ TIP: Do not create a framework component just to reuse a string of CSS classes. 
 
 ---
 
-## 2. Dynamic Classes with `classx`
+## Dynamic Classes with `classx`
 
 AirLib includes a zero-dependency class name merging utility that understands strings, arrays, conditionals, and object keys. It is exported from `@airlib/react/utils` and `@airlib/solid/utils`.
 
@@ -65,7 +65,7 @@ export const Button = template<{ isActive?: boolean; isDisabled?: boolean }>((pr
 
 ---
 
-## 3. Theming Tokens
+## Theming Tokens
 
 ### Runtime Dynamic Themes (CSS Variables)
 Use CSS Custom Properties for values that change at runtime (light/dark themes, tenant branding):
@@ -97,7 +97,7 @@ export const Tokens = {
 
 ---
 
-## 4. Style Object Composition with `stylex`
+## Style Object Composition with `stylex`
 
 `stylex` merges inline style objects directly in element templates, filtering out `undefined` or `null` values:
 

@@ -4,7 +4,7 @@ A **transport** carries IRPC calls between caller and receiver. Because IRPC com
 
 ---
 
-## 1. HTTP Transport (`@irpclib/http`)
+## HTTP Transport (`@irpclib/http`)
 
 The standard transport for full-stack applications. Uses standard HTTP POST requests with automatic microtask batching and chunked NDJSON streaming.
 
@@ -88,7 +88,7 @@ NOTE: Functions configured with `standalone: true` bypass microtask batching and
 
 ---
 
-## 2. WebSocket Transport (`@irpclib/ws`)
+## WebSocket Transport (`@irpclib/ws`)
 
 Provides a persistent bidirectional connection with low latency and automatic reconnection. Ideal for real-time applications and continuous reactive streams.
 
@@ -149,7 +149,7 @@ WARNING: **Avoid Large File Uploads over WebSocket**: Binary frames block the pe
 
 ---
 
-## 3. BroadcastChannel Transport (`@irpclib/broadcast`)
+## BroadcastChannel Transport (`@irpclib/broadcast`)
 
 Enables zero-server RPC inside the browser across tabs, windows, iframes, and Web Workers.
 
@@ -188,7 +188,7 @@ self.addEventListener('unload', () => {
 
 ---
 
-## 4. Transport Comparison Matrix
+## Transport Comparison Matrix
 
 | Feature | HTTP (`@irpclib/http`) | WebSocket (`@irpclib/ws`) | BroadcastChannel (`@irpclib/broadcast`) |
 |---|---|---|---|
@@ -202,18 +202,18 @@ self.addEventListener('unload', () => {
 
 ---
 
-## 5. Stream Cancellation & Lifecycles
+## Stream Cancellation & Lifecycles
 
 All transports enforce stream teardown across four cancellation boundaries:
 
-1. **Client Close**: Calling `reader.close()` sends a cancel packet to the router. The server aborts the stream and invokes registered cleanup handlers.
-2. **AbortSignal**: Handlers listen to `getAbortSignal()` to terminate internal database watchers or child promises when client connection drops.
-3. **Stream TTL**: Functions declared with `ttl` (e.g. `ttl: 300000`) are automatically killed by the router if active longer than the duration.
-4. **Socket Disconnect**: When a socket terminates, `router.disconnect(ws)` fires `AbortController.abort()` across all active streams registered to that connection.
+- **Client Close**: Calling `reader.close()` sends a cancel packet to the router. The server aborts the stream and invokes registered cleanup handlers.
+- **AbortSignal**: Handlers listen to `getAbortSignal()` to terminate internal database watchers or child promises when client connection drops.
+- **Stream TTL**: Functions declared with `ttl` (e.g. `ttl: 300000`) are automatically killed by the router if active longer than the duration.
+- **Socket Disconnect**: When a socket terminates, `router.disconnect(ws)` fires `AbortController.abort()` across all active streams registered to that connection.
 
 ---
 
-## 6. Transport Credentials
+## Transport Credentials
 
 Attach credentials to client transports and read them inside handlers:
 
@@ -240,7 +240,7 @@ irpc.construct(getSecureProfile, async () => {
 
 ---
 
-## 7. Custom Transports & The Transport Abstraction
+## Custom Transports & The Transport Abstraction
 
 All transports inherit from the abstract `IRPCTransport` class:
 

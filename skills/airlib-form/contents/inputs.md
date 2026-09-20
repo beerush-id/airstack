@@ -4,11 +4,11 @@ AirLib Form ships with 14 pre-built input components covering standard HTML inpu
 
 ---
 
-## 1. Context-Aware Input Architecture
+## Context-Aware Input Architecture
 
 AirLib inputs are self-driven components capable of operating across three distinct contexts:
 
-### 1. Inside a `<Field>` (Recommended)
+### Inside a `<Field>` (Recommended)
 When rendered inside a `<Field>`, the input automatically:
 - Connects to the nearest `FieldContext` to discover its field name.
 - Subscribes to the reactive field value in the form store.
@@ -24,7 +24,7 @@ When rendered inside a `<Field>`, the input automatically:
 </UserForm.Field>
 ```
 
-### 2. Directly Inside `<Form>` (Without `<Field>`)
+### Directly Inside `<Form>` (Without `<Field>`)
 When placed inside a `<Form>` without a wrapping `<Field>`, provide the `name` prop explicitly. The input connects to form validation and change tracking, omitting the outer label and error container layout:
 
 #### React & SolidJS
@@ -34,7 +34,7 @@ When placed inside a `<Form>` without a wrapping `<Field>`, provide the `name` p
 </UserForm>
 ```
 
-### 3. Standalone (Outside Any Form)
+### Standalone (Outside Any Form)
 Inputs can be used outside any form container. They provide automatic data parsing, type conversion, and state buffering:
 
 #### React & SolidJS
@@ -44,7 +44,7 @@ Inputs can be used outside any form container. They provide automatic data parsi
 
 ---
 
-## 2. Standard Input Components
+## Standard Input Components
 
 ### Textual Inputs
 
@@ -213,7 +213,7 @@ Radios automatically share their `name` attribute from the enclosing `FieldConte
 
 ---
 
-## 3. Prop Forwarding
+## Prop Forwarding
 
 All input components forward unknown properties directly to the underlying HTML DOM element. You can pass arbitrary CSS classes, placeholders, data attributes, or event listeners:
 
@@ -245,7 +245,7 @@ All input components forward unknown properties directly to the underlying HTML 
 
 ---
 
-## 4. Building Custom Inputs with `createInput()`
+## Building Custom Inputs with `createInput()`
 
 When building custom input controls that bridge between custom display formats and stored schema data (e.g., currency masks or specialized numbers), use `createInput()`:
 

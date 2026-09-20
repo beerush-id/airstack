@@ -4,7 +4,7 @@ This guide covers AirLib's reactive browser utilities—wrapping DOM events into
 
 ---
 
-## 1. Activation & Hydration (`acceptInteractions`)
+## Activation & Hydration (`acceptInteractions`)
 
 To prevent dangling listeners and guarantee safe Server-Side Rendering (SSR), browser utilities defer internal event listeners until hydration completes.
 
@@ -34,7 +34,7 @@ acceptInteractions(); // Activates reactive browser event tracking
 
 ---
 
-## 2. Keyboard & Shortcuts (`LIVE_KEYBOARD`, `keyboardRef`)
+## Keyboard & Shortcuts (`LIVE_KEYBOARD`, `keyboardRef`)
 
 ### Global Shortcuts (`LIVE_KEYBOARD`)
 
@@ -88,7 +88,7 @@ export const SearchInput = setup(() => {
 
 ---
 
-## 3. Pointer & Cursor (`LIVE_CURSOR`, `cursorRef`)
+## Pointer & Cursor (`LIVE_CURSOR`, `cursorRef`)
 
 ### Global Cursor (`LIVE_CURSOR`)
 
@@ -134,7 +134,7 @@ export const DrawingCanvas = setup(() => {
 
 ---
 
-## 4. Scroll Tracking (`LIVE_SCROLL`, `scrollRef`)
+## Scroll Tracking (`LIVE_SCROLL`, `scrollRef`)
 
 ### Global Window Scroll (`LIVE_SCROLL`)
 
@@ -178,7 +178,7 @@ export const ScrollableContainer = setup(() => {
 
 ---
 
-## 5. Text Selection & Overlays (`LIVE_SELECTION`)
+## Text Selection & Overlays (`LIVE_SELECTION`)
 
 Captures document text selection reactively:
 
@@ -208,7 +208,7 @@ import { LIVE_SELECTION } from '@airlib/react/browser';
 
 ---
 
-## 6. Drag & Drop (`LIVE_DND`)
+## Drag & Drop (`LIVE_DND`)
 
 Provides declarative registration for draggable items and drop zones with reactive status:
 
@@ -259,7 +259,7 @@ export function KanbanCard() {
 
 ---
 
-## 7. Media Queries & Viewport (`LIVE_MEDIA`, `mediaQuery`)
+## Media Queries & Viewport (`LIVE_MEDIA`, `mediaQuery`)
 
 Reactive flags for responsive design and user preferences without manual `window.matchMedia`:
 
@@ -302,7 +302,7 @@ export const AnimatedHero = setup(() => {
 
 ---
 
-## 8. Window Lifecycle & Inactivity (`LIVE_WINDOW`)
+## Window Lifecycle & Inactivity (`LIVE_WINDOW`)
 
 Monitors viewport dimensions, tab visibility, and user idle timeouts:
 
@@ -330,7 +330,7 @@ LIVE_WINDOW.setIdleTimeout(5); // 5 minutes inactivity threshold
 
 ---
 
-## 9. Network Status (`LIVE_NETWORK`)
+## Network Status (`LIVE_NETWORK`)
 
 Tracks connection status and Network Information API metrics:
 
@@ -354,7 +354,7 @@ import { LIVE_NETWORK } from '@airlib/react/browser';
 
 ---
 
-## 10. Clipboard (`LIVE_CLIPBOARD`)
+## Clipboard (`LIVE_CLIPBOARD`)
 
 Reads and writes clipboard payloads asynchronously:
 

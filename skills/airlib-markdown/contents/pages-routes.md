@@ -4,7 +4,7 @@ AirLib compiles `.page.mdx` files through the universal file-based router pipeli
 
 ---
 
-## 1. File Naming & Routing Conventions
+## File Naming & Routing Conventions
 
 AirLib differentiates between route pages and reusable markdown components by file suffix:
 
@@ -18,7 +18,7 @@ MDX pages are detected automatically by `airPages()`. They participate in Univer
 
 ---
 
-## 2. YAML Frontmatter
+## YAML Frontmatter
 
 Every MDX page begins with a YAML frontmatter block that defines metadata for navigation, document head tags, and search indexing:
 
@@ -42,7 +42,7 @@ Any custom key added to frontmatter (e.g. `author`, `category`, `publishedAt`) a
 
 ---
 
-## 3. Reserved Scope Identifiers
+## Reserved Scope Identifiers
 
 AirLib automatically injects three reactive context variables into the template scope of every MDX page:
 
@@ -70,7 +70,7 @@ NOTE: Do not declare top-level variables named `$state`, `$context`, or `$childr
 
 ---
 
-## 4. Embedding JSX & AirLib Primitives
+## Embedding JSX & AirLib Primitives
 
 MDX pages can import and render any React or SolidJS component. Imports are placed at the top of the file directly following the YAML frontmatter:
 
@@ -124,7 +124,7 @@ Current count: {counter.value}
 
 ---
 
-## 5. Importing MDX Files as Components
+## Importing MDX Files as Components
 
 To embed formatted documentation or prose inside an existing JSX page or layout, import a plain `.mdx` file directly:
 

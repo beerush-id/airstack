@@ -41,7 +41,7 @@ Saw an unfamiliar symbol, method, or property in workflow code? Look it up here 
 
 ## Questions & Tasks Covered by Each Topic
 
-### 1. [Pipelines & Composition](./contents/pipelines-composition.md)
+### [Pipelines & Composition](./contents/pipelines-composition.md)
 Load this topic when you need to answer:
 - How do I structure and execute a multi-step asynchronous process?
 - How do I pass intermediate results from one operation to the next without shared mutable state?
@@ -49,21 +49,21 @@ Load this topic when you need to answer:
 - How do I expose an asynchronous workflow over an API endpoint?
 - How do I trigger and await workflows from user interface components?
 
-### 2. [Errors & Recovery](./contents/errors-recovery.md)
+### [Errors & Recovery](./contents/errors-recovery.md)
 Load this topic when you need to answer:
 - What happens to downstream operations when an intermediate step in a pipeline fails?
 - How do I intercept failures and supply fallback data so subsequent steps can continue?
 - How do I access original request parameters during failure recovery?
 - How do I guarantee resource cleanup (like releasing file locks) regardless of success or failure?
 
-### 3. [Branching Logic](./contents/branching-switch.md)
+### [Branching Logic](./contents/branching-switch.md)
 Load this topic when you need to answer:
 - How do I execute different business logic paths based on input payload properties without nested conditionals?
 - How do I handle unexpected input values with a default fallback branch?
 - How do I determine execution paths using dynamic or asynchronous conditions?
 - How do I keep conditional execution logic isolated across branches?
 
-### 4. [Reactive Steppers & UI Bindings](./contents/reactive-stepper.md)
+### [Reactive Steppers & UI Bindings](./contents/reactive-stepper.md)
 Load this topic when you need to answer:
 - How do I display live progress and step names in the UI while a background task runs?
 - How do I automatically re-run a pipeline when reactive input state changes?
@@ -72,13 +72,13 @@ Load this topic when you need to answer:
 - How do I build multi-step wizard forms that advance one step at a time?
 - How do I resume interrupted workflows or wizards after a page refresh or browser crash?
 
-### 5. [Schema Validation](./contents/schema-validation.md)
+### [Schema Validation](./contents/schema-validation.md)
 Load this topic when you need to answer:
 - How do I enforce strict runtime type boundaries on workflow inputs and outputs?
 - How do I automatically apply default values to incoming workflow parameters?
 - How do I validate intermediate step outputs to prevent corrupted state from propagating?
 
-### 6. [Observability & Monitoring](./contents/observability-monitoring.md)
+### [Observability & Monitoring](./contents/observability-monitoring.md)
 Load this topic when you need to answer:
 - How do I monitor and trace all executing workflows across the application?
 - How do I export execution metrics, durations, and uncaught errors to external logging backends?

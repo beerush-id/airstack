@@ -4,7 +4,7 @@ Writing repetitive remote functions for database entities (`get`, `create`, `upd
 
 ---
 
-## 1. Declaring CRUD Entities
+## Declaring CRUD Entities
 
 Use `irpc.crud<T>()` to declare an entity. This generates four typed stubs (`get`, `create`, `update`, `delete`) sharing a common wire prefix:
 
@@ -103,7 +103,7 @@ irpc.hook(users.delete, async () => {
 
 ---
 
-## 2. Client Consumption
+## Client Consumption
 
 Because the generated operations are standard `IRPCStub`s, they support the exact same reactive bindings:
 
@@ -137,7 +137,7 @@ export const UserProfile = setup<{ id: string }>((props) => {
 
 ---
 
-## 3. The Driver Contract (`IRPCCrudDriver`)
+## The Driver Contract (`IRPCCrudDriver`)
 
 A driver implements generic persistence logic. Every driver method receives an `IRPCCrudMeta` descriptor identifying the target entity:
 
@@ -183,7 +183,7 @@ export class PostgresCrudDriver extends IRPCCrudDriver {
 
 ---
 
-## 4. Wiring the Adapter (`IRPCCrudAdapter`)
+## Wiring the Adapter (`IRPCCrudAdapter`)
 
 In your server constructor setup, instantiate an `IRPCCrudAdapter`, register drivers, and attach entities:
 
@@ -219,7 +219,7 @@ writeAdapter.attach({ create: users.create, update: users.update, delete: users.
 
 ---
 
-## 5. Chain of Responsibility & Caching
+## Chain of Responsibility & Caching
 
 The adapter evaluates registered drivers sequentially. A driver can either return the result or throw `IRPCCrudAdapter.next()` to pass execution to the next driver in the chain:
 
@@ -255,11 +255,11 @@ adapter.attach(users);
 
 ---
 
-## 6. Extending Adapter & Driver with Custom Methods
+## Extending Adapter & Driver with Custom Methods
 
 To add operations beyond standard CRUD (e.g., `list` with filtering), extend both driver and adapter:
 
-### 1. Add Method to Driver
+### Add Method to Driver
 
 ```typescript
 export class PostgresCrudDriver extends IRPCCrudDriver {
@@ -269,7 +269,7 @@ export class PostgresCrudDriver extends IRPCCrudDriver {
 }
 ```
 
-### 2. Extend Adapter
+### Extend Adapter
 
 ```typescript
 import { IRPCCrudAdapter, type IRPCCrudMeta } from '@irpclib/irpc';
@@ -281,7 +281,7 @@ export class ExtendedAdapter extends IRPCCrudAdapter {
 }
 ```
 
-### 3. Declare and Attach Stub
+### Declare and Attach Stub
 
 ```typescript
 // pages/users/function.ts
@@ -307,7 +307,7 @@ adapter.attach(users.list, 'list');
 
 ---
 
-## 7. Manual Construction Fallback
+## Manual Construction Fallback
 
 When an operation requires custom logic that does not fit generic driver operations, construct that stub directly using `irpc.construct()`:
 

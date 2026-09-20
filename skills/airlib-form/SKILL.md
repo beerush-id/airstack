@@ -39,7 +39,7 @@ Saw an unfamiliar symbol, method, or component in existing code? Look it up here
 
 ## Questions & Tasks Covered by Each Topic
 
-### 1. [Typed Forms](./contents/typed-forms.md)
+### [Typed Forms](./contents/typed-forms.md)
 Load this topic when you need to answer:
 - How do I create a type-safe form component from a Zod schema?
 - How do I bind initial form data using an AirLib `mutable` store?
@@ -48,7 +48,7 @@ Load this topic when you need to answer:
 - How do I bind form fields to deeply nested object structures using dot-notation paths (`address.city`)?
 - How do I build dynamic repeatable item lists (`<Form.FieldList>`) and reorder/remove items?
 
-### 2. [Form Inputs](./contents/inputs.md)
+### [Form Inputs](./contents/inputs.md)
 Load this topic when you need to answer:
 - Which 14 HTML input types are provided out-of-the-box by AirLib Form?
 - How do inputs automatically discover their field names and bind values inside a `<Field>` wrapper?
@@ -58,7 +58,7 @@ Load this topic when you need to answer:
 - How do radio buttons automatically form mutual exclusion groups without manual name attributes?
 - How do I pass custom HTML attributes, styling classes, and event listeners to inputs?
 
-### 3. [Validation & Cross-Field Matching](./contents/validation-matching.md)
+### [Validation & Cross-Field Matching](./contents/validation-matching.md)
 Load this topic when you need to answer:
 - When does schema validation run and how are error messages collected into arrays?
 - What is the difference between `touched` (interacted with) and `changed` (differs from baseline)?
@@ -68,7 +68,7 @@ Load this topic when you need to answer:
 - Why are `valid` and `matched` independent signals and which error displays first?
 - How do I temporarily block form submission during asynchronous background verification (e.g. checking username availability)?
 
-### 4. [Composition & Custom Inputs](./contents/composition-custom-inputs.md)
+### [Composition & Custom Inputs](./contents/composition-custom-inputs.md)
 Load this topic when you need to answer:
 - How do I use named slots (`<UserForm.Field.Snippet>`) to inject leading icons, badges, or custom support text into fields?
 - How do I render fields headlessly using a function as child (`children={(field) => ...}`) and why does custom override slotted?
@@ -77,7 +77,7 @@ Load this topic when you need to answer:
 - How do I construct custom input components with string/value conversion using `createInput()`?
 - How does AirLib Form automatically handle accessibility (`id`, `htmlFor`, `aria-invalid`, `aria-describedby`, and input locking)?
 
-### 5. [Global Configuration](./contents/configuration.md)
+### [Global Configuration](./contents/configuration.md)
 Load this topic when you need to answer:
 - How do I configure global default CSS classes and styles for all forms across my application?
 - How do I set default error classes and pending animation classes globally?

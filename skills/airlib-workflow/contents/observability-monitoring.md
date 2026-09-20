@@ -4,13 +4,13 @@ This guide establishes how to monitor execution states globally, subscribe to te
 
 ---
 
-## 1. Centralized Event Observation (`WORKFLOW_STORE`)
+## Centralized Event Observation (`WORKFLOW_STORE`)
 
 AirLib pipelines are inherently observable. The centralized `WORKFLOW_STORE` tracks all registered workflows, individual steps, and active executions without requiring explicit developer instrumentation inside business logic.
 
 ---
 
-## 2. Telemetry and External Logging
+## Telemetry and External Logging
 
 To forward execution events, durations, or failures to monitoring services (like Datadog, Sentry, or custom sinks), subscribe to `WORKFLOW_STORE`:
 
@@ -46,7 +46,7 @@ WORKFLOW_STORE.subscribe((event) => {
 
 ---
 
-## 3. Dashboard Integration
+## Dashboard Integration
 
 `WORKFLOW_STORE` exposes reactive collections built on AirLib's `mutable` primitive. Admin dashboards can read `workflows.size`, `steps.size`, and `runningWorkflows.size` directly in templates without manual synchronization:
 

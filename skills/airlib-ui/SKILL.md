@@ -43,7 +43,7 @@ Saw a symbol, component, or utility in existing UI code? Look it up here to find
 
 ## Questions & Tasks Covered by Each Topic
 
-### 1. [Components & Views](./contents/components.md)
+### [Components & Views](./contents/components.md)
 Load this topic when you need to answer:
 - When should I use native HTML markup vs a lightweight presentation view vs a stateful component?
 - How do I build a self-governing component that manages its own state and behavior?
@@ -53,20 +53,20 @@ Load this topic when you need to answer:
 - How do I hook into component mount and unmount lifecycles?
 - How do I inject dependencies or access context?
 
-### 2. [Component Slots](./contents/slots.md)
+### [Component Slots](./contents/slots.md)
 Load this topic when you need to answer:
 - How do I create a component with customizable layout regions (e.g. sidebar, header, footer) and default fallback content?
 - How do I inject custom markup into specific named sections of a child component?
 - How do I pass internal component state into a customizable slot so the consumer can render it?
 
-### 3. [Fine-Grained Rendering](./contents/rendering.md)
+### [Fine-Grained Rendering](./contents/rendering.md)
 Load this topic when you need to answer:
 - How do I update a fast-changing counter or metric without re-rendering the surrounding layout?
 - How do I isolate reactive updates to an inline fragment or a named sub-view?
 - How do I conditionally show or hide elements based on async loading, success, or error states?
 - How do I safely render polymorphic child content (static elements, accessors, or render functions)?
 
-### 4. [Browser Signals](./contents/browser.md)
+### [Browser Signals](./contents/browser.md)
 Load this topic when you need to answer:
 - How do I listen for keyboard hotkeys and modifier combinations across the app?
 - How do I track mouse cursor coordinates, active mouse buttons, or pointer positions relative to an element?
@@ -75,19 +75,19 @@ Load this topic when you need to answer:
 - How do I build drag-and-drop interactions with floating previews and drop targets?
 - How do I adapt UI based on media queries (dark mode, screen size, touch capability) or detect user inactivity/idle timeouts?
 
-### 5. [Responsive Images](./contents/images.md)
+### [Responsive Images](./contents/images.md)
 Load this topic when you need to answer:
 - How do I display responsive images with automatic WebP generation at build time?
 - How do I eliminate Cumulative Layout Shift (CLS) when loading images?
 - How do I configure image sizes and responsive breakpoints?
 
-### 6. [Styling](./contents/styling.md)
+### [Styling](./contents/styling.md)
 Load this topic when you need to answer:
 - When should I keep classes inline vs extracting a local variable vs creating a utility class?
 - How do I conditionally toggle CSS classes based on reactive component state?
 - How do I set up dynamic runtime themes (dark/light mode) vs static design tokens?
 
-### 7. [Document Head & SEO](./contents/head.md)
+### [Document Head & SEO](./contents/head.md)
 Load this topic when you need to answer:
 - How do I set page title, description, and canonical URLs for a page?
 - How do I configure social preview cards for Open Graph and Twitter with automatic fallbacks?

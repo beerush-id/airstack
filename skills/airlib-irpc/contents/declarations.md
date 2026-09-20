@@ -4,7 +4,7 @@ In the **AirLib** architecture, Isomorphic RPC (IRPC) decouples function signatu
 
 ---
 
-## 1. Declaring Function Stubs
+## Declaring Function Stubs
 
 Use `irpc.declare()` to register a function signature into an IRPC package. This produces an `IRPCStub`:
 
@@ -51,7 +51,7 @@ interface IRPCStub<Fn extends (...args: any[]) => any> {
 
 ---
 
-## 2. Argument Patterns
+## Argument Patterns
 
 Arguments are serialized to JSON over the wire and must be serializable.
 
@@ -125,20 +125,20 @@ export const getReport = irpc.declare<GetReportFn>('report.get');
 
 ---
 
-## 3. Return Types & Initial Seed Data
+## Return Types & Initial Seed Data
 
 IRPC declarations support three return structures:
 
 ```typescript
 import type { RemoteState } from '@irpclib/irpc';
 
-// 1. Primitive synchronous value
+// Primitive synchronous value
 export type GetVersionFn = () => string;
 
-// 2. Promise (standard unary remote call)
+// Promise (standard unary remote call)
 export type GetUserFn = (id: string) => Promise<User>;
 
-// 3. RemoteState (continuous reactive stream)
+// RemoteState (continuous reactive stream)
 export type WatchPricesFn = (ticker: string) => RemoteState<number>;
 export const watchPrices = irpc.declare<WatchPricesFn>('market.prices', {
   stream: true,
@@ -172,7 +172,7 @@ TypeScript checks the return type to determine if `seed` is required:
 
 ---
 
-## 4. Client Execution Bindings
+## Client Execution Bindings
 
 Calling a stub directly outside of components executes the call immediately as a `Promise`:
 
@@ -297,7 +297,7 @@ export const AvatarUpload = setup<{ userId: string }>((props) => {
 
 ---
 
-## 5. `IRPCReader` State & Lifecycle
+## `IRPCReader` State & Lifecycle
 
 Every RPC call yields an `IRPCReader<T>`, which acts as a reactive proxy with live properties:
 
@@ -327,7 +327,7 @@ NOTE: When components unmount, any `IRPCReader` instances bound inside their `se
 
 ---
 
-## 6. Caching, Coalescing & Resilience
+## Caching, Coalescing & Resilience
 
 Configure function options in the options object of `irpc.declare()`:
 
@@ -410,7 +410,7 @@ irpc.invalidate(getUser);
 
 ---
 
-## 7. Naming & Organization Conventions
+## Naming & Organization Conventions
 
 - **Wire Identifier**: Use dotted namespacing (`user.get`, `billing.invoice.create`). The wire name is the network protocol key and does not need to match the TypeScript export.
 - **Type Naming**: `PascalCase` suffixed with `Fn` (`GetUserFn`, `WatchPricesFn`).

@@ -4,7 +4,7 @@ AirLib includes a built-in XML sitemap generator that automatically maps static 
 
 ---
 
-## 1. Automatic Static Route Mapping
+## Automatic Static Route Mapping
 
 All registered routes on the router tree are included in the sitemap by default:
 
@@ -39,7 +39,7 @@ Requesting `/sitemap.xml` returns valid XML:
 
 ---
 
-## 2. Route Configuration (`sitemap`)
+## Route Configuration (`sitemap`)
 
 ### Exclude Routes from Sitemap
 
@@ -68,7 +68,7 @@ export const pricingRoute = route.config({
 
 ---
 
-## 3. Dynamic Route Generation
+## Dynamic Route Generation
 
 Parameterized routes (e.g. `/posts/:slug`) cannot be discovered automatically because they require concrete data. Supply an asynchronous generator function to map application database entries into full URL paths:
 
@@ -86,7 +86,7 @@ The generator is called dynamically whenever `/sitemap.xml` is requested.
 
 ---
 
-## 4. Multi-Language Alternates (`hreflang`)
+## Multi-Language Alternates (`hreflang`)
 
 For localized applications, define language prefixes and set `hreflang` with `nested: true` on the language root route:
 
@@ -105,7 +105,7 @@ export const langRoute = route.config({
 
 ---
 
-## 5. Programmatic Sitemap Generation
+## Programmatic Sitemap Generation
 
 To generate an XML sitemap manually (for cron jobs, build scripts, or custom endpoints), call `router.sitemap()`:
 

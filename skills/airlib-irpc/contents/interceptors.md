@@ -4,7 +4,7 @@ Interceptors extract cross-cutting concerns (authentication, role authorization,
 
 ---
 
-## 1. The Interception Pipeline
+## The Interception Pipeline
 
 Every IRPC request progresses through six sequential execution boundaries:
 
@@ -21,7 +21,7 @@ If any layer throws an exception, the execution pipeline halts immediately and p
 
 ---
 
-## 2. Router Hooks (`router.use`)
+## Router Hooks (`router.use`)
 
 Router hooks operate at the **router boundary**. They are blind to specific function names and arguments; their purpose is parsing transport headers and building shared request context:
 
@@ -51,7 +51,7 @@ Because router hooks run before any guards or handlers, downstream code can reli
 
 ---
 
-## 3. Package Guards (`irpc.guard`)
+## Package Guards (`irpc.guard`)
 
 Guards operate at the **handler boundary**. They intercept requests at the package level to make authorization decisions based on context and target function name.
 
@@ -87,7 +87,7 @@ irpc.guard(async (req) => {
 
 ---
 
-## 4. Spec Hooks (`irpc.hook`)
+## Spec Hooks (`irpc.hook`)
 
 Spec hooks operate at the **domain boundary**. They bind to a specific function stub and run **isomorphically** on both client and server.
 
@@ -116,12 +116,12 @@ irpc.hook(deleteUser, (req) => {
 
 ### Why Isomorphic Execution Matters
 
-1. **Client-Side Feedback**: Runs immediately in the browser when `deleteUser('bad-id')` is invoked. It throws before network serialization, giving immediate UI feedback and avoiding a wasted HTTP roundtrip.
-2. **Server-Side Trust**: When the request arrives at the server, the exact same hook executes again right before the handler, preventing malicious requests from bypassing client validation.
+- **Client-Side Feedback**: Runs immediately in the browser when `deleteUser('bad-id')` is invoked. It throws before network serialization, giving immediate UI feedback and avoiding a wasted HTTP roundtrip.
+- **Server-Side Trust**: When the request arrives at the server, the exact same hook executes again right before the handler, preventing malicious requests from bypassing client validation.
 
 ---
 
-## 5. Layer Comparison Matrix
+## Layer Comparison Matrix
 
 | Layer | API | Scope | Placement | Execution Environment |
 |---|---|---|---|---|

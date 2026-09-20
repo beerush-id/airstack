@@ -4,7 +4,7 @@ This guide establishes how to bind workflows to reactive state, track real-time 
 
 ---
 
-## 1. Real-Time Pipeline Progress Tracking
+## Real-Time Pipeline Progress Tracking
 
 Executing an AirLib workflow returns a `WorkflowStepper`. Because this stepper is a reactive proxy, the UI tracks the exact status of the pipeline—down to the specific named step currently executing—without manual state management:
 
@@ -95,7 +95,7 @@ export const Checkout = setup((props: { cartId: string }) => {
 
 ---
 
-## 2. Reactive Execution Bindings
+## Reactive Execution Bindings
 
 Workflows can be wired directly to the reactive dependency graph using `.once()`, `.with()`, `.when()`, or `.later()`:
 
@@ -149,7 +149,7 @@ return () => (
 
 ---
 
-## 3. Manual Stepping for Wizard Flows
+## Manual Stepping for Wizard Flows
 
 For multi-step wizards or approval pipelines where each step requires user interaction before proceeding, control the `WorkflowStepper` imperatively:
 
@@ -182,7 +182,7 @@ await stepper.run({ name: 'Alice' });
 
 ---
 
-## 4. State Persistence (Browser & Server)
+## State Persistence (Browser & Server)
 
 To safeguard long-running wizard flows against browser reloads, or to persist multi-stage background processes across server restarts, use `snapshot()` and `hydrate()`:
 

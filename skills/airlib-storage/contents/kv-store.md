@@ -4,7 +4,7 @@ This guide establishes the conventions for managing key-value storage backed by 
 
 ---
 
-## 1. Overview & Comparison
+## Overview & Comparison
 
 When storing datasets larger than `localStorage`'s 5–10MB limit or requiring structured asynchronous persistence, use AirLib's IndexedDB Key-Value store. It provides:
 - **In-memory speed**: State reads and writes update reactive proxy objects immediately.
@@ -13,7 +13,7 @@ When storing datasets larger than `localStorage`'s 5–10MB limit or requiring s
 
 ---
 
-## 2. Using the Global Default Store (`kv`)
+## Using the Global Default Store (`kv`)
 
 For general-purpose key-value pairs, use the built-in `kv` store:
 
@@ -33,7 +33,7 @@ kv.remove('user-settings');
 
 ---
 
-## 3. Creating Isolated Named Stores (`createKVStore`)
+## Creating Isolated Named Stores (`createKVStore`)
 
 When isolating domain data into separate IndexedDB object stores or seeding default records, use `createKVStore`:
 
@@ -61,7 +61,7 @@ await configStore.ready();
 
 ---
 
-## 4. UI Component Integration
+## UI Component Integration
 
 Access reactive KV state directly inside components:
 
@@ -133,7 +133,7 @@ export const TabBar = setup(() => {
 
 ---
 
-## 5. Underlying Store Access & Subscriptions
+## Underlying Store Access & Subscriptions
 
 To access the underlying `IndexedKv` instance or subscribe to raw events:
 
@@ -145,7 +145,7 @@ const unsubscribe = configStore.store().subscribe((event) => {
 
 ---
 
-## 6. Lifecycle & Teardown (`store.leave`)
+## Lifecycle & Teardown (`store.leave`)
 
 When a state instance is no longer needed, disconnect it from the store:
 

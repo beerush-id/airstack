@@ -4,7 +4,7 @@ Handlers implement the contracts declared by `irpc.declare()`. They reside in `c
 
 ---
 
-## 1. Constructing Handlers
+## Constructing Handlers
 
 Use `irpc.construct()` to bind logic to a declared stub. Types for parameters and return values are inferred automatically from the stub:
 
@@ -47,7 +47,7 @@ const router = new HTTPRouter(transport);
 
 ---
 
-## 2. In-Memory Function Composition
+## In-Memory Function Composition
 
 Because IRPC stubs extend `Promise`, handlers can call other stubs directly. If a called stub resides within the same package and process, IRPC routes execution directly in memory, bypassing network serialization:
 
@@ -73,7 +73,7 @@ irpc.construct(verifyAccess, async ({ userId, requiredRole }: AccessCheck) => {
 
 ---
 
-## 3. Reactive Streaming with `stream()`
+## Reactive Streaming with `stream()`
 
 For stubs declared with `{ stream: true }` returning `RemoteState<T>`, handlers use the `stream()` factory to push incremental updates:
 
@@ -128,7 +128,7 @@ resolve();
 
 ---
 
-## 4. Progressive Data Hydration
+## Progressive Data Hydration
 
 Instead of executing async queries sequentially, progressive hydration yields fields into a single reactive object as each query resolves:
 
@@ -187,7 +187,7 @@ export const DashboardWidget = setup<{ userId: string }>((props) => {
 
 ---
 
-## 5. Stream Piping with `reader.pipe()`
+## Stream Piping with `reader.pipe()`
 
 When a handler acts as a proxy or decorator for another streaming function, return `reader.pipe()` to forward the stream directly without re-wrapping:
 
@@ -211,7 +211,7 @@ irpc.construct(proxyChat, async (prompt: string) => {
 
 ---
 
-## 6. Resource Cleanup Guarantees
+## Resource Cleanup Guarantees
 
 Returning a function from the `stream()` callback registers a lifecycle cleanup hook. The framework guarantees execution across all teardown scenarios:
 
@@ -246,7 +246,7 @@ irpc.construct(watchSensor, (sensorId: string) => {
 
 ---
 
-## 7. Request Context & Cookies
+## Request Context & Cookies
 
 ### Reading and Writing Context
 
@@ -310,7 +310,7 @@ irpc.construct(logout, async () => {
 
 ---
 
-## 8. Handler Errors vs. Transport Errors
+## Handler Errors vs. Transport Errors
 
 | Error Category | Source | Retry Behavior | Client Propagation |
 |---|---|---|---|

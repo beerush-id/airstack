@@ -12,7 +12,7 @@ AirLib provides dedicated derivation primitives optimized for specific computati
 
 ---
 
-## 1. Derivation Strategy Decision Matrix
+## Derivation Strategy Decision Matrix
 
 | Developer Problem | Recommended Primitive | Reactive Boundary Consumption |
 |---|---|---|
@@ -23,7 +23,7 @@ AirLib provides dedicated derivation primitives optimized for specific computati
 
 ---
 
-## 2. Intrinsic Getters (Same Object)
+## Intrinsic Getters (Same Object)
 
 When a computed property belongs logically to a state object, standard JavaScript getters encapsulate the calculation directly. The getter re-evaluates automatically whenever accessed reactive properties change inside a component or effect:
 
@@ -55,7 +55,7 @@ export const CartWidget = setup(() => {
 
 ---
 
-## 3. Combining Independent Sources (`derived`)
+## Combining Independent Sources (`derived`)
 
 When a computed value depends on multiple *separate* state sources that do not share a parent object (such as combining a data collection with an active search filter), `derived()` establishes automatic tracking across both dependencies.
 
@@ -127,7 +127,7 @@ export const ProductCatalog = setup(() => {
 
 ---
 
-## 4. Stable Object Projections (`derived.as`)
+## Stable Object Projections (`derived.as`)
 
 When creating a multi-property ViewModel for a component template, wrapping results in standard `derived()` introduces `.value` indirection (`vm.value.fullName`). Re-creating plain objects also breaks reference identity and causes unnecessary template re-renders.
 
@@ -166,7 +166,7 @@ export const UserCard = setup(() => {
 
 ---
 
-## 5. Incremental Collection Reduction (`derived.reduce`)
+## Incremental Collection Reduction (`derived.reduce`)
 
 Standard `Array.prototype.reduce()` requires an $O(N)$ re-scan over the entire collection on every modification.
 
@@ -235,7 +235,7 @@ export const TaskTracker = setup(() => {
 
 ---
 
-## 6. Derived State in Side Effect Boundaries (`effect`)
+## Derived State in Side Effect Boundaries (`effect`)
 
 Derived values can also drive side-effects (such as updating the document title or persisting computed metrics to analytics) within an `effect()` boundary:
 

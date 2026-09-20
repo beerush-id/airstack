@@ -4,7 +4,7 @@ This guide covers AirLib's named component slot system—allowing components to 
 
 ---
 
-## 1. Why Named Slots?
+## Why Named Slots?
 
 Passing JSX elements as individual props (e.g. `sidebar={<Sidebar />} header={<Header />}`) causes awkward prop drilling, creates bloat in component signatures, and forces parent components to manage child layout rendering.
 
@@ -15,7 +15,7 @@ AirLib provides first-class named slots:
 
 ---
 
-## 2. Defining Slots in a Component
+## Defining Slots in a Component
 
 Declare the slot signatures as a type where each slot is a function returning a renderable node, and render them with `<Slot>`:
 
@@ -104,7 +104,7 @@ export const Layout = setup<LayoutProps, LayoutSlots>((props, snippets) => {
 
 ---
 
-## 3. Populating Slots as a Consumer
+## Populating Slots as a Consumer
 
 Consumers inject custom content into specific slots using `<Component.Snippet>` with the `for` attribute matching the slot name:
 
@@ -152,7 +152,7 @@ NOTE: `<Component.Snippet>` must be a direct child of `<Component>` (or inside a
 
 ---
 
-## 4. Contextual Slots (Scoped Data)
+## Contextual Slots (Scoped Data)
 
 Slots can pass runtime state and context to the consumer's snippet renderer:
 

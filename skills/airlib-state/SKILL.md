@@ -32,7 +32,7 @@ Saw a symbol, function, or primitive in existing code? Look it up here to find t
 | Symbol / Keyword Seen in Code | Topic Guide to Read |
 |---|---|
 | `mutable`, `count.value`, `recursive` | [contents/mutable.md](./contents/mutable.md) |
-| `immutable`, `writable`, `inherit` | [contents/immutable.md](./contents/immutable.md) |
+| `immutable`, `writable`, `inherit`, `override` | [contents/immutable.md](./contents/immutable.md) |
 | `derived`, `derived.as`, `derived.reduce`, `get [property]()` | [contents/derived.md](./contents/derived.md) |
 | `effect`, `effect.client`, `effect.async`, `untrack`, `awaited`, `snapshot`, `stringify`, `subscribe`, `sleep`, `debouncer`, `microtask`, `microbatch` | [contents/effects.md](./contents/effects.md) |
 | `query`, `query.data`, `query.status`, `query.start`, `query.abort`, `query.promise`, `undoable` | [contents/async.md](./contents/async.md) |
@@ -43,27 +43,29 @@ Saw a symbol, function, or primitive in existing code? Look it up here to find t
 
 ## Questions & Tasks Covered by Each Topic
 
-### 1. [Mutable State & Deep Reactivity](./contents/mutable.md)
+### [Mutable State & Deep Reactivity](./contents/mutable.md)
 Load this topic when you need to answer:
 - How do I declare reactive state so that changing a property automatically updates the UI?
 - How do I mutate nested objects or arrays without spread operators (`...state`) or `setState`?
 - How do I make primitive values (numbers, strings, booleans) reactive?
 - How do I prevent deep proxy recursion overhead on large nested datasets?
 
-### 2. [Immutable State & Write Contracts](./contents/immutable.md)
+### [Immutable State & Write Contracts](./contents/immutable.md)
 Load this topic when you need to answer:
 - How do I expose read-only state to consumers to prevent accidental mutations?
 - How do I create a private write contract for authorized state modifications?
 - How do I restrict a write contract to specific allowed property keys (least-privilege writers)?
+- How do I merge props non-destructively without stripping fine-grained reactivity (`override`)?
+- How do I deeply layer default and override configurations (`inherit`)?
 
-### 3. [Derived State & Computed Values](./contents/derived.md)
+### [Derived State & Computed Values](./contents/derived.md)
 Load this topic when you need to answer:
 - When should I use inline getters vs standalone computed signals?
 - How do I combine multiple independent state sources into a single reactive calculation?
 - How do I create multi-property ViewModels with stable references and direct property access?
 - How do I incrementally aggregate large collections without $O(N)$ re-scans?
 
-### 4. [Side Effects & Dependency Tracking](./contents/effects.md)
+### [Side Effects & Dependency Tracking](./contents/effects.md)
 Load this topic when you need to answer:
 - How do I run side-effects automatically whenever reactive dependencies change?
 - How do I clean up resources (timers, event listeners) when an effect re-runs or unmounts?
@@ -73,7 +75,7 @@ Load this topic when you need to answer:
 - How do I maintain dependency tracking across asynchronous gaps (`await`)?
 - How do I subscribe globally to any mutation in an object tree?
 
-### 5. [Asynchronous State & Queries](./contents/async.md)
+### [Asynchronous State & Queries](./contents/async.md)
 Load this topic when you need to answer:
 - How do I manage async data fetching with automatic status tracking (`pending`, `success`, `error`)?
 - How do I avoid optional chaining with structural initial data?
@@ -82,14 +84,14 @@ Load this topic when you need to answer:
 - How do I perform optimistic UI updates via direct mutation of async state?
 - How do I await async queries during SSR or in route loaders?
 
-### 6. [Large Collections & Virtualization](./contents/collections.md)
+### [Large Collections & Virtualization](./contents/collections.md)
 Load this topic when you need to answer:
 - How do I eliminate garbage collection churn during virtualization using memory-reused row slots?
 - How do I track multi-row checkbox selection automatically without manual `Set` plumbing?
 - How do I filter rows without mutating array indices or allocating new arrays?
 - How do I automatically insert incoming items into sorted order using continuous binary search?
 
-### 7. [State Scoping, Architecture & Cookies](./contents/scoping.md)
+### [State Scoping, Architecture & Cookies](./contents/scoping.md)
 Load this topic when you need to answer:
 - When should state remain strictly local to a component instance?
 - How do I build headless domain stores (factories or classes) decoupled from UI presentation?

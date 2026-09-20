@@ -10,7 +10,7 @@ Rendering large data tables, virtualized lists, or real-time data feeds presents
 
 ---
 
-## 1. Virtualization with Reusable Reactive Slots
+## Virtualization with Reusable Reactive Slots
 
 Instead of creating new wrapper objects on every scroll event, `superList` pre-allocates a fixed pool of reactive slots accessed via `.values`.
 
@@ -70,7 +70,7 @@ export const VirtualUserTable = setup(() => {
 
 ---
 
-## 2. Selection Management (`selection`)
+## Selection Management (`selection`)
 
 Tracking selected items usually requires manual `Set` plumbing. `superList` maintains an integrated, reactive `selection` Set that updates automatically when rows are toggled:
 
@@ -98,7 +98,7 @@ NOTE: When a row is deleted or replaced via `delete()` or `assign()`, it is auto
 
 ---
 
-## 3. Filtering Without Index Destruction (`hide` / `show`)
+## Filtering Without Index Destruction (`hide` / `show`)
 
 Standard `Array.prototype.filter()` produces a brand new array with mutated indices, breaking selection mapping and scroll offsets.
 
@@ -114,7 +114,7 @@ users.show(0, 10);
 
 ---
 
-## 4. Continuous Automated Ordering (`orderBy`)
+## Continuous Automated Ordering (`orderBy`)
 
 When new items are added, `superList` automatically inserts them into their correct sorted position using binary insertion:
 
@@ -137,7 +137,7 @@ leaderboard.add([{ id: 3, name: 'Charlie', points: 450 }]);
 
 ---
 
-## 5. Collection Mutation API
+## Collection Mutation API
 
 | Method | Parameters | Concern / Purpose |
 |---|---|---|

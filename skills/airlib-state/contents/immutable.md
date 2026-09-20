@@ -6,7 +6,7 @@ When sharing state across multiple modules, stores, or components, unrestricted 
 
 ---
 
-## 1. Defining Read-Only State (`immutable`)
+## Defining Read-Only State (`immutable`)
 
 `immutable()` wraps an object or array in a read-only reactive proxy. Consumers can read properties normally to render UI or compute values, but direct property assignment is ignored and logs an error (it does not throw):
 
@@ -30,21 +30,21 @@ appConfig.apiUrl = 'https://other.com';
 
 ---
 
-## 2. Defining Write Contracts (`writable`)
+## Defining Write Contracts (`writable`)
 
 Because the public state is immutable, write access must be explicitly granted via a **Write Contract** created with `writable()`. A write contract points to the exact same underlying proxy but enables mutation capabilities:
 
 ```ts
 import { immutable, writable } from '@airlib/react'; // or '@airlib/solid'
 
-// 1. Public Read-Only View (Exported to components)
+// Public Read-Only View (Exported to components)
 export const sessionState = immutable({
   userId: 'user_123',
   activeToken: 'tok_abc',
   lastSeen: Date.now(),
 });
 
-// 2. Private Write Contract (Kept inside service or auth module)
+// Private Write Contract (Kept inside service or auth module)
 const sessionControl = writable(sessionState);
 
 export function updateLastSeen() {
@@ -54,7 +54,7 @@ export function updateLastSeen() {
 
 ---
 
-## 3. Least-Privilege Writers (Restricted Keys)
+## Least-Privilege Writers (Restricted Keys)
 
 To prevent unintended modifications to critical properties, `writable(state, allowedKeys)` accepts an array of explicitly permitted property keys:
 
@@ -79,7 +79,7 @@ themeController.accountId = 'acc_0000';
 
 ---
 
-## 4. Hierarchical Configuration Layering (`inherit`)
+## Hierarchical Configuration Layering (`inherit`)
 
 `inherit` creates a deeply inherited proxy that layers multiple configuration sources from left to right. When accessing properties, it resolves from the rightmost defined override down to the leftmost default, recursively cascading through nested objects without cloning or mutating the original targets:
 
@@ -115,7 +115,38 @@ console.log(config.api.timeout); // 5000 (inherited from defaults)
 
 ---
 
-## 5. Architectural Best Practices
+## Shallow Props Merging & Overrides (`override`)
+
+`override` creates a shallow proxy that delegates property access across multiple target sources, allowing subsequent sources to override earlier ones without breaking reactivity.
+
+It is designed for non-destructive props merging and overrides, avoiding object spreading (`{ ...props, ...overrides }`) which eagerly evaluates getters and strips fine-grained reactivity:
+
+```ts
+import { override } from '@airlib/react'; // or '@airlib/solid'
+
+interface ButtonProps {
+  variant?: 'primary' | 'secondary';
+  disabled?: boolean;
+  onClick?: () => void;
+}
+
+const defaultProps: ButtonProps = {
+  variant: 'primary',
+  disabled: false,
+};
+
+// Merges overrides on top of defaultProps without eager spreading or stripping getters
+export const resolvedProps = override<ButtonProps>(defaultProps, incomingProps);
+```
+
+- **Reverse Resolution**: Reading resolves from sources in reverse order based on key presence (`key in target`), accessing the property directly on the owning source to preserve getter tracking and explicit `undefined` values.
+- **Targeted Writing (`set`)**: Targets the source that already contains the key, defaulting to the latest source if the key does not exist in any source.
+- **Targeted Deletion (`deleteProperty`)**: Removes the property from whichever source currently defines it.
+- **Shallow Delegation**: Unlike `inherit` (which recursively wraps nested objects in cascaded proxies), `override` operates strictly on top-level property keys of the passed sources.
+
+---
+
+## Architectural Best Practices
 
 ### Prefer Restricted Access for Shared Stores
 For stores exported across the app, prefer `immutable` over raw `mutable`. This guarantees one-way data flow: components cannot accidentally mutate store properties directly.
@@ -129,13 +160,13 @@ interface AuthState {
   username: string | null;
 }
 
-// 1. Read-only state for UI rendering
+// Read-only state for UI rendering
 export const authState = immutable<AuthState>({
   isAuthenticated: false,
   username: null,
 });
 
-// 2. Internal writer for actions
+// Internal writer for actions
 const authWriter = writable(authState);
 
 export const authActions = {

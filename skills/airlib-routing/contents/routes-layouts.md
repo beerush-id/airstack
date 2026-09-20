@@ -9,7 +9,7 @@ In AirLib, routes define URL hierarchy and navigation lifecycles, while `page()`
 
 ---
 
-## 1. Layouts & Pages
+## Layouts & Pages
 
 ### Layout Routes (Persistent Shells)
 
@@ -89,7 +89,7 @@ export default page(route).render(() => (
 
 ---
 
-## 2. Accessing Route State & Parameters
+## Accessing Route State & Parameters
 
 The `.render()` callback receives three arguments:
 
@@ -147,7 +147,7 @@ export default page(route).render(({ context }) => (
 
 ---
 
-## 3. Modal Routes (`modal()`)
+## Modal Routes (`modal()`)
 
 When a route should render as an overlay floating on top of the current page rather than swapping out page content, wrap the route with `modal()` instead of `page()`:
 
@@ -218,7 +218,7 @@ export default UserInviteModal;
 
 ---
 
-## 4. Independent Route Trees (Group Routes)
+## Independent Route Trees (Group Routes)
 
 When a section of the application requires an isolated layout shell that should not inherit the root layout or root guards (e.g. authentication screens, marketing landing pages, or documentation):
 
@@ -231,7 +231,7 @@ Group folders (names wrapped in parentheses, like `pages/(docs)/` or `pages/(aut
 
 ---
 
-## 5. Route Options & Behavioral Flags
+## Route Options & Behavioral Flags
 
 Attach configuration options to a route definition to control its caching, preloading, and lifecycle behavior:
 
@@ -250,7 +250,7 @@ Setting `keepAlive: true` preserves the route's in-memory reactive state and pro
 
 ---
 
-## 6. Static Pre-Rendering (SSG) & Incremental Regeneration (ISR)
+## Static Pre-Rendering (SSG) & Incremental Regeneration (ISR)
 
 Routes can be pre-rendered to static HTML instead of rendering dynamically on each request:
 
@@ -288,7 +288,7 @@ export const productsDynamicRoute = route.config({
 
 ---
 
-## 7. Zero-JavaScript Output (`noscript`)
+## Zero-JavaScript Output (`noscript`)
 
 To eliminate client JavaScript bundles and hydration scripts, enable `noscript` per-route or site-wide:
 
@@ -317,7 +317,7 @@ export default defineConfig({
 
 ---
 
-## 8. Error Boundaries
+## Error Boundaries
 
 ### Per-Route Error Boundary
 
@@ -350,7 +350,7 @@ router.catch(() => (
 
 ---
 
-## 9. Low-Level Router Initialization (`src/router.ts`)
+## Low-Level Router Initialization (`src/router.ts`)
 
 In an AirLib application, router initialization is pre-configured in `src/router.ts` and mounted automatically in `src/app.tsx`. Global options can be adjusted here:
 

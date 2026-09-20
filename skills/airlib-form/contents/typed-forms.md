@@ -4,7 +4,7 @@ AirLib Form provides schema-driven reactive form management. By defining a Zod s
 
 ---
 
-## 1. Defining the Zod Schema
+## Defining the Zod Schema
 
 The Zod schema acts as the single source of truth for field paths, data types, constraints, and error messages:
 
@@ -26,7 +26,7 @@ Every property in the schema maps directly to a form field path. Validation runs
 
 ---
 
-## 2. Generating a Typed Form Component
+## Generating a Typed Form Component
 
 Pass the schema to `createForm()` to produce a type-safe form component bundle:
 
@@ -57,7 +57,7 @@ The returned `UserForm` is both a component and a namespace providing colocated,
 
 ---
 
-## 3. Building and Binding a Form
+## Building and Binding a Form
 
 Bind an initial state object using an AirLib `mutable` store and attach an `onSubmit` handler:
 
@@ -155,7 +155,7 @@ export const ProfileEditor = setup(() => {
 
 ---
 
-## 4. Submission Lifecycle & Handlers
+## Submission Lifecycle & Handlers
 
 The `onSubmit` callback receives three arguments:
 
@@ -178,7 +178,7 @@ onSubmit?: (
 
 ---
 
-## 5. Submit & Reset Button Behavior
+## Submit & Reset Button Behavior
 
 ### `<Form.Submit>` Readiness Rules
 
@@ -232,7 +232,7 @@ To completely empty all fields instead of reverting to initial baseline values, 
 
 ---
 
-## 5. Nested Object Structures
+## Nested Object Structures
 
 Define nested schemas using standard Zod object composition. Form fields address nested properties using dot-notation string paths (`parent.child.property`):
 
@@ -283,7 +283,7 @@ Compile-time type checking verifies the dot-notation paths against the schema. T
 
 ---
 
-## 6. Dynamic Repeatable Collections (`<FieldList>`)
+## Dynamic Repeatable Collections (`<FieldList>`)
 
 When forms require repeatable rows—such as adding multiple team members, contacts, or line items—use `<Form.FieldList>`:
 

@@ -4,7 +4,7 @@ Third-party webhooks (e.g. Stripe, GitHub, Shopify) send standard HTTP POST requ
 
 ---
 
-## 1. Webhook Function Declarations
+## Webhook Function Declarations
 
 Webhook stubs are declared using `irpc.declare()`, with one strict rule: **they must accept exactly one argument**. 
 
@@ -54,11 +54,11 @@ irpc.construct(stripeWebhook, async (event: StripeEventPayload) => {
 
 ---
 
-## 2. Server Translation Adapters
+## Server Translation Adapters
 
 The router provides two server-side translation methods depending on the runtime.
 
-### 1. `router.resolveRest()` (Edge & Web Request Standard)
+### `router.resolveRest()` (Edge & Web Request Standard)
 
 Used in runtimes exposing a standard Web `Request` object (**Bun**, **Cloudflare Workers**, **Next.js Edge**, **SvelteKit**):
 
@@ -73,12 +73,12 @@ Bun.serve({
   async fetch(req: Request) {
     const url = new URL(req.url);
 
-    // 1. Standard IRPC calls
+    // Standard IRPC calls
     if (url.pathname === transport.endpoint && req.method === 'POST') {
       return router.resolve(req, [['token', req.headers.get('authorization')]]);
     }
 
-    // 2. Incoming REST webhook endpoint
+    // Incoming REST webhook endpoint
     if (url.pathname.startsWith('/rest/') && req.method === 'POST') {
       const functionName = url.pathname.replace('/rest/', '');
 
@@ -97,7 +97,7 @@ Bun.serve({
 });
 ```
 
-### 2. `router.resolveJson()` (Express / Fastify)
+### `router.resolveJson()` (Express / Fastify)
 
 Used in Node.js frameworks where middleware like `express.json()` pre-parses the stream into `req.body`:
 
@@ -128,7 +128,7 @@ app.post('/rest/:name', async (req, res) => {
 
 ---
 
-## 3. Webhook Security & Signatures
+## Webhook Security & Signatures
 
 Validate incoming cryptographic signatures inside a Spec Hook or Guard using request context:
 

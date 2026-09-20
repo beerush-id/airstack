@@ -4,7 +4,7 @@ Providers act as the data fetching and dependency injection layer for routes. Th
 
 ---
 
-## 1. Declaring Data Providers (`.provide`)
+## Declaring Data Providers (`.provide`)
 
 Attach data fetchers to a route using `.provide()`. Each provider takes a unique property key and an asynchronous loader function.
 
@@ -53,7 +53,7 @@ export const weatherRoute = route.provide('weather', async ({ params }) => {
 
 ---
 
-## 2. Consuming Provider Data in UI
+## Consuming Provider Data in UI
 
 Because routes wait for providers to resolve before initial navigation completes, the page component never mounts in an unloaded state. When data reloads in the background (such as reactive re-evaluations or refetches), use `state.resolving.has('key')` to display non-blocking reloading feedback:
 
@@ -111,7 +111,7 @@ export const ProfilePage = page(profileRoute).render(({ state }) => (
 
 ---
 
-## 3. Provider Context Arguments
+## Provider Context Arguments
 
 The loader callback receives an activation context object:
 
@@ -124,7 +124,7 @@ The loader callback receives an activation context object:
 
 ---
 
-## 4. Dependent Provider Chaining
+## Dependent Provider Chaining
 
 Chain multiple `.provide()` calls sequentially on a route. Downstream providers receive the resolved results of upstream providers via the `data` parameter:
 
@@ -147,7 +147,7 @@ Providers run in strict order of declaration. If an upstream provider fails or t
 
 ---
 
-## 5. Reactive Re-evaluation
+## Reactive Re-evaluation
 
 Providers run inside reactive observers. If a provider reads global reactive state (an AirLib `mutable` or signal), the router automatically re-executes the provider whenever that state mutates:
 
@@ -180,7 +180,7 @@ export default productsRoute;
 
 ---
 
-## 6. Caching & Retries
+## Caching & Retries
 
 ### Cache Lifetime (`maxAge`)
 
@@ -218,12 +218,12 @@ export const reportRoute = route.config({
 
 ---
 
-## 7. `state.data` vs. `context.data`
+## `state.data` vs. `context.data`
 
 Inside the `.render()` callback, data is available at two scopes:
 
-1. **`state.data` (Route-Local):** Contains only data resolved by providers attached directly to *this specific route segment*.
-2. **`context.data` (Tree-Merged):** Contains merged data resolved across all active parent layouts and descendant routes in the current route tree.
+- **`state.data` (Route-Local):** Contains only data resolved by providers attached directly to *this specific route segment*.
+- **`context.data` (Tree-Merged):** Contains merged data resolved across all active parent layouts and descendant routes in the current route tree.
 
 #### React
 ```tsx

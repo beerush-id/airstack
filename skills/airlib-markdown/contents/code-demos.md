@@ -4,7 +4,7 @@ AirLib Extended Markdown features tabbed code groups, inline executable code blo
 
 ---
 
-## 1. Fenced Code Blocks & Titles
+## Fenced Code Blocks & Titles
 
 Standard fenced blocks include automatic syntax highlighting, top-right language labels, and hover-triggered copy buttons:
 
@@ -20,7 +20,7 @@ Placing bracketed text `[filename.ext]` immediately following the language ident
 
 ---
 
-## 2. Executable Code Blocks
+## Executable Code Blocks
 
 Add execution attributes to fenced code blocks to run logic directly within the page context:
 
@@ -49,7 +49,7 @@ export const metadata = { category: 'guide' };
 
 ---
 
-## 3. Tabbed Code Groups (`:::code-group`)
+## Tabbed Code Groups (`:::code-group`)
 
 Use `:::code-group` to compare identical implementations across frameworks (React vs SolidJS) or package managers in a tabbed interface:
 
@@ -79,16 +79,16 @@ Tabs automatically support keyboard navigation (Left/Right arrow keys switch tab
 
 ---
 
-## 4. Interactive Demos (`:::interactive`)
+## Interactive Demos (`:::interactive`)
 
 Interactive demos embed live, runnable components directly inside documentation pages. Readers can interact with the rendered UI while viewing the component's implementation.
 
 ### Anatomy of an Interactive Block
 
 An `:::interactive` block contains three parts in top-down order:
-1. **Component Code Block (`tsx`)**: The component definition compiled and mounted in the page.
-2. **Usage Code Block (Markup)**: A code fence showing how the component is consumed.
-3. **Live JSX**: The interactive component rendered directly.
+- **Component Code Block (`tsx`)**: The component definition compiled and mounted in the page.
+- **Usage Code Block (Markup)**: A code fence showing how the component is consumed.
+- **Live JSX**: The interactive component rendered directly.
 
 ````mdx
 :::interactive[Live Counter Demo]

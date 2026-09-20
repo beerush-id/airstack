@@ -4,7 +4,7 @@ Distribution governs how IRPC functions reach production — how they are packag
 
 ---
 
-## 1. The Package System
+## The Package System
 
 Every IRPC function belongs to an `IRPCPackage`:
 
@@ -33,7 +33,7 @@ billingApi.use(transport);
 
 ---
 
-## 2. Microservice Routing Without API Gateways
+## Microservice Routing Without API Gateways
 
 Because each package binds independently to its own transport instance, you can route functions across different backend microservices without an external API gateway:
 
@@ -67,7 +67,7 @@ Consumers call `await getUser()` and `watchMetrics.with(...)` identically. IRPC 
 
 ---
 
-## 3. NPM Package Separation
+## NPM Package Separation
 
 In full-stack applications, stubs and constructors are colocated directly alongside routes as `function.ts` and `constructor.ts` inside `pages/`. 
 
@@ -112,7 +112,7 @@ const user = await getUser('user-123');
 
 ---
 
-## 4. Dynamic Runtime Transport Switching
+## Dynamic Runtime Transport Switching
 
 Transports can be reassigned dynamically at runtime without modifying function call sites or component bindings:
 
@@ -143,7 +143,7 @@ Caller functions invoke stubs identically regardless of whether execution resolv
 
 ---
 
-## 5. Live Observability with `IRPC_STORE`
+## Live Observability with `IRPC_STORE`
 
 IRPC provides a global reactive store (`IRPC_STORE`) to inspect in-flight calls, registered routers, and system packages in real time:
 
@@ -168,11 +168,11 @@ const unsubscribe = IRPC_STORE.subscribe((event) => {
 
 ---
 
-## 6. Durable State in Serverless Runtimes
+## Durable State in Serverless Runtimes
 
 In serverless and edge environments (like Cloudflare Workers), runtime instances are stateless and ephemeral. The `Durable` abstraction connects short-lived worker requests to a single persistent reactive state object (e.g. Cloudflare Durable Objects).
 
-### 1. The Persistent Class
+### The Persistent Class
 
 ```typescript
 // src/visitors.ts
@@ -197,7 +197,7 @@ export class Visitors {
 }
 ```
 
-### 2. Platform Adapter Registration
+### Platform Adapter Registration
 
 ```typescript
 // src/worker.ts
@@ -220,7 +220,7 @@ durable.use({
 });
 ```
 
-### 3. Synchronized Stream Constructor
+### Synchronized Stream Constructor
 
 ```typescript
 // pages/visitors/constructor.ts
