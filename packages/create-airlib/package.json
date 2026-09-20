@@ -36,10 +36,11 @@
   ],
   "scripts": {
     "clean": "rimraf dist && mkdir -p dist",
-    "dev": "bun run clean && bun run template && tsdown --watch",
-    "build": "bun run clean && bun run template && tsdown",
+    "dev": "bun run clean && bun run template && bun run skills && tsdown --watch",
+    "build": "bun run clean && bun run template && bun run skills && tsdown",
     "format": "biome format --write",
     "prepublish": "bun run format && bun run build",
+    "skills": "tar --exclude='.DS_Store' -cf ./dist/skills.tar.tgz -C ../../skills airlib airlib-form airlib-irpc airlib-markdown airlib-r2-file airlib-r2-image airlib-routing airlib-state airlib-storage airlib-ui airlib-workflow",
     "template": "tar --exclude='.DS_Store' -cf ./dist/templates.tar.tgz -C ../../templates air-react air-solid react-ssr solid-ssr irpc-starter"
   },
   "dependencies": {
