@@ -2,8 +2,14 @@ import { credential, GuardError, getContext, HandlerError, type IRPCFile, plan, 
 import { anchor } from '@irpclib/irpc/core';
 import { imageModule, info, remove, upload } from './index.js';
 import { resizeImage, resolveBucket, resolveResizer } from './lib/resizer.js';
-import { deleteImage, deleteVariants, getImageMetadata, getVariantKey, putOriginal, putVariant } from './lib/storage.js';
-import { isSizeAllowed } from './utils/index.js';
+import {
+  deleteImage,
+  deleteVariants,
+  getImageMetadata,
+  getVariantKey,
+  putOriginal,
+  putVariant,
+} from './lib/storage.js';
 import type {
   DurableObjectNamespace,
   Fetcher,
@@ -14,6 +20,7 @@ import type {
   R2Bucket,
   Resize,
 } from './types.js';
+import { isSizeAllowed } from './utils/index.js';
 
 /**
  * Implements IRPC constructor handlers for upload, remove, and info on imageModule.
@@ -100,7 +107,9 @@ export function implement<Env extends ImageWorkerEnv = ImageWorkerEnv>(
 function requireWorkerEnv<Env extends ImageWorkerEnv>(): Env {
   const env = getContext<Env>('env');
   if (!env) {
-    throw HandlerError.failed('Worker environment context is missing: execution requires valid Cloudflare Worker bindings');
+    throw HandlerError.failed(
+      'Worker environment context is missing: execution requires valid Cloudflare Worker bindings'
+    );
   }
   return env;
 }

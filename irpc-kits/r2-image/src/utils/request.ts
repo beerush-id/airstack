@@ -85,11 +85,7 @@ export function parseImageRequest(url: URL): {
  * @param baseUrl Optional base URL (defaults to relative root '/')
  * @returns Clean, formatted image URL
  */
-export function formatImageUrl(
-  path: string,
-  transforms?: Resize,
-  baseUrl = ''
-): string {
+export function formatImageUrl(path: string, transforms?: Resize, baseUrl = ''): string {
   const base = baseUrl ? baseUrl.replace(/\/+$/, '') : '';
   const cleanPath = path.replace(/^\/+/, '');
 

@@ -1,11 +1,5 @@
 import { HandlerError } from '@irpclib/irpc';
-import type {
-  DurableObjectNamespace,
-  Fetcher,
-  ImageWorkerEnv,
-  R2Bucket,
-  Resize,
-} from '../types.js';
+import type { DurableObjectNamespace, Fetcher, ImageWorkerEnv, R2Bucket, Resize } from '../types.js';
 
 /**
  * Dispatches an image transformation request to the container.
@@ -99,11 +93,7 @@ export function resolveResizer<Env extends ImageWorkerEnv>(
 /**
  * Generic resolver for environment bindings supporting accessor functions and string keys.
  */
-function resolveBinding<Env, T>(
-  env: Env,
-  resolver: keyof Env | ((env: Env) => T) | undefined,
-  fallback: T
-): T {
+function resolveBinding<Env, T>(env: Env, resolver: keyof Env | ((env: Env) => T) | undefined, fallback: T): T {
   if (typeof resolver === 'function') return resolver(env);
   if (resolver && env[resolver]) return env[resolver] as unknown as T;
   return fallback;

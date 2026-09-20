@@ -11,11 +11,7 @@ const cleanPrefix = (prefix: string): string => (prefix.endsWith('/') ? prefix :
  * @param prefix Optional variant folder prefix in R2
  * @returns Deterministic variant key (e.g. 'photos/vacation.png-thumb.webp' or '.variants/photos/vacation.png/thumb.webp')
  */
-export function getVariantKey(
-  path: string,
-  transforms: Resize,
-  prefix?: string
-): string {
+export function getVariantKey(path: string, transforms: Resize, prefix?: string): string {
   const format = transforms.format || 'webp';
   const clean = cleanPath(path);
 
@@ -83,13 +79,7 @@ export async function putVariant(
   contentType: string,
   originalEtag?: string
 ): Promise<R2Object> {
-  return putStorageObject(
-    bucket,
-    variantKey,
-    data,
-    contentType,
-    originalEtag ? { originalEtag } : undefined
-  );
+  return putStorageObject(bucket, variantKey, data, contentType, originalEtag ? { originalEtag } : undefined);
 }
 
 /**
@@ -114,11 +104,7 @@ function putStorageObject(
 /**
  * Purges all rendered variants for an image from R2.
  */
-export async function deleteVariants(
-  bucket: R2Bucket,
-  path: string,
-  prefix?: string
-): Promise<void> {
+export async function deleteVariants(bucket: R2Bucket, path: string, prefix?: string): Promise<void> {
   const targetKey = cleanPath(path);
   const variantPrefix = prefix ? `${cleanPrefix(prefix)}${targetKey}/` : `${targetKey}-`;
 
@@ -137,11 +123,7 @@ export async function deleteVariants(
 /**
  * Deletes an original image along with all its cached variants from R2.
  */
-export async function deleteImage(
-  bucket: R2Bucket,
-  path: string,
-  prefix?: string
-): Promise<boolean> {
+export async function deleteImage(bucket: R2Bucket, path: string, prefix?: string): Promise<boolean> {
   const targetKey = cleanPath(path);
 
   // 1. Delete the original image
@@ -156,10 +138,7 @@ export async function deleteImage(
 /**
  * Reads metadata for an original image stored in R2.
  */
-export async function getImageMetadata(
-  bucket: R2Bucket,
-  path: string
-): Promise<ImageMetadata | undefined> {
+export async function getImageMetadata(bucket: R2Bucket, path: string): Promise<ImageMetadata | undefined> {
   const cleanKey = cleanPath(path);
   const obj = await bucket.head(cleanKey);
   if (!obj) return undefined;

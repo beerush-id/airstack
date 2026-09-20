@@ -1,11 +1,4 @@
-import type {
-  DurableObjectNamespace,
-  ExecutionContext,
-  Fetcher,
-  ImageWorkerEnv,
-  R2Bucket,
-  Resize,
-} from '../types.js';
+import type { DurableObjectNamespace, ExecutionContext, Fetcher, ImageWorkerEnv, R2Bucket, Resize } from '../types.js';
 import { isSizeAllowed, parseImageRequest } from '../utils/index.js';
 import { resizeImage, resolveBucket, resolveResizer } from './resizer.js';
 import { getOriginal, getVariant, getVariantKey, putVariant } from './storage.js';
@@ -87,7 +80,15 @@ export async function handleImageDelivery<Env extends ImageWorkerEnv>(
 
   if (existingVariant) {
     const contentType = existingVariant.httpMetadata?.contentType as string;
-    return respondAndCache(existingVariant.body, contentType, cacheHeaders, request, ctx, cache, existingVariant.httpEtag);
+    return respondAndCache(
+      existingVariant.body,
+      contentType,
+      cacheHeaders,
+      request,
+      ctx,
+      cache,
+      existingVariant.httpEtag
+    );
   }
 
   // 4. Variant Cache Miss: Check if on-demand resizing is permitted
