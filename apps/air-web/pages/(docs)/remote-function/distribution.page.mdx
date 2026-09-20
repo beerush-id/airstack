@@ -25,7 +25,7 @@ export const irpc = createPackage({
 });
 
 export const transport = new HTTPTransport({
-  endpoint: `/irpc/${irpc.href}`, // '/irpc/my-api/1.0.0'
+  endpoint: '/irpc',
 });
 
 irpc.use(transport);
@@ -34,7 +34,7 @@ irpc.use(transport);
 ### Package Identity
 
 `irpc.href` returns `name/version` — a unique identifier that serves as:
-- The HTTP endpoint path
+- The internal package identity
 - The WebSocket message namespace
 - The BroadcastChannel name
 - The wire-protocol routing key
@@ -53,18 +53,20 @@ Because each package accepts its own transport instance, you can distribute your
 // User service — runs on server A
 export const userService = createPackage({ name: 'users', version: '1.0.0' });
 userService.use(new HTTPTransport({
-  endpoint: 'https://server-a.internal/irpc/users/1.0.0',
+  baseURL: 'https://server-a.internal',
+  endpoint: '/irpc',
 }));
 
 // Project service — runs on server B
 export const projectService = createPackage({ name: 'projects', version: '1.0.0' });
 projectService.use(new HTTPTransport({
-  endpoint: 'https://server-b.internal/irpc/projects/1.0.0',
+  baseURL: 'https://server-b.internal',
+  endpoint: '/irpc',
 }));
 
 // Declare functions on their respective packages
-export const getUser = userService.declare<GetUserFn>({ name: 'getUser' });
-export const getProject = projectService.declare<GetProjectFn>({ name: 'getProject' });
+export const getUser = userService.declare<GetUserFn>('users.get', () => ({}));
+export const getProject = projectService.declare<GetProjectFn>('projects.get', () => ({}));
 ```
 
 From the client's perspective, they just call `await getUser()` and `await getProject()` normally. The packages route the execution payloads to their respective microservices behind the scenes. No URL manipulation, no routing configuration, no API gateway.
@@ -83,7 +85,8 @@ realtimeService.use(new WebSocketTransport({
 // Batch service — HTTP for large payloads and file uploads
 export const batchService = createPackage({ name: 'batch', version: '1.0.0' });
 batchService.use(new HTTPTransport({
-  endpoint: 'https://batch.internal/irpc/batch/1.0.0',
+  baseURL: 'https://batch.internal',
+  endpoint: '/irpc',
 }));
 ```
 

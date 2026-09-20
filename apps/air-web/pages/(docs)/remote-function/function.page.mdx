@@ -676,9 +676,25 @@ export const watchPrices = irpc.declare<WatchPricesFn>('watchPrices', () => 0, {
 
 For one-shot calls, use `timeout` instead.
 
+### Keep-Alive Streams (`keepAlive: true`)
+
+For persistent real-time connections (e.g. rooms, presence, or chat) that should remain open indefinitely without being terminated by default idle timeouts, set `keepAlive: true`:
+
+```typescript
+import type { RemoteState } from '@irpclib/irpc';
+
+export type RoomPresenceFn = (roomId: string) => RemoteState<{ activeUsers: string[] }>;
+
+// Persistent stream: keepAlive prevents idle timeout termination
+export const watchPresence = irpc.declare<RoomPresenceFn>('room.presence', {
+  keepAlive: true,
+  seed: () => ({ activeUsers: [] }),
+});
+```
+
 ## Priority Cascade
 
-All per-function options (`timeout`, `maxRetries`, `retryMode`, `retryDelay`) cascade from most specific to least specific:
+All per-function call options (`timeout`, `maxRetries`, `retryMode`, `retryDelay`, `standalone`) cascade from most specific to least specific:
 
 ```
 Function → Package → Transport
@@ -742,4 +758,26 @@ const [user, posts, stats] = await Promise.all([
 // → ONE HTTP request. Responses stream back as each handler completes.
 ```
 
-Batching is automatic and zero-configuration. Calls made in the same microtask are batched. The `debounce` option on the transport controls the batching window.
+Batching is automatic and zero-configuration. Calls made in the same microtask are batched. The `debounce` option on the transport controls the batching window (`debounce: number | boolean`).
+
+### Standalone Requests (`standalone: true`)
+
+By default, calls in the same microtask are batched together. However, operations that manage authentication or session state—such as `login` and `logout`—require an isolated HTTP request/response lifecycle so that `Set-Cookie` response headers or session cookies are applied immediately and independently of any other concurrent calls.
+
+Setting `standalone: true` causes the stub to bypass the microtask batching window and dispatch as an individual HTTP request:
+
+```typescript
+export type LoginFn = (creds: { email: string; password: string }) => Promise<{ success: boolean; user?: { id: string; name: string } }>;
+export type LogoutFn = () => Promise<void>;
+
+// Login: standalone ensures Set-Cookie headers attach directly to this isolated response
+export const login = irpc.declare<LoginFn>('auth.login', {
+  standalone: true,
+  seed: () => ({ success: false }),
+});
+
+// Logout: standalone ensures session clearance cookies execute immediately in an isolated request
+export const logout = irpc.declare<LogoutFn>('auth.logout', {
+  standalone: true,
+});
+```
