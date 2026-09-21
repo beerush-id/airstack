@@ -109,8 +109,7 @@ export async function handleImageDelivery<Env extends ImageWorkerEnv>(
     const transformedBuffer = await resizedResponse.arrayBuffer();
 
     // Persist to R2 variant storage in the background
-    ctx.waitUntil(putVariant(bucket, variantKey, transformedBuffer, contentType, original.etag));
-
+    await putVariant(bucket, variantKey, transformedBuffer, contentType, original.etag);
     return respondAndCache(transformedBuffer, contentType, cacheHeaders, request, ctx, cache);
   } catch {
     return new Response('Internal Server Error', { status: 500 });
@@ -120,7 +119,7 @@ export async function handleImageDelivery<Env extends ImageWorkerEnv>(
 /**
  * Constructs an HTTP Response, sets caching headers, and registers edge cache persistence.
  */
-function respondAndCache(
+async function respondAndCache(
   body: BodyInit | null,
   contentType: string,
   cacheHeaders: Record<string, string>,
@@ -128,7 +127,7 @@ function respondAndCache(
   ctx: ExecutionContext,
   cache: Cache,
   etag?: string
-): Response {
+): Promise<Response> {
   const headers: Record<string, string> = {
     'Content-Type': contentType,
     ...cacheHeaders,
@@ -137,6 +136,6 @@ function respondAndCache(
   if (etag) headers.ETag = etag;
 
   const response = new Response(body, { status: 200, headers });
-  ctx.waitUntil(cache.put(request, response.clone()));
+  await cache.put(request, response.clone());
   return response;
 }

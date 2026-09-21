@@ -1,5 +1,5 @@
-import { HandlerError, IRPCFile } from '@irpclib/irpc';
-import { Transformer } from '@napi-rs/image';
+import { type AnyType, HandlerError, IRPCFile } from '@irpclib/irpc';
+import type { Transformer } from '@napi-rs/image';
 import type { ImageSource, Resize } from './types.js';
 
 /**
@@ -17,6 +17,8 @@ const FORMAT_MIME_MAP: Record<string, string> = {
  */
 const MAX_INPUT_PIXELS = 67_108_864;
 
+let resolveNImage: Promise<AnyType> | undefined;
+
 /**
  * Resizes and transforms an image using the local @napi-rs/image engine.
  * Runs isomorphically in both the browser (via WebAssembly) and server runtimes (via native bindings).
@@ -26,8 +28,11 @@ const MAX_INPUT_PIXELS = 67_108_864;
  * @returns Transformed image packaged as an IRPCFile ready for upload
  */
 export async function resize(source: ImageSource, options: Resize = {}): Promise<IRPCFile> {
+  resolveNImage ??= import('@napi-rs/image');
+  const ResolvedTransformer = (await resolveNImage).Transformer as typeof Transformer;
+
   const { buffer, name } = await resolveSourceBuffer(source);
-  const transformer = new Transformer(buffer);
+  const transformer = new ResolvedTransformer(buffer);
   const meta = await transformer.metadata();
 
   if (meta.width * meta.height > MAX_INPUT_PIXELS) {

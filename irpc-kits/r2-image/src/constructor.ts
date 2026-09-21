@@ -75,7 +75,7 @@ export function implement<Env extends ImageWorkerEnv = ImageWorkerEnv>(
             options: uploadOptions,
           });
 
-          accept(state.data);
+          accept();
         } catch (error) {
           reject(HandlerError.failed(error as Error | string));
         }
