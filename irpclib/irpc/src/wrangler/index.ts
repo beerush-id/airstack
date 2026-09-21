@@ -29,6 +29,8 @@ export async function resolveBinding<T extends object = Record<string, AnyType>>
   }
 }
 
+ensureCache();
+
 /**
  * Cloudflare execution context interface.
  */
