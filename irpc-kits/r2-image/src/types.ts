@@ -32,7 +32,7 @@ export interface ImageWorkerHandler<Env = ImageWorkerEnv> {
   /**
    * Main fetch dispatch entry point for the Cloudflare Worker.
    */
-  fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response>;
+  fetch(request: Request, env: Env): Promise<Response>;
 }
 
 /**
