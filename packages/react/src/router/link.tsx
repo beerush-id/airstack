@@ -113,8 +113,11 @@ export const Link = setup<LinkProps<AnyRoute>>((props) => {
   };
 
   const handleClick: MouseEventHandler<HTMLAnchorElement> = (e) => {
+    const crossOrigin = state.url.origin !== location.origin;
+
     // Let the browser handle standard "open in new tab/window" modifiers and custom targets.
-    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0 || $props.target) {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0 || crossOrigin) {
+      $props.onClick?.(e);
       return;
     }
 
