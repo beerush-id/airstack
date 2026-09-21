@@ -48,6 +48,9 @@ export const Link = ((allProps: LinkProps<AnyRoute>) => {
     const query = toProps.query;
 
     const activeUrl = untrack(() => new URL(getCurrentUrl()));
+    if (!activeUrl.pathname.endsWith('/')) {
+      activeUrl.pathname = `${activeUrl.pathname}/`;
+    }
 
     let route: AnyRoute | undefined;
     let target: URL;
@@ -111,8 +114,13 @@ export const Link = ((allProps: LinkProps<AnyRoute>) => {
   };
 
   const handleClick: JSX.EventHandler<HTMLAnchorElement, MouseEvent> = (e) => {
+    const crossOrigin = state.url.origin !== location.origin;
+
     // Let the browser handle standard "open in new tab/window" modifiers and custom targets.
-    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0 || allProps.target) {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0 || crossOrigin) {
+      if (typeof props.onClick === 'function') {
+        (props.onClick as (e: MouseEvent) => void)(e);
+      }
       return;
     }
 
