@@ -116,7 +116,7 @@ export const Link = setup<LinkProps<AnyRoute>>((props) => {
     const crossOrigin = state.url.origin !== location.origin;
 
     // Let the browser handle standard "open in new tab/window" modifiers and custom targets.
-    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0 || crossOrigin) {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0 || crossOrigin || $props.target) {
       $props.onClick?.(e);
       return;
     }

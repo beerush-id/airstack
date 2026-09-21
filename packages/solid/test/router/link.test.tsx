@@ -313,7 +313,12 @@ describe('Anchor Solid - Link Component', () => {
     });
 
     it('yields to the browser for modifier keys, non-left buttons, and custom targets', () => {
-      render(() => <Link href="/about">About</Link>);
+      const onClick = vi.fn();
+      render(() => (
+        <Link href="/about" onClick={onClick}>
+          About
+        </Link>
+      ));
       const anchor = screen.getByText('About');
 
       fireEvent.click(anchor, { metaKey: true });
@@ -324,6 +329,21 @@ describe('Anchor Solid - Link Component', () => {
 
       expect(pushSpy).not.toHaveBeenCalled();
       expect(replaceSpy).not.toHaveBeenCalled();
+      expect(onClick).toHaveBeenCalledTimes(5);
+    });
+
+    it('yields to the browser and invokes onClick for cross-origin links', () => {
+      const onClick = vi.fn();
+      render(() => (
+        <Link href="https://example.com" onClick={onClick}>
+          External
+        </Link>
+      ));
+      fireEvent.click(screen.getByText('External'));
+
+      expect(pushSpy).not.toHaveBeenCalled();
+      expect(replaceSpy).not.toHaveBeenCalled();
+      expect(onClick).toHaveBeenCalledTimes(1);
     });
 
     it('yields to the browser when a target attribute is set', () => {
