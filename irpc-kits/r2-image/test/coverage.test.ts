@@ -213,9 +213,8 @@ describe('Coverage: Edge Cases & Boundary Handling', () => {
         IMAGES: mockBucket as unknown as R2Bucket,
         RESIZER: 'http://localhost:8080',
       };
-      const ctx: ExecutionContext = { waitUntil: () => {}, passThroughOnException: () => {} };
 
-      const res = await handleImageDelivery(new Request('http://localhost/'), new URL('http://localhost/'), env, ctx, {
+      const res = await handleImageDelivery(new Request('http://localhost/'), new URL('http://localhost/'), env, {
         variantPrefix: '.variants/',
         browserTtl: 3600,
         edgeTtl: 7200,
@@ -229,13 +228,12 @@ describe('Coverage: Edge Cases & Boundary Handling', () => {
         IMAGES: mockBucket as unknown as R2Bucket,
         RESIZER: 'http://localhost:8080',
       };
-      const ctx: ExecutionContext = { waitUntil: () => {}, passThroughOnException: () => {} };
 
       const res = await handleImageDelivery(
         new Request('http://localhost/missing.png?w=50'),
         new URL('http://localhost/missing.png?w=50'),
         env,
-        ctx,
+
         { variantPrefix: '.variants/', browserTtl: 3600, edgeTtl: 7200 }
       );
       expect(res.status).toBe(404);
@@ -251,13 +249,11 @@ describe('Coverage: Edge Cases & Boundary Handling', () => {
         IMAGES: mockBucket as unknown as R2Bucket,
         RESIZER: 'http://localhost:8080',
       };
-      const ctx: ExecutionContext = { waitUntil: () => {}, passThroughOnException: () => {} };
 
       const res = await handleImageDelivery(
         new Request('http://localhost/hero.png?w=200'),
         new URL('http://localhost/hero.png?w=200'),
         env,
-        ctx,
         { variantPrefix: '.variants/', browserTtl: 3600, edgeTtl: 7200, onDemand: false }
       );
       expect(res.status).toBe(404);
@@ -277,14 +273,12 @@ describe('Coverage: Edge Cases & Boundary Handling', () => {
         IMAGES: mockBucket as unknown as R2Bucket,
         RESIZER: 'http://localhost:8080',
       };
-      const ctx: ExecutionContext = { waitUntil: () => {}, passThroughOnException: () => {} };
 
       // Request variant with fresh URL that bypasses in-memory mockCache
       const res = await handleImageDelivery(
         new Request('http://localhost/hero.png?w=100&nocache=1'),
         new URL('http://localhost/hero.png?w=100&nocache=1'),
         env,
-        ctx,
         { variantPrefix: '.variants/', browserTtl: 3600, edgeTtl: 7200 }
       );
       expect(res.status).toBe(200);
@@ -304,13 +298,11 @@ describe('Coverage: Edge Cases & Boundary Handling', () => {
         IMAGES: mockBucket as unknown as R2Bucket,
         RESIZER: failingResizer,
       };
-      const ctx: ExecutionContext = { waitUntil: () => {}, passThroughOnException: () => {} };
 
       const res = await handleImageDelivery(
         new Request('http://localhost/broken.png?w=50'),
         new URL('http://localhost/broken.png?w=50'),
         env,
-        ctx,
         { variantPrefix: '.variants/', browserTtl: 3600, edgeTtl: 7200 }
       );
       expect(res.status).toBe(500);
@@ -769,18 +761,12 @@ describe('Coverage: Edge Cases & Boundary Handling', () => {
         },
       };
 
-      const ctx: ExecutionContext = {
-        waitUntil: () => {},
-        passThroughOnException: () => {},
-      };
-
       // 1. Request with disallowed size -> skips transform, serves original image, container not called
       const disallowedReq = new Request('http://localhost/photo.png?w=9999');
       const disallowedRes = await handleImageDelivery(
         disallowedReq,
         new URL('http://localhost/photo.png?w=9999'),
         env,
-        ctx,
         {
           allowedSizes: [320, 640],
           browserTtl: 86400,
@@ -795,7 +781,7 @@ describe('Coverage: Edge Cases & Boundary Handling', () => {
 
       // 2. Request with allowed size -> invokes resizer and caches variant
       const allowedReq = new Request('http://localhost/photo.png?w=320');
-      const allowedRes = await handleImageDelivery(allowedReq, new URL('http://localhost/photo.png?w=320'), env, ctx, {
+      const allowedRes = await handleImageDelivery(allowedReq, new URL('http://localhost/photo.png?w=320'), env, {
         allowedSizes: [320, 640],
         browserTtl: 86400,
         edgeTtl: 2592000,

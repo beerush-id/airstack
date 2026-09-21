@@ -60,7 +60,7 @@ export function createWorker<Env extends ImageWorkerEnv = ImageWorkerEnv>(
 
       // 4. Edge Image Delivery Plane (GET /*)
       if (request.method === 'GET') {
-        return handleImageDelivery(request, url, env, ctx, {
+        return handleImageDelivery(request, url, env, {
           variantPrefix,
           browserTtl,
           edgeTtl,

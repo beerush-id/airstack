@@ -1,4 +1,4 @@
-import type { DurableObjectNamespace, ExecutionContext, Fetcher, ImageWorkerEnv, R2Bucket, Resize } from '../types.js';
+import type { DurableObjectNamespace, Fetcher, ImageWorkerEnv, R2Bucket, Resize } from '../types.js';
 import { isSizeAllowed, parseImageRequest } from '../utils/index.js';
 import { resizeImage, resolveBucket, resolveResizer } from './resizer.js';
 import { getOriginal, getVariant, getVariantKey, putVariant } from './storage.js';
@@ -20,7 +20,6 @@ export interface DeliveryOptions<Env> {
  * @param request Incoming GET request
  * @param url Parsed request URL
  * @param env Worker environment bindings
- * @param ctx Worker execution context
  * @param options Delivery and caching options
  * @returns Binary image HTTP Response
  */
@@ -28,7 +27,6 @@ export async function handleImageDelivery<Env extends ImageWorkerEnv>(
   request: Request,
   url: URL,
   env: Env,
-  ctx: ExecutionContext,
   options: DeliveryOptions<Env>
 ): Promise<Response> {
   const cache = (caches as unknown as { default: Cache }).default;
@@ -71,7 +69,7 @@ export async function handleImageDelivery<Env extends ImageWorkerEnv>(
     }
 
     const contentType = original.httpMetadata?.contentType as string;
-    return respondAndCache(original.body, contentType, cacheHeaders, request, ctx, cache, original.httpEtag);
+    return respondAndCache(original.body, contentType, cacheHeaders, request, cache, original.httpEtag);
   }
 
   // 3. Transformed Variant Requested: Check R2 Variant Storage
@@ -80,15 +78,7 @@ export async function handleImageDelivery<Env extends ImageWorkerEnv>(
 
   if (existingVariant) {
     const contentType = existingVariant.httpMetadata?.contentType as string;
-    return respondAndCache(
-      existingVariant.body,
-      contentType,
-      cacheHeaders,
-      request,
-      ctx,
-      cache,
-      existingVariant.httpEtag
-    );
+    return respondAndCache(existingVariant.body, contentType, cacheHeaders, request, cache, existingVariant.httpEtag);
   }
 
   // 4. Variant Cache Miss: Check if on-demand resizing is permitted
@@ -110,7 +100,7 @@ export async function handleImageDelivery<Env extends ImageWorkerEnv>(
 
     // Persist to R2 variant storage in the background
     await putVariant(bucket, variantKey, transformedBuffer, contentType, original.etag);
-    return respondAndCache(transformedBuffer, contentType, cacheHeaders, request, ctx, cache);
+    return respondAndCache(transformedBuffer, contentType, cacheHeaders, request, cache);
   } catch {
     return new Response('Internal Server Error', { status: 500 });
   }
@@ -124,7 +114,6 @@ async function respondAndCache(
   contentType: string,
   cacheHeaders: Record<string, string>,
   request: Request,
-  ctx: ExecutionContext,
   cache: Cache,
   etag?: string
 ): Promise<Response> {
