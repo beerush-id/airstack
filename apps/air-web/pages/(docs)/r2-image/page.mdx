@@ -28,15 +28,15 @@ At its core, image optimization exists for one line of HTML:
 
 Delivering fast, responsive images directly to user interfaces is what drives modern web performance and user experience. But behind that single image tag lies a massive infrastructure cost.
 
-:::details[The $59,000/year image optimization tax]
+:::details[The SaaS image delivery markup]
 To deliver responsive images today, developers are traditionally trapped between two costly extremes:
 
-- **SaaS image CDNs (Vercel, Cloudinary, Imgix)**: Quick to set up, but they charge steep per-transformation fees that grow aggressively with traffic. Optimizing 1,000,000 unique images per month costs **$59,000 a year on Vercel** ($5 per 1,000 transformations after included plan limits). Basic responsive images become a massive recurring cloud bill.
+- **SaaS image CDNs (Cloudflare Images, Vercel)**: Quick to set up, but they charge ongoing delivery and transformation markups ($150/mo on Cloudflare Images Hosted, ~$120–$160/mo on Vercel Pro for 1M transforms and 10M delivery views). Optimizing and delivering responsive images runs **$1,400 to $1,900 a year** across managed platforms.
 - **Self-hosted image clusters (EC2, ECS, Fly.io)**: You escape SaaS markups, but inherit infrastructure overhead: managing auto-scaling container fleets, handling memory spikes during traffic bursts, and paying heavy data egress fees just to pull original assets out of AWS S3.
 :::
 
 :::tip[What if:]
-**1,000,000 image transformations cost ~$15/month on your own Cloudflare infrastructure?**
+**Storing, optimizing, and delivering 1,000,000 images with 10M views cost ~$25–$27/month on your own Cloudflare infrastructure?**
 :::
 
 R2 Image combines **Cloudflare Workers** (edge routing and caching), **Cloudflare R2** (zero data egress storage), and private **Cloudflare Containers** (isolated container compute for image transformations) into a single self-hosted media engine:
@@ -65,32 +65,92 @@ await upload('users/avatar.png', file);
 
 Subsequent requests hit Cloudflare Edge Cache or R2 storage directly, incurring zero container compute and zero egress fees.
 
-## Too Good To Be True?
+:::interactive[Image Optimizer Demo]
+```tsx
+import { upload, url } from '@irpclib/r2-image';
+import { IRPCFile } from '@irpclib/irpc';
+import { setup, Show, Snippet, derived, mutable } from '@airlib/react';
+import { shortId } from '@airlib/react/utils';
 
-A **~$200/year** vs. **$59,000/year** difference may sound too good to be true. But, here is how the benchmark data grounds the pricing:
+const ImageUploader = setup(() => {
+  const uploader = upload.later();
+  const activeSize = mutable(256);
+  const thumb = derived(() => {
+    if (!uploader.data?.path) return '';
+    return url(uploader.data.path, { size: activeSize.value, format: 'webp' });
+  });
 
-:::info[Benchmark Payload]
-**AI-generated Image**: 1376×768 JPEG (992 KB) → 320×180 WebP thumbnail.
+  const handleFileChange = async (e) => {
+    if (!e.target?.files?.length) return;
+
+    const blob = e.target.files[0];
+    const { name, type, size } = blob;
+
+    if (size >= 5_000_000) return alert('File too large');
+
+    const file = new IRPCFile({ name, type, size }, blob);
+    await uploader.dispatch(`/images/r2-image-demos/${shortId()}`, file);
+  };
+
+  return () => (
+    <div className={uploaderStyles.container}>
+      <Show when={() => uploader.data?.progress}>
+        {(progress) => <div className={uploaderStyles.progress}>Uploading: {progress}</div>}
+      </Show>
+      <Show when={() => uploader.data.step === 'complete' && uploader.data}>
+        {({ path, size }) => (
+          <div className={uploaderStyles.preview}>
+            <img src={thumb.value} alt="Thumbnail" className={uploaderStyles.image} />
+            <code className={uploaderStyles.code}>{thumb.value}</code>
+          </div>
+        )}
+      </Show>
+      <Snippet>
+        {() => (
+          <div className={uploaderStyles.sizes}>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className={uploaderStyles.input}
+            />
+            <label className={uploaderStyles.sizeSelect}>
+              <input type="radio" name="size" checked={activeSize.value === 128} onChange={(e) => (activeSize.value = 128)} />
+              <span>128px</span>
+            </label>
+            <label className={uploaderStyles.sizeSelect}>
+              <input type="radio" name="size" checked={activeSize.value === 256} onChange={(e) => (activeSize.value = 256)} />
+              <span>256px</span>
+            </label>
+            <label className={uploaderStyles.sizeSelect}>
+              <input type="radio" name="size" checked={activeSize.value === 512} onChange={(e) => (activeSize.value = 512)} />
+              <span>512px</span>
+            </label>
+          </div>
+        )}
+        </Snippet>
+    </div>
+  );
+}, 'ImageUploader');
+
+const uploaderStyles = {
+  container: 'flex flex-col gap-4 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50',
+  input: 'flex-1 text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer',
+  progress: 'text-sm font-medium text-blue-600 dark:text-blue-400',
+  preview: 'flex flex-col gap-2 pt-2 border-t border-zinc-200 dark:border-zinc-800',
+  image: 'rounded-xl shadow-sm mx-auto my-4',
+  code: 'text-xs text-center',
+  sizes: 'flex gap-4 items-center w-full',
+  sizeSelect: 'inline-flex gap-2 font-medium'
+};
+
+```
+
+<ImageUploader />
 :::
 
-| Metric | Measured Value | Pricing Impact |
-| :--- | :---: | :--- |
-| **Active Processing Time** | **80 ms** (Cloudflare server vCPU) | 1,000,000 transforms consume only **~22 hours of total vCPU compute** |
-| **Container Memory** | **~120 MiB** | Negligible footprint (< 3% of provisioned RAM; zero OOM risk) |
-| **Output Size** | **19.6 KB** (98% reduction) | 1,000,000 variants require only **~19 GB** in R2 |
-
-**Cloudflare Line-Item Cost Breakdown**
-
-- **Cloudflare Workers Paid**: **$5.00/month** (includes 10M requests; additional requests are only **$0.30 per million**).
-- **Container Compute (Scale-to-Zero)**: **~$1.50 – $8.00/month** (1M transforms × ~80 ms consumes ~80,000 instance-seconds; micro-metered by the millisecond).
-- **Container Compute (Dedicated 24/7 Pool)**: **~$27 – $40/month** (running a dedicated instance 24/7 without scale-to-zero for zero cold starts; sustains ~12–16 transforms/sec continuously).
-- **Cloudflare R2 Storage**: **~$0.15/month** (1M variant writes are free within R2's monthly quota; ~19 GB stored is $0.15 after the 10 GB free tier; **$0 data egress**).
-- **Repeat Views & Delivery**: Cached at Cloudflare Edge Cache or served directly from R2 at **$0 container compute** and **$0 egress** (10M views included free in Workers Paid, then **$0.30 per million views**).
-
-:::tip[Estimated Pricing]
-- **On-Demand (Scale-to-Zero)**: **~$10 – $15/month** (~$150–$200/year) vs. **$4,995/month** ($59,000/year) on **Vercel**.
-- **Heavy Delivery (e.g. 50M views)**: Even with 50,000,000 cached views, the extra 40M Worker requests add only **~$12.00** ($0.30/million), totaling **~$22 – $27/month**.
-- **Always-On (Without Scale-to-Zero)**: Even running 24/7 continuously, total infrastructure is only **~$32 – $45/month**—with enough headroom on that single instance to process **over 15,000,000 transforms/month** (~12 req/s sustained).
+:::note[Looking for benchmarks and cost models?]
+See the **[Architecture & Cost Comparison](/docs/r2-image/comparison)** guide for detailed end-to-end unit economics, multi-resolution benchmarks (1K, 2K, 4K), concurrency profiling, and line-item comparisons against Vercel and Cloudflare Images.
 :::
 
 ## Image Storage
@@ -140,8 +200,8 @@ Showing optimized images in modern applications shouldn't force you into framewo
 :::details[The friction of modern image serving]
 Displaying optimized images typically forces trade-offs on frontend developers:
 
-- **Framework lock-in**: Meta-frameworks like Next.js require proprietary `<Image />` components that inject DOM wrappers, add client runtime, and enforce rigid width and height props.
-- **Vendor URL lock-in**: Hosted services like Cloudflare Images lock your assets behind `imagedelivery.net/<hash>/<id>` URLs, polluting your database with vendor IDs that break if you ever migrate.
+- **Framework lock-in**: Meta-frameworks like Next.js require proprietary `<Image />` components that add client-side runtime and enforce rigid width and height props.
+- **Vendor ID lock-in**: Hosted services like Cloudflare Images isolate assets behind vendor-generated image IDs (`<account-hash>/<image-id>`), polluting your database with vendor IDs that break if you ever migrate.
 - **Orientation distortion**: Hardcoded width and height parameters break card and grid layouts when users upload portrait smartphone photos instead of landscape banners.
 :::
 
@@ -181,7 +241,7 @@ Building and operating an image optimization backend forces teams to handle exte
 - **Container fleet management**: Deploying, provisioning, and auto-scaling standalone Docker resizer instances (ECS, Fly.io, or VPS).
 - **Private networking overhead**: Configuring VPCs, firewalls, and internal proxy bridges to prevent exposing your image resizers to the public internet.
 - **Custom caching and defense**: Writing manual edge cache-control headers and dimension cycling guards from scratch.
-- **Loss of repository control in alternatives**: Managed platforms force compromises—Next.js lacks named presets and longest-edge constraints, while Cloudflare Images forces you to configure variants in web dashboard GUIs instead of version-controlled code.
+- **Loss of repository control in alternatives**: Managed platforms force compromises—Next.js lacks named presets and longest-edge constraints, while Cloudflare Images isolates files in proprietary storage with account-level variant toggles instead of version-controlled code.
 :::
 
 :::tip[What if:]
@@ -215,3 +275,4 @@ export default createWorker({
 - **[Image Storage](/docs/r2-image/storage)** — Upload files, stream progress, and prepare eager variants
 - **[Image Delivery](/docs/r2-image/delivery)** — Edge caching, orientation-agnostic sizing, and dimension whitelisting
 - **[Worker & Container Deployment](/docs/r2-image/deployment)** — Deploy the service worker and container on Cloudflare
+- **[Architecture & Cost Comparison](/docs/r2-image/comparison)** — Detailed cost models, multi-resolution benchmarks (1K, 2K, 4K), and competitor comparisons

@@ -1,4 +1,9 @@
+import { Container } from '@cloudflare/containers';
 import worker from '../dist/server/worker.js';
+
+export class ImageResizer extends Container {
+  defaultPort = 8080;
+}
 
 export class AirDurableLink {
   constructor(state, env) {

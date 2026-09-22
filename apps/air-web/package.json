@@ -1,7 +1,7 @@
 {
   "name": "air-web",
   "private": true,
-  "version": "2.1.0",
+  "version": "2.2.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -21,6 +21,8 @@
     "@airlib/react-form": "workspace:*",
     "@irpclib/http": "workspace:*",
     "@irpclib/irpc": "workspace:*",
+    "@irpclib/r2-file": "workspace:*",
+    "@irpclib/r2-image": "workspace:*",
     "@irpclib/ws": "workspace:*",
     "minisearch": "catalog:app",
     "react": "catalog:app",

@@ -1,9 +1,12 @@
+import { configure } from '@irpclib/r2-image';
 import { hydrateRoot } from 'react-dom/client';
 import App from './app.js';
 import router from './router.js';
 
 import './app.css';
 import { acceptInteractions } from '@airlib/react/browser';
+
+configure({ endpoint: '/images' });
 
 router
   .activate(window.location.href)

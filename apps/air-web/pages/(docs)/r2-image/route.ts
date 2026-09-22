@@ -7,6 +7,7 @@ const deliveryRoute = route.route('/delivery');
 const deploymentRoute = route.route('/deployment');
 const gettingStartedRoute = route.route('/getting-started');
 const storageRoute = route.route('/storage');
+const comparisonRoute = route.route('/comparison');
 /** AirLib managed */
 
 export const r2ImageRoute = route;
@@ -15,5 +16,6 @@ export const r2ImageDeliveryRoute = deliveryRoute;
 export const r2ImageDeploymentRoute = deploymentRoute;
 export const r2ImageGettingStartedRoute = gettingStartedRoute;
 export const r2ImageStorageRoute = storageRoute;
+export const r2ImageComparisonRoute = comparisonRoute;
 
 export default r2ImageRoute;
