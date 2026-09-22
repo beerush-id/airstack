@@ -101,7 +101,8 @@ export async function handleImageDelivery<Env extends ImageWorkerEnv>(
     // Persist to R2 variant storage in the background
     await putVariant(bucket, variantKey, transformedBuffer, contentType, original.etag);
     return respondAndCache(transformedBuffer, contentType, cacheHeaders, request, cache);
-  } catch {
+  } catch (error) {
+    console.error(error);
     return new Response('Internal Server Error', { status: 500 });
   }
 }
