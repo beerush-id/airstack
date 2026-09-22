@@ -9,8 +9,28 @@
     "binding": "ASSETS",
     "html_handling": "drop-trailing-slash"
   },
-  "durable_objects": {
-    "bindings": [{ "name": "DURABLE_LINK", "class_name": "AirDurableLink" }]
-  },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["AirDurableLink"] }]
+  "r2_buckets": [
+    {
+      "binding": "IMAGES",
+      "bucket_name": "air-web-asset"
+    }
+  ],
+  "env": {
+    "production": {
+      "containers": [
+        {
+          "class_name": "ImageResizer",
+          "image": "ghcr.io/beerush-id/r2-image:latest",
+          "max_instances": 5
+        }
+      ],
+      "durable_objects": {
+        "bindings": [
+          { "name": "DURABLE_LINK", "class_name": "AirDurableLink" },
+          { "name": "RESIZER", "class_name": "ImageResizer" }
+        ]
+      },
+      "migrations": [{ "tag": "v1", "new_sqlite_classes": ["AirDurableLink", "ImageResizer"] }]
+    }
+  }
 }
