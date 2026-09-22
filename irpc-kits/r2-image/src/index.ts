@@ -1,8 +1,9 @@
 import { HTTPTransport } from '@irpclib/http';
 import type { IRPCFile, RemoteState } from '@irpclib/irpc';
 import { createPackage } from '@irpclib/irpc';
+import { isBrowser } from '@irpclib/irpc/core';
 import { resize } from './resize.js';
-import type { ClientConfig, ImageMetadata, ImageUploadOptions, ImageUploadState, Resize } from './types.js';
+import type { ClientConfig, ImageMetadata, ImageUploadOptions, ImageUploadState, Resize, Variant } from './types.js';
 import { formatImageUrl } from './utils/index.js';
 
 export * from './resize.js';
@@ -36,6 +37,7 @@ export const imageModule = createPackage({
  * Configured base domain for public image delivery and default transport.
  */
 let baseUrl = '';
+let onDemand: boolean | undefined = false;
 
 /**
  * Default transport initialized to relative '/irpc' for same-origin browser calls.
@@ -58,6 +60,10 @@ export function configure(config: ClientConfig): void {
   /* istanbul ignore else */
   if (config.endpoint !== undefined) {
     transport.config.endpoint = config.endpoint;
+  }
+
+  if ('onDemand' in config) {
+    onDemand = config.onDemand;
   }
 
   /* istanbul ignore else */
@@ -90,6 +96,23 @@ export const upload = imageModule.declare<UploadFn>('image.upload', () => ({
   type: '',
   size: 0,
 }));
+
+imageModule.hook(upload, async (call) => {
+  if (isBrowser() && onDemand === false) {
+    const source = call.args[1];
+    const options = call.args[2] ?? {};
+    const variants = [] as Variant[];
+
+    for (const size of options.sizes ?? []) {
+      const file = await resize(source, size);
+      variants.push({ ...size, file });
+    }
+
+    options.variants = variants;
+    delete options.sizes;
+    call.args[2] = options;
+  }
+});
 
 /**
  * Deletes an image and all its generated variants from R2.

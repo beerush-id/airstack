@@ -133,6 +133,13 @@ export interface ClientConfig {
    * Optional secret API key for signing mutating operations.
    */
   apiKey?: string;
+
+  /**
+   * Whether on-demand dynamic resizing via the container is permitted.
+   * When false, client resize is enforced.
+   * @default true
+   */
+  onDemand?: boolean;
 }
 
 // --------------------------------------------------------------------------
