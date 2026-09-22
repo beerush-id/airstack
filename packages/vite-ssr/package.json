@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "@airlib/vite",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Vite plugin that handles SSR rendering and IRPC routing for AirLib applications",
   "keywords": [
     "vite",

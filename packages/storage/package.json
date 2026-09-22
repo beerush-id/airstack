@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "@airlib/storage",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Persistent storage solutions for Anchor state management",
   "keywords": [
     "state",

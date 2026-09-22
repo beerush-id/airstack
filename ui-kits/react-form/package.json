@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "@airlib/react-form",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Reactive and declarative React form components built on AirLib. Typed forms, field validation, cross-field matching, and array fields with zero boilerplate.",
   "keywords": [
     "react",

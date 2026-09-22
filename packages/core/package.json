@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "@airlib/core",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Core reactive state management library for Anchor",
   "keywords": [
     "state",

@@ -1,6 +1,6 @@
 {
   "name": "@irpclib/r2-image",
-  "version": "1.0.0",
+  "version": "2.2.0",
   "type": "module",
   "description": "High-performance image delivery and isomorphic uploads for Cloudflare Workers, R2, and Containers",
   "keywords": [

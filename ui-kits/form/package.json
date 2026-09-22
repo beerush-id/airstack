@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "@airlib/form",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Reactive and declarative, framework-agnostic form engine powered by Zod schemas. Validation, dirty tracking, cross-field matching, and submission lifecycle built on AirLib.",
   "keywords": [
     "form",

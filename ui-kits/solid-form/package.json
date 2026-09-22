@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "@airlib/solid-form",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Reactive and declarative SolidJS form components built on AirLib. Typed forms, field validation, cross-field matching, and array fields with fine-grained reactivity.",
   "keywords": [
     "solid",

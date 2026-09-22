@@ -1,7 +1,7 @@
 {
   "name": "airlib",
   "type": "module",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Reactive State Management for Javascript",
   "scripts": {
     "dev": "mpkg run dev -f packages/* irpclib/* ui-kits/* irpc-kits/* -e create-airlib headless",

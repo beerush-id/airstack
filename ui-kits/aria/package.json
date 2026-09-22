@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "@airlib/aria",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Headless, reactive WAI-ARIA behavioral engine and DOM reference system built on AirLib.",
   "keywords": [
     "aria",
