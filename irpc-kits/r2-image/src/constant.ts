@@ -1,7 +1,7 @@
 import type { ClientConfig, ImageFormat } from './types.js';
 
 export const DEFAULT_FORMAT: ImageFormat = 'webp';
-export const DEFAULT_QUALITY = 85;
+export const DEFAULT_QUALITY = 80;
 /**
  * Configured base domain for public image delivery and default transport.
  */

@@ -1,7 +1,7 @@
 import { type AnyType, HandlerError, IRPCFile } from '@irpclib/irpc';
 import { isBrowser } from '@irpclib/irpc/core';
 import type { Transformer } from '@napi-rs/image';
-import { DEFAULT_FORMAT, DEFAULT_QUALITY } from './constant.js';
+import { DEFAULT_FORMAT, DEFAULT_QUALITY, IMAGE_OPTIONS } from './constant.js';
 import type { ImageFileMeta, ImageSource, Resize } from './types.js';
 
 /**
@@ -75,8 +75,10 @@ export async function resize(source: ImageSource, options: Resize = {}): Promise
     transformer.blur(options.blur);
   }
 
-  const format = options.format || DEFAULT_FORMAT;
-  const quality = options.quality ? Math.min(100, Math.max(1, options.quality)) : DEFAULT_QUALITY;
+  const format = options.format || IMAGE_OPTIONS.format || DEFAULT_FORMAT;
+  const quality = options.quality
+    ? Math.min(100, Math.max(1, options.quality))
+    : (IMAGE_OPTIONS.quality ?? DEFAULT_QUALITY);
 
   let outputBuffer: Uint8Array;
   if (format === 'webp') {
@@ -223,8 +225,10 @@ export async function browserResize(source: ImageSource, options: Resize = {}): 
 
   image.close();
 
-  const format = options.format || 'webp';
-  const quality = options.quality ? Math.min(100, Math.max(1, options.quality)) / 100 : 0.8;
+  const format = options.format || IMAGE_OPTIONS.format || DEFAULT_FORMAT;
+  const quality = options.quality
+    ? Math.min(100, Math.max(1, options.quality))
+    : (IMAGE_OPTIONS.quality ?? DEFAULT_QUALITY);
   const mimeType = FORMAT_MIME_MAP[format] || 'image/webp';
 
   let outputBlob: Blob;

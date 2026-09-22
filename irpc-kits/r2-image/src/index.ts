@@ -92,20 +92,22 @@ export const upload = imageModule.declare<UploadFn>('image.upload', () => ({
 }));
 
 imageModule.hook(upload, async (call) => {
+  const source = call.args[1];
+  if (IMAGE_OPTIONS.maxSize && source.meta.size > IMAGE_OPTIONS.maxSize) {
+    throw HandlerError.failed(`File size exceeds maximum allowed: ${IMAGE_OPTIONS.maxSize / 1024 / 1024}MB.`);
+  }
+
   if (isBrowser() && IMAGE_OPTIONS.onDemand === false) {
-    const source = call.args[1];
-
-    if (IMAGE_OPTIONS.maxSize && source.meta.size > IMAGE_OPTIONS.maxSize) {
-      throw HandlerError.failed(`File size exceeds maximum allowed: ${IMAGE_OPTIONS.maxSize / 1024 / 1024}MB.`);
-    }
-
     const options = call.args[2] ?? {};
+    const sizes = options.sizes ?? IMAGE_OPTIONS.sizes ?? [];
     const variants = [] as Variant[];
 
-    for (const size of options.sizes ?? IMAGE_OPTIONS.sizes ?? []) {
-      const file = await resize(source, size);
-      variants.push({ ...size, file });
-    }
+    await Promise.all(
+      sizes.map(async (size) => {
+        const file = await resize(source, size);
+        variants.push({ ...size, file });
+      })
+    );
 
     options.variants = variants;
     delete options.sizes;
