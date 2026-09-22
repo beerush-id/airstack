@@ -69,6 +69,26 @@ describe('container handler', () => {
     expect(meta.height).toBe(40);
   });
 
+  it('transforms image and returns binary response with content headers', async () => {
+    const imageBuffer = await createTestImage(200, 100);
+    const req = new Request('http://localhost:8080/resize?s=80&f=webp', {
+      method: 'POST',
+      body: new Uint8Array(imageBuffer),
+      headers: {
+        'Content-Type': 'application/octet-stream',
+      },
+    });
+
+    const res = await handler(req);
+    expect(res.status).toBe(200);
+    expect(res.headers.get('Content-Type')).toBe('image/webp');
+
+    const outputBuffer = Buffer.from(await res.arrayBuffer());
+    const meta = await new Transformer(outputBuffer).metadata();
+    expect(meta.width).toBe(80);
+    expect(meta.height).toBe(40);
+  });
+
   it('returns 400 when image transformation fails on corrupt payload', async () => {
     const corruptBuffer = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
     const req = new Request('http://localhost:8080/resize?w=60&h=40', {

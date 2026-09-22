@@ -2,7 +2,7 @@ import { HTTPRouter } from '@irpclib/http/router';
 import { implement } from './constructor.js';
 import { transport } from './index.js';
 import { handleImageDelivery } from './lib/index.js';
-import type { ExecutionContext, ImageWorkerConfig, ImageWorkerEnv, ImageWorkerHandler } from './types.js';
+import type { ImageWorkerConfig, ImageWorkerEnv, ImageWorkerHandler } from './types.js';
 import { handleCorsPreflight, isOriginAllowed } from './utils/index.js';
 
 export * from './types.js';
@@ -36,7 +36,7 @@ export function createWorker<Env extends ImageWorkerEnv = ImageWorkerEnv>(
   });
 
   return {
-    async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    async fetch(request: Request, env: Env): Promise<Response> {
       const url = new URL(request.url);
 
       // 1. Origin & Hotlinking Verification
@@ -53,7 +53,6 @@ export function createWorker<Env extends ImageWorkerEnv = ImageWorkerEnv>(
       if (request.method === 'POST' && url.pathname === endpoint) {
         return router.resolve(request, [
           ['env', env],
-          ['ctx', ctx],
           ['config', config],
         ]);
       }

@@ -1,6 +1,6 @@
 import { type AnyType, HandlerError, IRPCFile } from '@irpclib/irpc';
 import type { Transformer } from '@napi-rs/image';
-import type { ImageSource, Resize } from './types.js';
+import type { ImageFileMeta, ImageSource, Resize } from './types.js';
 
 /**
  * Supported output formats mapped to MIME types.
@@ -27,7 +27,7 @@ let resolveNImage: Promise<AnyType> | undefined;
  * @param options Target resize dimensions, format, and quality parameters
  * @returns Transformed image packaged as an IRPCFile ready for upload
  */
-export async function resize(source: ImageSource, options: Resize = {}): Promise<IRPCFile> {
+export async function resize(source: ImageSource, options: Resize = {}): Promise<IRPCFile<ImageFileMeta>> {
   resolveNImage ??= import('@napi-rs/image');
   const ResolvedTransformer = (await resolveNImage).Transformer as typeof Transformer;
 
@@ -39,10 +39,10 @@ export async function resize(source: ImageSource, options: Resize = {}): Promise
     throw HandlerError.failed('Image resolution exceeds maximum allowable limits (64 MP)');
   }
 
-  let targetWidth = options.width;
-  let targetHeight = options.height;
+  let targetWidth = options.width!;
+  let targetHeight = options.height!;
 
-  if (options.size && !targetWidth && !targetHeight) {
+  if (options.size) {
     if (meta.width >= meta.height) {
       targetWidth = options.size;
       targetHeight = Math.max(1, Math.round(meta.height * (options.size / meta.width)));
@@ -91,6 +91,8 @@ export async function resize(source: ImageSource, options: Resize = {}): Promise
       name: fileName,
       type: mimeType,
       size: blob.size,
+      width: targetWidth,
+      height: targetHeight,
     },
     blob
   );

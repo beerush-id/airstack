@@ -66,6 +66,9 @@ describe('resize()', () => {
     const landscape = await createTestImage(200, 100);
     const resLandscape = await resize(landscape, { size: 80 });
     const metaLandscape = await new Transformer(Buffer.from(await resLandscape.data.arrayBuffer())).metadata();
+
+    expect(resLandscape.meta.width).toBe(80);
+    expect(resLandscape.meta.height).toBe(40);
     expect(metaLandscape.width).toBe(80);
     expect(metaLandscape.height).toBe(40);
 
@@ -73,6 +76,9 @@ describe('resize()', () => {
     const portrait = await createTestImage(100, 200);
     const resPortrait = await resize(portrait, { size: 80 });
     const metaPortrait = await new Transformer(Buffer.from(await resPortrait.data.arrayBuffer())).metadata();
+
+    expect(resPortrait.meta.width).toBe(40);
+    expect(resPortrait.meta.height).toBe(80);
     expect(metaPortrait.width).toBe(40);
     expect(metaPortrait.height).toBe(80);
   });

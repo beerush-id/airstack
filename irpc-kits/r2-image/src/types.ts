@@ -1,4 +1,4 @@
-import type { IRPCFile } from '@irpclib/irpc';
+import type { IRPCFile, IRPCFileMeta } from '@irpclib/irpc';
 
 /**
  * Stages of the multi-step image upload workflow.
@@ -23,6 +23,11 @@ export type ImageUploadState = {
 
   /** Size in bytes. */
   size?: number;
+};
+
+export type ImageFileMeta = IRPCFileMeta & {
+  width: number;
+  height: number;
 };
 
 /**

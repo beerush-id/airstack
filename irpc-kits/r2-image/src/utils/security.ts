@@ -76,7 +76,7 @@ export function isSizeAllowed(
   target: { size?: number; width?: number; height?: number; name?: string; format?: string },
   allowedSizes?: (number | { size?: number; width?: number; height?: number; name?: string; format?: string })[]
 ): boolean {
-  if (!allowedSizes || allowedSizes.length === 0) {
+  if (!allowedSizes?.length) {
     return true;
   }
 

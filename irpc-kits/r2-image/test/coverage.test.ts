@@ -6,14 +6,7 @@ import { configure, remove, resize, transport, upload, url } from '../src/index.
 import { handleImageDelivery } from '../src/lib/delivery.js';
 import { resizeImage, resolveBucket, resolveResizer } from '../src/lib/resizer.js';
 import { deleteImage, deleteVariants, getImageMetadata, getVariantKey, putVariant } from '../src/lib/storage.js';
-import type {
-  DurableObjectNamespace,
-  ExecutionContext,
-  Fetcher,
-  ImageWorkerEnv,
-  R2Bucket,
-  Resize,
-} from '../src/types.js';
+import type { DurableObjectNamespace, Fetcher, ImageWorkerEnv, R2Bucket, Resize } from '../src/types.js';
 import { formatImageUrl, parseImageRequest } from '../src/utils/request.js';
 import { handleCorsPreflight, isOriginAllowed, isSizeAllowed } from '../src/utils/security.js';
 import { createWorker } from '../src/worker.js';
@@ -170,9 +163,8 @@ describe('Coverage: Edge Cases & Boundary Handling', () => {
         IMAGES: mockBucket as unknown as R2Bucket,
         RESIZER: 'http://localhost:8080',
       };
-      const ctx: ExecutionContext = { waitUntil: () => {}, passThroughOnException: () => {} };
 
-      const res = await worker.fetch(new Request('http://localhost/irpc', { method: 'POST' }), env, ctx);
+      const res = await worker.fetch(new Request('http://localhost/irpc', { method: 'POST' }), env);
       expect(res.status).toBeDefined();
     });
 
@@ -183,9 +175,8 @@ describe('Coverage: Edge Cases & Boundary Handling', () => {
         IMAGES: mockBucket as unknown as R2Bucket,
         RESIZER: 'http://localhost:8080',
       };
-      const ctx: ExecutionContext = { waitUntil: () => {}, passThroughOnException: () => {} };
 
-      const res = await worker.fetch(new Request('http://localhost/photos/pic.png', { method: 'POST' }), env, ctx);
+      const res = await worker.fetch(new Request('http://localhost/photos/pic.png', { method: 'POST' }), env);
       expect(res.status).toBe(405);
     });
 
@@ -198,9 +189,8 @@ describe('Coverage: Edge Cases & Boundary Handling', () => {
         IMAGES: mockBucket as unknown as R2Bucket,
         RESIZER: 'http://localhost:8080',
       };
-      const ctx: ExecutionContext = { waitUntil: () => {}, passThroughOnException: () => {} };
 
-      const res = await worker.fetch(new Request('http://localhost/hero.png?w=200'), env, ctx);
+      const res = await worker.fetch(new Request('http://localhost/hero.png?w=200'), env);
       expect(res.status).toBe(404);
       expect(await res.text()).toBe('Image not found');
     });
@@ -821,11 +811,6 @@ describe('Coverage: Edge Cases & Boundary Handling', () => {
           allowedSizes: [128, 256, 512, 1024, 2048],
         });
 
-        const ctx: ExecutionContext = {
-          waitUntil: () => {},
-          passThroughOnException: () => {},
-        };
-
         // 1. Upload creates both 'preview' and 'thumbnail' variants automatically
         const file = new IRPCFile(
           { name: 'banner.png', size: rawImage.byteLength, type: 'image/png' },
@@ -839,25 +824,25 @@ describe('Coverage: Edge Cases & Boundary Handling', () => {
 
         // 2. On-demand GET with ?name=thumbnail resolves preset and serves cached variant
         const nameReq = new Request('https://cdn.example.com/posts/banner.png?name=thumbnail');
-        const nameRes = await worker.fetch(nameReq, env, ctx);
+        const nameRes = await worker.fetch(nameReq, env);
         expect(nameRes.status).toBe(200);
 
         // 3. On-demand GET with ?w=512 is in allowedSizes -> invokes resizer and returns webp
         const allowedReq = new Request('https://cdn.example.com/posts/banner.png?w=512');
-        const allowedRes = await worker.fetch(allowedReq, env, ctx);
+        const allowedRes = await worker.fetch(allowedReq, env);
         expect(allowedRes.status).toBe(200);
         expect(allowedRes.headers.get('content-type')).toBe('image/webp');
         expect(lastResizedOptions?.width).toBe(512);
 
         // 4. On-demand GET with ?w=333 is NOT in allowedSizes -> skips transform, serves original image
         const disallowedReq = new Request('https://cdn.example.com/posts/banner.png?w=333');
-        const disallowedRes = await worker.fetch(disallowedReq, env, ctx);
+        const disallowedRes = await worker.fetch(disallowedReq, env);
         expect(disallowedRes.status).toBe(200);
         expect(disallowedRes.headers.get('content-type')).toBe('image/png');
 
         // 5. On-demand GET with unknown preset name -> preset not found, size not in allowedSizes -> serves original
         const unknownNameReq = new Request('https://cdn.example.com/posts/banner.png?name=unknown');
-        const unknownNameRes = await worker.fetch(unknownNameReq, env, ctx);
+        const unknownNameRes = await worker.fetch(unknownNameReq, env);
         expect(unknownNameRes.status).toBe(200);
         expect(unknownNameRes.headers.get('content-type')).toBe('image/png');
       });
@@ -872,10 +857,9 @@ describe('Coverage: Edge Cases & Boundary Handling', () => {
         IMAGES: createMockBucket() as unknown as R2Bucket,
         RESIZER: { fetch: async () => new Response() },
       };
-      const ctx = { waitUntil: vi.fn(), passThroughOnException: vi.fn() };
 
       // POST to the custom endpoint should be handled by the router (not 405)
-      const res = await customWorker.fetch(new Request('http://localhost/r2-image-irpc', { method: 'POST' }), env, ctx);
+      const res = await customWorker.fetch(new Request('http://localhost/r2-image-irpc', { method: 'POST' }), env);
       expect(res.status).not.toBe(405);
 
       // Reset endpoint
