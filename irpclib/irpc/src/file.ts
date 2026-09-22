@@ -1,4 +1,4 @@
-import { mutable, onCleanup } from '@airlib/core';
+import { type AnyType, mutable, onCleanup } from '@airlib/core';
 import { IRPC_FILE_STATUS, IRPC_STATUS } from './enum.js';
 import { IRPC_STORE } from './store.js';
 
@@ -19,7 +19,7 @@ export type IRPCFileMeta = {
 export type IRPCFilePipe = (chunk: Uint8Array) => void;
 export type IRPCFileUnpipe = () => void;
 
-export class IRPCFile {
+export class IRPCFile<T extends IRPCFileMeta = IRPCFileMeta> {
   protected state = mutable<IRPCFileState>({
     status: IRPC_FILE_STATUS.PENDING,
     downloaded: 0,
@@ -52,7 +52,7 @@ export class IRPCFile {
   public data: Blob;
 
   constructor(
-    public meta: IRPCFileMeta,
+    public meta: T,
     data?: Blob
   ) {
     this.data = data ?? new Blob([], { type: meta.type });
@@ -163,23 +163,23 @@ export class IRPCBlob {
   // biome-ignore lint/suspicious/noThenProperty: Expect thenable.
   public then<TResult1 = Blob, TResult2 = never>(
     onfulfilled?: ((value: Blob) => TResult1 | PromiseLike<TResult1>) | null,
-    onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null
+    onrejected?: ((reason: AnyType) => TResult2 | PromiseLike<TResult2>) | null
   ): Promise<TResult1 | TResult2> {
     return this.load().then(onfulfilled, onrejected);
   }
 
   public catch<TResult = never>(
-    onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | null
+    onrejected?: ((reason: AnyType) => TResult | PromiseLike<TResult>) | null
   ): Promise<Blob | TResult> {
     return this.load().catch(onrejected);
   }
 }
 
-export class IRPCFileStream extends IRPCFile {
+export class IRPCFileStream<T extends IRPCFileMeta = IRPCFileMeta> extends IRPCFile<T> {
   private pipes = new Set<IRPCFilePipe>();
   private buffer: Uint8Array | undefined;
 
-  constructor(meta: IRPCFileMeta) {
+  constructor(meta: T) {
     super(meta);
 
     this.data = new Blob([], { type: meta.type });
