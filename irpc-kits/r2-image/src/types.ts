@@ -4,6 +4,7 @@ import type { IRPCFile, IRPCFileMeta } from '@irpclib/irpc';
  * Stages of the multi-step image upload workflow.
  */
 export type UploadStep = 'original' | 'variants' | 'resize' | 'complete';
+export type ImageFormat = 'jpeg' | 'png' | 'webp' | 'avif';
 
 /**
  * Progressive reactive state emitted during image upload.
@@ -35,36 +36,28 @@ export type ImageFileMeta = IRPCFileMeta & {
  */
 export interface ImageWorkerHandler<Env = ImageWorkerEnv> {
   /**
+   * IRPC endpoint path for upload and mutation operations.
+   */
+  endpoint: string;
+  /**
    * Main fetch dispatch entry point for the Cloudflare Worker.
    */
   fetch(request: Request, env: Env): Promise<Response>;
 }
 
-/**
- * Configuration options for registering image IRPC constructors.
- */
-export interface ImageConstructorConfig<Env extends ImageWorkerEnv = ImageWorkerEnv> {
-  /**
-   * Optional folder prefix under which rendered variants are stored in R2.
-   * When undefined (default), variants are stored co-located alongside the original file
-   * as `${file}-${variant}.${ext}` for predictable public bucket URLs.
-   *
-   * @default undefined
-   */
-  variantPrefix?: string;
+export interface ImageOptions {
+  /** Target output format. */
+  format?: ImageFormat;
+
+  /** Compression quality between 1 and 100. */
+  quality?: number;
 
   /**
-   * Binding name or custom resolver for the R2 bucket.
-   * @default 'IMAGES'
+   * Maximum file size in bytes.
+   * Files larger than this will be rejected with a 413 error.
+   * @default 10485760 (10MB)
    */
-  bucket?: keyof Env | ((env: Env) => R2Bucket);
-
-  /**
-   * Binding name or custom resolver for the resizer container.
-   * Supports Cloudflare Durable Object Containers, Service Bindings, or an external URL string.
-   * @default 'RESIZER'
-   */
-  resizer?: keyof Env | ((env: Env) => DurableObjectNamespace | Fetcher | string);
+  maxSize?: number;
 
   /**
    * Default resize variants to generate automatically on upload when not explicitly provided.
@@ -79,9 +72,23 @@ export interface ImageConstructorConfig<Env extends ImageWorkerEnv = ImageWorker
 }
 
 /**
+ * Configuration options for registering image IRPC constructors.
+ */
+export interface ImageConstructorConfig extends ImageOptions {
+  /**
+   * Optional folder prefix under which rendered variants are stored in R2.
+   * When undefined (default), variants are stored co-located alongside the original file
+   * as `${file}-${variant}.${ext}` for predictable public bucket URLs.
+   *
+   * @default undefined
+   */
+  variantPrefix?: string;
+}
+
+/**
  * Top-level configuration options for initializing the image service worker.
  */
-export interface ImageWorkerConfig<Env extends ImageWorkerEnv = ImageWorkerEnv> extends ImageConstructorConfig<Env> {
+export interface ImageWorkerConfig extends ImageConstructorConfig {
   /**
    * Whether on-demand dynamic resizing via the container is permitted on cache misses.
    * When false, only pre-rendered variants stored in R2 will be served.
@@ -117,7 +124,7 @@ export interface ImageWorkerConfig<Env extends ImageWorkerEnv = ImageWorkerEnv> 
 /**
  * Client-side configuration options for @irpclib/r2-image.
  */
-export interface ClientConfig {
+export interface ClientConfig extends ImageOptions {
   /**
    * Base URL of the image service (e.g. 'https://images.example.com').
    */
@@ -183,7 +190,7 @@ export interface Resize {
   height?: number;
 
   /** Target output format. */
-  format?: 'webp' | 'avif' | 'png' | 'jpeg';
+  format?: ImageFormat;
 
   /** Compression quality between 1 and 100. */
   quality?: number;

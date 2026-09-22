@@ -1,13 +1,15 @@
 import { HTTPTransport } from '@irpclib/http';
-import type { IRPCFile, RemoteState } from '@irpclib/irpc';
-import { createPackage } from '@irpclib/irpc';
+import { createPackage, HandlerError, type IRPCFile, type RemoteState } from '@irpclib/irpc';
 import { isBrowser } from '@irpclib/irpc/core';
+import { IMAGE_OPTIONS } from './constant.js';
 import { resize } from './resize.js';
 import type { ClientConfig, ImageMetadata, ImageUploadOptions, ImageUploadState, Resize, Variant } from './types.js';
 import { formatImageUrl } from './utils/index.js';
 
+export * from './constant.js';
 export * from './resize.js';
 export * from './types.js';
+
 export { isSizeAllowed } from './utils/index.js';
 
 /**
@@ -34,12 +36,6 @@ export const imageModule = createPackage({
 });
 
 /**
- * Configured base domain for public image delivery and default transport.
- */
-let baseUrl = '';
-let onDemand: boolean | undefined = false;
-
-/**
  * Default transport initialized to relative '/irpc' for same-origin browser calls.
  */
 export const transport = new HTTPTransport({ endpoint: '/irpc' });
@@ -51,19 +47,17 @@ imageModule.use(transport);
  * @param config Client configuration options
  */
 export function configure(config: ClientConfig): void {
+  Object.assign(IMAGE_OPTIONS, { ...config });
+
   /* istanbul ignore else */
   if (config.baseUrl !== undefined) {
-    baseUrl = config.baseUrl ? config.baseUrl.replace(/\/+$/, '') : '';
-    transport.config.baseURL = baseUrl;
+    IMAGE_OPTIONS.baseUrl = config.baseUrl ? config.baseUrl.replace(/\/+$/, '') : '';
+    transport.config.baseURL = IMAGE_OPTIONS.baseUrl;
   }
 
   /* istanbul ignore else */
   if (config.endpoint !== undefined) {
     transport.config.endpoint = config.endpoint;
-  }
-
-  if ('onDemand' in config) {
-    onDemand = config.onDemand;
   }
 
   /* istanbul ignore else */
@@ -81,7 +75,7 @@ export function configure(config: ClientConfig): void {
  * @param base Optional base URL override (defaults to configured baseUrl)
  * @returns Clean, formatted image URL
  */
-export function url(path: string, options?: Resize, base = baseUrl): string {
+export function url(path: string, options?: Resize, base = IMAGE_OPTIONS.baseUrl): string {
   return formatImageUrl(path, options, base);
 }
 
@@ -98,12 +92,17 @@ export const upload = imageModule.declare<UploadFn>('image.upload', () => ({
 }));
 
 imageModule.hook(upload, async (call) => {
-  if (isBrowser() && onDemand === false) {
+  if (isBrowser() && IMAGE_OPTIONS.onDemand === false) {
     const source = call.args[1];
+
+    if (IMAGE_OPTIONS.maxSize && source.meta.size > IMAGE_OPTIONS.maxSize) {
+      throw HandlerError.failed(`File size exceeds maximum allowed: ${IMAGE_OPTIONS.maxSize / 1024 / 1024}MB.`);
+    }
+
     const options = call.args[2] ?? {};
     const variants = [] as Variant[];
 
-    for (const size of options.sizes ?? []) {
+    for (const size of options.sizes ?? IMAGE_OPTIONS.sizes ?? []) {
       const file = await resize(source, size);
       variants.push({ ...size, file });
     }
@@ -125,10 +124,10 @@ export const remove = imageModule.declare<RemoveFn>('image.delete', () => false)
 export const info = imageModule.declare<InfoFn>('image.info');
 
 export default {
-  configure,
+  url,
+  info,
+  resize,
   upload,
   remove,
-  info,
-  url,
-  resize,
+  configure,
 };

@@ -1,6 +1,6 @@
 import { HTTPRouter } from '@irpclib/http/router';
 import { implement } from './constructor.js';
-import { transport } from './index.js';
+import { IMAGE_OPTIONS, transport } from './index.js';
 import { handleImageDelivery } from './lib/index.js';
 import type { ImageWorkerConfig, ImageWorkerEnv, ImageWorkerHandler } from './types.js';
 import { handleCorsPreflight, isOriginAllowed } from './utils/index.js';
@@ -15,27 +15,24 @@ export * from './types.js';
  * @returns Standard Cloudflare Worker handler
  */
 export function createWorker<Env extends ImageWorkerEnv = ImageWorkerEnv>(
-  config: ImageWorkerConfig<Env> = {}
+  config: ImageWorkerConfig = {}
 ): ImageWorkerHandler<Env> {
-  const variantPrefix = config.variantPrefix;
-  const browserTtl = config.cache?.browserTtl || 86400;
   const edgeTtl = config.cache?.edgeTtl || 2592000;
+  const browserTtl = config.cache?.browserTtl || 86400;
+  const variantPrefix = config.variantPrefix;
 
-  const endpoint = config.endpoint || transport.endpoint;
+  const sizes = config.sizes ?? IMAGE_OPTIONS.sizes;
+  const endpoint = config.endpoint || IMAGE_OPTIONS.endpoint || transport.endpoint;
+  const allowedSizes = config.allowedSizes ?? IMAGE_OPTIONS.allowedSizes;
 
   // Bind server-side router to the package transport
   const router = new HTTPRouter(transport, { endpoint });
 
   // Wire up IRPC constructors
-  implement({
-    variantPrefix,
-    bucket: config.bucket,
-    resizer: config.resizer,
-    sizes: config.sizes,
-    allowedSizes: config.allowedSizes,
-  });
+  implement({ variantPrefix, sizes, allowedSizes });
 
   return {
+    endpoint,
     async fetch(request: Request, env: Env): Promise<Response> {
       const url = new URL(request.url);
 
@@ -60,14 +57,12 @@ export function createWorker<Env extends ImageWorkerEnv = ImageWorkerEnv>(
       // 4. Edge Image Delivery Plane (GET /*)
       if (request.method === 'GET') {
         return handleImageDelivery(request, url, env, {
-          variantPrefix,
-          browserTtl,
+          sizes,
           edgeTtl,
-          bucketResolver: config.bucket,
-          resizerResolver: config.resizer,
+          browserTtl,
+          allowedSizes,
+          variantPrefix,
           onDemand: config.onDemand,
-          allowedSizes: config.allowedSizes,
-          sizes: config.sizes,
         });
       }
 

@@ -1,6 +1,7 @@
 import { type AnyType, HandlerError, IRPCFile } from '@irpclib/irpc';
 import { isBrowser } from '@irpclib/irpc/core';
 import type { Transformer } from '@napi-rs/image';
+import { DEFAULT_FORMAT, DEFAULT_QUALITY } from './constant.js';
 import type { ImageFileMeta, ImageSource, Resize } from './types.js';
 
 /**
@@ -74,8 +75,8 @@ export async function resize(source: ImageSource, options: Resize = {}): Promise
     transformer.blur(options.blur);
   }
 
-  const format = options.format || 'webp';
-  const quality = options.quality ? Math.min(100, Math.max(1, options.quality)) : 80;
+  const format = options.format || DEFAULT_FORMAT;
+  const quality = options.quality ? Math.min(100, Math.max(1, options.quality)) : DEFAULT_QUALITY;
 
   let outputBuffer: Uint8Array;
   if (format === 'webp') {

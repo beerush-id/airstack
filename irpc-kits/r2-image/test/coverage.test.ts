@@ -335,7 +335,15 @@ describe('Coverage: Edge Cases & Boundary Handling', () => {
     it('dispatches with all transformation parameters', async () => {
       const mockFetcher: Fetcher = {
         fetch: async (req) => {
-          expect(String(req)).toContain('w=50&h=50&f=webp&q=80&fit=cover');
+          const url = new URL(req.toString());
+          const query = new URLSearchParams(url.search);
+
+          expect(query.get('w')).toBe('50');
+          expect(query.get('h')).toBe('50');
+          expect(query.get('f')).toBe('webp');
+          expect(query.get('q')).toBe('80');
+          expect(query.get('fit')).toBe('cover');
+
           return new Response(new Uint8Array([1, 2, 3]), { status: 200 });
         },
       };

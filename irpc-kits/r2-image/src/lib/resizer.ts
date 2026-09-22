@@ -1,4 +1,5 @@
 import { HandlerError } from '@irpclib/irpc';
+import { DEFAULT_FORMAT, DEFAULT_QUALITY, IMAGE_OPTIONS } from '../constant.js';
 import type { DurableObjectNamespace, Fetcher, ImageWorkerEnv, R2Bucket, Resize } from '../types.js';
 
 /**
@@ -15,6 +16,11 @@ export async function resizeImage(
   transforms: Resize
 ): Promise<Response> {
   const query = new URLSearchParams();
+
+  /* istanbul ignore next */
+  query.set('f', IMAGE_OPTIONS.format ?? DEFAULT_FORMAT);
+  /* istanbul ignore next */
+  query.set('q', String(IMAGE_OPTIONS.quality ?? DEFAULT_QUALITY));
 
   /* istanbul ignore else */
   if (transforms.size) query.set('s', String(transforms.size));

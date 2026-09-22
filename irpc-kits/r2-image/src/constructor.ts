@@ -1,4 +1,4 @@
-import { credential, GuardError, getContext, HandlerError, type IRPCFile, plan, stream } from '@irpclib/irpc';
+import { credential, getContext, GuardError, HandlerError, type IRPCFile, plan, stream } from '@irpclib/irpc';
 import { anchor } from '@irpclib/irpc/core';
 import { imageModule, info, remove, upload } from './index.js';
 import { resizeImage, resolveBucket, resolveResizer } from './lib/resizer.js';
@@ -28,7 +28,7 @@ import { isSizeAllowed } from './utils/index.js';
  * @param options Optional constructor configuration or variant prefix string
  */
 export function implement<Env extends ImageWorkerEnv = ImageWorkerEnv>(
-  options?: ImageConstructorConfig<Env> | string
+  options?: ImageConstructorConfig | string
 ): void {
   const config = typeof options === 'string' ? { variantPrefix: options } : options || {};
   const variantPrefix = config.variantPrefix;
@@ -52,8 +52,8 @@ export function implement<Env extends ImageWorkerEnv = ImageWorkerEnv>(
   // Handler: image.upload (returns a reactive stream tracking each workflow step)
   imageModule.construct(upload, (path: string, file: IRPCFile, uploadOptions?: ImageUploadOptions) => {
     const env = requireWorkerEnv<Env>();
-    const bucket = resolveBucket(env, config.bucket);
-    const resizer = resolveResizer(env, config.resizer);
+    const bucket = resolveBucket(env);
+    const resizer = resolveResizer(env);
 
     return stream<ImageUploadState>(
       async (state, accept, reject) => {
@@ -87,14 +87,14 @@ export function implement<Env extends ImageWorkerEnv = ImageWorkerEnv>(
   // Handler: image.delete
   imageModule.construct(remove, async (path: string): Promise<boolean> => {
     const env = requireWorkerEnv<Env>();
-    const bucket = resolveBucket(env, config.bucket);
+    const bucket = resolveBucket(env);
     return deleteImage(bucket, path, variantPrefix);
   });
 
   // Handler: image.info
   imageModule.construct(info, async (path: string) => {
     const env = requireWorkerEnv<Env>();
-    const bucket = resolveBucket(env, config.bucket);
+    const bucket = resolveBucket(env);
     return getImageMetadata(bucket, path);
   });
 }
