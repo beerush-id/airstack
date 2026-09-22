@@ -19,6 +19,9 @@ const MAX_INPUT_PIXELS = 67_108_864;
 
 let resolveNImage: Promise<AnyType> | undefined;
 
+// Do not inline the import to prevent bundle optimization from removing the dynamic import.
+const RESIZER_PACKAGE = '@napi-rs/image';
+
 /**
  * Resizes and transforms an image using the local @napi-rs/image engine.
  * Runs isomorphically in both the browser (via WebAssembly) and server runtimes (via native bindings).
@@ -28,7 +31,7 @@ let resolveNImage: Promise<AnyType> | undefined;
  * @returns Transformed image packaged as an IRPCFile ready for upload
  */
 export async function resize(source: ImageSource, options: Resize = {}): Promise<IRPCFile<ImageFileMeta>> {
-  resolveNImage ??= import('@napi-rs/image');
+  resolveNImage ??= import(RESIZER_PACKAGE);
   const ResolvedTransformer = (await resolveNImage).Transformer as typeof Transformer;
 
   const { buffer, name } = await resolveSourceBuffer(source);
