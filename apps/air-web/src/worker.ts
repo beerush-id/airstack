@@ -17,21 +17,14 @@ const app = createApp(router, App, {
 
 const DEV_RESIZER = 'http://localhost:8080';
 
-const images = createImageWorker({
-  endpoint: '/images',
-  sizes: [
-    { name: 'preview', width: 512, height: 512, format: 'webp' },
-    { name: 'thumbnail', width: 256, height: 256, format: 'webp' },
-  ],
-  allowedSizes: [128, 256, 512, 1024, 2048],
-});
+const images = createImageWorker();
 
 export default {
   ...app,
   async fetch(req: Request, env: ImageWorkerEnv | undefined) {
     const url = new URL(req.url);
 
-    if (url.pathname.startsWith('/images')) {
+    if (url.pathname.startsWith(images.endpoint)) {
       const nextEnv = await resolveBinding<ImageWorkerEnv>(env);
       return images.fetch(req, { RESIZER: DEV_RESIZER, ...nextEnv });
     }

@@ -1,5 +1,6 @@
 import { Aria, JSXTranslator } from '@airlib/aria';
 import { type AppEntry, Head, type HeadConfig, UIRouter } from '@airlib/react';
+import { configure } from '@irpclib/r2-image';
 import ogImage from '@/assets/og_image.png?asset' with { sizes: '1200' };
 import { ThemeToggler } from '@/components/ThemeToggler.js';
 import RootLayout from '@/pages/layout.js';
@@ -32,6 +33,20 @@ Head.config(() => {
 });
 
 Aria.translate(JSXTranslator);
+
+/**
+ * Configure image processing
+ */
+configure({
+  endpoint: '/images',
+  maxSize: 5 * 1024 * 1024, // 5MB
+  sizes: [
+    { name: 'thumbnail', size: 256, format: 'webp' },
+    { name: 'preview', size: 512, format: 'webp' },
+    { name: 'display', size: 1024, format: 'webp' },
+  ],
+  allowedSizes: [128, 256, 512, 1024, 2048],
+});
 
 export default (({ url }) => (
   <UIRouter router={router} root={RootLayout} url={url}>

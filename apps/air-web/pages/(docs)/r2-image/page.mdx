@@ -67,9 +67,9 @@ Subsequent requests hit Cloudflare Edge Cache or R2 storage directly, incurring 
 
 :::interactive[Image Optimizer Demo]
 ```tsx
-import { upload, url } from '@irpclib/r2-image';
+import { upload, url, IMAGE_OPTIONS } from '@irpclib/r2-image';
 import { IRPCFile } from '@irpclib/irpc';
-import { setup, Show, Snippet, derived, mutable } from '@airlib/react';
+import { setup, Show, Snippet, derived, mutable, For } from '@airlib/react';
 import { shortId } from '@airlib/react/utils';
 
 const ImageUploader = setup(() => {
@@ -77,7 +77,8 @@ const ImageUploader = setup(() => {
   const activeSize = mutable(256);
   const thumb = derived(() => {
     if (!uploader.data?.path) return '';
-    return url(uploader.data.path, { size: activeSize.value, format: 'webp' });
+    const selected = IMAGE_OPTIONS.sizes.find((s) => s.size === activeSize.value);
+    return url(uploader.data.path, selected);
   });
 
   const handleFileChange = async (e) => {
@@ -86,15 +87,16 @@ const ImageUploader = setup(() => {
     const blob = e.target.files[0];
     const { name, type, size } = blob;
 
-    if (size >= 5_000_000) return alert('File too large');
-
     const file = new IRPCFile({ name, type, size }, blob);
     await uploader.dispatch(`/images/r2-image-demos/${shortId()}`, file);
   };
 
   return () => (
     <div className={uploaderStyles.container}>
-      <Show when={() => uploader.data?.progress}>
+      <Show when={() => uploader.error}>
+        {(error) => <div className={uploaderStyles.error}>{error.message}</div>}
+      </Show>
+      <Show when={() => uploader.status === 'pending' &&  uploader.data?.progress}>
         {(progress) => <div className={uploaderStyles.progress}>Uploading: {progress}</div>}
       </Show>
       <Show when={() => uploader.data.step === 'complete' && uploader.data}>
@@ -114,18 +116,14 @@ const ImageUploader = setup(() => {
               onChange={handleFileChange}
               className={uploaderStyles.input}
             />
-            <label className={uploaderStyles.sizeSelect}>
-              <input type="radio" name="size" checked={activeSize.value === 128} onChange={(e) => (activeSize.value = 128)} />
-              <span>128px</span>
-            </label>
-            <label className={uploaderStyles.sizeSelect}>
-              <input type="radio" name="size" checked={activeSize.value === 256} onChange={(e) => (activeSize.value = 256)} />
-              <span>256px</span>
-            </label>
-            <label className={uploaderStyles.sizeSelect}>
-              <input type="radio" name="size" checked={activeSize.value === 512} onChange={(e) => (activeSize.value = 512)} />
-              <span>512px</span>
-            </label>
+            <For each={() => IMAGE_OPTIONS.sizes}>
+              {({ name ,size }) => (
+                <label className={uploaderStyles.sizeSelect}>
+                  <input type="radio" name="size" checked={activeSize.value === size} onChange={(e) => (activeSize.value = size)} />
+                  <span>{name} ({size}px)</span>
+                </label>
+              )}
+            </For>
           </div>
         )}
         </Snippet>
@@ -136,12 +134,13 @@ const ImageUploader = setup(() => {
 const uploaderStyles = {
   container: 'flex flex-col gap-4 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50',
   input: 'flex-1 text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer',
-  progress: 'text-sm font-medium text-blue-600 dark:text-blue-400',
-  preview: 'flex flex-col gap-2 pt-2 border-t border-zinc-200 dark:border-zinc-800',
+  error: 'w-full text-center text-sm font-medium text-red-600 dark:text-red-400',
+  progress: 'w-full text-center text-sm font-medium text-blue-600 dark:text-blue-400',
+  preview: 'flex flex-col gap-2 pt-2',
   image: 'rounded-xl shadow-sm mx-auto my-4',
   code: 'text-xs text-center',
-  sizes: 'flex gap-4 items-center w-full',
-  sizeSelect: 'inline-flex gap-2 font-medium'
+  sizes: 'flex gap-4 items-start w-full',
+  sizeSelect: 'text-xs inline-flex flex-col text-center gap-2 font-medium capitalize'
 };
 
 ```
