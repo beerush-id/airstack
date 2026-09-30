@@ -104,6 +104,7 @@ When a task requires deep domain capabilities, load the specialized skill:
 | **Client-side persistent storage (localStorage, sessionStorage, in-browser KV/tables)** | `airlib-storage` |
 | **Cloudflare R2 filesystem storage (`~/...`) and binary streaming** | `airlib-r2-file` |
 | **Dynamic image optimization and format transformation on Cloudflare R2** | `airlib-r2-image` |
+| **Test suites, application state models, UI components, IRPC procedures, route lifecycle guards, full-stack Worker integrations, library drivers** | `airlib-testing` |
 
 ---
 
@@ -121,6 +122,7 @@ When a task requires deep domain capabilities, load the specialized skill:
 | `persistent`, `session`, `createKVStore`, `kv`, `createTable`, `@airlib/storage`, `@airlib/storage/db` | `airlib-storage` |
 | `write`, `read`, `stat`, `exists`, `mkdir`, `list`, `search`, `copy`, `move`, `link`, `remove`, `restore`, `fsContext`, `createFs`, `createWorker`, `@irpclib/r2-file`, `@irpclib/r2-file/worker`, `@irpclib/r2-file/fs` | `airlib-r2-file` |
 | `upload`, `url`, `resize`, `info`, `remove`, `createWorker`, `ImageResizer`, `@irpclib/r2-image`, `@irpclib/r2-image/worker` | `airlib-r2-image` |
+| `vitest`, `airlib-testing`, `withContext`, `bypassLocal` | `airlib-testing` |
 
 ---
 
@@ -207,3 +209,13 @@ Load this skill when you need to answer:
 - How do I upload images, generate eager responsive variants, or cascade-delete assets in Cloudflare R2?
 - How do I serve images via native `<img>` tags with orientation normalization (`size`) and dimension whitelisting (`allowedSizes`)?
 - How do I configure Cloudflare Worker entrypoints and private container resizers (`ImageResizer`) in a full-stack AirLib project?
+
+### `airlib-testing` — Testing Applications & Libraries
+Load this skill when you need to answer:
+- How do I test application state models synchronously without timers or polling?
+- How do I test UI component interactions and state changes with React/Solid testing libraries?
+- How do I unit test colocated IRPC procedures with mock contexts (`withContext`)?
+- How do I test route lifecycle guards and data providers in isolation?
+- How do I run end-to-end integration tests between client stubs and backend workers in a single test runner process?
+- How do I test headless state coordinators and pluggable library drivers/adapters?
+- How do I test client entrypoints for unintended side-effects or handler interception?
