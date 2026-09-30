@@ -1,12 +1,14 @@
 # Disclosure Specification
 
-The single show-hide unit. Coordinates trigger toggling and panel expansion across native `<details>`/`<summary>` and custom elements.
+The single show-hide unit. Coordinates trigger toggling and panel expansion across native `<details>`/`<summary>` and
+custom elements.
 
 - **Entity**: `disclosure`
 - **Trigger WAI-ARIA Role**: `button`
 - **Panel WAI-ARIA Role**: `region`
 
 ### Parts
+
 - **`Disclosure`**: Container coordinator hosting ambient `expanded` and `disabled` state.
 - **`DisclosureTrigger`**: Interactive button toggling panel (`aria-expanded`, `aria-controls`).
 - **`DisclosurePanel`**: Collapsible content panel (`role="region"`, `aria-labelledby`, receives `hidden` when closed).
@@ -15,11 +17,11 @@ The single show-hide unit. Coordinates trigger toggling and panel expansion acro
 
 ## The Three Semantic Layers
 
-| Part / Role | HTML Semantic | WAI-ARIA Semantic | Aria Package Semantic Contract |
-| :--- | :--- | :--- | :--- |
-| **`Disclosure`** | Native `<details>` or `<div>`. | Native disclosure mechanics pass through on `<details>`. | Container coordinator. Props: `DisclosureProps`. |
-| **`DisclosureTrigger`** | Native `<summary>`, `<button>`, or custom element. | `role="button"` (on non-buttons), `aria-expanded`, `aria-controls`. | Toggles `expanded` on click/Enter/Space. |
-| **`DisclosurePanel`** | `<div>` or `<section>`. | `role="region"`, `aria-labelledby`. | Receives `hidden` when collapsed. |
+| Part / Role             | HTML Semantic                                      | WAI-ARIA Semantic                                                                                                                                                                                                                                                                   | Aria Package Semantic Contract                                                                  |
+|:------------------------|:---------------------------------------------------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:------------------------------------------------------------------------------------------------|
+| **`Disclosure`**        | Native `<details>` or `<div>`.                     | Native disclosure mechanics pass through on `<details>`.                                                                                                                                                                                                                            | Container coordinator. Props: `DisclosureProps`.                                                |
+| **`DisclosureTrigger`** | Native `<summary>`, `<button>`, or custom element. | Native `<button>`/`<summary>`: `aria-expanded`, `aria-controls`, `disabled` reflects `disabled` (no role, no `aria-disabled`). Custom: `role="button"`, `aria-expanded`, `aria-controls`, `aria-disabled="true"` when `disabled`, `tabindex="0"` enabled / removed when `disabled`. | Toggles `expanded` on click/Enter/Space when `disabled` is false and `!event.defaultPrevented`. |
+| **`DisclosurePanel`**   | `<div>` or `<section>`.                            | `role="region"`, `aria-labelledby` (trigger ID).                                                                                                                                                                                                                                    | Receives `hidden` when collapsed; removed from accessibility and tab flows.                     |
 
 ---
 
@@ -28,6 +30,7 @@ The single show-hide unit. Coordinates trigger toggling and panel expansion acro
 ### 1. Options & Props Contracts
 
 #### `DisclosureProps`
+
 ```ts
 export interface DisclosureProps {
   /** Expansion state */
@@ -37,6 +40,7 @@ export interface DisclosureProps {
 ```
 
 #### `DisclosureOptions`
+
 ```ts
 export interface DisclosureOptions {
   /** Whether bound to native <details> (default: false) */
@@ -45,6 +49,7 @@ export interface DisclosureOptions {
 ```
 
 #### `DisclosureTriggerOptions`
+
 ```ts
 export interface DisclosureTriggerOptions {
   /** Whether bound to native <button> or <summary> (default: true) */
@@ -81,7 +86,12 @@ export function aria<E extends BaseElement = HTMLElement>(
 ## State & Lifecycle Rules
 
 1. **Activation**:
-   - Pointer `click`, `Enter`, and `Space` (with `preventDefault()` on `Space` to prevent scroll) toggle `expanded` when `!event.defaultPrevented`.
-   - Native `<details>` synchronizes `open` attribute natively.
-2. **Events**:
-   - `toggle`: Native on `<details>`; dispatched as `CustomEvent<boolean>('toggle', { bubbles: false, detail: expanded })` on custom host.
+  - Trigger toggles `expanded` when `disabled` is false and `!event.defaultPrevented` (`docs/disclosure.md:16`). Pointer
+    `click`, `Enter`, and `Space` (with `preventDefault()` on `Space` to prevent scroll) toggle `expanded`.
+  - `disabled` blocks activation and state change; it reaches the trigger per host: `disabled` property on a native
+    `<button>`/`<summary>`, `aria-disabled="true"` on a custom trigger.
+  - Native `<details>` synchronizes `open` attribute natively.
+2. **Events** (`docs/disclosure.md:20-24`):
+  - `toggle` — native `<details>`: browser-dispatched, controller listens and does not re-dispatch. Custom: dispatched
+    **on the Disclosure container** after `expanded` commits as
+    `CustomEvent<boolean>('toggle', { bubbles: false, detail: expanded })`.

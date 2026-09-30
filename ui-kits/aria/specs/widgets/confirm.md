@@ -1,11 +1,18 @@
 # Confirm Specification
 
-A confirm is the blocking confirmation an author holds when a destructive or irreversible action needs an explicit answer before proceeding. It interrupts the workflow, delivers the critical information, and requires an immediate response.
+The blocking confirmation unit. It interrupts the workflow, presents critical information, and requires an explicit choice among the listed actions. Modal in every binding; it **suppresses outside-click and `Escape` dismissal** so the answer is deliberate.
 
-- **Entity**: `confirm`
-- **WAI-ARIA Role**: `alertdialog` (compiled output)
+- **Entity**: `confirm` — invoked as `aria('confirm')`.
+- **Compiled WAI-ARIA role**: `alertdialog`, emitted on the panel.
 
-> No factory surface ships yet: this is an entity spec only. The overload below is reserved.
+### Composite Parts (Entity Tree)
+- **`Confirm`**: Root container coordinator (hosts ambient `open`).
+- **`ConfirmTrigger`**: Button opening the confirmation (`aria-haspopup="dialog"`, `aria-expanded`, `aria-controls`).
+- **`ConfirmPanel`**: Modal panel carrying `role="alertdialog"`, `aria-modal="true"`, `aria-labelledby`, `aria-describedby`.
+- **`ConfirmTitle`**: Accessible title (referenced by `aria-labelledby`).
+- **`ConfirmDescription`**: Description text (referenced by `aria-describedby`).
+- **`ConfirmAction`**: Confirmation button (Button contract).
+- **`ConfirmCancel`**: Safe cancellation button (Button contract).
 
 ---
 
@@ -13,7 +20,8 @@ A confirm is the blocking confirmation an author holds when a destructive or irr
 
 | Context | HTML Semantic | WAI-ARIA Semantic | Aria Package Semantic Contract |
 | :--- | :--- | :--- | :--- |
-| **Confirm** | Modal container (`<dialog>` or `<div>`). HTML has no native confirm element; `role="alertdialog"` must always be explicitly declared. | `role="alertdialog"`, `aria-modal="true"`, `aria-labelledby`, `aria-describedby`. | Urgent modal overlay. Traps focus, locks background scroll, and directs initial focus to the least destructive action button. |
+| **Native `<dialog>`** | Native `<dialog>` via `showModal()`. | `role="alertdialog"`, `aria-modal="true"`. | Traps focus; suppresses backdrop click and Escape dismissal. Focus lands on Cancel by default (host-independent). |
+| **Custom Element** | Custom modal (`<div>`). | `role="alertdialog"` on the **Panel**, `aria-modal="true"`, `aria-labelledby`, `aria-describedby`. | Background content receives `inert`. Focus trapped inside the panel. |
 
 ---
 
@@ -24,37 +32,35 @@ A confirm is the blocking confirmation an author holds when a destructive or irr
 #### `ConfirmProps`
 ```ts
 export interface ConfirmProps {
-  /** Optional DOM element identifier */
   id?: string;
-  /** Accessible label */
-  label?: string;
-  /** Element ID providing accessible label (heading) */
-  labelledby?: string;
-  /** Element ID providing detailed description */
-  describedby?: string;
-  /** Visibility state */
   open?: boolean;
 }
 ```
 
-### 2. Overload Contract (reserved, not implemented)
+### 2. Overload Contracts
 
 ```ts
-// Confirm: Urgent modal overlay
-export function aria<E extends BaseElement = HTMLElement>(
-  role: 'confirm',
-  props?: ConfirmProps
-): ConfirmAria<E>;
+// Confirm: Container (the sole entity name; compiles role="alertdialog")
+export function aria<E extends BaseElement = HTMLElement>(role: 'confirm', props?: ConfirmProps): ConfirmAria<E>;
+// ConfirmTrigger
+export function aria<E extends BaseElement = HTMLButtonElement>(role: 'confirm-trigger', props?: AriaProps): ConfirmTriggerAria<E>;
+// ConfirmPanel — carries role="alertdialog", aria-modal, aria-labelledby, aria-describedby
+export function aria<E extends BaseElement = HTMLElement>(role: 'confirm-panel', props?: AriaProps): ConfirmPanelAria<E>;
+// ConfirmTitle / ConfirmDescription
+export function aria<E extends BaseElement = HTMLElement>(role: 'confirm-title', props?: AriaProps): ConfirmTitleAria<E>;
+export function aria<E extends BaseElement = HTMLElement>(role: 'confirm-description', props?: AriaProps): ConfirmDescriptionAria<E>;
+// ConfirmAction / ConfirmCancel
+export function aria<E extends BaseElement = HTMLButtonElement>(role: 'confirm-action', props?: AriaProps): ConfirmActionAria<E>;
+export function aria<E extends BaseElement = HTMLButtonElement>(role: 'confirm-cancel', props?: AriaProps): ConfirmCancelAria<E>;
 ```
+
+> Panel, Title, and Description overloads are required because the ARIA contract (`role="alertdialog"`, `aria-modal`, `aria-labelledby`, `aria-describedby`) lives on the **Panel**, not the container (`docs/confirm.md:32`).
 
 ---
 
 ## State & Lifecycle Rules
 
-1. **Initial Focus**:
-   - Initial focus must NOT land on a destructive action (e.g. "Delete" or "Format").
-   - Focus must automatically land on the safest or least destructive control (e.g. "Cancel").
-
-2. **Modal Trap & Dismissal**:
-   - Keyboard focus is trapped strictly within the confirm.
-   - Escape key dismisses the dialog unless explicitly prevented by confirmation requirements.
+1. **Non-Dismissable Modal** (`docs/confirm.md:15`): outside pointer clicks and `Escape` commit nothing on both native and custom hosts — explicit action required.
+2. **Safe Initial Focus** (host-independent, `docs/confirm.md:16`): on open, focus defaults to `ConfirmCancel`; `Tab` cycles within the panel; background receives `inert` (native: browser modal mechanics; custom: controller applies it).
+3. **Closing**: activating `ConfirmAction` or `ConfirmCancel` commits `open = false` and restores focus to the opening trigger.
+4. **Events** (`docs/confirm.md:22-24`): `close` — native `<dialog>` browser-dispatched on `dialog.close()`, not re-dispatched; custom — `CustomEvent<void>('close', { bubbles: false })` on the **Panel** after `open = false` commits (non-cancelable, so it cannot be refused).

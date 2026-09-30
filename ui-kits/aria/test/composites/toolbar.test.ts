@@ -1,4 +1,4 @@
-import { createLifecycle } from '@airlib/core';
+import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
 import { Aria, aria, type BaseElement, JSXTranslator, roverCtx, ToolbarAria } from '../../src/index.js';
 import { bind, component } from '../utils.js';
@@ -379,6 +379,254 @@ describe('Toolbar - Composite Specifications', () => {
           } finally {
             Aria.translate((input) => input);
           }
+        });
+      }));
+  });
+
+  describe('Roving Focus & Directional Traversal Invariant', () => {
+    it('hands the single tab stop to whichever control holds focus', () =>
+      scope.run(() => {
+        component().run(() => {
+          const toolbar = aria('toolbar');
+          const toolbarEl = bind(document.createElement('div'), toolbar);
+          document.body.appendChild(toolbarEl);
+
+          const first = aria('button');
+          const blocked = aria('button', { disabled: true });
+          const last = aria('button');
+
+          const firstEl = bind(document.createElement('button'), first);
+          const blockedEl = bind(document.createElement('button'), blocked);
+          const lastEl = bind(document.createElement('button'), last);
+          toolbarEl.append(firstEl, blockedEl, lastEl);
+
+          // Initially the first enabled control carries the only tab stop
+          expect(firstEl.getAttribute('tabindex')).toBe('0');
+          expect(lastEl.getAttribute('tabindex')).toBe('-1');
+
+          // A disabled control is removed from the tab bookkeeping entirely
+          expect(blockedEl.hasAttribute('tabindex')).toBe(false);
+
+          toolbarEl.dispatchEvent(
+            new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }),
+          );
+          expect(document.activeElement).toBe(lastEl);
+          expect(lastEl.getAttribute('tabindex')).toBe('0');
+          expect(firstEl.getAttribute('tabindex')).toBe('-1');
+
+          toolbarEl.remove();
+        });
+      }));
+
+    it('sends Home and End to the first and last enabled control', () =>
+      scope.run(() => {
+        component().run(() => {
+          const toolbar = aria('toolbar');
+          const toolbarEl = bind(document.createElement('div'), toolbar);
+          document.body.appendChild(toolbarEl);
+
+          const first = bind(document.createElement('button'), aria('button'));
+          const second = bind(document.createElement('button'), aria('button'));
+          const tail = bind(document.createElement('button'), aria('button', { disabled: true }));
+          toolbarEl.append(first, second, tail);
+
+          second.focus();
+
+          toolbarEl.dispatchEvent(
+            new KeyboardEvent('keydown', { key: 'End', bubbles: true, cancelable: true }),
+          );
+          // The disabled tail is not a destination, so the last enabled control takes it
+          expect(document.activeElement).toBe(second);
+          expect(tail.hasAttribute('tabindex')).toBe(false);
+
+          toolbarEl.dispatchEvent(
+            new KeyboardEvent('keydown', { key: 'Home', bubbles: true, cancelable: true }),
+          );
+          expect(document.activeElement).toBe(first);
+          expect(first.getAttribute('tabindex')).toBe('0');
+          expect(second.getAttribute('tabindex')).toBe('-1');
+
+          toolbarEl.remove();
+        });
+      }));
+  });
+
+  describe('Multi-Role Item Grouping Invariant', () => {
+    it('lets each member keep its own role and state while the toolbar owns reachability', () =>
+      scope.run(() => {
+        component().run(() => {
+          const props = mutable<{ label: string }>({ label: 'Formatting' });
+          const toolbar = aria('toolbar', props);
+          const toolbarEl = bind(document.createElement('div'), toolbar);
+          document.body.appendChild(toolbarEl);
+
+          const plain = aria('button');
+          const bold = aria('toggle', { pressed: false });
+          const wrap = aria('checkbox', { checked: false });
+          const help = aria('link', { href: '/docs/formatting' });
+
+          const plainEl = bind(document.createElement('button'), plain);
+          const boldEl = bind(document.createElement('button'), bold);
+          const wrapEl = bind(document.createElement('input'), wrap);
+          const helpEl = bind(document.createElement('a'), help);
+          toolbarEl.append(plainEl, boldEl, wrapEl, helpEl);
+
+          // Own semantics survive untouched inside the toolbar
+          expect(plainEl.hasAttribute('aria-pressed')).toBe(false);
+          expect(boldEl.getAttribute('role')).toBeNull();
+          expect(boldEl.getAttribute('aria-pressed')).toBe('false');
+          expect(wrapEl.getAttribute('role')).toBeNull();
+          expect(wrapEl.type).toBe('checkbox');
+          expect(helpEl.getAttribute('href')).toBe('/docs/formatting');
+          expect(helpEl.hasAttribute('role')).toBe(false);
+
+          // Reachability is the toolbar's to hand around
+          expect(plainEl.getAttribute('tabindex')).toBe('0');
+          for (const el of [boldEl, wrapEl, helpEl]) {
+            expect(el.getAttribute('tabindex')).toBe('-1');
+          }
+
+          // Activation belongs to the control, not the container
+          boldEl.focus();
+          boldEl.click();
+          expect(bold.pressed).toBe(true);
+          expect(boldEl.getAttribute('aria-pressed')).toBe('true');
+
+          wrapEl.click();
+          expect(wrap.checked).toBe(true);
+
+          // The toolbar itself stays stateless
+          expect(toolbar.attributes['aria-valuenow']).toBeUndefined();
+          expect(toolbar.attributes['aria-activedescendant']).toBeUndefined();
+          expect(toolbar.attributes['aria-multiselectable']).toBeUndefined();
+
+          toolbarEl.remove();
+        });
+      }));
+
+    it('leaves the activation keys to the focused control', () =>
+      scope.run(() => {
+        component().run(() => {
+          const toolbar = aria('toolbar');
+          const toolbarEl = bind(document.createElement('div'), toolbar);
+          document.body.appendChild(toolbarEl);
+
+          const first = bind(document.createElement('button'), aria('button'));
+          const custom = aria<HTMLButtonElement>('toggle', { pressed: false }, { native: false });
+          const customEl = bind(document.createElement('div'), custom);
+          toolbarEl.append(first, customEl);
+
+          first.focus();
+          toolbarEl.dispatchEvent(
+            new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }),
+          );
+          expect(document.activeElement).toBe(customEl);
+          expect(custom.pressed).toBe(false);
+
+          // Space on a non-native member is the member's own polyfill to run
+          const space = new KeyboardEvent('keydown', {
+            key: ' ',
+            bubbles: true,
+            cancelable: true,
+          });
+          customEl.dispatchEvent(space);
+          expect(space.defaultPrevented).toBe(true);
+          expect(custom.pressed).toBe(false);
+
+          customEl.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', bubbles: true }));
+          expect(custom.pressed).toBe(true);
+          expect(customEl.getAttribute('aria-pressed')).toBe('true');
+
+          toolbarEl.remove();
+        });
+      }));
+  });
+
+  describe('Spatial Orientation & Wrap Invariant', () => {
+    it('makes a nested selection group surrender its own rover and collapse to role="group"', () =>
+      scope.run(() => {
+        component().run(() => {
+          const toolbar = aria('toolbar');
+          const toolbarEl = bind(document.createElement('div'), toolbar);
+          document.body.appendChild(toolbarEl);
+
+          const undo = bind(document.createElement('button'), aria('button'));
+
+          const align = aria('radio-group', { label: 'Alignment', value: 'left' });
+          const alignEl = bind(document.createElement('div'), align);
+          const left = bind(document.createElement('input'), align.radio({ value: 'left' }));
+          const right = bind(document.createElement('input'), align.radio({ value: 'right' }));
+          alignEl.append(left, right);
+
+          const redo = bind(document.createElement('button'), aria('button'));
+          toolbarEl.append(undo, alignEl, redo);
+
+          // The inner group keeps its label but stops claiming a radiogroup role
+          expect(alignEl.getAttribute('role')).toBe('group');
+          expect(alignEl.getAttribute('aria-label')).toBe('Alignment');
+
+          undo.focus();
+
+          // One arrow press advances exactly one control, with no double step from two rovers
+          toolbarEl.dispatchEvent(
+            new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }),
+          );
+          expect(document.activeElement).toBe(left);
+
+          toolbarEl.dispatchEvent(
+            new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }),
+          );
+          expect(document.activeElement).toBe(right);
+
+          toolbarEl.dispatchEvent(
+            new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }),
+          );
+          expect(document.activeElement).toBe(redo);
+
+          toolbarEl.remove();
+        });
+      }));
+
+    it('travels the vertical axis and leaves the horizontal keys to the page', () =>
+      scope.run(() => {
+        component().run(() => {
+          const toolbar = aria('toolbar', { orientation: 'vertical' });
+          const toolbarEl = bind(document.createElement('div'), toolbar);
+          document.body.appendChild(toolbarEl);
+
+          const top = bind(document.createElement('button'), aria('button'));
+          const middle = bind(document.createElement('button'), aria('button'));
+          const bottom = bind(document.createElement('button'), aria('button'));
+          toolbarEl.append(top, middle, bottom);
+
+          top.focus();
+
+          toolbarEl.dispatchEvent(
+            new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
+          );
+          expect(document.activeElement).toBe(middle);
+
+          toolbarEl.dispatchEvent(
+            new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
+          );
+          expect(document.activeElement).toBe(bottom);
+
+          // Wraps past the last control back to the first
+          toolbarEl.dispatchEvent(
+            new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
+          );
+          expect(document.activeElement).toBe(top);
+
+          const sideways = new KeyboardEvent('keydown', {
+            key: 'ArrowRight',
+            bubbles: true,
+            cancelable: true,
+          });
+          toolbarEl.dispatchEvent(sideways);
+          expect(sideways.defaultPrevented).toBe(false);
+          expect(document.activeElement).toBe(top);
+
+          toolbarEl.remove();
         });
       }));
   });

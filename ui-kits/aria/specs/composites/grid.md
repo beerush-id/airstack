@@ -1,8 +1,10 @@
 # Grid Specification
 
-A grid is an interactive widget containing one or more rows of cells. The user can navigate between cells in two dimensions using keyboard arrow keys.
+A grid is an interactive widget containing one or more rows of cells. The user can navigate between cells in two
+dimensions using keyboard arrow keys.
 
 ### Composite Parts
+
 - **`Grid`**: WAI-ARIA `grid` / `treegrid`
 - **`Row`**: WAI-ARIA `row`
 - **`GridCell`**: WAI-ARIA `gridcell`
@@ -13,13 +15,13 @@ A grid is an interactive widget containing one or more rows of cells. The user c
 
 ## The Three Semantic Layers
 
-| Part / Role | HTML Semantic | WAI-ARIA Semantic | Aria Package Semantic Contract |
-| :--- | :--- | :--- | :--- |
-| **`grid`** | Interactive tabular structure (`<table>` or `<div>`). | `role="grid"` / `role="treegrid"`, `aria-label` / `aria-labelledby`, `aria-colcount`, `aria-rowcount`. | 2D roving focus coordinator. Manages arrow key navigation across rows and columns. |
-| **`row`** | Row container (`<tr>` or `<div>`). | `role="row"`, `aria-selected` (if selectable), `aria-rowindex`. | Row container and selection coordinator. |
-| **`gridcell`** | Interactive cell (`<td>` or `<div>`). | `role="gridcell"`, `aria-selected` (if selectable), `aria-readonly`, `aria-colindex`. | Interactive target receiving 2D roving focus. |
-| **`columnheader`** | Column header (`<th>` or `<div>`). | `role="columnheader"`, `aria-sort`, `aria-colindex`. | Column header; sortable action trigger. |
-| **`rowheader`** | Row header (`<th>` or `<div>`). | `role="rowheader"`, `aria-rowindex`. | Row header labeling row contents. |
+| Part / Role        | HTML Semantic                                         | WAI-ARIA Semantic                                                                                      | Aria Package Semantic Contract                                                     |
+|:-------------------|:------------------------------------------------------|:-------------------------------------------------------------------------------------------------------|:-----------------------------------------------------------------------------------|
+| **`grid`**         | Interactive tabular structure (`<table>` or `<div>`). | `role="grid"` / `role="treegrid"`, `aria-label` / `aria-labelledby`, `aria-colcount`, `aria-rowcount`. | 2D roving focus coordinator. Manages arrow key navigation across rows and columns. |
+| **`row`**          | Row container (`<tr>` or `<div>`).                    | `role="row"`, `aria-selected` (if selectable), `aria-rowindex`.                                        | Row container and selection coordinator.                                           |
+| **`gridcell`**     | Interactive cell (`<td>` or `<div>`).                 | `role="gridcell"`, `aria-selected` (if selectable), `aria-readonly`, `aria-colindex`.                  | Interactive target receiving 2D roving focus.                                      |
+| **`columnheader`** | Column header (`<th>` or `<div>`).                    | `role="columnheader"`, `aria-sort`, `aria-colindex`.                                                   | Column header; sortable action trigger.                                            |
+| **`rowheader`**    | Row header (`<th>` or `<div>`).                       | `role="rowheader"`, `aria-rowindex`.                                                                   | Row header labeling row contents.                                                  |
 
 ---
 
@@ -28,6 +30,7 @@ A grid is an interactive widget containing one or more rows of cells. The user c
 ### 1. Options & Props Contracts
 
 #### `GridProps`
+
 ```ts
 export interface GridProps {
   /** Optional DOM element identifier */
@@ -45,11 +48,13 @@ export interface GridProps {
 ```
 
 #### `TreegridProps`
+
 ```ts
 export interface TreegridProps extends GridProps {}
 ```
 
 #### `RowProps`
+
 ```ts
 export interface RowProps {
   /** Row identifier (used when `selectionMode: 'row'`) */
@@ -63,6 +68,7 @@ export interface RowProps {
 ```
 
 #### `GridCellProps`
+
 ```ts
 export interface GridCellProps {
   /** Cell identifier or name */
@@ -78,6 +84,7 @@ export interface GridCellProps {
 ```
 
 #### `ColumnHeaderProps`
+
 ```ts
 export interface ColumnHeaderProps {
   /** Column header name */
@@ -91,6 +98,7 @@ export interface ColumnHeaderProps {
 ```
 
 #### `RowHeaderProps`
+
 ```ts
 export interface RowHeaderProps {
   /** Row header name */
@@ -146,10 +154,10 @@ export function aria<E extends BaseElement = HTMLElement>(
 ## State & Lifecycle Rules
 
 1. **Keyboard Navigation**:
-   - `ArrowUp` / `ArrowDown`: Moves focus vertically between rows in the same column.
-   - `ArrowLeft` / `ArrowRight`: Moves focus horizontally between cells in the same row.
-   - `Home` / `End`: Moves focus to the first / last cell in the row.
-   - `PageUp` / `PageDown`: Scrolls rows and moves focus vertically.
-   - Grid declares no `manual` prop: arrows move focus only and never select; `Space`/`Enter` activates.
+  - `ArrowUp` / `ArrowDown`: Moves focus vertically between rows in the same column.
+  - `ArrowLeft` / `ArrowRight`: Moves focus horizontally between cells in the same row.
+  - `Home` / `End`: Moves focus to the first / last cell in the row.
+  - `PageUp` / `PageDown`: Scrolls rows and moves focus vertically.
+  - Grid declares no `manual` prop: arrows move focus only and never select; `Space`/`Enter` activates.
 
 2. **State Projection**: `value` reads and writes props directly. Props is the single source of state.

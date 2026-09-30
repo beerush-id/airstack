@@ -24,8 +24,8 @@ The calendar date unit. Coordinates ISO date text editing, popup calendar toggli
 | **`DatePicker`** | Logical container (`<div>`). | None (role omitted). | Hosts state: `value`, `open`, bounds. Publishes `datePickerCtx`. |
 | **`DatePickerInput`** | Native `<input type="date">` or text `<input>`. | `role="combobox"` on custom/text host, `aria-haspopup="dialog"`, `aria-expanded`, `aria-controls`. | Direct text entry and synchronization. |
 | **`DatePickerTrigger`** | Native `<button type="button">`. | `aria-haspopup="dialog"`, `aria-expanded`, `aria-controls`. | Toggles calendar popup. |
-| **`DatePickerCalendar`** | Dialog popup (`<div>`). | `role="dialog"`, `aria-label="Calendar"`. | Hosts month grid and focus restoration. |
-| **`DatePickerDay`** | Table cell or button (`<td>` / `<button>`). | `role="gridcell"`, `aria-selected`, `aria-disabled`. | Day cell in month grid. |
+| **`DatePickerCalendar`** | Dialog popup (`<div>`); inner month grid. | `role="dialog"`, `aria-label="Calendar"`; the month grid `role="grid"`, day rows `role="row"`. | Hosts month grid; on open focus moves into the grid to the current/selected day (`docs/date-picker.md:21`). |
+| **`DatePickerDay`** | Table cell or button (`<td>` / `<button>`). | `role="gridcell"`, `aria-selected` (active date), `aria-disabled="true"` outside `min`/`max`; **roving `tabindex="0"` on the focused day, `-1` on others** (shared grid contract, `docs/date-range-picker.md:68`). | Day cell in month grid. |
 
 ---
 
@@ -87,7 +87,14 @@ export function aria<E extends BaseElement = HTMLElement>(
   role: 'date-picker-day',
   props: DatePickerDayProps
 ): DatePickerDayAria<E>;
+
+// DatePickerPrevMonth / DatePickerNextMonth (Button contract; navigate the displayed month without committing value — docs/date-picker.md:30)
+export function aria<E extends BaseElement = HTMLButtonElement>(
+  role: 'date-picker-prev-month' | 'date-picker-next-month',
+  props?: AriaProps
+): DatePickerMonthNavAria<E>;
 ```
+
 
 ---
 

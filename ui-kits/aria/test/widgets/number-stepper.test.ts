@@ -246,4 +246,299 @@ describe('NumberStepper - Contract Specifications', () => {
         });
       }));
   });
+
+  describe('Stepper Action & Event Dispatch Invariant', () => {
+    it('claims exactly the declared keys and leaves caret and typing keys to the browser', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const spin = aria<HTMLDivElement>('number-stepper', { value: 5, min: 0, max: 10 });
+          const el = bind(document.createElement('div'), spin);
+
+          // ArrowLeft/ArrowRight move a text caret, not a value: the table names Up/Down only
+          for (const key of ['ArrowLeft', 'ArrowRight', 'Tab', 'Escape', 'a']) {
+            const event = new KeyboardEvent('keydown', { key, cancelable: true, bubbles: true });
+            el.dispatchEvent(event);
+
+            expect(event.defaultPrevented).toBe(false);
+          }
+
+          expect(spin.value).toBe(5);
+          expect(el.getAttribute('aria-valuenow')).toBe('5');
+
+          // A claimed key moves the value exactly one step
+          const up = new KeyboardEvent('keydown', { key: 'ArrowUp', cancelable: true, bubbles: true });
+          el.dispatchEvent(up);
+          expect(up.defaultPrevented).toBe(true);
+          expect(spin.value).toBe(6);
+          expect(el.getAttribute('aria-valuenow')).toBe('6');
+
+          spin.destroy();
+          expect(spin.current).toBeNull();
+        });
+      }));
+
+    it('hands the consumer an already-transitioned value on a native host', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const props = mutable<NumberStepperProps>({ value: 1, min: 0, max: 20 });
+          const spin = aria<HTMLInputElement>('number-stepper', props, { native: true });
+          const el = bind(document.createElement('input'), spin);
+
+          const observed: Array<{ state: number; attribute: string; dom: string }> = [];
+          el.addEventListener('input', () => {
+            observed.push({
+              state: spin.value,
+              attribute: el.getAttribute('aria-valuenow') ?? '',
+              dom: el.value,
+            });
+          });
+
+          // 3/4. Internal synchronization runs before the forwarded event reaches a listener
+          el.value = '12';
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+
+          expect(observed).toHaveLength(1);
+          expect(observed[0].state).toBe(12);
+          expect(observed[0].dom).toBe('12');
+
+          // The native host announces range through its own attributes, never ARIA mirrors
+          expect(observed[0].attribute).toBe('');
+          expect(el.hasAttribute('aria-valuenow')).toBe(false);
+          expect(el.hasAttribute('aria-valuemin')).toBe(false);
+          expect(el.hasAttribute('aria-valuemax')).toBe(false);
+          expect(el.hasAttribute('role')).toBe(false);
+
+          // 5. Reconciliation: out-of-range typing is clamped on the way in, not on the way out
+          el.value = '40';
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+          expect(spin.value).toBe(20);
+          expect(props.value).toBe(20);
+          expect(observed).toHaveLength(2);
+          expect(observed[1].state).toBe(20);
+
+          // 6. Teardown
+          spin.destroy();
+          expect(spin.current).toBeNull();
+        });
+      }));
+
+    it('leaves the native host arrow keys unclaimed for the built-in stepper', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const spin = aria<HTMLInputElement>('number-stepper', { value: 5, min: 0, max: 10 }, { native: true });
+          const el = bind(document.createElement('input'), spin);
+
+          // The polyfill is declared for !native hosts only
+          const up = new KeyboardEvent('keydown', { key: 'ArrowUp', cancelable: true, bubbles: true });
+          el.dispatchEvent(up);
+          expect(up.defaultPrevented).toBe(false);
+          expect(spin.value).toBe(5);
+
+          const home = new KeyboardEvent('keydown', { key: 'Home', cancelable: true, bubbles: true });
+          el.dispatchEvent(home);
+          expect(home.defaultPrevented).toBe(false);
+          expect(spin.value).toBe(5);
+
+          spin.destroy();
+          expect(spin.current).toBeNull();
+        });
+      }));
+  });
+
+  describe('Range Normalization & Boundary Clamping Invariant', () => {
+    it('holds a programmatically assigned value inside the declared range', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const spin = aria<HTMLDivElement>('number-stepper', { value: 5, min: 0, max: 10 });
+          const el = bind(document.createElement('div'), spin);
+
+          spin.value = 250;
+          expect(spin.value).toBe(10);
+          expect(spin.attributes['aria-valuenow']).toBe(10);
+          expect(el.getAttribute('aria-valuenow')).toBe('10');
+
+          spin.value = -250;
+          expect(spin.value).toBe(0);
+          expect(el.getAttribute('aria-valuenow')).toBe('0');
+
+          // Inside the range the value is stored verbatim, not snapped to a step
+          spin.value = 4;
+          expect(spin.value).toBe(4);
+          expect(el.getAttribute('aria-valuenow')).toBe('4');
+
+          spin.destroy();
+          expect(spin.current).toBeNull();
+        });
+      }));
+
+    it('re-clamps a live value when a narrowing range revision takes it past a bound', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const props = mutable<NumberStepperProps>({ value: 50, min: 0, max: 100 });
+          const spin = aria<HTMLDivElement>('number-stepper', props);
+          const el = bind(document.createElement('div'), spin);
+
+          expect(el.getAttribute('aria-valuenow')).toBe('50');
+          expect(el.getAttribute('aria-valuemax')).toBe('100');
+
+          // The bound moves below the current value: the announcement cannot keep lying
+          props.max = 20;
+          expect(spin.value).toBe(20);
+          expect(el.getAttribute('aria-valuenow')).toBe('20');
+          expect(el.getAttribute('aria-valuemax')).toBe('20');
+
+          // A lower bound inside the current value leaves it alone
+          props.min = 5;
+          expect(spin.value).toBe(20);
+
+          // Squeezing both bounds pulls the value into the narrower window
+          props.min = 8;
+          props.max = 12;
+          expect(spin.value).toBe(12);
+          expect(el.getAttribute('aria-valuenow')).toBe('12');
+          expect(el.getAttribute('aria-valuemin')).toBe('8');
+          expect(el.getAttribute('aria-valuemax')).toBe('12');
+
+          // Widening the range back never resurrects the discarded value
+          props.min = 0;
+          props.max = 100;
+          expect(spin.value).toBe(12);
+
+          spin.value = 60;
+          expect(spin.value).toBe(60);
+          expect(el.getAttribute('aria-valuenow')).toBe('60');
+
+          spin.destroy();
+          expect(spin.current).toBeNull();
+        });
+      }));
+  });
+
+  describe('Inertness & Host Boundary Invariant', () => {
+    it('keeps a readonly field reachable while refusing every stepping key', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const spin = aria<HTMLDivElement>(
+            'number-stepper',
+            { value: 5, min: 0, max: 100, step: 5, readonly: true },
+            { native: false },
+          );
+
+          const el = bind(document.createElement('div'), spin);
+
+          expect(el.getAttribute('aria-readonly')).toBe('true');
+          expect(el.getAttribute('tabindex')).toBe('0');
+
+          for (const key of ['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End']) {
+            const event = new KeyboardEvent('keydown', { key, cancelable: true, bubbles: true });
+            el.dispatchEvent(event);
+
+            expect(event.defaultPrevented).toBe(false);
+          }
+
+          expect(spin.value).toBe(5);
+          expect(el.getAttribute('aria-valuenow')).toBe('5');
+
+          // Dropping the readonly declaration re-arms the same node
+          spin.assign({ readonly: false });
+          expect(el.getAttribute('aria-readonly')).toBe('false');
+
+          const up = new KeyboardEvent('keydown', { key: 'ArrowUp', cancelable: true, bubbles: true });
+          el.dispatchEvent(up);
+          expect(up.defaultPrevented).toBe(true);
+          expect(spin.value).toBe(10);
+
+          spin.destroy();
+          expect(spin.current).toBeNull();
+        });
+      }));
+
+    it('locks and re-arms stepping while a disabled field stays announced', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const props = mutable<NumberStepperProps>({ value: 5, min: 0, max: 100 });
+          const spin = aria<HTMLDivElement>('number-stepper', props);
+          const el = bind(document.createElement('div'), spin);
+
+          const up = () =>
+            new KeyboardEvent('keydown', { key: 'ArrowUp', cancelable: true, bubbles: true });
+
+          el.dispatchEvent(up());
+          expect(spin.value).toBe(6);
+
+          props.disabled = true;
+          expect(el.getAttribute('aria-disabled')).toBe('true');
+          expect(el.getAttribute('tabindex')).toBe('-1');
+
+          const locked = up();
+          el.dispatchEvent(locked);
+          expect(locked.defaultPrevented).toBe(false);
+          expect(spin.value).toBe(6);
+
+          // Disabled outranks readonly: both announcements stay truthful
+          props.disabled = false;
+          props.readonly = true;
+          el.dispatchEvent(up());
+          expect(spin.value).toBe(6);
+          expect(el.getAttribute('aria-disabled')).toBe('false');
+          expect(el.getAttribute('aria-readonly')).toBe('true');
+          expect(el.getAttribute('tabindex')).toBe('0');
+
+          props.readonly = false;
+          el.dispatchEvent(up());
+          expect(spin.value).toBe(7);
+
+          spin.destroy();
+          expect(spin.current).toBeNull();
+        });
+      }));
+
+    it('carries the same range constraints through native properties and ARIA attributes', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const range = { value: 5, min: 0, max: 100, step: 5 };
+
+          const nativeSpin = aria<HTMLInputElement>('number-stepper', range, { native: true });
+          const customSpin = aria<HTMLDivElement>('number-stepper', range, { native: false });
+
+          const nativeEl = bind(document.createElement('input'), nativeSpin);
+          const customEl = bind(document.createElement('div'), customSpin);
+
+          // Native host: the range is HTML, and the type carries the implicit role
+          expect(nativeEl.type).toBe('number');
+          expect(nativeEl.min).toBe('0');
+          expect(nativeEl.max).toBe('100');
+          expect(nativeEl.step).toBe('5');
+
+          // Custom host: the range is ARIA, and the native range keys never reach the dictionary
+          expect(customEl.getAttribute('role')).toBe('spinbutton');
+          expect(customEl.getAttribute('aria-valuemin')).toBe('0');
+          expect(customEl.getAttribute('aria-valuemax')).toBe('100');
+          expect(customEl.getAttribute('aria-valuenow')).toBe('5');
+          expect(customEl.getAttribute('tabindex')).toBe('0');
+          expect(customSpin.attributes.min).toBeUndefined();
+          expect(customSpin.attributes.max).toBeUndefined();
+          expect(customSpin.attributes.step).toBeUndefined();
+
+          // An out-of-range assignment meets the same ceiling on both hosts
+          nativeSpin.assign({ value: 400 });
+          customSpin.assign({ value: 400 });
+          expect(nativeSpin.value).toBe(100);
+          expect(customSpin.value).toBe(100);
+
+          nativeSpin.destroy();
+          customSpin.destroy();
+          expect(nativeSpin.current).toBeNull();
+          expect(customSpin.current).toBeNull();
+        });
+      }));
+  });
 });

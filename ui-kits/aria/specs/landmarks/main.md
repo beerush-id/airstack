@@ -1,6 +1,7 @@
 # Main Landmark Specification
 
-A main is the primary unique content area an author holds in a document, enabling users of assistive technologies to quickly skip repetitive site navigation.
+A main is the primary unique content area an author holds in a document, enabling users of assistive technologies to
+quickly skip repetitive site navigation.
 
 - **Entity**: `main`
 - **WAI-ARIA Role**: `main` (compiled output)
@@ -9,10 +10,10 @@ A main is the primary unique content area an author holds in a document, enablin
 
 ## The Three Semantic Layers
 
-| Context | HTML Semantic | WAI-ARIA Semantic | Aria Package Semantic Contract |
-| :--- | :--- | :--- | :--- |
-| **Native Main** | Native `<main>` element. | Implicit `role="main"`. Explicit `role` omitted. | Primary entity. Exactly 1 per document. |
-| **Custom Main** | Non-semantic element (`<div>`). | `role="main"`. | Compiles `role="main"`. |
+| Context         | HTML Semantic                   | WAI-ARIA Semantic                                | Aria Package Semantic Contract          |
+|:----------------|:--------------------------------|:-------------------------------------------------|:----------------------------------------|
+| **Native Main** | Native `<main>` element.        | Implicit `role="main"`. Explicit `role` omitted. | Primary entity. Exactly 1 per document. |
+| **Custom Main** | Non-semantic element (`<div>`). | `role="main"`.                                   | Compiles `role="main"`.                 |
 
 ---
 

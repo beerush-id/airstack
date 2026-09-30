@@ -1,6 +1,7 @@
 # Switch Specification
 
-A switch is an interactive toggle widget representing a binary on/off state, similar to a physical light switch.
+The binary on/off toggle entry unit. Guarantees identical toggle activation, focus, and state reflection across native
+`<input type="checkbox" role="switch">` and custom elements.
 
 - **Role**: `switch`
 - **WAI-ARIA Role**: `switch`
@@ -9,9 +10,10 @@ A switch is an interactive toggle widget representing a binary on/off state, sim
 
 ## The Three Semantic Layers
 
-| Context | HTML Semantic | WAI-ARIA Semantic | Aria Package Semantic Contract |
-| :--- | :--- | :--- | :--- |
-| **Switch** | Rendered via `<button type="button">` or non-native element. (HTML has no native `<switch>` element). | `role="switch"`, `aria-checked` (`"true"` \| `"false"`), `tabindex="0"`. | Pure ARIA toggle controller (`native: false`). Exposes `this.checked` getter/setter. Polyfills Space/Enter toggle. |
+| Context           | HTML Semantic                                         | WAI-ARIA Semantic                                                                                                                                                                        | Aria Package Semantic Contract                                                                                  |
+|:------------------|:------------------------------------------------------|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:----------------------------------------------------------------------------------------------------------------|
+| **Native Switch** | Native `<input type="checkbox" role="switch">`.       | `role="switch"` **is emitted** (a checkbox carries no switch semantics implicitly). Native `checked` reflects `on`. `disabled`/`required` sync native properties. No ARIA state mirrors. | Binary toggle bound to a checkbox input; browser handles activation, focus, and key events without re-dispatch. |
+| **Custom Switch** | Non-checkbox element (`<div>`, `<span>`, `<button>`). | `role="switch"`, `aria-checked` (`"true"` \| `"false"`), `aria-required`, `aria-disabled="true"` when `disabled`; `tabindex="0"` when enabled, `tabindex` removed when `disabled`.       | Pure ARIA toggle controller. Exposes `this.on` getter/setter. Polyfills pointer/`Space` toggle.                 |
 
 ---
 
@@ -20,34 +22,36 @@ A switch is an interactive toggle widget representing a binary on/off state, sim
 ### 1. Options & Props Contracts
 
 #### `SwitchOptions`
+
 ```ts
 export interface SwitchOptions {
-  /** Whether bound to a <button> host (default: false, pure ARIA) */
+  /** Whether bound to native <input type="checkbox" role="switch"> (default: false, pure ARIA) */
   native?: boolean;
 }
 ```
 
-#### `SwitchProps<T extends Primitive = Primitive>`
+#### `SwitchProps`
+
 ```ts
-export interface SwitchProps<T extends Primitive = Primitive> {
-  /** Choice candidate value if nested in a selection group */
-  value?: T;
-  /** Optional form field name pass-through */
-  name?: string;
-  /** Binary checked state */
-  checked?: boolean;
-  /** Disabled state */
+export interface SwitchProps {
+  /** Toggle state (default: false). Read/Write. */
+  on?: boolean;
+  /** Disabled state (default: false) */
   disabled?: boolean;
+  /** Requirement flag (default: false) */
+  required?: boolean;
 }
 ```
+
+> The Switch unit is standalone. Its state prop is `on`, not `checked`; it carries no `value`/`name` group-membership props.
 
 ### 2. Overload Contract
 
 ```ts
-// Switch: Binary on/off toggle (pure ARIA by default)
-export function aria<E extends BaseElement = HTMLElement, T extends Primitive = Primitive>(
+// Switch: Binary on/off toggle (pure ARIA by default; native host is a checkbox input)
+export function aria<E extends BaseElement = HTMLElement>(
   role: 'switch',
-  props?: SwitchProps<T>,
+  props?: SwitchProps,
   options?: SwitchOptions
 ): SwitchAria<E>;
 ```
@@ -56,9 +60,23 @@ export function aria<E extends BaseElement = HTMLElement, T extends Primitive = 
 
 ## State & Lifecycle Rules
 
-1. **State Projection (`checked`)**:
-   - **Getter**: Resolves `Boolean(this.props.checked)`.
-   - **Setter**: Mutates `this.props.checked = Boolean(val)`.
+1. **State Projection (`on`)**:
+  - Getter resolves `Boolean(this.props.on)`; setter writes `this.props.on`. There is no group term — the switch is
+    standalone.
 
 2. **Activation**:
-   - `Click`, `Space`, or `Enter` (when non-native) toggles `this.checked = !this.checked`.
+  - Pointer `click` and `Space` keyup flip `on` (`docs/switch.md:17`). `Enter` does **not** toggle (matches
+    `checkbox.md:20`). `Space` keydown prevents scrolling; activation verifies `!event.defaultPrevented`.
+  - `disabled` blocks all state transitions and activation.
+
+3. **Native Host Reflection** (`docs/switch.md:33-35`):
+  - `role="switch"` is emitted even on the native checkbox host (no implicit switch role exists to inherit).
+  - Native `checked` reflects `on`; `disabled` and `required` sync native properties. No ARIA state mirrors on the
+    native branch.
+
+4. **Events** (`docs/switch.md:23-28`):
+  - Native host: `click`, `input`, `change` are browser-dispatched; the controller does not re-dispatch.
+  - Custom host:
+    - `click` — synthesized on `Space` keyup when `!event.defaultPrevented` as
+      `MouseEvent('click', { bubbles: true, cancelable: true })`.
+    - `input` / `change` — dispatched after `on` commits as `CustomEvent<boolean>` with `bubbles: true`, `detail: on`.

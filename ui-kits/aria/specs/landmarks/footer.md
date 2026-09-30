@@ -1,6 +1,7 @@
 # Footer Landmark Specification
 
-A footer is the main footer area an author holds at the end of a document, typically containing copyrights, privacy policies, contact information, and disclaimer links.
+A footer is the main footer area an author holds at the end of a document, typically containing copyrights, privacy
+policies, contact information, and disclaimer links.
 
 - **Entity**: `footer`
 - **WAI-ARIA Role**: `contentinfo` (compiled output)
@@ -9,10 +10,10 @@ A footer is the main footer area an author holds at the end of a document, typic
 
 ## The Three Semantic Layers
 
-| Context | HTML Semantic | WAI-ARIA Semantic | Aria Package Semantic Contract |
-| :--- | :--- | :--- | :--- |
+| Context           | HTML Semantic                                          | WAI-ARIA Semantic                                       | Aria Package Semantic Contract               |
+|:------------------|:-------------------------------------------------------|:--------------------------------------------------------|:---------------------------------------------|
 | **Native Footer** | Native `<footer>` element scoped directly to `<body>`. | Implicit `role="contentinfo"`. Explicit `role` omitted. | Primary footer landmark. Max 1 per document. |
-| **Custom Footer** | Non-semantic element (`<div>`). | `role="contentinfo"`. | Compiles `role="contentinfo"`. |
+| **Custom Footer** | Non-semantic element (`<div>`).                        | `role="contentinfo"`.                                   | Compiles `role="contentinfo"`.               |
 
 ---
 

@@ -453,4 +453,449 @@ describe('Checkbox - Contract Specifications', () => {
         });
       }));
   });
+
+  describe('Tri-State & Value Inversion Invariant', () => {
+    it('inverts exactly once per Space press and never inverts on Enter on a custom host', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const cb = aria<HTMLDivElement>('checkbox', {}, { native: false });
+
+          // 1. Creation & SSR
+          expect(cb.current).toBeNull();
+          expect(cb.checked).toBe(false);
+          expect(cb.attributes.role).toBe('checkbox');
+          expect(cb.attributes['aria-checked']).toBe('false');
+
+          // 2. DOM Binding
+          const el = bind(document.createElement('div'), cb);
+          expect(cb.current).toBe(el);
+          expect(el.getAttribute('aria-checked')).toBe('false');
+
+          // 3/4. Enter is not a checkbox affordance: the polyfill declares Space only
+          const enterDown = new KeyboardEvent('keydown', {
+            key: 'Enter',
+            cancelable: true,
+            bubbles: true,
+          });
+          el.dispatchEvent(enterDown);
+          expect(cb.checked).toBe(false);
+          expect(el.getAttribute('aria-checked')).toBe('false');
+
+          // Key repeat delivers many keydowns and one keyup: a single inversion
+          for (let repeat = 0; repeat < 3; repeat += 1) {
+            el.dispatchEvent(
+              new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true }),
+            );
+          }
+          expect(cb.checked).toBe(false);
+
+          // 5. Reconciliation: state, projection and props move together
+          el.dispatchEvent(
+            new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }),
+          );
+          expect(cb.checked).toBe(true);
+          expect(cb.props.checked).toBe(true);
+          expect(el.getAttribute('aria-checked')).toBe('true');
+
+          // 6. Teardown
+          cb.destroy();
+          expect(cb.current).toBeNull();
+        });
+      }));
+
+    it('resolves mixed to checked through both the pointer and keyboard paths on a custom host', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const cb = aria<HTMLDivElement>('checkbox', { indeterminate: true }, { native: false });
+
+          // 1. Creation & SSR: mixed outranks the unchecked value
+          expect(cb.indeterminate).toBe(true);
+          expect(cb.checked).toBe(false);
+          expect(cb.attributes['aria-checked']).toBe('mixed');
+
+          // 2. DOM Binding
+          const el = bind(document.createElement('div'), cb);
+          expect(el.getAttribute('aria-checked')).toBe('mixed');
+
+          // 3/4. Pointer path: activation toward checked clears mixed
+          el.click();
+          expect(cb.checked).toBe(true);
+          expect(cb.indeterminate).toBe(false);
+          expect(el.getAttribute('aria-checked')).toBe('true');
+
+          // 5. Re-entering mixed live, then resolving through the keyboard path
+          cb.assign({ indeterminate: true });
+          expect(cb.attributes['aria-checked']).toBe('mixed');
+          expect(el.getAttribute('aria-checked')).toBe('mixed');
+
+          el.dispatchEvent(
+            new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true }),
+          );
+          el.dispatchEvent(
+            new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }),
+          );
+          expect(cb.checked).toBe(true);
+          expect(cb.indeterminate).toBe(false);
+          expect(el.getAttribute('aria-checked')).toBe('true');
+
+          // 6. Teardown
+          cb.destroy();
+          expect(cb.current).toBeNull();
+        });
+      }));
+
+    it('keeps native mixed state on the IDL property and never projects aria-checked', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const cb = aria('checkbox', { checked: false }, { native: true });
+
+          // 1. Creation & SSR
+          expect(cb.attributes['aria-checked']).toBeUndefined();
+          expect(cb.attributes.checked).toBe(false);
+
+          // 2. DOM Binding
+          const input = bind(document.createElement('input'), cb);
+          expect(input.indeterminate).toBe(false);
+          expect(input.hasAttribute('aria-checked')).toBe(false);
+
+          // 3/5. Mixed assigned after mount reaches the property, not the attribute
+          cb.assign({ indeterminate: true });
+          expect(cb.indeterminate).toBe(true);
+          expect(input.indeterminate).toBe(true);
+          expect(input.checked).toBe(false);
+          expect(input.hasAttribute('aria-checked')).toBe(false);
+
+          // 6. Teardown
+          cb.destroy();
+          expect(cb.current).toBeNull();
+        });
+      }));
+
+    it('inverts group array membership through keyboard activation on a custom member', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const group = mutable({ value: ['newsletter'], multiple: true });
+          selectionGroup.set(group);
+
+          const cb = aria<HTMLDivElement>('checkbox', { value: 'promos' }, { native: false });
+
+          // 1. Creation & SSR: membership derives the state, not props.checked
+          expect(cb.checked).toBe(false);
+          expect(cb.attributes['aria-checked']).toBe('false');
+
+          // 2. DOM Binding
+          const el = bind(document.createElement('div'), cb);
+          expect(el.getAttribute('aria-checked')).toBe('false');
+
+          // 3/4. Keyboard activation appends the candidate value
+          el.dispatchEvent(
+            new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true }),
+          );
+          el.dispatchEvent(
+            new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }),
+          );
+          expect(group.value).toEqual(['newsletter', 'promos']);
+          expect(cb.checked).toBe(true);
+          expect(el.getAttribute('aria-checked')).toBe('true');
+
+          // 5. Reconciliation: the sibling member projection follows the same group
+          const newsCb = aria<HTMLDivElement>('checkbox', { value: 'newsletter' }, { native: false });
+          const newsEl = bind(document.createElement('div'), newsCb);
+          expect(newsEl.getAttribute('aria-checked')).toBe('true');
+
+          el.dispatchEvent(
+            new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true }),
+          );
+          el.dispatchEvent(
+            new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }),
+          );
+          expect(group.value).toEqual(['newsletter']);
+          expect(el.getAttribute('aria-checked')).toBe('false');
+          expect(newsEl.getAttribute('aria-checked')).toBe('true');
+
+          // 6. Teardown
+          cb.destroy();
+          newsCb.destroy();
+          expect(cb.current).toBeNull();
+          expect(newsCb.current).toBeNull();
+        });
+      }));
+  });
+
+  describe('Form Control Boundary & Host Parity Invariant', () => {
+    it('contributes no form attributes to the dictionary while the author binding submits', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const form = document.createElement('form');
+          document.body.appendChild(form);
+
+          const cb = aria('checkbox', { name: 'topics', value: 'promos' });
+
+          // 1. Creation & SSR: identity keys stay on props, never compiled
+          expect(cb.props.name).toBe('topics');
+          expect(cb.props.value).toBe('promos');
+          expect(cb.attributes.name).toBeUndefined();
+          expect(cb.attributes.value).toBeUndefined();
+          expect(cb.attributes.form).toBeUndefined();
+
+          // 2. DOM Binding: the template author binds the field, per the Form Boundary Invariant
+          const input = bind(document.createElement('input'), cb);
+          input.name = cb.props.name;
+          input.value = String(cb.props.value);
+          form.appendChild(input);
+          expect(input.type).toBe('checkbox');
+
+          const submission = new FormData(form);
+          expect(submission.get('topics')).toBeNull();
+
+          // 3/4/5. Activation makes the author-bound field a submission candidate
+          input.click();
+          expect(cb.checked).toBe(true);
+          expect(new FormData(form).get('topics')).toBe('promos');
+
+          input.click();
+          expect(cb.checked).toBe(false);
+          expect(new FormData(form).get('topics')).toBeNull();
+
+          // 6. Teardown
+          cb.destroy();
+          expect(cb.current).toBeNull();
+          document.body.removeChild(form);
+        });
+      }));
+
+    it('syncs required through the native property and through aria-required from one props change', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const nativeCb = aria('checkbox');
+          const customCb = aria<HTMLDivElement>('checkbox', {}, { native: false });
+
+          const input = bind(document.createElement('input'), nativeCb);
+          const el = bind(document.createElement('div'), customCb);
+
+          // Baseline: neither host is required
+          expect(input.required).toBe(false);
+          expect(el.getAttribute('aria-required')).toBe('false');
+
+          // 3/5. Same mutation, host-appropriate projection, reflected live
+          nativeCb.assign({ required: true });
+          customCb.assign({ required: true });
+
+          expect(nativeCb.attributes.required).toBe(true);
+          expect(input.required).toBe(true);
+
+          expect(customCb.attributes['aria-required']).toBe('true');
+          expect(el.getAttribute('aria-required')).toBe('true');
+
+          // Unchecking a required control is a validity concern, not a state mutation
+          input.click();
+          expect(input.checked).toBe(true);
+          expect(nativeCb.checked).toBe(true);
+
+          // 6. Teardown
+          nativeCb.destroy();
+          customCb.destroy();
+          expect(nativeCb.current).toBeNull();
+          expect(customCb.current).toBeNull();
+        });
+      }));
+
+    it('carries identical state through IDL properties on a native host and aria attributes on a custom host', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const nativeCb = aria('checkbox', { checked: true });
+          const customCb = aria<HTMLDivElement>('checkbox', { checked: true }, { native: false });
+
+          const input = bind(document.createElement('input'), nativeCb);
+          const el = bind(document.createElement('div'), customCb);
+
+          // Same comparator state on both hosts
+          expect(nativeCb.checked).toBe(customCb.checked);
+          expect(nativeCb.checked).toBe(true);
+
+          // Native host: state lives on the property; ARIA state attrs are never synthesized
+          expect(input.checked).toBe(true);
+          expect(input.hasAttribute('aria-checked')).toBe(false);
+          expect(input.type).toBe('checkbox');
+
+          // Custom host: state lives in the attribute; invalid HTML attrs are omitted entirely
+          expect(el.getAttribute('aria-checked')).toBe('true');
+          expect(el.hasAttribute('checked')).toBe(false);
+          expect((el as HTMLDivElement).type).toBeUndefined();
+          expect(el.getAttribute('role')).toBe('checkbox');
+
+          nativeCb.destroy();
+          customCb.destroy();
+          expect(nativeCb.current).toBeNull();
+          expect(customCb.current).toBeNull();
+        });
+      }));
+  });
+
+  describe('Inertness & Guarding Invariant', () => {
+    it('refuses every activation path on a custom host declared disabled at creation', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const cb = aria<HTMLDivElement>(
+            'checkbox',
+            { disabled: true, checked: false },
+            { native: false },
+          );
+
+          // 1. Creation & SSR
+          expect(cb.disabled).toBe(true);
+          expect(cb.attributes.role).toBe('checkbox');
+          expect(cb.attributes['aria-disabled']).toBe('true');
+          expect(cb.attributes.tabindex).toBe('-1');
+          expect(cb.attributes['aria-checked']).toBe('false');
+
+          // 2. DOM Binding
+          const el = bind(document.createElement('div'), cb);
+          expect(el.getAttribute('aria-disabled')).toBe('true');
+          expect(el.getAttribute('tabindex')).toBe('-1');
+
+          // 3/4. Pointer activation is guarded by the controller, since a div has no native refusal
+          el.click();
+          expect(cb.checked).toBe(false);
+          expect(el.getAttribute('aria-checked')).toBe('false');
+
+          // Keyboard activation is guarded as well
+          el.dispatchEvent(
+            new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true }),
+          );
+          el.dispatchEvent(
+            new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }),
+          );
+          expect(cb.checked).toBe(false);
+          expect(el.getAttribute('aria-checked')).toBe('false');
+
+          // 6. Teardown
+          cb.destroy();
+          expect(cb.current).toBeNull();
+        });
+      }));
+
+    it('goes inert live on a mounted custom host and re-arms without rebinding', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const cb = aria<HTMLDivElement>('checkbox', {}, { native: false });
+          const el = bind(document.createElement('div'), cb);
+
+          // Baseline activation
+          el.click();
+          expect(cb.checked).toBe(true);
+
+          // 5. Reconciliation: guard collapses reachability on the same node
+          cb.assign({ disabled: true });
+          expect(el.getAttribute('aria-disabled')).toBe('true');
+          expect(el.getAttribute('tabindex')).toBe('-1');
+
+          el.click();
+          el.dispatchEvent(
+            new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true }),
+          );
+          el.dispatchEvent(
+            new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }),
+          );
+          expect(cb.checked).toBe(true);
+          expect(el.getAttribute('aria-checked')).toBe('true');
+
+          // Re-arming restores both reachability and activation
+          cb.assign({ disabled: false });
+          expect(el.getAttribute('aria-disabled')).toBe('false');
+          expect(el.getAttribute('tabindex')).toBe('0');
+
+          el.click();
+          expect(cb.checked).toBe(false);
+          expect(el.getAttribute('aria-checked')).toBe('false');
+
+          // 6. Teardown
+          cb.destroy();
+          expect(cb.current).toBeNull();
+
+          el.click();
+          expect(cb.checked).toBe(false);
+        });
+      }));
+
+    it('composes group disablement with member disablement on a custom member', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const group = mutable({ value: [], multiple: true, disabled: true });
+          selectionGroup.set(group);
+
+          const cb = aria<HTMLDivElement>('checkbox', { value: 'promos' }, { native: false });
+          const el = bind(document.createElement('div'), cb);
+
+          // 1/2. Group disablement cascades before any member-level declaration
+          expect(cb.disabled).toBe(true);
+          expect(el.getAttribute('aria-disabled')).toBe('true');
+
+          el.click();
+          expect(group.value).toEqual([]);
+
+          // Group re-enabled while the member declares its own disablement: still inert
+          group.disabled = false;
+          cb.assign({ disabled: true });
+          expect(cb.disabled).toBe(true);
+          el.click();
+          expect(group.value).toEqual([]);
+
+          // Neither level disabled: membership inverts again
+          cb.assign({ disabled: false });
+          expect(cb.disabled).toBe(false);
+          el.click();
+          expect(group.value).toEqual(['promos']);
+          expect(el.getAttribute('aria-checked')).toBe('true');
+
+          cb.destroy();
+        });
+      }));
+
+    it('shields compiled state attributes from consumer refiners and purges them on unregister', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const cb = aria<HTMLDivElement>('checkbox', { checked: true }, { native: false });
+          const el = bind(document.createElement('div'), cb);
+
+          expect(cb.attributes['aria-checked']).toBe('true');
+
+          const unrefine = cb.refine(() => ({
+            'data-testid': 'promos-toggle',
+            'aria-checked': 'false',
+          }));
+
+          // Refiner additions land; shielded state keys are ignored
+          expect(cb.attributes['data-testid']).toBe('promos-toggle');
+          expect(cb.attributes['aria-checked']).toBe('true');
+          expect(el.getAttribute('aria-checked')).toBe('true');
+
+          // State stays authoritative across a transition, and the refiner reaches the live node
+          el.click();
+          expect(cb.attributes['aria-checked']).toBe('false');
+          expect(cb.attributes['data-testid']).toBe('promos-toggle');
+          expect(el.getAttribute('data-testid')).toBe('promos-toggle');
+
+          // Teardown of the refiner leaves no zombie attribute behind
+          unrefine();
+          expect(cb.attributes['data-testid']).toBeUndefined();
+          expect(el.getAttribute('data-testid')).toBeNull();
+          expect(cb.attributes['aria-checked']).toBe('false');
+
+          cb.destroy();
+          expect(cb.current).toBeNull();
+        });
+      }));
+  });
 });

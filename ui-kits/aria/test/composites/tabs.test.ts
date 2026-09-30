@@ -433,4 +433,253 @@ describe('Tabs - User Expectations & A11y Specifications', () => {
         });
       }));
   });
+
+  describe('Active Tab Selection & Panel Association Invariant', () => {
+    it('deselects the active tab only when the group is not required', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const props = mutable<TabProps>({ id: 'deselect', value: 'one', required: false });
+          const tabs = aria('tab', props);
+          const tabOne = tabs.button({ name: 'one' });
+          const panelOne = tabs.panel({ name: 'one' });
+
+          const buttonEl = bind(document.createElement('button'), tabOne);
+          const panelEl = bind(document.createElement('div'), panelOne);
+          document.body.append(buttonEl, panelEl);
+
+          expect(panelEl.hidden).toBe(false);
+
+          // Clicking the active tab with a free group empties the selection
+          buttonEl.click();
+          expect(props.value).toBeUndefined();
+          expect(tabOne.selected).toBe(false);
+          expect(panelOne.selected).toBe(false);
+          expect(panelEl.hidden).toBe(true);
+
+          // Selecting again restores it through the same gesture
+          buttonEl.click();
+          expect(props.value).toBe('one');
+          expect(panelEl.hidden).toBe(false);
+
+          // A required group refuses the same click
+          props.required = true;
+          buttonEl.click();
+          expect(props.value).toBe('one');
+          expect(panelEl.hidden).toBe(false);
+
+          buttonEl.remove();
+          panelEl.remove();
+        });
+      }));
+
+    it('follows an explicit button id through the panel side of the pair', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const tabs = aria('tab', { id: 'acct', value: 'billing' });
+          const button = tabs.button({ name: 'billing', id: 'pay-trigger' });
+          const panel = tabs.panel({ name: 'billing' });
+
+          expect(button.attributes.id).toBe('pay-trigger');
+          expect(button.attributes['aria-controls']).toBe('acct-tabpanel-billing');
+
+          // The panel keeps its own derived address but names the overridden trigger
+          expect(panel.attributes.id).toBe('acct-tabpanel-billing');
+          expect(panel.attributes['aria-labelledby']).toBe('pay-trigger');
+
+          const panelEl = bind(document.createElement('div'), panel);
+          expect(panelEl.getAttribute('aria-labelledby')).toBe('pay-trigger');
+
+          tabs.destroy();
+          button.destroy();
+          panel.destroy();
+        });
+      }));
+  });
+
+  describe('Directional Traversal & Roving Focus Invariant', () => {
+    it('wraps at both ends of the tablist and carries the selection with it', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const props = mutable<TabProps>({ id: 'wrap', value: 'a', manual: false });
+          const tabs = aria('tab', props);
+          const list = tabs.list();
+
+          const a = tabs.button({ name: 'a' });
+          const b = tabs.button({ name: 'b' });
+          const c = tabs.button({ name: 'c' });
+
+          const listEl = bind(document.createElement('div'), list);
+          const elA = bind(document.createElement('button'), a);
+          const elB = bind(document.createElement('button'), b);
+          const elC = bind(document.createElement('button'), c);
+          listEl.append(elA, elB, elC);
+          document.body.appendChild(listEl);
+
+          elC.focus();
+
+          // Past the last tab, the rover wraps to the first
+          listEl.dispatchEvent(
+            new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }),
+          );
+          expect(document.activeElement).toBe(elA);
+          expect(props.value).toBe('a');
+
+          // Before the first tab it wraps to the last
+          listEl.dispatchEvent(
+            new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true, cancelable: true }),
+          );
+          expect(document.activeElement).toBe(elC);
+          expect(props.value).toBe('c');
+
+          listEl.remove();
+        });
+      }));
+
+    it('passes a disabled tab over in traversal and at the ends of the range', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const props = mutable<TabProps>({ id: 'skips', value: 'one', manual: false });
+          const tabs = aria('tab', props);
+          const list = tabs.list();
+
+          const one = tabs.button({ name: 'one' });
+          const two = tabs.button({ name: 'two', disabled: true });
+          const three = tabs.button({ name: 'three' });
+
+          const listEl = bind(document.createElement('div'), list);
+          const elOne = bind(document.createElement('button'), one);
+          const elTwo = bind(document.createElement('button'), two);
+          const elThree = bind(document.createElement('button'), three);
+          listEl.append(elOne, elTwo, elThree);
+          document.body.appendChild(listEl);
+
+          elOne.focus();
+
+          listEl.dispatchEvent(
+            new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }),
+          );
+          expect(document.activeElement).toBe(elThree);
+          expect(props.value).toBe('three');
+          expect(two.selected).toBe(false);
+
+          // End lands on the last enabled tab, Home on the first enabled tab
+          listEl.dispatchEvent(
+            new KeyboardEvent('keydown', { key: 'End', bubbles: true, cancelable: true }),
+          );
+          expect(document.activeElement).toBe(elThree);
+
+          listEl.dispatchEvent(
+            new KeyboardEvent('keydown', { key: 'Home', bubbles: true, cancelable: true }),
+          );
+          expect(document.activeElement).toBe(elOne);
+          expect(props.value).toBe('one');
+
+          // The disabled tab never holds the single tab stop
+          expect(elTwo.getAttribute('tabindex')).toBe('-1');
+
+          listEl.remove();
+        });
+      }));
+  });
+
+  describe('Manual vs Automatic Activation Invariant', () => {
+    it('treats manual selection as the default and activates the focused tab on Enter', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const props = mutable<TabProps>({ id: 'default-manual', value: 'one' });
+          const tabs = aria('tab', props);
+          const list = tabs.list();
+          const one = tabs.button({ name: 'one' });
+          const two = tabs.button({ name: 'two' });
+          const panelTwo = tabs.panel({ name: 'two' });
+
+          const listEl = bind(document.createElement('div'), list);
+          const elOne = bind(document.createElement('button'), one);
+          const elTwo = bind(document.createElement('button'), two);
+          const panelEl = bind(document.createElement('div'), panelTwo);
+          listEl.append(elOne, elTwo);
+          document.body.append(listEl, panelEl);
+
+          elOne.focus();
+
+          listEl.dispatchEvent(
+            new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }),
+          );
+
+          // No manual flag was passed, so focus moved and the selection waited
+          expect(document.activeElement).toBe(elTwo);
+          expect(props.value).toBe('one');
+          expect(two.selected).toBe(false);
+          expect(panelEl.hidden).toBe(true);
+
+          elTwo.dispatchEvent(
+            new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
+          );
+          expect(props.value).toBe('two');
+          expect(panelEl.hidden).toBe(false);
+
+          // Enter on the other focused tab selects it, leaving its sibling inactive
+          listEl.dispatchEvent(
+            new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true, cancelable: true }),
+          );
+          expect(props.value).toBe('two');
+          expect(document.activeElement).toBe(elOne);
+
+          elOne.dispatchEvent(
+            new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
+          );
+          expect(props.value).toBe('one');
+
+          listEl.remove();
+          panelEl.remove();
+        });
+      }));
+
+    it('activates on focus movement when the group opts out of manual selection', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const props = mutable<TabProps>({ id: 'auto', value: 'one', manual: false });
+          const tabs = aria('tab', props);
+          const list = tabs.list();
+          const one = tabs.button({ name: 'one' });
+          const two = tabs.button({ name: 'two' });
+          const panelOne = tabs.panel({ name: 'one' });
+          const panelTwo = tabs.panel({ name: 'two' });
+
+          const listEl = bind(document.createElement('div'), list);
+          const elOne = bind(document.createElement('button'), one);
+          const elTwo = bind(document.createElement('button'), two);
+          const panelOneEl = bind(document.createElement('div'), panelOne);
+          const panelTwoEl = bind(document.createElement('div'), panelTwo);
+          listEl.append(elOne, elTwo);
+          document.body.append(listEl, panelOneEl, panelTwoEl);
+
+          elOne.focus();
+          expect(panelOneEl.hidden).toBe(false);
+
+          listEl.dispatchEvent(
+            new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }),
+          );
+
+          // Automatic mode: the panel swap rides on the focus move, no Enter required
+          expect(props.value).toBe('two');
+          expect(panelOneEl.hidden).toBe(true);
+          expect(panelTwoEl.hidden).toBe(false);
+          expect(panelTwoEl.getAttribute('tabindex')).toBe('0');
+          expect(panelOneEl.getAttribute('tabindex')).toBeNull();
+          expect(elTwo.getAttribute('tabindex')).toBe('0');
+          expect(elOne.getAttribute('tabindex')).toBe('-1');
+
+          listEl.remove();
+          panelOneEl.remove();
+          panelTwoEl.remove();
+        });
+      }));
+  });
 });

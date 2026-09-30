@@ -1,11 +1,13 @@
 # CheckboxGroup Specification
 
-The checked-set coordinator unit. Hosts an ambient collection of checked values while checkbox members independently manage activation and focus without roving focus.
+The checked-set coordinator unit. Hosts an ambient collection of checked values while checkbox members independently
+manage activation and focus without roving focus.
 
 - **Entity**: `checkbox-group`
 - **WAI-ARIA Role**: `group`
 
 ### Composite Parts (Entity Tree)
+
 - **`CheckboxGroup`**: Container coordinator (compiles `role="group"`, `aria-label`, `aria-disabled`).
 - **`CheckboxGroupItem`**: Checkbox member (compiles `role="checkbox"`, `aria-checked`, native checked synchronization).
 
@@ -13,9 +15,9 @@ The checked-set coordinator unit. Hosts an ambient collection of checked values 
 
 ## The Three Semantic Layers
 
-| Part / Role | HTML Semantic | WAI-ARIA Semantic | Aria Package Semantic Contract |
-| :--- | :--- | :--- | :--- |
-| **`CheckboxGroup`** | Container (`<div>` or `<fieldset>`). | `role="group"` (omitted on `<fieldset>`), `aria-label`, `aria-disabled`. | Hosts `value: string[]`, `disabled`, `label`. |
+| Part / Role             | HTML Semantic                                       | WAI-ARIA Semantic                                                            | Aria Package Semantic Contract                                                     |
+|:------------------------|:----------------------------------------------------|:-----------------------------------------------------------------------------|:-----------------------------------------------------------------------------------|
+| **`CheckboxGroup`**     | Container (`<div>` or `<fieldset>`).                | `role="group"` (omitted on `<fieldset>`), `aria-label`, `aria-disabled`.     | Hosts `value: string[]`, `disabled`, `label`.                                      |
 | **`CheckboxGroupItem`** | Native `<input type="checkbox">` or custom element. | `role="checkbox"` (omitted on native input), `aria-checked`, `tabindex="0"`. | Checks `group.value.includes(item.value)`. Independent tab stop (no roving focus). |
 
 ---
@@ -25,6 +27,7 @@ The checked-set coordinator unit. Hosts an ambient collection of checked values 
 ### 1. Options & Props Contracts
 
 #### `CheckboxGroupProps`
+
 ```ts
 export interface CheckboxGroupProps {
   /** Array of checked member values */
@@ -35,6 +38,7 @@ export interface CheckboxGroupProps {
 ```
 
 #### `CheckboxGroupItemProps`
+
 ```ts
 export interface CheckboxGroupItemProps {
   /** Member identifier */
@@ -44,6 +48,7 @@ export interface CheckboxGroupItemProps {
 ```
 
 #### `CheckboxGroupItemOptions`
+
 ```ts
 export interface CheckboxGroupItemOptions {
   /** Whether bound to native <input type="checkbox"> (default: true) */
@@ -73,9 +78,9 @@ export function aria<E extends BaseElement = HTMLInputElement>(
 ## State & Lifecycle Rules
 
 1. **Independent Tab Stops**:
-   - Every enabled member remains independently reachable through `Tab`.
-   - The group does **not** introduce roving focus or arrow-key selection (per WAI-ARIA APG standard).
+  - Every enabled member remains independently reachable through `Tab`.
+  - The group does **not** introduce roving focus or arrow-key selection (per WAI-ARIA APG standard).
 
 2. **Activation**:
-   - Activating an item toggles its membership in `group.value`.
-   - Dispatches `CustomEvent<string[]>('change', { bubbles: true, detail: group.value })` on container.
+  - Activating an item toggles its membership in `group.value`.
+  - Dispatches `CustomEvent<string[]>('change', { bubbles: true, detail: group.value })` on container.

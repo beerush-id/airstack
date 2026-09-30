@@ -1,77 +1,93 @@
 # Combobox Specification
 
-A combobox is a composite widget made up of an input field and an associated popup (typically a `listbox`) that provides values for the input.
+The filterable text choice unit. Pairs direct text editing with a dynamic filtered popup listbox and keyboard selection
+(`docs/combobox.md`).
 
 ### Composite Parts
-- **`Combobox`**: WAI-ARIA `combobox` (input)
-- **`Popup`**: WAI-ARIA `listbox` (or `grid` / `tree` / `dialog`)
+
+- **`Combobox`**: Container coordinator (hosts ambient `text`/`value`/`open`).
+- **`ComboboxInput`**: Text input (`role="combobox"`, `aria-autocomplete="list"`, `aria-expanded`, `aria-controls`,
+  `aria-activedescendant`).
+- **`ComboboxPopup`**: Popup listbox (`role="listbox"`), composed from the Listbox unit.
+- **`ComboboxOption`**: Option member (`role="option"`, `aria-selected`, `aria-disabled`).
 
 ---
 
 ## The Three Semantic Layers
 
-| Part / Role | HTML Semantic | WAI-ARIA Semantic | Aria Package Semantic Contract |
-| :--- | :--- | :--- | :--- |
-| **`combobox`** | Text input (`<input type="text">`). Handles native typing, selection, and form submission. | `role="combobox"`, `aria-expanded` (`"true"` \| `"false"`), `aria-haspopup="listbox"`, `aria-controls` (popup ID), `aria-autocomplete` (`"none"` \| `"inline"` \| `"list"` \| `"both"`), `aria-activedescendant`. | Input coordinator managing open/closed state, text value, and active virtual focus. |
-| **Popup (`listbox`)** | Floating overlay container (`<div>`). | `role="listbox"`, `id` (referenced by combobox `aria-controls`), `aria-label`. | Popup members reuse their own role specs (`option`, etc.). The combobox coordinator substring-filters popup options against the current text value (case-insensitive); selection stays owned by the popup option controllers. |
+| Part / Role          | HTML Semantic               | WAI-ARIA Semantic                                                                                                                                                                                                                            | Aria Package Semantic Contract                                                                                              |
+|:---------------------|:----------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:----------------------------------------------------------------------------------------------------------------------------|
+| **`ComboboxInput`**  | Native `<input>` or custom. | `role="combobox"`, `aria-autocomplete="list"` (fixed by the source), `aria-expanded`, `aria-controls` (popup id), `aria-activedescendant` (highlighted option id); native `disabled` / custom `aria-disabled` + `tabindex`; `aria-required`. | DOM focus stays in the input for all interactions; the popup's highlighted option is published via `aria-activedescendant`. |
+| **`ComboboxPopup`**  | Overlay `<div>`.            | `role="listbox"`, `id`.                                                                                                                                                                                                                      | Filtered option set; **hidden when closed** (removed from tab order and a11y tree). Composed from the Listbox unit.         |
+| **`ComboboxOption`** | `<div>`/`<li>`.             | `role="option"`, `aria-selected`, `aria-disabled`.                                                                                                                                                                                           | Selection derived from ambient `combobox.value === option.value`.                                                           |
 
 ---
 
 ## Architectural & Behavioral Contracts
 
-### 1. Options & Props Contracts
+### 1. Props Contracts
 
-#### `ComboboxOptions`
+#### `ComboboxProps`
+
 ```ts
-export interface ComboboxOptions {
-  /** Whether bound to native <input> (default: true) */
-  native?: boolean;
+export interface ComboboxProps {
+  id?: string;
+  /** Filter query string (default: "") — distinct from the selected value */
+  text?: string;
+  /** Selected option value (default: null) */
+  value?: string | null;
+  /** Popup visibility (default: false) */
+  open?: boolean;
+  disabled?: boolean;
+  required?: boolean;
 }
 ```
 
-#### `ComboboxProps<T extends Primitive = Primitive>`
+#### `ComboboxOptionProps`
+
 ```ts
-export interface ComboboxProps<T extends Primitive = Primitive> {
-  /** Optional DOM element identifier */
-  id?: string;
-  /** Element ID of the popup element (compiled to aria-controls) */
-  popupId?: string;
-  /** Input text value */
-  value?: string;
-  /** Selected option value */
-  selected?: T;
-  /** Open state of popup */
-  open?: boolean;
-  /** Autocomplete behavior mode, compiled to aria-autocomplete (default: 'list') */
-  autocomplete?: 'none' | 'list' | 'inline' | 'both';
+export interface ComboboxOptionProps {
+  /** Option identifier, unique within the Combobox */
+  value: string;
+  /** Matching / naming / committed-text label (default: text content) */
+  label?: string;
   disabled?: boolean;
 }
 ```
 
-### 2. Overload Contract
+> `aria-autocomplete` is fixed to `"list"` (`docs/combobox.md:47,55`); it is not a configurable prop. `text` (query)
+> and `value` (selected option) are distinct inputs (`:11-12`). The popup id is derived from the combobox namespace —
+> the same deterministic pair-id mechanism as select.
+
+### 2. Overload Contracts
 
 ```ts
-// Combobox: Input coordinator with popup
-export function aria<E extends BaseElement = HTMLInputElement, T extends Primitive = Primitive>(
-  role: 'combobox',
-  props?: ComboboxProps<T>,
-  options?: ComboboxOptions
-): ComboboxAria<E>;
+export function aria<E extends BaseElement = HTMLInputElement>(role: 'combobox', props?: ComboboxProps): ComboboxAria<E>;
+export function aria<E extends BaseElement = HTMLElement>(role: 'combobox-input', props?: AriaProps): ComboboxInputAria<E>;
+export function aria<E extends BaseElement = HTMLElement>(role: 'combobox-popup', props?: AriaProps): ComboboxPopupAria<E>;
+export function aria<E extends BaseElement = HTMLElement>(role: 'combobox-option', props: ComboboxOptionProps): ComboboxOptionAria<E>;
 ```
 
 ---
 
 ## State & Lifecycle Rules
 
-1. **Popup Coordination**:
-   - `aria-expanded`: Reflects `this.open`.
-   - `aria-controls`: Set to popup element ID.
-   - `aria-activedescendant`: Contains the ID of the currently highlighted option in the popup without moving DOM focus away from the `<input>`.
+1. **Popup Coordination** (`docs/combobox.md:33,48-50`): `aria-expanded` reflects `open`; `aria-controls` → popup id;
+   `aria-activedescendant` → highlighted option id (withdrawn when closed); DOM focus stays in the input throughout.
 
-2. **Keyboard Interaction**:
-   - `ArrowDown` / `ArrowUp`: Opens popup if closed, or changes `aria-activedescendant` to next/previous option.
-   - `Enter`: Selects the option currently indicated by `aria-activedescendant` and closes the popup.
-   - `Escape`: Closes the popup and clears active descendant.
-   - Combobox declares no `manual` prop: arrows move the active descendant only and never commit; focus stays in the `<input>`.
+2. **Typing & Filtering** (`docs/combobox.md:27`): typing updates `text` and opens the popup when matching options
+   exist; matching is case-insensitive against option `label`s.
 
-3. **State Projections**: `open`, `value`, and `selected` read and write props directly. Props is the single source of state. `value` represents the input text, and `selected` represents the active option identifier.
+3. **Keyboard** (`docs/combobox.md:29-32`):
+  - `Down` / `Up` move highlight through visible options without committing. `Home` / `End` → first / last visible.
+  - `Enter` commits the highlighted option to `value`, sets `text` to the option label, and closes the popup.
+  - `Escape` closes the popup if open; if closed with uncommitted edits, reverts `text` to the committed value's label.
+
+4. **Selection** (`docs/combobox.md:34`): option `selected = combobox.value === option.value`. Disabled options cannot
+   be highlighted or selected.
+
+5. **Events** (`docs/combobox.md:38-41`):
+  - `input` — native `<input>`: browser-dispatched, not re-dispatched; custom:
+    `CustomEvent<string>('input', { bubbles: true, detail: text })` when `text` changes.
+  - `change` — on the Combobox container after `value` commits,
+    `CustomEvent<string | null>('change', { bubbles: true, detail: value })`.

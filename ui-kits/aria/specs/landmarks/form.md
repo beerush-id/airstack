@@ -9,8 +9,8 @@ A form is the significant form area an author holds when that form requires iden
 
 ## The Three Semantic Layers
 
-| Context | HTML Semantic | WAI-ARIA Semantic | Aria Package Semantic Contract |
-| :--- | :--- | :--- | :--- |
+| Context         | HTML Semantic            | WAI-ARIA Semantic                                                                                              | Aria Package Semantic Contract                                      |
+|:----------------|:-------------------------|:---------------------------------------------------------------------------------------------------------------|:--------------------------------------------------------------------|
 | **Native Form** | Native `<form>` element. | `role="form"`. In HTML-to-ARIA mapping, a `<form>` is only exposed as a landmark if it has an accessible name. | Form entity controller. Compiles `aria-label` or `aria-labelledby`. |
 
 ---
@@ -38,8 +38,9 @@ export interface FormLandmarkProps {
 ## State & Lifecycle Rules
 
 1. **Mandatory Accessible Name**:
-   - In accordance with WAI-ARIA 1.2, `<form>` only functions as a navigable landmark when given an accessible label via `label` or `labelledby`.
-   - Without a label, the controller compiles no `role` and renders a structural container.
+  - In accordance with WAI-ARIA 1.2, `<form>` only functions as a navigable landmark when given an accessible label via
+    `label` or `labelledby`.
+  - Without a label, the controller compiles no `role` and renders a structural container.
 
 ### 2. Overload Contract
 

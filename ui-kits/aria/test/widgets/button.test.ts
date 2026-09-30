@@ -253,4 +253,452 @@ describe('Button - Contract Specifications', () => {
         });
       }));
   });
+
+  describe('Interactive Action & Event Dispatch Invariant', () => {
+    it('completes the full action cycle on a native host and forwards a bubbling click to consumers', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const btn = aria('button');
+
+          // 1. Creation & SSR: implicit role omitted, defensive type emitted, no on* keys serialized
+          expect(btn.current).toBeNull();
+          expect(btn.attributes.role).toBeUndefined();
+          expect(btn.attributes.type).toBe('button');
+          expect(btn.attributes.tabindex).toBeUndefined();
+          expect(Object.keys(btn.attributes).filter((key) => key.startsWith('on'))).toEqual([]);
+
+          // 2. DOM Binding
+          const el = bind(document.createElement('button'), btn);
+          expect(btn.current).toBe(el);
+          expect(el.type).toBe('button');
+
+          // 3. Interaction + 4. Event dispatch contract: consumer listener observes one click
+          const hostClicks: MouseEvent[] = [];
+          el.addEventListener('click', (event) => hostClicks.push(event));
+
+          const delegatedClicks: MouseEvent[] = [];
+          const onDocumentClick = (event: Event) => delegatedClicks.push(event as MouseEvent);
+          document.addEventListener('click', onDocumentClick);
+
+          el.click();
+
+          expect(hostClicks).toHaveLength(1);
+          expect(hostClicks[0].type).toBe('click');
+          expect(hostClicks[0].bubbles).toBe(true);
+          expect(hostClicks[0].cancelable).toBe(true);
+          expect(hostClicks[0].target).toBe(el);
+          expect(delegatedClicks).toHaveLength(1);
+
+          document.removeEventListener('click', onDocumentClick);
+
+          // 5. DOM Reconciliation: comparator change reflects live without rebinding
+          btn.assign({ disabled: true });
+          expect(btn.disabled).toBe(true);
+          expect(btn.attributes.disabled).toBe(true);
+          expect(el.disabled).toBe(true);
+
+          // 6. Teardown
+          btn.destroy();
+          expect(btn.current).toBeNull();
+        });
+      }));
+
+    it('compiles an explicit button role on a non-native host and synthesizes activation click on Enter keydown', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const btn = aria<HTMLDivElement>('button', {}, { native: false });
+
+          // 1. Creation & SSR: pure ARIA projection, invalid HTML attributes omitted
+          expect(btn.current).toBeNull();
+          expect(btn.attributes.role).toBe('button');
+          expect(btn.attributes.tabindex).toBe('0');
+          expect(btn.attributes['aria-disabled']).toBe('false');
+          expect(btn.attributes.type).toBeUndefined();
+          expect(btn.attributes.disabled).toBeUndefined();
+
+          // 2. DOM Binding
+          const el = bind(document.createElement('div'), btn);
+          expect(btn.current).toBe(el);
+          expect(el.getAttribute('role')).toBe('button');
+          expect(el.getAttribute('tabindex')).toBe('0');
+          expect(el.getAttribute('aria-disabled')).toBe('false');
+
+          // 3. Interaction + 4. Event dispatch contract
+          const hostClicks: MouseEvent[] = [];
+          el.addEventListener('click', (event) => hostClicks.push(event));
+
+          const enterDown = new KeyboardEvent('keydown', {
+            key: 'Enter',
+            cancelable: true,
+            bubbles: true,
+          });
+          el.dispatchEvent(enterDown);
+
+          expect(enterDown.defaultPrevented).toBe(true);
+          expect(hostClicks).toHaveLength(1);
+          expect(hostClicks[0].bubbles).toBe(true);
+          expect(hostClicks[0].cancelable).toBe(true);
+          expect(hostClicks[0].target).toBe(el);
+
+          // 5. DOM Reconciliation: disabled collapses tabindex and aria-disabled live
+          btn.assign({ disabled: true });
+          expect(btn.attributes['aria-disabled']).toBe('true');
+          expect(el.getAttribute('aria-disabled')).toBe('true');
+          expect(el.getAttribute('tabindex')).toBe('-1');
+
+          // 6. Teardown: detached host no longer synthesizes activation
+          btn.destroy();
+          expect(btn.current).toBeNull();
+
+          el.dispatchEvent(
+            new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }),
+          );
+          expect(hostClicks).toHaveLength(1);
+        });
+      }));
+
+    it('preserves an author-declared type across mount and reactive reconciliation on a native host', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const btn = aria('button', { type: 'submit' } satisfies ButtonProps);
+
+          // 1. Creation & SSR: declared type wins over the defensive default
+          expect(btn.attributes.type).toBe('submit');
+
+          // 2. DOM Binding
+          const el = bind(document.createElement('button'), btn);
+          expect(el.type).toBe('submit');
+
+          // 3. Interaction + 5. Reconciliation
+          btn.assign({ type: 'reset' });
+          expect(btn.attributes.type).toBe('reset');
+          expect(el.type).toBe('reset');
+
+          // 6. Teardown
+          btn.destroy();
+          expect(btn.current).toBeNull();
+        });
+      }));
+
+    it('leaves non-activation keys untouched on a non-native host', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const btn = aria<HTMLDivElement>('button', {}, { native: false });
+
+          const el = bind(document.createElement('div'), btn);
+
+          const hostClicks: MouseEvent[] = [];
+          el.addEventListener('click', (event) => hostClicks.push(event));
+
+          for (const key of ['ArrowDown', 'Tab', 'Escape', 'a', ' ']) {
+            const event = new KeyboardEvent('keydown', { key, cancelable: true, bubbles: true });
+            el.dispatchEvent(event);
+
+            // Space on keydown is the scroll-suppression exception: prevented, never activating
+            expect(event.defaultPrevented).toBe(key === ' ');
+          }
+
+          expect(hostClicks).toHaveLength(0);
+
+          btn.destroy();
+          expect(btn.current).toBeNull();
+        });
+      }));
+  });
+
+  describe('Inertness & Guarding Invariant', () => {
+    it('keeps a non-native host declared disabled at creation inert across every activation path', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const btn = aria<HTMLDivElement>('button', { disabled: true }, { native: false });
+
+          // 1. Creation & SSR: inert state compiled before any DOM exists
+          expect(btn.disabled).toBe(true);
+          expect(btn.attributes.role).toBe('button');
+          expect(btn.attributes['aria-disabled']).toBe('true');
+          expect(btn.attributes.tabindex).toBe('-1');
+
+          // 2. DOM Binding
+          const el = bind(document.createElement('div'), btn);
+          expect(el.getAttribute('aria-disabled')).toBe('true');
+          expect(el.getAttribute('tabindex')).toBe('-1');
+
+          // 3. Interaction + 4. Dispatch suppression across all keyboard activation stimuli
+          const hostClicks: MouseEvent[] = [];
+          el.addEventListener('click', (event) => hostClicks.push(event));
+
+          const enterDown = new KeyboardEvent('keydown', {
+            key: 'Enter',
+            cancelable: true,
+            bubbles: true,
+          });
+          el.dispatchEvent(enterDown);
+
+          const spaceDown = new KeyboardEvent('keydown', {
+            key: ' ',
+            cancelable: true,
+            bubbles: true,
+          });
+          el.dispatchEvent(spaceDown);
+
+          const spaceUp = new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true });
+          el.dispatchEvent(spaceUp);
+
+          expect(hostClicks).toHaveLength(0);
+          expect(enterDown.defaultPrevented).toBe(false);
+          expect(spaceDown.defaultPrevented).toBe(false);
+          expect(spaceUp.defaultPrevented).toBe(false);
+
+          // 6. Teardown
+          btn.destroy();
+          expect(btn.current).toBeNull();
+        });
+      }));
+
+    it('delegates inertness to the browser on a native host declared disabled at creation', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const btn = aria('button', { disabled: true });
+
+          // 1. Creation & SSR
+          expect(btn.attributes.disabled).toBe(true);
+          expect(btn.attributes['aria-disabled']).toBeUndefined();
+          expect(btn.attributes.tabindex).toBeUndefined();
+
+          // 2. DOM Binding
+          const el = bind(document.createElement('button'), btn);
+          expect(el.disabled).toBe(true);
+          expect(el.hasAttribute('aria-disabled')).toBe(false);
+
+          // 3/4. Native host: the browser itself refuses activation
+          const hostClicks: MouseEvent[] = [];
+          el.addEventListener('click', (event) => hostClicks.push(event));
+
+          el.click();
+          el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+
+          expect(hostClicks).toHaveLength(0);
+
+          // 6. Teardown
+          btn.destroy();
+          expect(btn.current).toBeNull();
+        });
+      }));
+
+    it('goes inert live on a mounted non-native host without rebinding', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const btn = aria<HTMLDivElement>('button', {}, { native: false });
+          const el = bind(document.createElement('div'), btn);
+
+          const hostClicks: MouseEvent[] = [];
+          el.addEventListener('click', (event) => hostClicks.push(event));
+
+          // Baseline: activation works while enabled
+          el.dispatchEvent(
+            new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }),
+          );
+          expect(hostClicks).toHaveLength(1);
+
+          // 5. Reconciliation: guard + tabindex collapse on the same live node
+          btn.assign({ disabled: true });
+          expect(el.getAttribute('aria-disabled')).toBe('true');
+          expect(el.getAttribute('tabindex')).toBe('-1');
+
+          el.dispatchEvent(
+            new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }),
+          );
+          el.dispatchEvent(
+            new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }),
+          );
+          expect(hostClicks).toHaveLength(1);
+
+          // Restoring the comparator re-arms the polyfill on the same node
+          btn.assign({ disabled: false });
+          expect(el.getAttribute('aria-disabled')).toBe('false');
+          expect(el.getAttribute('tabindex')).toBe('0');
+
+          el.dispatchEvent(
+            new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }),
+          );
+          expect(hostClicks).toHaveLength(2);
+
+          // 6. Teardown
+          btn.destroy();
+          expect(btn.current).toBeNull();
+        });
+      }));
+
+    it('exposes disabled and isNative as comparators that never accept writes', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const btn = aria('button');
+          bind(document.createElement('button'), btn);
+
+          const writable = btn as unknown as { disabled: boolean; isNative: boolean };
+
+          expect(btn.disabled).toBe(false);
+          try {
+            writable.disabled = true;
+          } catch {
+            // A getter-only accessor throwing under strict mode is the contract, not a failure
+          }
+          expect(btn.disabled).toBe(false);
+          expect(btn.attributes.disabled).toBe(false);
+
+          const nativeFlag = btn.isNative;
+          try {
+            writable.isNative = false;
+          } catch {
+            // Same: parity flag is fixed at construction by options
+          }
+          expect(btn.isNative).toBe(nativeFlag);
+
+          btn.destroy();
+          expect(btn.current).toBeNull();
+        });
+      }));
+  });
+
+  describe('Host Parity & Native Delegation Invariant', () => {
+    it('activates exactly once per Space press on a non-native host despite key repeat', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const btn = aria<HTMLDivElement>('button', {}, { native: false });
+          const el = bind(document.createElement('div'), btn);
+
+          const hostClicks: MouseEvent[] = [];
+          el.addEventListener('click', (event) => hostClicks.push(event));
+
+          // Held key repeats keydown and delivers a single keyup: activation on keyup is repeat-safe
+          for (let repeat = 0; repeat < 3; repeat += 1) {
+            el.dispatchEvent(
+              new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true }),
+            );
+          }
+          expect(hostClicks).toHaveLength(0);
+
+          el.dispatchEvent(
+            new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }),
+          );
+          expect(hostClicks).toHaveLength(1);
+
+          // A second press is a second activation, not a residual listener
+          el.dispatchEvent(
+            new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true }),
+          );
+          el.dispatchEvent(
+            new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }),
+          );
+          expect(hostClicks).toHaveLength(2);
+
+          btn.destroy();
+          expect(btn.current).toBeNull();
+        });
+      }));
+
+    it('adds no synthetic activation for the same key sequence on a native host', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const btn = aria('button');
+          const el = bind(document.createElement('button'), btn);
+
+          const hostClicks: MouseEvent[] = [];
+          el.addEventListener('click', (event) => hostClicks.push(event));
+
+          const stimuli: KeyboardEvent[] = [
+            new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true }),
+            new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }),
+            new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }),
+            new KeyboardEvent('keyup', { key: 'Enter', cancelable: true, bubbles: true }),
+          ];
+
+          for (const event of stimuli) {
+            el.dispatchEvent(event);
+            expect(event.defaultPrevented).toBe(false);
+          }
+
+          expect(hostClicks).toHaveLength(0);
+
+          btn.destroy();
+          expect(btn.current).toBeNull();
+        });
+      }));
+
+    it('compiles strictly from options, never from the mounted tag', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const implicit = aria('button');
+          const explicit = aria<HTMLButtonElement>('button', {}, { native: true });
+
+          // Button wraps a native element by default: no boilerplate required
+          expect(implicit.isNative).toBe(true);
+          expect(implicit.attributes).toEqual(explicit.attributes);
+
+          // Declaring native on a non-semantic host keeps native output: no role, no tabindex, no polyfill
+          const nativeFlaggedDiv = bind(document.createElement('div'), implicit);
+          expect(nativeFlaggedDiv.getAttribute('role')).toBeNull();
+          expect(nativeFlaggedDiv.getAttribute('tabindex')).toBeNull();
+          expect(
+            Object.keys(implicit.attributes).filter((key) => key.startsWith('aria-')),
+          ).toEqual([]);
+
+          const hostClicks: MouseEvent[] = [];
+          nativeFlaggedDiv.addEventListener('click', (event) => hostClicks.push(event));
+
+          nativeFlaggedDiv.dispatchEvent(
+            new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }),
+          );
+          nativeFlaggedDiv.dispatchEvent(
+            new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }),
+          );
+          expect(hostClicks).toHaveLength(0);
+
+          implicit.destroy();
+          explicit.destroy();
+          expect(implicit.current).toBeNull();
+          expect(explicit.current).toBeNull();
+        });
+      }));
+
+    it('projects equivalent assistive-technology state from the same props on both hosts', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const nativeBtn = aria('button', { disabled: true });
+          const customBtn = aria<HTMLDivElement>('button', { disabled: true }, { native: false });
+
+          const nativeEl = bind(document.createElement('button'), nativeBtn);
+          const customEl = bind(document.createElement('div'), customBtn);
+
+          // Same comparator state, host-appropriate mechanism
+          expect(nativeBtn.disabled).toBe(customBtn.disabled);
+          expect(nativeEl.disabled).toBe(true);
+          expect(customEl.getAttribute('aria-disabled')).toBe('true');
+
+          // Native host relies on implicit role; custom host requires the explicit one
+          expect(nativeEl.hasAttribute('role')).toBe(false);
+          expect(customEl.getAttribute('role')).toBe('button');
+
+          // Neither host is reachable as an actionable control
+          expect(customEl.getAttribute('tabindex')).toBe('-1');
+
+          nativeBtn.destroy();
+          customBtn.destroy();
+          expect(nativeBtn.current).toBeNull();
+          expect(customBtn.current).toBeNull();
+        });
+      }));
+  });
 });

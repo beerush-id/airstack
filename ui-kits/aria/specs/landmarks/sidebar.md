@@ -9,10 +9,10 @@ A sidebar is the supporting section an author holds beside the main content (e.g
 
 ## The Three Semantic Layers
 
-| Context | HTML Semantic | WAI-ARIA Semantic | Aria Package Semantic Contract |
-| :--- | :--- | :--- | :--- |
-| **Native Aside** | Native `<aside>` element. | Implicit `role="complementary"`. Explicit `role` omitted. | Supporting landmark. |
-| **Custom Sidebar** | Non-semantic element (`<div>`). | `role="complementary"`. | Compiles `role="complementary"`. |
+| Context            | HTML Semantic                   | WAI-ARIA Semantic                                         | Aria Package Semantic Contract   |
+|:-------------------|:--------------------------------|:----------------------------------------------------------|:---------------------------------|
+| **Native Aside**   | Native `<aside>` element.       | Implicit `role="complementary"`. Explicit `role` omitted. | Supporting landmark.             |
+| **Custom Sidebar** | Non-semantic element (`<div>`). | `role="complementary"`.                                   | Compiles `role="complementary"`. |
 
 ---
 

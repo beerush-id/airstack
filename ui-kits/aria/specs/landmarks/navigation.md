@@ -9,10 +9,10 @@ A navigation is the major collection of navigational links or menus an author ho
 
 ## The Three Semantic Layers
 
-| Context | HTML Semantic | WAI-ARIA Semantic | Aria Package Semantic Contract |
-| :--- | :--- | :--- | :--- |
-| **Native Nav** | Native `<nav>` element. | Implicit `role="navigation"`. Explicit `role` omitted. | Navigation entity. When multiple exist on a page, each must be labeled. |
-| **Custom Navigation** | Non-semantic element (`<div>`). | `role="navigation"`. | Compiles `role="navigation"`. |
+| Context               | HTML Semantic                   | WAI-ARIA Semantic                                      | Aria Package Semantic Contract                                          |
+|:----------------------|:--------------------------------|:-------------------------------------------------------|:------------------------------------------------------------------------|
+| **Native Nav**        | Native `<nav>` element.         | Implicit `role="navigation"`. Explicit `role` omitted. | Navigation entity. When multiple exist on a page, each must be labeled. |
+| **Custom Navigation** | Non-semantic element (`<div>`). | `role="navigation"`.                                   | Compiles `role="navigation"`.                                           |
 
 ---
 

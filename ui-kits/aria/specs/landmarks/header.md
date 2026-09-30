@@ -1,6 +1,7 @@
 # Header Landmark Specification
 
-A header is the prime header area an author holds at the start of a page, typically containing site identity, logo, or global navigation controls.
+A header is the prime header area an author holds at the start of a page, typically containing site identity, logo, or
+global navigation controls.
 
 - **Entity**: `header`
 - **WAI-ARIA Role**: `banner` (compiled output)
@@ -9,10 +10,10 @@ A header is the prime header area an author holds at the start of a page, typica
 
 ## The Three Semantic Layers
 
-| Context | HTML Semantic | WAI-ARIA Semantic | Aria Package Semantic Contract |
-| :--- | :--- | :--- | :--- |
+| Context           | HTML Semantic                                          | WAI-ARIA Semantic                                  | Aria Package Semantic Contract       |
+|:------------------|:-------------------------------------------------------|:---------------------------------------------------|:-------------------------------------|
 | **Native Header** | Native `<header>` element scoped directly to `<body>`. | Implicit `role="banner"`. Explicit `role` omitted. | Static landmark. Max 1 per document. |
-| **Custom Header** | Non-semantic element (`<div>`). | `role="banner"`. | Compiles `role="banner"`. |
+| **Custom Header** | Non-semantic element (`<div>`).                        | `role="banner"`.                                   | Compiles `role="banner"`.            |
 
 ---
 

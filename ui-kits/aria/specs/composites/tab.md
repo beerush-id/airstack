@@ -1,8 +1,11 @@
 # Tab Specification
 
-A tabbed interface organizes content into multiple panels, where only one panel is visible at a time. Structured according to the Entity Tree, it consists of a root orchestrator (`Tab`), a focus container (`TabList` / `Tab.List`), interactive trigger buttons (`TabButton` / `Tab.Button`), and content panels (`TabPanel` / `Tab.Panel`).
+A tabbed interface organizes content into multiple panels, where only one panel is visible at a time. Structured
+according to the Entity Tree, it consists of a root orchestrator (`Tab`), a focus container (`TabList` / `Tab.List`),
+interactive trigger buttons (`TabButton` / `Tab.Button`), and content panels (`TabPanel` / `Tab.Panel`).
 
 ### Composite Parts (Entity Tree)
+
 - **`Tab`**: Root orchestrator (publishes ambient `tabCtx`, role omitted).
 - **`TabList` (`Tab.List`)**: Focus manager container (compiles WAI-ARIA `role="tablist"`).
 - **`TabButton` (`Tab.Button`)**: Interactive trigger (compiles WAI-ARIA `role="tab"`).
@@ -12,12 +15,12 @@ A tabbed interface organizes content into multiple panels, where only one panel 
 
 ## The Three Semantic Layers
 
-| Part / Role | HTML Semantic | WAI-ARIA Semantic | Aria Package Semantic Contract |
-| :--- | :--- | :--- | :--- |
-| **`Tab` (Root)** | Non-semantic layout wrapper (`<div>` or fragment). | None (`role` omitted so panels are not invalid DOM children of tablist). | Logical root orchestrator. Publishes `tabCtx`. Props: `TabProps`. |
-| **`TabList` (`Tab.List`)** | Structural container (`<nav>` / `<div>`). | `role="tablist"`, `aria-orientation` (`horizontal` default). | Focus manager: manages roving tabindex across child tabs via Arrow keys. Reads `this.tab`. |
-| **`TabButton` (`Tab.Button`)** | Native `<button type="button">`. Handles Space/Enter natively. | `role="tab"`, `aria-selected` (`"true"` \| `"false"`), `aria-controls` (panel ID), `id`, roving `tabindex="0"` / `"-1"`. | Member identifier: `this.props.name`.<br>Active: `this.tab.value === this.props.name`.<br>Activation: `this.tab.value = this.props.name`. |
-| **`TabPanel` (`Tab.Panel`)** | Content container (`<section>` or `<div>`). Uses HTML `hidden` when inactive. | `role="tabpanel"`, `aria-labelledby` (trigger ID), `id`, `tabindex="0"` when scrollable. | Paired by `this.props.name`.<br>Active: `this.tab.value === this.props.name`.<br>Deterministic ID pairing. |
+| Part / Role                    | HTML Semantic                                                                 | WAI-ARIA Semantic                                                                                                        | Aria Package Semantic Contract                                                                                                            |
+|:-------------------------------|:------------------------------------------------------------------------------|:-------------------------------------------------------------------------------------------------------------------------|:------------------------------------------------------------------------------------------------------------------------------------------|
+| **`Tab` (Root)**               | Non-semantic layout wrapper (`<div>` or fragment).                            | None (`role` omitted so panels are not invalid DOM children of tablist).                                                 | Logical root orchestrator. Publishes `tabCtx`. Props: `TabProps`.                                                                         |
+| **`TabList` (`Tab.List`)**     | Structural container (`<nav>` / `<div>`).                                     | `role="tablist"`, `aria-orientation` (`horizontal` default).                                                             | Focus manager: manages roving tabindex across child tabs via Arrow keys. Reads `this.tab`.                                                |
+| **`TabButton` (`Tab.Button`)** | Native `<button type="button">`. Handles Space/Enter natively.                | `role="tab"`, `aria-selected` (`"true"` \| `"false"`), `aria-controls` (panel ID), `id`, roving `tabindex="0"` / `"-1"`. | Member identifier: `this.props.name`.<br>Active: `this.tab.value === this.props.name`.<br>Activation: `this.tab.value = this.props.name`. |
+| **`TabPanel` (`Tab.Panel`)**   | Content container (`<section>` or `<div>`). Uses HTML `hidden` when inactive. | `role="tabpanel"`, `aria-labelledby` (trigger ID), `id`, `tabindex="0"` when scrollable.                                 | Paired by `this.props.name`.<br>Active: `this.tab.value === this.props.name`.<br>Deterministic ID pairing.                                |
 
 ---
 
@@ -26,6 +29,7 @@ A tabbed interface organizes content into multiple panels, where only one panel 
 ### 1. Options & Props Contracts
 
 #### `TabProps`
+
 ```ts
 export interface TabProps {
   /** Entity namespace; defaults to generated id */
@@ -44,6 +48,7 @@ export interface TabProps {
 ```
 
 #### `TabListProps`
+
 ```ts
 export interface TabListProps {
   /** Accessible label for the tablist */
@@ -54,6 +59,7 @@ export interface TabListProps {
 ```
 
 #### `TabButtonOptions`
+
 ```ts
 export interface TabButtonOptions {
   /** Whether bound to native <button> (default: true) */
@@ -62,6 +68,7 @@ export interface TabButtonOptions {
 ```
 
 #### `TabButtonProps`
+
 ```ts
 export interface TabButtonProps {
   /** Explicit DOM identifier */
@@ -76,6 +83,7 @@ export interface TabButtonProps {
 ```
 
 #### `TabPanelProps`
+
 ```ts
 export interface TabPanelProps {
   /** Explicit DOM identifier */
@@ -119,18 +127,19 @@ export function aria<E extends BaseElement = HTMLElement>(
 ## State & Lifecycle Rules
 
 1. **Active Evaluation**:
-   - `TabButton` and `TabPanel` evaluate `active = this.tab.value === this.props.name`.
-   - Inactive panels receive `hidden`.
-   - Panels receive `tabindex="0"` when scrollable so keyboard users can scroll content.
+  - `TabButton` and `TabPanel` evaluate `active = this.tab.value === this.props.name`.
+  - Inactive panels receive `hidden`.
+  - Panels receive `tabindex="0"` when scrollable so keyboard users can scroll content.
 
 2. **Activation**:
-   - Activating a tab button via pointer `click` or keyboard commits `this.tab.value = this.props.name` when not disabled and `!event.defaultPrevented`.
-   - Emits `CustomEvent<string>('change', { bubbles: true, detail: this.tab.value })` on the Tab container.
+  - Activating a tab button via pointer `click` or keyboard commits `this.tab.value = this.props.name` when not disabled
+    and `!event.defaultPrevented`.
+  - Emits `CustomEvent<string>('change', { bubbles: true, detail: this.tab.value })` on the Tab container.
 
 3. **Roving Tabindex Navigation**:
-   - Handled on `TabList`:
-     - Horizontal: `ArrowRight` (next, wraps), `ArrowLeft` (prev, wraps).
-     - Vertical: `ArrowDown` (next, wraps), `ArrowUp` (prev, wraps).
-     - `Home` / `End`: First / last enabled tab button.
-   - Under `activation: 'automatic'` (default): Moving focus immediately commits selection.
-   - Under `activation: 'manual'`: Focus moves without selection; tab button activates upon `Enter` or `Space`.
+  - Handled on `TabList`:
+    - Horizontal: `ArrowRight` (next, wraps), `ArrowLeft` (prev, wraps).
+    - Vertical: `ArrowDown` (next, wraps), `ArrowUp` (prev, wraps).
+    - `Home` / `End`: First / last enabled tab button.
+  - Under `activation: 'automatic'` (default): Moving focus immediately commits selection.
+  - Under `activation: 'manual'`: Focus moves without selection; tab button activates upon `Enter` or `Space`.

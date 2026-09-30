@@ -685,4 +685,286 @@ describe('Accordion - User Expectations & A11y Specifications', () => {
         });
       }));
   });
+
+  describe('Expansion Mutability Invariant (Single vs Multi)', () => {
+    it('yields the expansion to a consumer that cancels the trigger click', () =>
+      scope.run(() => {
+        component().run(() => {
+          const group = aria('accordion', { value: 'closed' });
+          const container = bind(document.createElement('div'), group);
+
+          const { item: closedBtn, panel: closedPanel } = component().run(() => ({
+            item: accordionCtx.get()!.button({ name: 'closed' }),
+            panel: accordionCtx.get()!.panel({ name: 'closed' }),
+          }));
+
+          const { item: openBtn, panel: openPanel } = component().run(() => ({
+            item: accordionCtx.get()!.button({ name: 'open' }),
+            panel: accordionCtx.get()!.panel({ name: 'open' }),
+          }));
+
+          const closedEl = bind(document.createElement('button'), closedBtn);
+          const closedRegion = bind(document.createElement('div'), closedPanel);
+          const openEl = bind(document.createElement('button'), openBtn);
+          const openRegion = bind(document.createElement('div'), openPanel);
+
+          container.append(closedEl, closedRegion, openEl, openRegion);
+          document.body.appendChild(container);
+
+          const veto = (event: Event) => event.preventDefault();
+          closedEl.addEventListener('click', veto);
+
+          closedEl.click();
+          expect(group.props.value).toBe('closed');
+          expect(closedBtn.expanded).toBe(false);
+          expect(closedRegion.hidden).toBe(true);
+          expect(openRegion.hidden).toBe(false);
+
+          // Releasing the objection lets the same gesture through
+          closedEl.removeEventListener('click', veto);
+          closedEl.click();
+          expect(group.props.value).toBe('closed');
+          expect(closedBtn.expanded).toBe(true);
+          expect(closedRegion.hidden).toBe(false);
+          expect(openBtn.expanded).toBe(false);
+          expect(openRegion.hidden).toBe(true);
+
+          document.body.removeChild(container);
+        });
+      }));
+
+    it('commits the group value through a bubbling change event on the container', () =>
+      scope.run(() => {
+        component().run(() => {
+          const group = aria('accordion');
+          const container = bind(document.createElement('div'), group);
+
+          const { item: a } = component().run(() => ({
+            item: accordionCtx.get()!.button({ name: 'a' }),
+          }));
+
+          const { item: b } = component().run(() => ({
+            item: accordionCtx.get()!.button({ name: 'b' }),
+          }));
+
+          const elA = bind(document.createElement('button'), a);
+          const elB = bind(document.createElement('button'), b);
+          container.append(elA, elB);
+
+          const commits: unknown[] = [];
+          container.addEventListener('change', (event) =>
+            commits.push((event as CustomEvent).detail),
+          );
+
+          elA.click();
+          expect(commits).toEqual(['a']);
+
+          // Switching sections commits the new value once, not a collapse plus an expand
+          elB.click();
+          expect(commits).toEqual(['a', 'b']);
+
+          // Collapsing a free accordion commits the empty value
+          elB.click();
+          expect(commits).toHaveLength(3);
+          expect(commits[2]).toBeUndefined();
+          expect(group.props.value).toBeUndefined();
+
+          document.body.removeChild(container);
+        });
+      }));
+
+    it('keeps multi-expansion commits on the array value and standalone commits on the item', () =>
+      scope.run(() => {
+        component().run(() => {
+          const group = aria('accordion', { multiple: true, value: [] });
+          const container = bind(document.createElement('div'), group);
+
+          const { item: one } = component().run(() => ({
+            item: accordionCtx.get()!.button({ name: 'one' }),
+          }));
+
+          const { item: two } = component().run(() => ({
+            item: accordionCtx.get()!.button({ name: 'two' }),
+          }));
+
+          const elOne = bind(document.createElement('button'), one);
+          const elTwo = bind(document.createElement('button'), two);
+          container.append(elOne, elTwo);
+
+          const groupCommits: unknown[] = [];
+          container.addEventListener('change', (event) =>
+            groupCommits.push((event as CustomEvent).detail),
+          );
+
+          elOne.click();
+          elTwo.click();
+          expect(groupCommits).toEqual([['one'], ['one', 'two']]);
+
+          elOne.click();
+          expect(groupCommits).toHaveLength(3);
+          expect(groupCommits[2]).toEqual(['two']);
+
+          document.body.removeChild(container);
+        });
+
+        component().run(() => {
+          const item = aria('accordion-item', { expanded: false });
+          const itemEl = bind(document.createElement('div'), item);
+          document.body.appendChild(itemEl);
+
+          const trigger = component().run(() => aria('accordion-button', { name: 'note' }));
+          const triggerEl = bind(document.createElement('button'), trigger);
+          itemEl.appendChild(triggerEl);
+
+          const itemCommits: unknown[] = [];
+          const onDocumentChange = (event: Event) => itemCommits.push((event as CustomEvent).detail);
+          itemEl.addEventListener('change', onDocumentChange);
+
+          triggerEl.click();
+          expect(item.expanded).toBe(true);
+          expect(itemCommits).toEqual([true]);
+
+          triggerEl.click();
+          expect(item.expanded).toBe(false);
+          expect(itemCommits).toEqual([true, false]);
+
+          itemEl.removeEventListener('change', onDocumentChange);
+          document.body.removeChild(itemEl);
+        });
+      }));
+  });
+
+  describe('Linear Item Traversal Invariant', () => {
+    it('keeps one tab stop on the expanded trigger and falls back to the first enabled one', () =>
+      scope.run(() => {
+        component().run(() => {
+          const group = aria('accordion', { value: 'second' });
+          const container = bind(document.createElement('div'), group);
+
+          const first = component().run(() =>
+            accordionCtx.get()!.button({ name: 'first' }),
+          );
+          const second = component().run(() =>
+            accordionCtx.get()!.button({ name: 'second' }),
+          );
+          const third = component().run(() =>
+            accordionCtx.get()!.button({ name: 'third' }),
+          );
+
+          const elFirst = bind(document.createElement('button'), first);
+          const elSecond = bind(document.createElement('button'), second);
+          const elThird = bind(document.createElement('button'), third);
+          container.append(elFirst, elSecond, elThird);
+
+          // The expanded item owns the single tab stop
+          expect(elFirst.getAttribute('tabindex')).toBe('-1');
+          expect(elSecond.getAttribute('tabindex')).toBe('0');
+          expect(elThird.getAttribute('tabindex')).toBe('-1');
+
+          // Collapsing everything falls back to the first trigger so Tab still reaches it
+          group.props.value = null;
+          expect(elFirst.getAttribute('tabindex')).toBe('0');
+          expect(elSecond.getAttribute('tabindex')).toBe('-1');
+          expect(elThird.getAttribute('tabindex')).toBe('-1');
+
+          document.body.removeChild(container);
+        });
+      }));
+
+    it('sends Home and End to the first and last enabled trigger', () =>
+      scope.run(() => {
+        component().run(() => {
+          const group = aria('accordion');
+          const container = bind(document.createElement('div'), group);
+
+          const first = component().run(() =>
+            accordionCtx.get()!.button({ name: 'first' }),
+          );
+          const middle = component().run(() =>
+            accordionCtx.get()!.button({ name: 'middle', disabled: true }),
+          );
+          const last = component().run(() =>
+            accordionCtx.get()!.button({ name: 'last' }),
+          );
+
+          const elFirst = bind(document.createElement('button'), first);
+          const elMiddle = bind(document.createElement('button'), middle);
+          const elLast = bind(document.createElement('button'), last);
+          container.append(elFirst, elMiddle, elLast);
+          document.body.appendChild(container);
+
+          elLast.focus();
+          expect(document.activeElement).toBe(elLast);
+
+          container.dispatchEvent(
+            new KeyboardEvent('keydown', { key: 'Home', bubbles: true, cancelable: true }),
+          );
+          expect(document.activeElement).toBe(elFirst);
+
+          // The disabled middle trigger is not an End destination either
+          container.dispatchEvent(
+            new KeyboardEvent('keydown', { key: 'End', bubbles: true, cancelable: true }),
+          );
+          expect(document.activeElement).toBe(elLast);
+
+          document.body.removeChild(container);
+        });
+      }));
+  });
+
+  describe('Item Linkage & Panel Association Invariant', () => {
+    it('pairs a panel mounted before its trigger to the same derived addresses', () =>
+      scope.run(() => {
+        component().run(() => {
+          const group = aria('accordion', { id: 'terms', value: 'data' });
+
+          const parts = component().run(() => ({
+            trigger: accordionCtx.get()!.button({ name: 'data' }),
+            panel: accordionCtx.get()!.panel({ name: 'data' }),
+          }));
+
+          // The panel binds first, the trigger later — pairing must not depend on order
+          const region = bind(document.createElement('div'), parts.panel);
+          const button = bind(document.createElement('button'), parts.trigger);
+
+          expect(button.getAttribute('aria-controls')).toBe('terms-region-data');
+          expect(region.getAttribute('id')).toBe('terms-region-data');
+          expect(region.getAttribute('aria-labelledby')).toBe('terms-accordion-data');
+          expect(button.getAttribute('id')).toBe('terms-accordion-data');
+          expect(document.getElementById(region.id)).toBe(region);
+        });
+      }));
+
+    it('derives the panel address before the panel exists and resolves it on late mount', () =>
+      scope.run(() => {
+        component().run(() => {
+          const group = aria('accordion', { id: 'late', value: 'shipping' });
+
+          const trigger = component().run(() =>
+            accordionCtx.get()!.button({ name: 'shipping' }),
+          );
+          const button = bind(document.createElement('button'), trigger);
+          document.body.appendChild(button);
+
+          const address = button.getAttribute('aria-controls');
+          expect(address).toBe('late-region-shipping');
+          expect(document.getElementById(address as string)).toBeNull();
+
+          const panel = component().run(() =>
+            accordionCtx.get()!.panel({ name: 'shipping' }),
+          );
+          const region = bind(document.createElement('div'), panel);
+
+          // The late panel arrives at the address the trigger already announced
+          expect(region.id).toBe(address);
+          expect(region.hidden).toBe(false);
+
+          button.click();
+          expect(region.hidden).toBe(true);
+          expect(button.getAttribute('aria-expanded')).toBe('false');
+
+          document.body.removeChild(button);
+        });
+      }));
+  });
 });

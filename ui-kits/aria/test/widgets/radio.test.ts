@@ -341,4 +341,282 @@ describe('Radio - Contract Specifications', () => {
         expect(input.checked).toBe(true);
       }));
   });
+
+  describe('Selection Exclusivity & State Inversion Invariant', () => {
+    it('re-derives every member from one external registry write and refuses to toggle the holder', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const group = mutable({ value: 'a' });
+          selectionGroup.set(group);
+
+          const rA = aria<HTMLDivElement>('radio', { value: 'a' }, { native: false });
+          const rB = aria<HTMLDivElement>('radio', { value: 'b' }, { native: false });
+          const rC = aria<HTMLDivElement>('radio', { value: 'c' }, { native: false });
+
+          const elA = bind(document.createElement('div'), rA);
+          const elB = bind(document.createElement('div'), rB);
+          const elC = bind(document.createElement('div'), rC);
+
+          expect(elA.getAttribute('aria-checked')).toBe('true');
+          expect(elC.getAttribute('aria-checked')).toBe('false');
+          expect(elA.getAttribute('tabindex')).toBe('0');
+
+          // The registry, not any member, owns the slot: one write moves all three
+          group.value = 'c';
+
+          expect(rA.checked).toBe(false);
+          expect(rC.checked).toBe(true);
+          expect(elA.getAttribute('aria-checked')).toBe('false');
+          expect(elC.getAttribute('aria-checked')).toBe('true');
+          expect(elA.getAttribute('tabindex')).toBe('-1');
+          expect(elC.getAttribute('tabindex')).toBe('0');
+          expect(elB.getAttribute('aria-checked')).toBe('false');
+
+          // A radio is never a toggle: re-activating the holder keeps it, required or not
+          elC.click();
+          expect(group.value).toBe('c');
+          expect(elC.getAttribute('aria-checked')).toBe('true');
+
+          group.required = true;
+          elC.click();
+          expect(group.value).toBe('c');
+          expect(rC.checked).toBe(true);
+
+          rA.destroy();
+          rB.destroy();
+          rC.destroy();
+          expect(rC.current).toBeNull();
+        });
+      }));
+
+    it('owns Space only: arrows belong to the group and Enter is not a radio affordance', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const group = mutable({ value: undefined });
+          selectionGroup.set(group);
+
+          const radio = aria<HTMLDivElement>('radio', { value: 'b' }, { native: false });
+          const el = bind(document.createElement('div'), radio);
+
+          for (const key of ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End']) {
+            const event = new KeyboardEvent('keydown', { key, cancelable: true, bubbles: true });
+            el.dispatchEvent(event);
+            expect(event.defaultPrevented).toBe(false);
+          }
+
+          expect(group.value).toBeUndefined();
+          expect(radio.checked).toBe(false);
+
+          // Enter activates a button, not a radio: the spec names Space alone
+          const enter = new KeyboardEvent('keydown', {
+            key: 'Enter',
+            cancelable: true,
+            bubbles: true,
+          });
+          el.dispatchEvent(enter);
+          expect(group.value).toBeUndefined();
+          expect(radio.checked).toBe(false);
+
+          // One press, one selection
+          el.dispatchEvent(
+            new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true }),
+          );
+          el.dispatchEvent(
+            new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }),
+          );
+          expect(group.value).toBe('b');
+          expect(el.getAttribute('aria-checked')).toBe('true');
+
+          radio.destroy();
+          expect(radio.current).toBeNull();
+        });
+      }));
+  });
+
+  describe('Form Control Boundary & Host Parity Invariant', () => {
+    it('submits one value through the author-bound field name while the dictionary stays ARIA-only', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const form = document.createElement('form');
+          document.body.appendChild(form);
+
+          const group = mutable({ value: 'starter' });
+          selectionGroup.set(group);
+
+          const rA = aria('radio', { name: 'plan', value: 'starter' });
+          const rB = aria('radio', { name: 'plan', value: 'pro' });
+
+          // The identity keys stay on props for template binding, never in the projection
+          expect(rA.props.name).toBe('plan');
+          expect(rA.props.value).toBe('starter');
+          expect(rA.attributes.name).toBeUndefined();
+          expect(rA.attributes.value).toBeUndefined();
+          expect(rA.attributes.form).toBeUndefined();
+
+          const elA = bind(document.createElement('input'), rA);
+          const elB = bind(document.createElement('input'), rB);
+          elA.name = rA.props.name;
+          elA.value = String(rA.props.value);
+          elB.name = rB.props.name;
+          elB.value = String(rB.props.value);
+          form.appendChild(elA);
+          form.appendChild(elB);
+
+          // The derived selection is already a submission candidate through the author binding
+          expect(new FormData(form).getAll('plan')).toEqual(['starter']);
+
+          // Selecting through the group moves the single value the field submits
+          elB.click();
+          expect(group.value).toBe('pro');
+          expect(new FormData(form).getAll('plan')).toEqual(['pro']);
+
+          elA.click();
+          expect(new FormData(form).getAll('plan')).toEqual(['starter']);
+
+          rA.destroy();
+          rB.destroy();
+          document.body.removeChild(form);
+        });
+      }));
+
+    it('reports one registry state through the property on a native host and ARIA on a custom host', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const group = mutable({ value: 'x' });
+          selectionGroup.set(group);
+
+          const nativeRadio = aria('radio', { value: 'x' }, { native: true });
+          const customRadio = aria<HTMLDivElement>('radio', { value: 'x' }, { native: false });
+
+          const input = bind(document.createElement('input'), nativeRadio);
+          const div = bind(document.createElement('div'), customRadio);
+
+          expect(input.checked).toBe(true);
+          expect(input.hasAttribute('aria-checked')).toBe(false);
+          expect(input.hasAttribute('role')).toBe(false);
+          expect(div.getAttribute('aria-checked')).toBe('true');
+          expect(div.getAttribute('role')).toBe('radio');
+
+          group.value = 'y';
+
+          expect(input.checked).toBe(false);
+          expect(div.getAttribute('aria-checked')).toBe('false');
+          expect(div.getAttribute('tabindex')).toBe('-1');
+          expect(nativeRadio.attributes.checked).toBe(false);
+          expect(customRadio.attributes['aria-checked']).toBe('false');
+
+          nativeRadio.destroy();
+          customRadio.destroy();
+          expect(nativeRadio.current).toBeNull();
+          expect(customRadio.current).toBeNull();
+        });
+      }));
+  });
+
+  describe('Inertness & Guarding Invariant', () => {
+    it('refuses activation on a custom host declared disabled and re-arms without rebinding', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const group = mutable({ value: 'a' });
+          selectionGroup.set(group);
+
+          const radio = aria<HTMLDivElement>(
+            'radio',
+            { value: 'b', disabled: true },
+            { native: false },
+          );
+
+          // 1. Creation & SSR
+          expect(radio.disabled).toBe(true);
+          expect(radio.attributes.role).toBe('radio');
+          expect(radio.attributes['aria-disabled']).toBe('true');
+          expect(radio.attributes.tabindex).toBe(-1);
+
+          // 2. DOM Binding
+          const el = bind(document.createElement('div'), radio);
+          expect(el.getAttribute('tabindex')).toBe('-1');
+
+          // 3/4. Neither a full Space press nor a click reaches the registry
+          el.dispatchEvent(
+            new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true }),
+          );
+          el.dispatchEvent(
+            new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }),
+          );
+          el.click();
+
+          expect(group.value).toBe('a');
+          expect(radio.checked).toBe(false);
+          expect(el.getAttribute('aria-checked')).toBe('false');
+
+          // 5. Clearing the comparator restores reachability and activation on the same node
+          radio.assign({ disabled: false });
+          expect(el.getAttribute('aria-disabled')).toBe('false');
+          expect(el.getAttribute('tabindex')).toBe('-1');
+
+          el.click();
+          expect(group.value).toBe('b');
+          expect(el.getAttribute('aria-checked')).toBe('true');
+          expect(el.getAttribute('tabindex')).toBe('0');
+
+          radio.destroy();
+          expect(radio.current).toBeNull();
+        });
+      }));
+
+    it('cascades group disablement over custom members while the registry stays exclusive', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const group = mutable({ value: 'a', disabled: true });
+          selectionGroup.set(group);
+
+          const rA = aria<HTMLDivElement>('radio', { value: 'a' }, { native: false });
+          const rB = aria<HTMLDivElement>('radio', { value: 'b' }, { native: false });
+
+          const elA = bind(document.createElement('div'), rA);
+          const elB = bind(document.createElement('div'), rB);
+
+          // Every member inherits the comparator and leaves the tab order
+          expect(rA.disabled).toBe(true);
+          expect(rB.disabled).toBe(true);
+          expect(elA.getAttribute('aria-disabled')).toBe('true');
+          expect(elB.getAttribute('tabindex')).toBe('-1');
+
+          elB.click();
+          expect(group.value).toBe('a');
+          expect(elB.getAttribute('aria-checked')).toBe('false');
+
+          // Lifting the cascade leaves the holder intact and re-arms the challenger
+          group.disabled = false;
+          expect(elB.getAttribute('aria-disabled')).toBe('false');
+
+          elB.click();
+          expect(group.value).toBe('b');
+          expect(elB.getAttribute('aria-checked')).toBe('true');
+          expect(elA.getAttribute('aria-checked')).toBe('false');
+          expect(elA.getAttribute('tabindex')).toBe('-1');
+          expect(elB.getAttribute('tabindex')).toBe('0');
+
+          // A member disabled while holding the selection keeps the value but cannot be re-activated
+          rB.assign({ disabled: true });
+          elB.click();
+          expect(group.value).toBe('b');
+          expect(elB.getAttribute('aria-checked')).toBe('true');
+
+          // The enabled sibling can still take it away, because exclusivity outranks the hold
+          elA.click();
+          expect(group.value).toBe('a');
+          expect(elB.getAttribute('aria-checked')).toBe('false');
+
+          rA.destroy();
+          rB.destroy();
+        });
+      }));
+  });
 });

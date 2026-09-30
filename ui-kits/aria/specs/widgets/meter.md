@@ -1,21 +1,23 @@
 # Meter Specification
 
-The bounded-gauge reporting unit. Reports a scalar measurement within a known range, distinct from Progress's task-completion semantics.
+The bounded-gauge reporting unit. Reports a scalar measurement within a known range, distinct from Progress's
+task-completion semantics.
 
 - **Entity**: `meter`
 - **WAI-ARIA Role**: `meter` (on custom hosts; omitted on native `<meter>`)
 
 ### Parts
+
 - **`Meter`**: Gauge reporting element.
 
 ---
 
 ## The Three Semantic Layers
 
-| Context | HTML Semantic | WAI-ARIA Semantic | Aria Package Semantic Contract |
-| :--- | :--- | :--- | :--- |
-| **Native `<meter>`** | Native `<meter>`. Uses `min`, `max`, and `value` directly in original units. | Implicit `role="meter"`. Role omitted. | Synchronizes clamped numeric value in original units without zero-offset mapping. |
-| **Custom Host** | Custom element (`<div>`). | `role="meter"`, `aria-valuemin`, `aria-valuemax`, `aria-valuenow`, `aria-label`, `aria-valuetext`. | Compiles ARIA meter range semantics. |
+| Context              | HTML Semantic                                                                | WAI-ARIA Semantic                                                                                  | Aria Package Semantic Contract                                                    |
+|:---------------------|:-----------------------------------------------------------------------------|:---------------------------------------------------------------------------------------------------|:----------------------------------------------------------------------------------|
+| **Native `<meter>`** | Native `<meter>`. Uses `min`, `max`, and `value` directly in original units. | Implicit `role="meter"`. Role omitted.                                                             | Synchronizes clamped numeric value in original units without zero-offset mapping. |
+| **Custom Host**      | Custom element (`<div>`).                                                    | `role="meter"`, `aria-valuemin`, `aria-valuemax`, `aria-valuenow`, `aria-label`, `aria-valuetext`. | Compiles ARIA meter range semantics.                                              |
 
 ---
 
@@ -24,9 +26,10 @@ The bounded-gauge reporting unit. Reports a scalar measurement within a known ra
 ### 1. Options & Props Contracts
 
 #### `MeterProps`
+
 ```ts
 export interface MeterProps {
-  /** Numeric measurement value */
+  /** Numeric measurement value (default: min; clamped to [min, max]) */
   value?: number;
   /** Lower bound in original units (default: 0) */
   min?: number;
@@ -40,6 +43,7 @@ export interface MeterProps {
 ```
 
 #### `MeterOptions`
+
 ```ts
 export interface MeterOptions {
   /** Whether bound to native <meter> (default: true) */
@@ -63,7 +67,7 @@ export function aria<E extends BaseElement = HTMLElement>(
 ## State & Lifecycle Rules
 
 1. **Original Units**:
-   - Unlike `Progress`, `Meter` preserves original units and does **not** map bounds onto a zero-based interval.
-   - `value` is clamped to `[min, max]`.
+  - Unlike `Progress`, `Meter` preserves original units and does **not** map bounds onto a zero-based interval.
+  - `value` is clamped to `[min, max]`.
 2. **No Interactive Controls**:
-   - Meter owns no focus, tab stops, or keyboard stepping.
+  - Meter owns no focus, tab stops, or keyboard stepping.

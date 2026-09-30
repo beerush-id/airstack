@@ -585,4 +585,238 @@ describe('Menu - Composite Specifications', () => {
         });
       }));
   });
+
+  describe('Hierarchical Traversal & Selection Invariant', () => {
+    it('moves focus across items without ever activating or selecting on the way', () =>
+      scope.run(() => {
+        component().run(() => {
+          const menu = aria('menu-panel');
+          const menuEl = bind(document.createElement('div'), menu);
+          document.body.appendChild(menuEl);
+
+          const group = aria('menu-group', { label: 'Alignment', value: 'left' });
+          const groupEl = bind(document.createElement('div'), group);
+          menuEl.appendChild(groupEl);
+
+          const left = bind(document.createElement('button'), aria('menu-item-radio', { value: 'left' }));
+          const center = bind(document.createElement('button'), aria('menu-item-radio', { value: 'center' }));
+          const right = bind(document.createElement('button'), aria('menu-item-radio', { value: 'right' }));
+          groupEl.append(left, center, right);
+
+          const activated: string[] = [];
+          for (const [label, el] of [['left', left], ['center', center], ['right', right]] as const) {
+            el.addEventListener('click', () => activated.push(label));
+          }
+
+          left.focus();
+
+          menuEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+          expect(document.activeElement).toBe(center);
+          expect(activated).toEqual([]);
+          expect(group.value).toBe('left');
+
+          menuEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+          expect(document.activeElement).toBe(right);
+          expect(activated).toEqual([]);
+          expect(group.value).toBe('left');
+
+          // The focused-but-unselected radio stays unchecked until it is actually activated
+          expect(right.getAttribute('aria-checked')).toBe('false');
+          expect(left.getAttribute('aria-checked')).toBe('true');
+
+          right.click();
+          expect(activated).toEqual(['right']);
+          expect(group.value).toBe('right');
+          expect(right.getAttribute('aria-checked')).toBe('true');
+          expect(left.getAttribute('aria-checked')).toBe('false');
+
+          menuEl.remove();
+        });
+      }));
+
+    it('keeps a checkable item independent of the traversal and of any group value', () =>
+      scope.run(() => {
+        component().run(() => {
+          const menu = aria('menu-panel');
+          const menuEl = bind(document.createElement('div'), menu);
+          document.body.appendChild(menuEl);
+
+          const bold = aria('menu-item-checkbox', { checked: false });
+          const italic = aria('menu-item-checkbox', { checked: 'mixed' });
+          const boldEl = bind(document.createElement('button'), bold);
+          const italicEl = bind(document.createElement('button'), italic);
+          menuEl.append(boldEl, italicEl);
+
+          const group = aria('menu-group', { label: 'Alignment', value: 'left' });
+          bind(document.createElement('div'), group);
+
+          // Roving past a checkbox item never toggles it, and never lands on the group value
+          boldEl.focus();
+          menuEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+          expect(document.activeElement).toBe(italicEl);
+          expect(bold.checked).toBe(false);
+          expect(italic.checked).toBe('mixed');
+          expect(group.value).toBe('left');
+
+          // Its own activation advances mixed to checked, independent of everything else
+          italicEl.click();
+          expect(italic.checked).toBe(true);
+          expect(bold.checked).toBe(false);
+          expect(group.value).toBe('left');
+
+          menuEl.remove();
+        });
+      }));
+  });
+
+  describe('Submenu Cascade & Focus Scope Invariant', () => {
+    it('keeps each paired root open state and popup address separate inside a menubar', () =>
+      scope.run(() => {
+        component().run(() => {
+          const menubar = aria('menu-bar');
+          const barEl = bind(document.createElement('div'), menubar);
+          document.body.appendChild(barEl);
+
+          const file = aria('menu', { id: 'file' });
+          const fileTrigger = bind(document.createElement('button'), file.button());
+          const filePanel = bind(document.createElement('div'), file.panel());
+          filePanel.appendChild(bind(document.createElement('button'), aria('menu-item')));
+
+          const edit = aria('menu', { id: 'edit' });
+          const editTrigger = bind(document.createElement('button'), edit.button());
+          const editPanel = bind(document.createElement('div'), edit.panel());
+          editPanel.appendChild(bind(document.createElement('button'), aria('menu-item')));
+
+          barEl.append(fileTrigger, filePanel, editTrigger, editPanel);
+
+          expect(fileTrigger.getAttribute('aria-controls')).toBe('file-menu');
+          expect(editTrigger.getAttribute('aria-controls')).toBe('edit-menu');
+          expect(fileTrigger.getAttribute('aria-expanded')).toBe('false');
+          expect(editTrigger.getAttribute('aria-expanded')).toBe('false');
+
+          // Opening one pair leaves its sibling closed
+          fileTrigger.click();
+          expect(file.open).toBe(true);
+          expect(edit.open).toBe(false);
+          expect(fileTrigger.getAttribute('aria-expanded')).toBe('true');
+          expect(editTrigger.getAttribute('aria-expanded')).toBe('false');
+
+          // Escape inside the open popup closes that root and leaves its sibling alone
+          filePanel.dispatchEvent(
+            new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+          );
+          expect(file.open).toBe(false);
+          expect(edit.open).toBe(false);
+          expect(fileTrigger.getAttribute('aria-expanded')).toBe('false');
+
+          // Opening the sibling afterwards is an independent pair transition
+          editTrigger.click();
+          expect(edit.open).toBe(true);
+          expect(file.open).toBe(false);
+          expect(editTrigger.getAttribute('aria-expanded')).toBe('true');
+
+          barEl.remove();
+        });
+      }));
+
+    it('defers popup dismissal to the pair the keystroke came from', () =>
+      scope.run(() => {
+        component().run(() => {
+          const outer = aria('menu', { id: 'outer', open: true });
+          const outerPanel = bind(document.createElement('div'), outer.panel());
+          document.body.appendChild(outerPanel);
+
+          const inner = aria('menu', { id: 'inner', open: true });
+          const innerPanel = bind(document.createElement('div'), inner.panel());
+          document.body.appendChild(innerPanel);
+
+          expect(outer.open).toBe(true);
+          expect(inner.open).toBe(true);
+
+          innerPanel.dispatchEvent(
+            new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+          );
+
+          expect(inner.open).toBe(false);
+          expect(outer.open).toBe(true);
+
+          outerPanel.dispatchEvent(
+            new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+          );
+          expect(outer.open).toBe(false);
+
+          outerPanel.remove();
+          innerPanel.remove();
+        });
+      }));
+  });
+
+  describe('Dismissal & Teardown Invariant', () => {
+    it('clears the trigger announcement when the paired root is torn down while open', () =>
+      scope.run(() => {
+        component().run(() => {
+          const root = aria('menu', { id: 'file' });
+          const trigger = root.button();
+          const panel = root.panel();
+
+          const triggerEl = bind(document.createElement('button'), trigger);
+          const panelEl = bind(document.createElement('div'), panel);
+
+          triggerEl.click();
+          expect(root.open).toBe(true);
+          expect(triggerEl.getAttribute('aria-expanded')).toBe('true');
+
+          root.destroy();
+
+          // No live root means no live expansion claim
+          expect(trigger.attributes['aria-expanded']).toBe('false');
+          expect(triggerEl.getAttribute('aria-expanded')).toBe('false');
+
+          // The trigger keeps its address but has nothing left to open
+          expect(trigger.attributes['aria-controls']).toBe('file-menu');
+          triggerEl.click();
+          expect(panelEl.getAttribute('aria-orientation')).toBe('vertical');
+
+          trigger.destroy();
+          panel.destroy();
+        });
+      }));
+
+    it('releases the roving tab stop when a popup is torn down with focus inside it', () =>
+      scope.run(() => {
+        component().run(() => {
+          const menu = aria('menu-panel');
+          const menuEl = bind(document.createElement('div'), menu);
+          document.body.appendChild(menuEl);
+
+          const first = bind(document.createElement('button'), aria('menu-item'));
+          const second = bind(document.createElement('button'), aria('menu-item'));
+          menuEl.append(first, second);
+
+          menuEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+          expect(document.activeElement).toBe(second);
+
+          const outside = document.createElement('button');
+          document.body.appendChild(outside);
+          outside.focus();
+
+          menu.destroy();
+          first.destroy();
+          second.destroy();
+
+          // A destroyed popup takes no further claim on focus or keystrokes
+          const event = new KeyboardEvent('keydown', {
+            key: 'ArrowDown',
+            bubbles: true,
+            cancelable: true,
+          });
+          menuEl.dispatchEvent(event);
+          expect(event.defaultPrevented).toBe(false);
+          expect(document.activeElement).toBe(outside);
+
+          menuEl.remove();
+          outside.remove();
+        });
+      }));
+  });
 });

@@ -59,7 +59,27 @@ export function aria<E extends BaseElement = HTMLButtonElement>(
   role: 'dialog-close',
   props?: AriaProps
 ): DialogCloseAria<E>;
+
+// DialogPanel — carries role="dialog", aria-modal, aria-labelledby, aria-describedby
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'dialog-panel',
+  props?: AriaProps
+): DialogPanelAria<E>;
+
+// DialogTitle (referenced by the panel's aria-labelledby)
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'dialog-title',
+  props?: AriaProps
+): DialogTitleAria<E>;
+
+// DialogDescription (referenced by the panel's aria-describedby when present)
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'dialog-description',
+  props?: AriaProps
+): DialogDescriptionAria<E>;
 ```
+
+> Panel, Title and Description overloads are required because `docs/dialog.md:42` places `role="dialog"`, `aria-modal`, `aria-labelledby` and `aria-describedby` on the **DialogPanel**, not the container.
 
 ---
 
@@ -74,5 +94,8 @@ export function aria<E extends BaseElement = HTMLButtonElement>(
    - On close: Focus restores to opening trigger.
 
 3. **Dismissal**:
-   - Under `dismissable: true`: `Escape` or outside click initiates dismissal.
-   - Dispatches cancelable `cancel` event, and `close` event after `open = false`.
+   - Under `dismissable: true`: `Escape` or outside click initiates dismissal. Under `dismissable: false` (the confirm pattern) they commit nothing.
+
+4. **Events** (`docs/dialog.md:26-33`):
+   - `cancel` — native: browser-dispatched on `Escape`, not re-dispatched. Custom: dispatched on the **DialogPanel** when `Escape` is pressed as `CustomEvent<void>('cancel', { bubbles: false, cancelable: true })`; if `defaultPrevented` is false it commits `open = false` (the veto, stated — dialog's `cancel` is refusal-capable, unlike confirm's non-cancelable `close`).
+   - `close` — native: browser-dispatched on `dialog.close()`, not re-dispatched. Custom: dispatched on the **DialogPanel** after `open = false` commits as `CustomEvent<void>('close', { bubbles: false })`.

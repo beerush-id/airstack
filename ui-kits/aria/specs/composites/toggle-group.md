@@ -1,70 +1,55 @@
 # Toggle Group Specification
 
-A toggle group is a composite widget containing a set of one or more related toggle buttons that can be toggled independently or mutually exclusively.
+A toggle group is a composite widget containing a set of related toggle buttons that are pressed independently
+(multiple) or mutually exclusively (single). Per `docs/toggle-group.md` the container is always `role="group"` — there
+is no radiogroup swap, no `required`, no `manual`, and no `orientation` prop.
 
 ### Composite Parts
-- **`ToggleGroup`**: WAI-ARIA `group` (or `radiogroup` if single-select required)
-- **`Toggle`**: WAI-ARIA `button` (with `aria-pressed`); group member with candidate `value`
+
+- **`ToggleGroup`**: WAI-ARIA `group` (always).
+- **`Toggle`**: WAI-ARIA `button` (with `aria-pressed`); group member with candidate `value`.
 
 ---
 
 ## The Three Semantic Layers
 
-| Part / Role | HTML Semantic | WAI-ARIA Semantic | Aria Package Semantic Contract |
-| :--- | :--- | :--- | :--- |
-| **`ToggleGroup` (Root)** | Structural container (`<div>`). | `role="group"` (or `role="radiogroup"` if single-select required), `aria-orientation` (`horizontal` default), `aria-label` / `aria-labelledby`. | Container group. Props: `SingleToggleGroupProps` (default) \| `MultipleToggleGroupProps` (`multiple: true`). Publishes group context. |
-| **`Toggle` (Member)** | Native `<button type="button">`. Handles Space/Enter click natively. | `role="button"` (with `aria-pressed`), roving `tabindex` (`0` if active, `-1` if inactive). | Member token: `this.props.value` (when inside a group).<br>- **Single**: `this.group.value === this.props.value`.<br>- **Multiple**: `this.group.value?.includes(this.props.value)`. |
+| Part / Role              | HTML Semantic                                | WAI-ARIA Semantic                                                                                                                                                                                    | Aria Package Semantic Contract                                                                                                                                                   |
+|:-------------------------|:---------------------------------------------|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **`ToggleGroup` (Root)** | Structural container (`<div>`).              | `role="group"` (always; never `radiogroup`), `aria-disabled="true"` when group disabled (`docs/toggle-group.md:38-40`).                                                                              | Container group. Publishes ambient value; no member registry. Props: `ToggleGroupProps`.                                                                                         |
+| **`Toggle` (Member)**    | Native `<button type="button">` (or custom). | `role="button"` with `aria-pressed`; roving `tabindex="0"` on the active item **or the first enabled item if none active** (`:43`), siblings `-1`; all `tabindex` removed under declared `disabled`. | Member token `value`. **Single**: `group.value === value`. **Multiple**: `group.value.includes(value)`. Keeps `aria-pressed` (not `aria-checked`) — it is a button, not a radio. |
 
 ---
 
 ## Architectural & Behavioral Contracts
 
-### 1. Options & Props Contracts
+### 1. Props Contracts
 
-#### `SingleToggleGroupProps<T extends Primitive = Primitive>`
 ```ts
 export interface SingleToggleGroupProps<T extends Primitive = Primitive> {
   multiple?: false;
-  /** Optional DOM element identifier */
   id?: string;
-  /** Active item identifier */
+  /** Active item identifier (default: null) */
   value?: T;
-  /** Keyboard navigation axis and aria-orientation (default: 'horizontal') */
-  orientation?: 'horizontal' | 'vertical';
-  /** When true, arrows move focus without selecting until Enter/Space (default: true) */
-  manual?: boolean;
-  /** Whether an item must always remain active */
-  required?: boolean;
   disabled?: boolean;
 }
-```
 
-#### `MultipleToggleGroupProps<T extends Primitive = Primitive>`
-```ts
 export interface MultipleToggleGroupProps<T extends Primitive = Primitive> {
   multiple: true;
-  /** Optional DOM element identifier */
   id?: string;
-  /** Array of active item identifiers */
+  /** Array of active item identifiers (default: []) */
   value?: T[];
-  /** Keyboard navigation axis and aria-orientation (default: 'horizontal') */
-  orientation?: 'horizontal' | 'vertical';
-  /** Whether at least one item must remain active */
-  required?: boolean;
   disabled?: boolean;
 }
-```
 
-#### `ToggleGroupProps<T extends Primitive = Primitive>`
-```ts
 export type ToggleGroupProps<T extends Primitive = Primitive> =
   | SingleToggleGroupProps<T>
   | MultipleToggleGroupProps<T>;
 ```
 
-Group members are `toggle` controllers with a `value` matching the group state (see `specs/widgets/toggle.md`). No `toggle-item` entity exists.
+> The group carries only `value`, `multiple`, `disabled` (`docs/toggle-group.md:11-13`); arrows move focus only.
+> Members are `toggle` controllers with a `value` (see [toggle.md](../widgets/toggle.md)) — there is no `toggle-item` entity.
 
-### 2. Overload Contracts
+### 2. Overload Contract
 
 ```ts
 // ToggleGroup
@@ -78,17 +63,22 @@ export function aria<E extends BaseElement = HTMLElement, T extends Primitive = 
 
 ## State & Lifecycle Rules
 
-1. **State Projection (`pressed`)**:
-   - Single selection: Evaluates `this.group.value === this.props.value`.
-   - Multiple selection: Evaluates `Boolean(this.group.value?.includes(this.props.value))`.
+1. **State Projection (`pressed`)** (`docs/toggle-group.md:20,29`):
+  - Single: `group.value === props.value`. Multiple: `Boolean(group.value?.includes(props.value))`.
 
-2. **Activation**:
-   - Single selection: If `!this.group.required` and already active, deselects (`delete this.group.value`); otherwise sets `this.group.value = this.props.value`.
-   - Multiple selection: Toggles membership in `this.group.value` array.
+2. **Activation** (`docs/toggle-group.md:30`):
+  - Single: activating an inactive item sets `group.value = item.value`; **activating the active item deselects it (
+    `group.value = null`)** — unconditionally, there is no `required` refusal.
+  - Multiple: toggles membership in `group.value`.
 
-3. **Keyboard Navigation**:
-   - Horizontal: `ArrowRight` / `ArrowLeft` roves focus between items with circular wrap.
-   - Vertical: `ArrowDown` / `ArrowUp` roves focus between items with circular wrap.
-   - Single defaults to manual (`manual !== false`): arrows move focus only; `Enter`/`Space` selects. Multiple declares no `manual`: arrows never select.
+3. **Keyboard Navigation** (`docs/toggle-group.md:25-28`):
+  - `Left` / `Up` → previous enabled item; `Right` / `Down` → next enabled item; `Home` / `End` → first / last enabled.
+    Wraps and skips disabled.
+  - **Focus movement touches no pressed state** (`:27`) — arrows never select; activation is pointer `click` or `Enter`/
+    `Space` on the focused item. There is no `manual` toggle.
 
-4. **State Projection**: `pressed` reads `this.group.value` membership; setting it runs the activation rules above. Props is the single source of state.
+4. **Tab stop** (`docs/toggle-group.md:43`): `tabindex="0"` on the active item, or the first enabled item when none is
+   active; siblings `-1`; all removed under `disabled`.
+
+5. **Events** (`docs/toggle-group.md:34`): `change` on the container after group `value` commits,
+   `CustomEvent<string | null | string[]>('change', { bubbles: true, detail: group.value })`.
