@@ -143,30 +143,44 @@ describe('move stub — multi-tenant system, options entrance', () => {
 
 describe('mutation stubs — user-scoped system', () => {
   it('moves within a shared canonical directory when the rule allows move', async () => {
-    await withFs({ ownerId: 'bob', homeDir: '/users/bob', accessRules: [{ path: '/shared/**', allow: ['write', 'read', 'move', 'remove'] }] }, async () => {
-      implement({ bucket, indexer: db });
-      await remove('/shared/m-user', { recursive: true });
-      await write('/shared/m-user/original.txt', 'hello team');
+    await withFs(
+      {
+        ownerId: 'bob',
+        homeDir: '/users/bob',
+        accessRules: [{ path: '/shared/**', allow: ['write', 'read', 'move', 'remove'] }],
+      },
+      async () => {
+        implement({ bucket, indexer: db });
+        await remove('/shared/m-user', { recursive: true });
+        await write('/shared/m-user/original.txt', 'hello team');
 
-      const moved = await move('/shared/m-user/original.txt', '/shared/m-user/relocated.txt');
+        const moved = await move('/shared/m-user/original.txt', '/shared/m-user/relocated.txt');
 
-      expect(moved).toBe(true);
-      expect(await read('/shared/m-user/relocated.txt', { encoding: 'text' })).toBe('hello team');
-    });
+        expect(moved).toBe(true);
+        expect(await read('/shared/m-user/relocated.txt', { encoding: 'text' })).toBe('hello team');
+      }
+    );
   });
 
   it('denies a copy whose destination falls outside the rules — EACCES across the wire', async () => {
-    await withFs({ ownerId: 'bob', homeDir: '/users/bob', accessRules: [{ path: '/shared/**', allow: ['write', 'read', 'copy'] }] }, async () => {
-      implement({ bucket, indexer: db });
-      await write('/shared/m-user/public.txt', 'hello');
+    await withFs(
+      {
+        ownerId: 'bob',
+        homeDir: '/users/bob',
+        accessRules: [{ path: '/shared/**', allow: ['write', 'read', 'copy'] }],
+      },
+      async () => {
+        implement({ bucket, indexer: db });
+        await write('/shared/m-user/public.txt', 'hello');
 
-      await expectDenial(
-        () => copy('/shared/m-user/public.txt', '/private/m-user/leak.txt'),
-        'EACCES',
-        'accessRules',
-        '/private/m-user/leak.txt'
-      );
-    });
+        await expectDenial(
+          () => copy('/shared/m-user/public.txt', '/private/m-user/leak.txt'),
+          'EACCES',
+          'accessRules',
+          '/private/m-user/leak.txt'
+        );
+      }
+    );
   });
 });
 

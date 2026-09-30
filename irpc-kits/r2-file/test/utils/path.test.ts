@@ -320,11 +320,9 @@ describe('access rule patterns', () => {
         accessRules: ['/teams/backend/**'],
       });
       expect(resolve('/tenants/acme', '/teams/backend').path).toBe('/tenants/acme/teams/backend');
-      expect(resolve('/tenants/acme', '/teams/backend/readme.md').path).toBe(
-        '/tenants/acme/teams/backend/readme.md',
-      );
+      expect(resolve('/tenants/acme', '/teams/backend/readme.md').path).toBe('/tenants/acme/teams/backend/readme.md');
       expect(resolve('/tenants/acme', '/teams/backend/src/api/main.go').path).toBe(
-        '/tenants/acme/teams/backend/src/api/main.go',
+        '/tenants/acme/teams/backend/src/api/main.go'
       );
       expectDenied(() => resolve('/tenants/acme', '/teams/frontend/secret.env'), {
         path: '/teams/frontend/secret.env',
@@ -339,9 +337,7 @@ describe('access rule patterns', () => {
         accessRules: ['/'],
       });
       expect(resolve('/tenants/acme', '/etc/shadow').path).toBe('/tenants/acme/etc/shadow');
-      expect(resolve('/tenants/acme', '/users/bob/id_rsa').path).toBe(
-        '/tenants/acme/users/bob/id_rsa',
-      );
+      expect(resolve('/tenants/acme', '/users/bob/id_rsa').path).toBe('/tenants/acme/users/bob/id_rsa');
     }));
 
   it('recursive universal rule grants universal access', () =>
@@ -352,9 +348,7 @@ describe('access rule patterns', () => {
         accessRules: ['/**'],
       });
       expect(resolve('/tenants/globex', '/etc/shadow').path).toBe('/tenants/globex/etc/shadow');
-      expect(resolve('/tenants/globex', '/users/alice/notes.txt').path).toBe(
-        '/tenants/globex/users/alice/notes.txt',
-      );
+      expect(resolve('/tenants/globex', '/users/alice/notes.txt').path).toBe('/tenants/globex/users/alice/notes.txt');
     }));
 
   it('patterns apply to canonical path after normalization', () =>
@@ -366,10 +360,9 @@ describe('access rule patterns', () => {
       });
       const hit = resolve('/tenants/acme', '../common.ts', '/teams/backend/services');
       expect(hit.path).toBe('/tenants/acme/teams/backend/common.ts');
-      expectDenied(
-        () => resolve('/tenants/acme', '../../teams/frontend/secret.env', '/teams/backend'),
-        { path: '/teams/frontend/secret.env' },
-      );
+      expectDenied(() => resolve('/tenants/acme', '../../teams/frontend/secret.env', '/teams/backend'), {
+        path: '/teams/frontend/secret.env',
+      });
     }));
 
   it('object rule gates operations via allow list', () =>
@@ -380,10 +373,10 @@ describe('access rule patterns', () => {
         accessRules: [{ path: '/shared/docs/**', allow: ['read', 'list'] }],
       });
       expect(resolve('/tenants/acme', 'readme.md', '/shared/docs', 'read').path).toBe(
-        '/tenants/acme/shared/docs/readme.md',
+        '/tenants/acme/shared/docs/readme.md'
       );
       expect(resolve('/tenants/acme', 'readme.md', '/shared/docs', 'list').path).toBe(
-        '/tenants/acme/shared/docs/readme.md',
+        '/tenants/acme/shared/docs/readme.md'
       );
       expectDenied(() => resolve('/tenants/acme', 'readme.md', '/shared/docs', 'write'), {
         path: '/shared/docs/readme.md',
@@ -405,10 +398,10 @@ describe('access rule patterns', () => {
         accessRules: ['/shared/docs/**'],
       });
       expect(resolve('/tenants/acme', 'readme.md', '/shared/docs', 'write').path).toBe(
-        '/tenants/acme/shared/docs/readme.md',
+        '/tenants/acme/shared/docs/readme.md'
       );
       expect(resolve('/tenants/acme', 'readme.md', '/shared/docs', 'remove').path).toBe(
-        '/tenants/acme/shared/docs/readme.md',
+        '/tenants/acme/shared/docs/readme.md'
       );
     }));
 
@@ -420,10 +413,10 @@ describe('access rule patterns', () => {
         accessRules: [{ path: '/shared/docs/**', allow: ['read'] }],
       });
       expect(resolve('/tenants/acme', '~/diary.txt', undefined, 'write').path).toBe(
-        '/tenants/acme/users/alice/diary.txt',
+        '/tenants/acme/users/alice/diary.txt'
       );
       expect(resolve('/tenants/acme', '~/temp.txt', undefined, 'remove').path).toBe(
-        '/tenants/acme/users/alice/temp.txt',
+        '/tenants/acme/users/alice/temp.txt'
       );
     }));
 });
@@ -434,12 +427,8 @@ describe('deployment scopes', () => {
       fsContext.set({});
       expect(resolve('/tenants/acme', '~/notes.txt').path).toBe('/tenants/acme/home/notes.txt');
       expect(resolve('/tenants/acme', 'notes.txt').path).toBe('/tenants/acme/home/notes.txt');
-      expect(resolve('/tenants/acme', '/etc/hosts', '/projects/app').path).toBe(
-        '/tenants/acme/etc/hosts',
-      );
-      expect(resolve('/tenants/acme', '../../etc/passwd', '/projects/app').path).toBe(
-        '/tenants/acme/etc/passwd',
-      );
+      expect(resolve('/tenants/acme', '/etc/hosts', '/projects/app').path).toBe('/tenants/acme/etc/hosts');
+      expect(resolve('/tenants/acme', '../../etc/passwd', '/projects/app').path).toBe('/tenants/acme/etc/passwd');
     }));
 
   it('user-scoped scope isolates alice home and shares team path by rule', () =>
@@ -449,11 +438,9 @@ describe('deployment scopes', () => {
         homeDir: '/users/alice',
         accessRules: ['/teams/backend/**'],
       });
-      expect(resolve('/tenants/acme', '~/notes.txt').path).toBe(
-        '/tenants/acme/users/alice/notes.txt',
-      );
+      expect(resolve('/tenants/acme', '~/notes.txt').path).toBe('/tenants/acme/users/alice/notes.txt');
       expect(resolve('/tenants/acme', 'deploy.yaml', '/teams/backend', 'write').path).toBe(
-        '/tenants/acme/teams/backend/deploy.yaml',
+        '/tenants/acme/teams/backend/deploy.yaml'
       );
       expectDenied(() => resolve('/tenants/acme', '/teams/frontend/secret.env'), {
         path: '/teams/frontend/secret.env',
@@ -468,10 +455,10 @@ describe('deployment scopes', () => {
         accessRules: ['/projects/core-api/**'],
       });
       expect(resolve('/tenants/acme', 'main.go', '/projects/core-api/src', 'write').path).toBe(
-        '/tenants/acme/projects/core-api/src/main.go',
+        '/tenants/acme/projects/core-api/src/main.go'
       );
       expect(resolve('/tenants/globex', 'main.go', '/projects/core-api/src', 'write').path).toBe(
-        '/tenants/globex/projects/core-api/src/main.go',
+        '/tenants/globex/projects/core-api/src/main.go'
       );
       expectDenied(() => resolve('/tenants/globex', '/projects/finance-api/keys.json'), {
         path: '/projects/finance-api/keys.json',
@@ -866,7 +853,7 @@ describe('operation gating across operation set', () => {
         accessRules: [{ path: '/shared/docs/**', allow: ['read', 'list'] }],
       });
       expect(resolve('/tenants/acme', 'readme.md', '/shared/docs', 'read').path).toBe(
-        '/tenants/acme/shared/docs/readme.md',
+        '/tenants/acme/shared/docs/readme.md'
       );
     }));
 
@@ -878,7 +865,7 @@ describe('operation gating across operation set', () => {
         accessRules: [{ path: '/shared/docs/**', allow: ['read', 'list'] }],
       });
       expect(resolve('/tenants/acme', 'readme.md', '/shared/docs', 'list').path).toBe(
-        '/tenants/acme/shared/docs/readme.md',
+        '/tenants/acme/shared/docs/readme.md'
       );
     }));
 
@@ -918,7 +905,7 @@ describe('operation gating across operation set', () => {
         accessRules: ['/shared/docs/**'],
       });
       expect(resolve('/tenants/acme', 'readme.md', '/shared/docs', 'read').path).toBe(
-        '/tenants/acme/shared/docs/readme.md',
+        '/tenants/acme/shared/docs/readme.md'
       );
     }));
 
@@ -930,7 +917,7 @@ describe('operation gating across operation set', () => {
         accessRules: ['/shared/docs/**'],
       });
       expect(resolve('/tenants/acme', 'readme.md', '/shared/docs', 'list').path).toBe(
-        '/tenants/acme/shared/docs/readme.md',
+        '/tenants/acme/shared/docs/readme.md'
       );
     }));
 
@@ -942,7 +929,7 @@ describe('operation gating across operation set', () => {
         accessRules: ['/shared/docs/**'],
       });
       expect(resolve('/tenants/acme', 'readme.md', '/shared/docs', 'write').path).toBe(
-        '/tenants/acme/shared/docs/readme.md',
+        '/tenants/acme/shared/docs/readme.md'
       );
     }));
 
@@ -954,7 +941,7 @@ describe('operation gating across operation set', () => {
         accessRules: ['/shared/docs/**'],
       });
       expect(resolve('/tenants/acme', 'readme.md', '/shared/docs', 'remove').path).toBe(
-        '/tenants/acme/shared/docs/readme.md',
+        '/tenants/acme/shared/docs/readme.md'
       );
     }));
 
@@ -965,9 +952,7 @@ describe('operation gating across operation set', () => {
         homeDir: '/users/alice',
         accessRules: ['/shared/docs/**'],
       });
-      expect(resolve('/tenants/acme', 'readme.md', '/shared/docs').path).toBe(
-        '/tenants/acme/shared/docs/readme.md',
-      );
+      expect(resolve('/tenants/acme', 'readme.md', '/shared/docs').path).toBe('/tenants/acme/shared/docs/readme.md');
     }));
 });
 
@@ -1043,10 +1028,10 @@ describe('mountPoint variance', () => {
         accessRules: ['/teams/backend/**'],
       });
       expect(resolve('/tenants/acme', 'deploy.yaml', '/teams/backend', 'read').path).toBe(
-        '/tenants/acme/teams/backend/deploy.yaml',
+        '/tenants/acme/teams/backend/deploy.yaml'
       );
       expect(resolve('/tenants/globex', 'deploy.yaml', '/teams/backend', 'read').path).toBe(
-        '/tenants/globex/teams/backend/deploy.yaml',
+        '/tenants/globex/teams/backend/deploy.yaml'
       );
     }));
 });
@@ -1264,8 +1249,6 @@ describe('mount stripping', () => {
 
   it('round-trips mapping and stripping', () =>
     run(() => {
-      expect(stripMount('/tenants/acme', mountAt('/tenants/acme', '/shared/hero.png'))).toBe(
-        '/shared/hero.png'
-      );
+      expect(stripMount('/tenants/acme', mountAt('/tenants/acme', '/shared/hero.png'))).toBe('/shared/hero.png');
     }));
 });

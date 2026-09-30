@@ -85,22 +85,30 @@ describe('exists stub', () => {
 
 describe('stat stub — user-scoped system', () => {
   it('stats a shared canonical path when an access rule allows it', async () => {
-    await withFs({ ownerId: 'bob', homeDir: '/users/bob', accessRules: [{ path: '/shared/**', allow: ['write', 'stat'] }] }, async () => {
-      implement({ bucket, indexer: db });
-      await write('/shared/s-user/team-notes.txt', 'hello team');
+    await withFs(
+      { ownerId: 'bob', homeDir: '/users/bob', accessRules: [{ path: '/shared/**', allow: ['write', 'stat'] }] },
+      async () => {
+        implement({ bucket, indexer: db });
+        await write('/shared/s-user/team-notes.txt', 'hello team');
 
-      const info = await stat('/shared/s-user/team-notes.txt');
+        const info = await stat('/shared/s-user/team-notes.txt');
 
-      expect(info?.path).toBe('/shared/s-user/team-notes.txt');
-      expect(info?.size).toBe(10);
-    });
+        expect(info?.path).toBe('/shared/s-user/team-notes.txt');
+        expect(info?.size).toBe(10);
+      }
+    );
   });
 
   it('denies a stat outside home with no matching rule — EACCES across the wire', async () => {
     await withFs({ ownerId: 'bob', homeDir: '/users/bob', accessRules: [] }, async () => {
       implement({ bucket, indexer: db });
 
-      await expectDenial(() => stat('/private/s-user/carol-secret.txt'), 'EACCES', 'accessRules', '/private/s-user/carol-secret.txt');
+      await expectDenial(
+        () => stat('/private/s-user/carol-secret.txt'),
+        'EACCES',
+        'accessRules',
+        '/private/s-user/carol-secret.txt'
+      );
     });
   });
 });

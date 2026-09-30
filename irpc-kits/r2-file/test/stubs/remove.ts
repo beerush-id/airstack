@@ -163,22 +163,34 @@ describe('soft deletion and restore', () => {
 
 describe('remove stub — user-scoped system', () => {
   it('removes within a shared canonical directory when the rule allows remove', async () => {
-    await withFs({ ownerId: 'bob', homeDir: '/users/bob', accessRules: [{ path: '/shared/**', allow: ['write', 'remove', 'exists'] }] }, async () => {
-      implement({ bucket, indexer: db });
-      await write('/shared/rm-user/junk.txt', 'trash me');
+    await withFs(
+      {
+        ownerId: 'bob',
+        homeDir: '/users/bob',
+        accessRules: [{ path: '/shared/**', allow: ['write', 'remove', 'exists'] }],
+      },
+      async () => {
+        implement({ bucket, indexer: db });
+        await write('/shared/rm-user/junk.txt', 'trash me');
 
-      const removed = await remove('/shared/rm-user/junk.txt');
+        const removed = await remove('/shared/rm-user/junk.txt');
 
-      expect(removed).toBe(true);
-      expect(await exists('/shared/rm-user/junk.txt')).toBe(false);
-    });
+        expect(removed).toBe(true);
+        expect(await exists('/shared/rm-user/junk.txt')).toBe(false);
+      }
+    );
   });
 
   it('denies a remove outside home with no matching rule — EACCES across the wire', async () => {
     await withFs({ ownerId: 'bob', homeDir: '/users/bob', accessRules: [] }, async () => {
       implement({ bucket, indexer: db });
 
-      await expectDenial(() => remove('/private/rm-user/carol-file.txt'), 'EACCES', 'accessRules', '/private/rm-user/carol-file.txt');
+      await expectDenial(
+        () => remove('/private/rm-user/carol-file.txt'),
+        'EACCES',
+        'accessRules',
+        '/private/rm-user/carol-file.txt'
+      );
     });
   });
 });

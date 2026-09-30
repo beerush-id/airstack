@@ -66,16 +66,18 @@
     "dev": "rimraf dist && tsdown --watch ./src",
     "clean": "rimraf dist",
     "build": "bun run clean && tsdown && publint",
+    "format": "biome format --write",
     "test": "rimraf coverage && vitest --run",
     "test:run": "rimraf coverage && vitest --run",
     "test:preview": "rimraf coverage && vitest --run && vite preview --outDir coverage",
-    "prepublish": "bun run build"
+    "prepublish": "bun run format && bun run build"
   },
   "dependencies": {
     "@irpclib/http": "workspace:*",
     "@irpclib/irpc": "workspace:*"
   },
   "devDependencies": {
+    "@biomejs/biome": "catalog:",
     "@cloudflare/workers-types": "^4.20250224.0",
     "@types/bun": "catalog:",
     "publint": "catalog:",

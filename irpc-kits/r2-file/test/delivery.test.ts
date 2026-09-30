@@ -170,7 +170,11 @@ describe('delivery plane — signed tokens', () => {
 
       const signed = await signUrl('/users/alice/d-config-secret/notes.txt', 'config-secret', 60);
 
-      const res = await worker.fetch(new Request(`https://cdn.example.com${signed}`), { BUCKET: bucket, DB: db }, mockCtx);
+      const res = await worker.fetch(
+        new Request(`https://cdn.example.com${signed}`),
+        { BUCKET: bucket, DB: db },
+        mockCtx
+      );
 
       expect(res.status).toBe(200);
       expect(await res.text()).toBe('hello');

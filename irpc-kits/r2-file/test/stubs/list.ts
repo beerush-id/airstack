@@ -174,14 +174,17 @@ describe('search stub', () => {
 
 describe('list stub — user-scoped system', () => {
   it('lists a shared canonical directory when an access rule allows it', async () => {
-    await withFs({ ownerId: 'bob', homeDir: '/users/bob', accessRules: [{ path: '/shared/**', allow: ['write', 'list'] }] }, async () => {
-      implement({ bucket, indexer: db });
-      await write('/shared/l-user/a.txt', 'hello');
+    await withFs(
+      { ownerId: 'bob', homeDir: '/users/bob', accessRules: [{ path: '/shared/**', allow: ['write', 'list'] }] },
+      async () => {
+        implement({ bucket, indexer: db });
+        await write('/shared/l-user/a.txt', 'hello');
 
-      const result = await list('/shared/l-user');
+        const result = await list('/shared/l-user');
 
-      expect(result.entries.map((entry) => entry.path)).toEqual(['/shared/l-user/a.txt']);
-    });
+        expect(result.entries.map((entry) => entry.path)).toEqual(['/shared/l-user/a.txt']);
+      }
+    );
   });
 
   it('denies a list outside home with no matching rule — EACCES across the wire', async () => {

@@ -2,7 +2,22 @@ import type { D1Database, R2Bucket } from '@cloudflare/workers-types';
 import { resolveBinding } from '@irpclib/irpc/wrangler';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { implement } from '../../src/constructor.js';
-import fs, { configure, copy, exists, link, list, mkdir, move, read, remove, restore, search, stat, transport, write } from '../../src/index.js';
+import fs, {
+  configure,
+  copy,
+  exists,
+  link,
+  list,
+  mkdir,
+  move,
+  read,
+  remove,
+  restore,
+  search,
+  stat,
+  transport,
+  write,
+} from '../../src/index.js';
 import { withFs } from '../helpers.js';
 
 let bucket!: R2Bucket;
@@ -48,7 +63,6 @@ describe('client surface — completeness', () => {
     expect(typeof fs.remove).toBe('function');
     expect(typeof fs.restore).toBe('function');
   });
-
 });
 
 describe('client surface — configure', () => {

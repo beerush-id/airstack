@@ -2,7 +2,21 @@ import type { D1Database, R2Bucket } from '@cloudflare/workers-types';
 import { credential, getContext, GuardError, IRPCBlob } from '@irpclib/irpc';
 import type { FileAdapter } from './adapter.js';
 import { createFs } from './fs/index.js';
-import { copy, exists, fileModule, link, list, mkdir, move, readStub, remove, restore, search, stat, writeStub } from './index.js';
+import {
+  copy,
+  exists,
+  fileModule,
+  link,
+  list,
+  mkdir,
+  move,
+  readStub,
+  remove,
+  restore,
+  search,
+  stat,
+  writeStub,
+} from './index.js';
 import type { FileAdapterOptions, FileEncoding, ReadOptions } from './types.js';
 import { signUrl } from './utils/security.js';
 

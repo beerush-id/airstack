@@ -271,11 +271,7 @@ describe('write stub — constraint gates reject before storage', () => {
     await withFs({}, async () => {
       implement({ bucket, maxEncodingSize: 10 });
 
-      await expectDenial(
-        () => write('~/w-big/data.json', { payload: '0123456789ABCDEF' }),
-        'EFBIG',
-        'maxEncodingSize'
-      );
+      await expectDenial(() => write('~/w-big/data.json', { payload: '0123456789ABCDEF' }), 'EFBIG', 'maxEncodingSize');
     });
   });
 
@@ -283,11 +279,7 @@ describe('write stub — constraint gates reject before storage', () => {
     await withFs({}, async () => {
       implement({ bucket, allowedTypes: ['image/*'] });
 
-      await expectDenial(
-        () => write('~/w-type/notes.txt', 'hello'),
-        'EINVAL',
-        "Unsupported MIME type 'text/plain'"
-      );
+      await expectDenial(() => write('~/w-type/notes.txt', 'hello'), 'EINVAL', "Unsupported MIME type 'text/plain'");
     });
   });
 });
