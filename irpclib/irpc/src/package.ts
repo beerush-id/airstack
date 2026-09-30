@@ -117,7 +117,7 @@ export class IRPCPackage<K extends string = 'id'> {
    * @throws Error if the package name or version doesn't match the required format
    */
   constructor(config?: Partial<IRPCPackageConfig>) {
-    this.configure(config ?? {});
+    this.configure({ ...config });
     IRPC_STORE.register(this);
   }
 
@@ -407,10 +407,10 @@ export class IRPCPackage<K extends string = 'id'> {
           return;
         }
 
-        const { timeout, maxRetries, retryDelay, retryMode, standalone } = { ...this.config, ...spec };
+        const { timeout, maxRetries, retryDelay, retryMode, standalone, bypassLocal } = { ...this.config, ...spec };
         const config = { timeout, maxRetries, retryDelay, retryMode, standalone } as IRPCCallConfig;
 
-        if (typeof spec.handler === 'function') {
+        if (typeof spec.handler === 'function' && !bypassLocal) {
           intercept(spec, args, reader);
         } else {
           this.transport!.call(spec, args, config, reader);

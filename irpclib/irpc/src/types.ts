@@ -220,7 +220,10 @@ export type IRPCPackageConfig = IRPCPackageInfo &
   IRPCCallConfig & {
     /** Primary key field name for CRUD operations. Defaults to 'id'. */
     key?: string;
+    /** The transport to use for RPC calls. */
     transport?: IRPCTransport;
+    /** Whether to bypass local execution for RPC calls. Defaults to false. */
+    bypassLocal?: boolean;
   };
 
 /**

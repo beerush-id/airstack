@@ -135,6 +135,18 @@ export class IRPCRouter {
   }
 }
 
+/**
+ * Special response to indicate that a worker can't handle/resolve the call.
+ */
+export class UnhandledCall extends Response {
+  constructor() {
+    super('Unable to resolve call.', {
+      status: 404,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+}
+
 export class DeferredHook {
   private promise?: Promise<unknown>;
 

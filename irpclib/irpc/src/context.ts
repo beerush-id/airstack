@@ -3,7 +3,7 @@ import { IRPC_BASE_CONTEXT } from './enum.js';
 import type { DeferredHook } from './router.ts';
 import type { IRPCContext, IRPCContextProvider } from './types.js';
 
-export { getContext, setContext, createContext };
+export { createContext, getContext, setContext };
 
 /**
  * Sets the global context store for the IRPC system.
