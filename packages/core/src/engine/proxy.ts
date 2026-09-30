@@ -242,10 +242,7 @@ export function inherit<T extends Record<string, AnyType>>(...sources: (Partial<
  * @param sources - Target source objects to compose with override precedence
  * @returns A proxy object delegating to the sources with merged typings
  */
-export function override<
-  R = never,
-  T extends readonly (object | null | undefined)[] = (object | null | undefined)[]
->(
+export function override<R = never, T extends readonly (object | null | undefined)[] = (object | null | undefined)[]>(
   ...sources: [...T]
 ): [R] extends [never] ? MergeSources<T> : R {
   const targets = sources.map((s) => (s ?? {}) as Record<string | symbol, unknown>).reverse();
