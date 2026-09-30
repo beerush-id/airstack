@@ -1,7 +1,7 @@
 import { $module, $symbol, isBrowser } from '../module.js';
 import { ANCHOR_SETTINGS } from '../shared/constant.js';
 import { captureStack } from '../shared/index.js';
-import type { ContextReader } from '../types.js';
+import type { AnyType, ContextReader } from '../types.js';
 import { type AsyncKey, AsyncScope, type AsyncValue, type Future } from './scope.js';
 import { AsyncStore, type AsyncStoreContract, type StoreContract } from './store.js';
 
@@ -267,6 +267,37 @@ export function getContextStore(): AsyncStore {
  */
 export function setContextStore(store: AsyncStore): void {
   $module.async.getStore()!.set(CONTEXT_STORE_KEY, store);
+}
+
+/**
+ * Executes a function within an fresh context.
+ * @param fn - The function to execute
+ * @returns The result of the executed function
+ */
+export function withContext<R>(fn: () => R): R;
+/**
+ * Creates a new context with the given initial values and executes a function within that context.
+ * @param seed - An array of key-value pairs to initialize the context
+ * @param fn - The function to execute within the context
+ * @returns The result of the executed function
+ */
+export function withContext<R>(seed: Array<[string | symbol, AnyType]>, fn: () => R): R;
+/**
+ * Executes a function with the provided context.
+ * If a context store is available, it runs the function within that context.
+ * Otherwise, it executes the function directly.
+ * @param store - The context to run the function with
+ * @param fn - The function to execute
+ * @returns The result of the executed function
+ */
+export function withContext<R>(store: AsyncStore, fn: () => R): R;
+export function withContext<R>(ctx: AsyncStore | Array<[string | symbol, AnyType]> | (() => R), fn?: () => R) {
+  if (typeof ctx === 'function') {
+    return withIsolation(ctx, true);
+  }
+
+  const store = Array.isArray(ctx) ? new AsyncStore(ctx) : ctx;
+  return withIsolation(fn as () => R, true, store);
 }
 
 /**

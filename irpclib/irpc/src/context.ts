@@ -1,7 +1,7 @@
 import { AsyncStore, createContext, getContext, setAsyncScope, setContext, withIsolation } from '@airlib/core';
 import { IRPC_BASE_CONTEXT } from './enum.js';
 import type { DeferredHook } from './router.ts';
-import type { IRPCContext, IRPCContextProvider } from './types.js';
+import type { AnyType, IRPCContext, IRPCContextProvider } from './types.js';
 
 export { createContext, getContext, setContext };
 
@@ -15,15 +15,37 @@ export function setContextProvider(store: IRPCContextProvider) {
 }
 
 /**
- * Executes a function with the provided context.
- * If a context store is available, it runs the function within that context.
- * Otherwise, it executes the function directly.
- * @param ctx - The context to run the function with
+ * Executes a function within an fresh context.
  * @param fn - The function to execute
  * @returns The result of the executed function
  */
-export function withContext<R>(ctx: IRPCContext<string | symbol, unknown>, fn: () => R) {
-  return withIsolation(fn, true, ctx);
+export function withContext<R>(fn: () => R): R;
+/**
+ * Creates a new context with the given initial values and executes a function within that context.
+ * @param seed - An array of key-value pairs to initialize the context
+ * @param fn - The function to execute within the context
+ * @returns The result of the executed function
+ */
+export function withContext<R>(seed: Array<[string | symbol, AnyType]>, fn: () => R): R;
+/**
+ * Executes a function with the provided context.
+ * If a context store is available, it runs the function within that context.
+ * Otherwise, it executes the function directly.
+ * @param store - The context to run the function with
+ * @param fn - The function to execute
+ * @returns The result of the executed function
+ */
+export function withContext<R>(store: IRPCContext<string | symbol, AnyType>, fn: () => R): R;
+export function withContext<R>(
+  ctx: IRPCContext<string | symbol, unknown> | Array<[string | symbol, AnyType]> | (() => R),
+  fn?: () => R
+) {
+  if (typeof ctx === 'function') {
+    return withIsolation(ctx, true);
+  }
+
+  const store = Array.isArray(ctx) ? createContextStore(ctx) : ctx;
+  return withIsolation(fn as () => R, true, store);
 }
 
 /**
