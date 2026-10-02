@@ -1060,6 +1060,10 @@ export interface StateInspector {
  */
 export type ContextReader<T> = {
   /**
+   * The unique key associated with the context.
+   */
+  key: symbol;
+  /**
    * Retrieves the current value from the context.
    */
   get(): T;

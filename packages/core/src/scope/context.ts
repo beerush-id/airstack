@@ -326,6 +326,7 @@ export function createContext<T>(keyOrValue?: T, valueOrKey?: symbol) {
   const ctxFallback = typeof keyOrValue === 'symbol' ? valueOrKey : keyOrValue;
 
   return {
+    key: ctxKey,
     get() {
       return getContext(ctxKey, ctxFallback);
     },
