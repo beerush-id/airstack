@@ -68,3 +68,16 @@ export function getAbortController(): AbortController | undefined {
 export function getRouterHooks() {
   return getContext<DeferredHook>(IRPC_BASE_CONTEXT.DEFERRED_HOOK);
 }
+
+/**
+ * A context for storing environment variables.
+ */
+export const envCtx = createContext<Record<string, AnyType>>();
+
+/**
+ * Retrieves the environment variables stored in the context.
+ * @returns The environment variables as a record
+ */
+export function getEnv<T extends Record<string, AnyType>>(fallback?: Partial<T>) {
+  return { ...fallback, ...envCtx.get() } as T;
+}
