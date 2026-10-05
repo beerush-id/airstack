@@ -1,6 +1,6 @@
 /**
- * Coverage timeline tests — transport edges, end-of-timeline playback handling,
- * frameRate / speed setter migrations, and hydrate partial branches.
+ * Coverage timeline tests — public factory entry, transport edges, end-of-timeline
+ * playback handling, frameRate / speed setter migrations, and hydrate partial branches.
  *
  * Oracle: timeline.d.ts ONLY.
  * App concern: a viewer idly taps play after the cut finished, re-times the
@@ -13,7 +13,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { frameToTime } from '../../src/timeline/helper.js';
-import { Timeline } from '../../src/timeline/timeline.js';
+import { createTimeline, Timeline } from '../../src/timeline/timeline.js';
 import { uiFrame } from './fixture.js';
 
 beforeEach(() => {
@@ -39,6 +39,33 @@ describe('construction defaults', () => {
     expect(timeline.frameRate).toBe(30);
     expect(timeline.repeat).toBeUndefined();
     expect(timeline.frame).toBe(0);
+    expect(timeline.status).toBe('idle');
+
+    timeline.destroy();
+  });
+
+  it('builds a coordinator that honours every factory option', () => {
+    const timeline = createTimeline({ frameRate: 24, speed: 2, startFrame: 0, endFrame: 24, repeat: true });
+
+    expect(timeline).toBeInstanceOf(Timeline);
+    expect(timeline.frameRate).toBe(24);
+    expect(timeline.speed).toBe(2);
+    expect(timeline.startFrame).toBe(0);
+    expect(timeline.endFrame).toBe(24);
+    expect(timeline.repeat).toBe(true);
+    expect(timeline.totalFrames).toBe(0);
+
+    timeline.destroy();
+  });
+
+  it('falls back to class defaults when the factory is called without options', () => {
+    const timeline = createTimeline();
+
+    expect(timeline.frameRate).toBe(30);
+    expect(timeline.speed).toBe(1);
+    expect(timeline.startFrame).toBeUndefined();
+    expect(timeline.endFrame).toBeUndefined();
+    expect(timeline.repeat).toBeUndefined();
     expect(timeline.status).toBe('idle');
 
     timeline.destroy();

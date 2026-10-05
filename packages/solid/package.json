@@ -3,13 +3,7 @@
   "name": "@airlib/solid",
   "version": "2.2.0",
   "description": "Solid bindings for Anchor reactive state management",
-  "keywords": [
-    "state",
-    "management",
-    "reactive",
-    "observable",
-    "solid"
-  ],
+  "keywords": ["state", "management", "reactive", "observable", "solid"],
   "author": "Nanang Mahdaen El Agung <mahdaen@gmail.com>",
   "homepage": "https://github.com/beerush-id/airstack",
   "license": "MIT",
@@ -77,6 +71,10 @@
       "types": "./dist/utils/index.d.ts",
       "import": "./dist/utils/index.js"
     },
+    "./timeline": {
+      "types": "./dist/timeline/index.d.ts",
+      "import": "./dist/timeline/index.js"
+    },
     "./workflow": {
       "types": "./dist/workflow/index.d.ts",
       "import": "./dist/workflow/index.js"
@@ -93,10 +91,7 @@
     },
     "./mdx/*.css": "./src/mdx/*.css"
   },
-  "files": [
-    "dist",
-    "src"
-  ],
+  "files": ["dist", "src"],
   "directories": {
     "dist": "./dist"
   },

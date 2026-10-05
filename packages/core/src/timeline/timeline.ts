@@ -592,3 +592,13 @@ export class Timeline {
     }
   }
 }
+
+/**
+ * Creates and initializes a new master Timeline instance.
+ *
+ * @param {Partial<TimelineOptions>} [options] - Initial configuration (framerate, speed, bounds, repeat).
+ * @returns {Timeline} A configured Timeline coordinator instance.
+ */
+export function createTimeline(options?: Partial<TimelineOptions>): Timeline {
+  return new Timeline(options);
+}
