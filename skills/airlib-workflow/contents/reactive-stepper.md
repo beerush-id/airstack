@@ -9,7 +9,7 @@ This guide establishes how to bind workflows to reactive state, track real-time 
 Executing an AirLib workflow returns a `WorkflowStepper`. Because this stepper is a reactive proxy, the UI tracks the exact status of the pipeline—down to the specific named step currently executing—without manual state management:
 
 ```typescript
-import { plan } from '@airlib/core';
+import { plan } from '@irpclib/irpc';
 
 export const checkoutFlow = plan<{ cartId: string }>()
   .then(validateCart, { name: 'Validating Cart...' })
@@ -110,7 +110,7 @@ const reader = fetchProfile.once({ userId: '123' });
 Executes automatically whenever any reactive state accessed inside the getter changes. An optional `debounce` (in milliseconds) coalesces rapid mutations:
 
 ```typescript
-import { mutable } from '@airlib/core';
+import { mutable } from '@airlib/react'; // or '@airlib/solid'
 
 const search = mutable('AirLib framework');
 
@@ -124,7 +124,7 @@ const reader = searchDocuments.with(() => ({
 Works identically to `.with()`, but **defers initial execution**. It only fires when a dependency updates after the initial evaluation. Ideal for waiting until a user interacts with a field:
 
 ```typescript
-import { mutable } from '@airlib/core';
+import { mutable } from '@airlib/react'; // or '@airlib/solid'
 
 const query = mutable('');
 
@@ -162,7 +162,7 @@ For multi-step wizards or approval pipelines where each step requires user inter
 | `skip()` | Skip remaining steps and finalize. |
 
 ```typescript
-import { plan } from '@airlib/core';
+import { plan } from '@irpclib/irpc';
 
 const onboardingFlow = plan<{ name: string }>()
   .then((input) => ({ ...input, profile: createProfile(input.name) }), { name: 'Creating Profile...' })
@@ -192,7 +192,7 @@ To safeguard long-running wizard flows against browser reloads, or to persist mu
 ### Client-Side Persistence (`localStorage`)
 
 ```typescript
-import { plan } from '@airlib/core';
+import { plan } from '@irpclib/irpc';
 
 const onboardingFlow = plan<{ name: string }>()
   .then((input) => ({ ...input, profile: createProfile(input.name) }), { name: 'Creating Profile...' })

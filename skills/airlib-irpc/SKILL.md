@@ -31,13 +31,13 @@ Saw an unfamiliar symbol, method, or class in existing code? Look it up here to 
 
 | Symbol / Keyword Seen in Code | Topic Guide to Read |
 |---|---|
-| `irpc.declare`, `.once()`, `.with()`, `.when()`, `.later()`, `standalone`, `keepAlive`, `coalesce`, `IRPCReader`, `IRPCFile`, `IRPCBlob`, `irpc.invalidate` | [contents/declarations.md](./contents/declarations.md) |
-| `irpc.construct`, `stream()`, `reader.pipe()`, `getContext()`, `setContext()`, `cookies` | [contents/handlers.md](./contents/handlers.md) |
-| `HTTPTransport`, `HTTPRouter`, `WebSocketTransport`, `WebSocketRouter`, `BroadcastTransport`, `BroadcastRouter`, `transport.sign()` | [contents/transports.md](./contents/transports.md) |
+| `irpc.declare`, `.once()`, `.with()`, `.when()`, `.later()`, `standalone`, `keepAlive`, `coalesce`, `bypassLocal`, `IRPCReader`, `IRPCFile`, `IRPCBlob`, `irpc.invalidate` | [contents/declarations.md](./contents/declarations.md) |
+| `irpc.construct`, `stream()`, `reader.pipe()`, `createContext()`, `getContext()`, `setContext()`, `withContext()`, `envCtx`, `getEnv()`, `cookies` | [contents/handlers.md](./contents/handlers.md) |
+| `HTTPTransport`, `HTTPRouter`, `WebSocketTransport`, `WebSocketRouter`, `BroadcastTransport`, `BroadcastRouter`, `UnhandledCall`, `transport.sign()` | [contents/transports.md](./contents/transports.md) |
 | `irpc.crud`, `irpc.exclude`, `IRPCCrudDriver`, `IRPCCrudAdapter`, `IRPCCrudMeta`, `IRPCCrudAdapter.next()` | [contents/crud.md](./contents/crud.md) |
 | `router.use()`, `irpc.guard()`, `GuardError`, `irpc.hook()`, `getAbortSignal()` | [contents/interceptors.md](./contents/interceptors.md) |
 | `router.resolveRest()`, `router.resolveJson()` | [contents/webhooks.md](./contents/webhooks.md) |
-| `createPackage`, `irpc.href`, `IRPC_STORE`, `Durable`, `durable.use()`, `durable.get()` | [contents/distribution.md](./contents/distribution.md) |
+| `createPackage`, `bypassLocal`, `irpc.href`, `IRPC_STORE`, `Durable`, `durable.use()`, `durable.get()` | [contents/distribution.md](./contents/distribution.md) |
 
 ---
 
@@ -52,12 +52,15 @@ Load this topic when you need to answer:
 - How do I call remote functions in UI components (immediate run, dependency-tracked re-fetch, lazy fetch, or manual click trigger)?
 - How do I track execution lifecycle states (`idle`, `pending`, `success`, `error`) in the UI?
 - How do I avoid redundant network requests through caching, deduplicate simultaneous identical calls, or retry on connection failure?
+- How do I force procedure calls through the network transport when running in the same process as handlers?
 - How do I validate function arguments and return shapes at runtime before execution?
 
 ### [Server Handlers & Reactive Streaming](./contents/handlers.md)
 Load this topic when you need to answer:
 - How do I write the server-side implementation for a declared remote function?
 - How do I isolate request context across concurrent server requests so user sessions never leak?
+- How do I execute server operations inside an isolated or pre-seeded request scope?
+- How do I access serverless platform environment bindings without threading them through function parameters?
 - How do I call other remote functions within the server without network serialization overhead?
 - How do I continuously push real-time data or LLM tokens to the client over an open connection?
 - How do I execute multiple slow database queries in parallel and stream each field to the UI as soon as it resolves?
@@ -71,6 +74,7 @@ Load this topic when you need to answer:
 Load this topic when you need to answer:
 - How do I switch network protocols (HTTP, WebSocket, or local thread) without changing any UI calls or business logic?
 - How do I batch multiple simultaneous UI function calls into a single HTTP request automatically?
+- How do I signal that an edge worker cannot resolve or handle an incoming RPC route?
 - How do I establish a persistent real-time connection with automatic reconnection and upgrade-time authentication?
 - Why should large file uploads use standard HTTP instead of WebSocket connections?
 - How do I run heavy computation in a browser Web Worker or sync state across browser tabs with zero server infrastructure?

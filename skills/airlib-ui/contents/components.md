@@ -476,7 +476,7 @@ export const UserMenu = setup(() => {
 }, 'UserMenu');
 ```
 
-NOTE: Bare `setContext(key, value)` and `getContext(key)` exist as lower-level engine primitives, but `const ctx = createContext<T>()` with `ctx.set()` and `ctx.get()` is the standard, strongly-typed API for application and component code.
+NOTE: Bare `setContext(key, value)` and `getContext(key)` exist as lower-level engine primitives, but `const ctx = createContext<T>()` with `ctx.set()` and `ctx.get()` is the standard, strongly-typed API for application and component code. Each context handle also exposes its unique identifier via `ctx.key` (`symbol`). To run code in an isolated or seeded context without leaks, use `withContext(fn)` or `withContext([[ctx.key, value]], fn)`.
 
 ---
 

@@ -148,6 +148,47 @@ export const RootLayout = setup<RootLayoutProps>(() => {
 }, 'RootLayout');
 ```
 
+### Context Key (`ContextReader.key`)
+
+Every context created via `createContext<T>()` exposes a unique `symbol` via its `.key` property:
+
+```typescript
+export const authCtx = createContext<AuthUser>();
+
+// Unique symbol identifying this context in the underlying AsyncStore
+console.log(authCtx.key); // Symbol(context)
+```
+
+This key allows direct seeding into router resolution tuples or `withContext()` calls without maintaining separate manual symbol definitions.
+
+---
+
+## Executing in Isolated Context (`withContext`)
+
+Use `withContext` to run code within an isolated async context scope, preventing cross-request state pollution during SSR, background jobs, or testing:
+
+```typescript
+import { withContext, createContext } from '@airlib/react'; // or '@airlib/solid'
+
+export const tenantCtx = createContext<{ tenantId: string }>();
+
+const result = withContext(() => {
+  tenantCtx.set({ tenantId: 'tenant-abc' });
+  return tenantCtx.get();
+});
+```
+
+To initialize the isolated scope with values before execution, pass key-value seed tuples:
+
+```typescript
+import { withContext } from '@airlib/react';
+import { tenantCtx } from './context.js';
+
+const output = await withContext([[tenantCtx.key, { tenantId: 'tenant-xyz' }]], async () => {
+  return await processTenantJob();
+});
+```
+
 ---
 
 ## Reactive Cookies (`cookies`)

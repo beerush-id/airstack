@@ -340,6 +340,7 @@ export const getUser = irpc.declare<GetUserFn>('user.get', {
   maxAge: 60000,            // Cache responses for 60 seconds (by identical arguments)
   coalesce: true,           // Combine concurrent in-flight calls into a single execution
   standalone: false,        // If true, bypasses batching and dispatches as an independent HTTP request
+  bypassLocal: false,       // If true, bypasses local handler execution and dispatches via transport
   timeout: 10000,           // Abort call if it exceeds 10 seconds
   maxRetries: 3,            // Retry attempts for transient transport failures
   retryMode: 'exponential', // 'linear' | 'exponential' backoff
@@ -407,6 +408,20 @@ irpc.invalidate(getUser, 'user-123');
 // Invalidate all cached entries for this function
 irpc.invalidate(getUser);
 ```
+
+### Bypassing Local Execution (`bypassLocal: true`)
+
+When a procedure declaration and its server constructor reside in the same runtime process (such as full-stack SSR or unit tests), IRPC executes the local handler directly in memory by default.
+
+Setting `bypassLocal: true` forces the stub to dispatch through the configured network transport instead of invoking the local handler directly:
+
+```typescript
+export const checkout = irpc.declare<CheckoutFn>('checkout', {
+  bypassLocal: true, // Forces execution through the transport (HTTP/Worker fetch)
+});
+```
+
+This is particularly useful when testing complete HTTP serialization pipelines against worker instances, routing through an API gateway, or dynamically delegating execution to remote instances. Note that `bypassLocal` can also be configured globally across an entire package via `package.configure({ bypassLocal: true })` (see [Distribution](./distribution.md#the-package-system)).
 
 ---
 

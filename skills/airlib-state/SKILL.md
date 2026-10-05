@@ -37,7 +37,7 @@ Saw a symbol, function, or primitive in existing code? Look it up here to find t
 | `effect`, `effect.client`, `effect.async`, `untrack`, `awaited`, `snapshot`, `stringify`, `subscribe`, `sleep`, `debouncer`, `microtask`, `microbatch` | [contents/effects.md](./contents/effects.md) |
 | `query`, `query.data`, `query.status`, `query.start`, `query.abort`, `query.promise`, `undoable` | [contents/async.md](./contents/async.md) |
 | `superList`, `superList.values`, `superList.selection`, `superList.select`, `superList.toggle` | [contents/collections.md](./contents/collections.md) |
-| `cookies`, `cookiePair`, `syncCookies`, `createContext` | [contents/scoping.md](./contents/scoping.md) |
+| `cookies`, `cookiePair`, `syncCookies`, `createContext`, `withContext`, `ContextReader` | [contents/scoping.md](./contents/scoping.md) |
 
 ---
 
@@ -96,6 +96,8 @@ Load this topic when you need to answer:
 - When should state remain strictly local to a component instance?
 - How do I build headless domain stores (factories or classes) decoupled from UI presentation?
 - How do I share state across a component tree without prop drilling or server request pollution?
+- How do I execute operations within an isolated or pre-seeded request scope?
+- How do I reference context identifiers when initializing or inspecting async scopes?
 - How do I manage persistent state synchronized across server and browser using cookies?
 - How do I avoid hydration mismatches when reading cookies on static pre-rendered pages?
 - When is global module state safe to use, and why does it cause cross-request data leaks in SSR?

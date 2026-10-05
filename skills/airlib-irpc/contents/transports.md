@@ -35,8 +35,9 @@ irpc.use(transport);
 ### Server Setup (`HTTPRouter`)
 
 ```typescript
-// server.ts
+// server.ts / worker.ts
 import { HTTPRouter } from '@irpclib/http/router';
+import { envCtx, UnhandledCall } from '@irpclib/irpc';
 import { transport } from '@/src/api.js';
 
 // Load all handler constructors
@@ -44,19 +45,35 @@ import '@/pages/users/constructor.js';
 
 const router = new HTTPRouter(transport);
 
-Bun.serve({
-  port: 3000,
-  fetch(req) {
-    if (req.url.endsWith(transport.endpoint) && req.method === 'POST') {
-      // Seed request context via tuple array
-      return router.resolve(req, [
-        ['token', req.headers.get('authorization')],
-        ['userAgent', req.headers.get('user-agent')],
-      ]);
+export default {
+  async fetch(req: Request, env?: Record<string, unknown>) {
+    const url = new URL(req.url);
+
+    // If route does not match the transport endpoint, signal unhandled call
+    if (url.pathname !== transport.endpoint || req.method !== 'POST') {
+      return new UnhandledCall();
     }
-    return new Response('Not Found', { status: 404 });
+
+    // Seed request context with environment variables and headers
+    return router.resolve(req, [
+      [envCtx.key, env],
+      ['token', req.headers.get('authorization')],
+      ['userAgent', req.headers.get('user-agent')],
+    ]);
   },
-});
+};
+```
+
+### Unhandled Calls (`UnhandledCall`)
+
+When writing edge workers or multi-service routing layers, return `new UnhandledCall()` when a worker cannot resolve or process the request. It returns a standardized 404 JSON response (`Unable to resolve call.`):
+
+```typescript
+import { UnhandledCall } from '@irpclib/irpc';
+
+if (url.pathname !== transport.endpoint) {
+  return new UnhandledCall();
+}
 ```
 
 ### Custom Response Builder

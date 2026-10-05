@@ -141,6 +141,17 @@ export function switchExecutionTarget(target: 'remote' | 'local') {
 
 Caller functions invoke stubs identically regardless of whether execution resolves on a remote server or local Web Worker.
 
+### Bypassing In-Process Handlers (`bypassLocal`)
+
+When building microservice proxies, gateway routers, or running end-to-end integration tests, client stubs and server constructors may coexist in the same Node.js or test process. By default, IRPC executes the local handler directly in memory.
+
+Set `bypassLocal: true` on the package configuration to force calls to route through the assigned `transport` instead of calling the local constructor:
+
+```typescript
+// Force all calls through network transport even if local constructors exist
+billingApi.configure({ bypassLocal: true });
+```
+
 ---
 
 ## Live Observability with `IRPC_STORE`
@@ -177,7 +188,7 @@ In serverless and edge environments (like Cloudflare Workers), runtime instances
 ```typescript
 // src/visitors.ts
 import { Durable } from '@irpclib/irpc';
-import type { StateChange } from '@airlib/core';
+import type { StateChange } from '@airlib/react'; // or '@airlib/solid'
 
 export interface Visitor {
   id: string;

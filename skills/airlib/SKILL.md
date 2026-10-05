@@ -95,8 +95,8 @@ When a task requires deep domain capabilities, load the specialized skill:
 | What are you building? | Load This Skill |
 |---|---|
 | **Components, slots, browser signals, images, dynamic classes/styles (`classx`/`stylex`), unique IDs (`uuid`/`shortId`/`uIndex`), `<Head>` SEO** | `airlib-ui` |
-| **Reactive mutable/immutable state, derived ViewModels, effects, async queries, collections, optimistic updates (`undoable`), timing helpers (`sleep`/`debouncer`/`microtask`), hierarchical layering (`inherit`), non-destructive props overrides (`override`), cookies** | `airlib-state` |
-| **Server RPC functions, handlers, streaming, transports, CRUD adapters, guards, webhooks** | `airlib-irpc` |
+| **Reactive mutable/immutable state, derived ViewModels, effects, async queries, collections, optimistic updates (`undoable`), timing helpers (`sleep`/`debouncer`/`microtask`), hierarchical layering (`inherit`), non-destructive props overrides (`override`), cookies, request context isolation** | `airlib-state` |
+| **Server RPC functions, handlers, streaming, transports, CRUD adapters, guards, webhooks, serverless environment bindings, unhandled route handling, transport execution bypass** | `airlib-irpc` |
 | **Route declarations, programmatic navigation, data loaders (`.provide()`), route guards, modals, sitemaps** | `airlib-routing` |
 | **Form state management, input validation schemas, dirty tracking, submission handling** | `airlib-form` |
 | **Documentation sites, content-driven pages, guides, technical blogs** | `airlib-markdown` |
@@ -113,12 +113,12 @@ When a task requires deep domain capabilities, load the specialized skill:
 | Symbol / Keyword Seen in Code | Skill to Load |
 |---|---|
 | `setup`, `template`, `Slot`, `Snippet`, `LIVE_*`, `Image`, `classx`, `stylex`, `uuid`, `shortId`, `uIndex`, `Head`, `@airlib/react`, `@airlib/solid`, `@airlib/react/utils`, `@airlib/solid/utils` | `airlib-ui` |
-| `mutable`, `immutable`, `derived`, `effect`, `computed`, `ref`, `undoable`, `inherit`, `override`, `sleep`, `debouncer`, `microtask`, `microbatch`, `@airlib/core`, `@airlib/react`, `@airlib/solid`, `@airlib/react/utils`, `@airlib/solid/utils` | `airlib-state` |
-| `irpc`, `declare`, `construct`, `stream`, `RemoteState`, `IRPCTransport`, `@irpclib/irpc` | `airlib-irpc` |
+| `mutable`, `immutable`, `derived`, `effect`, `computed`, `ref`, `undoable`, `inherit`, `override`, `sleep`, `debouncer`, `microtask`, `microbatch`, `createContext`, `withContext`, `@airlib/react`, `@airlib/solid`, `@airlib/react/utils`, `@airlib/solid/utils` | `airlib-state` |
+| `irpc`, `declare`, `construct`, `stream`, `RemoteState`, `IRPCTransport`, `envCtx`, `getEnv`, `UnhandledCall`, `bypassLocal`, `withContext`, `@irpclib/irpc` | `airlib-irpc` |
 | `rootRoute`, `route`, `guard`, `provide`, `render`, `redirect`, `modal`, `sitemap`, `@airlib/router` | `airlib-routing` |
 | `createForm`, `TextInput`, `EmailInput`, `Textarea`, `formState`, `@airlib/react-form`, `@airlib/solid-form` | `airlib-form` |
 | `.page.mdx`, `.mdx`, `$state`, `:::note`, `:::tip`, `:::code-group`, `:::interactive`, `:badge`, `@airlib/react/mdx` | `airlib-markdown` |
-| `plan`, `plan<T>()`, `WorkflowStepper`, `.switch()`, `.when()`, `.with()`, `.later()`, `WORKFLOW_STORE`, `@irpclib/irpc`, `@airlib/core` | `airlib-workflow` |
+| `plan`, `plan<T>()`, `WorkflowStepper`, `.switch()`, `.when()`, `.with()`, `.later()`, `WORKFLOW_STORE`, `@irpclib/irpc`, `@airlib/react`, `@airlib/solid` | `airlib-workflow` |
 | `persistent`, `session`, `createKVStore`, `kv`, `createTable`, `@airlib/storage`, `@airlib/storage/db` | `airlib-storage` |
 | `write`, `read`, `stat`, `exists`, `mkdir`, `list`, `search`, `copy`, `move`, `link`, `remove`, `restore`, `fsContext`, `createFs`, `createWorker`, `@irpclib/r2-file`, `@irpclib/r2-file/worker`, `@irpclib/r2-file/fs` | `airlib-r2-file` |
 | `upload`, `url`, `resize`, `info`, `remove`, `createWorker`, `ImageResizer`, `@irpclib/r2-image`, `@irpclib/r2-image/worker` | `airlib-r2-image` |

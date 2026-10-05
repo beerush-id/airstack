@@ -31,7 +31,7 @@ Saw a symbol, component, or utility in existing UI code? Look it up here to find
 
 | Symbol / Keyword Seen in Code | Topic Guide to Read |
 |---|---|
-| `setup`, `template`, `$bind`, `Bindable`, `createContext`, `setContext`, `getContext`, `renderDynamic`, `$use`, `derived`, `onMount`, `onCleanup`, `uuid`, `shortId`, `uIndex` | [contents/components.md](./contents/components.md) |
+| `setup`, `template`, `$bind`, `Bindable`, `createContext`, `withContext`, `setContext`, `getContext`, `renderDynamic`, `$use`, `derived`, `onMount`, `onCleanup`, `uuid`, `shortId`, `uIndex` | [contents/components.md](./contents/components.md) |
 | `<Slot>`, `<Component.Snippet>`, `snippets` | [contents/slots.md](./contents/slots.md) |
 | `<Snippet>`, `snippet()`, `<Show>`, `<For>` | [contents/rendering.md](./contents/rendering.md) |
 | `LIVE_KEYBOARD`, `LIVE_CURSOR`, `LIVE_SCROLL`, `LIVE_SELECTION`, `LIVE_DND`, `LIVE_MEDIA`, `LIVE_WINDOW`, `LIVE_NETWORK`, `LIVE_GEO`, `LIVE_CLIPBOARD`, `acceptInteractions`, `cursorRef`, `scrollRef`, `keyboardRef`, `mediaQuery` | [contents/browser.md](./contents/browser.md) |

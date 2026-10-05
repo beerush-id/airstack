@@ -264,9 +264,83 @@ irpc.construct(getUserData, async () => {
 });
 ```
 
+Alternatively, define a typed context handle at module level using `createContext`:
+
+```typescript
+import { createContext } from '@irpclib/irpc';
+
+export const userCtx = createContext<User>();
+
+irpc.construct(getUserData, async () => {
+  const user = userCtx.get();
+  if (!user) {
+    throw new Error('Unauthorized');
+  }
+  return db.userData.forUser(user.id);
+});
+```
+
+### Executing in Isolated Context (`withContext`)
+
+Use `withContext` to execute asynchronous operations within an isolated request scope:
+
+```typescript
+import { withContext } from '@irpclib/irpc';
+
+await withContext(async () => {
+  await processBatch();
+});
+```
+
+To pre-populate the isolated context with initial values before execution, pass key-value seed tuples:
+
+```typescript
+import { withContext } from '@irpclib/irpc';
+import { userCtx } from './context.js';
+
+const result = await withContext([[userCtx.key, { id: 'usr-123', name: 'Alice' }]], async () => {
+  return await getUserData();
+});
+```
+
+### Runtime Environment Variables (`envCtx`, `getEnv`)
+
+In serverless and edge environments (such as Cloudflare Workers or Bun), environment bindings are passed at runtime to the worker's `fetch(request, env)` handler. Rather than threading `env` through every function call, workers seed `envCtx` into the router:
+
+```typescript
+// worker.ts
+import { envCtx } from '@irpclib/irpc';
+
+export default {
+  async fetch(req: Request, env: Env) {
+    return router.resolve(req, [
+      [envCtx.key, env],
+    ]);
+  },
+};
+```
+
+Handlers, middleware, and backend drivers retrieve environment variables anywhere in the call stack using `getEnv<T>()`:
+
+```typescript
+import { getEnv } from '@irpclib/irpc';
+
+export interface AppEnv {
+  DATABASE_URL: string;
+  KIE_API_KEY: string;
+}
+
+irpc.construct(generateAsset, async (prompt: string) => {
+  // Reads from envCtx with optional fallback values
+  const { KIE_API_KEY } = getEnv<AppEnv>({ KIE_API_KEY: 'default-dev-key' });
+  const client = new VendorClient({ apiKey: KIE_API_KEY });
+  return client.create(prompt);
+});
+```
+
 ### Reactive Cookies in Handlers
 
-Handlers can directly mutate isomorphic reactive cookies from `@airlib/core`. Cookie mutations inside a handler automatically configure `Set-Cookie` response headers on the HTTP transport.
+Handlers can directly mutate isomorphic reactive cookies from `@airlib/react` (or `@airlib/solid`). Cookie mutations inside a handler automatically configure `Set-Cookie` response headers on the HTTP transport.
 
 IMPORTANT: Any procedure that mutates or clears cookies **must** be declared with `standalone: true` on the client stub (see [Declarations: Standalone Requests](./declarations.md#standalone-requests-standalone-true)). This bypasses the microtask batching window so the call dispatches as an isolated HTTP request whose `Set-Cookie` response headers are processed immediately by the browser.
 
@@ -274,7 +348,7 @@ IMPORTANT: Any procedure that mutates or clears cookies **must** be declared wit
 // pages/auth/constructor.ts
 import { irpc } from '@/src/api.js';
 import { login, logout, type SessionData } from './function.js';
-import { cookies } from '@airlib/core';
+import { cookies } from '@airlib/react'; // or '@airlib/solid'
 
 // Login: sets authentication cookies on dedicated response
 irpc.construct(login, async ({ email, password }) => {

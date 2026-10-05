@@ -200,6 +200,11 @@ describe('Checkout Integration Flow', () => {
       expect(result.status).toBe('completed');
     });
   });
+
+  it('returns UnhandledCall (404) for routes not handled by worker', async () => {
+    const response = await worker.fetch(new Request('http://localhost/unknown'));
+    expect(response.status).toBe(404);
+  });
 });
 ```
 
