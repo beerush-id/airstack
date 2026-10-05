@@ -1,0 +1,273 @@
+---
+nav: 'Tracks & Segments'
+nav-priority: 81
+title: 'Multi-Track Composition & Segments'
+description: 'Structure complex compositions with dedicated media tracks, bounded clip segments, speed scaling, and repeating playback cycles.'
+keywords:
+  - AirLib
+  - Timeline
+  - Tracks
+  - Segments
+  - Video Tracks
+  - Audio Tracks
+  - Repeat Cycles
+---
+
+# Tracks & Segments
+
+A composition is structured as a collection of synchronized parallel **tracks**, each containing sequential or overlapping bounded **segments** (clips).
+
+## Multi-Track Architecture
+
+Tracks act as independent media lanes on the master timeline. Each track can represent a specific consumer type such as `'video'`, `'audio'`, `'webgl'`, or `'html'`:
+
+```typescript
+const videoTrack = timeline.addTrack({
+  name: 'main-camera',
+  type: 'video',
+  meta: { source: '/assets/intro.mp4' },
+});
+
+const audioTrack = timeline.addTrack({
+  name: 'soundtrack',
+  type: 'audio',
+});
+```
+
+### Track Options
+
+| Property | Type | Description |
+|---|---|---|
+| `name` | `string` | Optional descriptive label for editor UI representations. |
+| `type` | `string` | Consumer classification (e.g. `'video'`, `'audio'`, `'html'`, `'shader'`). |
+| `meta` | `Record<string, unknown>` | Custom consumer payload or asset paths. |
+| `disabled` | `boolean` | When `true`, all child segments skip playback updates. |
+
+## Bounded Segments
+
+Segments represent finite time windows on a track. They define where playback starts, how long the clip lasts, and how fast it advances:
+
+```typescript
+const clip = videoTrack.addSegment({
+  name: 'hero-shot',
+  duration: 4,      // 4 seconds
+  startFrame: 0,    // Starts at discrete frame 0 (source of truth)
+  speed: 1,         // Normal playback rate
+  repeat: 1,        // Repeat once (total 2 cycles)
+});
+
+// Or position using continuous seconds (automatically converted to startFrame):
+const cueClip = videoTrack.addSegment({
+  name: 'cue-shot',
+  duration: 2,
+  startTime: 1.5,   // Converted to startFrame (e.g. frame 45 at 30fps)
+});
+```
+
+### Segment Initialization Options
+
+`track.addSegment()` accepts both seconds-based and discrete frame-based initializers:
+
+| Property | Type | Description |
+|---|---|---|
+| `startTime` | `number` | Starting position in seconds; converted to `startFrame` at the timeline's frame rate. |
+| `startFrame` | `number` | Discrete frame integer on the master timeline where playback begins (source of truth). |
+| `duration` | `number` | Nominal duration in seconds for a single playback cycle. |
+| `speed` | `number` | Playback rate multiplier (default: `1`). |
+| `repeat` | `boolean \| number` | Repetition count or `true` for infinite continuous looping. |
+| `name` | `string` | Optional descriptive label for landmark cues and editor tracks. |
+| `type` | `string` | Consumer classification (e.g. `'video'`, `'audio'`, `'webgl'`). |
+| `disabled` | `boolean` | When `true`, playback updates are skipped for this segment. |
+
+### Segment Timing Properties
+
+Segments automatically translate between discrete engine frames and continuous real-world seconds based on the timeline's `frameRate`:
+
+- **`startFrame`**: The integer frame index on the master timeline where playback begins (read/write).
+- **`startTime`**: The starting offset in seconds (read/write, updates `startFrame`).
+- **`duration`**: Nominal duration in seconds for a single playback cycle.
+- **`totalFrames`**: Total frame count for a single playback cycle (`duration * frameRate / speed`).
+- **`totalTime`**: Duration in seconds for a single playback cycle.
+- **`endFrame`**: The inclusive final frame index across all repeated cycles.
+- **`active`**: Boolean indicating whether the master playhead is currently within this segment's active window.
+
+:::tip[Inclusive Frame Endpoints]
+In a 0-indexed engine running at 30fps, a 2-second segment starting at frame `0` spans frames `0` through `59` (`endFrame = 59`). The 60th frame marks the completed 2-second boundary.
+:::
+
+## Repetition Cycles
+
+Segments support both fixed-count repetitions and infinite looping:
+
+```typescript
+// Single play (default: 1 cycle)
+const single = track.addSegment({ duration: 2, startFrame: 0 });
+console.log(single.cycles); // 1
+
+// Fixed repeat: repeat 2 times after initial play (3 cycles total)
+const thrice = track.addSegment({ duration: 2, startFrame: 0, repeat: 2 });
+console.log(thrice.cycles); // 3
+
+// Infinite continuous loop
+const loop = track.addSegment({ duration: 2, startFrame: 0, repeat: true });
+console.log(loop.cycles); // 1 (laid out as a single cycle on the ruler)
+```
+
+## Muting and Disabling
+
+You can disable an entire track or individual segments without removing them from your composition:
+
+```typescript
+// Muting a track disables all contained segments
+audioTrack.disabled = true;
+
+// Muting a single segment
+clip.disabled = true;
+```
+
+When a segment is disabled, its local status remains `'idle'`, keyframe transitions are skipped, and its playhead resets to frame 0.
+
+## Component Example
+
+Here is how you compose multiple tracks and manage clip states inside an AirLib component:
+
+:::code-group
+
+```tsx [React]
+import { setup, Snippet } from '@airlib/react';
+import { createTimeline } from '@airlib/react/timeline';
+
+export const MultiTrackEditor = setup(() => {
+  const timeline = createTimeline({ frameRate: 30 });
+
+  const video = timeline.addTrack({ name: 'Video Layer', type: 'video' });
+  const audio = timeline.addTrack({ name: 'Background Music', type: 'audio' });
+
+  const intro = video.addSegment({ name: 'Intro', duration: 3, startFrame: 0 });
+  const main = video.addSegment({ name: 'Main Feature', duration: 6, startFrame: 90 });
+  const bgm = audio.addSegment({ name: 'Looping Track', duration: 4, startFrame: 0, repeat: true });
+
+  return () => (
+    <div className="flex flex-col gap-4 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900">
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Timeline Tracks</h3>
+        <Snippet>
+          {() => (
+            <span className="text-sm font-mono text-zinc-500">
+              Total Duration: {timeline.totalTime.toFixed(1)}s ({timeline.totalFrames} frames)
+            </span>
+          )}
+        </Snippet>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        {Array.from(timeline.tracks).map((track) => (
+          <div key={track.id} className="p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{track.name}</span>
+              <Snippet>
+                {() => (
+                  <button
+                    onClick={() => {
+                      track.disabled = !track.disabled;
+                    }}
+                    className={`text-xs px-2 py-0.5 rounded font-medium ${
+                      track.disabled ? 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400' : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400'
+                    }`}
+                  >
+                    {track.disabled ? 'Muted' : 'Active'}
+                  </button>
+                )}
+              </Snippet>
+            </div>
+
+            <div className="flex gap-2">
+              {Array.from(track.segments).map((seg) => (
+                <Snippet key={seg.id}>
+                  {() => (
+                    <div
+                      className={`px-3 py-1.5 rounded text-xs border ${
+                        seg.active
+                          ? 'border-blue-500 bg-blue-50 text-blue-800 dark:bg-blue-950 dark:text-blue-300'
+                          : 'border-zinc-200 bg-zinc-50 text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400'
+                      }`}
+                    >
+                      {seg.name} ({seg.duration}s)
+                    </div>
+                  )}
+                </Snippet>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}, 'MultiTrackEditor');
+```
+
+```tsx [SolidJS]
+import { setup } from '@airlib/solid';
+import { createTimeline } from '@airlib/solid/timeline';
+
+export const MultiTrackEditor = setup(() => {
+  const timeline = createTimeline({ frameRate: 30 });
+
+  const video = timeline.addTrack({ name: 'Video Layer', type: 'video' });
+  const audio = timeline.addTrack({ name: 'Background Music', type: 'audio' });
+
+  const intro = video.addSegment({ name: 'Intro', duration: 3, startFrame: 0 });
+  const main = video.addSegment({ name: 'Main Feature', duration: 6, startFrame: 90 });
+  const bgm = audio.addSegment({ name: 'Looping Track', duration: 4, startFrame: 0, repeat: true });
+
+  timeline.refresh();
+
+  return (
+    <div className="flex flex-col gap-4 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900">
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Timeline Tracks</h3>
+        <span className="text-sm font-mono text-zinc-500">
+          Total Duration: {timeline.totalTime.toFixed(1)}s ({timeline.totalFrames} frames)
+        </span>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        {Array.from(timeline.tracks).map((track) => (
+          <div key={track.id} className="p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-zinc-800 dark:text-zinc-200">{track.name}</span>
+              <button
+                onClick={() => {
+                  track.disabled = !track.disabled;
+                }}
+                className={`text-xs px-2 py-0.5 rounded font-medium ${
+                  track.disabled ? 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400' : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400'
+                }`}
+              >
+                {track.disabled ? 'Muted' : 'Active'}
+              </button>
+            </div>
+
+            <div className="flex gap-2">
+              {Array.from(track.segments).map((seg) => (
+                <div
+                  key={seg.id}
+                  className={`px-3 py-1.5 rounded text-xs border ${
+                    seg.active
+                      ? 'border-blue-500 bg-blue-50 text-blue-800 dark:bg-blue-950 dark:text-blue-300'
+                      : 'border-zinc-200 bg-zinc-50 text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400'
+                  }`}
+                >
+                  {seg.name} ({seg.duration}s)
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}, 'MultiTrackEditor');
+```
+
+:::

@@ -13,6 +13,7 @@ import remoteFunctionMeta from '@airlib-cache/metadata/(docs)/remote-function/in
 import routingMeta from '@airlib-cache/metadata/(docs)/routing/index.js';
 import stateMeta from '@airlib-cache/metadata/(docs)/state-management/index.js';
 import storageMeta from '@airlib-cache/metadata/(docs)/storage/index.js';
+import timelineMeta from '@airlib-cache/metadata/(docs)/timeline/index.js';
 import uiMeta from '@airlib-cache/metadata/(docs)/user-interface/index.js';
 import workflowMeta from '@airlib-cache/metadata/(docs)/workflow/index.js';
 import type { ComponentType } from 'react';
@@ -33,6 +34,7 @@ import {
   StateManagementIcon,
   StorageIcon,
   StyleIcon,
+  TimelineIcon,
   UserInterfaceIcon,
   WidgetsIcon,
   WorkflowIcon,
@@ -62,6 +64,7 @@ const ICONS: Record<string, ComponentType> = {
   tree: WorkflowIcon,
   workflow: WorkflowIcon,
   workflows: WorkflowIcon,
+  timeline: TimelineIcon,
   'data-object': StateManagementIcon,
   object: StateManagementIcon,
   state: StateManagementIcon,
@@ -140,6 +143,12 @@ export const navs: NavItem[] = [
     icon: () => <WorkflowIcon />,
     collapsed: true,
     items: toNavItems(workflowMeta),
+  },
+  {
+    text: 'Timeline',
+    icon: () => <WorkflowIcon />,
+    collapsed: true,
+    items: toNavItems(timelineMeta),
   },
   {
     text: 'User Interface',

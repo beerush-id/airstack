@@ -1,0 +1,317 @@
+---
+nav: 'Overview'
+nav-icon: timeline
+nav-priority: 80
+title: 'Timeline & Animation'
+description: 'Real-time multi-track animation and media coordination — schedule discrete frames, coordinate tracks, interpolate keyframe scenes, and manage playback with reactive precision.'
+keywords:
+  - AirLib
+  - Timeline
+  - Animation
+  - Keyframes
+  - Multi-Track
+  - Playback
+  - Media
+---
+
+# Timeline & Animation
+
+**Real-Time Multi-Track Animation & Media Coordination**
+
+You want to build an interactive video editor, coordinate complex multi-element animations, sync audio cues with UI transitions, or drive WebGL shader keyframes. To build this from scratch, you are forced to:
+
+- Juggle loose **`requestAnimationFrame`** loops and fallback timers that drift out of sync across browser tabs.
+- Manually calculate **frame-to-seconds** conversions across separate components.
+- Hand-roll **keyframe interpolation** and normalized progress calculations (`0` to `1`).
+- Wire custom **play**, **pause**, **seek**, and **loop** logic for every individual track.
+- Re-render entire component trees on every frame tick, causing **dropped frames** and UI stutter.
+- Build complex **scrubbing**, **snapping**, and **cue-point bookmarks** from scratch.
+
+Whichever way you structure it, creative animation logic is quickly **buried** under timer management, synchronization math, and performance bottlenecks.
+
+:::tip[What if:]
+Multi-track animation was driven by a single, fine-grained **reactive master clock** with native frame-rate synchronization?
+:::
+
+```typescript
+const timeline = createTimeline({ frameRate: 30 });
+
+const videoTrack = timeline.addTrack({ name: 'video', type: 'video' });
+const fxTrack = timeline.addTrack({ name: 'effects', type: 'webgl' });
+
+const clip = videoTrack.addSegment({ name: 'intro', duration: 4, startFrame: 0 });
+const fx = fxTrack.addSegment({ name: 'blur-in', duration: 2, startFrame: 0 });
+
+fx.addScene({ atFrame: 0, name: 'clear' }, { blur: 0, opacity: 1 });
+fx.addScene({ atFrame: 59, name: 'blurred' }, { blur: 10, opacity: 0.2 });
+
+fx.onTransition(({ from, to, progress }) => {
+  console.log(`Transitioning from ${from.name} to ${to?.name}: ${progress * 100}%`);
+});
+```
+
+:::code-group
+
+```tsx [React]
+import { setup, Snippet } from '@airlib/react';
+import { createTimeline } from '@airlib/react/timeline';
+
+export const VideoPreview = setup(() => {
+  const timeline = createTimeline({ frameRate: 30 });
+
+  const videoTrack = timeline.addTrack({ name: 'video', type: 'video' });
+  videoTrack.addSegment({ name: 'cut-1', duration: 5, startFrame: 0 });
+
+  const fxTrack = timeline.addTrack({ name: 'fx', type: 'html' });
+  const fade = fxTrack.addSegment({ name: 'fade-in', duration: 2, startFrame: 0 });
+  fade.addScene({ atFrame: 0, name: 'hidden' }, { opacity: 0 });
+  fade.addScene({ atFrame: 59, name: 'visible' }, { opacity: 1 });
+
+  return () => (
+    <div className="flex flex-col gap-4 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900">
+      <div className="flex items-center justify-between text-sm">
+        <Snippet>
+          {() => (
+            <span className="font-mono text-zinc-500">
+              Frame: {timeline.frame} / {timeline.totalFrames} ({timeline.time.toFixed(2)}s)
+            </span>
+          )}
+        </Snippet>
+        <Snippet>
+          {() => (
+            <span className="px-2 py-0.5 rounded text-xs font-medium uppercase tracking-wider bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
+              {timeline.status}
+            </span>
+          )}
+        </Snippet>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <Snippet>
+          {() => (
+            <button
+              onClick={() => (timeline.status === 'playing' ? timeline.pause() : timeline.play())}
+              className="px-3 py-1.5 rounded-lg text-sm font-medium bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+            >
+              {timeline.status === 'playing' ? 'Pause' : 'Play'}
+            </button>
+          )}
+        </Snippet>
+        <button
+          onClick={() => timeline.stop()}
+          className="px-3 py-1.5 rounded-lg text-sm font-medium border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300"
+        >
+          Stop
+        </button>
+        <Snippet>
+          {() => (
+            <input
+              type="range"
+              min={0}
+              max={timeline.totalFrames}
+              value={timeline.frame}
+              onInput={(e) => timeline.scrub(Number(e.currentTarget.value))}
+              className="flex-1 cursor-pointer"
+            />
+          )}
+        </Snippet>
+      </div>
+    </div>
+  );
+}, 'VideoPreview');
+```
+
+```tsx [SolidJS]
+import { setup } from '@airlib/solid';
+import { createTimeline } from '@airlib/solid/timeline';
+
+export const VideoPreview = setup(() => {
+  const timeline = createTimeline({ frameRate: 30 });
+
+  const videoTrack = timeline.addTrack({ name: 'video', type: 'video' });
+  videoTrack.addSegment({ name: 'cut-1', duration: 5, startFrame: 0 });
+
+  const fxTrack = timeline.addTrack({ name: 'fx', type: 'html' });
+  const fade = fxTrack.addSegment({ name: 'fade-in', duration: 2, startFrame: 0 });
+  fade.addScene({ atFrame: 0, name: 'hidden' }, { opacity: 0 });
+  fade.addScene({ atFrame: 59, name: 'visible' }, { opacity: 1 });
+
+  return (
+    <div className="flex flex-col gap-4 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900">
+      <div className="flex items-center justify-between text-sm">
+        <span className="font-mono text-zinc-500">
+          Frame: {timeline.frame} / {timeline.totalFrames} ({timeline.time.toFixed(2)}s)
+        </span>
+        <span className="px-2 py-0.5 rounded text-xs font-medium uppercase tracking-wider bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
+          {timeline.status}
+        </span>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => (timeline.status === 'playing' ? timeline.pause() : timeline.play())}
+          className="px-3 py-1.5 rounded-lg text-sm font-medium bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+        >
+          {timeline.status === 'playing' ? 'Pause' : 'Play'}
+        </button>
+        <button
+          onClick={() => timeline.stop()}
+          className="px-3 py-1.5 rounded-lg text-sm font-medium border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300"
+        >
+          Stop
+        </button>
+        <input
+          type="range"
+          min={0}
+          max={timeline.totalFrames}
+          value={timeline.frame}
+          onInput={(e) => timeline.scrub(Number(e.currentTarget.value))}
+          className="flex-1 cursor-pointer"
+        />
+      </div>
+    </div>
+  );
+}, 'VideoPreview');
+```
+
+:::
+
+Because the **Timeline API** is environment-agnostic, you can execute frame scheduling anywhere JavaScript runs — in the **browser** via native `requestAnimationFrame`, or in **SSR**, **Node.js**, **Bun**, and **Cloudflare Workers** via budgeted interval fallbacks.
+
+## Interactive Playground
+
+Experience fine-grained multi-track animation and reactive playback controls in real time:
+
+:::interactive[Live Timeline Playground]
+```tsx
+import { setup, mutable, Snippet } from '@airlib/react';
+import { createTimeline } from '@airlib/react/timeline';
+
+const InteractiveTimelineDemo = setup(() => {
+  const timeline = createTimeline({ frameRate: 120 });
+  const track = timeline.addTrack({ name: 'Visual Animation', type: 'css' });
+  const segment = track.addSegment({ name: 'Motion', duration: 3, startTime: 0 });
+
+  segment.addScene({ atTime: 0, name: 'Start' }, { x: 0, scale: 1, color: '#3b82f6' });
+  segment.addScene({ atTime: 1.5, name: 'Peak' }, { x: 140, scale: 1.25, color: '#8b5cf6' });
+  segment.addScene({ atTime: 3, name: 'Finish' }, { x: 280, scale: 1, color: '#ec4899' });
+
+  timeline.addMarker({ atTime: 0, name: 'Intro' });
+  timeline.addMarker({ atTime: 1.5, name: 'Peak' });
+  timeline.addMarker({ atTime: 3, name: 'Outro' });
+
+  const currentX = mutable(0);
+  const currentScale = mutable(1);
+  const currentColor = mutable('#3b82f6');
+
+  segment.onTransition(({ from, to, progress }) => {
+    if (!to) {
+      currentX.value = from.data.x as number;
+      currentScale.value = from.data.scale as number;
+      currentColor.value = from.data.color as string;
+      return;
+    }
+
+    const startX = from.data.x as number;
+    const endX = to.data.x as number;
+    const startScale = from.data.scale as number;
+    const endScale = to.data.scale as number;
+
+    currentX.value = startX + (endX - startX) * progress;
+    currentScale.value = startScale + (endScale - startScale) * progress;
+    currentColor.value = progress < 0.5 ? (from.data.color as string) : (to.data.color as string);
+  });
+
+  return () => (
+    <div className="flex flex-col gap-4 p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-900/70 backdrop-blur-sm">
+      <div className="relative h-28 bg-white dark:bg-zinc-950 rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 overflow-hidden flex items-center px-6">
+        <Snippet>
+          {() => (
+            <div
+              className="size-14 rounded-2xl flex flex-col items-center justify-center font-bold text-white text-xs shadow-lg will-change-transform select-none"
+              style={{
+                transform: `translate3d(${currentX.value}px, 0, 0) scale(${currentScale.value})`,
+                backgroundColor: currentColor.value,
+              }}
+            >
+              <span className="text-[10px] uppercase tracking-wider opacity-80">Scene</span>
+              <span>{segment.activeScene?.name ?? 'Start'}</span>
+            </div>
+          )}
+        </Snippet>
+      </div>
+
+      <div className="flex items-center justify-between text-xs font-mono">
+        <div className="flex items-center gap-2">
+          <Snippet>
+            {() => (
+              <>
+                <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+                  {timeline.time.toFixed(2)}s
+                </span>
+                <span className="text-zinc-400">
+                  / {timeline.totalTime.toFixed(2)}s (Frame {timeline.frame} / {timeline.totalFrames})
+                </span>
+              </>
+            )}
+          </Snippet>
+        </div>
+        <div className="flex items-center gap-1.5">
+          {Array.from(timeline.markers).map((marker) => (
+            <button
+              key={marker.id}
+              onClick={() => timeline.scrub(marker.atFrame)}
+              className="text-[11px] px-2 py-0.5 rounded font-medium bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 transition-colors"
+            >
+              {marker.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3">
+        <Snippet>
+          {() => (
+            <button
+              onClick={() => (timeline.status === 'playing' ? timeline.pause() : timeline.play())}
+              className="px-4 py-1.5 rounded-lg text-sm font-semibold bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-sm hover:opacity-90 transition-opacity"
+            >
+              {timeline.status === 'playing' ? 'Pause' : 'Play'}
+            </button>
+          )}
+        </Snippet>
+        <button
+          onClick={() => timeline.stop()}
+          className="px-3 py-1.5 rounded-lg text-sm font-medium border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+        >
+          Stop
+        </button>
+        <Snippet>
+          {() => (
+            <input
+              type="range"
+              min={0}
+              max={timeline.totalFrames}
+              value={timeline.frame}
+              onInput={(e) => timeline.scrub(Number(e.currentTarget.value))}
+              className="flex-1 accent-blue-600 cursor-pointer"
+            />
+          )}
+        </Snippet>
+      </div>
+    </div>
+  );
+}, 'InteractiveTimelineDemo');
+```
+
+<InteractiveTimelineDemo />
+:::
+
+## Deep Dives
+
+Explore the core architectural pillars of the Timeline engine:
+
+- **[Tracks & Segments](/docs/timeline/tracks-segments)**: Structure compositions with dedicated media tracks, bounded clip segments, speed scaling, and repeat cycles.
+- **[Scenes & Transitions](/docs/timeline/scenes)**: Position declarative keyframe scenes on segments and interpolate values seamlessly with normalized progress calculation.
+- **[Playback & Transport](/docs/timeline/playback)**: Drive preview clocks, seek across time, scrub discrete frames, step frame-by-frame, and navigate cue point markers.
+- **[Persistence & Hydration](/docs/timeline/persistence)**: Persist entire timeline projects as plain JSON schemas and hydrate compositions across client and server environments.

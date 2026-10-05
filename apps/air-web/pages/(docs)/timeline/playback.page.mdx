@@ -1,0 +1,337 @@
+---
+nav: 'Playback & Transport'
+nav-priority: 83
+title: 'Playback & Transport Controls'
+description: 'Drive preview clocks, seek across time, scrub discrete frames, step frame-by-frame, and navigate cue point markers.'
+keywords:
+  - AirLib
+  - Timeline
+  - Playback
+  - Transport
+  - Scrubbing
+  - Seeking
+  - Markers
+  - Landmarks
+---
+
+# Playback & Transport Controls
+
+The Timeline coordinator drives an internal animation clock powered by `requestAnimationFrame` in the browser and budgeted timer fallbacks in server/SSR environments.
+
+## Transport Methods
+
+Control timeline playback with dedicated transport methods:
+
+```typescript
+const pauseTeardown = timeline.play();
+timeline.pause();
+timeline.stop();
+
+timeline.seek(2.5);
+timeline.scrub(60);
+
+timeline.step(1);
+timeline.step(-5);
+```
+
+### Transport Operations
+
+| Method | Parameters | Description |
+|---|---|---|
+| `play()` | `startFrame?: number` | Begins ticking playback; returns a teardown function to pause. |
+| `pause()` | None | Pauses playback at the current frame without resetting. |
+| `stop()` | None | Halts playback and resets both `frame` and `time` to 0. |
+| `seek()` | `time: number` | Moves the playhead to continuous seconds, snapping to nearest frame. |
+| `scrub()` | `frame: number` | Moves the playhead directly to a discrete frame integer. |
+| `step()` | `delta = 1` | Advances or rewinds the playhead by relative frame offsets. |
+
+## Playback Speed & Limits
+
+Control global playback rate and constrain playback bounds using properties:
+
+```typescript
+// Double-speed playback (2x fast-forward)
+timeline.speed = 2;
+
+// Half-speed slow motion (0.5x)
+timeline.speed = 0.5;
+
+// Constrain playback to a work area using discrete frames:
+timeline.startFrame = 30;
+timeline.endFrame = 120;
+
+// Or constrain playback using continuous seconds:
+timeline.startTime = 1.0;
+timeline.endTime = 4.0;
+```
+
+When looping is enabled (`timeline.repeat = true` or `timeline.repeat = 2`), playback automatically wraps around to `startFrame` when reaching `endFrame`.
+
+## Markers & Landmark Navigation
+
+Markers act as cue points, chapter bookmarks, or snap targets along the timeline:
+
+```typescript
+// Add chapter markers using discrete frame numbers (canonical)
+const chapter1 = timeline.addMarker({ atFrame: 0, name: 'Intro' });
+const chapter2 = timeline.addMarker({ atFrame: 90, name: 'Chorus' });
+
+// Or add markers using continuous seconds (automatically converted to atFrame)
+const chapter3 = timeline.addMarker({ atTime: 8, name: 'Outro' });
+
+// Markers expose both atFrame and atTime properties
+console.log(chapter2.atFrame); // 90 at 30fps
+console.log(chapter2.atTime);  // 3.0s
+
+// Retrieve all critical snap points across tracks, scenes, and markers
+const landmarks = timeline.getLandmarks();
+console.log(landmarks); // [0, 60, 90, 180, 240, ...]
+
+// Snap playhead to the next or previous landmark
+timeline.next(); // Jumps to next landmark
+timeline.prev(); // Jumps to previous landmark
+```
+
+## Reactive Playback State
+
+The timeline exposes a fine-grained reactive `state` object. Accessing properties like `timeline.frame` or `timeline.time` automatically binds to reactive templates:
+
+```typescript
+const { time, frame, status, totalTime, totalFrames } = timeline.state;
+```
+
+You can also subscribe to raw clock ticks for custom canvas rendering or WebGL loops:
+
+```typescript
+const unsubscribe = timeline.subscribe((state) => {
+  renderCanvasFrame(state.frame, state.time);
+});
+```
+
+## Component Example
+
+Here is a full media transport toolbar with play/pause, scrubbing slider, timecode display, and chapter bookmarks:
+
+:::code-group
+
+```tsx [React]
+import { setup, Snippet } from '@airlib/react';
+import { createTimeline } from '@airlib/react/timeline';
+
+export const MediaTransport = setup(() => {
+  const timeline = createTimeline({ frameRate: 30 });
+  const video = timeline.addTrack({ name: 'Video', type: 'video' });
+  video.addSegment({ name: 'Scene', duration: 10, startFrame: 0 });
+
+  timeline.addMarker({ atFrame: 0, name: 'Intro' });
+  timeline.addMarker({ atFrame: 90, name: 'Action' });
+  timeline.addMarker({ atFrame: 210, name: 'Ending' });
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    const ms = Math.floor((seconds % 1) * 100);
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${String(ms).padStart(2, '0')}`;
+  };
+
+  return () => (
+    <div className="flex flex-col gap-4 p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Snippet>
+            {() => (
+              <>
+                <span className="font-mono text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+                  {formatTime(timeline.time)}
+                </span>
+                <span className="text-xs font-mono text-zinc-400">
+                  / {formatTime(timeline.totalTime)} (Frame {timeline.frame})
+                </span>
+              </>
+            )}
+          </Snippet>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          {Array.from(timeline.markers).map((marker) => (
+            <button
+              key={marker.id}
+              onClick={() => timeline.scrub(marker.atFrame)}
+              className="text-xs px-2.5 py-1 rounded-md font-medium bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300"
+            >
+              {marker.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Snippet>
+          {() => (
+            <input
+              type="range"
+              min={0}
+              max={timeline.totalFrames}
+              value={timeline.frame}
+              onInput={(e) => timeline.scrub(Number(e.currentTarget.value))}
+              className="w-full accent-blue-600 cursor-pointer"
+            />
+          )}
+        </Snippet>
+      </div>
+
+      <div className="flex items-center justify-between pt-2 border-t border-zinc-100 dark:border-zinc-800">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => timeline.prev()}
+            className="px-3 py-1.5 rounded-lg text-sm font-medium border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-900"
+          >
+            Prev Cue
+          </button>
+          <Snippet>
+            {() => (
+              <button
+                onClick={() => (timeline.status === 'playing' ? timeline.pause() : timeline.play())}
+                className="px-4 py-1.5 rounded-lg text-sm font-semibold bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-sm"
+              >
+                {timeline.status === 'playing' ? 'Pause' : 'Play'}
+              </button>
+            )}
+          </Snippet>
+          <button
+            onClick={() => timeline.next()}
+            className="px-3 py-1.5 rounded-lg text-sm font-medium border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-900"
+          >
+            Next Cue
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-zinc-500 font-medium">Speed:</span>
+          <Snippet>
+            {() => (
+              <>
+                {[0.5, 1, 2].map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => (timeline.speed = s)}
+                    className={`text-xs px-2 py-1 rounded font-medium ${
+                      timeline.speed === s
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+                    }`}
+                  >
+                    {s}x
+                  </button>
+                ))}
+              </>
+            )}
+          </Snippet>
+        </div>
+      </div>
+    </div>
+  );
+}, 'MediaTransport');
+```
+
+```tsx [SolidJS]
+import { setup } from '@airlib/solid';
+import { createTimeline } from '@airlib/solid/timeline';
+
+export const MediaTransport = setup(() => {
+  const timeline = createTimeline({ frameRate: 30 });
+  const video = timeline.addTrack({ name: 'Video', type: 'video' });
+  video.addSegment({ name: 'Scene', duration: 10, startFrame: 0 });
+
+  timeline.addMarker({ atFrame: 0, name: 'Intro' });
+  timeline.addMarker({ atFrame: 90, name: 'Action' });
+  timeline.addMarker({ atFrame: 210, name: 'Ending' });
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    const ms = Math.floor((seconds % 1) * 100);
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${String(ms).padStart(2, '0')}`;
+  };
+
+  return (
+    <div className="flex flex-col gap-4 p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+            {formatTime(timeline.time)}
+          </span>
+          <span className="text-xs font-mono text-zinc-400">
+            / {formatTime(timeline.totalTime)} (Frame {timeline.frame})
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          {Array.from(timeline.markers).map((marker) => (
+            <button
+              key={marker.id}
+              onClick={() => timeline.scrub(marker.atFrame)}
+              className="text-xs px-2.5 py-1 rounded-md font-medium bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300"
+            >
+              {marker.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <input
+          type="range"
+          min={0}
+          max={timeline.totalFrames}
+          value={timeline.frame}
+          onInput={(e) => timeline.scrub(Number(e.currentTarget.value))}
+          className="w-full accent-blue-600 cursor-pointer"
+        />
+      </div>
+
+      <div className="flex items-center justify-between pt-2 border-t border-zinc-100 dark:border-zinc-800">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => timeline.prev()}
+            className="px-3 py-1.5 rounded-lg text-sm font-medium border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-900"
+          >
+            Prev Cue
+          </button>
+          <button
+            onClick={() => (timeline.status === 'playing' ? timeline.pause() : timeline.play())}
+            className="px-4 py-1.5 rounded-lg text-sm font-semibold bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-sm"
+          >
+            {timeline.status === 'playing' ? 'Pause' : 'Play'}
+          </button>
+          <button
+            onClick={() => timeline.next()}
+            className="px-3 py-1.5 rounded-lg text-sm font-medium border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-900"
+          >
+            Next Cue
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-zinc-500 font-medium">Speed:</span>
+          {[0.5, 1, 2].map((s) => (
+            <button
+              key={s}
+              onClick={() => (timeline.speed = s)}
+              className={`text-xs px-2 py-1 rounded font-medium ${
+                timeline.speed === s
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+              }`}
+            >
+              {s}x
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}, 'MediaTransport');
+```
+
+:::
