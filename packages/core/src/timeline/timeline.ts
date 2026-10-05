@@ -3,7 +3,7 @@ import { assign } from '../engine/helper.js';
 import { mutable, passive } from '../reactive/index.js';
 import { uuid } from '../utils/uuid.js';
 import { animationFrame, cancelFrame, type FrameId, frameToTime, timeToFrame } from './helper.js';
-import { TimelineMarker, type TimelineMarkerOptions, type TimelineMarkerSnapshot } from './marker.js';
+import { TimelineMarker, type TimelineMarkerInit, type TimelineMarkerSnapshot } from './marker.js';
 import { TimelineTrack, type TimelineTrackOptions, type TimelineTrackSnapshot } from './track.js';
 
 export type FrameState = {
@@ -20,6 +20,17 @@ export type TimelineOptions = {
   startFrame?: number;
   endFrame?: number;
   speed?: number;
+};
+
+/**
+ * Initialization options for creating a master timeline coordinator.
+ * Accepts `startTime` and `endTime` in addition to `startFrame` and `endFrame`.
+ */
+export type TimelineInit = Omit<Partial<TimelineOptions>, 'startFrame' | 'endFrame'> & {
+  startFrame?: number;
+  startTime?: number;
+  endFrame?: number;
+  endTime?: number;
 };
 
 export type TimelineSubscriber = (state: FrameState) => void;
@@ -64,10 +75,31 @@ export class Timeline {
   /**
    * Creates a real-time master timeline coordinator.
    *
-   * @param {Partial<TimelineOptions>} [options] - Initial configuration (framerate, speed, bounds, repeat).
+   * @param {TimelineInit} [options] - Initial configuration (framerate, speed, bounds, repeat).
    */
-  constructor(options: Partial<TimelineOptions> = {}) {
-    this.options = mutable({ frameRate: 30, speed: 1, ...options });
+  constructor(options: TimelineInit = {}) {
+    const frameRate = Math.max(1, options.frameRate ?? 30);
+    const startFrame =
+      options.startFrame !== undefined
+        ? Math.max(0, Math.round(options.startFrame))
+        : options.startTime !== undefined
+          ? timeToFrame(options.startTime, frameRate)
+          : undefined;
+    const endFrame =
+      options.endFrame !== undefined
+        ? Math.max(0, Math.round(options.endFrame))
+        : options.endTime !== undefined
+          ? timeToFrame(options.endTime, frameRate)
+          : undefined;
+
+    const { startTime, endTime, ...rest } = options;
+    this.options = mutable<TimelineOptions>({
+      frameRate,
+      speed: 1,
+      ...rest,
+      startFrame,
+      endFrame,
+    });
     this.refresh();
   }
 
@@ -144,6 +176,28 @@ export class Timeline {
   public set endFrame(value: number | undefined) {
     this.options.endFrame = value;
     this.refresh();
+  }
+
+  /**
+   * Minimum time boundary in seconds for playback and looping, derived from startFrame.
+   */
+  public get startTime(): number | undefined {
+    return this.options.startFrame !== undefined ? frameToTime(this.options.startFrame, this.frameRate) : undefined;
+  }
+
+  public set startTime(value: number | undefined) {
+    this.startFrame = value !== undefined ? timeToFrame(value, this.frameRate) : undefined;
+  }
+
+  /**
+   * Maximum time boundary in seconds for playback and looping, derived from endFrame.
+   */
+  public get endTime(): number | undefined {
+    return this.options.endFrame !== undefined ? frameToTime(this.options.endFrame, this.frameRate) : undefined;
+  }
+
+  public set endTime(value: number | undefined) {
+    this.endFrame = value !== undefined ? timeToFrame(value, this.frameRate) : undefined;
   }
 
   /**
@@ -241,11 +295,11 @@ export class Timeline {
   /**
    * Adds a cue point marker to the timeline.
    *
-   * @param {Partial<TimelineMarkerOptions>} [options] - Marker configuration options.
+   * @param {TimelineMarkerInit} [options] - Marker configuration options.
    * @returns {TimelineMarker} The instantiated marker.
    */
   @passive
-  public addMarker(options: Partial<TimelineMarkerOptions> = {}): TimelineMarker {
+  public addMarker(options: TimelineMarkerInit = {}): TimelineMarker {
     return new TimelineMarker(this, options);
   }
 
@@ -613,9 +667,9 @@ export class Timeline {
 /**
  * Creates and initializes a new master Timeline instance.
  *
- * @param {Partial<TimelineOptions>} [options] - Initial configuration (framerate, speed, bounds, repeat).
+ * @param {TimelineInit} [options] - Initial configuration (framerate, speed, bounds, repeat).
  * @returns {Timeline} A configured Timeline coordinator instance.
  */
-export function createTimeline(options?: Partial<TimelineOptions>): Timeline {
+export function createTimeline(options?: TimelineInit): Timeline {
   return new Timeline(options);
 }

@@ -14,6 +14,15 @@ export type TimelineSceneOptions = {
   meta?: Record<string, AnyType>;
 };
 
+/**
+ * Initialization options for creating a keyframe scene.
+ * Accepts either `atFrame` or `atTime` (converted to discrete frame).
+ */
+export type TimelineSceneInit = Omit<Partial<TimelineSceneOptions>, 'atFrame'> & {
+  atFrame?: number;
+  atTime?: number;
+};
+
 export type TimelineSceneSnapshot = {
   id: string;
   options: TimelineSceneOptions;
@@ -45,18 +54,24 @@ export class TimelineScene {
    * Creates a declarative keyframe scene on a timeline segment.
    *
    * @param {TimelineSegment} segment - Parent segment owning this keyframe scene.
-   * @param {Partial<TimelineSceneOptions>} [options] - Initial scene configuration.
+   * @param {TimelineSceneInit} [options] - Initial scene configuration.
    * @param {Record<string, AnyType>} [data] - User-land data payload.
    */
   constructor(
     public readonly segment: TimelineSegment,
-    options: Partial<TimelineSceneOptions> = {},
+    options: TimelineSceneInit = {},
     data: Record<string, AnyType> = {}
   ) {
     const maxFrame = segment.state.totalFrames;
-    const atFrame = Math.min(maxFrame, Math.max(0, Math.round(options.atFrame ?? 0)));
+    const rawFrame = options.atFrame !== undefined
+      ? options.atFrame
+      : options.atTime !== undefined
+        ? timeToFrame(options.atTime, this.timeline.frameRate)
+        : 0;
+    const atFrame = Math.min(maxFrame, Math.max(0, Math.round(rawFrame)));
 
-    this.options = mutable({ ...options, atFrame });
+    const { atTime, ...rest } = options;
+    this.options = mutable({ ...rest, atFrame });
     this.data = mutable({ ...data });
 
     segment.scenes.push(this);

@@ -49,3 +49,49 @@ describe('work-area bounds journey', () => {
     timeline.destroy();
   });
 });
+
+describe('work-area bounds in seconds', () => {
+  it('reads the in and out points back as seconds', () => {
+    const timeline = buildWorkArea();
+
+    expect(timeline.startTime).toBe(1);
+    expect(timeline.endTime).toBe(5);
+
+    timeline.destroy();
+  });
+
+  it('moves the in and out points by seconds', () => {
+    const timeline = buildWorkArea();
+
+    timeline.startTime = 3;
+    timeline.endTime = 4;
+
+    expect(timeline.startFrame).toBe(uiFrame(90));
+    expect(timeline.endFrame).toBe(uiFrame(120));
+    expect(timeline.startTime).toBe(3);
+    expect(timeline.endTime).toBe(4);
+
+    timeline.destroy();
+  });
+
+  it('reports an unbounded project as no seconds at all', () => {
+    const timeline = new Timeline({ frameRate: 30 });
+
+    expect(timeline.startTime).toBeUndefined();
+    expect(timeline.endTime).toBeUndefined();
+
+    timeline.destroy();
+  });
+
+  it('drops a bound again when cleared with undefined seconds', () => {
+    const timeline = buildWorkArea();
+
+    timeline.startTime = undefined;
+    timeline.endTime = undefined;
+
+    expect(timeline.startFrame).toBeUndefined();
+    expect(timeline.endFrame).toBeUndefined();
+
+    timeline.destroy();
+  });
+});

@@ -468,7 +468,7 @@ export function passive<This, Args extends unknown[], Return>(
   descriptor: TypedPropertyDescriptor<(this: This, ...args: Args) => Return>
 ): TypedPropertyDescriptor<(this: This, ...args: Args) => Return> {
   const original = descriptor.value;
-  /* istanbul ingore next */
+  /* istanbul ignore next */
   if (!original) return descriptor;
 
   return {

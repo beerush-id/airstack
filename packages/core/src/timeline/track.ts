@@ -3,7 +3,7 @@ import { assign } from '../engine/helper.js';
 import { mutable, passive } from '../reactive/index.js';
 import type { AnyType } from '../types.js';
 import { uuid } from '../utils/uuid.js';
-import { TimelineSegment, type TimelineSegmentOptions, type TimelineSegmentSnapshot } from './segment.js';
+import { TimelineSegment, type TimelineSegmentInit, type TimelineSegmentOptions, type TimelineSegmentSnapshot } from './segment.js';
 import type { FrameState, Timeline } from './timeline.js';
 
 export type TimelineTrackOptions = {
@@ -101,11 +101,11 @@ export class TimelineTrack {
   /**
    * Adds a segment to this track.
    *
-   * @param {Partial<TimelineSegmentOptions>} [options] - Segment configuration options.
+   * @param {TimelineSegmentInit} [options] - Segment configuration options.
    * @returns {TimelineSegment} The instantiated segment.
    */
   @passive
-  public addSegment(options: Partial<TimelineSegmentOptions> = {}): TimelineSegment {
+  public addSegment(options: TimelineSegmentInit = {}): TimelineSegment {
     return new TimelineSegment(this, options);
   }
 

@@ -13,6 +13,15 @@ export type TimelineMarkerOptions = {
   meta?: Record<string, AnyType>;
 };
 
+/**
+ * Initialization options for creating a cue point marker.
+ * Accepts either `atFrame` or `atTime` (converted to discrete frame).
+ */
+export type TimelineMarkerInit = Omit<Partial<TimelineMarkerOptions>, 'atFrame'> & {
+  atFrame?: number;
+  atTime?: number;
+};
+
 export type TimelineMarkerSnapshot = {
   id: string;
   options: TimelineMarkerOptions;
@@ -31,14 +40,20 @@ export class TimelineMarker {
    * Creates a cue point marker on the master timeline.
    *
    * @param {Timeline} timeline - Master timeline coordinator owning this marker.
-   * @param {Partial<TimelineMarkerOptions>} [options] - Initial marker configuration.
+   * @param {TimelineMarkerInit} [options] - Initial marker configuration.
    */
   constructor(
     public readonly timeline: Timeline,
-    options: Partial<TimelineMarkerOptions> = {}
+    options: TimelineMarkerInit = {}
   ) {
-    this.options = mutable({ atFrame: 0, ...options });
-    this.atFrame = this.options.atFrame;
+    const atFrame = options.atFrame !== undefined
+      ? Math.max(0, Math.round(options.atFrame))
+      : options.atTime !== undefined
+        ? timeToFrame(options.atTime, this.timeline.frameRate)
+        : 0;
+
+    const { atTime, ...rest } = options;
+    this.options = mutable({ ...rest, atFrame });
     timeline.markers.add(this);
   }
 

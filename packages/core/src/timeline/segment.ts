@@ -4,7 +4,7 @@ import { mutable, passive } from '../reactive/index.js';
 import type { AnyType } from '../types.js';
 import { uuid } from '../utils/uuid.js';
 import { frameToTime, timeToFrame } from './helper.js';
-import { TimelineScene, type TimelineSceneOptions, type TimelineSceneSnapshot } from './scene.js';
+import { TimelineScene, type TimelineSceneInit, type TimelineSceneSnapshot } from './scene.js';
 import type { FrameState, Timeline, TimelineSubscriber } from './timeline.js';
 import type { TimelineTrack } from './track.js';
 
@@ -17,6 +17,15 @@ export type TimelineSegmentOptions = {
   speed: number;
   duration: number;
   startFrame: number;
+};
+
+/**
+ * Initialization options for creating an individual timeline segment.
+ * Accepts either `startFrame` or `startTime` (converted to discrete frame).
+ */
+export type TimelineSegmentInit = Omit<Partial<TimelineSegmentOptions>, 'startFrame'> & {
+  startFrame?: number;
+  startTime?: number;
 };
 
 export type TimelineSegmentSnapshot = {
@@ -81,14 +90,22 @@ export class TimelineSegment {
    * Creates an individual timeline segment belonging to a track.
    *
    * @param {TimelineTrack} track - Parent track owning this segment.
-   * @param {Partial<TimelineSegmentOptions>} [options] - Initial segment configuration.
+   * @param {TimelineSegmentInit} [options] - Initial segment configuration.
    */
   constructor(
     public readonly track: TimelineTrack,
-    options: Partial<TimelineSegmentOptions> = {}
+    options: TimelineSegmentInit = {}
   ) {
     this.frameRate = this.track.timeline.frameRate;
-    this.options = mutable({ speed: 1, duration: 0, startFrame: 0, ...options });
+    const startFrame =
+      options.startFrame !== undefined
+        ? Math.max(0, Math.round(options.startFrame))
+        : options.startTime !== undefined
+          ? timeToFrame(options.startTime, this.frameRate)
+          : 0;
+
+    const { startTime, ...rest } = options;
+    this.options = mutable({ speed: 1, duration: 0, ...rest, startFrame });
 
     this.state = mutable<FrameState>({
       time: 0,
@@ -305,12 +322,12 @@ export class TimelineSegment {
   /**
    * Adds a keyframe scene to this segment.
    *
-   * @param {Partial<TimelineSceneOptions>} [options] - Scene configuration options.
+   * @param {TimelineSceneInit} [options] - Scene configuration options.
    * @param {Record<string, AnyType>} [data] - User-land data payload.
    * @returns {TimelineScene} The instantiated scene.
    */
   @passive
-  public addScene(options: Partial<TimelineSceneOptions> = {}, data: Record<string, AnyType> = {}): TimelineScene {
+  public addScene(options: TimelineSceneInit = {}, data: Record<string, AnyType> = {}): TimelineScene {
     return new TimelineScene(this, options, data);
   }
 
