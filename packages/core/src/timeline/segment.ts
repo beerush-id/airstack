@@ -1,12 +1,12 @@
-import { anchor } from '../engine/anchor.ts';
-import { assign } from '../engine/helper.ts';
-import { mutable } from '../reactive/index.ts';
-import type { AnyType } from '../types.ts';
-import { uuid } from '../utils/uuid.ts';
-import { frameToTime, timeToFrame } from './helper.ts';
-import { TimelineScene, type TimelineSceneOptions, type TimelineSceneSnapshot } from './scene.ts';
-import type { FrameState, Timeline, TimelineSubscriber } from './timeline.ts';
-import type { TimelineTrack } from './track.ts';
+import { anchor } from '../engine/anchor.js';
+import { assign } from '../engine/helper.js';
+import { mutable, passive } from '../reactive/index.js';
+import type { AnyType } from '../types.js';
+import { uuid } from '../utils/uuid.js';
+import { frameToTime, timeToFrame } from './helper.js';
+import { TimelineScene, type TimelineSceneOptions, type TimelineSceneSnapshot } from './scene.js';
+import type { FrameState, Timeline, TimelineSubscriber } from './timeline.js';
+import type { TimelineTrack } from './track.js';
 
 export type TimelineSegmentOptions = {
   type?: string;
@@ -309,6 +309,7 @@ export class TimelineSegment {
    * @param {Record<string, AnyType>} [data] - User-land data payload.
    * @returns {TimelineScene} The instantiated scene.
    */
+  @passive
   public addScene(options: Partial<TimelineSceneOptions> = {}, data: Record<string, AnyType> = {}): TimelineScene {
     return new TimelineScene(this, options, data);
   }
@@ -318,6 +319,7 @@ export class TimelineSegment {
    *
    * @param {TimelineScene} scene - Scene instance to remove.
    */
+  @passive
   public removeScene(scene: TimelineScene): void {
     const index = this.scenes.indexOf(scene);
     if (index !== -1) {
@@ -330,6 +332,7 @@ export class TimelineSegment {
   /**
    * Re-orders keyframe scenes chronologically by atFrame and re-resolves the active span at the current playhead.
    */
+  @passive
   public sortScenes(): void {
     this.orderScenes();
     this.tick(this.timeline.state);
@@ -338,6 +341,7 @@ export class TimelineSegment {
   /**
    * Recalculates total duration and frame bounds from options.
    */
+  @passive
   public refresh(notifyTimeline = true): void {
     const frameRate = this.timeline.frameRate;
 
@@ -371,6 +375,7 @@ export class TimelineSegment {
   /**
    * Resets local playhead position to 0 and transitions status to idle.
    */
+  @passive
   public reset(): void {
     this.activeScene = undefined;
     this.nextScene = undefined;
@@ -388,6 +393,7 @@ export class TimelineSegment {
    *
    * @returns {TimelineSegmentSnapshot} Serialized snapshot of this segment.
    */
+  @passive
   public snapshot(): TimelineSegmentSnapshot {
     return {
       id: this.id,
@@ -401,6 +407,7 @@ export class TimelineSegment {
    *
    * @param {Partial<TimelineSegmentSnapshot>} snapshot - Snapshot to restore onto this segment.
    */
+  @passive
   public hydrate(snapshot: Partial<TimelineSegmentSnapshot>): void {
     if (snapshot.id) {
       this.id = snapshot.id;
@@ -431,6 +438,7 @@ export class TimelineSegment {
   /**
    * Destroys this segment, clearing subscribers and removing all child scenes.
    */
+  @passive
   public destroy(): void {
     this.subscribers.clear();
     this.transitionSubscribers.clear();
@@ -445,6 +453,7 @@ export class TimelineSegment {
    *
    * @param {FrameState} timelineState - Current master timeline playback state.
    */
+  @passive
   public tick(timelineState: FrameState): void {
     if (this.disabled) {
       this.reset();

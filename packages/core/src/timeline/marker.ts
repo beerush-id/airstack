@@ -1,10 +1,10 @@
-import { anchor } from '../engine/anchor.ts';
-import { assign } from '../engine/helper.ts';
-import { mutable } from '../reactive/index.ts';
-import type { AnyType } from '../types.ts';
-import { uuid } from '../utils/uuid.ts';
-import { frameToTime, timeToFrame } from './helper.ts';
-import type { Timeline } from './timeline.ts';
+import { anchor } from '../engine/anchor.js';
+import { assign } from '../engine/helper.js';
+import { mutable, passive } from '../reactive/index.js';
+import type { AnyType } from '../types.js';
+import { uuid } from '../utils/uuid.js';
+import { frameToTime, timeToFrame } from './helper.js';
+import type { Timeline } from './timeline.js';
 
 export type TimelineMarkerOptions = {
   type?: string;
@@ -102,6 +102,7 @@ export class TimelineMarker {
    *
    * @returns {TimelineMarkerSnapshot} Serialized snapshot of this marker.
    */
+  @passive
   public snapshot(): TimelineMarkerSnapshot {
     return {
       id: this.id,
@@ -114,6 +115,7 @@ export class TimelineMarker {
    *
    * @param {Partial<TimelineMarkerSnapshot>} snapshot - Snapshot to restore onto this marker.
    */
+  @passive
   public hydrate(snapshot: Partial<TimelineMarkerSnapshot>): void {
     if (snapshot.id) {
       this.id = snapshot.id;

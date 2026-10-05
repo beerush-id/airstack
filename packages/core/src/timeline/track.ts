@@ -1,10 +1,10 @@
-import { anchor } from '../engine/anchor.ts';
-import { assign } from '../engine/helper.ts';
-import { mutable } from '../reactive/index.ts';
-import type { AnyType } from '../types.ts';
-import { uuid } from '../utils/uuid.ts';
-import { TimelineSegment, type TimelineSegmentOptions, type TimelineSegmentSnapshot } from './segment.ts';
-import type { FrameState, Timeline } from './timeline.ts';
+import { anchor } from '../engine/anchor.js';
+import { assign } from '../engine/helper.js';
+import { mutable, passive } from '../reactive/index.js';
+import type { AnyType } from '../types.js';
+import { uuid } from '../utils/uuid.js';
+import { TimelineSegment, type TimelineSegmentOptions, type TimelineSegmentSnapshot } from './segment.js';
+import type { FrameState, Timeline } from './timeline.js';
 
 export type TimelineTrackOptions = {
   type?: string;
@@ -104,6 +104,7 @@ export class TimelineTrack {
    * @param {Partial<TimelineSegmentOptions>} [options] - Segment configuration options.
    * @returns {TimelineSegment} The instantiated segment.
    */
+  @passive
   public addSegment(options: Partial<TimelineSegmentOptions> = {}): TimelineSegment {
     return new TimelineSegment(this, options);
   }
@@ -113,6 +114,7 @@ export class TimelineTrack {
    *
    * @param {FrameState} state - Current master timeline playback state.
    */
+  @passive
   public tick(state: FrameState): void {
     for (const segment of this.segments) {
       segment.tick(state);
@@ -124,6 +126,7 @@ export class TimelineTrack {
    *
    * @param {TimelineSegment} segment - Segment instance to remove.
    */
+  @passive
   public removeSegment(segment: TimelineSegment): void {
     if (this.segments.delete(segment)) {
       segment.destroy();
@@ -138,6 +141,7 @@ export class TimelineTrack {
    *
    * @returns {TimelineTrackSnapshot} Serialized snapshot of this track.
    */
+  @passive
   public snapshot(): TimelineTrackSnapshot {
     return {
       id: this.id,
@@ -151,6 +155,7 @@ export class TimelineTrack {
    *
    * @param {Partial<TimelineTrackSnapshot>} snapshot - Snapshot to restore onto this track.
    */
+  @passive
   public hydrate(snapshot: Partial<TimelineTrackSnapshot>): void {
     if (snapshot.id) {
       this.id = snapshot.id;
@@ -177,6 +182,7 @@ export class TimelineTrack {
   /**
    * Destroys this track and all its child segments.
    */
+  @passive
   public destroy(): void {
     for (const segment of this.segments) {
       segment.destroy();

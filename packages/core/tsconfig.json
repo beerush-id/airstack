@@ -5,9 +5,13 @@
     "outDir": "./dist",
     "allowImportingTsExtensions": true,
     "allowJs": true,
+    "experimentalDecorators": true,
     "forceConsistentCasingInFileNames": true,
     "jsx": "react-jsx",
-    "lib": ["ESNext", "DOM"],
+    "lib": [
+      "ESNext",
+      "DOM"
+    ],
     "module": "NodeNext",
     "moduleDetection": "force",
     "moduleResolution": "nodenext",
@@ -21,6 +25,11 @@
     "target": "ESNext",
     "verbatimModuleSyntax": true
   },
-  "include": ["src/**/*.ts"],
-  "exclude": ["eslint.config.js", "tsup.config.ts"]
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "eslint.config.js",
+    "tsup.config.ts"
+  ]
 }

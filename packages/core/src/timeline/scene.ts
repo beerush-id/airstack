@@ -1,11 +1,11 @@
-import { anchor } from '../engine/anchor.ts';
-import { assign } from '../engine/helper.ts';
-import { mutable } from '../reactive/index.ts';
-import type { AnyType } from '../types.ts';
-import { uuid } from '../utils/uuid.ts';
-import { frameToTime, timeToFrame } from './helper.ts';
-import type { TimelineSegment } from './segment.ts';
-import type { Timeline } from './timeline.ts';
+import { anchor } from '../engine/anchor.js';
+import { assign } from '../engine/helper.js';
+import { mutable, passive } from '../reactive/index.js';
+import type { AnyType } from '../types.js';
+import { uuid } from '../utils/uuid.js';
+import { frameToTime, timeToFrame } from './helper.js';
+import type { TimelineSegment } from './segment.js';
+import type { Timeline } from './timeline.js';
 
 export type TimelineSceneOptions = {
   atFrame: number;
@@ -125,6 +125,7 @@ export class TimelineScene {
    *
    * @returns {TimelineSceneSnapshot} Serialized snapshot of this scene.
    */
+  @passive
   public snapshot(): TimelineSceneSnapshot {
     return {
       id: this.id,
@@ -138,6 +139,7 @@ export class TimelineScene {
    *
    * @param {Partial<TimelineSceneSnapshot>} snapshot - Snapshot to restore onto this scene.
    */
+  @passive
   public hydrate(snapshot: Partial<TimelineSceneSnapshot>): void {
     if (snapshot.id) {
       this.id = snapshot.id;

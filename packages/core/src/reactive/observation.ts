@@ -450,6 +450,35 @@ export function $static<T>(reader: () => T) {
   }
 }
 
+/**
+ * Method decorator that runs the whole call with the static tracker disabled,
+ * so reads inside the method never register dependencies.
+ *
+ * Uses the legacy `experimentalDecorators` descriptor signature, because TC39
+ * stage-3 decorators cannot be lowered by the current toolchain.
+ *
+ * @param _target - The class prototype the method is declared on.
+ * @param _propertyKey - The decorated method name.
+ * @param descriptor - The original property descriptor of the method.
+ * @returns A descriptor whose `value` applies the original method inside `$static`.
+ */
+export function passive<This, Args extends unknown[], Return>(
+  _target: unknown,
+  _propertyKey: string | symbol,
+  descriptor: TypedPropertyDescriptor<(this: This, ...args: Args) => Return>
+): TypedPropertyDescriptor<(this: This, ...args: Args) => Return> {
+  const original = descriptor.value;
+  /* istanbul ingore next */
+  if (!original) return descriptor;
+
+  return {
+    ...descriptor,
+    value(this: This, ...args: Args): Return {
+      return $static(() => original.apply(this, args));
+    },
+  };
+}
+
 export function setStaticTracker(tracker: StateReadTracker | undefined) {
   if (!isReactive()) return () => {};
   const current = plugin.trackStatic;

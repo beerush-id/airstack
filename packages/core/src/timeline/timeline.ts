@@ -1,10 +1,10 @@
-import { anchor } from '../engine/anchor.ts';
-import { assign } from '../engine/helper.ts';
-import { mutable } from '../reactive/index.ts';
-import { uuid } from '../utils/uuid.ts';
-import { animationFrame, cancelFrame, type FrameId, frameToTime, timeToFrame } from './helper.ts';
-import { TimelineMarker, type TimelineMarkerOptions, type TimelineMarkerSnapshot } from './marker.ts';
-import { TimelineTrack, type TimelineTrackOptions, type TimelineTrackSnapshot } from './track.ts';
+import { anchor } from '../engine/anchor.js';
+import { assign } from '../engine/helper.js';
+import { mutable, passive } from '../reactive/index.js';
+import { uuid } from '../utils/uuid.js';
+import { animationFrame, cancelFrame, type FrameId, frameToTime, timeToFrame } from './helper.js';
+import { TimelineMarker, type TimelineMarkerOptions, type TimelineMarkerSnapshot } from './marker.js';
+import { TimelineTrack, type TimelineTrackOptions, type TimelineTrackSnapshot } from './track.js';
 
 export type FrameState = {
   time: number;
@@ -220,6 +220,7 @@ export class Timeline {
    * @param {Partial<TimelineTrackOptions>} [options] - Track configuration options.
    * @returns {TimelineTrack} The instantiated track.
    */
+  @passive
   public addTrack(options: Partial<TimelineTrackOptions> = {}): TimelineTrack {
     return new TimelineTrack(this, options);
   }
@@ -229,6 +230,7 @@ export class Timeline {
    *
    * @param {TimelineTrack} track - Track instance to remove.
    */
+  @passive
   public removeTrack(track: TimelineTrack): void {
     if (this.tracks.delete(track)) {
       track.destroy();
@@ -242,6 +244,7 @@ export class Timeline {
    * @param {Partial<TimelineMarkerOptions>} [options] - Marker configuration options.
    * @returns {TimelineMarker} The instantiated marker.
    */
+  @passive
   public addMarker(options: Partial<TimelineMarkerOptions> = {}): TimelineMarker {
     return new TimelineMarker(this, options);
   }
@@ -251,6 +254,7 @@ export class Timeline {
    *
    * @param {TimelineMarker} marker - Marker instance to remove.
    */
+  @passive
   public removeMarker(marker: TimelineMarker): void {
     this.markers.delete(marker);
   }
@@ -261,6 +265,7 @@ export class Timeline {
    * @param {number} [startFrame] - Frame to start from. Defaults to current frame, or 0 if playback previously finished.
    * @returns {() => void} Teardown function to pause playback.
    */
+  @passive
   public play(startFrame?: number): () => void {
     if (this.state.status === 'playing' && startFrame === undefined) {
       return () => this.pause();
@@ -342,6 +347,7 @@ export class Timeline {
   /**
    * Pauses timeline playback at the current frame.
    */
+  @passive
   public pause(): void {
     this.cancel();
     assign(this.state, { status: 'idle' });
@@ -351,6 +357,7 @@ export class Timeline {
   /**
    * Stops timeline playback and resets frame and time to 0.
    */
+  @passive
   public stop(): void {
     this.cancel();
     this.iteration = 0;
@@ -368,6 +375,7 @@ export class Timeline {
    *
    * @param {number} time - Target position in seconds.
    */
+  @passive
   public seek(time: number): void {
     this.scrub(timeToFrame(time, this.options.frameRate));
   }
@@ -377,6 +385,7 @@ export class Timeline {
    *
    * @param {number} frame - Target frame number.
    */
+  @passive
   public scrub(frame: number): void {
     const frameRate = this.options.frameRate;
     const clampedFrame = Math.min(Math.max(this.minFrame, Math.round(frame)), this.maxFrame);
@@ -395,6 +404,7 @@ export class Timeline {
    *
    * @param {number} [delta=1] - Number of frames to advance (negative to rewind).
    */
+  @passive
   public step(delta = 1): void {
     this.scrub(this.state.frame + delta);
   }
@@ -402,6 +412,7 @@ export class Timeline {
   /**
    * Advances playback to the next landmark (track boundary).
    */
+  @passive
   public next(): void {
     const current = this.state.frame;
     const landmarks = this.getLandmarks();
@@ -417,6 +428,7 @@ export class Timeline {
   /**
    * Rewinds playback to the previous landmark (track boundary).
    */
+  @passive
   public prev(): void {
     const current = this.state.frame;
     const landmarks = this.getLandmarks();
@@ -435,6 +447,7 @@ export class Timeline {
    *
    * @returns {number[]} Sorted list of unique frame landmarks.
    */
+  @passive
   public getLandmarks(): number[] {
     const frames = new Set<number>();
     frames.add(this.minFrame);
@@ -463,6 +476,7 @@ export class Timeline {
   /**
    * Recalculates total time and frame bounds from registered tracks.
    */
+  @passive
   public refresh(): void {
     let totalFrames = 0;
 
@@ -484,6 +498,7 @@ export class Timeline {
    *
    * @returns {TimelineSnapshot} The persisted timeline schema.
    */
+  @passive
   public snapshot(): TimelineSnapshot {
     return {
       id: this.id,
@@ -498,6 +513,7 @@ export class Timeline {
    *
    * @param {Partial<TimelineSnapshot>} snapshot - Snapshot containing timeline options and track configurations.
    */
+  @passive
   public hydrate(snapshot: Partial<TimelineSnapshot>): void {
     if (snapshot.id) {
       this.id = snapshot.id;
@@ -552,6 +568,7 @@ export class Timeline {
   /**
    * Destroys this timeline, stopping playback and tearing down all child tracks and markers.
    */
+  @passive
   public destroy(): void {
     this.stop();
     this.subscribers.clear();
