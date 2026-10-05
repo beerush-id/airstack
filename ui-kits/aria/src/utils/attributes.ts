@@ -155,6 +155,17 @@ export function applyAttributes<E extends BaseElement>(
         element[key] = Boolean(value);
       }
 
+      if (key === 'selected' && element instanceof HTMLOptionElement) {
+        element.selected = Boolean(value);
+      }
+
+      if (
+        key === 'value' &&
+        (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement)
+      ) {
+        element.value = value == null ? '' : String(value);
+      }
+
       const attrName = ATTR_MAP[key] ?? key.toLowerCase();
 
       if (value === false || value === null || value === undefined) {

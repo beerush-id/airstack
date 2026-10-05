@@ -67,3 +67,27 @@ export function aria<E extends BaseElement = HTMLInputElement, T extends Primiti
 2. **Activation**:
   - Radio buttons are never toggleable: clicking or pressing Space on an already selected radio never deselects it, even when the group is not required. The group may still start empty (`value: null`).
   - **Arrows commit selection** (`docs/radio-group.md:26`): `Right`/`Down` and `Left`/`Up` move focus to the next/previous enabled radio **and select it in one transition**, wrapping and skipping disabled. There is **no `manual` mode** for radios.
+  - **Member vs group split**: arrow/Home/End/Enter handling belongs to the group container, not the member. A `radio` member is inert to `ArrowUp`/`ArrowDown`/`ArrowLeft`/`ArrowRight`/`Home`/`End` (no `defaultPrevented`, no state commit) and `Enter` is not a radio affordance. The member owns Space only: custom hosts `preventDefault` on Space keydown (scroll suppression, no commit) and commit on Space keyup; native hosts delegate keyboard to the browser (no synthetic `preventDefault`).
+
+3. **Standalone projection**:
+  - Without an ambient group, the getter derives from `props.checked` (`radio.checked === props.checked === true`).
+  - The setter stays select-only in both modes: `radio.checked = true` commits selection (`group.value = props.value` when grouped, checked when standalone); `radio.checked = false` through the projection is a **no-op**. External writes use `assign()` / direct props mutation, which is also the teardown proof path alongside `group.value` mutation.
+  - `deselect()` through the member never clears the slot; the slot only moves when `group.value` changes or another radio selects.
+
+4. **Disabled composition**:
+  - Effective disabled is group `disabled` OR member `disabled`.
+  - Native hosts project `disabled` as a boolean and omit `tabindex` / `aria-disabled`; activation is rejected and committed state never changes.
+  - Custom hosts project `tabindex: -1` (number) and `aria-disabled: "true"` while disabled, block click and full Space presses from reaching the registry, and re-arm on the same node when disabled clears (reachability + activation restore without rebinding).
+  - A member disabled while holding the selection keeps the group value but cannot be re-activated; an enabled sibling can still take the slot because exclusivity outranks the hold.
+
+5. **Roving tabindex (custom)**:
+  - Selected member `tabindex: 0`, unselected `tabindex: -1`, any disabled member `-1` — always numbers in `.attributes`, recomputed on every `group.value` / disabled change.
+
+6. **Form boundary** (`spec.md` Rule 6):
+  - `.attributes` never synthesizes or emits HTML form attributes (`name`, `value`, `form`). Identity keys stay on props for template binding (`<input {...radio.attributes} name={props.name} value={props.value} />`); the derived selection is the single submitted value through the author binding.
+
+7. **Value plane** (`spec.md`):
+  - `aria-checked` is always an explicit string (`"true"` | `"false"`); `tabindex` is a number; `disabled` / `checked` are logical booleans (present `false` is correct — the host/adapter decides serialization).
+
+8. **Teardown**:
+  - `destroy()` detaches the element and ceases DOM mutations; subsequent `group.value` / `assign()` mutations cause zero DOM side effects. Swallowed `.checked = false` writes after destroy are non-discriminating proof — disposal is proven by registry mutation, not by projection writes.

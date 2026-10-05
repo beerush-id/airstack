@@ -77,6 +77,7 @@ export class RadioAria<
       allowKeys: [' '],
     });
 
+    this.omittedAttrs.push('value', 'name', 'aria-checked');
     this.update();
   }
 

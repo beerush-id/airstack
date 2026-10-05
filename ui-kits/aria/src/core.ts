@@ -71,6 +71,13 @@ export class Aria<
   }
 
   /**
+   * Get the full props for component spreading.
+   */
+  public get $props() {
+    return this.restProps();
+  }
+
+  /**
    * Attribute and event handler keys compiled and managed by this controller.
    * Exposes the active attribute names on {@link attributes} so consumers can safely omit
    * controlled keys when forwarding rest props (e.g. `props.$omit(controller.ownKeys)`).
@@ -78,7 +85,9 @@ export class Aria<
    * @returns Array of property names managed on the compiled attributes dictionary.
    */
   public get ownKeys(): string[] {
-    return Array.from(new Set([...OMITTED_ATTRIBUTES, ...Object.keys(this.attributes), ...this.omittedAttrs]));
+    return Array.from(
+      new Set([...OMITTED_ATTRIBUTES, ...COMMON_ATTRIBUTES, ...Object.keys(this.attributes), ...this.omittedAttrs]),
+    );
   }
 
   /**
@@ -232,12 +241,40 @@ export class Aria<
    */
   public destroy(): void {
     this.detach?.();
+    if (this.element) {
+      for (const [key, value] of Object.entries(this.attrs)) {
+        if (key.startsWith('on') && typeof value === 'function') {
+          this.element.removeEventListener(key.slice(2).toLowerCase(), value as EventListener);
+        }
+      }
+    }
     for (const cleanup of this.cleanups) {
       cleanup();
     }
     this.cleanups.clear();
     this.observer.destroy();
     this.element = null;
+  }
+
+  /**
+   * Create a copy of the props excluding the controller-managed attributes.
+   */
+  public restProps(omit?: (keyof T)[]): T {
+    const omitted = new Set([...COMMON_ATTRIBUTES, ...this.ownKeys, ...(omit ?? [])]);
+
+    if (typeof this.props.$omit === 'function') {
+      return { ...this.props.$omit(Array.from(omitted)), ...this.attributes };
+    }
+
+    const props = {} as T;
+
+    for (const [key, value] of Object.entries(this.props)) {
+      if (!omitted.has(key)) {
+        props[key as keyof T] = value as T[keyof T];
+      }
+    }
+
+    return { ...props, ...this.attributes };
   }
 
   /**

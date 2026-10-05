@@ -90,7 +90,7 @@ export class CheckboxAria<
       allowKeys: [' '],
     });
 
-    this.omittedAttrs.push('name', 'indeterminate', 'required', 'aria-required', 'aria-invalid');
+    this.omittedAttrs.push('value', 'name', 'indeterminate', 'required', 'aria-checked', 'aria-required', 'aria-invalid');
     this.update();
   }
 
@@ -118,8 +118,10 @@ export class CheckboxAria<
    */
   public override select(): void {
     if (this.disabled) return;
+    const was = this.checked;
     if (this.props.indeterminate) this.props.indeterminate = false;
     super.select();
+    this.notifyInput(was);
   }
 
   /**
@@ -128,8 +130,35 @@ export class CheckboxAria<
    */
   public override deselect(): void {
     if (this.disabled || this.idempotent) return;
+    const was = this.checked;
     if (this.props.indeterminate) this.props.indeterminate = false;
     super.deselect();
+    this.notifyInput(was);
+  }
+
+  /**
+   * Dispatches the input event for a real commit on a custom host. Native hosts
+   * leave input to the browser, and mutations that commit nothing stay silent.
+   */
+  private notifyInput(was: boolean): void {
+    if (this.isNative || this.checked === was) return;
+    const host = this.element;
+    if (host) {
+      host.dispatchEvent(new CustomEvent<boolean>('input', { bubbles: true, detail: this.checked }));
+    }
+  }
+
+  /**
+   * Toggles the checkbox, resolving a mixed condition toward checked instead of
+   * inverting: activation from mixed always commits `checked: true`.
+   */
+  public override toggle(): void {
+    if (this.disabled) return;
+    if (this.props.indeterminate) {
+      this.select();
+      return;
+    }
+    super.toggle();
   }
 
   /**
@@ -156,7 +185,7 @@ export class CheckboxAria<
     return Object.assign(super.createAttributes(), {
       role: 'checkbox',
       'aria-checked': isIndeterminate ? 'mixed' : isChecked ? 'true' : 'false',
-      'aria-required': ariaRequired(this.props.required),
+      'aria-required': ariaRequired(this.props.required) ?? 'false',
       'aria-invalid': invalidAttr,
     }) as A;
   }

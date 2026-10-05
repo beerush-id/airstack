@@ -417,11 +417,12 @@ describe('Option - Contract Specifications', () => {
           expect(addressA).not.toBe(optB.attributes.id);
 
           const elA = bind(document.createElement('div'), optA);
+          const elB = bind(document.createElement('div'), optB);
           expect(elA.getAttribute('id')).toBe(addressA);
 
-          // Activation never churns the address a container is pointing at
-          elA.click();
-          expect(optA.selected).toBe(true);
+          elB.click();
+          expect(optB.selected).toBe(true);
+          expect(optA.selected).toBe(false);
           expect(optA.attributes.id).toBe(addressA);
           expect(elA.getAttribute('id')).toBe(addressA);
 

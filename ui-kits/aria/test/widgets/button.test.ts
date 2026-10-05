@@ -141,7 +141,7 @@ describe('Button - Contract Specifications', () => {
           const enterDown = new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true });
           div.dispatchEvent(enterDown);
 
-          expect(enterDown.defaultPrevented).toBe(true);
+          expect(enterDown.defaultPrevented).toBe(false);
           expect(clickSpy).toHaveBeenCalledTimes(1);
         });
       }));
@@ -270,6 +270,7 @@ describe('Button - Contract Specifications', () => {
 
           // 2. DOM Binding
           const el = bind(document.createElement('button'), btn);
+          document.body.appendChild(el);
           expect(btn.current).toBe(el);
           expect(el.type).toBe('button');
 
@@ -291,6 +292,7 @@ describe('Button - Contract Specifications', () => {
           expect(delegatedClicks).toHaveLength(1);
 
           document.removeEventListener('click', onDocumentClick);
+          el.remove();
 
           // 5. DOM Reconciliation: comparator change reflects live without rebinding
           btn.assign({ disabled: true });
@@ -313,7 +315,7 @@ describe('Button - Contract Specifications', () => {
           // 1. Creation & SSR: pure ARIA projection, invalid HTML attributes omitted
           expect(btn.current).toBeNull();
           expect(btn.attributes.role).toBe('button');
-          expect(btn.attributes.tabindex).toBe('0');
+          expect(btn.attributes.tabindex).toBe(0);
           expect(btn.attributes['aria-disabled']).toBe('false');
           expect(btn.attributes.type).toBeUndefined();
           expect(btn.attributes.disabled).toBeUndefined();
@@ -336,7 +338,7 @@ describe('Button - Contract Specifications', () => {
           });
           el.dispatchEvent(enterDown);
 
-          expect(enterDown.defaultPrevented).toBe(true);
+          expect(enterDown.defaultPrevented).toBe(false);
           expect(hostClicks).toHaveLength(1);
           expect(hostClicks[0].bubbles).toBe(true);
           expect(hostClicks[0].cancelable).toBe(true);
@@ -352,9 +354,7 @@ describe('Button - Contract Specifications', () => {
           btn.destroy();
           expect(btn.current).toBeNull();
 
-          el.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }),
-          );
+          el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }));
           expect(hostClicks).toHaveLength(1);
         });
       }));
@@ -421,7 +421,7 @@ describe('Button - Contract Specifications', () => {
           expect(btn.disabled).toBe(true);
           expect(btn.attributes.role).toBe('button');
           expect(btn.attributes['aria-disabled']).toBe('true');
-          expect(btn.attributes.tabindex).toBe('-1');
+          expect(btn.attributes.tabindex).toBe(-1);
 
           // 2. DOM Binding
           const el = bind(document.createElement('div'), btn);
@@ -502,9 +502,7 @@ describe('Button - Contract Specifications', () => {
           el.addEventListener('click', (event) => hostClicks.push(event));
 
           // Baseline: activation works while enabled
-          el.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }),
-          );
+          el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }));
           expect(hostClicks).toHaveLength(1);
 
           // 5. Reconciliation: guard + tabindex collapse on the same live node
@@ -512,12 +510,8 @@ describe('Button - Contract Specifications', () => {
           expect(el.getAttribute('aria-disabled')).toBe('true');
           expect(el.getAttribute('tabindex')).toBe('-1');
 
-          el.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }),
-          );
-          el.dispatchEvent(
-            new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }),
-          );
+          el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }));
+          el.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }));
           expect(hostClicks).toHaveLength(1);
 
           // Restoring the comparator re-arms the polyfill on the same node
@@ -525,9 +519,7 @@ describe('Button - Contract Specifications', () => {
           expect(el.getAttribute('aria-disabled')).toBe('false');
           expect(el.getAttribute('tabindex')).toBe('0');
 
-          el.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }),
-          );
+          el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }));
           expect(hostClicks).toHaveLength(2);
 
           // 6. Teardown
@@ -581,24 +573,16 @@ describe('Button - Contract Specifications', () => {
 
           // Held key repeats keydown and delivers a single keyup: activation on keyup is repeat-safe
           for (let repeat = 0; repeat < 3; repeat += 1) {
-            el.dispatchEvent(
-              new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true }),
-            );
+            el.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true }));
           }
           expect(hostClicks).toHaveLength(0);
 
-          el.dispatchEvent(
-            new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }),
-          );
+          el.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }));
           expect(hostClicks).toHaveLength(1);
 
           // A second press is a second activation, not a residual listener
-          el.dispatchEvent(
-            new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true }),
-          );
-          el.dispatchEvent(
-            new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }),
-          );
+          el.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true }));
+          el.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }));
           expect(hostClicks).toHaveLength(2);
 
           btn.destroy();
@@ -650,19 +634,15 @@ describe('Button - Contract Specifications', () => {
           const nativeFlaggedDiv = bind(document.createElement('div'), implicit);
           expect(nativeFlaggedDiv.getAttribute('role')).toBeNull();
           expect(nativeFlaggedDiv.getAttribute('tabindex')).toBeNull();
-          expect(
-            Object.keys(implicit.attributes).filter((key) => key.startsWith('aria-')),
-          ).toEqual([]);
+          expect(Object.keys(implicit.attributes).filter((key) => key.startsWith('aria-'))).toEqual([]);
 
           const hostClicks: MouseEvent[] = [];
           nativeFlaggedDiv.addEventListener('click', (event) => hostClicks.push(event));
 
           nativeFlaggedDiv.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }),
+            new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true })
           );
-          nativeFlaggedDiv.dispatchEvent(
-            new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }),
-          );
+          nativeFlaggedDiv.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }));
           expect(hostClicks).toHaveLength(0);
 
           implicit.destroy();

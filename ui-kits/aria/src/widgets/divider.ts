@@ -81,8 +81,8 @@ export class DividerAria<
 > extends Aria<E, T, A, O> {
   public constructor(props: Partial<T> = {}, options: O = {} as O) {
     super(props, {
-      native: true,
       ...options,
+      native: false,
     });
 
     this.omittedAttrs.push('aria-orientation');
@@ -106,8 +106,7 @@ export class DividerAria<
       'aria-orientation': this.orientation === 'vertical' ? 'vertical' : undefined,
     });
 
-    // A native <hr> carries the separator role implicitly; custom elements must declare it.
-    if (!this.isNative) attrs.role = 'separator';
+    attrs.role = 'separator';
     return attrs as A;
   }
 }

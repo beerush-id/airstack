@@ -4,10 +4,10 @@ import { aria, type LiveRegionProps } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 const TUNING = [
-  { label: 'advisory', props: {}, live: 'polite', atomic: 'true' },
-  { label: 'urgent', props: { politeness: 'assertive' }, live: 'assertive', atomic: 'true' },
-  { label: 'stream', props: { atomic: false }, live: 'polite', atomic: 'false' },
-  { label: 'silent', props: { politeness: 'off' }, live: 'off', atomic: 'true' },
+  { label: 'advisory', props: {}, role: 'status', live: 'polite', atomic: 'true' },
+  { label: 'urgent', props: { politeness: 'assertive' }, role: 'alert', live: 'assertive', atomic: 'true' },
+  { label: 'stream', props: { atomic: false }, role: 'status', live: 'polite', atomic: 'false' },
+  { label: 'silent', props: { politeness: 'off' }, role: 'status', live: 'off', atomic: 'true' },
 ] as const;
 
 describe('Live Regions - Overview Specifications', () => {
@@ -26,8 +26,8 @@ describe('Live Regions - Overview Specifications', () => {
             const el = bind(document.createElement('div'), region);
             document.body.appendChild(el);
 
-            // Urgency never changes the role, only the tuning attributes
-            expect(el.getAttribute('role')).toBe('status');
+            // Urgency swaps the role: assertive interrupts as alert, the rest wait as status
+            expect(el.getAttribute('role')).toBe(tuning.role);
             expect(el.getAttribute('aria-live')).toBe(tuning.live);
             expect(el.getAttribute('aria-atomic')).toBe(tuning.atomic);
 

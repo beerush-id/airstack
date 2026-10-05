@@ -5,7 +5,7 @@ saved"), urgent interruptions ("Deployment failed"), append-only streams (chat, 
 tickers that speak only at milestones. Urgency is carried by the `politeness` prop, never by a separate entity.
 
 - **Entity**: `announcer`
-- **WAI-ARIA Role**: `status` (compiled output)
+- **WAI-ARIA Role**: `alert` (when `politeness: 'assertive'`) or `status` (otherwise; omitted for native `<output>`)
 
 ---
 
@@ -14,7 +14,7 @@ tickers that speak only at milestones. Urgency is carried by the `politeness` pr
 | Context              | HTML Semantic                                      | WAI-ARIA Semantic                                                          | Aria Package Semantic Contract                              |
 |:---------------------|:---------------------------------------------------|:---------------------------------------------------------------------------|:------------------------------------------------------------|
 | **Native Output**    | Native `<output>` element. Implicit `status` role. | `role="status"` (omitted if `<output>`).                                   | Advisory announcement manager.                              |
-| **Custom Announcer** | Non-semantic element (`<div>`).                    | `role="status"`, `aria-live`, `aria-atomic`, `aria-busy`, `aria-relevant`. | Compiles `role="status"` and the announcement tuning below. |
+| **Custom Announcer** | Non-semantic element (`<div>`).                    | `role="alert"` when assertive, else `role="status"`, plus `aria-live`, `aria-atomic`, `aria-busy`, `aria-relevant`. | Compiles the interrupting `alert` role for assertive urgency, `status` otherwise, with the announcement tuning below. |
 
 ---
 
@@ -58,7 +58,7 @@ export function aria<E extends BaseElement = HTMLElement>(
 1. **Politeness Variants**:
   - **Advisory** (`politeness: 'polite'`, default): waits its turn and announces the whole message once. Atomic by
     default.
-  - **Urgent** (`politeness: 'assertive'`): interrupts whatever is being read. Never moves focus.
+  - **Urgent** (`politeness: 'assertive'`): interrupts whatever is being read. Compiles `role="alert"` with `aria-live="assertive"`. Never moves focus.
   - **Stream** (`politeness: 'polite'`, `atomic: false`): announces an appended entry on its own, never the whole
     history.
   - **Silent** (`politeness: 'off'`): stays identified but narrates nothing; push milestones into a separate polite

@@ -1,5 +1,5 @@
 import { SelectionAria, type SelectionAttributes, type SelectionOptions } from '../selection.js';
-import type { AriaOptions, AriaProps, BaseElement, Primitive } from '../types.js';
+import type { AriaProps, BaseElement, Primitive } from '../types.js';
 
 /**
  * Reactive input properties for an individual Option widget.
@@ -26,12 +26,20 @@ export interface OptionProps<T extends Primitive = Primitive> extends AriaProps 
 /**
  * Controller configuration options for OptionAria.
  */
-export interface OptionOptions extends AriaOptions {
+export interface OptionOptions extends SelectionOptions {
   /**
    * Whether bound to native <option>.
    * @default false
    */
   native?: boolean;
+
+  /**
+   * Whether pointer activation inverts a standalone selection.
+   * Without opt-in, standalone activation is select-only; grouped members
+   * always follow group rules regardless of this flag.
+   * @default false
+   */
+  toggle?: boolean;
 }
 
 /**
@@ -62,9 +70,28 @@ export class OptionAria<
   A extends OptionAttributes<E> = OptionAttributes<E>,
   O extends OptionOptions = OptionOptions,
 > extends SelectionAria<E, T, A, SelectionOptions> {
+  /**
+   * Standalone inversion opt-in snapshotted from engine options at construction.
+   */
+  private readonly standaloneToggle: boolean;
+
   public constructor(props: Partial<T> = {}, options: Partial<O> = {}) {
-    super(props, { native: false, ...options, role: ROLE_OPTION });
+    super(props, { native: false, ...options, role: ROLE_OPTION, allowKeys: [] });
+    this.standaloneToggle = !!options.toggle;
+    this.omittedAttrs.push('value', 'aria-selected');
     this.update();
+  }
+
+  /**
+   * Toggles this option. Grouped members always follow group rules; standalone
+   * members invert only with the toggle opt-in, otherwise activation selects.
+   */
+  public override toggle(): void {
+    if (this.disabled) return;
+    if (!this.group && !this.standaloneToggle && this.selected) {
+      return;
+    }
+    super.toggle();
   }
 
   /**
@@ -74,6 +101,12 @@ export class OptionAria<
     const attrs = super.createAttributes();
     const isDisabled = this.disabled;
     const isSelected = this.selected;
+
+    if (this.isNative) {
+      return Object.assign(attrs, {
+        selected: isSelected,
+      }) as A;
+    }
 
     return Object.assign(attrs, {
       role: ROLE_OPTION,

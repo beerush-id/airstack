@@ -1,8 +1,8 @@
 # Live Regions Overview
 
 Live regions allow assistive technologies to automatically announce dynamic content updates without requiring the user
-to shift focus away from their current interaction point. The package holds a single announcer entity; urgency travels
-in the `politeness` prop, never in a separate role.
+to shift focus away from their current interaction point. The package holds a single announcer entity; urgency is selected
+by the `politeness` prop, and assertive urgency is compiled as the interrupting `alert` role.
 
 ---
 
@@ -11,7 +11,7 @@ in the `politeness` prop, never in a separate role.
 | Entity                                      | HTML Semantic                                           | WAI-ARIA Semantic                                                      | Aria Package Semantic Contract                                                       |
 |:--------------------------------------------|:--------------------------------------------------------|:-----------------------------------------------------------------------|:-------------------------------------------------------------------------------------|
 | **`announcer`**                             | Advisory message (`<output>` has implicit status role). | `role="status"` (omitted if `<output>`). Polite and atomic by default. | Advisory announcement manager (e.g. "Saved").                                        |
-| **`announcer`** (`politeness: 'assertive'`) | High-priority dynamic message container (`<div>`).      | `role="status"`, `aria-live="assertive"`.                              | Urgent notification manager. Pushes high-priority announcement without moving focus. |
+| **`announcer`** (`politeness: 'assertive'`) | High-priority dynamic message container (`<div>`).      | `role="alert"`, `aria-live="assertive"`.                               | Urgent notification manager. Pushes high-priority announcement without moving focus. |
 | **`announcer`** (`atomic: false`)           | Append-only sequential update stream (`<div>`).         | `role="status"`, `aria-live="polite"`, `aria-atomic="false"`.          | Sequential history manager (chat logs, audit feeds).                                 |
 | **`announcer`** (`politeness: 'off'`)       | Counter, countdown, or ticker (`<div>` or `<time>`).    | `role="status"`, `aria-live="off"`.                                    | Silent holder; milestones announced selectively rather than continuously.            |
 

@@ -93,8 +93,9 @@ export class ButtonAria<
       role: 'button',
       tabindex: isDisabled ? -1 : 0,
       'aria-disabled': isDisabled ? 'true' : 'false',
-      onclick: () => {
+      onclick: (e?: MouseEvent) => {
         if (isDisabled) return;
+        if (e?.defaultPrevented) return;
 
         if (this.type === 'submit') {
           (this.element?.closest('form') as HTMLFormElement | null)?.requestSubmit();
@@ -104,11 +105,11 @@ export class ButtonAria<
       },
       onkeydown: (e: KeyboardEvent) => {
         if (isDisabled) return;
+        if (e.defaultPrevented) return;
 
         if (e.key === ' ') {
           e.preventDefault();
         } else if (e.key === 'Enter') {
-          e.preventDefault();
           (e.currentTarget as HTMLElement)?.click?.();
         }
       },

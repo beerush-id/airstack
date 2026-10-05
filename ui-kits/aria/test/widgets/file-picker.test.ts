@@ -1,13 +1,13 @@
 import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it, vi } from 'vitest';
-import { aria, type FileTriggerProps } from '../../src/index.js';
+import { aria, type FilePickerProps } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 function picker(): HTMLInputElement | null {
   return document.querySelector<HTMLInputElement>('input[type="file"]');
 }
 
-describe('FileTrigger - Contract Specifications', () => {
+describe('FilePicker - Contract Specifications', () => {
   const scope = createLifecycle();
 
   afterAll(() => {
@@ -19,12 +19,12 @@ describe('FileTrigger - Contract Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const props = mutable<FileTriggerProps>({
+          const props = mutable<FilePickerProps>({
             accept: 'image/png,image/jpeg',
             multiple: true,
             capture: 'environment',
           });
-          const trigger = aria('file-trigger', props);
+          const trigger = aria('file-picker', props);
 
           // 1. Creation & SSR: the trigger is a button, and never a form field
           expect(trigger.current).toBeNull();
@@ -56,7 +56,7 @@ describe('FileTrigger - Contract Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const trigger = aria('file-trigger', { accept: 'text/csv' });
+          const trigger = aria('file-picker', { accept: 'text/csv' });
           const el = bind(document.createElement('button'), trigger);
 
           const hidden = picker();
@@ -87,7 +87,7 @@ describe('FileTrigger - Contract Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const trigger = aria('file-trigger', { multiple: true });
+          const trigger = aria('file-picker', { multiple: true });
           const el = bind(document.createElement('button'), trigger);
 
           const hidden = picker();
@@ -119,8 +119,9 @@ describe('FileTrigger - Contract Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const trigger = aria('file-trigger');
+          const trigger = aria('file-picker');
           const el = bind(document.createElement('button'), trigger);
+          document.body.appendChild(el);
           const hidden = picker();
           expect(hidden).not.toBeNull();
 
@@ -134,6 +135,7 @@ describe('FileTrigger - Contract Specifications', () => {
 
           document.removeEventListener('change', nativeChanges);
           trigger.destroy();
+          el.remove();
         });
       }));
   });
@@ -143,8 +145,8 @@ describe('FileTrigger - Contract Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const props = mutable<FileTriggerProps>({ disabled: true });
-          const trigger = aria('file-trigger', props);
+          const props = mutable<FilePickerProps>({ disabled: true });
+          const trigger = aria('file-picker', props);
           const el = bind(document.createElement('button'), trigger);
 
           expect(el.getAttribute('type')).toBe('button');
@@ -170,11 +172,11 @@ describe('FileTrigger - Contract Specifications', () => {
 
           // A consumer that cancels the click keeps the picker closed
           const veto = (event: Event) => event.preventDefault();
-          el.addEventListener('click', veto);
+          el.addEventListener('click', veto, { capture: true });
           el.click();
           expect(opened).toHaveBeenCalledTimes(1);
 
-          el.removeEventListener('click', veto);
+          el.removeEventListener('click', veto, { capture: true });
           el.click();
           expect(opened).toHaveBeenCalledTimes(2);
 
@@ -187,7 +189,7 @@ describe('FileTrigger - Contract Specifications', () => {
         const tree = component();
         tree.run(() => {
           const trigger = aria<HTMLDivElement>(
-            'file-trigger',
+            'file-picker',
             { accept: 'application/pdf' },
             { native: false },
           );
@@ -231,7 +233,7 @@ describe('FileTrigger - Contract Specifications', () => {
           expect(el.getAttribute('aria-disabled')).toBe('true');
           expect(el.getAttribute('tabindex')).toBe('-1');
 
-          const openedBefore = opened.mock.callCount();
+          const openedBefore = opened.mock.calls.length;
           el.click();
           expect(opened).toHaveBeenCalledTimes(openedBefore);
 

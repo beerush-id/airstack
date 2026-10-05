@@ -25,6 +25,7 @@ describe('Announcer - Live Region Specifications', () => {
           expect(el.hasAttribute('aria-busy')).toBe(false);
 
           props.politeness = 'assertive';
+          expect(el.getAttribute('role')).toBe('alert');
           expect(el.getAttribute('aria-live')).toBe('assertive');
           expect(el.getAttribute('aria-atomic')).toBe('true');
           expect(el.hasAttribute('tabindex')).toBe(false);
@@ -115,7 +116,7 @@ describe('Announcer - Live Region Specifications', () => {
           const customEl = bind(document.createElement('div'), custom);
           document.body.appendChild(customEl);
 
-          expect(customEl.getAttribute('role')).toBe('status');
+          expect(customEl.getAttribute('role')).toBe('alert');
           expect(customEl.getAttribute('aria-live')).toBe('assertive');
 
           native.destroy();
@@ -134,6 +135,7 @@ describe('Announcer - Live Region Specifications', () => {
           document.body.appendChild(el);
 
           expect(el.getAttribute('aria-live')).toBe('polite');
+          expect(el.getAttribute('aria-busy')).toBe('false');
 
           announcer.destroy();
           expect(announcer.current).toBeNull();
@@ -141,7 +143,8 @@ describe('Announcer - Live Region Specifications', () => {
           props.politeness = 'assertive';
           props.busy = true;
           expect(el.getAttribute('aria-live')).toBe('polite');
-          expect(el.hasAttribute('aria-busy')).toBe(false);
+          // No rewrite after destroy: the declared idle value lingers, never flips to busy
+          expect(el.getAttribute('aria-busy')).toBe('false');
 
           el.remove();
         });
@@ -154,6 +157,7 @@ describe('Announcer - Live Region Specifications', () => {
 
           const first = bind(document.createElement('div'), announcer);
           document.body.appendChild(first);
+          expect(first.getAttribute('role')).toBe('alert');
           expect(first.getAttribute('aria-live')).toBe('assertive');
           expect(first.getAttribute('aria-atomic')).toBe('false');
 
@@ -165,7 +169,7 @@ describe('Announcer - Live Region Specifications', () => {
           document.body.appendChild(second);
 
           expect(announcer.current).toBe(second);
-          expect(second.getAttribute('role')).toBe('status');
+          expect(second.getAttribute('role')).toBe('alert');
           expect(second.getAttribute('aria-live')).toBe('assertive');
           expect(second.getAttribute('aria-atomic')).toBe('false');
 
@@ -176,3 +180,30 @@ describe('Announcer - Live Region Specifications', () => {
       }));
   });
 });
+
+  describe('Attribute Shielding Contract', () => {
+    const shieldScope = createLifecycle();
+
+    afterAll(() => {
+      shieldScope.destroy();
+    });
+
+    it('exposes controller-managed keys on ownKeys for rest-prop omission', () =>
+      shieldScope.run(() => {
+        component().run(() => {
+          const announcer = aria('announcer', {
+            politeness: 'assertive',
+            atomic: true,
+            busy: false,
+            relevant: 'additions',
+          });
+
+          for (const key of ['politeness', 'atomic', 'busy', 'relevant', 'aria-live', 'role']) {
+            expect(announcer.ownKeys).toContain(key);
+          }
+
+          announcer.destroy();
+          expect(announcer.current).toBeNull();
+        });
+      }));
+  });

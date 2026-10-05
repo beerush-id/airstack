@@ -71,6 +71,7 @@ export class SwitchAria<
       key: 'checked',
     });
 
+    this.omittedAttrs.push('value', 'name', 'aria-checked');
     this.update();
   }
 
@@ -83,6 +84,38 @@ export class SwitchAria<
 
   public set checked(value: boolean) {
     this.selected = value;
+  }
+
+  /**
+   * Selects the switch, announcing the commit to custom hosts.
+   */
+  public override select(): void {
+    if (this.disabled) return;
+    const was = this.checked;
+    super.select();
+    this.notifyInput(was);
+  }
+
+  /**
+   * Deselects the switch, announcing the commit to custom hosts.
+   */
+  public override deselect(): void {
+    if (this.disabled || this.idempotent) return;
+    const was = this.checked;
+    super.deselect();
+    this.notifyInput(was);
+  }
+
+  /**
+   * Dispatches the input event for a real commit on a custom host. Native hosts
+   * leave input to the browser, and mutations that commit nothing stay silent.
+   */
+  private notifyInput(was: boolean): void {
+    if (this.isNative || this.checked === was) return;
+    const host = this.element;
+    if (host) {
+      host.dispatchEvent(new CustomEvent<boolean>('input', { bubbles: true, detail: this.checked }));
+    }
   }
 
   /**

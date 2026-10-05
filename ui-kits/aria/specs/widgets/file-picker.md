@@ -1,14 +1,14 @@
-# FileTrigger Specification
+# FilePicker Specification
 
 The file-picker activation unit. Provides unified system file-picker triggering, media type filtering, and cancel
 detection across native buttons and custom elements.
 
-- **Entity**: `file-trigger`
+- **Entity**: `file-picker`
 - **WAI-ARIA Role**: `button`
 
 ### Parts
 
-- **`FileTrigger`**: Button element bridging to an internal, hidden native `<input type="file">`.
+- **`FilePicker`**: Button element bridging to an internal, hidden native `<input type="file">`.
 
 ---
 
@@ -25,10 +25,10 @@ detection across native buttons and custom elements.
 
 ### 1. Options & Props Contracts
 
-#### `FileTriggerProps`
+#### `FilePickerProps`
 
 ```ts
-export interface FileTriggerProps {
+export interface FilePickerProps {
   /** Accepted file types string */
   accept?: string;
   /** Multi-file selection flag */
@@ -39,10 +39,10 @@ export interface FileTriggerProps {
 }
 ```
 
-#### `FileTriggerOptions`
+#### `FilePickerOptions`
 
 ```ts
-export interface FileTriggerOptions {
+export interface FilePickerOptions {
   /** Whether bound to native <button> (default: true) */
   native?: boolean;
 }
@@ -51,12 +51,12 @@ export interface FileTriggerOptions {
 ### 2. Overload Contracts
 
 ```ts
-// FileTrigger
+// FilePicker
 export function aria<E extends BaseElement = HTMLButtonElement>(
-  role: 'file-trigger',
-  props?: FileTriggerProps,
-  options?: FileTriggerOptions
-): FileTriggerAria<E>;
+  role: 'file-picker',
+  props?: FilePickerProps,
+  options?: FilePickerOptions
+): FilePickerAria<E>;
 ```
 
 ---
@@ -65,7 +65,7 @@ export function aria<E extends BaseElement = HTMLButtonElement>(
 
 1. **Triggering**:
   - Activation opens the system file picker when not disabled and `!event.defaultPrevented`.
-2. **Events** (both dispatched **on the FileTrigger element**, `docs/file-trigger.md:24-25`):
+2. **Events** (both dispatched **on the FilePicker element**, `docs/file-picker.md:24-25`):
   - `change`: after files are confirmed, `CustomEvent<File[]>('change', { bubbles: true, detail: files })`.
   - `cancel`: on picker dismissal without selection, `CustomEvent<void>('cancel', { bubbles: false })`.
 3. **Disabled**: `disabled` blocks the picker from opening; a canceled initiating event (`defaultPrevented`) opens

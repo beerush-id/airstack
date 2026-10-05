@@ -321,13 +321,13 @@ describe('Radio - Contract Specifications', () => {
     it('disposes ambient group synchronization effects when component tree unmounts', () =>
       scope.run(() => {
         const group = mutable({ value: 'item-1' });
-        selectionGroup.set(group);
 
         let radio!: RadioAria;
         let input!: HTMLInputElement;
 
         const tree = component();
         tree.run(() => {
+          selectionGroup.set(group);
           radio = aria('radio', { value: 'item-1' });
           input = bind(document.createElement('input'), radio);
         });

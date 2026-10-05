@@ -132,15 +132,16 @@ describe('Image - Contract Specifications', () => {
           nativeImage.destroy();
           nativeContent.destroy();
 
-          // A custom host has no implicit semantics to inherit once the same status is settled
+          // A custom host has no implicit semantics to inherit once the loader settles
           const customImage = aria('image', {
             src: '/art.png',
             alt: 'Abstract art',
-            status: 'loaded',
           });
           const customContent = aria<HTMLDivElement>('image-content');
           const divEl = bind(document.createElement('div'), customContent);
 
+          divEl.dispatchEvent(new Event('load'));
+          expect(customImage.status).toBe('loaded');
           expect(divEl.getAttribute('role')).toBe('img');
           expect(divEl.getAttribute('aria-label')).toBe('Abstract art');
 
@@ -186,12 +187,14 @@ describe('Image - Contract Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const image = aria('image', { src: '/rule.png', alt: '', status: 'loaded' });
+          const image = aria('image', { src: '/rule.png', alt: '' });
           const nativeContent = aria('image-content');
           const customContent = aria<HTMLDivElement>('image-content');
 
           // Native: alt="" is the platform's decorative marker, so the element stays unlabeled
           const imgEl = bind(document.createElement('img'), nativeContent);
+          imgEl.dispatchEvent(new Event('load'));
+          expect(image.status).toBe('loaded');
           expect(imgEl.getAttribute('alt')).toBe('');
           expect(imgEl.hasAttribute('role')).toBe(false);
           expect(imgEl.hasAttribute('aria-label')).toBe(false);
@@ -206,13 +209,18 @@ describe('Image - Contract Specifications', () => {
           customContent.destroy();
 
           // Fallback: while it is the active representation, an empty label announces nothing
-          const errored = aria('image', { src: '/gone.png', alt: '', status: 'error' });
+          const errored = aria('image', { src: '/gone.png', alt: '' });
+          const erroredContent = aria('image-content');
           const fallback = aria('image-fallback');
+          const erroredImgEl = bind(document.createElement('img'), erroredContent);
           const fallbackEl = bind(document.createElement('div'), fallback);
+          erroredImgEl.dispatchEvent(new Event('error'));
+          expect(errored.status).toBe('error');
           expect(fallbackEl.hasAttribute('role')).toBe(false);
           expect(fallbackEl.hasAttribute('aria-label')).toBe(false);
 
           errored.destroy();
+          erroredContent.destroy();
           fallback.destroy();
         });
       }));

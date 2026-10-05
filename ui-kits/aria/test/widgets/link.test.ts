@@ -56,22 +56,24 @@ describe('Link - Contract Specifications', () => {
   });
 
   describe('Disabled Navigation Lockout Contract', () => {
-    it('withholds href, announces aria-disabled, and blocks activation when disabled', () =>
+    it('keeps href, announces aria-disabled, and blocks activation when disabled', () =>
       scope.run(() => {
         const tree = component();
         tree.run(() => {
           const link = aria('link', { href: '/admin', disabled: true });
 
-          // 1. SSR Phase: no navigable target is offered
+          // 1. SSR Phase: the target stays discoverable, navigation is suppressed via preventDefault
           expect(link.disabled).toBe(true);
-          expect(link.href).toBeUndefined();
-          expect(link.attributes.href).toBeUndefined();
+          expect(link.href).toBe('/admin');
+          expect(link.attributes.href).toBe('/admin');
           expect(link.attributes['aria-disabled']).toBe('true');
+          expect(link.attributes.tabindex).toBe(-1);
 
           // 2. Mount Phase
           const el = bind(document.createElement('a'), link);
-          expect(el.hasAttribute('href')).toBe(false);
+          expect(el.getAttribute('href')).toBe('/admin');
           expect(el.getAttribute('aria-disabled')).toBe('true');
+          expect(el.getAttribute('tabindex')).toBe('-1');
 
           // 3. Interaction Phase: activation is refused
           const click = new MouseEvent('click', { cancelable: true, bubbles: true });
@@ -91,10 +93,10 @@ describe('Link - Contract Specifications', () => {
           expect(el.getAttribute('href')).toBe('/admin');
           expect(el.getAttribute('aria-disabled')).toBe('false');
 
-          // Parent revokes access -> the mounted anchor stops being navigable
+          // Parent revokes access -> navigation is suppressed but the target stays
           props.disabled = true;
-          expect(link.href).toBeUndefined();
-          expect(el.hasAttribute('href')).toBe(false);
+          expect(link.href).toBe('/admin');
+          expect(el.getAttribute('href')).toBe('/admin');
           expect(el.getAttribute('aria-disabled')).toBe('true');
 
           const click = new MouseEvent('click', { cancelable: true, bubbles: true });
@@ -210,6 +212,7 @@ describe('Link - Contract Specifications', () => {
 
           // 2. DOM Binding
           const el = bind(document.createElement('span'), link);
+          document.body.appendChild(el);
           expect(link.current).toBe(el);
 
           const hostClicks: MouseEvent[] = [];
@@ -244,6 +247,7 @@ describe('Link - Contract Specifications', () => {
           expect(hostClicks).toHaveLength(1);
 
           document.removeEventListener('click', onDocumentClick);
+          el.remove();
 
           // 6. Teardown: detached host stops synthesizing navigation
           link.destroy();
@@ -347,9 +351,9 @@ describe('Link - Contract Specifications', () => {
           );
           expect(clickSpy).toHaveBeenCalledTimes(1);
 
-          // 5. Reconciliation: revocation withdraws the target and the tab stop
+          // 5. Reconciliation: revocation suppresses navigation but keeps the target and the tab stop
           props.disabled = true;
-          expect(el.hasAttribute('href')).toBe(false);
+          expect(el.getAttribute('href')).toBe('/account');
           expect(el.getAttribute('aria-disabled')).toBe('true');
           expect(el.getAttribute('tabindex')).toBe('-1');
 
@@ -358,7 +362,7 @@ describe('Link - Contract Specifications', () => {
           );
           const click = new MouseEvent('click', { cancelable: true, bubbles: true });
           el.dispatchEvent(click);
-          expect(clickSpy).toHaveBeenCalledTimes(1);
+          expect(clickSpy).toHaveBeenCalledTimes(2);
           expect(click.defaultPrevented).toBe(true);
 
           // Restoration puts the target and the tab stop back on the same node
@@ -370,7 +374,7 @@ describe('Link - Contract Specifications', () => {
           el.dispatchEvent(
             new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }),
           );
-          expect(clickSpy).toHaveBeenCalledTimes(2);
+          expect(clickSpy).toHaveBeenCalledTimes(3);
 
           // 6. Teardown
           link.destroy();
@@ -441,10 +445,10 @@ describe('Link - Contract Specifications', () => {
           expect(anchorClick.defaultPrevented).toBe(true);
           expect(spanClick.defaultPrevented).toBe(true);
 
-          // Reachability mechanism: the anchor withdraws its target, the span its tab stop
-          expect(anchor.hasAttribute('href')).toBe(false);
+          // Reachability mechanism: both hosts keep the target with a -1 tab stop
+          expect(anchor.getAttribute('href')).toBe('/admin');
           expect(anchor.hasAttribute('role')).toBe(false);
-          expect(anchor.hasAttribute('tabindex')).toBe(false);
+          expect(anchor.getAttribute('tabindex')).toBe('-1');
           expect(span.getAttribute('role')).toBe('link');
           expect(span.getAttribute('tabindex')).toBe('-1');
 

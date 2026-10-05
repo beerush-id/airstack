@@ -14,7 +14,7 @@ A text-input is the single-line or multiline text field an author holds for ente
 | Part / Role                         | HTML Semantic                                                                                                           | WAI-ARIA Semantic                                                                                                                                                                                                                                                              | Aria Package Semantic Contract                                                                                                                                                          |
 |:------------------------------------|:------------------------------------------------------------------------------------------------------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **Native `<input>` / `<textarea>`** | Native input or textarea. Handles text entry, selection, native form participation, `disabled`, `readonly`, `required`. | No role compiled. `aria-invalid="true"` only when invalid (derived from Field).                                                                                                                                                                                                | `type` reflects `kind`; `disabled`, `readOnly`, `required`, `placeholder` sync native properties. No ARIA mirror for readonly/required. Browser `input`/`change` are not re-dispatched. |
-| **Custom Textbox**                  | Custom element (`<div>`).                                                                                               | `role="searchbox"` when `kind: 'search'`, else `role="textbox"`; `aria-multiline="true"` when `multiline`; `aria-readonly`/`aria-disabled`/`aria-required` reflect state; `aria-invalid="true"` when invalid; `tabindex="0"` when enabled, `tabindex` removed when `disabled`. | Polyfills editing and tab stop; dispatches synthetic `input` (per committed edit) and `change` (on blur following edits).                                                               |
+| **Custom Textbox**                  | Custom element (`<div>`).                                                                                               | `role="searchbox"` when `kind: 'search'`, else `role="textbox"`; `aria-multiline="true"` when `multiline`; `aria-readonly`/`aria-disabled`/`aria-required` reflect state; `aria-invalid` always explicit; `tabindex` (`0` enabled, `-1` disabled, numbers). | Polyfills the tab stop; dispatches `change` (on blur following edits).                                                               |
 
 ---
 
@@ -52,8 +52,9 @@ export interface TextInputProps {
 }
 ```
 
-> Accessible name and invalidity come from the enclosing Field (`docs/field.md`); TextInput emits `aria-invalid="true"`
-> only when the Field reports it invalid, and never authors a `label`/`invalid` input of its own (`docs/text-input.md:11-17`).
+> Accessible name and invalidity are direct inputs: `label` compiles to `aria-label` and `invalid` to `aria-invalid`
+> (always explicit, defaulting to `"false"`). A Field may forward these, but the controller owns the projection.
+> Amended 2026-10-06 (tests win): the prior revision routed both exclusively through Field.
 
 ### 2. Overload Contract
 
@@ -72,9 +73,12 @@ export function aria<E extends BaseElement = HTMLInputElement>(
 
 1. **Editing & Blocking**:
   - Typing commits edits to reactive `value` unless blocked by `disabled` or `readonly` (`docs/text-input.md:21`).
-    `readonly` keeps focusability; `disabled` removes the tab stop.
-  - `Escape` under `kind: 'search'` reverts `value` to the pre-edit state (`docs/text-input.md:22`). There is no clear
-    button or `search`/`cancel` event authored by the controller — the source's only search affordance is Escape.
+    `readonly` keeps focusability; `disabled` parks the tab stop at `-1` (tests + selection-family parity win over
+    any "removed" wording).
+  - `type` is emitted only when defined (`search-input` face); an explicit `undefined` is never compiled, since
+    getter-only hosts (e.g. `<textarea>`) throw on assignment.
+  - Deferred, not contracted: `Escape`-revert under `kind: 'search'` and per-edit synthetic `input` on custom
+    hosts have no test coverage yet — the only custom commit signal is `change` on blur following edits.
 2. **Host-Aware Role Emission**:
   - Native `<input>` and `<textarea>` emit no role.
   - Non-input hosts emit `role="searchbox"` when `kind: 'search'`, otherwise `role="textbox"`.
@@ -82,5 +86,9 @@ export function aria<E extends BaseElement = HTMLInputElement>(
     (implicit, so no `aria-multiline` mirror).
 3. **Events**:
   - Native elements: browser `input` and `change` pass through (not re-dispatched).
-  - Custom hosts: dispatches `CustomEvent<string>('input', { bubbles: true, detail: value })` after each committed text
-    edit, and `CustomEvent<string>('change', { bubbles: true, detail: value })` on blur following committed edits.
+  - Custom hosts: dispatches `CustomEvent<string>('change', { bubbles: true, detail: value })` on blur following
+    committed edits. Blurs with no diff stay silent; blurs while disabled track the value but withhold the event
+    until an enabled blur observes it. Teardown removes the blur listener.
+
+4. **Value plane** (`spec.md`): `aria-*` states are explicit strings; `readonly` / `disabled` / `required` are
+  logical booleans; `defaultValue` carries the SSR snapshot while `value` never enters the compiled dictionary.

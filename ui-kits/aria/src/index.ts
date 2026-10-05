@@ -6,8 +6,6 @@ import {
   AccordionPanelAria,
   type AccordionPanelProps,
   type AccordionProps,
-  SelectAria,
-  type SelectProps,
   MenuAria,
   MenuButtonAria,
   type MenuButtonProps,
@@ -27,6 +25,8 @@ import {
   type MenuProps,
   RadioGroupAria,
   type RadioGroupProps,
+  SelectAria,
+  type SelectProps,
   TabAria,
   TabButtonAria,
   type TabButtonOptions,
@@ -42,37 +42,33 @@ import {
   type ToolbarProps,
 } from './composites/index.js';
 import {
-  HeaderAria,
-  type HeaderOptions,
-  type HeaderProps,
-  SidebarAria,
-  type SidebarOptions,
-  type SidebarProps,
   FooterAria,
   type FooterOptions,
   type FooterProps,
   FormAria,
   type FormLandmarkOptions,
   type FormLandmarkProps,
+  HeaderAria,
+  type HeaderOptions,
+  type HeaderProps,
   MainAria,
   type MainOptions,
   type MainProps,
   NavigationAria,
   type NavigationOptions,
   type NavigationProps,
-  SectionAria,
-  type SectionOptions,
-  type SectionProps,
   SearchAria,
   type SearchLandmarkOptions,
   type SearchLandmarkProps,
+  SectionAria,
+  type SectionOptions,
+  type SectionProps,
+  SidebarAria,
+  type SidebarOptions,
+  type SidebarProps,
 } from './landmarks/index.js';
-import {
-  AnnouncerAria,
-  type AnnouncerOptions,
-  type AnnouncerProps,
-} from './live/index.js';
-import type { BaseElement, Primitive } from './types.js';
+import { AnnouncerAria, type AnnouncerOptions, type AnnouncerProps } from './live/index.js';
+import type { AriaProps, BaseElement, Primitive } from './types.js';
 import {
   ButtonAria,
   type ButtonOptions,
@@ -80,9 +76,26 @@ import {
   CheckboxAria,
   type CheckboxOptions,
   type CheckboxProps,
+  DividerAria,
+  type DividerOptions,
+  type DividerProps,
+  FilePickerAria,
+  type FilePickerOptions,
+  type FilePickerProps,
+  ImageAria,
+  type ImageAttributes,
+  ImageContentAria,
+  type ImageContentAttributes,
+  ImageFallbackAria,
+  type ImageFallbackAttributes,
+  type ImageProps,
+  type ImageStatus,
   LinkAria,
   type LinkOptions,
   type LinkProps,
+  NumberStepperAria,
+  type NumberStepperOptions,
+  type NumberStepperProps,
   OptionAria,
   type OptionOptions,
   type OptionProps,
@@ -92,21 +105,15 @@ import {
   RadioAria,
   type RadioOptions,
   type RadioProps,
-  SwitchAria,
-  type SwitchOptions,
-  type SwitchProps,
   SearchInputAria,
   type SearchInputOptions,
   type SearchInputProps,
-  DividerAria,
-  type DividerOptions,
-  type DividerProps,
   SplitterAria,
   type SplitterOptions,
   type SplitterProps,
-  NumberStepperAria,
-  type NumberStepperOptions,
-  type NumberStepperProps,
+  SwitchAria,
+  type SwitchOptions,
+  type SwitchProps,
   TextInputAria,
   type TextInputOptions,
   type TextInputProps,
@@ -226,17 +233,31 @@ export function aria<E extends BaseElement = HTMLAnchorElement>(
   options?: LinkOptions
 ): LinkAria<E>;
 
+export function aria<E extends BaseElement = HTMLElement>(role: 'image', props: ImageProps): ImageAria<E>;
+
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'image-content',
+  props?: AriaProps
+): ImageContentAria<E>;
+
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'image-fallback',
+  props?: AriaProps
+): ImageFallbackAria<E>;
+
 export function aria<E extends BaseElement = HTMLElement>(
   role: 'progressbar',
   props?: ProgressbarProps,
   options?: ProgressbarOptions
 ): ProgressbarAria<E>;
 
-export function aria<E extends BaseElement = HTMLElement>(
-  role: 'divider',
-  props?: DividerProps,
-  options?: DividerOptions
-): DividerAria<E>;
+export function aria<E extends BaseElement = HTMLElement>(role: 'divider', props?: DividerProps): DividerAria<E>;
+
+export function aria<E extends BaseElement = HTMLButtonElement>(
+  role: 'file-picker',
+  props?: FilePickerProps,
+  options?: FilePickerOptions
+): FilePickerAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement>(
   role: 'splitter',
@@ -346,10 +367,18 @@ export function aria(role: string, init?: unknown, options?: unknown): unknown {
       return new SearchInputAria(init as never, options as never);
     case 'link':
       return new LinkAria(init as never, options as never);
+    case 'image':
+      return new ImageAria(init as never, options as never);
+    case 'image-content':
+      return new ImageContentAria(init as never, options as never);
+    case 'image-fallback':
+      return new ImageFallbackAria(init as never, options as never);
     case 'progressbar':
       return new ProgressbarAria(init as never, options as never);
     case 'divider':
       return new DividerAria(init as never, options as never);
+    case 'file-picker':
+      return new FilePickerAria(init as never, options as never);
     case 'splitter':
       return new SplitterAria(init as never, options as never);
     case 'number-stepper':

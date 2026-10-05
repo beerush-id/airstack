@@ -68,6 +68,7 @@ export class ToggleAria<
       key: 'pressed',
     });
 
+    this.omittedAttrs.push('value');
     this.update();
   }
 

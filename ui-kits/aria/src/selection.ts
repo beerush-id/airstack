@@ -152,6 +152,7 @@ export abstract class SelectionAria<
 
     if (this.group) {
       $static(() => {
+        if (!this.coordinated) return;
         if (this.group!.multiple) {
           if (!Array.isArray(this.group!.value)) {
             console.warn(`[ARIA] Multi-select group initialized with non-array value.`);
@@ -162,25 +163,24 @@ export abstract class SelectionAria<
             this.group!.value.push(this.value);
           }
         } else if (
-          (this.idempotent && (!('value' in this.group!) || this.props.selected)) ||
-          (!('value' in this.group!) && this.props.selected)
+          this.group!.value === undefined &&
+          (this.props.selected || (this.idempotent && !!this.group!.required))
         ) {
-          // Claims initial selection when uncontrolled: required groups claim
-          // via idempotency, while an explicit `selected` hint claims regardless.
           this.group!.value = this.value;
         }
       });
 
       effect(() => {
-        if (!this.group) return;
+        const group = this.group;
+        if (!group || !this.coordinated) return;
         const value = this.value;
 
-        if (this.group.multiple) {
-          this.stateProps[this.stateKey] = this.group.value.includes(value);
+        if (group.multiple) {
+          this.stateProps[this.stateKey] = group.value.includes(value);
           return;
         }
 
-        this.stateProps[this.stateKey] = this.group.value === value;
+        this.stateProps[this.stateKey] = group.value === value;
       });
     }
   }
@@ -257,22 +257,24 @@ export abstract class SelectionAria<
    */
   public select(): void {
     if (this.disabled) return;
+    const was = this.selected;
 
-    if (this.group) {
+    const group = this.group;
+    if (this.coordinated && group) {
       const value = this.value;
 
-      if (this.group.multiple) {
-        if (!this.group.value.includes(value)) {
-          this.group.value.push(value);
+      if (group.multiple) {
+        if (!group.value.includes(value)) {
+          group.value.push(value);
         }
-        return;
+      } else {
+        group.value = value;
       }
-
-      this.group.value = value;
-      return;
+    } else {
+      this.stateProps[this.stateKey] = true;
     }
 
-    this.stateProps[this.stateKey] = true;
+    this.notifyChange(was);
   }
 
   /**
@@ -280,25 +282,33 @@ export abstract class SelectionAria<
    */
   public deselect(): void {
     if (this.disabled || this.idempotent) return;
+    const was = this.selected;
 
-    if (this.group) {
+    const group = this.group;
+    if (this.coordinated && group) {
       const value = this.value;
 
-      if (this.group.multiple) {
-        const index = this.group.value.indexOf(value);
+      if (group.multiple) {
+        const index = group.value.indexOf(value);
         if (index !== -1) {
-          this.group.value.splice(index, 1);
+          group.value.splice(index, 1);
         }
-        return;
+      } else if (group.value === value) {
+        delete group.value;
       }
-
-      if (this.group.value === value) {
-        delete this.group.value;
-      }
-      return;
+    } else {
+      this.stateProps[this.stateKey] = false;
     }
 
-    this.stateProps[this.stateKey] = false;
+    this.notifyChange(was);
+  }
+
+  private notifyChange(was: boolean): void {
+    if (this.selected === was) return;
+    const host = this.element;
+    if (host) {
+      host.dispatchEvent(new CustomEvent<boolean>('change', { bubbles: true, detail: this.selected }));
+    }
   }
 
   /**
@@ -320,6 +330,17 @@ export abstract class SelectionAria<
   protected group = selectionGroup.get();
 
   /**
+   * Whether this member coordinates selection through the ambient group.
+   * Only a member declaring a candidate value coordinates: a value-less member
+   * behaves standalone for state (still inheriting the group's disabled cascade)
+   * so it can never claim, adopt, or clear the shared slot.
+   */
+  protected get coordinated(): boolean {
+    if (!this.group) return false;
+    return this.value !== undefined;
+  }
+
+  /**
    * Computes base selection attributes, lockout state, and keyboard event handlers.
    *
    * @returns Base selection attributes dictionary
@@ -329,43 +350,55 @@ export abstract class SelectionAria<
     const role = this.options.role ? `${this.options.role}-` : '';
     const token = typeof this.value === 'string' ? this.value : this.id;
     const id = this.props.id ?? (this.group?.id ? `${this.group.id}-${role}${token}` : this.id);
-    const allowKeys = this.options.allowKeys ?? DEFAULT_ALLOW_KEYS;
 
     const attrs: Record<string, unknown> = {
       id,
       disabled: this.isNative ? isDisabled : undefined,
-      onclick: () => {
-        if (isDisabled) return;
-        this.toggle();
-      },
+      onclick: this.handleClick,
     };
 
     if (!this.isNative) {
       Object.assign(attrs, {
         tabindex: isDisabled ? -1 : 0,
         'aria-disabled': isDisabled ? 'true' : 'false',
-        onkeydown: (e: KeyboardEvent) => {
-          if (isDisabled || !allowKeys.includes(e.key)) return;
-
-          if (e.key === ' ') {
-            e.preventDefault();
-          } else if (e.key === 'Enter') {
-            e.preventDefault();
-            (e.currentTarget as HTMLElement)?.click?.();
-          }
-        },
-        onkeyup: (e: KeyboardEvent) => {
-          if (isDisabled || !allowKeys.includes(e.key)) return;
-
-          if (e.key === ' ') {
-            (e.currentTarget as HTMLElement)?.click?.();
-          }
-        },
+        onkeydown: this.handleKeyDown,
+        onkeyup: this.handleKeyUp,
       });
     }
 
     return attrs as A;
   }
+
+  private readonly handleClick = (event: MouseEvent): void => {
+    if (this.disabled || event.defaultPrevented) return;
+    this.toggle();
+  };
+
+  private spaceArmed = false;
+
+  private readonly handleKeyDown = (event: KeyboardEvent): void => {
+    const allowKeys = this.options.allowKeys ?? DEFAULT_ALLOW_KEYS;
+    if (this.disabled || event.defaultPrevented || !allowKeys.includes(event.key)) return;
+
+    if (event.key === ' ') {
+      event.preventDefault();
+      this.spaceArmed = true;
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+      (event.currentTarget as HTMLElement)?.click?.();
+    }
+  };
+
+  private readonly handleKeyUp = (event: KeyboardEvent): void => {
+    const allowKeys = this.options.allowKeys ?? DEFAULT_ALLOW_KEYS;
+    const armed = this.spaceArmed;
+    this.spaceArmed = false;
+    if (this.disabled || event.defaultPrevented || !allowKeys.includes(event.key)) return;
+
+    if (event.key === ' ' && armed) {
+      (event.currentTarget as HTMLElement)?.click?.();
+    }
+  };
 
   /**
    * Polyfills enclosing `<label>` click activation for non-native selection widgets.

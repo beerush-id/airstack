@@ -13,7 +13,7 @@ multi-state selection (checked/unchecked/mixed).
 | Context             | HTML Semantic                                                                                                                                                     | WAI-ARIA Semantic                                                                                                                                                                                 | Aria Package Semantic Contract                                                                                                         |
 |:--------------------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------|
 | **Native Checkbox** | Native `<input type="checkbox">`. Participates in native form submission (`name`, `value`, `checked`, `required`). Supports native `.indeterminate` IDL property. | Implicit `role="checkbox"`. Attribute omitted.                                                                                                                                                    | Syncs native `.checked`, `.indeterminate`, `.disabled`, and `.required` properties. Emits no role and no redundant checked ARIA state. |
-| **Custom Checkbox** | Non-native element (`<div>`, `<span>`). No native form participation or keyboard behavior.                                                                        | `role="checkbox"`, `aria-checked` (`"true"` \| `"false"` \| `"mixed"`), `aria-required`; `tabindex="0"` when enabled, `tabindex` removed when `disabled`; `aria-disabled="true"` when `disabled`. | Polyfills Space key toggling, manages `this.checked` projection, and compiles ARIA attributes.                                         |
+| **Custom Checkbox** | Non-native element (`<div>`, `<span>`). No native form participation or keyboard behavior.                                                                        | `role="checkbox"`, `aria-checked` (`"true"` \| `"false"` \| `"mixed"`), `aria-required`; `tabindex="0"` when enabled, `tabindex="-1"` when `disabled`; `aria-disabled` always explicit. | Polyfills Space key toggling, manages `this.checked` projection, and compiles ARIA attributes.                                         |
 
 ---
 
@@ -34,12 +34,16 @@ export interface CheckboxOptions {
 
 ```ts
 export interface CheckboxProps<T extends AnyType = AnyType> {
-  /** Checked state; the single tri-state prop (default: false) */
-  checked?: boolean | 'indeterminate';
+  /** Checked state (default: false) */
+  checked?: boolean;
+  /** Mixed-state flag; outranks `checked` for announcement, clears on activation (default: false) */
+  indeterminate?: boolean;
   /** Whether the checkbox is disabled from user interaction */
   disabled?: boolean;
   /** Whether a checked state is required for form validation */
   required?: boolean;
+  /** Field validity; compiles `aria-invalid` (custom) or reflects validity (native) */
+  invalid?: boolean | string;
   /** Semantic identity key or field name on the parent group or form */
   name?: string;
   /** Choice candidate value when nested inside a multi-selection group */
@@ -62,11 +66,12 @@ export function aria<E extends BaseElement = HTMLInputElement, T extends AnyType
 
 ## State & Lifecycle Rules
 
-1. **Tri-State (`checked`)**:
-  - One prop carries all three states: `true`, `false`, `'indeterminate'` (default `false`). There is no separate
-    `indeterminate` prop, so `{ checked: true, indeterminate: true }` is not constructible and mixed precedence is not a
-    question.
-  - Activation flips `checked`: from `false` or `'indeterminate'` commits `true`; from `true` commits `false`.
+1. **Tri-State (`checked` + `indeterminate`)**:
+  - Two props carry the three announced states: `checked` (`true` | `false`, default `false`) and the `indeterminate`
+    flag (default `false`). Mixed outranks unchecked for announcement: `indeterminate: true` compiles
+    `aria-checked="mixed"` (custom) or sets the native `.indeterminate` IDL property.
+  - Activation resolves mixed toward checked and clears the flag: from `false` or mixed commits `true` with
+    `indeterminate: false`; from `true` commits `false`.
 
 2. **Activation & Guarding**:
   - Activation flows from pointer `click` and `Space` keyup. `Enter` commits nothing.

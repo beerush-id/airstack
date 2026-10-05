@@ -1,6 +1,7 @@
+import { $static } from '@airlib/core';
 import { Aria } from '../core.js';
-import type { AriaAttributes, AriaInvalid, AriaOptions, AriaProps, BaseElement } from '../types.js';
-import { ariaInvalid } from '../utils/attributes.js';
+import type { AriaAttributes, AriaInvalid, AriaOptions, AriaProps, BaseElement, DetachFn } from '../types.js';
+import { ariaBoolean, ariaInvalid, ariaRequired } from '../utils/attributes.js';
 
 /**
  * Configuration options for TextInputAria.
@@ -14,6 +15,11 @@ export interface TextInputOptions extends AriaOptions {
 }
 
 /**
+ * Text input kind selecting the custom-host role and native type behavior.
+ */
+export type TextInputKind = 'text' | 'password' | 'search' | 'email' | 'tel' | 'url';
+
+/**
  * Reactive inputs for TextInputAria.
  */
 export interface TextInputProps extends AriaProps {
@@ -21,6 +27,16 @@ export interface TextInputProps extends AriaProps {
    * Live text value.
    */
   value?: string;
+
+  /**
+   * Text input kind selecting the searchbox role on custom hosts.
+   */
+  kind?: TextInputKind;
+
+  /**
+   * Multiline flag compiled to aria-multiline on custom hosts.
+   */
+  multiline?: boolean;
 
   /**
    * Readonly indicator.
@@ -102,10 +118,31 @@ export class TextInputAria<
   A extends TextInputAttributes<E> = TextInputAttributes<E>,
   O extends TextInputOptions = TextInputOptions,
 > extends Aria<E, T, A, O> {
+  private lastCommitted: string | null = null;
+
   public constructor(props: Partial<T> = {}, options: O = {} as O) {
-    super(props, { ...options, native: true } as O);
+    super(props, { native: true, ...options } as O);
     if (!this.options.role) (this.options as O).role = 'text-input' as O['role'];
-    this.omittedAttrs.push('value', 'defaultValue', 'readonly', 'required', 'aria-required', 'aria-invalid');
+    this.omittedAttrs.push(
+      'value',
+      'defaultValue',
+      'kind',
+      'multiline',
+      'label',
+      'type',
+      'role',
+      'tabindex',
+      'readonly',
+      'required',
+      'aria-required',
+      'aria-readonly',
+      'aria-disabled',
+      'aria-multiline',
+      'aria-invalid',
+    );
+    $static(() => {
+      this.lastCommitted = this.props.value ?? '';
+    });
     this.update();
   }
 
@@ -139,7 +176,9 @@ export class TextInputAria<
    */
   protected override createAttributes(): A {
     const { value, readonly, disabled, required, placeholder, label, invalid } = this.props;
-    return Object.assign(super.createAttributes(), {
+    const type =
+      this.options.role === 'search-input' || this.props.kind === 'search' ? 'search' : undefined;
+    const attrs: Record<string, unknown> = {
       value: value ?? '',
       oninput: this.handleInput,
       readonly: !!readonly,
@@ -147,13 +186,47 @@ export class TextInputAria<
       required: !!required,
       placeholder,
       'aria-label': label,
-      type: this.options.role === 'search-input' ? 'search' : undefined,
       'aria-invalid': ariaInvalid(invalid) ?? 'false',
+    };
+
+    if (this.isNative) {
+      if (type !== undefined) {
+        attrs.type = type;
+      }
+      if (this.options.role === 'search-input') {
+        attrs['aria-required'] = ariaRequired(required) ?? 'false';
+      }
+      return Object.assign(super.createAttributes(), attrs) as A;
+    }
+
+    return Object.assign(super.createAttributes(), attrs, {
+      role: this.props.kind === 'search' || this.options.role === 'search-input' ? 'searchbox' : 'textbox',
+      tabindex: disabled ? -1 : 0,
+      ...(this.props.multiline ? { 'aria-multiline': 'true' as const } : {}),
+      'aria-readonly': ariaBoolean(readonly),
+      'aria-disabled': ariaBoolean(disabled),
+      'aria-required': ariaRequired(required) ?? 'false',
     }) as A;
   }
 
+  protected override attach(): DetachFn | void {
+    if (this.isNative) return;
+    const host = this.element;
+    /* istanbul ignore next: attach only runs post-assignment with a live element */
+    if (!host) return;
+    const onBlur = (): void => {
+      const current = this.value;
+      if (current === this.lastCommitted) return;
+      this.lastCommitted = current;
+      if (this.disabled) return;
+      host.dispatchEvent(new CustomEvent<string>('change', { bubbles: true, detail: current }));
+    };
+    host.addEventListener('blur', onBlur);
+    return () => host.removeEventListener('blur', onBlur);
+  }
+
   private readonly handleInput = (e: Event): void => {
-    if (this.disabled) return;
+    if (this.disabled || this.props.readonly) return;
     this.props.value = (e.currentTarget as HTMLInputElement).value;
   };
 }

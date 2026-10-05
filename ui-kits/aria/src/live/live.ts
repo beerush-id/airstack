@@ -43,7 +43,7 @@ export interface LiveRegionOptions extends AriaOptions {}
  * @template E - Target Element type (defaults to HTMLElement)
  */
 export interface LiveRegionAttributes<E extends BaseElement = HTMLElement> extends AriaAttributes<E> {
-  role?: 'status';
+  role?: 'status' | 'alert';
   'aria-live'?: Politeness;
   'aria-atomic'?: 'true' | 'false';
   'aria-busy'?: 'true' | 'false';
@@ -68,9 +68,9 @@ export abstract class LiveRegionAria<
   O extends LiveRegionOptions = LiveRegionOptions,
 > extends Aria<E, T, A, O> {
   /**
-   * WAI-ARIA role compiled when the host element does not already imply it.
+   * Role compiled onto a custom host when the host element does not already imply it.
    */
-  protected abstract readonly liveRole: 'status';
+  protected abstract get resolvedRole(): 'status' | 'alert';
 
   /**
    * Politeness the role announces with when the author sets none.
@@ -80,12 +80,21 @@ export abstract class LiveRegionAria<
   /**
    * Whether the role announces its whole subtree when the author sets no preference.
    */
-  protected readonly defaultAtomic?: boolean;
+  protected readonly defaultAtomic: boolean = false;
 
   public constructor(props: Partial<T> = {}, options: O = {} as O) {
     super(props, options);
 
-    this.omittedAttrs.push('aria-live', 'aria-atomic', 'aria-busy', 'aria-relevant');
+    this.omittedAttrs.push(
+      'politeness',
+      'atomic',
+      'busy',
+      'relevant',
+      'aria-live',
+      'aria-atomic',
+      'aria-busy',
+      'aria-relevant',
+    );
     this.update();
   }
 
@@ -100,7 +109,7 @@ export abstract class LiveRegionAria<
    * Whether the whole region is announced as one unit.
    */
   public get atomic(): boolean {
-    return this.props.atomic ?? this.defaultAtomic ?? false;
+    return this.props.atomic ?? this.defaultAtomic;
   }
 
   /**
@@ -117,10 +126,10 @@ export abstract class LiveRegionAria<
    */
   protected override createAttributes(): A {
     return Object.assign(super.createAttributes(), {
-      role: this.isNative ? undefined : this.liveRole,
+      role: this.isNative ? undefined : this.resolvedRole,
       'aria-live': this.politeness,
       'aria-atomic': this.declaresAtomic ? ariaBoolean(this.atomic) : undefined,
-      'aria-busy': this.busy ? 'true' : undefined,
+      'aria-busy': this.declaresBusy ? ariaBoolean(this.busy) : undefined,
       'aria-relevant': this.props.relevant,
     }) as A;
   }
@@ -131,6 +140,14 @@ export abstract class LiveRegionAria<
    */
   protected get declaresAtomic(): boolean {
     return this.props.atomic !== undefined || this.atomic;
+  }
+
+  /**
+   * Whether busyness must be written explicitly: the author stated a value,
+   * so `false` is a deliberate idle signal rather than an absent attribute.
+   */
+  protected get declaresBusy(): boolean {
+    return this.props.busy !== undefined;
   }
 }
 
@@ -159,11 +176,13 @@ export class AnnouncerAria<
   A extends LiveRegionAttributes<E> = LiveRegionAttributes<E>,
   O extends AnnouncerOptions = AnnouncerOptions,
 > extends LiveRegionAria<E, T, A, O> {
-  protected override readonly liveRole: 'status' = 'status';
   protected override readonly defaultPoliteness: Politeness = 'polite';
   protected override readonly defaultAtomic = true;
 
-  public constructor(props: Partial<T> = {}, options: O = {} as O) {
-    super(props, options);
+  /**
+   * Assertive announcers interrupt as `alert`; every other tuning waits as `status`.
+   */
+  protected override get resolvedRole(): 'status' | 'alert' {
+    return this.politeness === 'assertive' ? 'alert' : 'status';
   }
 }

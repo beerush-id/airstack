@@ -213,6 +213,7 @@ describe('Selection - Contract Specifications', () => {
           expect(item.attributes.tabindex).toBe(-1);
         });
       }));
+
   });
 
   describe('DOM & Keyboard Interaction', () => {

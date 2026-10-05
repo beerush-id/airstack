@@ -8,3 +8,9 @@ import type { BaseElement } from './types.js';
  * to detect an enclosing rover and coordinate or defer keyboard navigation.
  */
 export const roverCtx = createContext<Aria<BaseElement>>();
+
+/**
+ * Ambient reactive location for current-page link activation.
+ * The root provides a reactive box; links track its url.
+ */
+export const linkCtx = createContext<{ url: string }>();

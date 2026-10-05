@@ -1,3 +1,4 @@
+import { linkCtx } from '../context.js';
 import { Aria } from '../core.js';
 import type { AriaAttributes, AriaOptions, AriaProps, BaseElement } from '../types.js';
 import { ariaBoolean } from '../utils/attributes.js';
@@ -20,6 +21,11 @@ export interface LinkProps extends AriaProps {
    * Whether the link is disabled from user interaction.
    */
   disabled?: boolean;
+
+  /**
+   * Current-page override. When undefined, matches href against ambient linkCtx.
+   */
+  current?: boolean;
 }
 
 /**
@@ -38,6 +44,7 @@ export interface LinkAttributes<E extends BaseElement = HTMLAnchorElement> exten
   target?: string;
   tabindex?: number;
   'aria-disabled'?: 'true' | 'false';
+  'aria-current'?: 'page';
 }
 
 /**
@@ -63,15 +70,26 @@ export class LinkAria<
       ...options,
     });
 
-    this.omittedAttrs.push('href', 'target', 'aria-disabled');
+    this.omittedAttrs.push('href', 'target', 'current', 'aria-disabled', 'aria-current');
     this.update();
   }
 
   /**
-   * Target resource URL, withheld while the link is disabled.
+   * Target resource URL. Kept while disabled so the link stays discoverable;
+   * navigation is suppressed via preventDefault instead.
    */
   public get href(): string | undefined {
-    return this.disabled ? undefined : this.props.href;
+    return this.props.href;
+  }
+
+  /**
+   * Whether the link represents the current page, via explicit override
+   * or ambient URL match.
+   */
+  public get isCurrent(): boolean {
+    if (this.props.current !== undefined) return this.props.current;
+    const url = linkCtx.get()?.url;
+    return !!this.props.href && url === this.props.href;
   }
 
   /**
@@ -92,7 +110,10 @@ export class LinkAria<
       href: this.href,
       target: this.props.target,
       'aria-disabled': ariaBoolean(isDisabled),
+      'aria-current': this.isCurrent ? 'page' : undefined,
+      tabindex: isDisabled ? -1 : undefined,
       onclick: this.handleClick,
+      onauxclick: this.handleClick,
     });
 
     if (this.isNative) {
@@ -102,6 +123,8 @@ export class LinkAria<
     return Object.assign(attrs, {
       role: 'link',
       tabindex: isDisabled ? -1 : 0,
+      onclick: this.handleCustomClick,
+      onauxclick: this.handleCustomAuxClick,
       onkeydown: this.handleKey,
     }) as A;
   }
@@ -111,8 +134,43 @@ export class LinkAria<
     event.preventDefault();
   };
 
+  private readonly handleCustomAuxClick = (event: MouseEvent): void => {
+    if (this.disabled) {
+      event.preventDefault();
+      return;
+    }
+    if (event.button !== 1 || event.defaultPrevented) return;
+    const href = this.props.href;
+    if (!href) return;
+    const target = this.props.target ?? '_blank';
+    const host = this.element;
+    queueMicrotask(() => {
+      if (event.defaultPrevented || this.element !== host) return;
+      event.preventDefault();
+      window.open(href, target);
+    });
+  };
+
+  private readonly handleCustomClick = (event: MouseEvent): void => {
+    if (this.disabled) {
+      event.preventDefault();
+      return;
+    }
+    const href = this.props.href;
+    if (!href) return;
+
+    const explicitTarget = this.props.target;
+    const newTabGesture = event.ctrlKey || event.metaKey || event.shiftKey || event.button === 1;
+    const target = explicitTarget ?? (newTabGesture ? '_blank' : '_self');
+    const host = this.element;
+    queueMicrotask(() => {
+      if (event.defaultPrevented || this.element !== host) return;
+      window.open(href, target);
+    });
+  };
+
   private readonly handleKey = (event: KeyboardEvent): void => {
-    if (this.disabled || event.key !== 'Enter') return;
+    if (this.disabled || event.defaultPrevented || event.key !== 'Enter') return;
 
     event.preventDefault();
     (event.currentTarget as HTMLElement)?.click?.();

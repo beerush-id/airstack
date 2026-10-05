@@ -574,7 +574,7 @@ Role-specific architectural options, props contracts, state projections, and key
 - [Tooltip](specs/widgets/tooltip.md) (`tooltip` advisory overlay)
 - [Popover](specs/widgets/popover.md) (`popover` disclosure overlay)
 - [Link](specs/widgets/link.md) (`link` navigation trigger)
-- [FileTrigger](specs/widgets/file-trigger.md) (`file-trigger` file picker)
+- [FilePicker](specs/widgets/file-picker.md) (`file-picker` file picker)
 - [Image](specs/widgets/image.md) (`image` loading & fallback)
 - [Alert](specs/widgets/alert.md) (`alert` inline announcement)
 

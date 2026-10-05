@@ -404,13 +404,14 @@ describe('Checkbox - Contract Specifications', () => {
     it('disposes ambient group synchronization effects when component tree unmounts', () =>
       scope.run(() => {
         const group = mutable({ value: ['item-1'], multiple: true });
-        selectionGroup.set(group);
 
         let cb!: CheckboxAria;
         let input!: HTMLInputElement;
 
         const tree = component();
         tree.run(() => {
+          // Published inside the tree so no ambient group leaks into later tests
+          selectionGroup.set(group);
           cb = aria('checkbox', { value: 'item-1' });
           input = bind(document.createElement('input'), cb);
         });
@@ -754,7 +755,7 @@ describe('Checkbox - Contract Specifications', () => {
           expect(cb.disabled).toBe(true);
           expect(cb.attributes.role).toBe('checkbox');
           expect(cb.attributes['aria-disabled']).toBe('true');
-          expect(cb.attributes.tabindex).toBe('-1');
+          expect(cb.attributes.tabindex).toBe(-1);
           expect(cb.attributes['aria-checked']).toBe('false');
 
           // 2. DOM Binding
