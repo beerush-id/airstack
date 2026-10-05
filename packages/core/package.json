@@ -3,12 +3,7 @@
   "name": "@airlib/core",
   "version": "2.2.0",
   "description": "Core reactive state management library for Anchor",
-  "keywords": [
-    "state",
-    "management",
-    "reactive",
-    "observable"
-  ],
+  "keywords": ["state", "management", "reactive", "observable"],
   "author": "Nanang Mahdaen El Agung <mahdaen@gmail.com>",
   "homepage": "https://github.com/beerush-id/airstack",
   "license": "MIT",
@@ -47,9 +42,7 @@
       "import": "./dist/workflow/index.js"
     }
   },
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "directories": {
     "dist": "./dist"
   },

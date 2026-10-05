@@ -36,6 +36,7 @@ export {
 } from './shared/env.js';
 export * from './shared/exception.js';
 export * from './shared/inspector.js';
+export * from './timeline/index.js';
 export * from './types.js';
 export * from './utils/index.js';
 export * from './workflow/index.js';
