@@ -105,7 +105,7 @@ describe('Checkbox - Contract Specifications', () => {
 
           // 1. SSR Phase: native uses indeterminate attribute/property
           expect(cb.current).toBeNull();
-          expect(cb.props.indeterminate).toBe(true);
+          expect(cb.properties.indeterminate).toBe(true);
           expect(cb.attributes.indeterminate).toBe(true);
           expect(cb.attributes['aria-checked']).toBeUndefined();
 
@@ -117,7 +117,7 @@ describe('Checkbox - Contract Specifications', () => {
           // 3. Interaction Phase: clicking an indeterminate checkbox checks it and clears native mixed state
           input.click();
           expect(cb.checked).toBe(true);
-          expect(cb.props.indeterminate).toBe(false);
+          expect(cb.properties.indeterminate).toBe(false);
           expect(input.checked).toBe(true);
           expect(input.indeterminate).toBe(false);
 
@@ -136,7 +136,7 @@ describe('Checkbox - Contract Specifications', () => {
 
           // 1. SSR Phase: custom element uses pure aria-checked="mixed"
           expect(cb.current).toBeNull();
-          expect(cb.props.indeterminate).toBe(true);
+          expect(cb.properties.indeterminate).toBe(true);
           expect(cb.indeterminate).toBe(true);
           expect(cb.attributes['aria-checked']).toBe('mixed');
           expect(cb.attributes.indeterminate).toBeUndefined();
@@ -149,7 +149,7 @@ describe('Checkbox - Contract Specifications', () => {
           // 3. Interaction Phase: clicking an indeterminate checkbox checks it and clears mixed state
           div.click();
           expect(cb.checked).toBe(true);
-          expect(cb.props.indeterminate).toBe(false);
+          expect(cb.properties.indeterminate).toBe(false);
           expect(cb.indeterminate).toBe(false);
           expect(div.getAttribute('aria-checked')).toBe('true');
 
@@ -485,18 +485,14 @@ describe('Checkbox - Contract Specifications', () => {
 
           // Key repeat delivers many keydowns and one keyup: a single inversion
           for (let repeat = 0; repeat < 3; repeat += 1) {
-            el.dispatchEvent(
-              new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true }),
-            );
+            el.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true }));
           }
           expect(cb.checked).toBe(false);
 
           // 5. Reconciliation: state, projection and props move together
-          el.dispatchEvent(
-            new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }),
-          );
+          el.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }));
           expect(cb.checked).toBe(true);
-          expect(cb.props.checked).toBe(true);
+          expect(cb.properties.checked).toBe(true);
           expect(el.getAttribute('aria-checked')).toBe('true');
 
           // 6. Teardown
@@ -531,12 +527,8 @@ describe('Checkbox - Contract Specifications', () => {
           expect(cb.attributes['aria-checked']).toBe('mixed');
           expect(el.getAttribute('aria-checked')).toBe('mixed');
 
-          el.dispatchEvent(
-            new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true }),
-          );
-          el.dispatchEvent(
-            new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }),
-          );
+          el.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true }));
+          el.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }));
           expect(cb.checked).toBe(true);
           expect(cb.indeterminate).toBe(false);
           expect(el.getAttribute('aria-checked')).toBe('true');
@@ -593,12 +585,8 @@ describe('Checkbox - Contract Specifications', () => {
           expect(el.getAttribute('aria-checked')).toBe('false');
 
           // 3/4. Keyboard activation appends the candidate value
-          el.dispatchEvent(
-            new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true }),
-          );
-          el.dispatchEvent(
-            new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }),
-          );
+          el.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true }));
+          el.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }));
           expect(group.value).toEqual(['newsletter', 'promos']);
           expect(cb.checked).toBe(true);
           expect(el.getAttribute('aria-checked')).toBe('true');
@@ -608,12 +596,8 @@ describe('Checkbox - Contract Specifications', () => {
           const newsEl = bind(document.createElement('div'), newsCb);
           expect(newsEl.getAttribute('aria-checked')).toBe('true');
 
-          el.dispatchEvent(
-            new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true }),
-          );
-          el.dispatchEvent(
-            new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }),
-          );
+          el.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true }));
+          el.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }));
           expect(group.value).toEqual(['newsletter']);
           expect(el.getAttribute('aria-checked')).toBe('false');
           expect(newsEl.getAttribute('aria-checked')).toBe('true');
@@ -638,16 +622,16 @@ describe('Checkbox - Contract Specifications', () => {
           const cb = aria('checkbox', { name: 'topics', value: 'promos' });
 
           // 1. Creation & SSR: identity keys stay on props, never compiled
-          expect(cb.props.name).toBe('topics');
-          expect(cb.props.value).toBe('promos');
+          expect(cb.properties.name).toBe('topics');
+          expect(cb.properties.value).toBe('promos');
           expect(cb.attributes.name).toBeUndefined();
           expect(cb.attributes.value).toBeUndefined();
           expect(cb.attributes.form).toBeUndefined();
 
           // 2. DOM Binding: the template author binds the field, per the Form Boundary Invariant
           const input = bind(document.createElement('input'), cb);
-          input.name = cb.props.name;
-          input.value = String(cb.props.value);
+          input.name = cb.properties.name;
+          input.value = String(cb.properties.value);
           form.appendChild(input);
           expect(input.type).toBe('checkbox');
 
@@ -745,11 +729,7 @@ describe('Checkbox - Contract Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const cb = aria<HTMLDivElement>(
-            'checkbox',
-            { disabled: true, checked: false },
-            { native: false },
-          );
+          const cb = aria<HTMLDivElement>('checkbox', { disabled: true, checked: false }, { native: false });
 
           // 1. Creation & SSR
           expect(cb.disabled).toBe(true);
@@ -769,12 +749,8 @@ describe('Checkbox - Contract Specifications', () => {
           expect(el.getAttribute('aria-checked')).toBe('false');
 
           // Keyboard activation is guarded as well
-          el.dispatchEvent(
-            new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true }),
-          );
-          el.dispatchEvent(
-            new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }),
-          );
+          el.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true }));
+          el.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }));
           expect(cb.checked).toBe(false);
           expect(el.getAttribute('aria-checked')).toBe('false');
 
@@ -801,12 +777,8 @@ describe('Checkbox - Contract Specifications', () => {
           expect(el.getAttribute('tabindex')).toBe('-1');
 
           el.click();
-          el.dispatchEvent(
-            new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true }),
-          );
-          el.dispatchEvent(
-            new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }),
-          );
+          el.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true }));
+          el.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }));
           expect(cb.checked).toBe(true);
           expect(el.getAttribute('aria-checked')).toBe('true');
 

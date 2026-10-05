@@ -1,6 +1,6 @@
 import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it, vi } from 'vitest';
-import { Aria, aria, type BaseElement, type SelectProps, selectCtx, roverCtx } from '../../src/index.js';
+import { Aria, aria, type BaseElement, roverCtx, selectCtx, type SelectProps } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 describe('Select - Composite Specifications', () => {
@@ -277,7 +277,7 @@ describe('Select - Composite Specifications', () => {
           const manualEl = bind(document.createElement('div'), manualSelect);
           manualEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
 
-          delete (manualSelect.props as Record<string, unknown>).orientation;
+          delete (manualSelect.properties as Record<string, unknown>).orientation;
           expect(manualSelect.orientation).toBe('vertical');
 
           // Parent rover ignores keydown
@@ -345,23 +345,17 @@ describe('Select - Composite Specifications', () => {
           expect(props.open).toBe(false);
           expect(popupEl.hidden).toBe(true);
 
-          triggerEl.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
-          );
+          triggerEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
           expect(props.open).toBe(true);
 
-          triggerEl.dispatchEvent(
-            new KeyboardEvent('keyup', { key: ' ', bubbles: true, cancelable: true }),
-          );
+          triggerEl.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', bubbles: true, cancelable: true }));
           expect(props.open).toBe(false);
 
           // Escape closes without committing anything
           optionEl.click();
           expect(props.value).toBe('one');
 
-          triggerEl.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
-          );
+          triggerEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
           expect(props.open).toBe(false);
           expect(props.value).toBe('one');
           expect(document.activeElement).toBe(triggerEl);
@@ -441,43 +435,31 @@ describe('Select - Composite Specifications', () => {
           popupEl.append(
             bind(document.createElement('div'), first),
             bind(document.createElement('div'), blocked),
-            bind(document.createElement('div'), second),
+            bind(document.createElement('div'), second)
           );
           document.body.append(triggerEl, popupEl);
           triggerEl.focus();
 
           // The highlight walks, the focus stays on the combobox
-          triggerEl.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
-          );
+          triggerEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
           expect(triggerEl.getAttribute('aria-activedescendant')).toBe(first.attributes.id);
           expect(document.activeElement).toBe(triggerEl);
 
           // A disabled option is passed over
-          triggerEl.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
-          );
+          triggerEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
           expect(triggerEl.getAttribute('aria-activedescendant')).toBe(second.attributes.id);
 
-          triggerEl.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true }),
-          );
+          triggerEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true }));
           expect(triggerEl.getAttribute('aria-activedescendant')).toBe(first.attributes.id);
 
-          triggerEl.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'End', bubbles: true, cancelable: true }),
-          );
+          triggerEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true, cancelable: true }));
           expect(triggerEl.getAttribute('aria-activedescendant')).toBe(second.attributes.id);
 
-          triggerEl.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'Home', bubbles: true, cancelable: true }),
-          );
+          triggerEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true, cancelable: true }));
           expect(triggerEl.getAttribute('aria-activedescendant')).toBe(first.attributes.id);
 
           // Enter commits the highlighted option and closes a single-select popup
-          triggerEl.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
-          );
+          triggerEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
           expect(props.value).toBe('x');
           expect(props.open).toBe(false);
           expect(first.attributes['aria-selected']).toBe('true');
@@ -505,31 +487,20 @@ describe('Select - Composite Specifications', () => {
 
           const triggerEl = bind(document.createElement('button'), trigger);
           const popupEl = bind(document.createElement('div'), popup);
-          popupEl.append(
-            bind(document.createElement('div'), one),
-            bind(document.createElement('div'), two),
-          );
+          popupEl.append(bind(document.createElement('div'), one), bind(document.createElement('div'), two));
           document.body.append(triggerEl, popupEl);
           triggerEl.focus();
 
           expect(popup.attributes['aria-multiselectable']).toBe('true');
 
-          triggerEl.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
-          );
-          triggerEl.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
-          );
+          triggerEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
+          triggerEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
 
           expect(props.value).toEqual(['one']);
           expect(props.open).toBe(true);
 
-          triggerEl.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
-          );
-          triggerEl.dispatchEvent(
-            new KeyboardEvent('keyup', { key: ' ', bubbles: true, cancelable: true }),
-          );
+          triggerEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
+          triggerEl.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', bubbles: true, cancelable: true }));
 
           expect(props.value).toEqual(['one', 'two']);
           expect(props.open).toBe(true);
@@ -563,15 +534,13 @@ describe('Select - Composite Specifications', () => {
           popupEl.append(
             bind(document.createElement('div'), alpha),
             bind(document.createElement('div'), bravo),
-            bind(document.createElement('div'), charlie),
+            bind(document.createElement('div'), charlie)
           );
           document.body.append(triggerEl, popupEl);
           triggerEl.focus();
 
           const type = (key: string) =>
-            triggerEl.dispatchEvent(
-              new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }),
-            );
+            triggerEl.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
 
           type('b');
           expect(triggerEl.getAttribute('aria-activedescendant')).toBe(bravo.attributes.id);
@@ -604,17 +573,12 @@ describe('Select - Composite Specifications', () => {
 
           const triggerEl = bind(document.createElement('button'), trigger);
           const popupEl = bind(document.createElement('div'), popup);
-          popupEl.append(
-            bind(document.createElement('div'), north),
-            bind(document.createElement('div'), east),
-          );
+          popupEl.append(bind(document.createElement('div'), north), bind(document.createElement('div'), east));
           document.body.append(triggerEl, popupEl);
           triggerEl.focus();
 
           const type = (key: string) =>
-            triggerEl.dispatchEvent(
-              new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }),
-            );
+            triggerEl.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
 
           // A second character inside the window extends the same query
           type('n');

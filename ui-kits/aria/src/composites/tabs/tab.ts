@@ -107,13 +107,13 @@ export class TabAria<
   public constructor(props: Partial<T> = {}) {
     super(props);
     $static(() => {
-      this.props.id = this.props.id ?? this.id;
-      this.props.orientation = this.props.orientation ?? TabAria.config.orientation;
-      this.props.required = this.props.required ?? true;
-      this.props.manual = this.props.manual ?? true;
+      this.properties.id = this.properties.id ?? this.id;
+      this.properties.orientation = this.properties.orientation ?? TabAria.config.orientation;
+      this.properties.required = this.properties.required ?? true;
+      this.properties.manual = this.properties.manual ?? true;
     });
     tabCtx.set(this as unknown as TabAria);
-    selectionGroup.set(this.props);
+    selectionGroup.set(this.properties);
     this.update();
   }
 
@@ -161,7 +161,7 @@ export class TabAria<
    */
   protected override createAttributes(): A {
     return Object.assign(super.createAttributes(), {
-      id: this.props.id!,
+      id: this.properties.id!,
     }) as A;
   }
 }

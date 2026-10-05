@@ -70,7 +70,7 @@ export class MenuItemAria<
    * Whether the item is disabled from user interaction.
    */
   public get disabled(): boolean {
-    return !!this.props.disabled;
+    return !!this.properties.disabled;
   }
 
   /**
@@ -181,7 +181,7 @@ export class MenuItemCheckboxAria<
   public override toggle(): void {
     if (this.disabled) return;
 
-    if (this.props.checked === 'mixed') {
+    if (this.properties.checked === 'mixed') {
       this.select();
       return;
     }
@@ -195,7 +195,7 @@ export class MenuItemCheckboxAria<
    * @returns Menu item checkbox attributes dictionary
    */
   protected override createAttributes(): A {
-    const state = this.props.checked === 'mixed' ? 'mixed' : ariaBoolean(this.checked);
+    const state = this.properties.checked === 'mixed' ? 'mixed' : ariaBoolean(this.checked);
     const attrs = Object.assign(super.createAttributes(), {
       role: 'menuitemcheckbox',
       'aria-checked': state,

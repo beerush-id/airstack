@@ -59,7 +59,7 @@ export class MenuGroupAria<
     super(props);
 
     menuGroupCtx.set(this as unknown as MenuGroupAria);
-    selectionGroup.set(this.props as Record<string, unknown>);
+    selectionGroup.set(this.properties as Record<string, unknown>);
     this.update();
   }
 
@@ -71,8 +71,8 @@ export class MenuGroupAria<
   protected override createAttributes(): A {
     return Object.assign(super.createAttributes(), {
       role: 'group',
-      'aria-label': this.props.label,
-      'aria-labelledby': this.props.labelledby,
+      'aria-label': this.properties.label,
+      'aria-labelledby': this.properties.labelledby,
     }) as A;
   }
 }

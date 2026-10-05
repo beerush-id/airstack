@@ -131,13 +131,13 @@ export class ToggleGroupAria<
     super(props);
 
     $static(() => {
-      this.props.id = this.props.id ?? `${ROLE_TOGGLEGROUP}-${uIndex($symbol(ROLE_TOGGLEGROUP), true)}`;
-      this.props.orientation = this.props.orientation ?? 'horizontal';
+      this.properties.id = this.properties.id ?? `${ROLE_TOGGLEGROUP}-${uIndex($symbol(ROLE_TOGGLEGROUP), true)}`;
+      this.properties.orientation = this.properties.orientation ?? 'horizontal';
     });
 
     toggleGroupCtx.set(this as unknown as ToggleGroupAria);
     roverCtx.set(this as unknown as Aria<BaseElement>);
-    selectionGroup.set(this.props as Record<string, unknown>);
+    selectionGroup.set(this.properties as Record<string, unknown>);
     this.omittedAttrs.push('aria-orientation');
 
     this.update();
@@ -161,14 +161,14 @@ export class ToggleGroupAria<
    * Whether user interaction is disabled across the entire group.
    */
   public get disabled(): boolean {
-    return !!this.props.disabled;
+    return !!this.properties.disabled;
   }
 
   /**
    * Visual and keyboard roving navigation orientation of the toggle group.
    */
   public get orientation(): Orientation {
-    return this.props.orientation ?? 'horizontal';
+    return this.properties.orientation ?? 'horizontal';
   }
 
   /**
@@ -179,7 +179,7 @@ export class ToggleGroupAria<
     const orientation = this.orientation;
 
     return Object.assign(super.createAttributes(), {
-      id: this.props.id,
+      id: this.properties.id,
       role: 'group',
       'aria-orientation': orientation,
       'aria-disabled': ariaBoolean(disabled),
@@ -189,7 +189,7 @@ export class ToggleGroupAria<
         handleRovingKey(this.element, e, {
           selector: TOGGLE_SELECTORS,
           orientation,
-          manual: this.props.manual ?? true,
+          manual: this.properties.manual ?? true,
         });
       },
     }) as A;

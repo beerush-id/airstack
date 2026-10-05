@@ -62,14 +62,14 @@ export class ButtonAria<
    * The button's functional behavior type.
    */
   public get type(): 'button' | 'submit' | 'reset' {
-    return this.props.type ?? 'button';
+    return this.properties.type ?? 'button';
   }
 
   /**
    * Whether the button is disabled from user interaction.
    */
   public get disabled(): boolean {
-    return !!this.props.disabled;
+    return !!this.properties.disabled;
   }
 
   /**

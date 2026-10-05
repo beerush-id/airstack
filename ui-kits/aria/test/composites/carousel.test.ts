@@ -1,4 +1,4 @@
-import { createLifecycle, mutable } from '@airlib/core';
+import { createLifecycle } from '@airlib/core';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 import { aria, type CarouselProps } from '../../src/index.js';
 import { bind, component } from '../utils.js';
@@ -36,7 +36,20 @@ function buildCarousel(props: Partial<CarouselProps>, names: string[]) {
   const rotationEl = bind(document.createElement('button'), rotation);
   carouselEl.appendChild(rotationEl);
 
-  return { carousel, carouselEl, viewport, viewportEl, slides, prev, prevEl, next, nextEl, pickers, rotation, rotationEl };
+  return {
+    carousel,
+    carouselEl,
+    viewport,
+    viewportEl,
+    slides,
+    prev,
+    prevEl,
+    next,
+    nextEl,
+    pickers,
+    rotation,
+    rotationEl,
+  };
 }
 
 function travel(el: HTMLElement, key: string) {
@@ -70,22 +83,22 @@ describe('Carousel - Composite Specifications', () => {
           expect(parts.slides[2].el.hidden).toBe(true);
 
           parts.nextEl.click();
-          expect(parts.carousel.props.value).toBe('two');
+          expect(parts.carousel.properties.value).toBe('two');
           expect(parts.slides[1].el.hidden).toBe(false);
           expect(parts.slides[0].el.hidden).toBe(true);
 
           parts.prevEl.click();
           parts.prevEl.click();
-          expect(parts.carousel.props.value).toBe('one');
+          expect(parts.carousel.properties.value).toBe('one');
 
           // Without loop, retreating from the first slide is inert
           parts.prevEl.click();
-          expect(parts.carousel.props.value).toBe('one');
+          expect(parts.carousel.properties.value).toBe('one');
 
           // With loop, the same press wraps to the last slide
-          parts.carousel.props.loop = true;
+          parts.carousel.properties.loop = true;
           parts.prevEl.click();
-          expect(parts.carousel.props.value).toBe('three');
+          expect(parts.carousel.properties.value).toBe('three');
           expect(parts.slides[2].el.hidden).toBe(false);
 
           parts.carouselEl.remove();
@@ -101,7 +114,7 @@ describe('Carousel - Composite Specifications', () => {
           expect(parts.pickers[1].el.hasAttribute('aria-current')).toBe(false);
 
           parts.pickers[2].el.click();
-          expect(parts.carousel.props.value).toBe('three');
+          expect(parts.carousel.properties.value).toBe('three');
           expect(parts.pickers[2].el.getAttribute('aria-current')).toBe('true');
           expect(parts.pickers[0].el.getAttribute('aria-current')).toBeNull();
 
@@ -109,16 +122,16 @@ describe('Carousel - Composite Specifications', () => {
           parts.viewportEl.focus();
 
           travel(parts.viewportEl, 'ArrowLeft');
-          expect(parts.carousel.props.value).toBe('one');
+          expect(parts.carousel.properties.value).toBe('one');
 
           travel(parts.viewportEl, 'ArrowRight');
-          expect(parts.carousel.props.value).toBe('two');
+          expect(parts.carousel.properties.value).toBe('two');
 
           travel(parts.viewportEl, 'End');
-          expect(parts.carousel.props.value).toBe('three');
+          expect(parts.carousel.properties.value).toBe('three');
 
           travel(parts.viewportEl, 'Home');
-          expect(parts.carousel.props.value).toBe('one');
+          expect(parts.carousel.properties.value).toBe('one');
 
           // The nav buttons address a control that actually exists in the document
           for (const nav of [parts.prevEl, parts.nextEl]) {
@@ -139,43 +152,35 @@ describe('Carousel - Composite Specifications', () => {
         component().run(() => {
           vi.useFakeTimers();
 
-          const parts = buildCarousel({ value: 'one', rotating: true, interval: 2000 }, [
-            'one',
-            'two',
-            'three',
-          ]);
+          const parts = buildCarousel({ value: 'one', rotating: true, interval: 2000 }, ['one', 'two', 'three']);
 
           const toggles: unknown[] = [];
-          parts.carouselEl.addEventListener('toggle', (event) =>
-            toggles.push((event as CustomEvent).detail),
-          );
+          parts.carouselEl.addEventListener('toggle', (event) => toggles.push((event as CustomEvent).detail));
 
           const advances: unknown[] = [];
-          parts.carouselEl.addEventListener('change', (event) =>
-            advances.push((event as CustomEvent).detail),
-          );
+          parts.carouselEl.addEventListener('change', (event) => advances.push((event as CustomEvent).detail));
 
           vi.advanceTimersByTime(2000);
-          expect(parts.carousel.props.value).toBe('two');
+          expect(parts.carousel.properties.value).toBe('two');
           expect(advances).toEqual(['two']);
 
           vi.advanceTimersByTime(4000);
-          expect(parts.carousel.props.value).toBe('one');
+          expect(parts.carousel.properties.value).toBe('one');
           expect(advances).toEqual(['two', 'three', 'one']);
 
           // Stopping rotation announces the state, not a slide move
           parts.rotationEl.click();
-          expect(parts.carousel.props.rotating).toBe(false);
+          expect(parts.carousel.properties.rotating).toBe(false);
           expect(toggles).toEqual([false]);
 
-          const before = parts.carousel.props.value;
+          const before = parts.carousel.properties.value;
           vi.advanceTimersByTime(10000);
-          expect(parts.carousel.props.value).toBe(before);
+          expect(parts.carousel.properties.value).toBe(before);
 
           parts.rotationEl.click();
           expect(toggles).toEqual([false, true]);
           vi.advanceTimersByTime(2000);
-          expect(parts.carousel.props.value).not.toBe(before);
+          expect(parts.carousel.properties.value).not.toBe(before);
 
           vi.useRealTimers();
           parts.carouselEl.remove();
@@ -192,26 +197,26 @@ describe('Carousel - Composite Specifications', () => {
           // Hovering the carousel is a request for the timer to hold
           parts.carouselEl.dispatchEvent(new Event('pointerenter'));
           vi.advanceTimersByTime(20000);
-          expect(parts.carousel.props.value).toBe('one');
+          expect(parts.carousel.properties.value).toBe('one');
 
           parts.carouselEl.dispatchEvent(new Event('pointerleave'));
           vi.advanceTimersByTime(5000);
-          expect(parts.carousel.props.value).toBe('two');
+          expect(parts.carousel.properties.value).toBe('two');
 
           // A pointer over a slide while not rotating stays put after leaving
-          parts.carousel.props.rotating = false;
+          parts.carousel.properties.rotating = false;
           parts.carouselEl.dispatchEvent(new Event('pointerenter'));
           parts.carouselEl.dispatchEvent(new Event('pointerleave'));
           vi.advanceTimersByTime(20000);
-          expect(parts.carousel.props.value).toBe('two');
+          expect(parts.carousel.properties.value).toBe('two');
 
           // Focus anywhere inside stops rotation outright, not merely pauses it
-          parts.carousel.props.rotating = true;
+          parts.carousel.properties.rotating = true;
           parts.viewportEl.focus();
-          expect(parts.carousel.props.rotating).toBe(false);
+          expect(parts.carousel.properties.rotating).toBe(false);
 
           vi.advanceTimersByTime(20000);
-          expect(parts.carousel.props.value).toBe('two');
+          expect(parts.carousel.properties.value).toBe('two');
 
           vi.useRealTimers();
           parts.carouselEl.remove();
@@ -254,7 +259,7 @@ describe('Carousel - Composite Specifications', () => {
           }
 
           // Advancing moves the visible slide and its label together
-          parts.carousel.props.value = 'three';
+          parts.carousel.properties.value = 'three';
           expect(parts.slides[2].el.hidden).toBe(false);
           expect(parts.slides[1].el.hidden).toBe(true);
           expect(parts.slides[2].el.getAttribute('aria-label')).toBe('three slide');

@@ -14,10 +14,7 @@ function buildCode(props: Partial<CodeInputProps>, cells: number, host: 'native'
         ? aria('code-input-cell', { index })
         : aria<HTMLInputElement>('code-input-cell', { index }, { native: false });
 
-    const el = bind(
-      document.createElement(host === 'native' ? 'input' : 'div'),
-      cell,
-    ) as HTMLInputElement;
+    const el = bind(document.createElement(host === 'native' ? 'input' : 'div'), cell) as HTMLInputElement;
     containerEl.appendChild(el);
     return { index, cell, el };
   });
@@ -92,20 +89,17 @@ describe('CodeInput - Composite Specifications', () => {
           expect(numeric.items[2].el.value).toBe('');
 
           type(numeric.items[2].el, 'x');
-          expect(numeric.code.props.value).toBe('12');
+          expect(numeric.code.properties.value).toBe('12');
           expect(numeric.items[2].el.value).toBe('');
 
           numeric.cleanup();
 
-          const alpha = buildCode(
-            { value: 'a1b2c3', length: 4, kind: 'alphanumeric' },
-            4,
-          );
+          const alpha = buildCode({ value: 'a1b2c3', length: 4, kind: 'alphanumeric' }, 4);
           expect(alpha.code.value).toBe('a1b2');
           expect(alpha.items[3].el.value).toBe('2');
 
           type(alpha.items[0].el, '!');
-          expect(alpha.code.props.value).toBe('a1b2');
+          expect(alpha.code.properties.value).toBe('a1b2');
 
           alpha.cleanup();
         });
@@ -236,12 +230,8 @@ describe('CodeInput - Composite Specifications', () => {
           const completions: unknown[] = [];
 
           containerEl.addEventListener('input', (event) => edits.push((event as CustomEvent).detail));
-          containerEl.addEventListener('change', (event) =>
-            commits.push((event as CustomEvent).detail),
-          );
-          containerEl.addEventListener('complete', (event) =>
-            completions.push((event as CustomEvent).detail),
-          );
+          containerEl.addEventListener('change', (event) => commits.push((event as CustomEvent).detail));
+          containerEl.addEventListener('complete', (event) => completions.push((event as CustomEvent).detail));
 
           items[0].el.focus();
           type(items[0].el, '5');

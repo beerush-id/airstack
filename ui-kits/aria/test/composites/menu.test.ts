@@ -25,7 +25,7 @@ describe('Menu - Composite Specifications', () => {
           expect(menu.attributes.role).toBe('menu');
           expect(menu.attributes['aria-orientation']).toBe('vertical');
 
-          delete (menu.props as Record<string, unknown>).orientation;
+          delete (menu.properties as Record<string, unknown>).orientation;
           expect(menu.orientation).toBe('vertical');
 
           const defaultMenu = new MenuPanelAria();
@@ -604,7 +604,11 @@ describe('Menu - Composite Specifications', () => {
           groupEl.append(left, center, right);
 
           const activated: string[] = [];
-          for (const [label, el] of [['left', left], ['center', center], ['right', right]] as const) {
+          for (const [label, el] of [
+            ['left', left],
+            ['center', center],
+            ['right', right],
+          ] as const) {
             el.addEventListener('click', () => activated.push(label));
           }
 
@@ -702,9 +706,7 @@ describe('Menu - Composite Specifications', () => {
           expect(editTrigger.getAttribute('aria-expanded')).toBe('false');
 
           // Escape inside the open popup closes that root and leaves its sibling alone
-          filePanel.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
-          );
+          filePanel.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
           expect(file.open).toBe(false);
           expect(edit.open).toBe(false);
           expect(fileTrigger.getAttribute('aria-expanded')).toBe('false');
@@ -733,16 +735,12 @@ describe('Menu - Composite Specifications', () => {
           expect(outer.open).toBe(true);
           expect(inner.open).toBe(true);
 
-          innerPanel.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
-          );
+          innerPanel.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
 
           expect(inner.open).toBe(false);
           expect(outer.open).toBe(true);
 
-          outerPanel.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
-          );
+          outerPanel.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
           expect(outer.open).toBe(false);
 
           outerPanel.remove();

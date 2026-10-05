@@ -95,7 +95,7 @@ export class TabButtonAria<
     const isSelected = this.selected;
 
     return Object.assign(super.createAttributes(), {
-      id: this.props.id ?? `${scope}${ROLE_TAB}-${value}`,
+      id: this.properties.id ?? `${scope}${ROLE_TAB}-${value}`,
       role: ROLE_TAB,
       type: this.isNative ? 'button' : undefined,
       'aria-selected': ariaBoolean(isSelected),

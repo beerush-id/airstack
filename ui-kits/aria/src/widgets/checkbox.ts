@@ -90,7 +90,15 @@ export class CheckboxAria<
       allowKeys: [' '],
     });
 
-    this.omittedAttrs.push('value', 'name', 'indeterminate', 'required', 'aria-checked', 'aria-required', 'aria-invalid');
+    this.omittedAttrs.push(
+      'value',
+      'name',
+      'indeterminate',
+      'required',
+      'aria-checked',
+      'aria-required',
+      'aria-invalid'
+    );
     this.update();
   }
 
@@ -109,7 +117,7 @@ export class CheckboxAria<
    * Whether the checkbox is in a tri-state indeterminate/mixed condition.
    */
   public get indeterminate(): boolean {
-    return this.props.indeterminate === true;
+    return this.properties.indeterminate === true;
   }
 
   /**
@@ -119,7 +127,7 @@ export class CheckboxAria<
   public override select(): void {
     if (this.disabled) return;
     const was = this.checked;
-    if (this.props.indeterminate) this.props.indeterminate = false;
+    if (this.properties.indeterminate) this.properties.indeterminate = false;
     super.select();
     this.notifyInput(was);
   }
@@ -131,7 +139,7 @@ export class CheckboxAria<
   public override deselect(): void {
     if (this.disabled || this.idempotent) return;
     const was = this.checked;
-    if (this.props.indeterminate) this.props.indeterminate = false;
+    if (this.properties.indeterminate) this.properties.indeterminate = false;
     super.deselect();
     this.notifyInput(was);
   }
@@ -154,7 +162,7 @@ export class CheckboxAria<
    */
   public override toggle(): void {
     if (this.disabled) return;
-    if (this.props.indeterminate) {
+    if (this.properties.indeterminate) {
       this.select();
       return;
     }
@@ -168,9 +176,9 @@ export class CheckboxAria<
    */
   protected override createAttributes(): A {
     const isChecked = this.checked;
-    const isIndeterminate = this.props.indeterminate === true;
-    const isRequired = this.props.required === true;
-    const invalidAttr = ariaInvalid(this.props.invalid);
+    const isIndeterminate = this.properties.indeterminate === true;
+    const isRequired = this.properties.required === true;
+    const invalidAttr = ariaInvalid(this.properties.invalid);
 
     if (this.isNative) {
       return Object.assign(super.createAttributes(), {
@@ -185,7 +193,7 @@ export class CheckboxAria<
     return Object.assign(super.createAttributes(), {
       role: 'checkbox',
       'aria-checked': isIndeterminate ? 'mixed' : isChecked ? 'true' : 'false',
-      'aria-required': ariaRequired(this.props.required) ?? 'false',
+      'aria-required': ariaRequired(this.properties.required) ?? 'false',
       'aria-invalid': invalidAttr,
     }) as A;
   }

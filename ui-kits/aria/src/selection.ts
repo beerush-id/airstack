@@ -159,12 +159,12 @@ export abstract class SelectionAria<
             this.group!.value = [];
           }
 
-          if (this.props.selected && !this.group!.value.includes(this.value)) {
+          if (this.properties.selected && !this.group!.value.includes(this.value)) {
             this.group!.value.push(this.value);
           }
         } else if (
           this.group!.value === undefined &&
-          (this.props.selected || (this.idempotent && !!this.group!.required))
+          (this.properties.selected || (this.idempotent && !!this.group!.required))
         ) {
           this.group!.value = this.value;
         }
@@ -203,14 +203,14 @@ export abstract class SelectionAria<
    * Non-generic props reference to permit index-writing.
    */
   protected get stateProps(): AriaProps {
-    return this.props;
+    return this.properties;
   }
 
   /**
    * Whether the item is currently selected, pressed, or checked.
    */
   protected get selected(): boolean {
-    return !!this.props[this.stateKey];
+    return !!this.properties[this.stateKey];
   }
 
   protected set selected(value: boolean | undefined) {
@@ -228,14 +228,14 @@ export abstract class SelectionAria<
    * factoring in group-level disablement.
    */
   public get disabled(): boolean {
-    return !!(this.props.disabled ?? this.group?.disabled);
+    return !!(this.properties.disabled ?? this.group?.disabled);
   }
 
   /**
    * Selection value resolved from the declared valueKey.
    */
   public get value(): AnyType {
-    return this.props[this.valueKey];
+    return this.properties[this.valueKey];
   }
 
   /**
@@ -349,7 +349,7 @@ export abstract class SelectionAria<
     const isDisabled = this.disabled;
     const role = this.options.role ? `${this.options.role}-` : '';
     const token = typeof this.value === 'string' ? this.value : this.id;
-    const id = this.props.id ?? (this.group?.id ? `${this.group.id}-${role}${token}` : this.id);
+    const id = this.properties.id ?? (this.group?.id ? `${this.group.id}-${role}${token}` : this.id);
 
     const attrs: Record<string, unknown> = {
       id,

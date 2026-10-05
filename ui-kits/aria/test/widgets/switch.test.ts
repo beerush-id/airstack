@@ -1,6 +1,6 @@
 import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
-import { aria, SwitchAria, type SwitchProps, selectionGroup } from '../../src/index.js';
+import { aria, selectionGroup, SwitchAria, type SwitchProps } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 describe('Switch - Contract Specifications', () => {
@@ -203,22 +203,16 @@ describe('Switch - Contract Specifications', () => {
 
           // Space is repeat-safe: many keydowns, one keyup, one inversion
           for (let repeat = 0; repeat < 3; repeat += 1) {
-            el.dispatchEvent(
-              new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true }),
-            );
+            el.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true }));
           }
           expect(sw.checked).toBe(true);
 
-          el.dispatchEvent(
-            new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }),
-          );
+          el.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }));
           expect(sw.checked).toBe(false);
           expect(observed).toEqual([true, false]);
 
           // Enter inverts immediately on keydown
-          el.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }),
-          );
+          el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }));
           expect(sw.checked).toBe(true);
           expect(props.checked).toBe(true);
           expect(el.getAttribute('aria-checked')).toBe('true');
@@ -290,12 +284,12 @@ describe('Switch - Contract Specifications', () => {
           const sw = aria<HTMLButtonElement>(
             'switch',
             { name: 'notifications', value: 'on', checked: false },
-            { native: true },
+            { native: true }
           );
 
           // Identity stays on props for the template author to bind
-          expect(sw.props.name).toBe('notifications');
-          expect(sw.props.value).toBe('on');
+          expect(sw.properties.name).toBe('notifications');
+          expect(sw.properties.value).toBe('on');
           expect(sw.attributes.name).toBeUndefined();
           expect(sw.attributes.value).toBeUndefined();
           expect(sw.attributes.form).toBeUndefined();
@@ -335,9 +329,7 @@ describe('Switch - Contract Specifications', () => {
 
           // There is no HTML switch element, so checked never has a native counterpart to sync
           expect((div as HTMLDivElement & { checked?: boolean }).checked).toBeUndefined();
-          expect(
-            (button as HTMLButtonElement & { checked?: boolean }).checked,
-          ).toBeUndefined();
+          expect((button as HTMLButtonElement & { checked?: boolean }).checked).toBeUndefined();
           expect(customSwitch.attributes.checked).toBeUndefined();
           expect(nativeSwitch.attributes.checked).toBeUndefined();
 
@@ -376,15 +368,9 @@ describe('Switch - Contract Specifications', () => {
           expect(el.getAttribute('aria-checked')).toBe('true');
 
           el.click();
-          el.dispatchEvent(
-            new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true }),
-          );
-          el.dispatchEvent(
-            new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }),
-          );
-          el.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }),
-          );
+          el.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true }));
+          el.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }));
+          el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }));
 
           expect(sw.checked).toBe(true);
           expect(props.checked).toBe(true);
@@ -425,9 +411,7 @@ describe('Switch - Contract Specifications', () => {
           expect(el.getAttribute('tabindex')).toBe('-1');
 
           el.click();
-          el.dispatchEvent(
-            new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }),
-          );
+          el.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }));
           expect(sw.checked).toBe(true);
 
           group.disabled = false;

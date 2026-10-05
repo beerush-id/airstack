@@ -1,6 +1,6 @@
 import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
-import { Aria, aria, type BaseElement, type RadioGroupProps, radioGroupCtx, roverCtx } from '../../src/index.js';
+import { Aria, aria, type BaseElement, radioGroupCtx, type RadioGroupProps, roverCtx } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 describe('RadioGroup - Composite Specifications', () => {
@@ -100,7 +100,7 @@ describe('RadioGroup - Composite Specifications', () => {
         const downEvent = new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true });
         groupEl.dispatchEvent(downEvent);
 
-        expect(group.props.value).toBe('opt-1');
+        expect(group.properties.value).toBe('opt-1');
 
         groupEl.remove();
       });
@@ -113,7 +113,7 @@ describe('RadioGroup - Composite Specifications', () => {
         const manualEl = bind(document.createElement('div'), manualGroup);
         manualEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
 
-        delete (manualGroup.props as Record<string, unknown>).orientation;
+        delete (manualGroup.properties as Record<string, unknown>).orientation;
         expect(manualGroup.orientation).toBe('vertical');
 
         // Parent rover ignores keydown
@@ -178,7 +178,7 @@ describe('RadioGroup - Composite Specifications', () => {
           expect(props.value).toBe('pro');
           expect(pro.checked).toBe(true);
 
-          group.props.required = true;
+          group.properties.required = true;
           proEl.click();
           expect(props.value).toBe('pro');
 
@@ -249,28 +249,20 @@ describe('RadioGroup - Composite Specifications', () => {
 
           aEl.focus();
 
-          groupEl.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }),
-          );
+          groupEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
           expect(document.activeElement).toBe(bEl);
           expect(props.value).toBe('b');
 
-          groupEl.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }),
-          );
+          groupEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
           expect(document.activeElement).toBe(cEl);
           expect(props.value).toBe('c');
 
           // Wrapping past the last candidate lands on the first and selects it
-          groupEl.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }),
-          );
+          groupEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
           expect(document.activeElement).toBe(aEl);
           expect(props.value).toBe('a');
 
-          groupEl.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true, cancelable: true }),
-          );
+          groupEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true, cancelable: true }));
           expect(document.activeElement).toBe(cEl);
           expect(props.value).toBe('c');
           expect(cEl.checked).toBe(true);
@@ -327,9 +319,7 @@ describe('RadioGroup - Composite Specifications', () => {
           document.body.appendChild(groupEl);
 
           const first = component().run(() => radioGroupCtx.get()!.radio({ value: 'first' }));
-          const second = component().run(() =>
-            radioGroupCtx.get()!.radio({ value: 'second', disabled: true }),
-          );
+          const second = component().run(() => radioGroupCtx.get()!.radio({ value: 'second', disabled: true }));
           const third = component().run(() => radioGroupCtx.get()!.radio({ value: 'third' }));
 
           const firstEl = bind(document.createElement('input'), first);
@@ -339,9 +329,7 @@ describe('RadioGroup - Composite Specifications', () => {
 
           firstEl.focus();
 
-          groupEl.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
-          );
+          groupEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
           expect(document.activeElement).toBe(thirdEl);
           expect(props.value).toBe('third');
           expect(secondEl.checked).toBe(false);
@@ -368,26 +356,22 @@ describe('RadioGroup - Composite Specifications', () => {
           const groupEl = bind(document.createElement('div'), group);
           form.appendChild(groupEl);
 
-          const basic = component().run(() =>
-            radioGroupCtx.get()!.radio({ value: 'basic', name: 'plan' }),
-          );
-          const pro = component().run(() =>
-            radioGroupCtx.get()!.radio({ value: 'pro', name: 'plan' }),
-          );
+          const basic = component().run(() => radioGroupCtx.get()!.radio({ value: 'basic', name: 'plan' }));
+          const pro = component().run(() => radioGroupCtx.get()!.radio({ value: 'pro', name: 'plan' }));
 
           // The projection stays accessibility metadata; identity lives on props
           expect(group.attributes.name).toBeUndefined();
           expect(basic.attributes.name).toBeUndefined();
           expect(basic.attributes.value).toBeUndefined();
-          expect(basic.props.name).toBe('plan');
-          expect(basic.props.value).toBe('basic');
+          expect(basic.properties.name).toBe('plan');
+          expect(basic.properties.value).toBe('basic');
 
           const basicEl = bind(document.createElement('input'), basic);
           const proEl = bind(document.createElement('input'), pro);
-          basicEl.name = String(basic.props.name);
-          basicEl.value = String(basic.props.value);
-          proEl.name = String(pro.props.name);
-          proEl.value = String(pro.props.value);
+          basicEl.name = String(basic.properties.name);
+          basicEl.value = String(basic.properties.value);
+          proEl.name = String(pro.properties.name);
+          proEl.value = String(pro.properties.value);
           groupEl.append(basicEl, proEl);
 
           expect(new FormData(form).get('plan')).toBeNull();

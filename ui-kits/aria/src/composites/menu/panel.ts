@@ -58,7 +58,7 @@ export class MenuPanelAria<
    * Visual and keyboard navigation orientation of the panel.
    */
   public get orientation(): Orientation {
-    return this.props.orientation ?? this.defaultOrientation;
+    return this.properties.orientation ?? this.defaultOrientation;
   }
 
   /**
@@ -68,10 +68,10 @@ export class MenuPanelAria<
    */
   protected override createAttributes(): A {
     return Object.assign(super.createAttributes(), {
-      id: this.props.id ?? (this.root ? `${this.root.props.id}-${ROLE_MENU}` : undefined),
+      id: this.properties.id ?? (this.root ? `${this.root.properties.id}-${ROLE_MENU}` : undefined),
       'aria-orientation': this.orientation,
-      'aria-label': this.props.label,
-      'aria-labelledby': this.props.labelledby,
+      'aria-label': this.properties.label,
+      'aria-labelledby': this.properties.labelledby,
     }) as A;
   }
 

@@ -21,7 +21,7 @@ describe('ToggleGroup - Composite Specifications', () => {
           expect(group.disabled).toBe(false);
           expect(group.orientation).toBe('horizontal');
 
-          delete (group.props as Record<string, unknown>).orientation;
+          delete (group.properties as Record<string, unknown>).orientation;
           expect(group.orientation).toBe('horizontal');
         });
       }));
@@ -215,7 +215,7 @@ describe('ToggleGroup - Composite Specifications', () => {
           // With required set, the last active member cannot be released
           italicEl.click();
           expect(props.value).toEqual(['italic']);
-          group.props.required = true;
+          group.properties.required = true;
           italicEl.click();
           expect(props.value).toEqual(['italic']);
           expect(italicEl.getAttribute('aria-pressed')).toBe('true');
@@ -259,27 +259,19 @@ describe('ToggleGroup - Composite Specifications', () => {
           expect(props.value).toBe('one');
           expect(elTwo.getAttribute('aria-pressed')).toBe('false');
 
-          groupEl.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }),
-          );
+          groupEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
           expect(document.activeElement).toBe(elThree);
 
           // Past the end it wraps to the first
-          groupEl.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }),
-          );
+          groupEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
           expect(document.activeElement).toBe(elOne);
 
           // Before the start it wraps to the last
-          groupEl.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }),
-          );
+          groupEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
           expect(document.activeElement).toBe(elThree);
 
           // Enter on the focused member is what selects it
-          elThree.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
-          );
+          elThree.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
           expect(props.value).toBe('three');
           expect(elThree.getAttribute('aria-pressed')).toBe('true');
 
@@ -311,9 +303,7 @@ describe('ToggleGroup - Composite Specifications', () => {
           expect(groupEl.getAttribute('aria-orientation')).toBe('vertical');
 
           elFirst.focus();
-          groupEl.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
-          );
+          groupEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
 
           // The disabled member is passed over, and nothing was selected on the way
           expect(document.activeElement).toBe(elThird);

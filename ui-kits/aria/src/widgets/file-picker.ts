@@ -78,7 +78,7 @@ export class FilePickerAria<
    * Whether the trigger is disabled from user interaction.
    */
   public get disabled(): boolean {
-    return !!this.props.disabled;
+    return !!this.properties.disabled;
   }
 
   /**
@@ -148,7 +148,7 @@ export class FilePickerAria<
   }
 
   private syncPicker(target: HTMLInputElement): void {
-    const { accept, multiple, capture } = this.props;
+    const { accept, multiple, capture } = this.properties;
     if (accept === undefined) target.removeAttribute('accept');
     else target.accept = accept;
     target.multiple = !!multiple;

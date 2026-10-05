@@ -100,11 +100,11 @@ export class RadioGroupAria<
   public constructor(props: Partial<T> = {}) {
     super(props);
     $static(() => {
-      this.props.id = this.props.id ?? `${ROLE_RADIOGROUP}-${uIndex($symbol(ROLE_RADIOGROUP), true)}`;
+      this.properties.id = this.properties.id ?? `${ROLE_RADIOGROUP}-${uIndex($symbol(ROLE_RADIOGROUP), true)}`;
     });
     radioGroupCtx.set(this as unknown as RadioGroupAria);
     roverCtx.set(this as unknown as Aria<BaseElement>);
-    selectionGroup.set(this.props as Record<string, unknown>);
+    selectionGroup.set(this.properties as Record<string, unknown>);
     this.omittedAttrs.push('aria-orientation', 'aria-required', 'aria-invalid');
 
     this.update();
@@ -128,14 +128,14 @@ export class RadioGroupAria<
    * Whether user interaction is disabled across the entire group.
    */
   public get disabled(): boolean {
-    return !!this.props.disabled;
+    return !!this.properties.disabled;
   }
 
   /**
    * Layout orientation of the radio group.
    */
   public get orientation(): Orientation {
-    return this.props.orientation ?? 'vertical';
+    return this.properties.orientation ?? 'vertical';
   }
 
   /**
@@ -146,19 +146,19 @@ export class RadioGroupAria<
     const orientation = this.orientation;
 
     return Object.assign(super.createAttributes(), {
-      id: this.props.id,
+      id: this.properties.id,
       role: ROLE_RADIOGROUP,
       'aria-orientation': orientation,
-      'aria-required': ariaRequired(this.props.required),
+      'aria-required': ariaRequired(this.properties.required),
       'aria-disabled': ariaBoolean(disabled),
-      'aria-invalid': ariaInvalid(this.props.invalid),
+      'aria-invalid': ariaInvalid(this.properties.invalid),
       onkeydown: (e: KeyboardEvent) => {
         if (disabled || this.parentRover) return;
 
         handleRovingKey(this.element, e, {
           selector: RADIO_SELECTORS,
           orientation,
-          manual: this.props.manual ?? false,
+          manual: this.properties.manual ?? false,
         });
       },
     }) as A;

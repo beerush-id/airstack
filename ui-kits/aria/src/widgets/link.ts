@@ -79,7 +79,7 @@ export class LinkAria<
    * navigation is suppressed via preventDefault instead.
    */
   public get href(): string | undefined {
-    return this.props.href;
+    return this.properties.href;
   }
 
   /**
@@ -87,16 +87,16 @@ export class LinkAria<
    * or ambient URL match.
    */
   public get isCurrent(): boolean {
-    if (this.props.current !== undefined) return this.props.current;
+    if (this.properties.current !== undefined) return this.properties.current;
     const url = linkCtx.get()?.url;
-    return !!this.props.href && url === this.props.href;
+    return !!this.properties.href && url === this.properties.href;
   }
 
   /**
    * Whether the link is disabled from user interaction.
    */
   public get disabled(): boolean {
-    return !!this.props.disabled;
+    return !!this.properties.disabled;
   }
 
   /**
@@ -108,7 +108,7 @@ export class LinkAria<
     const isDisabled = this.disabled;
     const attrs = Object.assign(super.createAttributes(), {
       href: this.href,
-      target: this.props.target,
+      target: this.properties.target,
       'aria-disabled': ariaBoolean(isDisabled),
       'aria-current': this.isCurrent ? 'page' : undefined,
       tabindex: isDisabled ? -1 : undefined,
@@ -140,9 +140,9 @@ export class LinkAria<
       return;
     }
     if (event.button !== 1 || event.defaultPrevented) return;
-    const href = this.props.href;
+    const href = this.properties.href;
     if (!href) return;
-    const target = this.props.target ?? '_blank';
+    const target = this.properties.target ?? '_blank';
     const host = this.element;
     queueMicrotask(() => {
       if (event.defaultPrevented || this.element !== host) return;
@@ -156,10 +156,10 @@ export class LinkAria<
       event.preventDefault();
       return;
     }
-    const href = this.props.href;
+    const href = this.properties.href;
     if (!href) return;
 
-    const explicitTarget = this.props.target;
+    const explicitTarget = this.properties.target;
     const newTabGesture = event.ctrlKey || event.metaKey || event.shiftKey || event.button === 1;
     const target = explicitTarget ?? (newTabGesture ? '_blank' : '_self');
     const host = this.element;

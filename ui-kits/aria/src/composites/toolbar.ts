@@ -66,14 +66,14 @@ export class ToolbarAria<
    * Visual and keyboard navigation orientation of the toolbar.
    */
   public get orientation(): Orientation {
-    return this.props.orientation ?? 'horizontal';
+    return this.properties.orientation ?? 'horizontal';
   }
 
   /**
    * Whether user interaction is disabled across the entire toolbar.
    */
   public get disabled(): boolean {
-    return !!this.props.disabled;
+    return !!this.properties.disabled;
   }
 
   /**

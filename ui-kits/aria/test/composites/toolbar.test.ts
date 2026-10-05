@@ -46,7 +46,7 @@ describe('Toolbar - Composite Specifications', () => {
           childEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
           roverCtx.set(undefined);
 
-          delete (toolbar.props as Record<string, unknown>).orientation;
+          delete (toolbar.properties as Record<string, unknown>).orientation;
           expect(toolbar.orientation).toBe('horizontal');
 
           const defaultToolbar = new ToolbarAria();
@@ -407,9 +407,7 @@ describe('Toolbar - Composite Specifications', () => {
           // A disabled control is removed from the tab bookkeeping entirely
           expect(blockedEl.hasAttribute('tabindex')).toBe(false);
 
-          toolbarEl.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }),
-          );
+          toolbarEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
           expect(document.activeElement).toBe(lastEl);
           expect(lastEl.getAttribute('tabindex')).toBe('0');
           expect(firstEl.getAttribute('tabindex')).toBe('-1');
@@ -432,16 +430,12 @@ describe('Toolbar - Composite Specifications', () => {
 
           second.focus();
 
-          toolbarEl.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'End', bubbles: true, cancelable: true }),
-          );
+          toolbarEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true, cancelable: true }));
           // The disabled tail is not a destination, so the last enabled control takes it
           expect(document.activeElement).toBe(second);
           expect(tail.hasAttribute('tabindex')).toBe(false);
 
-          toolbarEl.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'Home', bubbles: true, cancelable: true }),
-          );
+          toolbarEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true, cancelable: true }));
           expect(document.activeElement).toBe(first);
           expect(first.getAttribute('tabindex')).toBe('0');
           expect(second.getAttribute('tabindex')).toBe('-1');
@@ -517,9 +511,7 @@ describe('Toolbar - Composite Specifications', () => {
           toolbarEl.append(first, customEl);
 
           first.focus();
-          toolbarEl.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }),
-          );
+          toolbarEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
           expect(document.activeElement).toBe(customEl);
           expect(custom.pressed).toBe(false);
 
@@ -568,19 +560,13 @@ describe('Toolbar - Composite Specifications', () => {
           undo.focus();
 
           // One arrow press advances exactly one control, with no double step from two rovers
-          toolbarEl.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }),
-          );
+          toolbarEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
           expect(document.activeElement).toBe(left);
 
-          toolbarEl.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }),
-          );
+          toolbarEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
           expect(document.activeElement).toBe(right);
 
-          toolbarEl.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }),
-          );
+          toolbarEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
           expect(document.activeElement).toBe(redo);
 
           toolbarEl.remove();
@@ -601,20 +587,14 @@ describe('Toolbar - Composite Specifications', () => {
 
           top.focus();
 
-          toolbarEl.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
-          );
+          toolbarEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
           expect(document.activeElement).toBe(middle);
 
-          toolbarEl.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
-          );
+          toolbarEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
           expect(document.activeElement).toBe(bottom);
 
           // Wraps past the last control back to the first
-          toolbarEl.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
-          );
+          toolbarEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
           expect(document.activeElement).toBe(top);
 
           const sideways = new KeyboardEvent('keydown', {

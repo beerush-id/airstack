@@ -142,11 +142,11 @@ export class SelectAria<
   public constructor(props: Partial<T> = {}) {
     super(props);
     $static(() => {
-      this.props.id = this.props.id ?? `${ROLE_SELECT}-${uIndex($symbol(ROLE_SELECT), true)}`;
+      this.properties.id = this.properties.id ?? `${ROLE_SELECT}-${uIndex($symbol(ROLE_SELECT), true)}`;
     });
     selectCtx.set(this as unknown as SelectAria);
     roverCtx.set(this as unknown as Aria<BaseElement>);
-    selectionGroup.set(this.props as Record<string, unknown>);
+    selectionGroup.set(this.properties as Record<string, unknown>);
     this.omittedAttrs.push('aria-orientation', 'aria-required', 'aria-invalid', 'aria-multiselectable');
 
     this.update();
@@ -156,21 +156,21 @@ export class SelectAria<
    * Whether user interaction is disabled across the entire select.
    */
   public get disabled(): boolean {
-    return !!this.props.disabled;
+    return !!this.properties.disabled;
   }
 
   /**
    * Visual and keyboard navigation orientation of the select.
    */
   public get orientation(): Orientation {
-    return this.props.orientation ?? DEFAULT_ORIENTATION;
+    return this.properties.orientation ?? DEFAULT_ORIENTATION;
   }
 
   /**
    * Whether multiple options may be selected concurrently.
    */
   public get multiple(): boolean {
-    return !!this.props.multiple;
+    return !!this.properties.multiple;
   }
 
   /**
@@ -196,21 +196,21 @@ export class SelectAria<
     const isMultiple = this.multiple;
 
     return Object.assign(super.createAttributes(), {
-      id: this.props.id,
+      id: this.properties.id,
       role: COMPILED_ROLE,
       tabindex: disabled ? -1 : 0,
       'aria-orientation': orientation,
       'aria-multiselectable': ariaBoolean(isMultiple),
-      'aria-required': ariaRequired(this.props.required),
+      'aria-required': ariaRequired(this.properties.required),
       'aria-disabled': ariaBoolean(disabled),
-      'aria-invalid': ariaInvalid(this.props.invalid),
+      'aria-invalid': ariaInvalid(this.properties.invalid),
       onkeydown: (e: KeyboardEvent) => {
         if (disabled || this.parentRover) return;
 
         handleRovingKey(this.element, e, {
           selector: OPTION_SELECTORS,
           orientation,
-          manual: this.props.manual ?? true,
+          manual: this.properties.manual ?? true,
         });
       },
     }) as A;

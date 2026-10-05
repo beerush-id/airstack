@@ -1,6 +1,6 @@
 import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
-import { type AccordionProps, accordionCtx, aria } from '../../src/index.js';
+import { accordionCtx, type AccordionProps, aria } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 describe('Accordion - User Expectations & A11y Specifications', () => {
@@ -110,12 +110,12 @@ describe('Accordion - User Expectations & A11y Specifications', () => {
       scope.run(() => {
         component().run(() => {
           const group = aria('accordion');
-          expect(group.props.orientation).toBe('vertical');
+          expect(group.properties.orientation).toBe('vertical');
           expect(group.attributes.id).toBe(group.id);
 
           // Orientation getter falls back to vertical if prop is explicitly set to undefined
-          group.props.orientation = undefined;
-          expect(group.props.orientation ?? 'vertical').toBe('vertical');
+          group.properties.orientation = undefined;
+          expect(group.properties.orientation ?? 'vertical').toBe('vertical');
         });
       }));
 
@@ -276,23 +276,23 @@ describe('Accordion - User Expectations & A11y Specifications', () => {
           container.appendChild(regionB);
 
           // No initial claiming: all sections start collapsed
-          expect(group.props.value).toBeUndefined();
+          expect(group.properties.value).toBeUndefined();
           expect(secA.expanded).toBe(false);
           expect(regionA.hidden).toBe(true);
 
           // Opening A, then clicking A collapses it back
           elA.click();
-          expect(group.props.value).toBe('a');
+          expect(group.properties.value).toBe('a');
           expect(regionA.hidden).toBe(false);
 
           elA.click();
-          expect(group.props.value).toBeUndefined();
+          expect(group.properties.value).toBeUndefined();
           expect(secA.expanded).toBe(false);
           expect(regionA.hidden).toBe(true);
 
           // Switching between sections still works
           elB.click();
-          expect(group.props.value).toBe('b');
+          expect(group.properties.value).toBe('b');
           expect(secB.expanded).toBe(true);
           expect(regionB.hidden).toBe(false);
         });
@@ -325,7 +325,7 @@ describe('Accordion - User Expectations & A11y Specifications', () => {
           container.appendChild(regionB);
 
           // Initial self-claiming: Section A claims initial active selection
-          expect(group.props.value).toBe('a');
+          expect(group.properties.value).toBe('a');
           expect(secA.expanded).toBe(true);
           expect(panelA.expanded).toBe(true);
           expect(elA.getAttribute('aria-expanded')).toBe('true');
@@ -338,7 +338,7 @@ describe('Accordion - User Expectations & A11y Specifications', () => {
 
           // Switching to B: opens B and collapses A in both model and DOM
           elB.click();
-          expect(group.props.value).toBe('b');
+          expect(group.properties.value).toBe('b');
           expect(secA.expanded).toBe(false);
           expect(panelA.expanded).toBe(false);
           expect(elA.getAttribute('aria-expanded')).toBe('false');
@@ -351,7 +351,7 @@ describe('Accordion - User Expectations & A11y Specifications', () => {
 
           // Clicking active section B does NOT collapse it (one must stay open)
           elB.click();
-          expect(group.props.value).toBe('b');
+          expect(group.properties.value).toBe('b');
           expect(secB.expanded).toBe(true);
           expect(panelB.expanded).toBe(true);
           expect(elB.getAttribute('aria-expanded')).toBe('true');
@@ -393,14 +393,14 @@ describe('Accordion - User Expectations & A11y Specifications', () => {
           expect(item1.expanded).toBe(false);
           expect(panel1.expanded).toBe(false);
           expect(region1.hidden).toBe(true);
-          expect(group.props.value).toBeUndefined();
+          expect(group.properties.value).toBeUndefined();
 
           // Clicking item2 opens item2 and shows panel
           el2.click();
           expect(item2.expanded).toBe(true);
           expect(panel2.expanded).toBe(true);
           expect(region2.hidden).toBe(false);
-          expect(group.props.value).toBe('item2');
+          expect(group.properties.value).toBe('item2');
         });
       }));
 
@@ -422,7 +422,7 @@ describe('Accordion - User Expectations & A11y Specifications', () => {
           const r1 = bind(document.createElement('div'), p1);
           const r2 = bind(document.createElement('div'), p2);
 
-          expect(group.props.value).toBe('second');
+          expect(group.properties.value).toBe('second');
           expect(first.expanded).toBe(false);
           expect(second.expanded).toBe(true);
           expect(r1.hidden).toBe(true);
@@ -461,7 +461,7 @@ describe('Accordion - User Expectations & A11y Specifications', () => {
           expect(r1.hidden).toBe(false);
           expect(sec2.expanded).toBe(true);
           expect(r2.hidden).toBe(false);
-          expect(group.props.value).toEqual(['sec1', 'sec2']);
+          expect(group.properties.value).toEqual(['sec1', 'sec2']);
 
           // Collapsing sec1 removes it from array and hides its panel
           el1.click();
@@ -469,7 +469,7 @@ describe('Accordion - User Expectations & A11y Specifications', () => {
           expect(r1.hidden).toBe(true);
           expect(sec2.expanded).toBe(true);
           expect(r2.hidden).toBe(false);
-          expect(group.props.value).toEqual(['sec2']);
+          expect(group.properties.value).toEqual(['sec2']);
         });
       }));
 
@@ -501,7 +501,7 @@ describe('Accordion - User Expectations & A11y Specifications', () => {
           el2.click();
           expect(item2.expanded).toBe(false);
           expect(r2.hidden).toBe(true);
-          expect(group.props.value).toBe('item1');
+          expect(group.properties.value).toBe('item1');
         });
       }));
   });
@@ -609,8 +609,8 @@ describe('Accordion - User Expectations & A11y Specifications', () => {
         component().run(() => {
           const group = aria('accordion', { multiple: true });
           const container = bind(document.createElement('div'), group);
-          delete (group.props as Record<string, unknown>).orientation;
-          delete (group.props as Record<string, unknown>).manual;
+          delete (group.properties as Record<string, unknown>).orientation;
+          delete (group.properties as Record<string, unknown>).manual;
 
           const { item: b1 } = component().run(() => ({
             item: accordionCtx.get()!.button({ name: 'b1' }),
@@ -681,7 +681,7 @@ describe('Accordion - User Expectations & A11y Specifications', () => {
           container.appendChild(b2);
 
           container.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
-          expect(group.props.value).toBe('d1');
+          expect(group.properties.value).toBe('d1');
         });
       }));
   });
@@ -715,7 +715,7 @@ describe('Accordion - User Expectations & A11y Specifications', () => {
           closedEl.addEventListener('click', veto);
 
           closedEl.click();
-          expect(group.props.value).toBe('closed');
+          expect(group.properties.value).toBe('closed');
           expect(closedBtn.expanded).toBe(false);
           expect(closedRegion.hidden).toBe(true);
           expect(openRegion.hidden).toBe(false);
@@ -723,7 +723,7 @@ describe('Accordion - User Expectations & A11y Specifications', () => {
           // Releasing the objection lets the same gesture through
           closedEl.removeEventListener('click', veto);
           closedEl.click();
-          expect(group.props.value).toBe('closed');
+          expect(group.properties.value).toBe('closed');
           expect(closedBtn.expanded).toBe(true);
           expect(closedRegion.hidden).toBe(false);
           expect(openBtn.expanded).toBe(false);
@@ -752,9 +752,7 @@ describe('Accordion - User Expectations & A11y Specifications', () => {
           container.append(elA, elB);
 
           const commits: unknown[] = [];
-          container.addEventListener('change', (event) =>
-            commits.push((event as CustomEvent).detail),
-          );
+          container.addEventListener('change', (event) => commits.push((event as CustomEvent).detail));
 
           elA.click();
           expect(commits).toEqual(['a']);
@@ -767,7 +765,7 @@ describe('Accordion - User Expectations & A11y Specifications', () => {
           elB.click();
           expect(commits).toHaveLength(3);
           expect(commits[2]).toBeUndefined();
-          expect(group.props.value).toBeUndefined();
+          expect(group.properties.value).toBeUndefined();
 
           document.body.removeChild(container);
         });
@@ -792,9 +790,7 @@ describe('Accordion - User Expectations & A11y Specifications', () => {
           container.append(elOne, elTwo);
 
           const groupCommits: unknown[] = [];
-          container.addEventListener('change', (event) =>
-            groupCommits.push((event as CustomEvent).detail),
-          );
+          container.addEventListener('change', (event) => groupCommits.push((event as CustomEvent).detail));
 
           elOne.click();
           elTwo.click();
@@ -841,15 +837,9 @@ describe('Accordion - User Expectations & A11y Specifications', () => {
           const group = aria('accordion', { value: 'second' });
           const container = bind(document.createElement('div'), group);
 
-          const first = component().run(() =>
-            accordionCtx.get()!.button({ name: 'first' }),
-          );
-          const second = component().run(() =>
-            accordionCtx.get()!.button({ name: 'second' }),
-          );
-          const third = component().run(() =>
-            accordionCtx.get()!.button({ name: 'third' }),
-          );
+          const first = component().run(() => accordionCtx.get()!.button({ name: 'first' }));
+          const second = component().run(() => accordionCtx.get()!.button({ name: 'second' }));
+          const third = component().run(() => accordionCtx.get()!.button({ name: 'third' }));
 
           const elFirst = bind(document.createElement('button'), first);
           const elSecond = bind(document.createElement('button'), second);
@@ -862,7 +852,7 @@ describe('Accordion - User Expectations & A11y Specifications', () => {
           expect(elThird.getAttribute('tabindex')).toBe('-1');
 
           // Collapsing everything falls back to the first trigger so Tab still reaches it
-          group.props.value = null;
+          group.properties.value = null;
           expect(elFirst.getAttribute('tabindex')).toBe('0');
           expect(elSecond.getAttribute('tabindex')).toBe('-1');
           expect(elThird.getAttribute('tabindex')).toBe('-1');
@@ -877,15 +867,9 @@ describe('Accordion - User Expectations & A11y Specifications', () => {
           const group = aria('accordion');
           const container = bind(document.createElement('div'), group);
 
-          const first = component().run(() =>
-            accordionCtx.get()!.button({ name: 'first' }),
-          );
-          const middle = component().run(() =>
-            accordionCtx.get()!.button({ name: 'middle', disabled: true }),
-          );
-          const last = component().run(() =>
-            accordionCtx.get()!.button({ name: 'last' }),
-          );
+          const first = component().run(() => accordionCtx.get()!.button({ name: 'first' }));
+          const middle = component().run(() => accordionCtx.get()!.button({ name: 'middle', disabled: true }));
+          const last = component().run(() => accordionCtx.get()!.button({ name: 'last' }));
 
           const elFirst = bind(document.createElement('button'), first);
           const elMiddle = bind(document.createElement('button'), middle);
@@ -896,15 +880,11 @@ describe('Accordion - User Expectations & A11y Specifications', () => {
           elLast.focus();
           expect(document.activeElement).toBe(elLast);
 
-          container.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'Home', bubbles: true, cancelable: true }),
-          );
+          container.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true, cancelable: true }));
           expect(document.activeElement).toBe(elFirst);
 
           // The disabled middle trigger is not an End destination either
-          container.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'End', bubbles: true, cancelable: true }),
-          );
+          container.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true, cancelable: true }));
           expect(document.activeElement).toBe(elLast);
 
           document.body.removeChild(container);
@@ -940,9 +920,7 @@ describe('Accordion - User Expectations & A11y Specifications', () => {
         component().run(() => {
           const group = aria('accordion', { id: 'late', value: 'shipping' });
 
-          const trigger = component().run(() =>
-            accordionCtx.get()!.button({ name: 'shipping' }),
-          );
+          const trigger = component().run(() => accordionCtx.get()!.button({ name: 'shipping' }));
           const button = bind(document.createElement('button'), trigger);
           document.body.appendChild(button);
 
@@ -950,9 +928,7 @@ describe('Accordion - User Expectations & A11y Specifications', () => {
           expect(address).toBe('late-region-shipping');
           expect(document.getElementById(address as string)).toBeNull();
 
-          const panel = component().run(() =>
-            accordionCtx.get()!.panel({ name: 'shipping' }),
-          );
+          const panel = component().run(() => accordionCtx.get()!.panel({ name: 'shipping' }));
           const region = bind(document.createElement('div'), panel);
 
           // The late panel arrives at the address the trigger already announced

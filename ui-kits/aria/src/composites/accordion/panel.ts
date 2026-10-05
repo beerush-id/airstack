@@ -1,6 +1,6 @@
 import { $symbol, uIndex } from '@airlib/core';
 import { Aria } from '../../core.js';
-import { type SelectionGroupProps, selectionGroup } from '../../selection.js';
+import { selectionGroup, type SelectionGroupProps } from '../../selection.js';
 import type { AriaAttributes, AriaProps, BaseElement } from '../../types.js';
 import { ROLE_ACCORDION, ROLE_REGION } from './accordion.js';
 
@@ -64,7 +64,7 @@ export class AccordionPanelAria<
    * Semantic identity key resolved with fallbacks: name -> id.
    */
   public get key(): string {
-    return this.props.name ?? this.props.id ?? this.id;
+    return this.properties.name ?? this.properties.id ?? this.id;
   }
 
   /**
@@ -87,7 +87,7 @@ export class AccordionPanelAria<
     const key = this.key;
 
     return Object.assign(super.createAttributes(), {
-      id: this.props.id ?? `${scope}${ROLE_REGION}-${key}`,
+      id: this.properties.id ?? `${scope}${ROLE_REGION}-${key}`,
       role: ROLE_REGION,
       'aria-labelledby': `${scope}${ROLE_ACCORDION}-${key}`,
       hidden: !this.expanded,

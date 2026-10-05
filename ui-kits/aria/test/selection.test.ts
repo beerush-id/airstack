@@ -1,6 +1,6 @@
 import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
-import { SelectionAria, type SelectionOptions, type SelectionProps, selectionGroup } from '../src/selection.js';
+import { SelectionAria, selectionGroup, type SelectionOptions, type SelectionProps } from '../src/selection.js';
 import { bind, component } from './utils.js';
 
 class TestItem extends SelectionAria {
@@ -47,13 +47,13 @@ describe('Selection - Contract Specifications', () => {
           expect(item.attributes['aria-disabled']).toBe('false');
 
           item.select();
-          expect(item.props.selected).toBe(true);
+          expect(item.properties.selected).toBe(true);
 
           item.deselect();
-          expect(item.props.selected).toBe(false);
+          expect(item.properties.selected).toBe(false);
 
           item.toggle();
-          expect(item.props.selected).toBe(true);
+          expect(item.properties.selected).toBe(true);
 
           // Setter
           item.isSelected = false;
@@ -64,7 +64,7 @@ describe('Selection - Contract Specifications', () => {
           // Custom key: 'active'
           const customItem = new TestItem({}, { key: 'active' });
           customItem.select();
-          expect(customItem.props.active).toBe(true);
+          expect(customItem.properties.active).toBe(true);
         });
       }));
 
@@ -80,22 +80,22 @@ describe('Selection - Contract Specifications', () => {
 
           // Operations no-op when disabled
           item.select();
-          expect(item.props.selected).toBeUndefined();
+          expect(item.properties.selected).toBeUndefined();
 
           item.deselect();
-          expect(item.props.selected).toBeUndefined();
+          expect(item.properties.selected).toBeUndefined();
 
           item.toggle();
-          expect(item.props.selected).toBeUndefined();
+          expect(item.properties.selected).toBeUndefined();
 
           item.isSelected = true;
-          expect(item.props.selected).toBeUndefined();
+          expect(item.properties.selected).toBeUndefined();
 
           // Mutable setter via props
-          item.props.disabled = false;
+          item.properties.disabled = false;
           expect(item.disabled).toBe(false);
           item.select();
-          expect(item.props.selected).toBe(true);
+          expect(item.properties.selected).toBe(true);
         });
       }));
 
@@ -106,12 +106,12 @@ describe('Selection - Contract Specifications', () => {
           const item = new TestItem();
           expect(item.value).toBeUndefined();
 
-          item.props.value = 'opt-1';
+          item.properties.value = 'opt-1';
           expect(item.value).toBe('opt-1');
-          expect(item.props.value).toBe('opt-1');
+          expect(item.properties.value).toBe('opt-1');
 
-          item.props.name = 'field-a';
-          expect(item.props.name).toBe('field-a');
+          item.properties.name = 'field-a';
+          expect(item.properties.name).toBe('field-a');
         });
       }));
 
@@ -140,8 +140,8 @@ describe('Selection - Contract Specifications', () => {
           const item2 = new TestItem({ value: 'item-2' });
 
           expect(item1.idempotent).toBe(false);
-          expect(item1.props.selected).toBe(true);
-          expect(item2.props.selected).toBe(false);
+          expect(item1.properties.selected).toBe(true);
+          expect(item2.properties.selected).toBe(false);
 
           // Selecting already-selected item avoids duplicate entry
           item1.select();
@@ -150,12 +150,12 @@ describe('Selection - Contract Specifications', () => {
           // Selecting unselected item adds to array
           item2.select();
           expect(group.value).toEqual(['item-1', 'item-2']);
-          expect(item2.props.selected).toBe(true);
+          expect(item2.properties.selected).toBe(true);
 
           // Deselecting item removes from array
           item1.deselect();
           expect(group.value).toEqual(['item-2']);
-          expect(item1.props.selected).toBe(false);
+          expect(item1.properties.selected).toBe(false);
 
           // Deselecting non-member is a no-op
           item1.deselect();
@@ -164,7 +164,7 @@ describe('Selection - Contract Specifications', () => {
           // Toggling inverts membership
           item1.toggle();
           expect(group.value).toEqual(['item-2', 'item-1']);
-          expect(item1.props.selected).toBe(true);
+          expect(item1.properties.selected).toBe(true);
         });
       }));
 
@@ -178,19 +178,19 @@ describe('Selection - Contract Specifications', () => {
           const tab1 = new TestItem({ value: 'tab-1' });
           const tab2 = new TestItem({ value: 'tab-2' });
 
-          expect(tab1.props.selected).toBe(true);
-          expect(tab2.props.selected).toBe(false);
+          expect(tab1.properties.selected).toBe(true);
+          expect(tab2.properties.selected).toBe(false);
 
           // Switching selection
           tab2.select();
           expect(group.value).toBe('tab-2');
-          expect(tab1.props.selected).toBe(false);
-          expect(tab2.props.selected).toBe(true);
+          expect(tab1.properties.selected).toBe(false);
+          expect(tab2.properties.selected).toBe(true);
 
           // Deselecting unsets group value if matching
           tab2.deselect();
           expect(group.value).toBeUndefined();
-          expect(tab2.props.selected).toBe(false);
+          expect(tab2.properties.selected).toBe(false);
 
           // Deselecting non-matching item does not unset
           group.value = 'tab-1';
@@ -213,7 +213,6 @@ describe('Selection - Contract Specifications', () => {
           expect(item.attributes.tabindex).toBe(-1);
         });
       }));
-
   });
 
   describe('DOM & Keyboard Interaction', () => {
@@ -226,22 +225,22 @@ describe('Selection - Contract Specifications', () => {
           const div = bind(document.createElement('div'), toggleItem);
 
           div.click();
-          expect(toggleItem.props.selected).toBe(true);
+          expect(toggleItem.properties.selected).toBe(true);
           div.click();
-          expect(toggleItem.props.selected).toBe(false);
+          expect(toggleItem.properties.selected).toBe(false);
 
           // Disabled item ignores click
-          toggleItem.props.disabled = true;
+          toggleItem.properties.disabled = true;
           div.click();
-          expect(toggleItem.props.selected).toBe(false);
+          expect(toggleItem.properties.selected).toBe(false);
 
           // Idempotent item selects on click and stays selected
           const idempotentItem = new TestItem({}, { idempotent: true });
           const idempotentDiv = bind(document.createElement('div'), idempotentItem);
           idempotentDiv.click();
-          expect(idempotentItem.props.selected).toBe(true);
+          expect(idempotentItem.properties.selected).toBe(true);
           idempotentDiv.click();
-          expect(idempotentItem.props.selected).toBe(true);
+          expect(idempotentItem.properties.selected).toBe(true);
         });
       }));
 
@@ -260,18 +259,18 @@ describe('Selection - Contract Specifications', () => {
           // Space keyup triggers click/activation
           const spaceUp = new KeyboardEvent('keyup', { key: ' ', cancelable: true });
           div.dispatchEvent(spaceUp);
-          expect(item.props.selected).toBe(true);
+          expect(item.properties.selected).toBe(true);
 
           // Enter keydown triggers activation immediately
           const enterDown = new KeyboardEvent('keydown', { key: 'Enter', cancelable: true });
           div.dispatchEvent(enterDown);
           expect(enterDown.defaultPrevented).toBe(true);
-          expect(item.props.selected).toBe(false);
+          expect(item.properties.selected).toBe(false);
 
           // Enter keyup does not re-click (handled on keydown)
           const enterUp = new KeyboardEvent('keyup', { key: 'Enter', cancelable: true });
           div.dispatchEvent(enterUp);
-          expect(item.props.selected).toBe(false);
+          expect(item.properties.selected).toBe(false);
 
           // Allowed keys that are neither Space nor Enter do not preventDefault
           const customAllowedItem = new TestItem({}, { allowKeys: ['Tab'] });
@@ -288,7 +287,7 @@ describe('Selection - Contract Specifications', () => {
           expect(escapeDown.defaultPrevented).toBe(false);
 
           // Disabled non-native ignores key events
-          customAllowedItem.props.disabled = true;
+          customAllowedItem.properties.disabled = true;
           customAllowedEl.dispatchEvent(tabDown);
           customAllowedEl.dispatchEvent(tabUp);
 
@@ -324,7 +323,7 @@ describe('Selection - Contract Specifications', () => {
 
             // 4. Explicit id overrides group derivation
             const custom = new TestItem({ id: 'compact-view', name: 'compact' });
-            expect(custom.props.id).toBe('compact-view');
+            expect(custom.properties.id).toBe('compact-view');
             expect(custom.attributes.id).toBe('compact-view');
 
             // 5. Reactive mutation on group.id propagates dynamically to attributes.id
@@ -347,7 +346,7 @@ describe('Selection - Contract Specifications', () => {
 
             // Explicit id takes precedence in attributes.id
             const custom = new TestItem({ id: 'explicit-id', name: 'opt-2' });
-            expect(custom.props.id).toBe('explicit-id');
+            expect(custom.properties.id).toBe('explicit-id');
             expect(custom.attributes.id).toBe('explicit-id');
           });
         }));
@@ -358,7 +357,7 @@ describe('Selection - Contract Specifications', () => {
           tree.run(() => {
             // Explicit ID
             const explicit = new TestItem({ id: 'my-custom-btn' });
-            expect(explicit.props.id).toBe('my-custom-btn');
+            expect(explicit.properties.id).toBe('my-custom-btn');
             expect(explicit.attributes.id).toBe('my-custom-btn');
 
             // Self-claim sequence
@@ -470,7 +469,7 @@ describe('Selection - Contract Specifications', () => {
             const item = new TestItem({ value: 'init-item', selected: true });
             expect(Array.isArray(group.value)).toBe(true);
             expect(group.value).toEqual(['init-item']);
-            expect(item.props.selected).toBe(true);
+            expect(item.properties.selected).toBe(true);
           });
         }));
     });

@@ -85,21 +85,21 @@ export abstract class LandmarkAria<
    * Accessible label compiled to aria-label.
    */
   public get label(): string | undefined {
-    return this.props.label;
+    return this.properties.label;
   }
 
   /**
    * Element ID providing the accessible name.
    */
   public get labelledby(): string | undefined {
-    return this.props.labelledby;
+    return this.properties.labelledby;
   }
 
   /**
    * Whether the landmark carries an accessible name.
    */
   public get named(): boolean {
-    return !!this.props.label || !!this.props.labelledby;
+    return !!this.properties.label || !!this.properties.labelledby;
   }
 
   /**
@@ -110,8 +110,8 @@ export abstract class LandmarkAria<
   protected override createAttributes(): A {
     return Object.assign(super.createAttributes(), {
       role: this.exposesRole ? this.landmarkRole : undefined,
-      'aria-label': this.props.label,
-      'aria-labelledby': this.props.labelledby,
+      'aria-label': this.properties.label,
+      'aria-labelledby': this.properties.labelledby,
     }) as A;
   }
 

@@ -139,9 +139,9 @@ describe('Core - Units', () => {
 
           protected override createAttributes(): AriaAttributes<HTMLDivElement> {
             return {
-              'aria-valuemin': this.props.min,
-              'aria-valuemax': this.props.max,
-              'aria-valuenow': this.props.now,
+              'aria-valuemin': this.properties.min,
+              'aria-valuemax': this.properties.max,
+              'aria-valuenow': this.properties.now,
             };
           }
         }
@@ -311,10 +311,10 @@ describe('Core - Integrations', () => {
         // Transition 1: External component prop changes -> DOM reflects
         externalProps.active = true;
         expect(element.getAttribute('aria-pressed')).toBe('true');
-        expect(widget.props.active).toBe(true);
+        expect(widget.properties.active).toBe(true);
 
         // Transition 2: Controller mutates state -> External props reflect & DOM reflects
-        widget.props.active = false;
+        widget.properties.active = false;
         expect(externalProps.active).toBe(false);
         expect(element.getAttribute('aria-pressed')).toBe('false');
       });

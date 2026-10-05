@@ -93,7 +93,7 @@ export class DividerAria<
    * Visual axis of the divider.
    */
   public get orientation(): Orientation {
-    return this.props.orientation ?? 'horizontal';
+    return this.properties.orientation ?? 'horizontal';
   }
 
   /**
@@ -144,25 +144,25 @@ export class SplitterAria<
    * Current partition position, clamped to the inclusive range.
    */
   public get value(): number {
-    return clampRange(this.props.value ?? this.min, this.min, this.max);
+    return clampRange(this.properties.value ?? this.min, this.min, this.max);
   }
 
   public set value(next: number) {
-    this.props.value = clampRange(next, this.min, this.max);
+    this.properties.value = clampRange(next, this.min, this.max);
   }
 
   /**
    * Minimum partition position.
    */
   public get min(): number {
-    return this.props.min ?? 0;
+    return this.properties.min ?? 0;
   }
 
   /**
    * Maximum partition position.
    */
   public get max(): number {
-    return this.props.max ?? 100;
+    return this.properties.max ?? 100;
   }
 
   /**

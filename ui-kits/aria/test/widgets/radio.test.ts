@@ -1,5 +1,5 @@
 import { createLifecycle, mutable } from '@airlib/core';
-import { afterAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
 import { aria, type RadioAria, type RadioProps, selectionGroup } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
@@ -420,12 +420,8 @@ describe('Radio - Contract Specifications', () => {
           expect(radio.checked).toBe(false);
 
           // One press, one selection
-          el.dispatchEvent(
-            new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true }),
-          );
-          el.dispatchEvent(
-            new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }),
-          );
+          el.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true }));
+          el.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }));
           expect(group.value).toBe('b');
           expect(el.getAttribute('aria-checked')).toBe('true');
 
@@ -450,18 +446,18 @@ describe('Radio - Contract Specifications', () => {
           const rB = aria('radio', { name: 'plan', value: 'pro' });
 
           // The identity keys stay on props for template binding, never in the projection
-          expect(rA.props.name).toBe('plan');
-          expect(rA.props.value).toBe('starter');
+          expect(rA.properties.name).toBe('plan');
+          expect(rA.properties.value).toBe('starter');
           expect(rA.attributes.name).toBeUndefined();
           expect(rA.attributes.value).toBeUndefined();
           expect(rA.attributes.form).toBeUndefined();
 
           const elA = bind(document.createElement('input'), rA);
           const elB = bind(document.createElement('input'), rB);
-          elA.name = rA.props.name;
-          elA.value = String(rA.props.value);
-          elB.name = rB.props.name;
-          elB.value = String(rB.props.value);
+          elA.name = rA.properties.name;
+          elA.value = String(rA.properties.value);
+          elB.name = rB.properties.name;
+          elB.value = String(rB.properties.value);
           form.appendChild(elA);
           form.appendChild(elB);
 
@@ -525,11 +521,7 @@ describe('Radio - Contract Specifications', () => {
           const group = mutable({ value: 'a' });
           selectionGroup.set(group);
 
-          const radio = aria<HTMLDivElement>(
-            'radio',
-            { value: 'b', disabled: true },
-            { native: false },
-          );
+          const radio = aria<HTMLDivElement>('radio', { value: 'b', disabled: true }, { native: false });
 
           // 1. Creation & SSR
           expect(radio.disabled).toBe(true);
@@ -542,12 +534,8 @@ describe('Radio - Contract Specifications', () => {
           expect(el.getAttribute('tabindex')).toBe('-1');
 
           // 3/4. Neither a full Space press nor a click reaches the registry
-          el.dispatchEvent(
-            new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true }),
-          );
-          el.dispatchEvent(
-            new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }),
-          );
+          el.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true }));
+          el.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }));
           el.click();
 
           expect(group.value).toBe('a');

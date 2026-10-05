@@ -1,6 +1,6 @@
 import { $symbol, uIndex } from '@airlib/core';
 import { Aria } from '../../core.js';
-import { type SelectionGroupProps, selectionGroup } from '../../selection.js';
+import { selectionGroup, type SelectionGroupProps } from '../../selection.js';
 import type { AriaAttributes, AriaProps, BaseElement } from '../../types.js';
 import { ROLE_TAB, ROLE_TABPANEL } from './tab.js';
 
@@ -65,7 +65,7 @@ export class TabPanelAria<
    * Semantic identity key resolved with fallbacks: name -> id.
    */
   public get key(): string {
-    return this.props.name ?? this.props.id ?? this.id;
+    return this.properties.name ?? this.properties.id ?? this.id;
   }
 
   /**
@@ -86,7 +86,7 @@ export class TabPanelAria<
 
     return Object.assign(super.createAttributes(), {
       role: ROLE_TABPANEL,
-      id: this.props.id ?? `${scope}${ROLE_TABPANEL}-${key}`,
+      id: this.properties.id ?? `${scope}${ROLE_TABPANEL}-${key}`,
       'aria-labelledby': `${scope}${ROLE_TAB}-${key}`,
       tabindex: this.selected ? 0 : undefined,
       hidden: !this.selected,

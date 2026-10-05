@@ -1,6 +1,6 @@
 import {
-  type AnyType,
   anchor,
+  type AnyType,
   createContext,
   createObserver,
   mutable,
@@ -54,7 +54,7 @@ export class Aria<
    * The underlying reactive props proxy managed by AirLib.
    * Stores the component's interactive inputs and states (e.g. disabled, active, checked) for fine-grained reactivity.
    */
-  public props: T;
+  public properties: T;
 
   /**
    * The enclosing parent Aria controller discovered from ambient execution scope.
@@ -73,7 +73,7 @@ export class Aria<
   /**
    * Get the full props for component spreading.
    */
-  public get $props() {
+  public get props() {
     return this.restProps();
   }
 
@@ -86,7 +86,7 @@ export class Aria<
    */
   public get ownKeys(): string[] {
     return Array.from(
-      new Set([...OMITTED_ATTRIBUTES, ...COMMON_ATTRIBUTES, ...Object.keys(this.attributes), ...this.omittedAttrs]),
+      new Set([...OMITTED_ATTRIBUTES, ...COMMON_ATTRIBUTES, ...Object.keys(this.attributes), ...this.omittedAttrs])
     );
   }
 
@@ -201,7 +201,7 @@ export class Aria<
     this.scope = ariaScope.get() as Aria<BaseElement, object, AriaAttributes<BaseElement>> | undefined;
     ariaScope.set(this as unknown as Aria<BaseElement, object, AriaAttributes<BaseElement>>);
 
-    this.props = (anchor.has(props) ? props : mutable(props)) as T;
+    this.properties = (anchor.has(props) ? props : mutable(props)) as T;
     this.observer = createObserver(() => {
       this.update();
     });
@@ -217,7 +217,7 @@ export class Aria<
    * @param props - Partial props dictionary to merge into the reactive props
    */
   public assign(props: Partial<T>): void {
-    anchor.assign(this.props, props);
+    anchor.assign(this.properties, props);
   }
 
   /**
@@ -260,15 +260,15 @@ export class Aria<
    * Create a copy of the props excluding the controller-managed attributes.
    */
   public restProps(omit?: (keyof T)[]): T {
-    const omitted = new Set([...COMMON_ATTRIBUTES, ...this.ownKeys, ...(omit ?? [])]);
+    const omitted = new Set([...this.ownKeys, ...(omit ?? [])]);
 
-    if (typeof this.props.$omit === 'function') {
-      return { ...this.props.$omit(Array.from(omitted)), ...this.attributes };
+    if (typeof this.properties.$omit === 'function') {
+      return { ...this.properties.$omit(Array.from(omitted)), ...this.attributes };
     }
 
     const props = {} as T;
 
-    for (const [key, value] of Object.entries(this.props)) {
+    for (const [key, value] of Object.entries(this.properties)) {
       if (!omitted.has(key)) {
         props[key as keyof T] = value as T[keyof T];
       }
@@ -311,11 +311,11 @@ export class Aria<
       }
 
       if (refine) {
-        const overrides = refine(this.props, this.attrs as unknown as A);
+        const overrides = refine(this.properties, this.attrs as unknown as A);
         if (overrides) normalizeAttrs(overrides as Record<string, unknown>, this.attrs, this.omittedAttrs);
       } else {
         for (const refiner of this.refiners) {
-          const overrides = refiner(this.props, this.attrs as unknown as A);
+          const overrides = refiner(this.properties, this.attrs as unknown as A);
           if (overrides) normalizeAttrs(overrides as Record<string, unknown>, this.attrs, this.omittedAttrs);
         }
       }

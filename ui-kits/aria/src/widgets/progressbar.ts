@@ -76,11 +76,11 @@ export class ProgressbarAria<
    * Current progress value, or null when progress is indeterminate.
    */
   public get value(): number | null {
-    return this.props.value ?? null;
+    return this.properties.value ?? null;
   }
 
   public set value(next: number | null) {
-    this.props.value = next;
+    this.properties.value = next;
   }
 
   /**
@@ -94,14 +94,14 @@ export class ProgressbarAria<
    * Lower bound of the progress range.
    */
   public get min(): number {
-    return this.props.min ?? 0;
+    return this.properties.min ?? 0;
   }
 
   /**
    * Upper bound of the progress range.
    */
   public get max(): number {
-    return this.props.max ?? 100;
+    return this.properties.max ?? 100;
   }
 
   /**
@@ -112,7 +112,7 @@ export class ProgressbarAria<
   protected override createAttributes(): A {
     const value = this.indeterminate ? undefined : (this.value as number);
     const attrs = Object.assign(super.createAttributes(), {
-      'aria-valuetext': this.props.valuetext,
+      'aria-valuetext': this.properties.valuetext,
     });
 
     if (this.isNative) {

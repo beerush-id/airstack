@@ -114,8 +114,8 @@ export class ImageAria<
     this.omittedAttrs.push('src', 'alt', 'status');
 
     $static(() => {
-      this.appliedSrc = this.props.src;
-      this.props.status = this.props.src ? 'loading' : 'idle';
+      this.appliedSrc = this.properties.src;
+      this.properties.status = this.properties.src ? 'loading' : 'idle';
     });
     effect(() => {
       this.syncSource();
@@ -127,7 +127,7 @@ export class ImageAria<
    * Reported source lifecycle.
    */
   public get status(): ImageStatus {
-    return this.props.status as ImageStatus;
+    return this.properties.status as ImageStatus;
   }
 
   /**
@@ -171,7 +171,7 @@ export class ImageAria<
   }
 
   private syncSource(): void {
-    const src = this.props.src;
+    const src = this.properties.src;
     if (src === this.appliedSrc) return;
     this.appliedSrc = src;
     this.epoch += 1;
@@ -184,8 +184,8 @@ export class ImageAria<
   }
 
   private commit(status: ImageStatus): void {
-    if (this.props.status === status) return;
-    this.props.status = status;
+    if (this.properties.status === status) return;
+    this.properties.status = status;
     const host = this.element;
     if (host) {
       host.dispatchEvent(new CustomEvent<ImageStatus>('change', { bubbles: true, detail: status }));
@@ -194,7 +194,7 @@ export class ImageAria<
 
   private restartOwnedLoader(element: BaseElement): void {
     if (isImageElement(element)) return;
-    const src = this.props.src;
+    const src = this.properties.src;
     if (!src || this.status !== 'loading') return;
     const epoch = this.epoch;
     const loader = new Image();
@@ -242,8 +242,8 @@ export class ImageContentAria<
    */
   protected override createAttributes(): A {
     const host = this.host;
-    const src = host?.props.src;
-    const alt = host?.props.alt ?? '';
+    const src = host?.properties.src;
+    const alt = host?.properties.alt ?? '';
     const loaded = (host?.status ?? 'idle') === 'loaded';
     const decorative = alt === '';
     const known = { src, alt };
@@ -324,7 +324,7 @@ export class ImageFallbackAria<
    */
   protected override createAttributes(): A {
     const host = this.host;
-    const alt = host?.props.alt ?? '';
+    const alt = host?.properties.alt ?? '';
     const status = host?.status ?? 'idle';
     const active = status === 'idle' || status === 'loading' || status === 'error';
 

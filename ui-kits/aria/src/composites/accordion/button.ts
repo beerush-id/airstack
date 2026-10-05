@@ -106,7 +106,7 @@ export class AccordionButtonAria<
     const isExpanded = this.expanded;
 
     return Object.assign(super.createAttributes(), {
-      id: this.props.id ?? `${scope}${ROLE_ACCORDION}-${value}`,
+      id: this.properties.id ?? `${scope}${ROLE_ACCORDION}-${value}`,
       type: this.isNative ? 'button' : undefined,
       role: this.isNative ? undefined : 'button',
       'aria-expanded': ariaBoolean(isExpanded),

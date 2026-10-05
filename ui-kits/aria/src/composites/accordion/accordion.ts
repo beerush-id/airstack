@@ -132,15 +132,15 @@ export class AccordionAria<
   public constructor(props: Partial<T> = {}) {
     super(props);
     $static(() => {
-      this.props.id = this.props.id ?? this.id;
-      this.props.orientation = this.props.orientation ?? DEFAULT_ORIENTATION;
-      if (!this.props.multiple) {
-        this.props.required = this.props.required ?? false;
-        this.props.manual = this.props.manual ?? true;
+      this.properties.id = this.properties.id ?? this.id;
+      this.properties.orientation = this.properties.orientation ?? DEFAULT_ORIENTATION;
+      if (!this.properties.multiple) {
+        this.properties.required = this.properties.required ?? false;
+        this.properties.manual = this.properties.manual ?? true;
       }
     });
     accordionCtx.set(this as unknown as AccordionAria);
-    selectionGroup.set(this.props);
+    selectionGroup.set(this.properties);
     this.update();
   }
 
@@ -177,14 +177,14 @@ export class AccordionAria<
    */
   protected override createAttributes(): A {
     return Object.assign(super.createAttributes(), {
-      id: this.props.id!,
+      id: this.properties.id!,
       onkeydown: (e: KeyboardEvent) => {
-        if (this.props.disabled) return;
+        if (this.properties.disabled) return;
 
         handleRovingKey(this.element, e, {
           selector: ACCORDION_SELECTORS,
-          orientation: this.props.orientation ?? DEFAULT_ORIENTATION,
-          manual: this.props.manual ?? true,
+          orientation: this.properties.orientation ?? DEFAULT_ORIENTATION,
+          manual: this.properties.manual ?? true,
         });
       },
     }) as A;

@@ -60,7 +60,7 @@ export class MenubarAria<
    * Visual and keyboard navigation orientation of the bar.
    */
   public get orientation(): Orientation {
-    return this.props.orientation ?? this.defaultOrientation;
+    return this.properties.orientation ?? this.defaultOrientation;
   }
 
   /**
@@ -71,7 +71,7 @@ export class MenubarAria<
   protected override createAttributes(): A {
     return Object.assign(super.createAttributes(), {
       'aria-orientation': this.orientation,
-      'aria-label': this.props.label,
+      'aria-label': this.properties.label,
     }) as A;
   }
 }

@@ -61,7 +61,7 @@ export class TabListAria<
    * Visual and keyboard orientation inherited from the parent tab orchestrator.
    */
   public get orientation(): Orientation {
-    return this.tab?.props.orientation ?? TabAria.config.orientation;
+    return this.tab?.properties.orientation ?? TabAria.config.orientation;
   }
 
   /**
@@ -73,15 +73,15 @@ export class TabListAria<
     return Object.assign(super.createAttributes(), {
       role: ROLE_TABLIST,
       'aria-orientation': this.orientation,
-      'aria-label': this.props.label,
-      'aria-labelledby': this.props.labelledby,
+      'aria-label': this.properties.label,
+      'aria-labelledby': this.properties.labelledby,
       onkeydown: (e: KeyboardEvent) => {
-        if (this.tab?.props.disabled || this.parentRover) return;
+        if (this.tab?.properties.disabled || this.parentRover) return;
 
         handleRovingKey(this.element, e, {
           selector: TAB_SELECTORS,
           orientation: this.orientation,
-          manual: this.tab?.props.manual ?? true,
+          manual: this.tab?.properties.manual ?? true,
         });
       },
     }) as A;

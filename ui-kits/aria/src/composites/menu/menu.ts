@@ -51,8 +51,8 @@ export class MenuAria<
   public constructor(props: Partial<T> = {}) {
     super(props);
     $static(() => {
-      this.props.id = this.props.id ?? this.id;
-      this.props.open = this.props.open ?? false;
+      this.properties.id = this.properties.id ?? this.id;
+      this.properties.open = this.properties.open ?? false;
     });
     menuCtx.set(this as unknown as MenuAria);
     this.update();
@@ -62,11 +62,11 @@ export class MenuAria<
    * Whether the paired popup panel is open.
    */
   public get open(): boolean {
-    return !!this.props.open;
+    return !!this.properties.open;
   }
 
   public set open(value: boolean) {
-    this.props.open = value;
+    this.properties.open = value;
   }
 
   /**
@@ -102,7 +102,7 @@ export class MenuAria<
    */
   protected override createAttributes(): A {
     return Object.assign(super.createAttributes(), {
-      id: this.props.id!,
+      id: this.properties.id!,
     }) as A;
   }
 }

@@ -93,7 +93,7 @@ export abstract class LiveRegionAria<
       'aria-live',
       'aria-atomic',
       'aria-busy',
-      'aria-relevant',
+      'aria-relevant'
     );
     this.update();
   }
@@ -102,21 +102,21 @@ export abstract class LiveRegionAria<
    * Politeness level announcements are compiled with.
    */
   public get politeness(): Politeness {
-    return this.props.politeness ?? this.defaultPoliteness;
+    return this.properties.politeness ?? this.defaultPoliteness;
   }
 
   /**
    * Whether the whole region is announced as one unit.
    */
   public get atomic(): boolean {
-    return this.props.atomic ?? this.defaultAtomic;
+    return this.properties.atomic ?? this.defaultAtomic;
   }
 
   /**
    * Whether the region is currently loading or updating.
    */
   public get busy(): boolean {
-    return !!this.props.busy;
+    return !!this.properties.busy;
   }
 
   /**
@@ -130,7 +130,7 @@ export abstract class LiveRegionAria<
       'aria-live': this.politeness,
       'aria-atomic': this.declaresAtomic ? ariaBoolean(this.atomic) : undefined,
       'aria-busy': this.declaresBusy ? ariaBoolean(this.busy) : undefined,
-      'aria-relevant': this.props.relevant,
+      'aria-relevant': this.properties.relevant,
     }) as A;
   }
 
@@ -139,7 +139,7 @@ export abstract class LiveRegionAria<
    * overrode the value the role already implies.
    */
   protected get declaresAtomic(): boolean {
-    return this.props.atomic !== undefined || this.atomic;
+    return this.properties.atomic !== undefined || this.atomic;
   }
 
   /**
@@ -147,7 +147,7 @@ export abstract class LiveRegionAria<
    * so `false` is a deliberate idle signal rather than an absent attribute.
    */
   protected get declaresBusy(): boolean {
-    return this.props.busy !== undefined;
+    return this.properties.busy !== undefined;
   }
 }
 

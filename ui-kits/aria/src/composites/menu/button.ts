@@ -72,7 +72,7 @@ export class MenuButtonAria<
    * Whether the trigger is disabled from user interaction.
    */
   public get disabled(): boolean {
-    return !!this.props.disabled;
+    return !!this.properties.disabled;
   }
 
   /**
@@ -86,7 +86,7 @@ export class MenuButtonAria<
     const attrs = Object.assign(super.createAttributes(), {
       'aria-haspopup': 'menu',
       'aria-expanded': ariaBoolean(isOpen),
-      'aria-controls': this.root ? `${this.root.props.id}-${ROLE_MENU}` : undefined,
+      'aria-controls': this.root ? `${this.root.properties.id}-${ROLE_MENU}` : undefined,
       onclick: () => {
         if (isDisabled) return;
         if (this.root) this.root.open = !this.root.open;

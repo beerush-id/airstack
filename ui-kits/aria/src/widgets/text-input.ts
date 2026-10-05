@@ -138,10 +138,10 @@ export class TextInputAria<
       'aria-readonly',
       'aria-disabled',
       'aria-multiline',
-      'aria-invalid',
+      'aria-invalid'
     );
     $static(() => {
-      this.lastCommitted = this.props.value ?? '';
+      this.lastCommitted = this.properties.value ?? '';
     });
     this.update();
   }
@@ -155,18 +155,18 @@ export class TextInputAria<
    * Live text value.
    */
   public get value(): string {
-    return this.props.value ?? '';
+    return this.properties.value ?? '';
   }
 
   public set value(next: string) {
-    this.props.value = next;
+    this.properties.value = next;
   }
 
   /**
    * Whether the input is disabled from user interaction.
    */
   public get disabled(): boolean {
-    return !!this.props.disabled;
+    return !!this.properties.disabled;
   }
 
   /**
@@ -175,9 +175,8 @@ export class TextInputAria<
    * @returns Text-input attributes dictionary
    */
   protected override createAttributes(): A {
-    const { value, readonly, disabled, required, placeholder, label, invalid } = this.props;
-    const type =
-      this.options.role === 'search-input' || this.props.kind === 'search' ? 'search' : undefined;
+    const { value, readonly, disabled, required, placeholder, label, invalid } = this.properties;
+    const type = this.options.role === 'search-input' || this.properties.kind === 'search' ? 'search' : undefined;
     const attrs: Record<string, unknown> = {
       value: value ?? '',
       oninput: this.handleInput,
@@ -200,9 +199,9 @@ export class TextInputAria<
     }
 
     return Object.assign(super.createAttributes(), attrs, {
-      role: this.props.kind === 'search' || this.options.role === 'search-input' ? 'searchbox' : 'textbox',
+      role: this.properties.kind === 'search' || this.options.role === 'search-input' ? 'searchbox' : 'textbox',
       tabindex: disabled ? -1 : 0,
-      ...(this.props.multiline ? { 'aria-multiline': 'true' as const } : {}),
+      ...(this.properties.multiline ? { 'aria-multiline': 'true' as const } : {}),
       'aria-readonly': ariaBoolean(readonly),
       'aria-disabled': ariaBoolean(disabled),
       'aria-required': ariaRequired(required) ?? 'false',
@@ -226,8 +225,8 @@ export class TextInputAria<
   }
 
   private readonly handleInput = (e: Event): void => {
-    if (this.disabled || this.props.readonly) return;
-    this.props.value = (e.currentTarget as HTMLInputElement).value;
+    if (this.disabled || this.properties.readonly) return;
+    this.properties.value = (e.currentTarget as HTMLInputElement).value;
   };
 }
 

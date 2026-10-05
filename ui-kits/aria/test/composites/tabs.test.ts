@@ -7,8 +7,8 @@ import {
   roverCtx,
   TabAria,
   TabButtonAria,
-  TabPanelAria,
   type TabButtonProps,
+  TabPanelAria,
   type TabPanelProps,
   type TabProps,
 } from '../../src/index.js';
@@ -324,11 +324,11 @@ describe('Tabs - User Expectations & A11y Specifications', () => {
 
           // Arrow navigation blocked
           listEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
-          expect(tabs.props.value).toBe('t1');
+          expect(tabs.properties.value).toBe('t1');
 
           // Direct selection blocked
           t2.select();
-          expect(tabs.props.value).toBe('t1');
+          expect(tabs.properties.value).toBe('t1');
         });
       }));
 
@@ -341,7 +341,7 @@ describe('Tabs - User Expectations & A11y Specifications', () => {
           const tab2 = tabs.button({ name: 'second' });
 
           // First tab automatically claims group selection
-          expect(tabs.props.value).toBe('first');
+          expect(tabs.properties.value).toBe('first');
           expect(tab1.attributes['aria-selected']).toBe('true');
           expect(tab1.attributes.tabindex).toBeUndefined();
 
@@ -360,7 +360,7 @@ describe('Tabs - User Expectations & A11y Specifications', () => {
           const tab2 = tabs.button({ name: 'second', selected: true });
 
           // Tab with selected: true claims selection over initial first tab
-          expect(tabs.props.value).toBe('second');
+          expect(tabs.properties.value).toBe('second');
           expect(tab1.attributes['aria-selected']).toBe('false');
           expect(tab1.attributes.tabindex).toBe(-1);
           expect(tab2.attributes['aria-selected']).toBe('true');
@@ -521,16 +521,12 @@ describe('Tabs - User Expectations & A11y Specifications', () => {
           elC.focus();
 
           // Past the last tab, the rover wraps to the first
-          listEl.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }),
-          );
+          listEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
           expect(document.activeElement).toBe(elA);
           expect(props.value).toBe('a');
 
           // Before the first tab it wraps to the last
-          listEl.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true, cancelable: true }),
-          );
+          listEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true, cancelable: true }));
           expect(document.activeElement).toBe(elC);
           expect(props.value).toBe('c');
 
@@ -559,22 +555,16 @@ describe('Tabs - User Expectations & A11y Specifications', () => {
 
           elOne.focus();
 
-          listEl.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }),
-          );
+          listEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
           expect(document.activeElement).toBe(elThree);
           expect(props.value).toBe('three');
           expect(two.selected).toBe(false);
 
           // End lands on the last enabled tab, Home on the first enabled tab
-          listEl.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'End', bubbles: true, cancelable: true }),
-          );
+          listEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true, cancelable: true }));
           expect(document.activeElement).toBe(elThree);
 
-          listEl.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'Home', bubbles: true, cancelable: true }),
-          );
+          listEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true, cancelable: true }));
           expect(document.activeElement).toBe(elOne);
           expect(props.value).toBe('one');
 
@@ -607,9 +597,7 @@ describe('Tabs - User Expectations & A11y Specifications', () => {
 
           elOne.focus();
 
-          listEl.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }),
-          );
+          listEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
 
           // No manual flag was passed, so focus moved and the selection waited
           expect(document.activeElement).toBe(elTwo);
@@ -617,22 +605,16 @@ describe('Tabs - User Expectations & A11y Specifications', () => {
           expect(two.selected).toBe(false);
           expect(panelEl.hidden).toBe(true);
 
-          elTwo.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
-          );
+          elTwo.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
           expect(props.value).toBe('two');
           expect(panelEl.hidden).toBe(false);
 
           // Enter on the other focused tab selects it, leaving its sibling inactive
-          listEl.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true, cancelable: true }),
-          );
+          listEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true, cancelable: true }));
           expect(props.value).toBe('two');
           expect(document.activeElement).toBe(elOne);
 
-          elOne.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }),
-          );
+          elOne.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
           expect(props.value).toBe('one');
 
           listEl.remove();
@@ -663,9 +645,7 @@ describe('Tabs - User Expectations & A11y Specifications', () => {
           elOne.focus();
           expect(panelOneEl.hidden).toBe(false);
 
-          listEl.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }),
-          );
+          listEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
 
           // Automatic mode: the panel swap rides on the focus move, no Enter required
           expect(props.value).toBe('two');

@@ -139,53 +139,53 @@ export class NumberStepperAria<
    * minimum when no value has been entered.
    */
   public get value(): number {
-    return clampRange(this.props.value ?? this.min ?? 0, this.min, this.max);
+    return clampRange(this.properties.value ?? this.min ?? 0, this.min, this.max);
   }
 
   public set value(next: number) {
-    this.props.value = clampRange(next, this.min, this.max);
+    this.properties.value = clampRange(next, this.min, this.max);
   }
 
   /**
    * Minimum allowable value, or undefined when unbounded below.
    */
   public get min(): number | undefined {
-    return this.props.min;
+    return this.properties.min;
   }
 
   /**
    * Maximum allowable value, or undefined when unbounded above.
    */
   public get max(): number | undefined {
-    return this.props.max;
+    return this.properties.max;
   }
 
   /**
    * Increment applied per arrow keystroke.
    */
   public get step(): number {
-    return this.props.step ?? 1;
+    return this.properties.step ?? 1;
   }
 
   /**
    * Whether the value is user-immutable while still focusable and announced.
    */
   public get readonly(): boolean {
-    return !!this.props.readonly;
+    return !!this.properties.readonly;
   }
 
   /**
    * Whether the field is disabled from user interaction.
    */
   public get disabled(): boolean {
-    return !!this.props.disabled;
+    return !!this.properties.disabled;
   }
 
   /**
    * Whether a value is required for validation.
    */
   public get required(): boolean {
-    return !!this.props.required;
+    return !!this.properties.required;
   }
 
   /**
@@ -196,7 +196,7 @@ export class NumberStepperAria<
   protected override createAttributes(): A {
     const isDisabled = this.disabled;
     const attrs = Object.assign(super.createAttributes(), {
-      'aria-valuetext': this.props.valuetext,
+      'aria-valuetext': this.properties.valuetext,
     });
 
     if (this.isNative) {
@@ -268,7 +268,7 @@ export class NumberStepperAria<
 
     // A cleared number input is an empty string, which Number() would read as zero.
     if (raw.trim() === '') {
-      this.props.value = undefined;
+      this.properties.value = undefined;
       return;
     }
 

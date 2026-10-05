@@ -1,6 +1,6 @@
 import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it, vi } from 'vitest';
-import { aria, ToggleAria, type ToggleProps, selectionGroup } from '../../src/index.js';
+import { aria, selectionGroup, ToggleAria, type ToggleProps } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 describe('Toggle - Contract Specifications', () => {
@@ -260,24 +260,18 @@ describe('Toggle - Contract Specifications', () => {
           expect(btn.pressed).toBe(false);
 
           for (let repeat = 0; repeat < 3; repeat += 1) {
-            el.dispatchEvent(
-              new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true }),
-            );
+            el.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true }));
           }
           expect(btn.pressed).toBe(false);
 
-          el.dispatchEvent(
-            new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }),
-          );
+          el.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }));
           expect(btn.pressed).toBe(true);
           expect(props.pressed).toBe(true);
           expect(el.getAttribute('aria-pressed')).toBe('true');
           expect(hostClicks).toHaveLength(1);
 
           // 4. Enter inverts immediately, and the click it synthesizes reaches consumers
-          el.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }),
-          );
+          el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }));
           expect(btn.pressed).toBe(false);
           expect(props.pressed).toBe(false);
           expect(el.getAttribute('aria-pressed')).toBe('false');
@@ -287,9 +281,7 @@ describe('Toggle - Contract Specifications', () => {
           btn.destroy();
           expect(btn.current).toBeNull();
 
-          el.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }),
-          );
+          el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }));
           expect(btn.pressed).toBe(false);
         });
       }));
@@ -360,7 +352,7 @@ describe('Toggle - Contract Specifications', () => {
           const btn = aria('toggle', { value: 'bold' });
 
           // The group token is a selection key, not a form value
-          expect(btn.props.value).toBe('bold');
+          expect(btn.properties.value).toBe('bold');
           expect(btn.attributes.value).toBeUndefined();
           expect(btn.attributes.name).toBeUndefined();
 
@@ -434,15 +426,9 @@ describe('Toggle - Contract Specifications', () => {
           expect(el.getAttribute('tabindex')).toBe('-1');
 
           el.click();
-          el.dispatchEvent(
-            new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true }),
-          );
-          el.dispatchEvent(
-            new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }),
-          );
-          el.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }),
-          );
+          el.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true }));
+          el.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }));
+          el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }));
 
           // 3. Interaction: the state and the announcement both stay put
           expect(btn.pressed).toBe(false);
@@ -470,11 +456,7 @@ describe('Toggle - Contract Specifications', () => {
           selectionGroup.set(group);
 
           const boldBtn = aria<HTMLDivElement>('toggle', { value: 'bold' }, { native: false });
-          const italicBtn = aria<HTMLDivElement>(
-            'toggle',
-            { value: 'italic', disabled: true },
-            { native: false },
-          );
+          const italicBtn = aria<HTMLDivElement>('toggle', { value: 'italic', disabled: true }, { native: false });
 
           const boldEl = bind(document.createElement('div'), boldBtn);
           const italicEl = bind(document.createElement('div'), italicBtn);
