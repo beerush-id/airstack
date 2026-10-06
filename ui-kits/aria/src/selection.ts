@@ -4,6 +4,11 @@ import type { AriaAttributes, AriaOptions, AriaProps, BaseElement, DetachFn, Ori
 import { bindLabel } from './utils/label.js';
 
 /**
+ * Capability-dispatched selection event carrying the committed state in `detail`.
+ */
+export type SelectionEvent = CustomEvent<boolean>;
+
+/**
  * Shared state coordinated by an enclosing selection group.
  */
 export interface SelectionGroupProps extends AriaProps {

@@ -13,6 +13,15 @@ export type Orientation = 'horizontal' | 'vertical';
 export type AriaInvalid = boolean | 'grammar' | 'spelling';
 
 /**
+ * Controller-dispatched DOM event carrying a committed value in `detail`.
+ * Per-role aliases (e.g. `SliderEvent`) fix the payload so consumers cast only
+ * the event, never the detail type.
+ *
+ * @template T - Committed value type carried in `detail`
+ */
+export type AriaEvent<T = unknown> = CustomEvent<T>;
+
+/**
  * Base reactive input properties for Aria controllers.
  */
 export interface AriaProps {

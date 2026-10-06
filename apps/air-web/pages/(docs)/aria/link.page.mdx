@@ -5,26 +5,48 @@ nav: 'Link'
 nav-priority: 270
 ---
 
-# Link
+# AirLib Headless Link
 
-Navigation triggers must announce themselves as links, expose their destination, and deactivate cleanly when that destination is unavailable. HTML `<a>` covers most of this natively, but it has no disabled state: an unavailable link either stays navigable or gets swapped for a `<span>`, which silently drops its semantics. Custom link elements built from `<span>` or `<div>` must add `role="link"`, a tab stop, and `Enter` activation by hand.
+Navigation triggers must announce themselves as links, expose their destination, and deactivate cleanly when that destination is unavailable. HTML `<a>` covers most of this natively, but it has no disabled state: an unavailable link either stays navigable or gets its `href` ripped out, which silently drops it from assistive technology. Custom link elements built from `<span>` or `<div>` must add `role="link"`, a tab stop, and `Enter` activation by hand. **AirLib Headless Link** (`aria('link')`) turns any element into a navigation trigger — `href` and `target` projection on any host, a real disabled state that keeps the destination discoverable while blocking navigation, current-page announcement, and `Enter` polyfills for custom hosts.
 
-`@airlib/aria` provides a headless behavioral bridge for navigation triggers. It projects `href` and `target`, announces `aria-disabled`, withholds the destination and blocks activation while disabled, and compiles `role="link"` with `Enter` activation only when the host element is not a native anchor.
+```tsx
+const link = aria('link', props);
 
-You compose a link using this piece:
+<span ref={link.ref} {...link.props}>Documentation</a>
+```
 
-- **Link**: The navigation trigger that owns destination projection and disabled lockout.
+:::interactive[Disabled Link]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
 
-## What you get
+const DemoLink = setup((props) => {
+  const link = aria('link', props, { native: false });
 
-- **Native-first semantics.** Binds to `<a>` by default, so no redundant `role` is emitted and the browser keeps handling activation.
-- **A real disabled state.** Withholds `href`, announces `aria-disabled="true"`, and blocks activation — the state HTML anchors lack.
-- **Custom element support.** Compiles `role="link"`, manages `tabindex`, and activates on `Enter` for `<span>` and `<div>` hosts.
-- **Browser-accurate keys.** `Enter` activates a link; `Space` deliberately does not.
+  return () => (
+    <span ref={link.ref} {...link.restProps(['children'])}>
+      {props.children}
+    </span>
+  );
+}, 'DemoLink');
+```
+
+<div className="flex flex-col gap-3 p-4 max-w-sm border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 text-sm">
+  <DemoLink
+    href="/docs/aria/button"
+    className="text-primary underline underline-offset-4 hover:opacity-80 cursor-pointer"
+  >
+    Button documentation (span, fully keyboard-active)
+  </DemoLink>
+  <DemoLink href="/admin" disabled={true} className="text-zinc-400 dark:text-zinc-600 underline decoration-dashed underline-offset-4 cursor-not-allowed">
+    Restricted destination (href kept, navigation blocked)
+  </DemoLink>
+</div>
+:::
 
 ## Link
 
-In Aria, Link is the navigation trigger created with `aria('link')` that projects anchor semantics and disabled lockout.
+Navigation trigger with destination projection, real disabled lockout, and current-page announcement.
 
 ```ts
 aria<E extends BaseElement = HTMLAnchorElement>(
@@ -34,24 +56,7 @@ aria<E extends BaseElement = HTMLAnchorElement>(
 ): LinkAria<E>
 ```
 
-### Parameters
-
-- `props.href` *(string, optional)*: Target resource URL. Withheld while the link is disabled.
-- `props.target` *(string, optional)*: Target browsing context, such as `_blank`.
-- `props.disabled` *(boolean, optional)*: Removes the destination, announces `aria-disabled`, and blocks activation.
-- `options.native` *(boolean, optional, default `true`)*: Pass `false` when binding to a custom `<span>` or `<div>` host.
-
-### How it behaves
-
-On a native `<a>`, no `role` is emitted because the element already carries link semantics, and `aria-disabled` is always projected since anchors expose no native disabled attribute. Disabling drops `href` from both the compiled dictionary and the mounted element, and prevents the click, so the destination becomes unreachable while the link stays announced. On a custom host (`native: false`), it compiles `role="link"`, sets `tabindex="0"` (or `-1` when disabled), and dispatches a click on `Enter`.
-
-:::tip[Disabled links]
-Keep the element in the DOM and pass `disabled` rather than swapping `<a>` for a `<span>`. The link stays announced, its destination is withheld, and assistive technologies report that it is unavailable instead of reporting nothing at all.
-:::
-
 ### Usage
-
-To use Link, create the link instance with `aria('link', props)`, then pass `link.ref` and spread `link.attributes` onto your anchor element:
 
 :::code-group
 
@@ -62,14 +67,14 @@ import type { ComponentProps } from 'react';
 
 type LinkProps = ComponentProps<'a'> & {
   disabled?: boolean;
+  current?: boolean;
 };
 
 const Link = setup<LinkProps>((props) => {
   const link = aria('link', props);
-  const restProps = props.$omit([...link.ownKeys, 'disabled', 'children', 'className']);
 
   return () => (
-    <a ref={link.ref} {...restProps} {...link.attributes} className={props.className}>
+    <a ref={link.ref} {...link.restProps(['children'])}>
       {props.children}
     </a>
   );
@@ -83,14 +88,14 @@ import type { ComponentProps } from 'solid-js';
 
 type LinkProps = ComponentProps<'a'> & {
   disabled?: boolean;
+  current?: boolean;
 };
 
 const Link = setup<LinkProps>((props) => {
   const link = aria('link', props);
-  const restProps = props.$omit([...link.ownKeys, 'disabled', 'children', 'className']);
 
   return (
-    <a ref={link.ref} {...restProps} {...link.attributes} className={props.className}>
+    <a ref={link.ref} {...link.restProps(['children'])}>
       {props.children}
     </a>
   );
@@ -100,6 +105,22 @@ const Link = setup<LinkProps>((props) => {
 :::
 
 `disabled` is omitted explicitly: it is a controller input, not an anchor attribute, so forwarding it would leak an invalid `disabled` attribute onto the DOM.
+
+### Parameters
+
+- `props.href` *(string, optional)*: Target resource URL. Kept while disabled so the link stays discoverable.
+- `props.target` *(string, optional)*: Target browsing context, such as `_blank`.
+- `props.disabled` *(boolean, optional)*: Blocks navigation via `preventDefault`, announces `aria-disabled`, and parks `tabindex` at `-1`.
+- `props.current` *(boolean, optional)*: Current-page override. When unset, `href` is matched against the ambient `linkCtx` URL.
+- `options.native` *(boolean, optional, default `true`)*: Pass `false` when binding to a custom `<span>` or `<div>` host.
+
+### How it behaves
+
+On a native `<a>`, no `role` is emitted. Disabling keeps `href` on the element and cancels the click instead, so the destination stays discoverable while nothing navigates; `tabindex` parks at `-1`. On a custom host (`native: false`), it compiles `role="link"` (when `href` is declared), `tabindex` (`0` enabled, `-1` disabled), and synthesizes a cancelable click on `Enter` unless the keystroke was already canceled. `Space` commits nothing. An enabled custom click navigates to `href` (`target` honored, `_self` default) after the event bubble settles, so any consumer cancellation still wins; a detached host never navigates. `Ctrl`/`Cmd`/`Shift`-click and real middle-click (`auxclick`, button 1) open `href` in a new tab (`_blank`) unless an explicit `target` says otherwise — matching what a native anchor does. Matching the ambient `linkCtx` URL (or `current: true`) emits `aria-current="page"`.
+
+:::tip[Disabled links]
+Keep the element in the DOM and pass `disabled` rather than swapping `<a>` for a `<span>`. The destination stays discoverable, navigation is blocked, and assistive technologies report the link as unavailable instead of reporting nothing at all.
+:::
 
 ## Putting It Together
 
@@ -144,9 +165,17 @@ Once your component is wired with `aria('link')`, compose it to build navigation
 
 ## Keyboard Navigation
 
-- **Tab**: Focuses the link, or skips it entirely when disabled on a custom host (`tabindex="-1"`).
+- **Tab**: Focuses the link. Disabled links on either host sit at `tabindex="-1"` and are skipped.
 - **Enter**: Activates the link. Native anchors handle this in the browser; custom hosts receive the polyfill.
 - **Space**: Intentionally does nothing — `Space` activates buttons, not links.
+
+## What you get
+
+- **Native-first semantics.** Binds to `<a>` by default, so no redundant `role` is emitted and the browser keeps handling activation.
+- **A real disabled state.** Keeps `href`, announces `aria-disabled="true"`, and blocks navigation — the state HTML anchors lack.
+- **Current-page announcement.** Matches `href` against the ambient URL, emitting `aria-current="page"`, with a `current` override.
+- **Custom element support.** Compiles `role="link"`, manages `tabindex`, and activates on `Enter` for `<span>` and `<div>` hosts.
+- **Browser-accurate keys.** `Enter` activates a link; `Space` deliberately does not.
 
 ## Next Steps
 

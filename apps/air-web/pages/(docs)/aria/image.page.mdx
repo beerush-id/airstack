@@ -1,0 +1,193 @@
+---
+title: 'Image'
+description: 'Loading-aware image coordinator with fallback representation and custom element semantics.'
+nav: 'Image'
+nav-priority: 265
+---
+
+# AirLib Headless Image
+
+Image is a simple visual element, but most of you have struggled dealing with it: a slow source leaves a broken gap with no fallback, and a custom `<div>` image needs hand-rolled `role`, `aria-label`, and load-state tracking to stay accessible. **AirLib Headless Image** (`aria('image')`) turns any element into an image that behaves — lifecycle state (`idle`, `loading`, `loaded`, `error`) with fallback representation on any host, native `<img>` semantics projected automatically, without dictating markup or styles.
+
+```tsx
+const image = aria('image', props);
+const content = aria('image-content');
+const fallback = aria('image-fallback');
+
+<div ref={image.ref}>
+  <img ref={content.ref} {...content.props} />
+  <div ref={fallback.ref} {...fallback.props}>…</div>
+</div>
+```
+
+:::interactive[Avatar Image]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+const DemoAvatar = setup<ComponentProps<'img'>>((props) => {
+  const image = aria('image', props);
+  const content = aria('image-content');
+  const fallback = aria('image-fallback');
+
+  return () => (
+    <div ref={image.ref} {...image.props} className="flex items-center gap-3">
+      <div className="relative size-10 shrink-0">
+        <div ref={fallback.ref} {...fallback.props} className="absolute inset-0 rounded-full bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center text-sm text-zinc-500">
+          {props.alt?.slice(0, 1)}
+        </div>
+        <img ref={content.ref} {...content.props} className={image.status === 'error' ? 'hidden' : 'relative size-10 rounded-full object-cover'} />
+      </div>
+    </div>
+  );
+}, 'DemoAvatar');
+```
+
+```ts executable module
+import avatar from '@/assets/avatar.jpeg?asset' with { sizes: '256' };
+```
+
+<DemoAvatar src={avatar.src} alt="Portrait of a sailor" />
+:::
+
+## Image
+
+Loading and fallback coordinator with native semantics projection.
+
+```ts
+aria(role: 'image', props: ImageProps): ImageAria<E>
+```
+
+### Usage
+
+:::code-group
+
+```tsx [React] executable
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type AvatarProps = ComponentProps<'img'> & {
+  src?: string;
+  alt: string;
+};
+
+const Avatar = setup<AvatarProps>((props) => {
+  const image = aria('image', props);
+  const content = aria('image-content');
+  const fallback = aria('image-fallback');
+
+  return () => (
+    <div ref={image.ref} {...image.restProps(['children', 'className'])} className={props.className}>
+      <img ref={content.ref} {...content.props} />
+      <div ref={fallback.ref} {...fallback.props}>
+        {props.children}
+      </div>
+    </div>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type AvatarProps = ComponentProps<'img'> & {
+  src?: string;
+  alt: string;
+};
+
+const Avatar = setup<AvatarProps>((props) => {
+  const image = aria('image', props);
+  const content = aria('image-content');
+  const fallback = aria('image-fallback');
+
+  return (
+    <div ref={image.ref} {...image.restProps(['children', 'className'])} className={props.className}>
+      <img ref={content.ref} {...content.props} />
+      <div ref={fallback.ref} {...fallback.props}>
+        {props.children}
+      </div>
+    </div>
+  );
+});
+```
+
+:::
+
+### Parameters
+
+- `props.src` *(string, optional)*: Source URL. Absent means `idle`; setting it commits `loading` before any result is accepted.
+- `props.alt` *(string, required)*: Alternative text shared by content and fallback. Empty string marks the image decorative.
+- `props.status` *(report-only)*: Current lifecycle (`idle` | `loading` | `loaded` | `error`). Read it, never assign it — the unit owns loading.
+
+### How it behaves
+
+- No `src` means `idle`; setting one means `loading` until the loader reports `loaded` or `error`.
+- A new `src` restarts the cycle and orphans the old load, so late results never land.
+- The fallback shows until content settles, then steps aside; `alt=""` hides both.
+- `status` is read-only, and every change fires a bubbling `change` event carrying the new status.
+- Nothing here takes focus or clicks — hiding is `aria-hidden` only, so loading is never interrupted.
+
+:::tip[Fallback Content]
+Keep the fallback mounted next to content and put your placeholder inside it (initials, skeleton, icon). The unit swaps representations itself — no conditional rendering needed.
+:::
+
+## Image Content
+
+Visual image element projecting the loaded representation.
+
+```ts
+aria(role: 'image-content', props?: AriaProps): ImageContentAria<E>
+```
+
+### How it behaves
+
+Projects `src` and `alt` onto native `<img>` hosts with no redundant `role`; compiles `role="img"` and `aria-label` on custom hosts once loaded and non-decorative. Reports native load and error events to the container, settles cached images on mount, and stays loading-eligible while hidden from assistive technology.
+
+## Image Fallback
+
+Fallback representation element carrying the shared label.
+
+```ts
+aria(role: 'image-fallback', props?: AriaProps): ImageFallbackAria<E>
+```
+
+### How it behaves
+
+Compiles `role="img"` and the shared `aria-label` while the active representation during `idle`, `loading`, and `error`; withdraws to `aria-hidden="true"` once content settles and for decorative images.
+
+## Putting It Together
+
+Once your components are wired with `aria(...)`, compose them to build images that degrade honestly:
+
+```tsx
+<div className="flex flex-col gap-3">
+  <DemoAvatar src={avatar.src} alt="Portrait of a sailor">S</DemoAvatar>
+  <DemoAvatar src="/avatars/missing.png" alt="Missing avatar">M</DemoAvatar>
+  <DemoAvatar alt="">D</DemoAvatar>
+</div>
+```
+
+:::interactive[Image Interactive Demo]
+<div className="flex flex-col gap-3 p-3 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50">
+  <DemoAvatar src={avatar.src} alt="Portrait of a sailor">S</DemoAvatar>
+  <DemoAvatar src="/avatars/missing.png" alt="Missing avatar">M</DemoAvatar>
+  <DemoAvatar alt="">D</DemoAvatar>
+</div>
+:::
+
+## What you get
+
+- **Owned loading.** Declare `src` and read `status` — native `<img>` loads itself, custom hosts get a unit-owned loader.
+- **Stale-result invalidation.** Superseded sources never commit, even for the same URL.
+- **Exactly one representation.** Fallback until success, content after, silence when decorative.
+- **Clean decorative semantics.** `alt=""` removes both parts from the accessibility tree.
+
+## Next Steps
+
+- **[Link](/docs/aria/link)**: Navigation triggers with native behavior on any host.
+- **[Button](/docs/aria/button)**: Command triggers and two-state toggle buttons.
+- **[Overview](/docs/aria)**: The attribute and ref contract every controller shares.

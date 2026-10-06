@@ -1,6 +1,6 @@
 import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it, vi } from 'vitest';
-import { aria, type FilePickerProps } from '../../src/index.js';
+import { aria, type FilePickerEvent, type FilePickerProps } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 function picker(): HTMLInputElement | null {
@@ -96,7 +96,7 @@ describe('FilePicker - Contract Specifications', () => {
           const changes: Array<{ detail: unknown; bubbles: boolean; kind: string }> = [];
           el.addEventListener('change', (event) => {
             changes.push({
-              detail: (event as CustomEvent).detail,
+              detail: (event as FilePickerEvent).detail,
               bubbles: event.bubbles,
               kind: event.constructor.name,
             });

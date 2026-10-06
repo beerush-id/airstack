@@ -27,6 +27,12 @@ import {
   type RadioGroupProps,
   SelectAria,
   type SelectProps,
+  StepperAria,
+  StepperButtonAria,
+  type StepperButtonOptions,
+  StepperInputAria,
+  type StepperInputOptions,
+  type StepperProps,
   TabAria,
   TabButtonAria,
   type TabButtonOptions,
@@ -77,37 +83,39 @@ import {
   type CheckboxOptions,
   type CheckboxProps,
   DividerAria,
-  type DividerOptions,
   type DividerProps,
   FilePickerAria,
   type FilePickerOptions,
   type FilePickerProps,
   ImageAria,
-  type ImageAttributes,
   ImageContentAria,
-  type ImageContentAttributes,
   ImageFallbackAria,
-  type ImageFallbackAttributes,
   type ImageProps,
-  type ImageStatus,
   LinkAria,
   type LinkOptions,
   type LinkProps,
+  MeterAria,
+  type MeterOptions,
+  type MeterProps,
   NumberStepperAria,
   type NumberStepperOptions,
   type NumberStepperProps,
   OptionAria,
   type OptionOptions,
   type OptionProps,
-  ProgressbarAria,
-  type ProgressbarOptions,
-  type ProgressbarProps,
+  ProgressAria,
+  type ProgressOptions,
+  type ProgressProps,
   RadioAria,
   type RadioOptions,
   type RadioProps,
   SearchInputAria,
   type SearchInputOptions,
   type SearchInputProps,
+  SliderAria,
+  type SliderOptions,
+  type SliderProps,
+  SliderThumbAria,
   SplitterAria,
   type SplitterOptions,
   type SplitterProps,
@@ -246,12 +254,26 @@ export function aria<E extends BaseElement = HTMLElement>(
 ): ImageFallbackAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement>(
-  role: 'progressbar',
-  props?: ProgressbarProps,
-  options?: ProgressbarOptions
-): ProgressbarAria<E>;
+  role: 'progress',
+  props?: ProgressProps,
+  options?: ProgressOptions
+): ProgressAria<E>;
+
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'meter',
+  props: MeterProps,
+  options?: MeterOptions
+): MeterAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement>(role: 'divider', props?: DividerProps): DividerAria<E>;
+
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'slider',
+  props?: SliderProps,
+  options?: SliderOptions
+): SliderAria<E>;
+
+export function aria<E extends BaseElement = HTMLElement>(role: 'slider-thumb', props?: AriaProps): SliderThumbAria<E>;
 
 export function aria<E extends BaseElement = HTMLButtonElement>(
   role: 'file-picker',
@@ -270,6 +292,20 @@ export function aria<E extends BaseElement = HTMLInputElement>(
   props?: NumberStepperProps,
   options?: NumberStepperOptions
 ): NumberStepperAria<E>;
+
+export function aria<E extends BaseElement = HTMLElement>(role: 'stepper', props?: StepperProps): StepperAria<E>;
+
+export function aria<E extends BaseElement = HTMLInputElement>(
+  role: 'stepper-input',
+  props?: AriaProps,
+  options?: StepperInputOptions
+): StepperInputAria<E>;
+
+export function aria<E extends BaseElement = HTMLButtonElement>(
+  role: 'stepper-inc' | 'stepper-dec',
+  props?: AriaProps,
+  options?: StepperButtonOptions
+): StepperButtonAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement>(role: 'toolbar', props?: ToolbarProps): ToolbarAria<E>;
 
@@ -373,16 +409,30 @@ export function aria(role: string, init?: unknown, options?: unknown): unknown {
       return new ImageContentAria(init as never, options as never);
     case 'image-fallback':
       return new ImageFallbackAria(init as never, options as never);
-    case 'progressbar':
-      return new ProgressbarAria(init as never, options as never);
+    case 'progress':
+      return new ProgressAria(init as never, options as never);
+    case 'meter':
+      return new MeterAria(init as never, options as never);
     case 'divider':
       return new DividerAria(init as never, options as never);
+    case 'slider':
+      return new SliderAria(init as never, options as never);
+    case 'slider-thumb':
+      return new SliderThumbAria(init as never);
     case 'file-picker':
       return new FilePickerAria(init as never, options as never);
     case 'splitter':
       return new SplitterAria(init as never, options as never);
     case 'number-stepper':
       return new NumberStepperAria(init as never, options as never);
+    case 'stepper':
+      return new StepperAria(init as never);
+    case 'stepper-input':
+      return new StepperInputAria(init as never, options as never);
+    case 'stepper-inc':
+      return new StepperButtonAria(init as never, { ...(options as object), direction: 1 } as never);
+    case 'stepper-dec':
+      return new StepperButtonAria(init as never, { ...(options as object), direction: -1 } as never);
     case 'button':
       return new ButtonAria(init as never, options as never);
     case 'toggle':

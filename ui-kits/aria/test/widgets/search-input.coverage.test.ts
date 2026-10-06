@@ -1,6 +1,6 @@
 import { createLifecycle, mutable, setStaticTracker } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
-import { aria, type SearchInputProps } from '../../src/index.js';
+import { aria, type SearchInputEvent, type SearchInputProps } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 describe('SearchInput - Coverage (face specialization & teardown completeness)', () => {
@@ -48,7 +48,7 @@ describe('SearchInput - Coverage (face specialization & teardown completeness)',
           const el = bind(document.createElement('div'), search);
 
           const commits: unknown[] = [];
-          el.addEventListener('change', (event) => commits.push((event as CustomEvent).detail));
+          el.addEventListener('change', (event) => commits.push((event as SearchInputEvent).detail));
 
           search.assign({ value: 'query' });
           el.dispatchEvent(new FocusEvent('blur', { bubbles: true }));

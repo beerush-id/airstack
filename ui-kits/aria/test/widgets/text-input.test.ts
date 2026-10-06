@@ -1,6 +1,6 @@
 import { createLifecycle } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
-import { aria, TextInputAria } from '../../src/index.js';
+import { aria, TextInputAria, type TextInputEvent } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 describe('TextInput - Contract Specifications', () => {
@@ -278,7 +278,7 @@ describe('TextInput - Contract Specifications', () => {
           expect(el.getAttribute('role')).toBe('textbox');
 
           const commits: Array<unknown> = [];
-          el.addEventListener('change', (event) => commits.push((event as CustomEvent).detail));
+          el.addEventListener('change', (event) => commits.push((event as TextInputEvent).detail));
 
           input.assign({ value: 'edited while disabled' });
           el.dispatchEvent(new FocusEvent('blur', { bubbles: true }));

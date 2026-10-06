@@ -3,7 +3,7 @@
 The task-completion status unit. Normalizes determinate and indeterminate progress reporting across native `<progress>`
 and custom elements.
 
-- **Entity**: `progress` (or `progressbar`)
+- **Entity**: `progress`
 - **WAI-ARIA Role**: `progressbar` (on custom hosts; omitted on native `<progress>`)
 
 ### Parts
@@ -56,7 +56,7 @@ export interface ProgressOptions {
 ```ts
 // Progress: Indicator
 export function aria<E extends BaseElement = HTMLElement>(
-  role: 'progress' | 'progressbar',
+  role: 'progress',
   props: ProgressProps,
   options?: ProgressOptions
 ): ProgressAria<E>;

@@ -1,6 +1,6 @@
 import {
-  anchor,
   type AnyType,
+  anchor,
   createContext,
   createObserver,
   mutable,

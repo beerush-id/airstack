@@ -17,7 +17,7 @@ describe('Slider - Contract Specifications', () => {
   });
 
   describe('Multi/Single Endpoint Value Projection Invariant', () => {
-    it('gives a single value exactly one focusable slider thumb', () =>
+    it('gives a single value exactly one focusable slider on the track', () =>
       scope.run(() => {
         const tree = component();
         tree.run(() => {
@@ -25,25 +25,29 @@ describe('Slider - Contract Specifications', () => {
           const slider = aria('slider', props);
           const thumb = aria('slider-thumb');
 
-          // 1. Creation & SSR: a single endpoint needs no grouping
-          expect(slider.attributes.role).toBeUndefined();
-          expect(thumb.attributes.role).toBe('slider');
-          expect(thumb.attributes.tabindex).toBe(0);
+          // 1. Creation & SSR: a single endpoint makes the track the slider
+          expect(slider.attributes.role).toBe('slider');
+          expect(slider.attributes.tabindex).toBe(0);
+          expect(thumb.attributes.role).toBeUndefined();
+          expect(thumb.attributes.tabindex).toBeUndefined();
 
           // 2. DOM Binding
           const trackEl = bind(document.createElement('div'), slider);
           const thumbEl = bind(document.createElement('div'), thumb);
           trackEl.appendChild(thumbEl);
 
-          expect(trackEl.hasAttribute('role')).toBe(false);
-          expect(thumbEl.getAttribute('role')).toBe('slider');
-          expect(thumbEl.getAttribute('aria-valuenow')).toBe('30');
-          expect(thumbEl.getAttribute('aria-valuemin')).toBe('0');
-          expect(thumbEl.getAttribute('aria-valuemax')).toBe('100');
+          expect(trackEl.getAttribute('role')).toBe('slider');
+          expect(trackEl.getAttribute('tabindex')).toBe('0');
+          expect(trackEl.getAttribute('aria-valuenow')).toBe('30');
+          expect(trackEl.getAttribute('aria-valuemin')).toBe('0');
+          expect(trackEl.getAttribute('aria-valuemax')).toBe('100');
+          expect(thumbEl.hasAttribute('role')).toBe(false);
+          expect(thumbEl.hasAttribute('tabindex')).toBe(false);
 
-          // 3/5. The thumb follows the endpoint it reads from the container
+          // 3/5. The track follows the endpoint it owns
           props.value = 70;
-          expect(thumbEl.getAttribute('aria-valuenow')).toBe('70');
+          expect(trackEl.getAttribute('aria-valuenow')).toBe('70');
+          expect(thumb.endpoint).toBe(70);
 
           slider.destroy();
           thumb.destroy();
@@ -105,31 +109,32 @@ describe('Slider - Contract Specifications', () => {
           const slider = aria('slider', props);
           const thumb = aria('slider-thumb');
 
+          const trackEl = bind(document.createElement('div'), slider);
           const thumbEl = bind(document.createElement('div'), thumb);
-          bind(document.createElement('div'), slider).appendChild(thumbEl);
-          thumbEl.focus();
+          trackEl.appendChild(thumbEl);
+          trackEl.focus();
 
-          expect(thumbEl.getAttribute('aria-valuenow')).toBe('50');
+          expect(trackEl.getAttribute('aria-valuenow')).toBe('50');
 
-          press(thumbEl, 'ArrowRight');
+          press(trackEl, 'ArrowRight');
           expect(props.value).toBe(55);
-          expect(thumbEl.getAttribute('aria-valuenow')).toBe('55');
+          expect(trackEl.getAttribute('aria-valuenow')).toBe('55');
 
-          press(thumbEl, 'ArrowLeft');
-          press(thumbEl, 'ArrowLeft');
+          press(trackEl, 'ArrowLeft');
+          press(trackEl, 'ArrowLeft');
           expect(props.value).toBe(45);
 
-          press(thumbEl, 'PageUp');
+          press(trackEl, 'PageUp');
           expect(props.value).toBe(65);
 
-          press(thumbEl, 'PageDown');
+          press(trackEl, 'PageDown');
           expect(props.value).toBe(45);
 
           // Home and End go to the declared bounds, not to zero and one hundred
-          press(thumbEl, 'End');
+          press(trackEl, 'End');
           expect(props.value).toBe(100);
 
-          press(thumbEl, 'Home');
+          press(trackEl, 'Home');
           expect(props.value).toBe(0);
 
           slider.destroy();
@@ -145,16 +150,17 @@ describe('Slider - Contract Specifications', () => {
           const slider = aria('slider', props);
           const thumb = aria('slider-thumb');
 
+          const trackEl = bind(document.createElement('div'), slider);
           const thumbEl = bind(document.createElement('div'), thumb);
-          bind(document.createElement('div'), slider).appendChild(thumbEl);
-          thumbEl.focus();
+          trackEl.appendChild(thumbEl);
+          trackEl.focus();
 
           // Pressing past the ceiling changes nothing and is still consumed
           for (let repeat = 0; repeat < 3; repeat += 1) {
-            expect(press(thumbEl, 'ArrowRight').defaultPrevented).toBe(true);
+            expect(press(trackEl, 'ArrowRight').defaultPrevented).toBe(true);
           }
           expect(props.value).toBe(90);
-          expect(thumbEl.getAttribute('aria-valuenow')).toBe('90');
+          expect(trackEl.getAttribute('aria-valuenow')).toBe('90');
 
           // Out-of-range writes are pulled inside
           props.value = 500;
@@ -165,7 +171,7 @@ describe('Slider - Contract Specifications', () => {
 
           // Keys outside the slider's table are left to the page
           for (const key of ['Tab', 'Escape', 'Enter', 'a']) {
-            expect(press(thumbEl, key).defaultPrevented).toBe(false);
+            expect(press(trackEl, key).defaultPrevented).toBe(false);
           }
           expect(slider.value).toBe(80);
 
@@ -188,16 +194,17 @@ describe('Slider - Contract Specifications', () => {
           const slider = aria('slider', props);
           const thumb = aria('slider-thumb');
 
+          const trackEl = bind(document.createElement('div'), slider);
           const thumbEl = bind(document.createElement('div'), thumb);
-          bind(document.createElement('div'), slider).appendChild(thumbEl);
-          thumbEl.focus();
+          trackEl.appendChild(thumbEl);
+          trackEl.focus();
 
-          expect(thumbEl.getAttribute('aria-orientation')).toBe('vertical');
+          expect(trackEl.getAttribute('aria-orientation')).toBe('vertical');
 
-          press(thumbEl, 'ArrowUp');
+          press(trackEl, 'ArrowUp');
           expect(props.value).toBe(60);
 
-          press(thumbEl, 'ArrowDown');
+          press(trackEl, 'ArrowDown');
           expect(props.value).toBe(50);
 
           slider.destroy();
@@ -267,11 +274,12 @@ describe('Slider - Contract Specifications', () => {
           const slider = aria('slider', props);
           const thumb = aria('slider-thumb');
 
+          const trackEl = bind(document.createElement('div'), slider);
           const thumbEl = bind(document.createElement('div'), thumb);
-          bind(document.createElement('div'), slider).appendChild(thumbEl);
+          trackEl.appendChild(thumbEl);
 
-          expect(thumbEl.getAttribute('aria-valuetext')).toBe('Forty percent');
-          expect(thumbEl.getAttribute('aria-valuenow')).toBe('40');
+          expect(trackEl.getAttribute('aria-valuetext')).toBe('Forty percent');
+          expect(trackEl.getAttribute('aria-valuenow')).toBe('40');
 
           // A derived label tracks each endpoint instead of freezing on one
           const dynamic = mutable<SliderProps>({
@@ -282,14 +290,15 @@ describe('Slider - Contract Specifications', () => {
           });
           const dynamicSlider = aria('slider', dynamic);
           const dynamicThumb = aria('slider-thumb');
+          const dynamicTrack = bind(document.createElement('div'), dynamicSlider);
           const dynamicEl = bind(document.createElement('div'), dynamicThumb);
-          bind(document.createElement('div'), dynamicSlider).appendChild(dynamicEl);
+          dynamicTrack.appendChild(dynamicEl);
 
-          expect(dynamicEl.getAttribute('aria-valuetext')).toBe('40 degrees');
+          expect(dynamicTrack.getAttribute('aria-valuetext')).toBe('40 degrees');
 
           dynamic.value = 55;
-          expect(dynamicEl.getAttribute('aria-valuetext')).toBe('55 degrees');
-          expect(dynamicEl.getAttribute('aria-valuenow')).toBe('55');
+          expect(dynamicTrack.getAttribute('aria-valuetext')).toBe('55 degrees');
+          expect(dynamicTrack.getAttribute('aria-valuenow')).toBe('55');
 
           slider.destroy();
           thumb.destroy();
@@ -306,26 +315,27 @@ describe('Slider - Contract Specifications', () => {
           const slider = aria('slider', props);
           const thumb = aria('slider-thumb');
 
+          const trackEl = bind(document.createElement('div'), slider);
           const thumbEl = bind(document.createElement('div'), thumb);
-          bind(document.createElement('div'), slider).appendChild(thumbEl);
+          trackEl.appendChild(thumbEl);
 
-          press(thumbEl, 'ArrowRight');
+          press(trackEl, 'ArrowRight');
           expect(props.value).toBe(60);
 
           props.disabled = true;
-          expect(thumbEl.getAttribute('aria-disabled')).toBe('true');
-          expect(thumbEl.getAttribute('tabindex')).toBe('-1');
+          expect(trackEl.getAttribute('aria-disabled')).toBe('true');
+          expect(trackEl.getAttribute('tabindex')).toBe('-1');
 
           for (const key of ['ArrowRight', 'ArrowLeft', 'PageUp', 'Home', 'End']) {
-            expect(press(thumbEl, key).defaultPrevented).toBe(false);
+            expect(press(trackEl, key).defaultPrevented).toBe(false);
           }
           expect(props.value).toBe(60);
 
           props.disabled = false;
-          expect(thumbEl.getAttribute('aria-disabled')).toBe('false');
-          expect(thumbEl.getAttribute('tabindex')).toBe('0');
+          expect(trackEl.getAttribute('aria-disabled')).toBe('false');
+          expect(trackEl.getAttribute('tabindex')).toBe('0');
 
-          press(thumbEl, 'ArrowRight');
+          press(trackEl, 'ArrowRight');
           expect(props.value).toBe(70);
 
           slider.destroy();

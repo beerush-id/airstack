@@ -1,4 +1,4 @@
-import { createLifecycle, mutable } from '@airlib/core';
+import { type AnyType, createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
 import { aria, type CheckboxAria, type CheckboxProps, selectionGroup } from '../../src/index.js';
 import { bind, component } from '../utils.js';
@@ -412,7 +412,7 @@ describe('Checkbox - Contract Specifications', () => {
         tree.run(() => {
           // Published inside the tree so no ambient group leaks into later tests
           selectionGroup.set(group);
-          cb = aria('checkbox', { value: 'item-1' });
+          cb = aria('checkbox', { value: 'item-1' }) as CheckboxAria;
           input = bind(document.createElement('input'), cb);
         });
 
@@ -630,7 +630,7 @@ describe('Checkbox - Contract Specifications', () => {
 
           // 2. DOM Binding: the template author binds the field, per the Form Boundary Invariant
           const input = bind(document.createElement('input'), cb);
-          input.name = cb.properties.name;
+          input.name = cb.properties.name!;
           input.value = String(cb.properties.value);
           form.appendChild(input);
           expect(input.type).toBe('checkbox');
@@ -713,7 +713,7 @@ describe('Checkbox - Contract Specifications', () => {
           // Custom host: state lives in the attribute; invalid HTML attrs are omitted entirely
           expect(el.getAttribute('aria-checked')).toBe('true');
           expect(el.hasAttribute('checked')).toBe(false);
-          expect((el as HTMLDivElement).type).toBeUndefined();
+          expect((el as AnyType).type).toBeUndefined();
           expect(el.getAttribute('role')).toBe('checkbox');
 
           nativeCb.destroy();

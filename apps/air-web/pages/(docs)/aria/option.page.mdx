@@ -1,86 +1,65 @@
 ---
 title: 'Option'
-description: 'Selectable item behavioral controller with selection state projection and container group synchronization.'
+description: 'Single- and multi-selection choice members with optional deselect, keyless activation, and native sync.'
 nav: 'Option'
 nav-priority: 250
 ---
 
-:::interactive{rendered=false}
+# AirLib Headless Option
+
+An option looks simple until you build a custom one: a native `<select>` resists cross-browser styling of its list, while custom `<li>` elements need hand-rolled `role`, roving tab stops, `aria-selected`, optional deselect, group membership sync, and — critically — no keyboard of their own, since traversal belongs to the popup. **AirLib Headless Option** (`aria('option')`) turns any element into an option that behaves — native `selected` sync on real options, full ARIA polyfills on custom hosts, single/multi derivation included, without dictating markup or styles.
+
+```tsx
+const option = aria('option', props);
+
+<li ref={option.ref} {...option.props} />
+```
+
+<style>{`.demo-option{display:flex;align-items:center;justify-content:space-between;padding:.5rem .875rem;border-radius:.5rem;font-size:.875rem;cursor:pointer;user-select:none;transition:background-color .15s;color:#3f3f46;background:transparent}.demo-option:hover{background:#f4f4f5}.demo-option[aria-selected="true"]{background:rgb(24 24 27/.06);color:#18181b;font-weight:500}.demo-option[aria-disabled="true"]{opacity:.4;cursor:not-allowed}`}</style>
+
+:::interactive[Custom Option]
 ```tsx
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
 import type { ComponentProps } from 'react';
 
-type SelectProps = ComponentProps<'ul'> & {
-  value?: string;
+type DemoOptionProps = ComponentProps<'li'> & {
+  value: string;
+  selected?: boolean;
   disabled?: boolean;
 };
 
-const Select = setup<SelectProps>((props) => {
-  const select = aria('select', props);
-  const restProps = props.$omit([...select.ownKeys, 'value', 'disabled', 'children', 'className']);
+const DemoOption = setup<DemoOptionProps>((props) => {
+  const option = aria('option', props);
 
   return () => (
-    <ul ref={select.ref} {...restProps} {...select.attributes} className={props.className}>
+    <li ref={option.ref} {...option.props} className="demo-option">
       {props.children}
-    </ul>
+    </li>
   );
-}, 'Select');
+}, 'DemoOption');
 ```
+
+<div className="inline-flex mx-auto gap-3">
+  <DemoOption value="a" selected={true}>Selected</DemoOption>
+  <DemoOption value="b" selected={false}>Unselected</DemoOption>
+  <DemoOption value="c" disabled={true}>Disabled</DemoOption>
+</div>
 :::
-
-# Option
-
-Native `<select>` elements cannot be easily styled across browsers, leading developers to construct custom dropdown menus, autocomplete pickers, and select lists using non-form elements such as `<li>` or `<div>`. Without accessible markup, assistive technologies cannot determine which item is selected, where focus is, or when an item is disabled.
-
-`@airlib/aria` provides headless behavioral control for options. It compiles `role="option"`, projects `aria-selected` automatically from parent selection groups, handles standalone selection state, and coordinates focus without imposing markup or CSS.
-
-You compose selectable items using this piece:
-
-- **Option**: The selectable choice member that compiles `role="option"` and synchronizes its `aria-selected` state with an enclosing selection group or explicit selection prop.
-
-## What you get
-
-- **Automatic selection projection.** Automatically projects `aria-selected` based on whether its `value` matches the enclosing selection container.
-- **Standalone and group support.** Works seamlessly inside an enclosing container or as a standalone controlled option via `selected`.
-- **Disabled state coordination.** Reflects `aria-disabled` both from local disabled props and inherited container lockout.
-- **Headless markup.** Compatible with `<li>`, `<div>`, or native `<option>` elements without layout constraints.
 
 ## Option
 
-In Aria, Option is the selectable choice member created with `aria('option', props)` that manages selection projection and accessibility attributes for list and dropdown items.
+Selectable choice member with native sync and group membership.
 
 ```ts
 aria<E extends BaseElement = HTMLElement, T extends Primitive = Primitive>(
   role: 'option',
   props: OptionProps<T>,
   options?: OptionOptions
-): OptionAria<E>
+): OptionAria<E, OptionProps<T>>
 ```
 
-### Parameters
-
-- `props.value` *(Primitive, required)*: Choice candidate value matching the active selection of the enclosing group.
-- `props.selected` *(boolean, optional)*: Explicit selection state when used standalone or uncontrolled outside a group.
-- `props.disabled` *(boolean, optional)*: Disables the option, preventing selection and user interaction.
-- `options.native` *(boolean, optional, default `false`)*: Set to `true` when binding to native `<option>` elements inside `<select>`.
-
-### How it behaves
-
-When bound to a custom element (`<li>` or `<div>`), Option compiles `role="option"` and dynamically manages `aria-selected`:
-- **Inside Single-Selection Group**: Evaluates `group.value === props.value`.
-- **Inside Multi-Selection Group**: Evaluates whether `props.value` is included in the group's selection array.
-- **Standalone**: Evaluates `Boolean(props.selected)`.
-
-Clicking the option activates it: in single-selection containers, it assigns the group value (or deselects if the group is optional); in multiple-selection containers, it toggles its value in the array. Disabled options ignore clicks and suppress selection changes.
-
-:::tip[Enclosing Container]
-Option is most powerful when placed inside an enclosing [Select](/docs/aria/select) composite, which provides roving focus, circular arrow navigation, and centralized selection state across all options.
-:::
-
 ### Usage
-
-To use Option, create the option instance with `aria('option', props)`, then pass `option.ref` and spread `option.attributes` onto your option element:
 
 :::code-group
 
@@ -97,21 +76,13 @@ type OptionProps = ComponentProps<'li'> & {
 
 const Option = setup<OptionProps>((props) => {
   const option = aria('option', props);
-  const restProps = props.$omit([
-    ...option.ownKeys,
-    'value',
-    'selected',
-    'disabled',
-    'children',
-    'className',
-  ]);
 
   return () => (
-    <li ref={option.ref} {...restProps} {...option.attributes} className={props.className}>
+    <li ref={option.ref} {...option.restProps(['children', 'className'])} className={props.className}>
       {props.children}
     </li>
   );
-}, 'Option');
+});
 ```
 
 ```tsx [SolidJS]
@@ -127,17 +98,9 @@ type OptionProps = ComponentProps<'li'> & {
 
 const Option = setup<OptionProps>((props) => {
   const option = aria('option', props);
-  const restProps = props.$omit([
-    ...option.ownKeys,
-    'value',
-    'selected',
-    'disabled',
-    'children',
-    'className',
-  ]);
 
   return (
-    <li ref={option.ref} {...restProps} {...option.attributes} className={props.className}>
+    <li ref={option.ref} {...option.restProps(['children', 'className'])} className={props.className}>
       {props.children}
     </li>
   );
@@ -146,62 +109,96 @@ const Option = setup<OptionProps>((props) => {
 
 :::
 
+The selected row comes from CSS keyed on `aria-selected` (see the style block above), never from controller state in JSX — the controller owns semantics, the stylesheet owns the highlight.
+
+### Parameters
+
+- `props.value` *(Primitive, required)*: Choice candidate value matching the active selection of the enclosing group.
+- `props.selected` *(boolean, optional)*: Local selected hint in standalone mode; grouped options always derive from the ambient group value. A hint claims an empty registry.
+- `props.disabled` *(boolean, optional)*: Blocks activation and state commits.
+- `options.native` *(boolean, optional, default `false`)*: Pass `true` when binding native `<option>` elements inside a `<select>`.
+- `options.toggle` *(boolean, optional, default `false`)*: Opt in to inverting a standalone selection on activation; without it standalone activation is select-only.
+
+### How it behaves
+
+- Single-selection derives `group.value === props.value`; multi-selection derives array membership; standalone derives `Boolean(props.selected)`. A `selected` hint claims an empty registry, and a `required` registry is claimed by the first member that mounts — idempotency alone never claims.
+- Re-activating the holder of an optional single registry deselects (the slot clears); a `required` registry refuses. Multi registries toggle the token without duplicates. Standalone activation selects unless `toggle` opts into inversion.
+- The member owns no keystroke: `Enter`, arrows, `Home`/`End`, letters, and full `Space` presses are all inert — traversal and typeahead belong to the enclosing popup.
+- Native `<option>` hosts omit `role`, `tabindex`, and `aria-selected` and sync the `selected` IDL property instead; browser events are never re-dispatched. Custom hosts compile `role="option"`, `aria-selected`, roving `tabindex` (`0` active, `-1` otherwise), and always-explicit `aria-disabled`.
+- `id`, `aria-selected`, and `aria-disabled` are shielded from consumer refiners, so container linkage addresses stay stable across activation. `value` joins `ownKeys` and never leaks to the DOM.
+- Every real commit on a custom host fires a bubbling `change` event; canceled triggers, disabled hosts, and no-op mutations stay silent.
+- The compiled dictionary carries no form attributes — selection state, not submission, is the contract.
+
+:::tip[Popup Owns the Keyboard]
+Options never bind arrow keys or typeahead themselves. Place them inside a [Select](/docs/aria/select) composite, which provides roving focus, circular arrow navigation, and centralized selection state across all options.
+:::
+
 ## Putting It Together
 
-Once your component is wired with `aria('option', props)`, compose it inside a list or selection container:
+Once your components are wired with `aria(...)`, compose them to build option lists with honest state:
 
 ```tsx
-<ul>
-  <Option value="us" selected={true}>
-    <span>United States</span>
-    <span>USD</span>
-  </Option>
-  <Option value="de">
-    <span>Germany</span>
-    <span>EUR</span>
-  </Option>
-  <Option value="jp" disabled={true}>
-    <span>Japan</span>
-    <span>Unavailable</span>
-  </Option>
-</ul>
+<DemoSelect value="us">
+  <DemoOption value="us">United States</DemoOption>
+  <DemoOption value="de">Germany</DemoOption>
+  <DemoOption value="jp" disabled={true}>Japan</DemoOption>
+</DemoSelect>
 ```
 
 :::interactive[Option Interactive Demo]
-<Select value="us" className="flex flex-col gap-1 max-w-xs p-2 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50">
-  <Option
-    value="us"
-    className="px-3.5 py-2 rounded-lg text-sm cursor-pointer select-none transition-colors flex items-center justify-between text-zinc-800 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 aria-selected:bg-primary/10 aria-selected:text-primary aria-selected:font-medium"
-  >
+```tsx
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type DemoSelectProps = ComponentProps<'ul'> & {
+  value?: string;
+  disabled?: boolean;
+};
+
+const DemoSelect = setup<DemoSelectProps>((props) => {
+  const select = aria('select', props);
+
+  return () => (
+    <ul ref={select.ref} {...select.restProps(['value', 'disabled', 'children', 'className'])} className={props.className}>
+      {props.children}
+    </ul>
+  );
+}, 'DemoSelect');
+```
+
+<DemoSelect value="us" className="flex flex-col gap-1 max-w-xs p-2 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50">
+  <DemoOption value="us">
     <span>United States</span>
-    <span className="text-xs text-zinc-400">USD</span>
-  </Option>
-  <Option
-    value="de"
-    className="px-3.5 py-2 rounded-lg text-sm cursor-pointer select-none transition-colors flex items-center justify-between text-zinc-800 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 aria-selected:bg-primary/10 aria-selected:text-primary aria-selected:font-medium"
-  >
+    <span>USD</span>
+  </DemoOption>
+  <DemoOption value="de">
     <span>Germany</span>
-    <span className="text-xs text-zinc-400">EUR</span>
-  </Option>
-  <Option
-    value="jp"
-    disabled={true}
-    className="px-3.5 py-2 rounded-lg text-sm cursor-pointer select-none transition-colors flex items-center justify-between opacity-40 cursor-not-allowed text-zinc-400 dark:text-zinc-600"
-  >
+    <span>EUR</span>
+  </DemoOption>
+  <DemoOption value="jp" disabled={true}>
     <span>Japan</span>
-    <span className="text-xs text-zinc-400">Unavailable</span>
-  </Option>
-</Select>
+    <span>Unavailable</span>
+  </DemoOption>
+</DemoSelect>
 :::
 
 ## Keyboard Navigation
 
-- **Tab**: Focuses into the option or moves to the next focusable page element when used standalone.
-- **Space / Enter**: Selects the option when focused.
-- **Arrow Keys**: When placed inside an enclosing composite like [Select](/docs/aria/select), arrow keys navigate through options under a single tab stop with circular roving focus.
+- **Tab**: Enters the list at the single tab stop (the active member). Members carry no tab stops of their own beyond the roving one.
+- **Arrows / Home / End / typeahead**: Belong to the enclosing popup — members are inert to every keystroke by design.
+- **Pointer**: Clicking a member selects (or deselects the holder of an optional registry, or toggles the token in multi registries).
+
+## What you get
+
+- **Native sync.** The `selected` property follows the registry on real options with no ARIA mirror and no re-dispatched events.
+- **Custom element polyfills.** Role, roving tab stop, `aria-selected`, and pointer selection.
+- **Honest registries.** Optional deselect, required refusal, duplicate-free multi-toggle, hint and required claiming.
+- **Keyless members.** Zero keyboard ownership conflicts with popup traversal and typeahead.
+- **Stable linkage.** Shielded addresses and announcements across activation and refiners.
 
 ## Next Steps
 
 - **[Select](/docs/aria/select)**: Group options into a single- or multi-select list with roving focus.
-- **[Radio Group](/docs/aria/radio-group)**: Mutually exclusive radio selections with roving focus.
-- **[Button](/docs/aria/button)**: Command and toggle button behavioral bridges.
+- **[Checkbox](/docs/aria/checkbox)**: Build binary and tri-state toggle checkboxes.
+- **[Radio](/docs/aria/radio)**: The single-selection counterpart for exclusive choices.

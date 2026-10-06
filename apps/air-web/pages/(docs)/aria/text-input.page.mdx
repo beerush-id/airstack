@@ -1,31 +1,56 @@
 ---
 title: 'Text Input'
-description: 'Text input behavioral controller with live value synchronization and validation state projection.'
+description: 'Live value synchronization with native and custom hosts, validation projection, and blur commits.'
 nav: 'Text Input'
 nav-priority: 260
 ---
 
-# Text Input
+# AirLib Headless Text Input
 
-Text fields require synchronizing live value state, managing validation indicators (`aria-invalid`, `aria-required`), and handling readonly and disabled semantics without interfering with native browser caret movement, autocomplete, or form submission.
+A text field looks native until you need it headless: syncing live `value` both ways, projecting `label`/`invalid` to ARIA, honoring `readonly` without losing focus, parking disabled tab stops, and — on custom hosts — compiling `textbox`/`searchbox` roles with blur commits, all without fighting the browser's caret, autocomplete, or form submission. **AirLib Headless Text Input** (`aria('text-input')`) turns any element into a field that behaves — native IDL on real inputs, full ARIA polyfills on custom hosts, without dictating markup or styles.
 
-`@airlib/aria` provides a headless behavioral controller for text inputs. It manages live value synchronization and projects accessible validation flags without dictating markup or styles.
+```tsx
+const input = aria('text-input', props);
 
-You control text inputs using this piece:
+<input ref={input.ref} {...input.props} />
+```
 
-- **Text Input**: The text input controller that manages live value synchronization and validation state reflection.
+<style>{`.demo-textinput{padding:.5rem .75rem;border-radius:.5rem;border:1px solid #d4d4d8;background:#fff;font-size:.875rem;color:#18181b;outline:none;transition:border-color .15s}.demo-textinput::placeholder{color:#a1a1aa}.demo-textinput:focus{border-color:#18181b}.demo-textinput[aria-invalid="true"]{border-color:#f87171}.demo-textinput[aria-invalid="true"]:focus{border-color:#ef4444}.demo-textinput:disabled{background:#f4f4f5;cursor:not-allowed;opacity:.6}`}</style>
 
-For search query fields, see [Search Input](/docs/aria/search-input).
+:::interactive[Native Text Input]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
 
-## What you get
+type DemoTextInputProps = ComponentProps<'input'> & {
+  value?: string;
+  label?: string;
+  placeholder?: string;
+  required?: boolean;
+  invalid?: boolean | 'grammar' | 'spelling';
+  disabled?: boolean;
+};
 
-- **Live value synchronization.** Synchronizes with DOM input events and keeps the state in sync.
-- **Validation and state projection.** Compiles `aria-invalid`, `aria-required`, `readonly`, and `disabled` state seamlessly.
-- **Accessible labeling.** Automatically compiles `props.label` into `aria-label`.
+const DemoTextInput = setup<DemoTextInputProps>((props) => {
+  const input = aria('text-input', props);
+
+  return () => (
+    <input ref={input.ref} {...input.props} className="demo-textinput" />
+  );
+}, 'DemoTextInput');
+```
+
+<div className="flex mx-auto gap-3">
+  <DemoTextInput label="Full name" placeholder="Ada Lovelace" />
+  <DemoTextInput label="Email" required={true} invalid={true} placeholder="you@example.com" />
+  <DemoTextInput label="Disabled field" disabled={true} placeholder="Unavailable" />
+</div>
+:::
 
 ## Text Input
 
-In Aria, Text Input is the text input controller created with `aria('text-input')` that manages live value synchronization and validation state projection.
+Live value synchronization with native and custom hosts.
 
 ```ts
 aria<E extends BaseElement = HTMLInputElement>(
@@ -35,25 +60,7 @@ aria<E extends BaseElement = HTMLInputElement>(
 ): TextInputAria<E>
 ```
 
-### Parameters
-
-- `props.value` *(string, optional)*: Live text value.
-- `props.label` *(string, optional)*: Accessible label compiled to `aria-label`.
-- `props.readonly` *(boolean, optional)*: Readonly indicator.
-- `props.disabled` *(boolean, optional)*: Disables the input from user interaction.
-- `props.required` *(boolean, optional)*: Required validation indicator.
-- `props.invalid` *(boolean | 'grammar' | 'spelling', optional)*: Invalid indicator, compiled to `aria-invalid`.
-- `props.placeholder` *(string, optional)*: Placeholder text hint.
-
-The controller is native-only: it binds to `<input>` and `<textarea>` hosts whose semantics the browser already supplies, so it compiles no `role` of its own.
-
-### How it behaves
-
-Every keystroke fires `oninput` and synchronizes back to state. `required`, `readonly`, and `disabled` compile to their corresponding native HTML attributes, while `invalid` compiles to `aria-invalid` and `label` compiles to `aria-label`.
-
 ### Usage
-
-To use Text Input, create the controller with `aria('text-input', props)`, then pass `input.ref` and spread `input.attributes` onto your input element:
 
 :::code-group
 
@@ -64,38 +71,20 @@ import type { ComponentProps } from 'react';
 
 type TextInputProps = ComponentProps<'input'> & {
   value?: string;
-  readonly?: boolean;
-  disabled?: boolean;
+  label?: string;
+  placeholder?: string;
   required?: boolean;
   invalid?: boolean | 'grammar' | 'spelling';
-  placeholder?: string;
-  label?: string;
+  disabled?: boolean;
 };
 
 const TextInput = setup<TextInputProps>((props) => {
   const input = aria('text-input', props);
-  const restProps = props.$omit([
-    ...input.ownKeys,
-    'value',
-    'readonly',
-    'disabled',
-    'required',
-    'invalid',
-    'placeholder',
-    'label',
-    'className',
-  ]);
 
   return () => (
-    <input
-      ref={input.ref}
-      aria-label={props.label}
-      {...restProps}
-      {...input.attributes}
-      className={props.className}
-    />
+    <input ref={input.ref} {...input.restProps(['children', 'className'])} className={props.className} />
   );
-}, 'TextInput');
+});
 ```
 
 ```tsx [SolidJS]
@@ -105,88 +94,103 @@ import type { ComponentProps } from 'solid-js';
 
 type TextInputProps = ComponentProps<'input'> & {
   value?: string;
-  readonly?: boolean;
-  disabled?: boolean;
+  label?: string;
+  placeholder?: string;
   required?: boolean;
   invalid?: boolean | 'grammar' | 'spelling';
-  placeholder?: string;
-  label?: string;
+  disabled?: boolean;
 };
 
 const TextInput = setup<TextInputProps>((props) => {
   const input = aria('text-input', props);
-  const restProps = props.$omit([
-    ...input.ownKeys,
-    'value',
-    'readonly',
-    'disabled',
-    'required',
-    'invalid',
-    'placeholder',
-    'label',
-    'className',
-  ]);
 
   return (
-    <input
-      ref={input.ref}
-      aria-label={props.label}
-      {...restProps}
-      {...input.attributes}
-      className={props.className}
-    />
+    <input ref={input.ref} {...input.restProps(['children', 'className'])} className={props.className} />
   );
 });
 ```
 
 :::
 
+The compiled dictionary carries `defaultValue`, never `value` — the element stays uncontrolled while props remain the source of truth. Bind `name` yourself; the projection never emits it.
+
+### Parameters
+
+- `props.value` *(string, optional, default `""`)*: Live text value, read and write.
+- `props.kind` *(optional, default `'text'`)*: `'search'` selects the `searchbox` role on custom hosts; every other kind carries `textbox`.
+- `props.multiline` *(boolean, optional)*: Compiles `aria-multiline="true"` on custom hosts; the native multiline host is a `<textarea>`.
+- `props.label` *(string, optional)*: Accessible label compiled to `aria-label`.
+- `props.readonly` *(boolean, optional)*: Blocks edits while keeping focusability.
+- `props.disabled` *(boolean, optional)*: Blocks edits and commits; custom hosts park at `tabindex="-1"`.
+- `props.required` *(boolean, optional)*: Required validation indicator.
+- `props.invalid` *(boolean | 'grammar' | 'spelling', optional)*: Invalid indicator, always compiled explicitly (default `"false"`).
+- `props.placeholder` *(string, optional)*: Placeholder hint.
+- `options.native` *(boolean, optional, default `true`)*: Pass `false` for custom non-input elements.
+
+### How it behaves
+
+- Native `<input>`/`<textarea>` hosts emit no `role` and sync `readonly`, `disabled`, `required` IDL properties; browser `input`/`change` pass through and are never re-dispatched. `type` compiles only for the search face — an explicit `undefined` is never emitted, since getter-only hosts throw on assignment.
+- Custom hosts compile `role="textbox"` (`searchbox` for `kind: 'search'`), `aria-multiline` only when multiline, always-explicit `aria-readonly`/`aria-disabled`/`aria-required`/`aria-invalid`, and `tabindex` (`0` enabled, `-1` disabled).
+- Typing commits to reactive `value` unless blocked by `disabled` or `readonly`. Custom hosts dispatch a bubbling `change` CustomEvent on blur following edits; blurs with no diff stay silent, and blurs while disabled track the value but withhold the event.
+- The compiled dictionary carries no form attributes — what the field submits is what the author binds, not the snapshot.
+
+:::tip[Search Queries]
+For search fields use the [Search Input](/docs/aria/search-input) face, which locks `type="search"` on native hosts and the `searchbox` role on custom ones.
+:::
+
 ## Putting It Together
 
-Here is a complete, working example applying what was just discussed:
+Once your components are wired with `aria(...)`, compose them to build fields with honest state:
 
 ```tsx
 <div className="flex flex-col gap-3 max-w-sm">
   <label className="flex flex-col gap-1.5 text-sm">
     <span className="font-medium">Name</span>
-    <TextInput label="Full name" placeholder="Ada Lovelace" />
+    <DemoTextInput label="Full name" placeholder="Ada Lovelace" />
   </label>
   <label className="flex flex-col gap-1.5 text-sm">
     <span className="font-medium">Required + invalid</span>
-    <TextInput label="Email" required={true} invalid={true} placeholder="you@example.com" />
+    <DemoTextInput label="Email" required={true} invalid={true} placeholder="you@example.com" />
   </label>
   <label className="flex flex-col gap-1.5 text-sm">
     <span className="font-medium">Disabled</span>
-    <TextInput label="Disabled field" disabled={true} placeholder="Unavailable" />
+    <DemoTextInput label="Disabled field" disabled={true} placeholder="Unavailable" />
   </label>
 </div>
 ```
 
 :::interactive[Text Input Interactive Demo]
-<div className="flex flex-col gap-3 p-4 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 max-w-sm">
-  <label className="flex flex-col gap-1.5 text-sm text-zinc-800 dark:text-zinc-200">
+<div className="flex flex-col gap-3 p-4 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 max-w-sm text-sm text-zinc-800 dark:text-zinc-200">
+  <label className="flex flex-col gap-1.5">
     <span className="font-medium">Name</span>
-    <TextInput label="Full name" placeholder="Ada Lovelace" className="px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm outline-none focus:border-primary placeholder:text-zinc-400 dark:placeholder:text-zinc-600" />
+    <DemoTextInput label="Full name" placeholder="Ada Lovelace" />
   </label>
-  <label className="flex flex-col gap-1.5 text-sm text-zinc-800 dark:text-zinc-200">
+  <label className="flex flex-col gap-1.5">
     <span className="font-medium">Required + invalid</span>
-    <TextInput label="Email" required={true} invalid={true} placeholder="you@example.com" className="px-3 py-2 rounded-lg border border-red-400 dark:border-red-500 bg-white dark:bg-zinc-900 text-sm outline-none focus:border-red-500 placeholder:text-zinc-400 dark:placeholder:text-zinc-600" />
+    <DemoTextInput label="Email" required={true} invalid={true} placeholder="you@example.com" />
   </label>
-  <label className="flex flex-col gap-1.5 text-sm text-zinc-400 dark:text-zinc-600">
+  <label className="flex flex-col gap-1.5 cursor-not-allowed opacity-60">
     <span className="font-medium">Disabled</span>
-    <TextInput label="Disabled field" disabled={true} placeholder="Unavailable" className="px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 text-sm cursor-not-allowed opacity-60" />
+    <DemoTextInput label="Disabled field" disabled={true} placeholder="Unavailable" />
   </label>
 </div>
 :::
 
 ## Keyboard Navigation
 
-- **Tab**: Focuses into the field or moves to the next focusable element.
-- **Typing / Backspace / Arrow Keys**: Native text editing — caret positioning, selection, and deletion are handled natively by the browser.
+- **Tab**: Focuses the field. Disabled custom hosts sit at `tabindex="-1"` and are skipped.
+- **Typing / Backspace / arrows**: Native text editing — caret, selection, and deletion belong to the browser (or the custom host's own editor); the controller only gates and observes.
+- **Blur**: Commits the value on custom hosts when it moved.
+
+## What you get
+
+- **Two-way live value.** Typing flows into props, writes flow onto the node, uncontrolled by default.
+- **Honest hosts.** Native IDL with zero mirrors; custom ARIA with explicit states and a real tab stop.
+- **Validation projection.** Direct `label`/`invalid` inputs with an always-explicit baseline.
+- **Observable commits.** Bubbling `change` on custom blur-after-edit, browser passthrough on native.
 
 ## Next Steps
 
-- **[Search Input](/docs/aria/search-input)**: The specialized search query controller with `type="search"` semantics and native clear behavior.
-- **[Option](/docs/aria/option)**: Selectable list and menu items with selection state management.
+- **[Search Input](/docs/aria/search-input)**: The specialized search query controller.
+- **[Option](/docs/aria/option)**: Selectable list and menu items.
 - **[Button](/docs/aria/button)**: Command and toggle button behavioral bridges.
-- **[Select](/docs/aria/select)**: Single- and multi-selection lists with roving focus.

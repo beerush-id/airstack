@@ -2,6 +2,11 @@ import { SelectionAria, type SelectionAttributes, type SelectionOptions } from '
 import type { AriaOptions, AriaProps, BaseElement, Primitive } from '../types.js';
 
 /**
+ * Controller-dispatched switch event carrying the committed state in `detail`.
+ */
+export type SwitchEvent = CustomEvent<boolean>;
+
+/**
  * Configuration options for SwitchAria.
  */
 export interface SwitchOptions extends AriaOptions {

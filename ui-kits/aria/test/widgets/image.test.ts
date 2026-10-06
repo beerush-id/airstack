@@ -1,6 +1,6 @@
 import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
-import { aria, type ImageProps } from '../../src/index.js';
+import { aria, type ImageEvent, type ImageProps } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 describe('Image - Contract Specifications', () => {
@@ -42,7 +42,7 @@ describe('Image - Contract Specifications', () => {
           const commits: Array<{ detail: unknown; bubbles: boolean }> = [];
           containerEl.addEventListener('change', (event) =>
             commits.push({
-              detail: (event as CustomEvent).detail,
+              detail: (event as ImageEvent).detail,
               bubbles: event.bubbles,
             }),
           );

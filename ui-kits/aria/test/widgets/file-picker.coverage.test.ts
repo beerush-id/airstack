@@ -1,6 +1,6 @@
 import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it, vi } from 'vitest';
-import { aria, type FilePickerProps } from '../../src/index.js';
+import { aria, type FilePickerCancelEvent, type FilePickerEvent, type FilePickerProps } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 function picker(): HTMLInputElement | null {
@@ -28,7 +28,7 @@ describe('FilePicker - Coverage (cancel contract, constraint sync & key guards)'
           cancels.push({
             bubbles: event.bubbles,
             kind: event.constructor.name,
-            detail: (event as CustomEvent).detail,
+            detail: (event as FilePickerCancelEvent).detail,
           }),
         );
 
@@ -54,7 +54,7 @@ describe('FilePicker - Coverage (cancel contract, constraint sync & key guards)'
         expect(hidden).not.toBeNull();
 
         const details: unknown[] = [];
-        el.addEventListener('change', (event) => details.push((event as CustomEvent).detail));
+        el.addEventListener('change', (event) => details.push((event as FilePickerEvent).detail));
 
         Object.defineProperty(hidden, 'files', {
           value: [new File(['row'], 'sheet.csv', { type: 'text/csv' })],

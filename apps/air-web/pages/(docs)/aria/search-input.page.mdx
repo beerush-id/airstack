@@ -1,30 +1,53 @@
 ---
 title: 'Search Input'
-description: 'Specialized search query controller compiling type="search" semantics with live query synchronization and validation state projection.'
+description: 'Specialized search query controller compiling type="search" semantics with live query synchronization.'
 nav: 'Search Input'
 nav-priority: 261
 ---
 
-# Search Input
+# AirLib Headless Search Input
 
-`@airlib/aria` provides a headless behavioral controller for search inputs, compiling search semantics for query fields without dictating markup or styles.
+A search field looks like a text field until the platform gets involved: native `type="search"` brings its own clear button and submission semantics, while a custom searchbox needs the right role, live query sync, and validation projection without fighting the browser. **AirLib Headless Search Input** (`aria('search-input')`) is the search face of the text controller — it locks `type="search"` on native hosts and `role="searchbox"` on custom ones, without dictating markup or styles.
 
-Search Input shares the text input controller with the search face selected, compiling `type="search"` onto the native input. Native search inputs provide built-in clear buttons and submission semantics on `Enter`. Query state updates synchronously through `props.value`.
+```tsx
+const search = aria('search-input', props);
 
-You control search inputs using this piece:
+<input ref={search.ref} {...search.props} />
+```
 
-- **Search Input**: The specialized search query controller compiling `type="search"` semantics and query synchronization.
+<style>{`.demo-searchinput{padding:.5rem .75rem;border-radius:.5rem;border:1px solid #d4d4d8;background:#fff;font-size:.875rem;color:#18181b;outline:none;transition:border-color .15s}.demo-searchinput::placeholder{color:#a1a1aa}.demo-searchinput:focus{border-color:#18181b}.demo-searchinput[aria-invalid="true"]{border-color:#f87171}.demo-searchinput:disabled{background:#f4f4f5;cursor:not-allowed;opacity:.6}`}</style>
 
-## What you get
+:::interactive[Native Search Input]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
 
-- **Live value synchronization.** Synchronizes with DOM input events and keeps the state in sync.
-- **Validation and state projection.** Compiles `aria-invalid`, `aria-required`, `readonly`, and `disabled` state seamlessly.
-- **Accessible labeling.** Automatically compiles `props.label` into `aria-label`.
-- **Search specialization.** A dedicated `aria('search-input')` face for search query fields with native clear and Enter handling.
+type DemoSearchInputProps = ComponentProps<'input'> & {
+  value?: string;
+  label?: string;
+  placeholder?: string;
+  disabled?: boolean;
+};
+
+const DemoSearchInput = setup<DemoSearchInputProps>((props) => {
+  const search = aria('search-input', props);
+
+  return () => (
+    <input ref={search.ref} {...search.props} className="demo-searchinput" />
+  );
+}, 'DemoSearchInput');
+```
+
+<div className="flex mx-auto gap-3 max-w-md">
+  <DemoSearchInput label="Search docs" placeholder="Type to search" />
+  <DemoSearchInput label="Disabled search" disabled={true} placeholder="Unavailable" />
+</div>
+:::
 
 ## Search Input
 
-In Aria, Search Input is the specialized search query controller created with `aria('search-input')` that compiles search semantics.
+Search query synchronization on the locked search face.
 
 ```ts
 aria<E extends BaseElement = HTMLInputElement>(
@@ -34,27 +57,11 @@ aria<E extends BaseElement = HTMLInputElement>(
 ): SearchInputAria<E>
 ```
 
-### Parameters
-
-- `props.value` *(string, optional)*: Current search query value.
-- `props.label` *(string, optional)*: Accessible label for the search field compiled to `aria-label`.
-- `props.placeholder` *(string, optional)*: Placeholder hint.
-- `props.disabled` *(boolean, optional)*: Disables the search field.
-- `props.readonly` *(boolean, optional)*: Readonly indicator.
-- `props.required` *(boolean, optional)*: Required validation indicator.
-- `props.invalid` *(boolean | 'grammar' | 'spelling', optional)*: Invalid indicator, compiled to `aria-invalid`.
-
-### How it behaves
-
-Search Input shares the text input controller with the search face selected, compiling `type="search"` onto the native input. Native search inputs provide built-in clear buttons and submission semantics on `Enter`. Query state updates synchronously through `props.value`.
-
 ### Usage
-
-To use Search Input, create the controller with `aria('search-input', props)`, then pass `search.ref` and spread `search.attributes` onto your search input:
 
 :::code-group
 
-```tsx [React]
+```tsx [React] executable
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
 import type { ComponentProps } from 'react';
@@ -68,23 +75,9 @@ type SearchInputProps = ComponentProps<'input'> & {
 
 const SearchInput = setup<SearchInputProps>((props) => {
   const search = aria('search-input', props);
-  const restProps = props.$omit([
-    ...search.ownKeys,
-    'value',
-    'label',
-    'placeholder',
-    'disabled',
-    'className',
-  ]);
 
   return () => (
-    <input
-      ref={search.ref}
-      type="search"
-      {...restProps}
-      {...search.attributes}
-      className={props.className}
-    />
+    <input ref={search.ref} {...search.restProps(['children', 'className'])} className={props.className} />
   );
 });
 ```
@@ -103,37 +96,79 @@ type SearchInputProps = ComponentProps<'input'> & {
 
 const SearchInput = setup<SearchInputProps>((props) => {
   const search = aria('search-input', props);
-  const restProps = props.$omit([
-    ...search.ownKeys,
-    'value',
-    'label',
-    'placeholder',
-    'disabled',
-    'className',
-  ]);
 
   return (
-    <input
-      ref={search.ref}
-      type="search"
-      {...restProps}
-      {...search.attributes}
-      className={props.className}
-    />
+    <input ref={search.ref} {...search.restProps(['children', 'className'])} className={props.className} />
   );
 });
 ```
 
 :::
 
+The compiled dictionary carries `type="search"` and `defaultValue`, never `value` — the element stays uncontrolled while props remain the source of truth. Bind `name` yourself; the projection never emits it.
+
+### Parameters
+
+- `props.value` *(string, optional, default `""`)*: Live search query, read and write.
+- `props.label` *(string, optional)*: Accessible label compiled to `aria-label`.
+- `props.placeholder` *(string, optional)*: Placeholder hint.
+- `props.readonly` *(boolean, optional)*: Blocks edits while keeping focusability.
+- `props.disabled` *(boolean, optional)*: Blocks edits and commits.
+- `props.required` *(boolean, optional)*: Required indicator, always compiled explicitly on this face.
+- `props.invalid` *(boolean | 'grammar' | 'spelling', optional)*: Invalid indicator, always compiled explicitly (default `"false"`).
+
+### How it behaves
+
+- The face locks search semantics: `type="search"` on native hosts (so the platform owns the clear button and `Enter` submission), `role="searchbox"` on custom hosts.
+- Every keystroke syncs into reactive `value` unless blocked by `disabled` or `readonly`. Clearing the field reads back as an empty query through the standard input sequence — no `search`, `cancel`, or `clear` events are invented.
+- Unlike the text face, `aria-required` is always stated explicitly on native hosts, and every keystroke stays platform-owned: `Enter`, `Escape`, and arrows are never prevented or claimed.
+- The search face is an alias over the text controller: validation projection, blur commits on custom hosts, form-attribute isolation, and teardown behave identically. See [Text Input](/docs/aria/text-input) for the shared contract.
+
+## Putting It Together
+
+Once your components are wired with `aria(...)`, compose them to build query fields with honest state:
+
+```tsx
+<div className="flex flex-col gap-3 max-w-sm">
+  <label className="flex flex-col gap-1.5 text-sm">
+    <span className="font-medium">Documentation</span>
+    <DemoSearchInput label="Search docs" placeholder="Type to search" />
+  </label>
+  <label className="flex flex-col gap-1.5 text-sm">
+    <span className="font-medium">Disabled</span>
+    <DemoSearchInput label="Disabled search" disabled={true} placeholder="Unavailable" />
+  </label>
+</div>
+```
+
+:::interactive[Search Input Interactive Demo]
+<div className="flex flex-col gap-3 p-4 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 max-w-sm text-sm text-zinc-800 dark:text-zinc-200">
+  <label className="flex flex-col gap-1.5">
+    <span className="font-medium">Documentation</span>
+    <DemoSearchInput label="Search docs" placeholder="Type to search" />
+  </label>
+  <label className="flex flex-col gap-1.5 cursor-not-allowed opacity-60">
+    <span className="font-medium">Disabled</span>
+    <DemoSearchInput label="Disabled search" disabled={true} placeholder="Unavailable" />
+  </label>
+</div>
+:::
+
 ## Keyboard Navigation
 
-- **Tab**: Focuses into the field or moves to the next focusable element.
-- **Typing / Backspace / Arrow Keys**: Native text editing — caret positioning, selection, and deletion are handled natively by the browser.
+- **Tab**: Focuses the field. Disabled hosts are skipped.
+- **Typing / Backspace / arrows**: Native search editing — the platform owns the caret, the clear button, and `Enter` submission.
+- **Escape**: Left to the platform; the controller claims no search-specific keystroke.
+
+## What you get
+
+- **Locked search semantics.** `type="search"` natively, `searchbox` on custom hosts, no role or tab stop invented on native.
+- **Live query sync.** Keystrokes flow into props both directions, programmatic writes reach the node immediately.
+- **Explicit validation.** `aria-required` and `aria-invalid` stated, never dropped.
+- **Zero invented events.** Clearing reads back as empty input; the platform keeps its keys.
 
 ## Next Steps
 
-- **[Text Input](/docs/aria/text-input)**: The free-text input controller with live value synchronization and validation state.
-- **[Option](/docs/aria/option)**: Selectable list and menu items with selection state management.
+- **[Text Input](/docs/aria/text-input)**: The shared face contract with custom hosts and blur commits.
+- **[Option](/docs/aria/option)**: Selectable list and menu items.
 - **[Button](/docs/aria/button)**: Command and toggle button behavioral bridges.
-- **[Select](/docs/aria/select)**: Single- and multi-selection lists with roving focus.

@@ -84,6 +84,7 @@ const ATTR_MAP: Record<string, string> = {
   tabIndex: 'tabindex',
   readOnly: 'readonly',
   autoComplete: 'autocomplete',
+  defaultValue: 'value',
 };
 
 /**
@@ -159,10 +160,7 @@ export function applyAttributes<E extends BaseElement>(
         element.selected = Boolean(value);
       }
 
-      if (
-        key === 'value' &&
-        (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement)
-      ) {
+      if (key === 'value' && (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement)) {
         element.value = value == null ? '' : String(value);
       }
 

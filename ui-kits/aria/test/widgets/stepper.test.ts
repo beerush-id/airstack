@@ -1,6 +1,6 @@
 import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
-import { aria, type StepperProps } from '../../src/index.js';
+import { aria, type StepperEvent, type StepperProps } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 function press(el: HTMLElement, key: string): KeyboardEvent {
@@ -138,10 +138,10 @@ describe('Stepper - Contract Specifications', () => {
           const live: unknown[] = [];
           const committed: unknown[] = [];
           parts.inputEl.addEventListener('input', (event) =>
-            live.push((event as CustomEvent).detail),
+            live.push((event as StepperEvent).detail),
           );
           parts.inputEl.addEventListener('change', (event) =>
-            committed.push((event as CustomEvent).detail),
+            committed.push((event as StepperEvent).detail),
           );
 
           parts.inputEl.focus();

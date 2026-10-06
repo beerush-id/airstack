@@ -3,6 +3,11 @@ import type { AriaInvalid, AriaOptions, AriaProps, BaseElement, Primitive } from
 import { ariaInvalid, ariaRequired } from '../utils/attributes.js';
 
 /**
+ * Controller-dispatched checkbox event carrying the committed state in `detail`.
+ */
+export type CheckboxEvent = CustomEvent<boolean>;
+
+/**
  * Reactive input properties for CheckboxAria.
  *
  * @template T - Value payload type extending Primitive

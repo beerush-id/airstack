@@ -1,7 +1,13 @@
+import { $static } from '@airlib/core';
 import { Aria } from '../core.js';
-import type { AriaAttributes, AriaOptions, AriaProps, BaseElement } from '../types.js';
+import type { AriaAttributes, AriaOptions, AriaProps, BaseElement, RefineFn } from '../types.js';
 import { ariaBoolean, ariaRequired } from '../utils/attributes.js';
 import { clampRange } from '../utils/range.js';
+
+/**
+ * Controller-dispatched number-stepper event carrying the committed value in `detail`.
+ */
+export type NumberStepperEvent = CustomEvent<number>;
 
 /**
  * Reactive input properties for NumberStepperAria.
@@ -62,7 +68,6 @@ export interface NumberStepperAttributes<E extends BaseElement = HTMLInputElemen
   role?: 'spinbutton';
   type?: 'number';
   value?: number;
-  defaultValue?: number;
   min?: number;
   max?: number;
   step?: number;
@@ -126,12 +131,13 @@ export class NumberStepperAria<
     this.update();
   }
 
-  public override get attributes(): Record<string, unknown> {
-    // Only a native input has a browser-owned live value to hand over as defaultValue.
-    if (!this.isNative) return super.attributes;
-
-    const { value, ...rest } = super.attributes as Record<string, unknown>;
-    return { ...rest, defaultValue: value };
+  protected override update(reinit = true, refine?: RefineFn<T, A>): void {
+    $static(() => {
+      const stored = this.properties.value;
+      const clamped = clampRange(stored as number, this.min, this.max);
+      if (!Object.is(clamped, stored)) this.properties.value = clamped;
+    });
+    super.update(reinit, refine);
   }
 
   /**
@@ -202,7 +208,7 @@ export class NumberStepperAria<
     if (this.isNative) {
       return Object.assign(attrs, {
         type: 'number',
-        value: this.value,
+        defaultValue: this.value,
         min: this.min,
         max: this.max,
         step: this.step,
@@ -219,7 +225,7 @@ export class NumberStepperAria<
       'aria-valuenow': this.value,
       'aria-valuemin': this.min,
       'aria-valuemax': this.max,
-      'aria-readonly': this.readonly ? 'true' : undefined,
+      'aria-readonly': this.properties.readonly === undefined ? undefined : ariaBoolean(this.readonly),
       'aria-required': ariaRequired(this.required),
       'aria-disabled': ariaBoolean(isDisabled),
       onkeydown: this.handleKey,

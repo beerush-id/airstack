@@ -5,26 +5,49 @@ nav: 'Checkbox'
 nav-priority: 220
 ---
 
-# Checkbox
+# AirLib Headless Checkbox
 
-Form checkboxes present distinct challenges across different platforms: native `<input type="checkbox">` elements do not support styling their internal check marks across all browsers, while custom elements (`<div>`, `<span>`) lack native keyboard activation, focus management, form submission, and tri-state (`indeterminate`) reflection.
+A checkbox looks trivial until you build a custom one: a native `<input type="checkbox">` resists cross-browser styling of its check mark, while a custom `<div>` needs hand-rolled `role`, `tabindex`, `aria-checked`, Space toggling, tri-state mixed announcements, and group membership sync. **AirLib Headless Checkbox** (`aria('checkbox')`) turns any element into a checkbox that behaves — native IDL sync on real inputs, full ARIA polyfills on custom hosts, mixed-state resolution and group coordination included, without dictating markup or styles.
 
-`@airlib/aria` provides a headless behavioral bridge for checkboxes. It synchronizes native `.checked` and `.indeterminate` properties on real inputs, polyfills `role="checkbox"`, `tabindex`, and `Space` key toggling on custom elements, and handles tri-state indeterminate conditions without dictating styles or markup.
+```tsx
+const checkbox = aria('checkbox', props, { native: false });
 
-You compose a checkbox control using this piece:
+<div ref={checkbox.ref} {...checkbox.props} />
+```
 
-- **Checkbox**: The checkable toggle controller that manages binary checked state and tri-state indeterminate reflection.
+<style>{`.demo-checkbox{display:inline-flex;align-items:center;justify-content:center;width:1.25rem;height:1.25rem;border-radius:.375rem;border:1px solid #d4d4d8;background:#fff;font-size:.75rem;font-weight:700;line-height:1;cursor:pointer;transition:background-color .15s,border-color .15s}.demo-checkbox::after{content:'';color:#fff}.demo-checkbox[aria-checked="true"]{background:#18181b;border-color:transparent}.demo-checkbox[aria-checked="true"]::after{content:'✓'}.demo-checkbox[aria-checked="mixed"]{background:#18181b;border-color:transparent}.demo-checkbox[aria-checked="mixed"]::after{content:'−'}.demo-checkbox[aria-disabled="true"]{opacity:.5;cursor:not-allowed}`}</style>
 
-## What you get
+:::interactive[Custom Checkbox]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
 
-- **Native & custom element support.** Binds cleanly to native `<input type="checkbox">` or polyfills `role="checkbox"`, `tabindex="0"`, and Space key toggling on custom elements.
-- **Tri-state indeterminate selection.** Supports `indeterminate: true` for parent "select all" controls, compiling `'aria-checked': 'mixed'` for assistive technologies.
-- **Group & standalone coordination.** Derives selection automatically when nested in a multi-selection group via `value`, or operates standalone via `checked`.
-- **Clean disabled semantics.** Disabled checkboxes ignore clicks, prevent keyboard toggling, and reflect `aria-disabled`.
+type DemoCheckboxProps = ComponentProps<'div'> & {
+  checked?: boolean;
+  indeterminate?: boolean;
+  disabled?: boolean;
+};
+
+const DemoCheckbox = setup<DemoCheckboxProps>((props) => {
+  const checkbox = aria('checkbox', props, { native: false });
+
+  return () => (
+    <div ref={checkbox.ref} {...checkbox.props} className="demo-checkbox" />
+  );
+}, 'DemoCheckbox');
+```
+
+<div className="inline-flex mx-auto gap-3">
+  <DemoCheckbox checked={true} />
+  <DemoCheckbox indeterminate={true} />
+  <DemoCheckbox checked={false} />
+</div>
+:::
 
 ## Checkbox
 
-In Aria, Checkbox is the toggle widget created with `aria('checkbox')` that coordinates binary and tri-state indeterminate checked states.
+Binary and tri-state toggle with native IDL sync and group membership.
 
 ```ts
 aria<E extends BaseElement = HTMLInputElement, T extends AnyType = AnyType>(
@@ -34,28 +57,7 @@ aria<E extends BaseElement = HTMLInputElement, T extends AnyType = AnyType>(
 ): CheckboxAria<E, CheckboxProps<T>>
 ```
 
-### Parameters
-
-- `props.checked` *(boolean, optional, default `false`)*: Whether the checkbox is in a checked state.
-- `props.indeterminate` *(boolean, optional, default `false`)*: Whether the checkbox is in a tri-state indeterminate/mixed condition. Compiles `'aria-checked': 'mixed'` and synchronizes native `.indeterminate`.
-- `props.disabled` *(boolean, optional)*: Disables the checkbox and removes it from user interaction.
-- `props.required` *(boolean, optional)*: Whether a checked state is required for form validation, compiling native `required` or `aria-required`.
-- `props.invalid` *(boolean | 'grammar' | 'spelling', optional)*: Indicates an invalid input state, compiling to `aria-invalid`.
-- `props.name` *(string, optional)*: Semantic identity key or field name on the parent group or form.
-- `props.value` *(AnyType, optional)*: Value payload for collection membership or form submission.
-- `options.native` *(boolean, optional, default `true`)*: Pass `false` when wrapping custom non-input elements (such as `<div>` or `<span>`).
-
-### How it behaves
-
-When bound to a native `<input type="checkbox">`, explicit `role` is omitted (implicit in HTML) and native `.checked` and `.indeterminate` properties are kept in sync. When bound to a custom element (`native: false`), it compiles `role="checkbox"`, manages `tabindex` (`0` enabled, `-1` disabled), and polyfills Space key toggling without page scrolling. Activating an indeterminate checkbox resolves it into a definitive checked state.
-
-:::tip[Tri-State Selection]
-Pass `indeterminate={true}` to display a partially-selected condition for "select all" rows or tree views. The controller compiles `aria-checked="mixed"` for screen readers and exposes `checkbox.indeterminate` to render your partial-selection icon.
-:::
-
 ### Usage
-
-To use Checkbox, create the checkbox instance with `aria('checkbox', props, { native: false })` for custom elements, then pass `checkbox.ref` and spread `checkbox.attributes` onto your element:
 
 :::code-group
 
@@ -72,19 +74,12 @@ type CheckboxProps = ComponentProps<'div'> & {
 
 const Checkbox = setup<CheckboxProps>((props) => {
   const checkbox = aria('checkbox', props, { native: false });
-  const restProps = props.$omit([
-    ...checkbox.ownKeys,
-    'checked',
-    'indeterminate',
-    'disabled',
-    'children',
-    'className',
-  ]);
 
   return () => (
-    <div ref={checkbox.ref} {...restProps} {...checkbox.attributes} className={props.className}>
-      {checkbox.indeterminate ? '−' : checkbox.checked ? '✓' : ''}
-    </div>
+    <label>
+      <div ref={checkbox.ref} {...checkbox.restProps(['children'])} className="demo-checkbox" />
+      <span>{props.children}</span>
+    </label>
   );
 });
 ```
@@ -102,78 +97,72 @@ type CheckboxProps = ComponentProps<'div'> & {
 
 const Checkbox = setup<CheckboxProps>((props) => {
   const checkbox = aria('checkbox', props, { native: false });
-  const restProps = props.$omit([
-    ...checkbox.ownKeys,
-    'checked',
-    'indeterminate',
-    'disabled',
-    'children',
-    'className',
-  ]);
 
   return (
-    <div ref={checkbox.ref} {...restProps} {...checkbox.attributes} className={props.className}>
-      {checkbox.indeterminate ? '−' : checkbox.checked ? '✓' : ''}
-    </div>
+    <label>
+      <div ref={checkbox.ref} {...checkbox.restProps(['children'])} className="demo-checkbox" />
+      <span>{props.children}</span>
+    </label>
   );
 });
 ```
 
 :::
 
+The check glyph comes from CSS keyed on `aria-checked` (see the style block above), never from controller state in JSX — the controller owns semantics, the stylesheet owns the mark.
+
+### Parameters
+
+- `props.checked` *(boolean, optional, default `false`)*: Whether the checkbox is in a checked state.
+- `props.indeterminate` *(boolean, optional, default `false`)*: Mixed-state flag that outranks `checked` for announcement. Compiles `aria-checked="mixed"` (custom) or sets the native `.indeterminate` property. Any activation clears it while resolving toward checked.
+- `props.disabled` *(boolean, optional)*: Blocks activation and state commits.
+- `props.required` *(boolean, optional)*: Whether a checked state is required for form validation, compiling native `required` or `aria-required`.
+- `props.invalid` *(boolean | 'grammar' | 'spelling', optional)*: Field validity, compiling to `aria-invalid`.
+- `props.name` *(string, optional)*: Semantic identity key or field name on the parent group or form.
+- `props.value` *(AnyType, optional)*: Choice candidate value when nested inside a multi-selection group.
+- `options.native` *(boolean, optional, default `true`)*: Pass `false` when wrapping custom non-input elements (such as `<div>` or `<span>`).
+
+### How it behaves
+
+- Native `<input type="checkbox">` hosts omit `role` and sync the `.checked`, `.indeterminate`, `.disabled`, and `.required` IDL properties; no ARIA state mirror is emitted and browser `click`/`input`/`change` are never re-dispatched.
+- Custom hosts compile `role="checkbox"`, `aria-checked` (`true`/`false`/`mixed`), always-explicit `aria-required`, `tabindex` (`0` enabled, `-1` disabled), and Space key toggling with scroll suppression.
+- Activation from mixed resolves toward checked and clears the flag; from `true` it commits `false`. Inside a multi-selection group, activation adds or removes the candidate `value` without duplicating or disturbing siblings.
+- Every real commit on a custom host fires bubbling `change` and `input` events carrying the new checked state; canceled triggers, disabled hosts, and no-op mutations stay silent.
+- The compiled dictionary carries no form attributes — bind `name` and `value` on the element yourself for submission.
+
+:::tip[Tri-State Selection]
+Pass `indeterminate={true}` for "select all" rows or tree views. Screen readers announce the mixed state, the glyph renders from `aria-checked="mixed"`, and the next activation resolves into a definitive checked state.
+:::
+
 ## Putting It Together
 
-Once your components are wired with `aria(...)`, compose them to build accessible checkbox controls:
+Once your components are wired with `aria(...)`, compose them to build checkbox controls with honest state:
 
 ```tsx
 <div className="flex flex-col gap-3">
-  <label className="flex items-center gap-2">
-    <Checkbox checked={true} />
-    <span>Accept Terms & Conditions</span>
-  </label>
-  <label className="flex items-center gap-2">
-    <Checkbox indeterminate={true} />
-    <span>Select All (Mixed State)</span>
-  </label>
-  <label className="flex items-center gap-2">
-    <Checkbox checked={false} />
-    <span>Subscribe to Newsletter</span>
-  </label>
-  <label className="flex items-center gap-2">
-    <Checkbox disabled={true} />
-    <span>Disabled Option</span>
-  </label>
+  <Checkbox checked={true}>Accept Terms & Conditions</Checkbox>
+  <Checkbox indeterminate={true}>Select All (Mixed State)</Checkbox>
+  <Checkbox checked={false}>Subscribe to Newsletter</Checkbox>
+  <Checkbox disabled={true}>Disabled Option</Checkbox>
 </div>
 ```
 
 :::interactive[Checkbox Interactive Demo]
-<div className="flex flex-col gap-3 p-4 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50">
-  <label className="flex items-center gap-2.5 text-sm text-zinc-800 dark:text-zinc-200 cursor-pointer">
-    <Checkbox
-      checked={true}
-      className="inline-flex items-center justify-center w-5 h-5 rounded border text-xs font-bold select-none cursor-pointer transition-colors border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-900 text-transparent hover:border-primary aria-checked:bg-primary aria-checked:border-primary aria-checked:text-white aria-[checked=mixed]:bg-primary aria-[checked=mixed]:border-primary aria-[checked=mixed]:text-white"
-    />
+<div className="flex flex-col gap-3 p-4 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 text-sm text-zinc-800 dark:text-zinc-200">
+  <label className="flex items-center gap-2.5 cursor-pointer">
+    <DemoCheckbox checked={true} />
     <span>Accept Terms & Conditions</span>
   </label>
-  <label className="flex items-center gap-2.5 text-sm text-zinc-800 dark:text-zinc-200 cursor-pointer">
-    <Checkbox
-      indeterminate={true}
-      className="inline-flex items-center justify-center w-5 h-5 rounded border text-xs font-bold select-none cursor-pointer transition-colors border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-900 text-transparent hover:border-primary aria-checked:bg-primary aria-checked:border-primary aria-checked:text-white aria-[checked=mixed]:bg-primary aria-[checked=mixed]:border-primary aria-[checked=mixed]:text-white"
-    />
+  <label className="flex items-center gap-2.5 cursor-pointer">
+    <DemoCheckbox indeterminate={true} />
     <span>Select All (Mixed State)</span>
   </label>
-  <label className="flex items-center gap-2.5 text-sm text-zinc-800 dark:text-zinc-200 cursor-pointer">
-    <Checkbox
-      checked={false}
-      className="inline-flex items-center justify-center w-5 h-5 rounded border text-xs font-bold select-none cursor-pointer transition-colors border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-900 text-transparent hover:border-primary aria-checked:bg-primary aria-checked:border-primary aria-checked:text-white aria-[checked=mixed]:bg-primary aria-[checked=mixed]:border-primary aria-[checked=mixed]:text-white"
-    />
+  <label className="flex items-center gap-2.5 cursor-pointer">
+    <DemoCheckbox checked={false} />
     <span>Subscribe to Newsletter</span>
   </label>
-  <label className="flex items-center gap-2.5 text-sm text-zinc-400 dark:text-zinc-600 cursor-not-allowed">
-    <Checkbox
-      disabled={true}
-      className="inline-flex items-center justify-center w-5 h-5 rounded border text-xs font-bold select-none cursor-not-allowed opacity-50 border-zinc-300 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-800 text-zinc-400"
-    />
+  <label className="flex items-center gap-2.5 cursor-not-allowed opacity-60">
+    <DemoCheckbox disabled={true} />
     <span>Disabled Option</span>
   </label>
 </div>
@@ -181,11 +170,21 @@ Once your components are wired with `aria(...)`, compose them to build accessibl
 
 ## Keyboard Navigation
 
-- **Tab**: Focuses into the checkbox or moves to the next focusable page element.
-- **Space**: Toggles the checkbox between checked and unchecked (or transitions from indeterminate to checked).
+- **Tab**: Focuses the checkbox. Disabled custom checkboxes sit at `tabindex="-1"` and are skipped.
+- **Space**: Prevents viewport scroll on keydown, toggles on keyup. A canceled keyup commits nothing.
+- **Enter**: Commits nothing — Enter is not a checkbox affordance on custom hosts.
+
+## What you get
+
+- **Native IDL sync.** `.checked`, `.indeterminate`, `.disabled`, and `.required` follow props on real inputs with no ARIA mirror and no re-dispatched events.
+- **Custom element polyfills.** Role, tab stop, `aria-checked`/`aria-required`, and Space toggling with `native: false`.
+- **Honest tri-state.** Mixed outranks unchecked for announcement and resolves toward checked on activation.
+- **Group membership.** Members add or remove their candidate value without duplicates; standalone members read `checked` directly.
+- **Observable commits.** Bubbling `change` and `input` events per real commit, silence otherwise.
 
 ## Next Steps
 
 - **[Switch](/docs/aria/switch)**: Build instant-activation toggle switches with `role="switch"`.
+- **[Radio](/docs/aria/radio)**: The single-selection counterpart for exclusive choices.
 - **[Radio Group](/docs/aria/radio-group)**: Coordinate mutually exclusive single-choice options.
 - **[Toggle Group](/docs/aria/toggle-group)**: Build multi-select button strips with pressed state coordination.

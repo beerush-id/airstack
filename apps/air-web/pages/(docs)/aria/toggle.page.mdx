@@ -1,0 +1,157 @@
+---
+title: 'Toggle'
+description: 'Headless two-state toggle button with group coordination and custom element polyfills.'
+nav: 'Toggle'
+nav-priority: 215
+---
+
+# AirLib Headless Toggle
+
+Toggle is a two-state button, but most of you have struggled dealing with it: a custom `<div>` toggle needs hand-rolled `role`, `tabindex`, `aria-pressed`, and Space/Enter handling, and group coordination means syncing every member by hand. **AirLib Headless Toggle** (`aria('toggle')`) turns any element into a toggle that behaves — `aria-pressed` projection with `change` events standalone, shared value coordination inside toggle groups, without dictating markup or styles.
+
+```tsx
+const toggle = aria('toggle', props, { native: false });
+
+<div ref={toggle.ref} {...toggle.props}>
+  Bold
+</div>
+```
+
+<style>{`.demo-toggle[aria-pressed="true"]{background:#18181b;color:#fff;border-color:transparent}`}</style>
+
+:::interactive[Custom Toggle]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+const DemoToggle = setup<ComponentProps<'div'>>((props) => {
+  const toggle = aria('toggle', props, { native: false });
+
+  return () => (
+    <div ref={toggle.ref} {...toggle.props} className="demo-toggle">
+      {props.children}
+    </div>
+  );
+}, 'DemoToggle');
+```
+
+<style>{`.demo-toggle{padding:.5rem 1rem;border-radius:.5rem;font-size:.875rem;font-weight:500;border:1px solid #e4e4e7;background:transparent;cursor:pointer}.demo-toggle[aria-pressed="true"]{background:#18181b;color:#fff;border-color:transparent}.demo-toggle[aria-disabled="true"]{opacity:.5;cursor:not-allowed}`}</style>
+
+<div className="inline-flex mx-auto">
+  <DemoToggle pressed={false}>Bold</DemoToggle>
+</div>
+:::
+
+## Toggle
+
+Two-state button with press inversion and change events.
+
+```ts
+aria(role: 'toggle', props?: ToggleProps, options?: ToggleOptions): ToggleAria<E>
+```
+
+### Usage
+
+:::code-group
+
+```tsx [React] executable
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type ToggleButtonProps = ComponentProps<'button'> & {
+  pressed?: boolean;
+  disabled?: boolean;
+};
+
+const ToggleButton = setup<ToggleButtonProps>((props) => {
+  const toggle = aria('toggle', props);
+
+  return () => (
+    <button ref={toggle.ref} {...toggle.restProps(['children', 'className'])} className={props.className}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type ToggleButtonProps = ComponentProps<'button'> & {
+  pressed?: boolean;
+  disabled?: boolean;
+};
+
+const ToggleButton = setup<ToggleButtonProps>((props) => {
+  const toggle = aria('toggle', props);
+
+  return (
+    <button ref={toggle.ref} {...toggle.restProps(['children', 'className'])} className={props.className}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+:::
+
+### Parameters
+
+- `props.value` *(Primitive, optional)*: Member value token when nested inside a toggle group.
+- `props.pressed` *(boolean, optional)*: Explicit pressed state when standalone.
+- `props.disabled` *(boolean, optional)*: Blocks activation and state changes.
+- `options.native` *(boolean, optional, default `true`)*: Pass `false` on non-button elements.
+
+### How it behaves
+
+- Click toggles `pressed`; a canceled trigger commits nothing and `disabled` blocks everything.
+- Every commit fires a bubbling `change` event carrying the new pressed state.
+- Native hosts compile `type="button"` and leave activation to the browser; custom hosts get `role="button"`, a tab stop, and Space/Enter polyfills.
+- Inside a toggle group, activation mutates the shared value — single-select sets or clears it, multi-select toggles membership.
+
+:::tip[Group Members]
+Give each member a `value` and publish the group with a toggle group controller. Members derive `pressed` from the shared value — never set `pressed` directly on a grouped member.
+:::
+
+## Putting It Together
+
+Once your components are wired with `aria(...)`, compose them to build toggles with honest state:
+
+```tsx
+<div className="flex items-center gap-2">
+  <ToggleButton pressed={false}>Bold</ToggleButton>
+  <ToggleButton pressed={true}>Italic</ToggleButton>
+  <ToggleButton disabled={true}>Underline</ToggleButton>
+</div>
+```
+
+:::interactive[Toggle Interactive Demo]
+<div className="flex items-center gap-2 p-3 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50">
+  <DemoToggle pressed={false}>Bold</DemoToggle>
+  <DemoToggle pressed={true}>Italic</DemoToggle>
+  <DemoToggle disabled={true}>Underline</DemoToggle>
+</div>
+:::
+
+## Keyboard Navigation
+
+- **Tab**: Focuses the toggle. Disabled toggles leave the tab order.
+- **Space**: Prevents scroll on keydown, toggles on keyup. A canceled keydown disarms the keyup.
+- **Enter**: Toggles on keydown (custom hosts synthesize the click).
+
+## What you get
+
+- **Safe native defaults.** `type="button"` keeps toggles out of form submission.
+- **Custom element polyfills.** Role, tab stop, and Space/Enter handling with `native: false`.
+- **Group coordination.** Members read and write one shared value.
+- **Observable commits.** A bubbling `change` event per inversion with the new state.
+
+## Next Steps
+
+- **[Toggle Group](/docs/aria/toggle-group)**: Coordinate single or multiple pressed toggles under a shared model.
+- **[Button](/docs/aria/button)**: Command triggers and two-state toggle buttons.
+- **[Toolbar](/docs/aria/toolbar)**: Group toggles and controls under a single tab stop.

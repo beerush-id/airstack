@@ -1,6 +1,6 @@
 import { createLifecycle, mutable, setStaticTracker } from '@airlib/core';
 import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
-import { aria, type ImageProps } from '../../src/index.js';
+import { aria, type ImageEvent, type ImageProps } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 interface FakeLoader {
@@ -53,7 +53,7 @@ describe('Image - Coverage (lifecycle guards & parity)', () => {
 
         const commits: unknown[] = [];
         containerEl.addEventListener('change', (event) =>
-          commits.push((event as CustomEvent).detail),
+          commits.push((event as ImageEvent).detail),
         );
 
         // Custom attach spins an owned loader carrying the declared source
@@ -102,7 +102,7 @@ describe('Image - Coverage (lifecycle guards & parity)', () => {
 
         const commits: unknown[] = [];
         containerEl.addEventListener('change', (event) =>
-          commits.push((event as CustomEvent).detail),
+          commits.push((event as ImageEvent).detail),
         );
 
         loaders[0].onerror?.();
@@ -179,7 +179,7 @@ describe('Image - Coverage (lifecycle guards & parity)', () => {
 
         const commits: unknown[] = [];
         containerEl.addEventListener('change', (event) =>
-          commits.push((event as CustomEvent).detail),
+          commits.push((event as ImageEvent).detail),
         );
 
         // A repeated settlement for the same era commits nothing twice

@@ -1,6 +1,6 @@
 import { createLifecycle, mutable, setStaticTracker } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
-import { aria, selectionGroup, type CheckboxProps } from '../../src/index.js';
+import { aria, selectionGroup, type CheckboxEvent, type CheckboxProps, type SelectionEvent } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 describe('Checkbox - Coverage (events, guards & teardown completeness)', () => {
@@ -19,10 +19,10 @@ describe('Checkbox - Coverage (events, guards & teardown completeness)', () => {
 
           const seen: Array<{ type: string; detail: unknown }> = [];
           el.addEventListener('change', (event) => {
-            seen.push({ type: 'change', detail: (event as CustomEvent).detail });
+            seen.push({ type: 'change', detail: (event as SelectionEvent).detail });
           });
           el.addEventListener('input', (event) => {
-            seen.push({ type: 'input', detail: (event as CustomEvent).detail });
+            seen.push({ type: 'input', detail: (event as CheckboxEvent).detail });
           });
 
           el.click();
@@ -156,7 +156,7 @@ describe('Checkbox - Coverage (events, guards & teardown completeness)', () => {
 
           const seen: unknown[] = [];
           el.addEventListener('change', (event) => {
-            seen.push((event as CustomEvent).detail);
+            seen.push((event as SelectionEvent).detail);
           });
 
           cb.deselect();

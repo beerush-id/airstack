@@ -3,6 +3,16 @@ import { Aria } from '../core.js';
 import type { AriaAttributes, AriaOptions, AriaProps, BaseElement, DetachFn } from '../types.js';
 
 /**
+ * Controller-dispatched file-picker event carrying the chosen files in `detail`.
+ */
+export type FilePickerEvent = CustomEvent<File[]>;
+
+/**
+ * Controller-dispatched file-picker cancellation event.
+ */
+export type FilePickerCancelEvent = CustomEvent<void>;
+
+/**
  * Reactive input properties for FilePickerAria.
  */
 export interface FilePickerProps extends AriaProps {

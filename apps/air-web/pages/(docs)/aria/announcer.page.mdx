@@ -5,30 +5,50 @@ nav: 'Announcer'
 nav-priority: 610
 ---
 
-# Announcer
+# AirLib Headless Announcer
 
-Dynamic updates such as error alerts, save confirmations, chat messages, countdowns, and tickers need to reach assistive technologies without pulling focus away from what the user is doing. A message rendered without a live region is often never announced at all; every update declared interruptive drowns out the current task; moving focus to the message destroys the user's place entirely.
+Screen-reader announcements fail in three familiar ways: a status message rendered into a plain `<div>` is never announced at all; a region that marks everything assertive interrupts the user mid-task; and moving focus to the message destroys their place on the page. **AirLib Headless Announcer** (`aria('announcer')`) turns any element into the single live region your UI announces through — polite, whole-message reads by default, with assertive urgency compiling the interrupting `alert` role in place, without dictating markup or styles.
 
-`@airlib/aria` provides a headless behavioral bridge for the single announcer entity. It compiles the live-region announcement contract with polite, whole-message announcements by default, and the author adjusts interruption and scope per pattern — alert, status, log, timer, marquee — without redeclaring the unchanged remainder.
+```tsx
+const announcer = aria('announcer', props);
 
-You compose an announcer using this piece:
+<div ref={announcer.ref} {...announcer.props}>
+  Draft saved
+</div>
+```
 
-- **Announcer**: The single live-region entity that announces polite, whole-message updates and tunes interruption and scope per pattern.
+:::interactive[Announcer Overview]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
 
-## What you get
+type DemoAnnouncerProps = ComponentProps<'div'> & {
+  politeness?: 'polite' | 'assertive' | 'off';
+};
 
-- **Polite, whole-message starting point.** Waits for the current utterance to finish and announces a replacement in full, without moving focus.
-- **Per-pattern interruption control.** One prop selects waiting, interrupting, or staying silent, leaving the remaining outputs untouched.
-- **Per-pattern scope control.** One prop selects whole-region versus changed-node announcement, with the non-default choice written out explicitly.
-- **Loading suppression on request.** Marks the region busy only while it is still updating, so partial content stays unannounced.
-- **Change-kind filtering on request.** Observes only the edits the author names, staying silent for everything else.
-- **Unnamed, focus-free container.** Compiles no name and owns no keyboard behavior — label the element itself when the region needs a name beyond its text.
+const DemoAnnouncer = setup<DemoAnnouncerProps>((props) => {
+  const announcer = aria('announcer', props);
+
+  return () => (
+    <div ref={announcer.ref} {...announcer.restProps(['children'])} className="p-4 max-w-sm border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 text-sm text-zinc-800 dark:text-zinc-200">
+      {props.children}
+    </div>
+  );
+}, 'DemoAnnouncer');
+```
+
+<div className="flex flex-col gap-3 max-w-sm">
+  <DemoAnnouncer>Draft saved</DemoAnnouncer>
+  <DemoAnnouncer politeness="assertive">Deployment failed: 3 type errors in src/index.ts</DemoAnnouncer>
+</div>
+:::
 
 ## Alert
 
 For urgent failures — a deployment failure, an expired session, a validation error — that cannot wait for the current utterance to finish.
 
-Tuned to `politeness: 'assertive'` with atomic whole-message announcement, so the message interrupts and is read in full.
+Tuned to `politeness: 'assertive'`, so the message interrupts and is read in full as `role="alert"`.
 
 ```ts
 aria<E extends BaseElement = HTMLElement>(
@@ -38,26 +58,7 @@ aria<E extends BaseElement = HTMLElement>(
 ): AnnouncerAria<E>
 ```
 
-### Parameters
-
-- `props.politeness` *('polite' | 'assertive' | 'off', optional, default `'polite'`)*: Announcement priority, compiled to `aria-live`. Urgent alerts set `'assertive'`.
-- `props.atomic` *(boolean, optional, default `true`)*: Whether the whole region is announced as one unit, compiled to `aria-atomic`.
-- `props.busy` *(boolean, optional)*: Suppresses announcements while the region is updating, compiled to `aria-busy` when true.
-- `props.relevant` *(string, optional)*: Change kinds to monitor, compiled to `aria-relevant`.
-
-The controller compiles no accessible name of its own. Bind `aria-label` on the element when the message needs one beyond its text.
-
-### How it behaves
-
-The container is compiled with `role="status"`, `aria-live` resolved from `politeness`, and `aria-atomic` written whenever it is true or explicitly set. `aria-busy` and `aria-relevant` are emitted only when provided, so an idle announcer carries no redundant state. The announcer takes no focus and owns no keyboard behavior: the container must already be in the DOM before content is inserted, or assistive technologies never register it.
-
-:::tip[Mount the container before the message]
-Assistive technologies register the live observer when the container appears. An alert rendered together with its text — `{error && <Alert>{error}</Alert>}` — is frequently never announced. Keep the container mounted and write the message into it, clearing it back to empty rather than unmounting.
-:::
-
 ### Usage
-
-To announce urgently, create the region with `aria('announcer', inherit(props, { politeness: 'assertive' }))`, then pass `announcer.ref` and spread `announcer.attributes` onto your message container:
 
 :::code-group
 
@@ -75,22 +76,12 @@ type AlertProps = ComponentProps<'div'> & {
 
 const Alert = setup<AlertProps>((props) => {
   const announcer = aria('announcer', inherit(props, { politeness: 'assertive' }));
-  const restProps = props.$omit([
-    ...announcer.ownKeys,
-    'atomic',
-    'busy',
-    'relevant',
-    'label',
-    'children',
-    'className',
-  ]);
 
   return () => (
     <div
       ref={announcer.ref}
       aria-label={props.label}
-      {...restProps}
-      {...announcer.attributes}
+      {...announcer.restProps(['label', 'children', 'className'])}
       className={props.className}
     >
       {props.children}
@@ -113,22 +104,12 @@ type AlertProps = ComponentProps<'div'> & {
 
 const Alert = setup<AlertProps>((props) => {
   const announcer = aria('announcer', inherit(props, { politeness: 'assertive' }));
-  const restProps = props.$omit([
-    ...announcer.ownKeys,
-    'atomic',
-    'busy',
-    'relevant',
-    'label',
-    'children',
-    'className',
-  ]);
 
   return (
     <div
       ref={announcer.ref}
       aria-label={props.label}
-      {...restProps}
-      {...announcer.attributes}
+      {...announcer.restProps(['label', 'children', 'className'])}
       className={props.className}
     >
       {props.children}
@@ -139,7 +120,22 @@ const Alert = setup<AlertProps>((props) => {
 
 :::
 
-The tuning props are controller inputs, not HTML attributes, so they are omitted from the forwarded rest props alongside `label` and `className`.
+### Parameters
+
+- `props.politeness` *('polite' | 'assertive' | 'off', optional, default `'polite'`)*: Announcement priority, compiled to `aria-live`. Urgent alerts set `'assertive'`, which also flips the compiled role to `alert`.
+- `props.atomic` *(boolean, optional, default `true`)*: Whether the whole region is announced as one unit, compiled to `aria-atomic`.
+- `props.busy` *(boolean, optional)*: Suppresses announcements while the region is updating, compiled to `aria-busy` when set.
+- `props.relevant` *(string, optional)*: Change kinds to monitor, compiled to `aria-relevant`.
+
+The controller compiles no accessible name of its own. Bind `aria-label` on the element when the message needs one beyond its text.
+
+### How it behaves
+
+The container is compiled with `role="alert"`, `aria-live="assertive"`, and `aria-atomic` written whenever it is true or explicitly set. `aria-busy` and `aria-relevant` are emitted only when provided, so an idle announcer carries no redundant state. The announcer takes no focus and owns no keyboard behavior: the container must already be in the DOM before content is inserted, or assistive technologies never register it.
+
+:::tip[Mount the container before the message]
+Assistive technologies register the live observer when the container appears. An alert rendered together with its text — `{error && <Alert>{error}</Alert>}` — is frequently never announced. Keep the container mounted and write the message into it, clearing it back to empty rather than unmounting.
+:::
 
 ### Putting It Together
 
@@ -152,19 +148,33 @@ Once your component is wired with `aria('announcer', { politeness: 'assertive' }
 ```
 
 :::interactive[Alert Interactive Demo]
+```tsx
+import { aria } from '@airlib/aria';
+import { inherit, setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type DemoAlertProps = ComponentProps<'div'> & {
+  atomic?: boolean;
+};
+
+const DemoAlert = setup<DemoAlertProps>((props) => {
+  const announcer = aria('announcer', inherit(props, { politeness: 'assertive' }));
+
+  return () => (
+    <div ref={announcer.ref} {...announcer.restProps(['children'])} className="p-3 rounded-lg border border-red-300 dark:border-red-500/50 bg-red-50 dark:bg-red-950/40 text-sm text-red-800 dark:text-red-200">
+      {props.children}
+    </div>
+  );
+}, 'DemoAlert');
+```
+
 <div className="flex flex-col gap-3 max-w-sm">
-  <Alert
-    label="Deployment status"
-    className="flex items-start gap-2 p-3 rounded-lg border border-red-300 dark:border-red-500/50 bg-red-50 dark:bg-red-950/40 text-sm text-red-800 dark:text-red-200"
-  >
+  <DemoAlert>
     Deployment failed: 3 type errors in src/index.ts
-  </Alert>
-  <Alert
-    atomic={false}
-    className="flex items-start gap-2 p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 text-sm text-zinc-600 dark:text-zinc-400"
-  >
+  </DemoAlert>
+  <DemoAlert atomic={false}>
     Non-atomic alert: only the changed node is announced, not the whole message
-  </Alert>
+  </DemoAlert>
 </div>
 :::
 
@@ -188,26 +198,7 @@ aria<E extends BaseElement = HTMLElement>(
 ): AnnouncerAria<E>
 ```
 
-### Parameters
-
-- `props.politeness` *('polite' | 'assertive' | 'off', optional, default `'polite'`)*: Announcement priority, compiled to `aria-live`.
-- `props.atomic` *(boolean, optional, default `true`)*: Whether the whole region is announced as one unit, compiled to `aria-atomic`.
-- `props.busy` *(boolean, optional)*: Suppresses announcements while the result is loading, compiled to `aria-busy` when true.
-- `props.relevant` *(string, optional)*: Change kinds to monitor, compiled to `aria-relevant`.
-
-The controller compiles no accessible name of its own. Bind `aria-label` on the element when the result needs a name beyond its text.
-
-### How it behaves
-
-The container is compiled with `role="status"` and `aria-live` resolved from `politeness`, which defaults to `polite`. `aria-atomic` is written when it is true or explicitly set, and `aria-busy` and `aria-relevant` are emitted only when provided.
-
-:::tip[Status is not a validation error]
-A field error the user must act on belongs in an assertive announcer (see [Alert](#alert)), or better, in `aria-invalid` plus `aria-describedby` on the field itself. The default polite announcer is for results that are useful to hear and safe to miss — reserve the interrupting channel for things that are not.
-:::
-
 ### Usage
-
-To use Status, create the region with `aria('announcer', props)`, then pass `announcer.ref` and spread `announcer.attributes` onto your message container:
 
 :::code-group
 
@@ -226,23 +217,12 @@ type StatusProps = ComponentProps<'div'> & {
 
 const Status = setup<StatusProps>((props) => {
   const announcer = aria('announcer', props);
-  const restProps = props.$omit([
-    ...announcer.ownKeys,
-    'politeness',
-    'atomic',
-    'busy',
-    'relevant',
-    'label',
-    'children',
-    'className',
-  ]);
 
   return () => (
     <div
       ref={announcer.ref}
       aria-label={props.label}
-      {...restProps}
-      {...announcer.attributes}
+      {...announcer.restProps(['label', 'children', 'className'])}
       className={props.className}
     >
       {props.children}
@@ -266,23 +246,12 @@ type StatusProps = ComponentProps<'div'> & {
 
 const Status = setup<StatusProps>((props) => {
   const announcer = aria('announcer', props);
-  const restProps = props.$omit([
-    ...announcer.ownKeys,
-    'politeness',
-    'atomic',
-    'busy',
-    'relevant',
-    'label',
-    'children',
-    'className',
-  ]);
 
   return (
     <div
       ref={announcer.ref}
       aria-label={props.label}
-      {...restProps}
-      {...announcer.attributes}
+      {...announcer.restProps(['label', 'children', 'className'])}
       className={props.className}
     >
       {props.children}
@@ -291,6 +260,23 @@ const Status = setup<StatusProps>((props) => {
 });
 ```
 
+:::
+
+### Parameters
+
+- `props.politeness` *('polite' | 'assertive' | 'off', optional, default `'polite'`)*: Announcement priority, compiled to `aria-live`.
+- `props.atomic` *(boolean, optional, default `true`)*: Whether the whole region is announced as one unit, compiled to `aria-atomic`.
+- `props.busy` *(boolean, optional)*: Suppresses announcements while the result is loading, compiled to `aria-busy` when set.
+- `props.relevant` *(string, optional)*: Change kinds to monitor, compiled to `aria-relevant`.
+
+The controller compiles no accessible name of its own. Bind `aria-label` on the element when the result needs a name beyond its text.
+
+### How it behaves
+
+The container is compiled with `role="status"` and `aria-live` resolved from `politeness`, which defaults to `polite`. `aria-atomic` is written when it is true or explicitly set, and `aria-busy` and `aria-relevant` are emitted only when provided.
+
+:::tip[Status is not a validation error]
+A field error the user must act on belongs in an assertive announcer (see [Alert](#alert)), or better, in `aria-invalid` plus `aria-describedby` on the field itself. The default polite announcer is for results that are useful to hear and safe to miss — reserve the interrupting channel for things that are not.
 :::
 
 ### Putting It Together
@@ -303,24 +289,44 @@ Once your component is wired with `aria('announcer')`, keep it mounted next to t
 ```
 
 :::interactive[Status Interactive Demo]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type DemoStatusProps = ComponentProps<'div'> & {
+  busy?: boolean;
+};
+
+const DemoStatus = setup<DemoStatusProps>((props) => {
+  const announcer = aria('announcer', props);
+
+  return () => (
+    <div ref={announcer.ref} {...announcer.restProps(['children'])} className="text-zinc-500 dark:text-zinc-400">
+      {props.children}
+    </div>
+  );
+}, 'DemoStatus');
+```
+
 <div className="flex flex-col gap-3 p-4 max-w-sm border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 text-sm">
   <div className="flex items-center justify-between gap-3">
     <span className="text-zinc-800 dark:text-zinc-200">Draft saved</span>
-    <Status label="Save result" className="text-zinc-500 dark:text-zinc-400">
+    <DemoStatus>
       Saved 2 minutes ago
-    </Status>
+    </DemoStatus>
   </div>
   <div className="flex items-center justify-between gap-3">
     <span className="text-zinc-800 dark:text-zinc-200">Search results</span>
-    <Status label="Result count" className="text-zinc-500 dark:text-zinc-400">
+    <DemoStatus>
       5 documents found
-    </Status>
+    </DemoStatus>
   </div>
   <div className="flex items-center justify-between gap-3">
     <span className="text-zinc-400 dark:text-zinc-500">Fetching totals</span>
-    <Status label="Totals" busy={true} className="text-zinc-400 dark:text-zinc-600">
+    <DemoStatus busy={true}>
       Calculating…
-    </Status>
+    </DemoStatus>
   </div>
 </div>
 :::
@@ -345,26 +351,7 @@ aria<E extends BaseElement = HTMLElement>(
 ): AnnouncerAria<E>
 ```
 
-### Parameters
-
-- `props.politeness` *('polite' | 'assertive' | 'off', optional, default `'polite'`)*: Announcement priority, compiled to `aria-live`.
-- `props.atomic` *(boolean, optional, default `true`)*: Whether the whole stream is announced as one unit. Logs set `false`, which is written explicitly so the history is never re-read.
-- `props.busy` *(boolean, optional)*: Suppresses announcements while entries are being fetched, compiled to `aria-busy` when true.
-- `props.relevant` *(string, optional)*: Change kinds to monitor, compiled to `aria-relevant`.
-
-The controller compiles no accessible name of its own. Bind `aria-label` on the element so the stream is announced by purpose, such as "Chat messages".
-
-### How it behaves
-
-The container is compiled with `role="status"` and `aria-live` resolved from `politeness`. Setting `atomic: false` writes `aria-atomic="false"` explicitly — re-reading the whole stream is exactly what a log must not do. `aria-busy` and `aria-relevant` are emitted only when provided. Announcement tuning is author-set props rather than engine configuration.
-
-:::tip[Newest last]
-A log is announced in source order, so append new entries at the end and keep older ones above. Prepending puts each new message after the last announcement in reading order, which reads as a stream running backwards.
-:::
-
 ### Usage
-
-To use Log, create the region with `aria('announcer', inherit(props, { atomic: false }))`, then pass `announcer.ref` and spread `announcer.attributes` onto your stream container:
 
 :::code-group
 
@@ -382,18 +369,9 @@ type LogProps = ComponentProps<'ul'> & {
 
 const Log = setup<LogProps>((props) => {
   const announcer = aria('announcer', inherit(props, { atomic: false }));
-  const restProps = props.$omit([
-    ...announcer.ownKeys,
-    'politeness',
-    'busy',
-    'relevant',
-    'label',
-    'children',
-    'className',
-  ]);
 
   return () => (
-    <ul ref={announcer.ref} aria-label={props.label} {...restProps} {...announcer.attributes} className={props.className}>
+    <ul ref={announcer.ref} aria-label={props.label} {...announcer.restProps(['label', 'children', 'className'])} className={props.className}>
       {props.children}
     </ul>
   );
@@ -414,18 +392,9 @@ type LogProps = ComponentProps<'ul'> & {
 
 const Log = setup<LogProps>((props) => {
   const announcer = aria('announcer', inherit(props, { atomic: false }));
-  const restProps = props.$omit([
-    ...announcer.ownKeys,
-    'politeness',
-    'busy',
-    'relevant',
-    'label',
-    'children',
-    'className',
-  ]);
 
   return (
-    <ul ref={announcer.ref} aria-label={props.label} {...restProps} {...announcer.attributes} className={props.className}>
+    <ul ref={announcer.ref} aria-label={props.label} {...announcer.restProps(['label', 'children', 'className'])} className={props.className}>
       {props.children}
     </ul>
   );
@@ -434,7 +403,22 @@ const Log = setup<LogProps>((props) => {
 
 :::
 
-The host is a `<ul>` here because a log is a list, but the controller binds to any container — the role is compiled explicitly, so a `<div>` host works identically.
+### Parameters
+
+- `props.politeness` *('polite' | 'assertive' | 'off', optional, default `'polite'`)*: Announcement priority, compiled to `aria-live`.
+- `props.atomic` *(boolean, optional, default `true`)*: Whether the whole stream is announced as one unit. Logs set `false`, which is written explicitly so the history is never re-read.
+- `props.busy` *(boolean, optional)*: Suppresses announcements while entries are being fetched, compiled to `aria-busy` when set.
+- `props.relevant` *(string, optional)*: Change kinds to monitor, compiled to `aria-relevant`.
+
+The controller compiles no accessible name of its own. Bind `aria-label` on the element so the stream is announced by purpose, such as "Chat messages".
+
+### How it behaves
+
+The container is compiled with `role="status"` and `aria-live` resolved from `politeness`. Setting `atomic: false` writes `aria-atomic="false"` explicitly — re-reading the whole stream is exactly what a log must not do. `aria-busy` and `aria-relevant` are emitted only when provided. Announcement tuning is author-set props rather than engine configuration.
+
+:::tip[Newest last]
+A log is announced in source order, so append new entries at the end and keep older ones above. Prepending puts each new message after the last announcement in reading order, which reads as a stream running backwards.
+:::
 
 ### Putting It Together
 
@@ -449,16 +433,32 @@ Once your component is wired with `aria('announcer', { atomic: false })`, append
 ```
 
 :::interactive[Log Interactive Demo]
-<Log
-  label="Build output"
-  relevant="additions"
-  className="flex flex-col gap-1.5 p-4 max-w-sm border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 text-sm text-zinc-600 dark:text-zinc-400 list-none"
->
+```tsx
+import { aria } from '@airlib/aria';
+import { inherit, setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type DemoLogProps = ComponentProps<'ul'> & {
+  relevant?: string;
+};
+
+const DemoLog = setup<DemoLogProps>((props) => {
+  const announcer = aria('announcer', inherit(props, { atomic: false }));
+
+  return () => (
+    <ul ref={announcer.ref} {...announcer.restProps(['children'])} className="flex flex-col gap-1.5 p-4 max-w-sm border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 text-sm text-zinc-600 dark:text-zinc-400 list-none">
+      {props.children}
+    </ul>
+  );
+}, 'DemoLog');
+```
+
+<DemoLog relevant="additions">
   <li>{'09:41:02 — compiling 128 modules'}</li>
   <li>{'09:41:04 — bundling client entry'}</li>
   <li>{'09:41:07 — bundling server entry'}</li>
-  <li className="text-zinc-900 dark:text-zinc-100">{'09:41:09 — build finished in 7.2s'}</li>
-</Log>
+  <li>{'09:41:09 — build finished in 7.2s'}</li>
+</DemoLog>
 :::
 
 ### Announcement Behavior
@@ -481,26 +481,7 @@ aria<E extends BaseElement = HTMLElement>(
 ): AnnouncerAria<E>
 ```
 
-### Parameters
-
-- `props.politeness` *('off' | 'polite' | 'assertive', optional, default `'polite'`)*: Announcement priority, compiled to `aria-live`. Counters set `'off'`.
-- `props.atomic` *(boolean, optional, default `true`)*: Whether the whole region is announced as one unit, compiled to `aria-atomic` when set or true.
-- `props.busy` *(boolean, optional)*: Suppresses announcements while the count is being recalculated, compiled to `aria-busy` when true.
-- `props.relevant` *(string, optional)*: Change kinds to monitor, compiled to `aria-relevant`.
-
-No ARIA attribute exists for elapsed time, so the count is held in your own component state and rendered as children — the controller owns only the announcement contract. The controller also compiles no accessible name — bind `aria-label` so the counter is announced as "Time remaining" rather than as a bare number.
-
-### How it behaves
-
-The container is compiled with `role="status"` and `aria-live="off"`. `aria-atomic` is written when it is true or explicitly set, and `aria-busy` and `aria-relevant` are emitted only when provided. Re-rendering the count writes no attributes, which is what keeps a per-second tick from producing per-second attribute churn.
-
-:::tip[Announce milestones from somewhere else]
-Keep the timer silent and push "5 minutes remaining" or "Session expired" into a polite or assertive announcer when the moment arrives. Flipping the timer's own `politeness` to `polite` announces every tick, not just the milestone.
-:::
-
 ### Usage
-
-To use Timer, create the silenced region with `aria('announcer', inherit(props, { politeness: 'off' }))`, then pass `announcer.ref` and spread `announcer.attributes` onto your display element:
 
 :::code-group
 
@@ -517,32 +498,17 @@ type TimerProps = ComponentProps<'div'> & {
 
 const Timer = setup<TimerProps>((props) => {
   const announcer = aria('announcer', inherit(props, { politeness: 'off' }));
-  const restProps = props.$omit([
-    ...announcer.ownKeys,
-    'atomic',
-    'busy',
-    'label',
-    'children',
-    'className',
-  ]);
 
-  return () => {
-    const liveAttrs = Object.fromEntries(
-      Object.entries(announcer.attributes).filter(([, value]) => value !== undefined),
-    );
-
-    return (
-      <div
-        ref={announcer.ref}
-        aria-label={props.label}
-        {...restProps}
-        {...liveAttrs}
-        className={props.className}
-      >
-        {props.children}
-      </div>
-    );
-  };
+  return () => (
+    <div
+      ref={announcer.ref}
+      aria-label={props.label}
+      {...announcer.restProps(['label', 'children', 'className'])}
+      className={props.className}
+    >
+      {props.children}
+    </div>
+  );
 }, 'Timer');
 ```
 
@@ -559,21 +525,12 @@ type TimerProps = ComponentProps<'div'> & {
 
 const Timer = setup<TimerProps>((props) => {
   const announcer = aria('announcer', inherit(props, { politeness: 'off' }));
-  const restProps = props.$omit([
-    ...announcer.ownKeys,
-    'atomic',
-    'busy',
-    'label',
-    'children',
-    'className',
-  ]);
 
   return (
     <div
       ref={announcer.ref}
       aria-label={props.label}
-      {...restProps}
-      {...announcer.attributes}
+      {...announcer.restProps(['label', 'children', 'className'])}
       className={props.className}
     >
       {props.children}
@@ -582,6 +539,23 @@ const Timer = setup<TimerProps>((props) => {
 });
 ```
 
+:::
+
+### Parameters
+
+- `props.politeness` *('off' | 'polite' | 'assertive', optional, default `'polite'`)*: Announcement priority, compiled to `aria-live`. Counters set `'off'`.
+- `props.atomic` *(boolean, optional, default `true`)*: Whether the whole region is announced as one unit, compiled to `aria-atomic` when set or true.
+- `props.busy` *(boolean, optional)*: Suppresses announcements while the count is being recalculated, compiled to `aria-busy` when set.
+- `props.relevant` *(string, optional)*: Change kinds to monitor, compiled to `aria-relevant`.
+
+No ARIA attribute exists for elapsed time, so the count is held in your own component state and rendered as children — the controller owns only the announcement contract. The controller also compiles no accessible name — bind `aria-label` so the counter is announced as "Time remaining" rather than as a bare number.
+
+### How it behaves
+
+The container is compiled with `role="status"` and `aria-live="off"`. `aria-atomic` is written when it is true or explicitly set, and `aria-busy` and `aria-relevant` are emitted only when provided. Re-rendering the count writes no attributes, which is what keeps a per-second tick from producing per-second attribute churn.
+
+:::tip[Announce milestones from somewhere else]
+Keep the timer silent and push "5 minutes remaining" or "Session expired" into a polite or assertive announcer when the moment arrives. Flipping the timer's own `politeness` to `polite` announces every tick, not just the milestone.
 :::
 
 ### Putting It Together
@@ -594,24 +568,38 @@ Once your component is wired with `aria('announcer', { politeness: 'off' })`, le
 ```
 
 :::interactive[Timer Interactive Demo]
+```tsx
+import { aria } from '@airlib/aria';
+import { inherit, setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type DemoTimerProps = ComponentProps<'div'> & {
+  label?: string;
+};
+
+const DemoTimer = setup<DemoTimerProps>((props) => {
+  const announcer = aria('announcer', inherit(props, { politeness: 'off' }));
+
+  return () => (
+    <div ref={announcer.ref} aria-label={props.label} {...announcer.restProps(['label', 'children'])} className="font-mono text-base tabular-nums text-zinc-900 dark:text-zinc-100">
+      {props.children}
+    </div>
+  );
+}, 'DemoTimer');
+```
+
 <div className="flex flex-col gap-3 p-4 max-w-sm border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 text-sm">
   <div className="flex items-center justify-between gap-3">
     <span className="text-zinc-500 dark:text-zinc-400">Time remaining</span>
-    <Timer
-      label="Time remaining"
-      className="font-mono text-base tabular-nums text-zinc-900 dark:text-zinc-100"
-    >
+    <DemoTimer label="Time remaining">
       {'02:35'}
-    </Timer>
+    </DemoTimer>
   </div>
   <div className="flex items-center justify-between gap-3">
     <span className="text-zinc-500 dark:text-zinc-400">Elapsed</span>
-    <Timer
-      label="Elapsed time"
-      className="font-mono text-base tabular-nums text-zinc-900 dark:text-zinc-100"
-    >
+    <DemoTimer label="Elapsed time">
       {'30:42'}
-    </Timer>
+    </DemoTimer>
   </div>
   <div className="text-zinc-400 dark:text-zinc-600">
     Both counters are silent: <code>aria-live="off"</code> is compiled, so the per-second tick is never announced.
@@ -639,26 +627,7 @@ aria<E extends BaseElement = HTMLElement>(
 ): AnnouncerAria<E>
 ```
 
-### Parameters
-
-- `props.politeness` *('off' | 'polite' | 'assertive', optional, default `'polite'`)*: Announcement priority, compiled to `aria-live`. Tickers set `'off'`.
-- `props.atomic` *(boolean, optional)*: Whether the whole region is announced as one unit, compiled to `aria-atomic` when set or true.
-- `props.busy` *(boolean, optional)*: Suppresses announcements while the ticker reloads, compiled to `aria-busy` when true.
-- `props.relevant` *(string, optional)*: Change kinds to monitor, compiled to `aria-relevant`.
-
-No ARIA attribute exists for a paused ticker, so the pause state lives in your own component state; suspending the animation and rendering the control that toggles it stay with the consumer. The controller also compiles no accessible name — bind `aria-label` so the region is announced as "Market ticker" rather than as a strip of numbers.
-
-### How it behaves
-
-The container is compiled with `role="status"` and `aria-live="off"`. `aria-atomic` is written when it is true or explicitly set, and `aria-busy` and `aria-relevant` are emitted only when provided. A pause control toggling rapidly produces no attribute churn, because the controller owns only the announcement contract.
-
-:::tip[Always ship the pause control]
-The pattern is not complete without a way to stop the movement: a rotating ticker is unreadable for users who need more time, and a pause control is also what makes the content reachable. Hold the pause flag in your own state and suspend the animation yourself — the controller compiles the semantics, but it owns no motion.
-:::
-
 ### Usage
-
-To use Marquee, create the silenced region with `aria('announcer', inherit(props, { politeness: 'off' }))`, then pass `announcer.ref` and spread `announcer.attributes` onto your ticker container:
 
 :::code-group
 
@@ -675,21 +644,12 @@ type MarqueeProps = ComponentProps<'div'> & {
 
 const Marquee = setup<MarqueeProps>((props) => {
   const announcer = aria('announcer', inherit(props, { politeness: 'off' }));
-  const restProps = props.$omit([
-    ...announcer.ownKeys,
-    'atomic',
-    'busy',
-    'label',
-    'children',
-    'className',
-  ]);
 
   return () => (
     <div
       ref={announcer.ref}
       aria-label={props.label}
-      {...restProps}
-      {...announcer.attributes}
+      {...announcer.restProps(['label', 'children', 'className'])}
       className={props.className}
     >
       {props.children}
@@ -711,21 +671,12 @@ type MarqueeProps = ComponentProps<'div'> & {
 
 const Marquee = setup<MarqueeProps>((props) => {
   const announcer = aria('announcer', inherit(props, { politeness: 'off' }));
-  const restProps = props.$omit([
-    ...announcer.ownKeys,
-    'atomic',
-    'busy',
-    'label',
-    'children',
-    'className',
-  ]);
 
   return (
     <div
       ref={announcer.ref}
       aria-label={props.label}
-      {...restProps}
-      {...announcer.attributes}
+      {...announcer.restProps(['label', 'children', 'className'])}
       className={props.className}
     >
       {props.children}
@@ -734,6 +685,23 @@ const Marquee = setup<MarqueeProps>((props) => {
 });
 ```
 
+:::
+
+### Parameters
+
+- `props.politeness` *('off' | 'polite' | 'assertive', optional, default `'polite'`)*: Announcement priority, compiled to `aria-live`. Tickers set `'off'`.
+- `props.atomic` *(boolean, optional)*: Whether the whole region is announced as one unit, compiled to `aria-atomic` when set or true.
+- `props.busy` *(boolean, optional)*: Suppresses announcements while the ticker reloads, compiled to `aria-busy` when set.
+- `props.relevant` *(string, optional)*: Change kinds to monitor, compiled to `aria-relevant`.
+
+No ARIA attribute exists for a paused ticker, so the pause state lives in your own component state; suspending the animation and rendering the control that toggles it stay with the consumer. The controller also compiles no accessible name — bind `aria-label` so the region is announced as "Market ticker" rather than as a strip of numbers.
+
+### How it behaves
+
+The container is compiled with `role="status"` and `aria-live="off"`. `aria-atomic` is written when it is true or explicitly set, and `aria-busy` and `aria-relevant` are emitted only when provided. A pause control toggling rapidly produces no attribute churn, because the controller owns only the announcement contract.
+
+:::tip[Always ship the pause control]
+The pattern is not complete without a way to stop the movement: a rotating ticker is unreadable for users who need more time, and a pause control is also what makes the content reachable. Hold the pause flag in your own state and suspend the animation yourself — the controller compiles the semantics, but it owns no motion.
 :::
 
 ### Putting It Together
@@ -752,23 +720,37 @@ Once your component is wired with `aria('announcer', { politeness: 'off' })`, pa
 ```
 
 :::interactive[Marquee Interactive Demo]
+```tsx
+import { aria } from '@airlib/aria';
+import { inherit, setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type DemoMarqueeProps = ComponentProps<'div'> & {
+  label?: string;
+};
+
+const DemoMarquee = setup<DemoMarqueeProps>((props) => {
+  const announcer = aria('announcer', inherit(props, { politeness: 'off' }));
+
+  return () => (
+    <div ref={announcer.ref} aria-label={props.label} {...announcer.restProps(['label', 'children'])} className="flex items-center gap-4 overflow-hidden p-3 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 text-sm tabular-nums text-zinc-700 dark:text-zinc-300">
+      {props.children}
+    </div>
+  );
+}, 'DemoMarquee');
+```
+
 <div className="flex flex-col gap-3 max-w-sm">
-  <Marquee
-    label="Market ticker"
-    className="flex items-center gap-4 overflow-hidden p-3 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 text-sm tabular-nums text-zinc-700 dark:text-zinc-300"
-  >
+  <DemoMarquee label="Market ticker">
     <span>AIR 128.40 +2.1%</span>
     <span>RSH 64.12 −0.8%</span>
     <span>ANR 310.05 +0.4%</span>
-  </Marquee>
-  <Marquee
-    label="Market ticker"
-    className="flex items-center gap-4 overflow-hidden p-3 border border-dashed border-zinc-300 dark:border-zinc-700 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 text-sm tabular-nums text-zinc-500 dark:text-zinc-400"
-  >
+  </DemoMarquee>
+  <DemoMarquee label="Market ticker paused">
     <span>AIR 128.40 +2.1%</span>
     <span>RSH 64.12 −0.8%</span>
-    <span className="ml-auto text-xs uppercase tracking-wide">paused</span>
-  </Marquee>
+    <span>ANR 310.05 +0.4%</span>
+  </DemoMarquee>
 </div>
 :::
 
@@ -778,13 +760,17 @@ Once your component is wired with `aria('announcer', { politeness: 'off' })`, pa
 - **On pause**: the content stops moving so it can be read, and the announcement policy is unchanged.
 - **Focus**: never moves, and the ticker takes no tab stop; the pause control beside it is what the user reaches.
 
+## What you get
+
+- **One region for every announcement.** Polite status by default; assertive urgency flips the compiled role to `alert` in place — no second entity, no remount.
+- **Whole-message reads.** Atomic by default, so a replacement reads in full; streams opt out per pattern with `atomic={false}`.
+- **Silence on request.** `politeness="off"` keeps counters and tickers identified but unnarrated, with milestones announced from a separate region.
+- **Loading suppression.** `busy` holds announcements until the update lands, so partial content is never read out.
+- **Zero focus theft.** Regions never take focus, tab stops, or keystrokes — mount the container before the message and write into it.
+
 ## Next Steps
 
-- **[Status](/docs/aria/announcer#status)**: The advisory counterpart for results that should not interrupt.
-- **[Log](/docs/aria/announcer#log)**: Sequential streams where each entry is announced on its own.
 - **[Text Input](/docs/aria/text-input)**: The validation states that usually trigger an alert.
-- **[Alert](/docs/aria/announcer#alert)**: The interrupting counterpart for messages that cannot wait.
-- **[Progressbar](/docs/aria/progressbar)**: Report ongoing work as a value instead of as narration.
-- **[Marquee](/docs/aria/announcer#marquee)**: The opposite case — content that changes too fast to announce.
-- **[Timer](/docs/aria/announcer#timer)**: The other silent region, for counts that change on a schedule.
+- **[Progress](/docs/aria/progress)**: Report ongoing work as a value instead of as narration.
 - **[Section](/docs/aria/section)**: Wrap a persistent ticker section as a named landmark.
+- **[Overview](/docs/aria)**: The attribute and ref contract every controller shares.

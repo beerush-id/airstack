@@ -4,6 +4,16 @@ import type { AriaAttributes, AriaInvalid, AriaOptions, AriaProps, BaseElement, 
 import { ariaBoolean, ariaInvalid, ariaRequired } from '../utils/attributes.js';
 
 /**
+ * Controller-dispatched text-input event carrying the committed text in `detail`.
+ */
+export type TextInputEvent = CustomEvent<string>;
+
+/**
+ * Controller-dispatched search-input event carrying the committed query in `detail`.
+ */
+export type SearchInputEvent = CustomEvent<string>;
+
+/**
  * Configuration options for TextInputAria.
  */
 export interface TextInputOptions extends AriaOptions {

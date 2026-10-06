@@ -13,6 +13,11 @@ export const imageCtx = createContext<ImageAria>();
 export type ImageStatus = 'idle' | 'loading' | 'loaded' | 'error';
 
 /**
+ * Controller-dispatched image event carrying the lifecycle status in `detail`.
+ */
+export type ImageEvent = CustomEvent<ImageStatus>;
+
+/**
  * Reactive input properties for ImageAria.
  */
 export interface ImageProps extends AriaProps {

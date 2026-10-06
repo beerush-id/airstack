@@ -1,6 +1,6 @@
 import { createLifecycle, mutable, setStaticTracker } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
-import { aria } from '../../src/index.js';
+import { aria, type TextInputEvent } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 describe('TextInput - Coverage (guards & teardown completeness)', () => {
@@ -33,7 +33,7 @@ describe('TextInput - Coverage (guards & teardown completeness)', () => {
           const el = bind(document.createElement('div'), input);
 
           const commits: unknown[] = [];
-          el.addEventListener('change', (event) => commits.push((event as CustomEvent).detail));
+          el.addEventListener('change', (event) => commits.push((event as TextInputEvent).detail));
 
           el.dispatchEvent(new FocusEvent('blur', { bubbles: true }));
           expect(commits).toEqual([]);
@@ -135,7 +135,7 @@ describe('TextInput - Coverage (guards & teardown completeness)', () => {
 
           const second = document.createElement('div');
           const commits: unknown[] = [];
-          second.addEventListener('change', (event) => commits.push((event as CustomEvent).detail));
+          second.addEventListener('change', (event) => commits.push((event as TextInputEvent).detail));
           input.ref(second);
           document.body.appendChild(second);
 

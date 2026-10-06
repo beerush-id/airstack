@@ -146,7 +146,7 @@ export const navs: NavItem[] = [
   },
   {
     text: 'Timeline',
-    icon: () => <WorkflowIcon />,
+    icon: () => <TimelineIcon />,
     collapsed: true,
     items: toNavItems(timelineMeta),
   },
