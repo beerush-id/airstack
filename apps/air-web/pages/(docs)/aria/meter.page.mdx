@@ -1,0 +1,195 @@
+---
+title: 'Meter'
+description: 'Scalar gauge reporting with committed clamping, original units on both hosts, and a CSS-ready completion offset.'
+nav: 'Meter'
+nav-priority: 282
+---
+
+# AirLib Headless Meter
+
+A gauge looks like a filled track until the platform gets involved: over-range readings must commit to the nearer bound and stay committed when the interval moves, custom hosts must announce original units while native `<meter>` carries them directly, a `<meter>` has no naming attribute so the name must arrive as ARIA on both hosts, and none of it may ever take focus or keys. **AirLib Headless Meter** (`aria('meter')`) owns that discipline — one read-only gauge that reports honestly on either host, without dictating markup or styles.
+
+```tsx
+const gauge = aria('meter', props);
+
+<meter ref={gauge.ref} {...gauge.props} />
+```
+
+<style>{`.demo-meter{display:flex;flex-direction:column;gap:.5rem;max-width:20rem}.demo-metertrack{height:.5rem;width:100%;overflow:hidden;border-radius:9999px;background:#e4e4e7}.demo-meterfill{display:block;height:100%;width:var(--aria-meter-offset);border-radius:9999px;background:#18181b}.demo-meterlabel{font-size:.875rem;font-weight:500;color:#18181b}`}</style>
+
+:::interactive[Meter Across Both Hosts]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type DemoMeterProps = ComponentProps<'div'> & {
+  value?: number;
+  min?: number;
+  max?: number;
+  label: string;
+  valuetext?: string;
+};
+
+const DemoMeter = setup<DemoMeterProps>((props) => {
+  const gauge = aria('meter', props, { native: false });
+
+  return () => (
+    <div className="demo-meter">
+      <span className="demo-meterlabel">{props.label}</span>
+      <div ref={gauge.ref} {...gauge.props} className="demo-metertrack">
+        <span className="demo-meterfill" />
+      </div>
+    </div>
+  );
+}, 'DemoMeter');
+
+const DemoMeterNative = setup<DemoMeterProps>((props) => {
+  const gauge = aria('meter', props, { native: true });
+
+  return () => (
+    <div className="demo-meter">
+      <span className="demo-meterlabel">{props.label}</span>
+      <meter ref={gauge.ref} {...gauge.props} className="demo-metertrack" />
+    </div>
+  );
+}, 'DemoMeterNative');
+```
+
+<div className="inline-flex flex-col mx-auto gap-6">
+  <DemoMeter label="Disk usage" value={72} valuetext="72 percent full" />
+  <DemoMeter label="Signal overload" value={150} min={0} max={100} />
+  <DemoMeterNative label="Battery charge" value={45} min={10} max={90} />
+</div>
+:::
+
+## Meter
+
+Scalar gauge reporting within a known range, distinct from task completion.
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'meter',
+  props: MeterProps,
+  options?: MeterOptions
+): MeterAria<E>
+```
+
+### Usage
+
+:::code-group
+
+```tsx [React] executable
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type MeterProps = ComponentProps<'div'> & {
+  value?: number;
+  min?: number;
+  max?: number;
+  label: string;
+  valuetext?: string;
+};
+
+const Meter = setup<MeterProps>((props) => {
+  const gauge = aria('meter', props, { native: false });
+
+  return () => (
+    <div ref={gauge.ref} {...gauge.restProps(['children'])} className={props.className}>
+      <span className="meter-fill" />
+    </div>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type MeterProps = ComponentProps<'div'> & {
+  value?: number;
+  min?: number;
+  max?: number;
+  label: string;
+  valuetext?: string;
+};
+
+const Meter = setup<MeterProps>((props) => {
+  const gauge = aria('meter', props, { native: false });
+
+  return (
+    <div ref={gauge.ref} {...gauge.restProps(['children'])} className={props.className}>
+      <span className="meter-fill" />
+    </div>
+  );
+});
+```
+
+:::
+
+Style the fill against the published variable — no math in the component:
+
+```css
+.meter-fill {
+  display: block;
+  height: 100%;
+  width: var(--aria-meter-offset);
+}
+```
+
+For the native host, bind with `{ native: true }` and let the browser own the semantics — no role is emitted because `<meter>` implies it:
+
+```tsx
+const gauge = aria('meter', props, { native: true });
+
+<meter ref={gauge.ref} {...gauge.props} />
+```
+
+### Parameters
+
+- `props.value` *(number, optional)*: Measurement reading, committed clamped to `[min, max]`. Falls back to `min`.
+- `props.min` *(number, optional, default `0`)*: Lower bound in original units.
+- `props.max` *(number, optional, default `100`)*: Upper bound in original units.
+- `props.label` *(string, required)*: Accessible name compiled to `aria-label` on both hosts.
+- `props.valuetext` *(string, optional)*: Human-readable reading compiled to `aria-valuetext`.
+- `options.native` *(boolean, optional, default `false`)*: Set to `true` when bound to a native `<meter>` host.
+
+### How it behaves
+
+- Writes commit clamped: assigning past a bound stores the nearer bound, so the reading, the announcement, and the input agree. Moving the interval re-clamps a live reading that ends up past a bound toward the nearer one.
+- Both hosts speak original units with no zero-offset mapping — unlike progress, a gauge never rescales its interval.
+- Custom hosts compile `role="meter"` with `aria-valuenow` carrying the committed reading and the declared bounds beside it; native hosts carry `min`/`max`/`value` directly with no role and no ARIA value mirrors.
+- The accessible name is ARIA on both hosts: `<meter>` has no naming attribute, so `aria-label` is always compiled.
+- The indicator is non-interactive by contract: no `tabindex`, no keys claimed, no pointer claimed, focus never moves.
+- Fills size themselves from `--aria-meter-offset`, published on custom hosts in compiled `style`. Script consumers read the same percentage from `gauge.offset` (`0`–`100`, `0` when the range has no span) — the numeric content of the variable, with no conversion.
+
+## Putting It Together
+
+Once your components are wired with `aria(...)`, report readings that stay inside honest bounds:
+
+```tsx
+<div className="flex flex-col gap-4 max-w-sm">
+  <Meter label="Disk usage" value={72} valuetext="72 percent full" />
+  <Meter label="Signal overload" value={150} min={0} max={100} />
+  <Meter label="Battery charge" value={45} min={10} max={90} />
+</div>
+```
+
+## Keyboard Navigation
+
+- **None.** A meter is read-only: it takes no tab stop, claims no keys, and reports only the readings its author writes to it.
+
+## What you get
+
+- **Committed clamping.** Over-range writes land on the nearer bound and stay there when the interval moves.
+- **Original units everywhere.** Custom announcements and native attributes report the same reading with no rescaling.
+- **Named on both hosts.** `aria-label` compiles natively and custom alike, since `<meter>` cannot name itself.
+- **Zero interaction.** No tab stop, no keys, no pointer — the author writes, the gauge announces.
+
+## Next Steps
+
+- **[Progress](/docs/aria/progress)**: Task completion with indeterminate states and native interval mapping.
+- **[Slider](/docs/aria/slider)**: Bounded numeric entry with pointer drag and dual-thumb ranges.
+- **[Button](/docs/aria/button)**: Command and toggle button behavioral bridges.

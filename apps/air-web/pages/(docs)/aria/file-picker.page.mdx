@@ -1,0 +1,207 @@
+---
+title: 'File Picker'
+description: 'System file-picker triggering with media filtering and cancel detection across native and custom hosts.'
+nav: 'File Picker'
+nav-priority: 262
+---
+
+# AirLib Headless File Picker
+
+A file picker looks like a button until the platform gets involved: the real work happens in a hidden `<input type="file">` that must stay in sync with your filters, report dismissal as well as selection, and behave identically whether the visible trigger is a native button or a styled `<div>`. **AirLib Headless File Picker** (`aria('file-picker')`) owns that bridge — it creates the hidden input on attach, removes it on teardown, and forwards every activation to it, without dictating markup or styles.
+
+```tsx
+const picker = aria('file-picker', props);
+
+<button ref={picker.ref} {...picker.props} />
+```
+
+<style>{`.demo-filetrigger{display:inline-flex;align-items:center;gap:.5rem;padding:.5rem 1rem;border-radius:.5rem;border:1px solid #d4d4d8;background:#fff;font-size:.875rem;font-weight:500;color:#18181b;cursor:pointer;transition:border-color .15s,background-color .15s}.demo-filetrigger:hover{border-color:#18181b}.demo-filetrigger:disabled{background:#f4f4f5;cursor:not-allowed;opacity:.6}.demo-filetrigger[aria-disabled="true"]{background:#f4f4f5;cursor:not-allowed;opacity:.6}`}</style>
+
+:::interactive[Native and Custom File Pickers]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type DemoFilePickerProps = ComponentProps<'button'> & {
+  accept?: string;
+  multiple?: boolean;
+  disabled?: boolean;
+};
+
+const DemoFilePicker = setup<DemoFilePickerProps>((props) => {
+  const trigger = aria('file-picker', props);
+
+  return () => (
+    <button ref={trigger.ref} {...trigger.props} className="demo-filetrigger">
+      Choose files
+    </button>
+  );
+}, 'DemoFilePicker');
+
+const DemoFilePickerCustom = setup<DemoFilePickerProps>((props) => {
+  const trigger = aria<HTMLDivElement>('file-picker', props, { native: false });
+
+  return () => (
+    <div ref={trigger.ref} {...trigger.props} className="demo-filetrigger">
+      Browse
+    </div>
+  );
+}, 'DemoFilePickerCustom');
+```
+
+<div className="flex mx-auto gap-3 max-w-md flex-wrap">
+  <DemoFilePicker accept="image/*" />
+  <DemoFilePickerCustom accept="application/pdf" />
+  <DemoFilePicker disabled={true} />
+</div>
+:::
+
+## File Picker
+
+System file-picker activation over a hidden native input.
+
+```ts
+aria<E extends BaseElement = HTMLButtonElement>(
+  role: 'file-picker',
+  props?: FilePickerProps,
+  options?: FilePickerOptions
+): FilePickerAria<E>
+```
+
+### Usage
+
+:::code-group
+
+```tsx [React] executable
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type FilePickerProps = ComponentProps<'button'> & {
+  accept?: string;
+  multiple?: boolean;
+  capture?: 'user' | 'environment';
+  disabled?: boolean;
+};
+
+const FilePicker = setup<FilePickerProps>((props) => {
+  const trigger = aria('file-picker', props);
+
+  return () => (
+    <button ref={trigger.ref} {...trigger.restProps(['children', 'className'])} className={props.className}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type FilePickerProps = ComponentProps<'button'> & {
+  accept?: string;
+  multiple?: boolean;
+  capture?: 'user' | 'environment';
+  disabled?: boolean;
+};
+
+const FilePicker = setup<FilePickerProps>((props) => {
+  const trigger = aria('file-picker', props);
+
+  return (
+    <button ref={trigger.ref} {...trigger.restProps(['children', 'className'])} className={props.className}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+:::
+
+The compiled dictionary carries `type="button"` and `disabled` on native hosts, or `role="button"` with `tabindex` and `aria-disabled` on custom ones — never `accept`, `multiple`, or `capture`. Those live on the hidden input, not the trigger.
+
+### Parameters
+
+- `props.accept` *(string, optional)*: Accepted file types filter, synced onto the hidden input.
+- `props.multiple` *(boolean, optional)*: Multi-file selection flag, synced onto the hidden input.
+- `props.capture` *('user' | 'environment', optional)*: Media capture source for mobile devices.
+- `props.disabled` *(boolean, optional)*: Blocks the picker from opening.
+- `options.native` *(boolean, optional, default `true`)*: Bind a native `<button>`; set `false` for custom hosts.
+
+### Events
+
+Both events dispatch on the trigger element:
+
+```ts
+import type { FilePickerEvent } from '@airlib/aria';
+
+trigger.current?.addEventListener('change', (event) => {
+  const files = (event as FilePickerEvent).detail;
+});
+
+trigger.current?.addEventListener('cancel', () => {
+  // picker dismissed without a selection
+});
+```
+
+- `change`: `CustomEvent<File[]>` with `bubbles: true`, carrying the selected files.
+- `cancel`: `CustomEvent<void>` with `bubbles: false`, fired on picker dismissal without selection.
+
+### How it behaves
+
+- The hidden `<input type="file">` is created when the trigger binds and removed with it — teardown takes the internal host away, so no stray inputs linger in the document.
+- `accept`, `multiple`, and `capture` sync reactively: assigning new props updates the hidden input without rebinding.
+- Every activation bridges once: click, `Enter`, and `Space` each open the picker exactly once per gesture. A canceled initiating event (`defaultPrevented`) or `disabled` opens nothing.
+- Custom hosts get full button mechanics: `role="button"`, roving-safe `tabindex` (`-1` while disabled), `aria-disabled` announcements, suppressed `Space` scrolling with keyup activation, and immediate `Enter` activation.
+- The native `change` on the hidden input never replays to the page — exactly one announcement (the controller's) is observable per selection.
+
+## Putting It Together
+
+Once your components are wired with `aria(...)`, compose triggers with honest filters:
+
+```tsx
+<div className="flex flex-col gap-3 max-w-sm">
+  <DemoFilePicker accept="image/png,image/jpeg" multiple={true} />
+  <DemoFilePickerCustom accept="application/pdf" />
+  <DemoFilePicker disabled={true} />
+</div>
+```
+
+:::interactive[File Picker Interactive Demo]
+<div className="flex flex-col gap-3 p-4 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 max-w-sm text-sm text-zinc-800 dark:text-zinc-200">
+  <div className="flex flex-col gap-1.5">
+    <span className="font-medium">Images, multiple</span>
+    <div><DemoFilePicker accept="image/png,image/jpeg" multiple={true} /></div>
+  </div>
+  <div className="flex flex-col gap-1.5">
+    <span className="font-medium">Custom host, PDF only</span>
+    <div><DemoFilePickerCustom accept="application/pdf" /></div>
+  </div>
+  <div className="flex flex-col gap-1.5 opacity-60">
+    <span className="font-medium">Disabled</span>
+    <div><DemoFilePicker disabled={true} /></div>
+  </div>
+</div>
+:::
+
+## Keyboard Navigation
+
+- **Tab**: Focuses the trigger. Disabled hosts resolve to `tabindex="-1"` on custom elements and are skipped natively.
+- **Enter**: Opens the picker immediately on both hosts.
+- **Space**: Opens the picker on keyup for custom hosts (keydown scrolling is suppressed); left to the platform natively.
+
+## What you get
+
+- **Hidden input ownership.** Created on bind, constraint-synced while live, removed on teardown — never leaked, never hand-wired.
+- **Honest selection events.** One bubbling `change` carrying `File[]` per confirmation, one non-bubbling `cancel` per dismissal, nothing replayed.
+- **Inertness by default.** `disabled` and consumer cancellation both keep the picker closed on every host.
+- **Custom-host parity.** Non-semantic elements get the role, focus, keys, and announcements a native button has for free.
+
+## Next Steps
+
+- **[Button](/docs/aria/button)**: Command and toggle button behavioral bridges.
+- **[Text Input](/docs/aria/text-input)**: Live value synchronization with validation projection.
+- **[Image](/docs/aria/image)**: Status-reporting image hosts for previewing what was picked.

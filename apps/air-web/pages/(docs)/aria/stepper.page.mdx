@@ -1,0 +1,232 @@
+---
+title: 'Stepper'
+description: 'Coordinated numeric stepping with a group container, spinbutton input, and auto-disabling increment and decrement buttons.'
+nav: 'Stepper'
+nav-priority: 264
+---
+
+# AirLib Headless Stepper
+
+A quantity field looks like two buttons around a number until the platform gets involved: both buttons and the typed value must move one shared value, arrow and page keys must step it without stealing the rest, every write must clamp to bounds, each button must go inert at the bound it has nowhere left to go, and stepping announcements must fire while the interaction is live with the commit landing on blur. **AirLib Headless Stepper** (`aria('stepper')` + `aria('stepper-input')` + `aria('stepper-inc')` / `aria('stepper-dec')`) owns that coordination — a group container plus an input and two buttons that read from it, without dictating markup or styles.
+
+```tsx
+const stepper = aria('stepper', props);
+const input = aria('stepper-input', {}, { native: true });
+const increment = aria('stepper-inc');
+const decrement = aria('stepper-dec');
+
+<div ref={stepper.ref} {...stepper.props}>
+  <button ref={decrement.ref} {...decrement.props}>−</button>
+  <input ref={input.ref} {...input.props} />
+  <button ref={increment.ref} {...increment.props}>+</button>
+</div>
+```
+
+<style>{`.demo-stepper{display:inline-flex;align-items:stretch;border:1px solid #d4d4d8;border-radius:.75rem;overflow:hidden;background:#fff}.demo-stepperbtn{display:flex;width:2.5rem;align-items:center;justify-content:center;background:#fff;color:#52525b;border:0;cursor:pointer;font-size:1.125rem;line-height:1}.demo-stepperbtn:hover{background:#f4f4f5}.demo-stepperbtn[disabled]{opacity:.4;cursor:not-allowed}.demo-stepperfield{width:4rem;border:0;border-left:1px solid #d4d4d8;border-right:1px solid #d4d4d8;text-align:center;font-variant-numeric:tabular-nums;outline:none;padding:.5rem 0}.demo-stepperfield:focus-visible{box-shadow:inset 0 0 0 2px #18181b}`}</style>
+
+:::interactive[Stepper With Auto-Disabling Buttons]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type DemoStepperProps = ComponentProps<'div'> & {
+  value?: number;
+  min?: number;
+  max?: number;
+  step?: number;
+  page?: number;
+  disabled?: boolean;
+  label?: string;
+};
+
+const DemoStepper = setup<DemoStepperProps>((props) => {
+  const stepper = aria('stepper', props);
+  const input = aria('stepper-input', {}, { native: true });
+  const increment = aria('stepper-inc');
+  const decrement = aria('stepper-dec');
+
+  return () => (
+    <div ref={stepper.ref} {...stepper.props} className="demo-stepper">
+      <button ref={decrement.ref} {...decrement.props} aria-label="Decrease" className="demo-stepperbtn">−</button>
+      <input ref={input.ref} {...input.props} aria-label={props.label} className="demo-stepperfield" />
+      <button ref={increment.ref} {...increment.props} aria-label="Increase" className="demo-stepperbtn">+</button>
+    </div>
+  );
+}, 'DemoStepper');
+```
+
+<div className="inline-flex flex-col mx-auto gap-6">
+  <DemoStepper label="Guests" value={2} min={1} max={8} />
+  <DemoStepper label="Nights" value={10} min={0} max={60} step={5} />
+  <DemoStepper label="Seats" value={5} min={0} max={10} disabled={true} />
+</div>
+:::
+
+## Stepper
+
+Coordinated numeric stepping over a group container, a spinbutton input, and increment/decrement buttons.
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'stepper',
+  props?: StepperProps
+): StepperAria<E>
+
+aria<E extends BaseElement = HTMLInputElement>(
+  role: 'stepper-input',
+  props?: AriaProps,
+  options?: StepperInputOptions
+): StepperInputAria<E>
+
+aria<E extends BaseElement = HTMLButtonElement>(
+  role: 'stepper-inc' | 'stepper-dec',
+  props?: AriaProps,
+  options?: StepperButtonOptions
+): StepperButtonAria<E>
+```
+
+### Usage
+
+:::code-group
+
+```tsx [React] executable
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type StepperProps = ComponentProps<'div'> & {
+  value?: number;
+  min?: number;
+  max?: number;
+  step?: number;
+  page?: number;
+  disabled?: boolean;
+  readonly?: boolean;
+  label?: string;
+};
+
+const Stepper = setup<StepperProps>((props) => {
+  const stepper = aria('stepper', props);
+  const input = aria('stepper-input', {}, { native: true });
+  const increment = aria('stepper-inc');
+  const decrement = aria('stepper-dec');
+
+  return () => (
+    <div ref={stepper.ref} {...stepper.restProps(['children'])} className={props.className}>
+      <button ref={decrement.ref} {...decrement.props} aria-label="Decrease">−</button>
+      <input ref={input.ref} {...input.props} aria-label={props.label} />
+      <button ref={increment.ref} {...increment.props} aria-label="Increase">+</button>
+      {props.children}
+    </div>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type StepperProps = ComponentProps<'div'> & {
+  value?: number;
+  min?: number;
+  max?: number;
+  step?: number;
+  page?: number;
+  disabled?: boolean;
+  readonly?: boolean;
+  label?: string;
+};
+
+const Stepper = setup<StepperProps>((props) => {
+  const stepper = aria('stepper', props);
+  const input = aria('stepper-input', {}, { native: true });
+  const increment = aria('stepper-inc');
+  const decrement = aria('stepper-dec');
+
+  return (
+    <div ref={stepper.ref} {...stepper.restProps(['children'])} className={props.className}>
+      <button ref={decrement.ref} {...decrement.props} aria-label="Decrease">−</button>
+      <input ref={input.ref} {...input.props} aria-label={props.label} />
+      <button ref={increment.ref} {...increment.props} aria-label="Increase">+</button>
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
+
+The container compiles `role="group"` and never takes the value role itself. Parts discover their coordinator from ambient scope in creation order: the input reads the shared value, the buttons step it. On a custom host (omit `native: true`) the input compiles `role="spinbutton"` with the full range vocabulary and owns the key table; render its `value` as the element text.
+
+### Parameters
+
+- `props.value` *(number, optional)*: Current value, read and written through clamping. Falls back to `min`, then to `0`.
+- `props.min` *(number, optional)*: Inclusive lower bound. Omitted leaves the stepper unbounded below.
+- `props.max` *(number, optional)*: Inclusive upper bound. Omitted leaves the stepper unbounded above.
+- `props.step` *(number, optional, default `1`)*: Increment applied per button activation or arrow keystroke.
+- `props.page` *(number, optional, default `10`)*: Large increment applied per page key, in value units.
+- `props.disabled` *(boolean, optional)*: Takes the whole stepper out of the tab order and blocks stepping.
+- `props.readonly` *(boolean, optional)*: Keeps the input focusable and announced while refusing every change.
+- `props.required` *(boolean, optional)*: Required validation indicator.
+- `props.valuetext` *(string, optional)*: Human-readable value compiled to `aria-valuetext` on the input.
+- `options.native` *(boolean, optional, default `false`)*: Bind the input to a native `<input type="number">`; the browser owns keys and stepping, the controller syncs typed values.
+
+### Events
+
+Both events dispatch on the input element carrying the shared value (`number`):
+
+```ts
+import type { StepperEvent } from '@airlib/aria';
+
+input.current?.addEventListener('input', (event) => {
+  const value = (event as StepperEvent).detail;
+});
+
+input.current?.addEventListener('change', (event) => {
+  const committed = (event as StepperEvent).detail;
+});
+```
+
+- `input`: `CustomEvent` with `bubbles: true`, after each committed step.
+- `change`: `CustomEvent` with `bubbles: true`, when the interaction ends (key release or blur) with a committed value. Steps that commit nothing stay silent.
+
+### How it behaves
+
+- One value drives everything: button activations and keystrokes commit through the container's bounds, and the input announces the clamped result. Writes from a parent clamp the same way, and both buttons re-derive without rebinding.
+- Each button disables itself at the bound it has nowhere left to go — decrement at `min`, increment at `max` — while the other stays live. Without a bound in its direction a button never disables itself. A disabled container disables both buttons and drops the input to `tabindex="-1"` with `aria-disabled="true"`.
+- Only the stepper's keys are claimed: arrows step by `step`, `PageUp`/`PageDown` move by `page`, `Home`/`End` jump to `min`/`max`. `Tab`, `Enter`, and letters pass through. `Home`/`End` stay unclaimed when their bound is undefined, and while `disabled` or `readonly` nothing is consumed.
+- Native inputs compile `type="number"` with `min`/`max`/`step` and synchronize typed values back into the shared value, ignoring empty fields rather than zeroing them.
+
+## Putting It Together
+
+Once your components are wired with `aria(...)`, compose steppers with honest bounds:
+
+```tsx
+<div className="flex flex-col gap-4 max-w-sm">
+  <Stepper label="Guests" value={2} min={1} max={8} />
+  <Stepper label="Nights" value={10} min={0} max={60} step={5} />
+  <Stepper label="Seats" value={5} min={0} max={10} disabled={true} />
+</div>
+```
+
+## Keyboard Navigation
+
+- **Tab**: Focuses the input (`tabindex="0"`, resolving to `tabindex="-1"` while disabled). Buttons stay plain buttons in the tab order.
+- **Arrow keys**: Step by `step` in both orientations (`Up`/`Right` increment, `Down`/`Left` decrement).
+- **PageUp / PageDown**: Move by `page` value units.
+- **Home / End**: Jump to `min` / `max`, left to the browser when that bound is undeclared.
+
+## What you get
+
+- **One coordinated value.** Buttons, keys, typed input, and parent writes all land on the same clamped value.
+- **Self-disabling buttons.** Each button goes inert exactly at its own bound and re-arms on the same nodes.
+- **Claim-only keyboard.** The eight stepping keys are consumed; everything else passes through, even at bounds, never while locked.
+- **Native parity.** Number inputs keep browser stepping while the controller syncs typed values both directions.
+
+## Next Steps
+
+- **[Number Stepper](/docs/aria/number-stepper)**: Standalone numeric entry without the button group.
+- **[Button](/docs/aria/button)**: Command and toggle button behavioral bridges.
+- **[Slider](/docs/aria/slider)**: Bounded numeric entry with pointer drag and dual-thumb ranges.

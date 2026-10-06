@@ -1,0 +1,240 @@
+---
+title: 'Slider'
+description: 'Bounded numeric entry with stepped clamping, keyboard stepping, pointer drag, and dual-thumb ranges.'
+nav: 'Slider'
+nav-priority: 263
+---
+
+# AirLib Headless Slider
+
+A slider looks like a thumb on a track until the platform gets involved: values must clamp to bounds, snap to steps, answer eight keyboard keys without stealing the rest, drag continuously along measured geometry, and — for ranges — keep two thumbs from crossing while each stays independently focusable. **AirLib Headless Slider** (`aria('slider')` + `aria('slider-thumb')`) owns that coordination — a track container plus one or two thumbs that read from it, without dictating markup or styles.
+
+```tsx
+const slider = aria('slider', props);
+const thumb = aria('slider-thumb');
+
+<div ref={slider.ref} {...slider.props}>
+  <div ref={thumb.ref} {...thumb.props} />
+</div>
+```
+
+<style>{`.demo-slider{position:relative;height:.5rem;border-radius:9999px;background:#e4e4e7;width:100%}.demo-sliderthumb{position:absolute;top:50%;left:var(--aria-slider-thumb-offset);width:1.25rem;height:1.25rem;border-radius:9999px;background:#fff;border:2px solid #18181b;transform:translate(-50%,-50%);cursor:pointer}.demo-sliderthumb:hover{border-color:#3f3f46}.demo-sliderthumb[aria-disabled="true"]{opacity:.5;cursor:not-allowed}`}</style>
+
+:::interactive[Single and Dual-Thumb Sliders]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type DemoSliderProps = ComponentProps<'div'> & {
+  value?: number | [number, number];
+  min?: number;
+  max?: number;
+  step?: number;
+  disabled?: boolean;
+};
+
+const DemoSlider = setup<DemoSliderProps>((props) => {
+  const slider = aria('slider', props);
+  const thumb = aria('slider-thumb');
+
+  return () => (
+    <div ref={slider.ref} {...slider.props} className="demo-slider">
+      <div ref={thumb.ref} {...thumb.props} className="demo-sliderthumb" />
+    </div>
+  );
+}, 'DemoSlider');
+
+const DemoRange = setup<DemoSliderProps>((props) => {
+  const slider = aria('slider', props);
+  const low = aria('slider-thumb');
+  const high = aria('slider-thumb');
+
+  return () => (
+    <div ref={slider.ref} {...slider.props} className="demo-slider">
+      <div ref={low.ref} {...low.props} className="demo-sliderthumb" />
+      <div ref={high.ref} {...high.props} className="demo-sliderthumb" />
+    </div>
+  );
+}, 'DemoRange');
+```
+
+<div className="flex w-full flex-col mx-auto gap-6 max-w-md">
+  <DemoSlider value={30} min={0} max={100} step={0.1} />
+  <DemoRange value={[20, 80]} min={0} max={100} step={0.1} />
+  <DemoSlider value={50} min={0} max={100} step={0.1} disabled={true} />
+</div>
+:::
+
+## Slider
+
+Bounded numeric entry over a track coordinator and thumb endpoints.
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'slider',
+  props?: SliderProps,
+  options?: SliderOptions
+): SliderAria<E>
+
+aria<E extends BaseElement = HTMLElement>(
+  role: 'slider-thumb',
+  props?: AriaProps
+): SliderThumbAria<E>
+```
+
+### Usage
+
+:::code-group
+
+```tsx [React] executable
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type SliderProps = ComponentProps<'div'> & {
+  value?: number | [number, number];
+  min?: number;
+  max?: number;
+  step?: number;
+  page?: number;
+  valuetext?: string | ((val: number) => string);
+  orientation?: 'horizontal' | 'vertical';
+  disabled?: boolean;
+};
+
+const Slider = setup<SliderProps>((props) => {
+  const slider = aria('slider', props);
+  const thumb = aria('slider-thumb');
+
+  return () => (
+    <div ref={slider.ref} {...slider.restProps(['children'])} className={props.className}>
+      <div ref={thumb.ref} {...thumb.props} />
+      {props.children}
+    </div>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type SliderProps = ComponentProps<'div'> & {
+  value?: number | [number, number];
+  min?: number;
+  max?: number;
+  step?: number;
+  page?: number;
+  valuetext?: string | ((val: number) => string);
+  orientation?: 'horizontal' | 'vertical';
+  disabled?: boolean;
+};
+
+const Slider = setup<SliderProps>((props) => {
+  const slider = aria('slider', props);
+  const thumb = aria('slider-thumb');
+
+  return (
+    <div ref={slider.ref} {...slider.restProps(['children'])} className={props.className}>
+      <div ref={thumb.ref} {...thumb.props} />
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
+
+The track compiles `role="group"` only for dual-thumb tuples — a single value needs no grouping. Thumbs discover their coordinator from ambient scope and claim endpoints in creation order: first thumb reads the value (or the low end), second reads the high end.
+
+### Parameters
+
+- `props.value` *(number | [number, number], optional)*: Current value or low/high tuple, read and write through clamping.
+- `props.min` *(number, optional, default `0`)*: Inclusive lower bound.
+- `props.max` *(number, optional, default `100`)*: Inclusive upper bound.
+- `props.step` *(number, optional, default `1`)*: Arrow-key increment, snapped from the lower bound. Non-positive steps fall back to unit steps.
+- `props.page` *(number, optional, default `10`)*: Page-key increment in value units.
+- `props.valuetext` *(string | ((val: number) => string), optional)*: Readable value text, static or derived per endpoint.
+- `props.orientation` *(horizontal | vertical, optional, default `horizontal`)*: Stepping axis and announced orientation.
+- `props.disabled` *(boolean, optional)*: Blocks stepping and drag.
+- `options.native` *(boolean, optional, default `false`)*: Bind a native `<input type="range">`; the browser owns keys and drag, the controller syncs state.
+
+### Events
+
+Both events dispatch on the thumb element carrying the slider value (`number`, or the tuple for ranges):
+
+```ts
+import type { SliderEvent } from '@airlib/aria';
+
+thumb.current?.addEventListener('input', (event) => {
+  const value = (event as SliderEvent).detail;
+});
+
+thumb.current?.addEventListener('change', (event) => {
+  const committed = (event as SliderEvent).detail;
+});
+```
+
+- `input`: `CustomEvent` with `bubbles: true`, after each committed step or drag move.
+- `change`: `CustomEvent` with `bubbles: true`, when the interaction ends (key release, blur, or pointer up) with a committed value. Presses that commit nothing stay silent.
+
+### How it behaves
+
+- Commits clamp to `[min, max]` and snap to `step` from the lower bound, without floating-point drift (`0.1` steps land on `0.3`, not `0.30000000000000004`).
+- Dual-thumb tuples enforce `low <= high`: each thumb's announced bounds tighten against the other (low's `aria-valuemax` is the current high, high's `aria-valuemin` is the current low), and neither thumb can drag or step past its sibling. Crossed writes are ordered, never inverted.
+- Only the slider's keys are claimed: arrows step, `PageUp`/`PageDown` move by `page`, `Home`/`End` jump to bounds. `Tab`, `Escape`, `Enter`, and letters are left to the page. Presses past a bound change nothing but are still consumed; while `disabled`, nothing is consumed and the slider leaves the tab order (`tabindex="-1"`, `aria-disabled="true"`).
+- Dragging a thumb tracks stepped values continuously along the track geometry, horizontally from the left edge or vertically from the bottom edge.
+- Pressing the track jumps the nearest endpoint to the pressed position and keeps dragging from there — no thumb required, with `input`/`change` dispatching on the track.
+- Each thumb publishes its committed endpoint as `--aria-slider-thumb-offset` (a percentage along `[min, max]`), so stylesheets position thumbs with `left: var(--aria-slider-thumb-offset)` — or `bottom:` for vertical — and never compute ratios. Script consumers read the same percentage from `thumb.offset` (`0`–`100`, `0` when the range has no span) — the numeric content of the variable, with no conversion.
+- Native hosts compile `type="range"` with `min`/`max`/`step` and sync both directions through the element's live value, projecting no `role`, `tabindex`, `name`, or `value` attributes of their own.
+
+## Putting It Together
+
+Once your components are wired with `aria(...)`, compose entries with honest bounds:
+
+```tsx
+<div className="flex flex-col gap-6 max-w-sm">
+  <DemoSlider value={30} min={0} max={100} step={10} />
+  <DemoRange value={[20, 80]} min={0} max={100} step={5} />
+  <DemoSlider value={50} min={0} max={100} step={10} disabled={true} />
+</div>
+```
+
+:::interactive[Slider Interactive Demo]
+<div className="flex flex-col gap-6 p-4 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 max-w-sm text-sm text-zinc-800 dark:text-zinc-200">
+  <div className="flex flex-col gap-2">
+    <span className="font-medium">Volume</span>
+    <DemoSlider value={30} min={0} max={100} step={10} />
+  </div>
+  <div className="flex flex-col gap-2">
+    <span className="font-medium">Price range</span>
+    <DemoRange value={[20, 80]} min={0} max={100} step={5} />
+  </div>
+  <div className="flex flex-col gap-2 opacity-60">
+    <span className="font-medium">Disabled</span>
+    <DemoSlider value={50} min={0} max={100} step={10} disabled={true} />
+  </div>
+</div>
+:::
+
+## Keyboard Navigation
+
+- **Tab**: Focuses the track for single values and each thumb for dual ranges (`tabindex="0"`, resolving to `tabindex="-1"` while disabled).
+- **Arrow keys**: Step by `step` in every orientation.
+- **PageUp / PageDown**: Move by `page` value units.
+- **Home / End**: Jump to `min` / `max`.
+
+## What you get
+
+- **Honest bounds.** Clamping, snapping, and tuple ordering on every write path — programmatic or interacted.
+- **Dual-thumb reachability.** Both thumbs focusable, independently announced, tightened against each other, unable to cross.
+- **Claim-only keyboard.** The eight slider keys are consumed; everything else passes through, even at bounds, never while disabled.
+- **Native parity.** Range inputs keep browser keys and drag while the controller syncs state both directions.
+
+## Next Steps
+
+- **[Number Stepper](/docs/aria/number-stepper)**: Precise numeric entry with increment and decrement buttons.
+- **[Button](/docs/aria/button)**: Command and toggle button behavioral bridges.
+- **[Option](/docs/aria/option)**: Selectable list and menu items.
