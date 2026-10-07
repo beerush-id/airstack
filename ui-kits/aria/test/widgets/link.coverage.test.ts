@@ -125,11 +125,7 @@ describe('Link - Coverage (current-page activation)', () => {
       await tree.run(async () => {
         const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
         try {
-          const link = aria<HTMLSpanElement>(
-            'link',
-            { href: '/docs', target: '_blank' },
-            { native: false },
-          );
+          const link = aria<HTMLSpanElement>('link', { href: '/docs', target: '_blank' }, { native: false });
           const el = bind(document.createElement('span'), link);
           el.click();
           await new Promise((resolve) => setTimeout(resolve, 0));
@@ -174,11 +170,7 @@ describe('Link - Coverage (current-page activation)', () => {
       await tree.run(async () => {
         const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
         try {
-          const link = aria<HTMLSpanElement>(
-            'link',
-            { href: '/docs', target: 'docs-frame' },
-            { native: false },
-          );
+          const link = aria<HTMLSpanElement>('link', { href: '/docs', target: 'docs-frame' }, { native: false });
           const el = bind(document.createElement('span'), link);
           el.dispatchEvent(new MouseEvent('click', { cancelable: true, bubbles: true, ctrlKey: true }));
           await new Promise((resolve) => setTimeout(resolve, 0));
@@ -251,11 +243,7 @@ describe('Link - Coverage (current-page activation)', () => {
       await tree.run(async () => {
         const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
         try {
-          const locked = aria<HTMLSpanElement>(
-            'link',
-            { href: '/admin', disabled: true },
-            { native: false },
-          );
+          const locked = aria<HTMLSpanElement>('link', { href: '/admin', disabled: true }, { native: false });
           const lockedEl = bind(document.createElement('span'), locked);
           const blocked = new MouseEvent('auxclick', {
             cancelable: true,
@@ -323,28 +311,28 @@ describe('Link - Coverage (current-page activation)', () => {
     }));
 });
 
-  describe('Attribute Shielding Contract', () => {
-    const shieldScope = createLifecycle();
+describe('Attribute Shielding Contract', () => {
+  const shieldScope = createLifecycle();
 
-    afterAll(() => {
-      shieldScope.destroy();
-    });
-
-    it('exposes controller-managed keys on ownKeys for rest-prop omission', () =>
-      shieldScope.run(() => {
-        component().run(() => {
-          const link = aria<HTMLSpanElement>(
-            'link',
-            { href: '/docs', target: '_blank', disabled: false, current: true },
-            { native: false },
-          );
-
-          for (const key of ['href', 'target', 'disabled', 'current', 'aria-disabled', 'aria-current']) {
-            expect(link.ownKeys).toContain(key);
-          }
-
-          link.destroy();
-          expect(link.current).toBeNull();
-        });
-      }));
+  afterAll(() => {
+    shieldScope.destroy();
   });
+
+  it('exposes controller-managed keys on ownKeys for rest-prop omission', () =>
+    shieldScope.run(() => {
+      component().run(() => {
+        const link = aria<HTMLSpanElement>(
+          'link',
+          { href: '/docs', target: '_blank', disabled: false, current: true },
+          { native: false }
+        );
+
+        for (const key of ['href', 'target', 'disabled', 'current', 'aria-disabled', 'aria-current']) {
+          expect(link.ownKeys).toContain(key);
+        }
+
+        link.destroy();
+        expect(link.current).toBeNull();
+      });
+    }));
+});

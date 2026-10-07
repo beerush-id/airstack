@@ -1,12 +1,5 @@
 import { SelectionAria, type SelectionAttributes, type SelectionOptions } from '../selection.js';
-import type {
-  AriaEvent,
-  AriaEventHandler,
-  AriaOptions,
-  AriaProps,
-  BaseElement,
-  Primitive,
-} from '../types.js';
+import type { AriaEvent, AriaEventHandler, AriaOptions, AriaProps, BaseElement, Primitive } from '../types.js';
 
 /**
  * Configuration options for ToggleAria.
@@ -108,6 +101,10 @@ export class ToggleAria<
       attrs.type = 'button';
     } else {
       attrs.role = 'button';
+    }
+
+    if (this.group && this.coordinated) {
+      attrs.tabindex = this.disabled ? -1 : isPressed ? 0 : -1;
     }
 
     return attrs as A;

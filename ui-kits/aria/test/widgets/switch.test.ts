@@ -1,6 +1,6 @@
 import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
-import { aria, selectionGroup, SwitchAria, type SwitchProps } from '../../src/index.js';
+import { aria, SwitchAria, type SwitchProps, selectionGroup } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 describe('Switch - Contract Specifications', () => {

@@ -52,9 +52,7 @@ describe('Image - Coverage (lifecycle guards & parity)', () => {
         const fallbackEl = bind(document.createElement('div'), fallback);
 
         const commits: unknown[] = [];
-        containerEl.addEventListener('change', (event) =>
-          commits.push((event as ImageEvent).detail),
-        );
+        containerEl.addEventListener('change', (event) => commits.push((event as ImageEvent).detail));
 
         // Custom attach spins an owned loader carrying the declared source
         expect(loaders).toHaveLength(1);
@@ -101,9 +99,7 @@ describe('Image - Coverage (lifecycle guards & parity)', () => {
         const fallbackEl = bind(document.createElement('div'), fallback);
 
         const commits: unknown[] = [];
-        containerEl.addEventListener('change', (event) =>
-          commits.push((event as ImageEvent).detail),
-        );
+        containerEl.addEventListener('change', (event) => commits.push((event as ImageEvent).detail));
 
         loaders[0].onerror?.();
         expect(image.status).toBe('error');
@@ -178,9 +174,7 @@ describe('Image - Coverage (lifecycle guards & parity)', () => {
         const imgEl = bind(document.createElement('img'), content);
 
         const commits: unknown[] = [];
-        containerEl.addEventListener('change', (event) =>
-          commits.push((event as ImageEvent).detail),
-        );
+        containerEl.addEventListener('change', (event) => commits.push((event as ImageEvent).detail));
 
         // A repeated settlement for the same era commits nothing twice
         imgEl.dispatchEvent(new Event('load'));
@@ -410,24 +404,24 @@ describe('Image - Coverage (lifecycle guards & parity)', () => {
     }));
 });
 
-  describe('Attribute Shielding Contract', () => {
-    const shieldScope = createLifecycle();
+describe('Attribute Shielding Contract', () => {
+  const shieldScope = createLifecycle();
 
-    afterAll(() => {
-      shieldScope.destroy();
-    });
-
-    it('exposes controller-managed keys on ownKeys for rest-prop omission', () =>
-      shieldScope.run(() => {
-        component().run(() => {
-          const image = aria('image', { src: 'cover.webp', alt: 'Cover' });
-
-          for (const key of ['src', 'alt', 'status']) {
-            expect(image.ownKeys).toContain(key);
-          }
-
-          image.destroy();
-          expect(image.current).toBeNull();
-        });
-      }));
+  afterAll(() => {
+    shieldScope.destroy();
   });
+
+  it('exposes controller-managed keys on ownKeys for rest-prop omission', () =>
+    shieldScope.run(() => {
+      component().run(() => {
+        const image = aria('image', { src: 'cover.webp', alt: 'Cover' });
+
+        for (const key of ['src', 'alt', 'status']) {
+          expect(image.ownKeys).toContain(key);
+        }
+
+        image.destroy();
+        expect(image.current).toBeNull();
+      });
+    }));
+});

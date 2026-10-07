@@ -1,13 +1,6 @@
 import { $static, $symbol, effect, type StyleInput, uIndex } from '@airlib/core';
 import { Aria } from '../core.js';
-import type {
-  AriaAttributes,
-  AriaEvent,
-  AriaEventHandler,
-  AriaOptions,
-  AriaProps,
-  DetachFn,
-} from '../types.js';
+import type { AriaAttributes, AriaEvent, AriaEventHandler, AriaOptions, AriaProps, DetachFn } from '../types.js';
 
 const POPOVER_SYMBOL = $symbol('popover');
 

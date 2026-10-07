@@ -266,11 +266,7 @@ describe('TextInput - Contract Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const input = aria<HTMLDivElement>(
-            'text-input',
-            { value: 'locked', disabled: true },
-            { native: false },
-          );
+          const input = aria<HTMLDivElement>('text-input', { value: 'locked', disabled: true }, { native: false });
           const el = bind(document.createElement('div'), input);
 
           expect(el.getAttribute('aria-disabled')).toBe('true');
@@ -339,7 +335,7 @@ describe('TextInput - Contract Specifications', () => {
           const input = aria<HTMLTextAreaElement>(
             'text-input',
             { value: 'one line', multiline: true },
-            { native: true },
+            { native: true }
           );
 
           // A native host never takes a compiled role, whatever the flags say
@@ -366,11 +362,7 @@ describe('TextInput - Contract Specifications', () => {
         const tree = component();
         tree.run(() => {
           const plain = aria<HTMLDivElement>('text-input', { kind: 'text' }, { native: false });
-          const password = aria<HTMLDivElement>(
-            'text-input',
-            { kind: 'password' },
-            { native: false },
-          );
+          const password = aria<HTMLDivElement>('text-input', { kind: 'password' }, { native: false });
           const email = aria<HTMLDivElement>('text-input', { kind: 'email' }, { native: false });
           const search = aria<HTMLDivElement>('text-input', { kind: 'search' }, { native: false });
 

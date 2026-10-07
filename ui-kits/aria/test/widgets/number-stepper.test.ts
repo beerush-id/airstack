@@ -464,7 +464,7 @@ describe('NumberStepper - Contract Specifications', () => {
           const spin = aria<HTMLDivElement>(
             'number-stepper',
             { value: 5, min: 0, max: 100, step: 5, readonly: true },
-            { native: false },
+            { native: false }
           );
 
           const el = bind(document.createElement('div'), spin);
@@ -504,8 +504,7 @@ describe('NumberStepper - Contract Specifications', () => {
           const spin = aria<HTMLDivElement>('number-stepper', props);
           const el = bind(document.createElement('div'), spin);
 
-          const up = () =>
-            new KeyboardEvent('keydown', { key: 'ArrowUp', cancelable: true, bubbles: true });
+          const up = () => new KeyboardEvent('keydown', { key: 'ArrowUp', cancelable: true, bubbles: true });
 
           el.dispatchEvent(up());
           expect(spin.value).toBe(6);

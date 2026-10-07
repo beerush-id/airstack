@@ -103,9 +103,7 @@ describe('ContextMenu - Composite Specifications', () => {
           triggerEl.click();
           expect(props.open).toBe(false);
 
-          triggerEl.dispatchEvent(
-            new MouseEvent('dblclick', { bubbles: true, cancelable: true, button: 2 }),
-          );
+          triggerEl.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true, button: 2 }));
           expect(props.open).toBe(false);
 
           props.disabled = true;
@@ -178,14 +176,10 @@ describe('ContextMenu - Composite Specifications', () => {
 
           cut.focus();
 
-          popupEl.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }),
-          );
+          popupEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
           expect(document.activeElement).toBe(copy);
 
-          copy.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
-          );
+          copy.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
           expect(props.open).toBe(false);
 
           cleanup();

@@ -3,10 +3,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { aria, type ReorderProps } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
-function buildReorder(
-  props: Partial<ReorderProps>,
-  items: Array<{ value: string; label: string }>,
-) {
+function buildReorder(props: Partial<ReorderProps>, items: Array<{ value: string; label: string }>) {
   const reorder = aria('reorder', { label: 'Pipeline stages', ...props } as ReorderProps);
   const listEl = bind(document.createElement('ul'), reorder);
   document.body.appendChild(listEl);
@@ -144,14 +141,11 @@ describe('Reorder - Composite Specifications', () => {
       scope.run(() => {
         component().run(() => {
           const props = mutable<ReorderProps>({ value: ['x', 'y', 'z'], orientation: 'horizontal' });
-          const { items, cleanup } = buildReorder(
-            props,
-            [
-              { value: 'x', label: 'X' },
-              { value: 'y', label: 'Y' },
-              { value: 'z', label: 'Z' },
-            ],
-          );
+          const { items, cleanup } = buildReorder(props, [
+            { value: 'x', label: 'X' },
+            { value: 'y', label: 'Y' },
+            { value: 'z', label: 'Z' },
+          ]);
 
           items[0].handleEl.focus();
           press(items[0].handleEl, 'Enter');
@@ -186,9 +180,7 @@ describe('Reorder - Composite Specifications', () => {
           ]);
 
           const commits: unknown[] = [];
-          listEl.addEventListener('change', (event) =>
-            commits.push((event as CustomEvent).detail),
-          );
+          listEl.addEventListener('change', (event) => commits.push((event as CustomEvent).detail));
 
           items[0].handleEl.focus();
           press(items[0].handleEl, 'Enter');
@@ -335,9 +327,7 @@ describe('Reorder - Composite Specifications', () => {
     it('keeps the announcer out of the interaction path', () =>
       scope.run(() => {
         component().run(() => {
-          const { status, statusEl, cleanup } = buildReorder({ value: ['a'] }, [
-            { value: 'a', label: 'A' },
-          ]);
+          const { status, statusEl, cleanup } = buildReorder({ value: ['a'] }, [{ value: 'a', label: 'A' }]);
 
           expect(statusEl.hasAttribute('tabindex')).toBe(false);
           expect(status.attributes['aria-activedescendant']).toBeUndefined();

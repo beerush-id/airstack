@@ -119,7 +119,7 @@ describe('Button - Coverage (spec resolutions)', () => {
           (e) => {
             if ((e as KeyboardEvent).key === 'Enter') e.preventDefault();
           },
-          { capture: true },
+          { capture: true }
         );
         el.dispatchEvent(enter);
 
@@ -129,24 +129,24 @@ describe('Button - Coverage (spec resolutions)', () => {
     }));
 });
 
-  describe('Attribute Shielding Contract', () => {
-    const shieldScope = createLifecycle();
+describe('Attribute Shielding Contract', () => {
+  const shieldScope = createLifecycle();
 
-    afterAll(() => {
-      shieldScope.destroy();
-    });
-
-    it('exposes controller-managed keys on ownKeys for rest-prop omission', () =>
-      shieldScope.run(() => {
-        component().run(() => {
-          const btn = aria<HTMLDivElement>('button', { type: 'submit', disabled: false }, { native: false });
-
-          for (const key of ['type', 'disabled', 'role', 'tabindex', 'aria-disabled']) {
-            expect(btn.ownKeys).toContain(key);
-          }
-
-          btn.destroy();
-          expect(btn.current).toBeNull();
-        });
-      }));
+  afterAll(() => {
+    shieldScope.destroy();
   });
+
+  it('exposes controller-managed keys on ownKeys for rest-prop omission', () =>
+    shieldScope.run(() => {
+      component().run(() => {
+        const btn = aria<HTMLDivElement>('button', { type: 'submit', disabled: false }, { native: false });
+
+        for (const key of ['type', 'disabled', 'role', 'tabindex', 'aria-disabled']) {
+          expect(btn.ownKeys).toContain(key);
+        }
+
+        btn.destroy();
+        expect(btn.current).toBeNull();
+      });
+    }));
+});

@@ -71,7 +71,7 @@ describe('TextInput - Coverage (guards & teardown completeness)', () => {
           const input = aria<HTMLDivElement>(
             'text-input',
             { value: 'hi', kind: 'search', multiline: true },
-            { native: false },
+            { native: false }
           );
           const el = bind(document.createElement('div'), input);
 
@@ -98,7 +98,7 @@ describe('TextInput - Coverage (guards & teardown completeness)', () => {
           const input = aria<HTMLDivElement>(
             'text-input',
             { value: 'hi', kind: 'search', multiline: true, label: 'Query' },
-            { native: false },
+            { native: false }
           );
 
           for (const key of [
@@ -157,11 +157,7 @@ describe('TextInput - Coverage (guards & teardown completeness)', () => {
           reads.push(String(key));
         });
         try {
-          const input = aria<HTMLDivElement>(
-            'text-input',
-            { value: 'hi', kind: 'search' },
-            { native: false },
-          );
+          const input = aria<HTMLDivElement>('text-input', { value: 'hi', kind: 'search' }, { native: false });
           input.destroy();
         } finally {
           restore();

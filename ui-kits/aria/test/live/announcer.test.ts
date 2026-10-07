@@ -1,6 +1,6 @@
 import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
-import { aria, type AnnouncerProps } from '../../src/index.js';
+import { type AnnouncerProps, aria } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 describe('Announcer - Live Region Specifications', () => {
@@ -181,29 +181,29 @@ describe('Announcer - Live Region Specifications', () => {
   });
 });
 
-  describe('Attribute Shielding Contract', () => {
-    const shieldScope = createLifecycle();
+describe('Attribute Shielding Contract', () => {
+  const shieldScope = createLifecycle();
 
-    afterAll(() => {
-      shieldScope.destroy();
-    });
-
-    it('exposes controller-managed keys on ownKeys for rest-prop omission', () =>
-      shieldScope.run(() => {
-        component().run(() => {
-          const announcer = aria('announcer', {
-            politeness: 'assertive',
-            atomic: true,
-            busy: false,
-            relevant: 'additions',
-          });
-
-          for (const key of ['politeness', 'atomic', 'busy', 'relevant', 'aria-live', 'role']) {
-            expect(announcer.ownKeys).toContain(key);
-          }
-
-          announcer.destroy();
-          expect(announcer.current).toBeNull();
-        });
-      }));
+  afterAll(() => {
+    shieldScope.destroy();
   });
+
+  it('exposes controller-managed keys on ownKeys for rest-prop omission', () =>
+    shieldScope.run(() => {
+      component().run(() => {
+        const announcer = aria('announcer', {
+          politeness: 'assertive',
+          atomic: true,
+          busy: false,
+          relevant: 'additions',
+        });
+
+        for (const key of ['politeness', 'atomic', 'busy', 'relevant', 'aria-live', 'role']) {
+          expect(announcer.ownKeys).toContain(key);
+        }
+
+        announcer.destroy();
+        expect(announcer.current).toBeNull();
+      });
+    }));
+});

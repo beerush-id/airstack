@@ -1,6 +1,6 @@
 import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it, vi } from 'vitest';
-import { Aria, aria, type BaseElement, roverCtx, selectCtx, type SelectProps } from '../../src/index.js';
+import { type Aria, aria, type BaseElement, roverCtx, type SelectProps, selectCtx } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 describe('Select - Composite Specifications', () => {

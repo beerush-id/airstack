@@ -18,7 +18,7 @@ describe('Toggle - Coverage (change contract & context safety)', () => {
         const nativeEl = bind(document.createElement('button'), native);
         const nativeChanges: Array<{ detail: unknown; bubbles: boolean }> = [];
         nativeEl.addEventListener('change', (event) =>
-          nativeChanges.push({ detail: (event as CustomEvent).detail, bubbles: event.bubbles }),
+          nativeChanges.push({ detail: (event as CustomEvent).detail, bubbles: event.bubbles })
         );
 
         nativeEl.click();
@@ -34,14 +34,10 @@ describe('Toggle - Coverage (change contract & context safety)', () => {
         const custom = aria<HTMLDivElement>('toggle', { pressed: false }, { native: false });
         const customEl = bind(document.createElement('div'), custom);
         const customChanges: unknown[] = [];
-        customEl.addEventListener('change', (event) =>
-          customChanges.push((event as CustomEvent).detail),
-        );
+        customEl.addEventListener('change', (event) => customChanges.push((event as CustomEvent).detail));
 
         customEl.click();
-        customEl.dispatchEvent(
-          new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }),
-        );
+        customEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }));
         expect(customChanges).toEqual([true, false]);
 
         native.destroy();
@@ -63,9 +59,7 @@ describe('Toggle - Coverage (change contract & context safety)', () => {
         expect(btn.pressed).toBe(false);
         expect(changes).toEqual([]);
 
-        el.dispatchEvent(
-          new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }),
-        );
+        el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }));
         expect(btn.pressed).toBe(true);
         expect(changes).toEqual([true]);
 
@@ -74,7 +68,7 @@ describe('Toggle - Coverage (change contract & context safety)', () => {
           (event) => {
             if ((event as KeyboardEvent).key === ' ') event.preventDefault();
           },
-          { capture: true },
+          { capture: true }
         );
         el.addEventListener('keyup', (event) => event.preventDefault(), { capture: true });
         el.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true }));
@@ -90,9 +84,7 @@ describe('Toggle - Coverage (change contract & context safety)', () => {
         const locked = aria('toggle', { pressed: false, disabled: true });
         const lockedEl = bind(document.createElement('button'), locked);
         const lockedChanges: unknown[] = [];
-        lockedEl.addEventListener('change', (event) =>
-          lockedChanges.push((event as CustomEvent).detail),
-        );
+        lockedEl.addEventListener('change', (event) => lockedChanges.push((event as CustomEvent).detail));
         lockedEl.click();
         locked.select();
         expect(lockedChanges).toEqual([]);
@@ -119,28 +111,28 @@ describe('Toggle - Coverage (change contract & context safety)', () => {
     }));
 });
 
-  describe('Attribute Shielding Contract', () => {
-    const shieldScope = createLifecycle();
+describe('Attribute Shielding Contract', () => {
+  const shieldScope = createLifecycle();
 
-    afterAll(() => {
-      shieldScope.destroy();
-    });
-
-    it('exposes controller-managed keys on ownKeys for rest-prop omission', () =>
-      shieldScope.run(() => {
-        component().run(() => {
-          const toggle = aria<HTMLDivElement>(
-            'toggle',
-            { value: 'bold', pressed: false, disabled: false },
-            { native: false },
-          );
-
-          for (const key of ['value', 'pressed', 'disabled', 'aria-pressed', 'tabindex']) {
-            expect(toggle.ownKeys).toContain(key);
-          }
-
-          toggle.destroy();
-          expect(toggle.current).toBeNull();
-        });
-      }));
+  afterAll(() => {
+    shieldScope.destroy();
   });
+
+  it('exposes controller-managed keys on ownKeys for rest-prop omission', () =>
+    shieldScope.run(() => {
+      component().run(() => {
+        const toggle = aria<HTMLDivElement>(
+          'toggle',
+          { value: 'bold', pressed: false, disabled: false },
+          { native: false }
+        );
+
+        for (const key of ['value', 'pressed', 'disabled', 'aria-pressed', 'tabindex']) {
+          expect(toggle.ownKeys).toContain(key);
+        }
+
+        toggle.destroy();
+        expect(toggle.current).toBeNull();
+      });
+    }));
+});

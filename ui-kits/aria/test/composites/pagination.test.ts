@@ -6,7 +6,7 @@ import { bind, component } from '../utils.js';
 function buildNav(
   props: Partial<PaginationProps>,
   pages: Array<{ page: string; href: string; disabled?: boolean }>,
-  host: 'native' | 'custom' = 'native',
+  host: 'native' | 'custom' = 'native'
 ) {
   const nav = aria('pagination', props as PaginationProps);
   const navEl = bind(document.createElement(host === 'native' ? 'nav' : 'div'), nav);
@@ -39,8 +39,7 @@ function press(el: HTMLElement, key: string) {
   return event;
 }
 
-const focusedPage = () =>
-  (document.activeElement as HTMLElement)?.getAttribute('data-page') ?? null;
+const focusedPage = () => (document.activeElement as HTMLElement)?.getAttribute('data-page') ?? null;
 
 describe('Pagination - Composite Specifications', () => {
   const scope = createLifecycle();
@@ -62,9 +61,7 @@ describe('Pagination - Composite Specifications', () => {
 
           native.cleanup();
 
-          const custom = buildNav({ label: 'Search results pages' }, [
-            { page: '1', href: '?p=1' },
-          ], 'custom');
+          const custom = buildNav({ label: 'Search results pages' }, [{ page: '1', href: '?p=1' }], 'custom');
 
           expect(custom.navEl.getAttribute('role')).toBe('navigation');
           expect(custom.navEl.getAttribute('aria-label')).toBe('Search results pages');
@@ -76,14 +73,11 @@ describe('Pagination - Composite Specifications', () => {
     it('moves focus between page links and clamps at both ends without wrapping', () =>
       scope.run(() => {
         component().run(() => {
-          const { navEl, links, cleanup } = buildNav(
-            {},
-            [
-              { page: '1', href: '?p=1' },
-              { page: '2', href: '?p=2' },
-              { page: '3', href: '?p=3' },
-            ],
-          );
+          const { navEl, links, cleanup } = buildNav({}, [
+            { page: '1', href: '?p=1' },
+            { page: '2', href: '?p=2' },
+            { page: '3', href: '?p=3' },
+          ]);
 
           links[0].el.focus();
 
@@ -142,15 +136,12 @@ describe('Pagination - Composite Specifications', () => {
     it('passes over a disabled page link in every direction', () =>
       scope.run(() => {
         component().run(() => {
-          const { links, cleanup } = buildNav(
-            {},
-            [
-              { page: '1', href: '?p=1' },
-              { page: '…', href: '#', disabled: true },
-              { page: '8', href: '?p=8' },
-              { page: '9', href: '?p=9' },
-            ],
-          );
+          const { links, cleanup } = buildNav({}, [
+            { page: '1', href: '?p=1' },
+            { page: '…', href: '#', disabled: true },
+            { page: '8', href: '?p=8' },
+            { page: '9', href: '?p=9' },
+          ]);
 
           links[0].el.focus();
           expect(links[1].el.getAttribute('aria-disabled')).toBe('true');

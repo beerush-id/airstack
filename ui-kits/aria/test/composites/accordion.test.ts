@@ -1,6 +1,6 @@
 import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
-import { accordionCtx, type AccordionProps, aria } from '../../src/index.js';
+import { type AccordionProps, accordionCtx, aria } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 describe('Accordion - User Expectations & A11y Specifications', () => {

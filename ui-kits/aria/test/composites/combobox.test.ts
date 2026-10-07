@@ -1,6 +1,6 @@
 import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
-import { aria, selectionGroup, type ComboboxProps } from '../../src/index.js';
+import { aria, type ComboboxProps, selectionGroup } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 describe('Combobox - Composite Specifications', () => {
@@ -31,9 +31,7 @@ describe('Combobox - Composite Specifications', () => {
           expect(inputEl.hasAttribute('aria-activedescendant')).toBe(false);
 
           expect(popupEl.getAttribute('role')).toBe('listbox');
-          expect(document.getElementById(inputEl.getAttribute('aria-controls') as string)).toBe(
-            popupEl,
-          );
+          expect(document.getElementById(inputEl.getAttribute('aria-controls') as string)).toBe(popupEl);
 
           // Typing lands in the input and never moves the caret away from it
           inputEl.focus();

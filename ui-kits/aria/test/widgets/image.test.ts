@@ -44,7 +44,7 @@ describe('Image - Contract Specifications', () => {
             commits.push({
               detail: (event as ImageEvent).detail,
               bubbles: event.bubbles,
-            }),
+            })
           );
 
           // 2. Idle: the fallback is the accessible representation

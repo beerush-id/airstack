@@ -245,11 +245,7 @@ describe('Radio - Coverage (events, guards & teardown completeness)', () => {
     it('exposes controller-managed keys on ownKeys for rest-prop omission', () =>
       scope.run(() => {
         component().run(() => {
-          const r = aria<HTMLDivElement>(
-            'radio',
-            { value: 'b', name: 'plan', disabled: false },
-            { native: false },
-          );
+          const r = aria<HTMLDivElement>('radio', { value: 'b', name: 'plan', disabled: false }, { native: false });
 
           for (const key of ['value', 'name', 'disabled', 'checked', 'aria-checked', 'tabindex']) {
             expect(r.ownKeys).toContain(key);

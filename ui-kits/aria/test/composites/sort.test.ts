@@ -3,11 +3,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { aria, type SortProps } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
-function buildSort(
-  props: Partial<SortProps>,
-  keys: Array<{ key: string }>,
-  host: 'native' | 'custom' = 'native',
-) {
+function buildSort(props: Partial<SortProps>, keys: Array<{ key: string }>, host: 'native' | 'custom' = 'native') {
   const sort = aria('sort', props as SortProps);
   const tableEl = bind(document.createElement('table'), sort);
   document.body.appendChild(tableEl);
@@ -15,24 +11,25 @@ function buildSort(
   const row = document.createElement('tr');
   tableEl.appendChild(row);
 
-  const headers = keys.map(({ key }) => key).map((key, index) => {
-    const header = aria('sort-header', { key });
-    const headerEl = bind(
-      document.createElement(host === 'native' ? 'th' : 'div'),
-      header,
-    ) as HTMLTableCellElement | HTMLElement;
+  const headers = keys
+    .map(({ key }) => key)
+    .map((key, index) => {
+      const header = aria('sort-header', { key });
+      const headerEl = bind(document.createElement(host === 'native' ? 'th' : 'div'), header) as
+        | HTMLTableCellElement
+        | HTMLElement;
 
-    if (host === 'native') {
-      headerEl.scope = 'col';
-    }
+      if (host === 'native') {
+        headerEl.scope = 'col';
+      }
 
-    const trigger = aria('sort-trigger');
-    const triggerEl = bind(document.createElement('button'), trigger);
-    headerEl.appendChild(triggerEl);
-    row.appendChild(headerEl);
+      const trigger = aria('sort-trigger');
+      const triggerEl = bind(document.createElement('button'), trigger);
+      headerEl.appendChild(triggerEl);
+      row.appendChild(headerEl);
 
-    return { key, index, header, headerEl, trigger, triggerEl };
-  });
+      return { key, index, header, headerEl, trigger, triggerEl };
+    });
 
   const cleanup = () => {
     for (const entry of headers) {
@@ -49,7 +46,7 @@ function buildSort(
 
 const sorted = () =>
   Array.from(document.querySelectorAll('[aria-sort]')).map(
-    (el) => `${el.dataset.key ?? ''}=${el.getAttribute('aria-sort')}`,
+    (el) => `${el.dataset.key ?? ''}=${el.getAttribute('aria-sort')}`
   );
 
 describe('Sort - Composite Specifications', () => {
@@ -70,9 +67,7 @@ describe('Sort - Composite Specifications', () => {
           name.headerEl.dataset.key = 'name';
 
           const commits: unknown[] = [];
-          tableEl.addEventListener('change', (event) =>
-            commits.push((event as CustomEvent).detail),
-          );
+          tableEl.addEventListener('change', (event) => commits.push((event as CustomEvent).detail));
 
           expect(name.headerEl.hasAttribute('aria-sort')).toBe(false);
 
@@ -168,10 +163,7 @@ describe('Sort - Composite Specifications', () => {
     it('leaves the header role to the native th and compiles it only on a custom host', () =>
       scope.run(() => {
         component().run(() => {
-          const native = buildSort({ value: { key: 'a', direction: 'ascending' } }, [
-            { key: 'a' },
-            { key: 'b' },
-          ]);
+          const native = buildSort({ value: { key: 'a', direction: 'ascending' } }, [{ key: 'a' }, { key: 'b' }]);
 
           // A <th scope="col"> is already a column header
           expect(native.headers[0].headerEl.hasAttribute('role')).toBe(false);
@@ -228,11 +220,7 @@ describe('Sort - Composite Specifications', () => {
       scope.run(() => {
         component().run(() => {
           const props = mutable<SortProps>({ value: { key: 'name', direction: 'ascending' } });
-          const { headers, cleanup } = buildSort(props, [
-            { key: 'name' },
-            { key: 'size' },
-            { key: 'price' },
-          ]);
+          const { headers, cleanup } = buildSort(props, [{ key: 'name' }, { key: 'size' }, { key: 'price' }]);
 
           for (const entry of headers) {
             entry.headerEl.dataset.key = entry.key;

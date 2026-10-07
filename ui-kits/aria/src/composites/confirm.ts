@@ -103,7 +103,6 @@ export class ConfirmAria<E extends HTMLElement = HTMLElement> extends DialogAria
     return false;
   }
 
-
   public override trigger<T extends HTMLElement = HTMLElement>(
     props?: AriaProps,
     options?: AriaOptions
@@ -180,7 +179,6 @@ export class ConfirmPanelAria<E extends HTMLElement = HTMLElement> extends Dialo
 
     return attrs;
   }
-
 }
 
 /**

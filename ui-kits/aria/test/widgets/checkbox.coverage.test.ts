@@ -1,6 +1,6 @@
 import { createLifecycle, mutable, setStaticTracker } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
-import { aria, selectionGroup, type CheckboxEvent, type CheckboxProps, type SelectionEvent } from '../../src/index.js';
+import { aria, type CheckboxEvent, type CheckboxProps, type SelectionEvent, selectionGroup } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 describe('Checkbox - Coverage (events, guards & teardown completeness)', () => {
@@ -146,11 +146,7 @@ describe('Checkbox - Coverage (events, guards & teardown completeness)', () => {
     it('clears mixed and commits unchecked through deselect', () =>
       scope.run(() => {
         component().run(() => {
-          const cb = aria<HTMLDivElement>(
-            'checkbox',
-            { checked: true, indeterminate: true },
-            { native: false },
-          );
+          const cb = aria<HTMLDivElement>('checkbox', { checked: true, indeterminate: true }, { native: false });
           const el = bind(document.createElement('div'), cb);
           expect(el.getAttribute('aria-checked')).toBe('mixed');
 
@@ -255,28 +251,28 @@ describe('Checkbox - Coverage (events, guards & teardown completeness)', () => {
   });
 });
 
-  describe('Attribute Shielding Contract', () => {
-    const shieldScope = createLifecycle();
+describe('Attribute Shielding Contract', () => {
+  const shieldScope = createLifecycle();
 
-    afterAll(() => {
-      shieldScope.destroy();
-    });
-
-    it('exposes controller-managed keys on ownKeys for rest-prop omission', () =>
-      shieldScope.run(() => {
-        component().run(() => {
-          const checkbox = aria<HTMLDivElement>(
-            'checkbox',
-            { value: 'terms', checked: false, disabled: false },
-            { native: false },
-          );
-
-          for (const key of ['value', 'checked', 'disabled', 'name', 'aria-checked', 'tabindex']) {
-            expect(checkbox.ownKeys).toContain(key);
-          }
-
-          checkbox.destroy();
-          expect(checkbox.current).toBeNull();
-        });
-      }));
+  afterAll(() => {
+    shieldScope.destroy();
   });
+
+  it('exposes controller-managed keys on ownKeys for rest-prop omission', () =>
+    shieldScope.run(() => {
+      component().run(() => {
+        const checkbox = aria<HTMLDivElement>(
+          'checkbox',
+          { value: 'terms', checked: false, disabled: false },
+          { native: false }
+        );
+
+        for (const key of ['value', 'checked', 'disabled', 'name', 'aria-checked', 'tabindex']) {
+          expect(checkbox.ownKeys).toContain(key);
+        }
+
+        checkbox.destroy();
+        expect(checkbox.current).toBeNull();
+      });
+    }));
+});

@@ -65,8 +65,7 @@ function press(el: HTMLElement, key: string) {
   return event;
 }
 
-const focusedNode = () =>
-  (document.activeElement as HTMLElement)?.getAttribute('data-name') ?? null;
+const focusedNode = () => (document.activeElement as HTMLElement)?.getAttribute('data-name') ?? null;
 
 describe('Tree - Composite Specifications', () => {
   const scope = createLifecycle();
@@ -79,17 +78,14 @@ describe('Tree - Composite Specifications', () => {
     it('expands and collapses a branch from the arrow keys and moves focus into it', () =>
       scope.run(() => {
         component().run(() => {
-          const { rootUl, node, cleanup } = buildTree(
-            { value: undefined },
-            [
-              {
-                name: 'src',
-                expanded: false,
-                children: [{ name: 'app' }, { name: 'main' }],
-              },
-              { name: 'readme' },
-            ],
-          );
+          const { rootUl, node, cleanup } = buildTree({ value: undefined }, [
+            {
+              name: 'src',
+              expanded: false,
+              children: [{ name: 'app' }, { name: 'main' }],
+            },
+            { name: 'readme' },
+          ]);
 
           // Only a branch carries an expansion state
           expect(node('src')?.el.getAttribute('role')).toBe('treeitem');
@@ -159,19 +155,13 @@ describe('Tree - Composite Specifications', () => {
     it('expands a nested branch without disturbing its ancestor states', () =>
       scope.run(() => {
         component().run(() => {
-          const { node, cleanup } = buildTree(
-            { value: undefined },
-            [
-              {
-                name: 'outer',
-                expanded: true,
-                children: [
-                  { name: 'inner', expanded: false, children: [{ name: 'leaf' }] },
-                  { name: 'sibling' },
-                ],
-              },
-            ],
-          );
+          const { node, cleanup } = buildTree({ value: undefined }, [
+            {
+              name: 'outer',
+              expanded: true,
+              children: [{ name: 'inner', expanded: false, children: [{ name: 'leaf' }] }, { name: 'sibling' }],
+            },
+          ]);
 
           expect(node('outer')?.el.getAttribute('aria-expanded')).toBe('true');
           expect(node('inner')?.el.getAttribute('aria-expanded')).toBe('false');
@@ -224,11 +214,7 @@ describe('Tree - Composite Specifications', () => {
       scope.run(() => {
         component().run(() => {
           const props = mutable<TreeProps>({ value: 'a', manual: false });
-          const { node, cleanup } = buildTree(props, [
-            { name: 'a' },
-            { name: 'b' },
-            { name: 'c' },
-          ]);
+          const { node, cleanup } = buildTree(props, [{ name: 'a' }, { name: 'b' }, { name: 'c' }]);
 
           node('a')?.el.focus();
 
@@ -359,10 +345,9 @@ describe('Tree - Composite Specifications', () => {
     it('gives every node an address its group can be labelled by', () =>
       scope.run(() => {
         component().run(() => {
-          const { node, rootUl, cleanup } = buildTree(
-            { value: undefined },
-            [{ name: 'parent', expanded: true, children: [{ name: 'kid' }] }],
-          );
+          const { node, rootUl, cleanup } = buildTree({ value: undefined }, [
+            { name: 'parent', expanded: true, children: [{ name: 'kid' }] },
+          ]);
 
           const parentId = node('parent')?.el.id;
           expect(typeof parentId).toBe('string');

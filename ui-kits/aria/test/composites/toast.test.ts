@@ -3,10 +3,7 @@ import { afterAll, describe, expect, it, vi } from 'vitest';
 import { aria, type ToastRegionProps } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
-function buildRegion(
-  props: Partial<ToastRegionProps>,
-  toasts: Array<{ id: string; duration?: number }>,
-) {
+function buildRegion(props: Partial<ToastRegionProps>, toasts: Array<{ id: string; duration?: number }>) {
   const region = aria('toast-region', props as ToastRegionProps);
   const regionEl = bind(document.createElement('section'), region);
   document.body.appendChild(regionEl);
@@ -73,14 +70,10 @@ describe('Toast - Composite Specifications', () => {
     it('expires each toast on the default lifetime and announces the removal', () =>
       scope.run(() => {
         component().run(() => {
-          const { regionEl, cleanup } = buildRegion({ duration: 3000 }, [
-            { id: 'saved' },
-          ]);
+          const { regionEl, cleanup } = buildRegion({ duration: 3000 }, [{ id: 'saved' }]);
 
           const dismissals: unknown[] = [];
-          regionEl.addEventListener('dismiss', (event) =>
-            dismissals.push((event as CustomEvent).detail),
-          );
+          regionEl.addEventListener('dismiss', (event) => dismissals.push((event as CustomEvent).detail));
 
           vi.advanceTimersByTime(2999);
           expect(dismissals).toEqual([]);
@@ -105,9 +98,7 @@ describe('Toast - Composite Specifications', () => {
           ]);
 
           const dismissals: unknown[] = [];
-          regionEl.addEventListener('dismiss', (event) =>
-            dismissals.push((event as CustomEvent).detail),
-          );
+          regionEl.addEventListener('dismiss', (event) => dismissals.push((event as CustomEvent).detail));
 
           vi.advanceTimersByTime(1000);
           expect(dismissals).toEqual(['quick']);
@@ -125,15 +116,10 @@ describe('Toast - Composite Specifications', () => {
     it('closes through the close button once, and never re-arms the expired timer', () =>
       scope.run(() => {
         component().run(() => {
-          const { regionEl, toasts, cleanup } = buildRegion({ duration: 4000 }, [
-            { id: 'manual' },
-            { id: 'timed' },
-          ]);
+          const { regionEl, toasts, cleanup } = buildRegion({ duration: 4000 }, [{ id: 'manual' }, { id: 'timed' }]);
 
           const dismissals: unknown[] = [];
-          regionEl.addEventListener('dismiss', (event) =>
-            dismissals.push((event as CustomEvent).detail),
-          );
+          regionEl.addEventListener('dismiss', (event) => dismissals.push((event as CustomEvent).detail));
 
           toasts[0].closeEl.click();
           expect(dismissals).toEqual(['manual']);
@@ -157,14 +143,10 @@ describe('Toast - Composite Specifications', () => {
     it('holds the timer while the pointer is over a toast and restarts on leave', () =>
       scope.run(() => {
         component().run(() => {
-          const { regionEl, toasts, cleanup } = buildRegion({ duration: 2000 }, [
-            { id: 'hovered' },
-          ]);
+          const { regionEl, toasts, cleanup } = buildRegion({ duration: 2000 }, [{ id: 'hovered' }]);
 
           const dismissals: unknown[] = [];
-          regionEl.addEventListener('dismiss', (event) =>
-            dismissals.push((event as CustomEvent).detail),
-          );
+          regionEl.addEventListener('dismiss', (event) => dismissals.push((event as CustomEvent).detail));
 
           vi.advanceTimersByTime(1000);
           toasts[0].toastEl.dispatchEvent(new Event('pointerenter'));
@@ -208,15 +190,10 @@ describe('Toast - Composite Specifications', () => {
     it('pauses only the toast being interacted with', () =>
       scope.run(() => {
         component().run(() => {
-          const { regionEl, toasts, cleanup } = buildRegion({ duration: 3000 }, [
-            { id: 'first' },
-            { id: 'second' },
-          ]);
+          const { regionEl, toasts, cleanup } = buildRegion({ duration: 3000 }, [{ id: 'first' }, { id: 'second' }]);
 
           const dismissals: unknown[] = [];
-          regionEl.addEventListener('dismiss', (event) =>
-            dismissals.push((event as CustomEvent).detail),
-          );
+          regionEl.addEventListener('dismiss', (event) => dismissals.push((event as CustomEvent).detail));
 
           toasts[1].toastEl.dispatchEvent(new Event('pointerenter'));
           vi.advanceTimersByTime(3000);
@@ -258,10 +235,7 @@ describe('Toast - Composite Specifications', () => {
     it('wires each toast to its own title and description by address', () =>
       scope.run(() => {
         component().run(() => {
-          const { toasts, cleanup } = buildRegion({ duration: 5000 }, [
-            { id: 'alpha' },
-            { id: 'beta' },
-          ]);
+          const { toasts, cleanup } = buildRegion({ duration: 5000 }, [{ id: 'alpha' }, { id: 'beta' }]);
 
           const [alpha, beta] = toasts;
 
@@ -269,12 +243,8 @@ describe('Toast - Composite Specifications', () => {
           expect(alpha.toastEl.getAttribute('aria-describedby')).toBe(alpha.descriptionEl.id);
 
           // Every address resolves inside this toast, not a sibling's
-          const labelled = document.getElementById(
-            alpha.toastEl.getAttribute('aria-labelledby') as string,
-          );
-          const described = document.getElementById(
-            alpha.toastEl.getAttribute('aria-describedby') as string,
-          );
+          const labelled = document.getElementById(alpha.toastEl.getAttribute('aria-labelledby') as string);
+          const described = document.getElementById(alpha.toastEl.getAttribute('aria-describedby') as string);
           expect(labelled).toBe(alpha.titleEl);
           expect(described).toBe(alpha.descriptionEl);
           expect(alpha.toastEl.contains(labelled as Node)).toBe(true);

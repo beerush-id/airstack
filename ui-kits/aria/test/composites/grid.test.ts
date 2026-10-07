@@ -5,11 +5,7 @@ import { bind, component } from '../utils.js';
 
 type CellRef = { name: string; el: HTMLElement };
 
-function buildGrid(
-  props: Partial<GridProps>,
-  rows: string[][],
-  host: 'grid' | 'table' = 'grid',
-) {
+function buildGrid(props: Partial<GridProps>, rows: string[][], host: 'grid' | 'table' = 'grid') {
   const grid = aria('grid', props as GridProps);
   const gridEl = bind(document.createElement(host === 'grid' ? 'div' : 'table'), grid);
   document.body.appendChild(gridEl);
@@ -85,8 +81,7 @@ describe('Grid - Composite Specifications', () => {
             row.el.dataset.name = `r${rowIndex}`;
           });
 
-          const at = (name: string) =>
-            rows.flatMap((row) => row.cells).find((cell) => cell.name === name)?.el;
+          const at = (name: string) => rows.flatMap((row) => row.cells).find((cell) => cell.name === name)?.el;
 
           at('a1')?.focus();
           expect(document.activeElement).toBe(at('a1'));
@@ -115,9 +110,7 @@ describe('Grid - Composite Specifications', () => {
           expect(at('a3')?.getAttribute('aria-selected')).toBe('false');
 
           // One tab stop, travelling with focus
-          const stops = rows
-            .flatMap((row) => row.cells)
-            .filter((cell) => cell.el.getAttribute('tabindex') === '0');
+          const stops = rows.flatMap((row) => row.cells).filter((cell) => cell.el.getAttribute('tabindex') === '0');
           expect(stops).toHaveLength(1);
           expect(stops[0].el).toBe(at('a1'));
 

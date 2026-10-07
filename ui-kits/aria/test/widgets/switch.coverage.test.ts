@@ -1,6 +1,6 @@
 import { createLifecycle, mutable, setStaticTracker } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
-import { aria, selectionGroup, type SelectionEvent, type SwitchEvent } from '../../src/index.js';
+import { aria, type SelectionEvent, type SwitchEvent, selectionGroup } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 describe('Switch - Coverage (events, guards & teardown completeness)', () => {
@@ -292,11 +292,7 @@ describe('Switch - Coverage (events, guards & teardown completeness)', () => {
     it('exposes controller-managed keys on ownKeys for rest-prop omission', () =>
       scope.run(() => {
         component().run(() => {
-          const sw = aria<HTMLDivElement>(
-            'switch',
-            { value: 'a', name: 'alerts', disabled: false },
-            { native: false },
-          );
+          const sw = aria<HTMLDivElement>('switch', { value: 'a', name: 'alerts', disabled: false }, { native: false });
 
           for (const key of ['value', 'name', 'disabled', 'checked', 'aria-checked', 'tabindex']) {
             expect(sw.ownKeys).toContain(key);

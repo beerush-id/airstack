@@ -53,25 +53,9 @@ function press(el: HTMLElement, key: string) {
   return event;
 }
 
-const MARCH = [
-  '2026-03-01',
-  '2026-03-02',
-  '2026-03-03',
-  '2026-03-04',
-  '2026-03-05',
-  '2026-03-06',
-  '2026-03-07',
-];
+const MARCH = ['2026-03-01', '2026-03-02', '2026-03-03', '2026-03-04', '2026-03-05', '2026-03-06', '2026-03-07'];
 
-const FEBRUARY = [
-  '2026-02-01',
-  '2026-02-02',
-  '2026-02-03',
-  '2026-02-04',
-  '2026-02-05',
-  '2026-02-06',
-  '2026-02-07',
-];
+const FEBRUARY = ['2026-02-01', '2026-02-02', '2026-02-03', '2026-02-04', '2026-02-05', '2026-02-06', '2026-02-07'];
 
 describe('DatePicker - Composite Specifications', () => {
   const scope = createLifecycle();
@@ -85,18 +69,13 @@ describe('DatePicker - Composite Specifications', () => {
       scope.run(() => {
         component().run(() => {
           const props = mutable<DatePickerProps>({ value: '', open: false });
-          const { input, inputEl, trigger, triggerEl, calendar, calendarEl, cleanup } = buildPicker(
-            props,
-            MARCH,
-          );
+          const { input, inputEl, trigger, triggerEl, calendar, calendarEl, cleanup } = buildPicker(props, MARCH);
 
           // Both entry points name the dialog and follow its visibility
           expect(trigger.attributes['aria-haspopup']).toBe('dialog');
           expect(trigger.attributes['aria-expanded']).toBe('false');
           expect(trigger.attributes['aria-controls']).toBe(calendar.attributes.id);
-          expect(
-            document.getElementById(triggerEl.getAttribute('aria-controls') as string),
-          ).toBe(calendarEl);
+          expect(document.getElementById(triggerEl.getAttribute('aria-controls') as string)).toBe(calendarEl);
           expect(inputEl.getAttribute('role')).toBe('combobox');
           expect(inputEl.getAttribute('aria-haspopup')).toBe('dialog');
           expect(inputEl.getAttribute('aria-expanded')).toBe('false');
@@ -178,10 +157,22 @@ describe('DatePicker - Composite Specifications', () => {
     it('moves one day sideways and one week vertically', () =>
       scope.run(() => {
         component().run(() => {
-          const { days, cleanup } = buildPicker(
-            { value: '', open: true },
-            ['2026-03-01', '2026-03-02', '2026-03-03', '2026-03-04', '2026-03-05', '2026-03-06', '2026-03-07', '2026-03-08', '2026-03-09', '2026-03-10', '2026-03-11', '2026-03-12', '2026-03-13', '2026-03-14'],
-          );
+          const { days, cleanup } = buildPicker({ value: '', open: true }, [
+            '2026-03-01',
+            '2026-03-02',
+            '2026-03-03',
+            '2026-03-04',
+            '2026-03-05',
+            '2026-03-06',
+            '2026-03-07',
+            '2026-03-08',
+            '2026-03-09',
+            '2026-03-10',
+            '2026-03-11',
+            '2026-03-12',
+            '2026-03-13',
+            '2026-03-14',
+          ]);
 
           const focused = () => (document.activeElement as HTMLElement).getAttribute('data-date');
 
@@ -204,9 +195,7 @@ describe('DatePicker - Composite Specifications', () => {
           expect(focused()).toBe('2026-03-03');
 
           // The keys the grid owns are consumed, and the ones it does not are left alone
-          expect(press(days.get('2026-03-03')?.el as HTMLElement, 'ArrowRight').defaultPrevented).toBe(
-            true,
-          );
+          expect(press(days.get('2026-03-03')?.el as HTMLElement, 'ArrowRight').defaultPrevented).toBe(true);
           expect(press(days.get('2026-03-03')?.el as HTMLElement, 'a').defaultPrevented).toBe(false);
 
           cleanup();
@@ -216,10 +205,7 @@ describe('DatePicker - Composite Specifications', () => {
     it('bounds the week with Home and End and turns the month with Page keys', () =>
       scope.run(() => {
         component().run(() => {
-          const { days, cleanup } = buildPicker(
-            { value: '', open: true },
-            [...FEBRUARY, ...MARCH],
-          );
+          const { days, cleanup } = buildPicker({ value: '', open: true }, [...FEBRUARY, ...MARCH]);
 
           const focused = () => (document.activeElement as HTMLElement).getAttribute('data-date');
 

@@ -1,6 +1,6 @@
 import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
-import { aria, OptionAria, selectionGroup, type OptionProps } from '../../src/index.js';
+import { aria, OptionAria, type OptionProps, selectionGroup } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 describe('Option - Contract Specifications', () => {
@@ -458,12 +458,8 @@ describe('Option - Contract Specifications', () => {
           }
 
           // A full Space press is no exception: the member owns no activation at all
-          elB.dispatchEvent(
-            new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true }),
-          );
-          elB.dispatchEvent(
-            new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }),
-          );
+          elB.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true }));
+          elB.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }));
 
           expect(group.value).toBe('a');
           expect(optB.selected).toBe(false);

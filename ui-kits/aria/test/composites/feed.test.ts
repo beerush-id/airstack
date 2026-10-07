@@ -14,9 +14,7 @@ function buildFeed(props: Partial<FeedProps>, count: number, host: 'native' | 'c
     const slot = component();
     const built = slot.run(() => {
       const article =
-        host === 'native'
-          ? aria('feed-article')
-          : aria<HTMLElement>('feed-article', {}, { native: false });
+        host === 'native' ? aria('feed-article') : aria<HTMLElement>('feed-article', {}, { native: false });
 
       const el = bind(document.createElement(host === 'native' ? 'article' : 'div'), article);
       el.tabIndex = -1;
@@ -31,9 +29,7 @@ function buildFeed(props: Partial<FeedProps>, count: number, host: 'native' | 'c
     const slot = component();
     return slot.run(() => {
       const article =
-        host === 'native'
-          ? aria('feed-article')
-          : aria<HTMLElement>('feed-article', {}, { native: false });
+        host === 'native' ? aria('feed-article') : aria<HTMLElement>('feed-article', {}, { native: false });
 
       const el = bind(document.createElement(host === 'native' ? 'article' : 'div'), article);
       el.tabIndex = -1;
@@ -121,9 +117,7 @@ describe('Feed - Composite Specifications', () => {
         // A late arrival takes the next position and the set size follows for everyone
         const fifth = appendArticle();
         expect(fifth.el.getAttribute('aria-posinset')).toBe('4');
-        expect(articles[0].el.getAttribute('aria-setsize')).toBe(
-          fifth.el.getAttribute('aria-setsize'),
-        );
+        expect(articles[0].el.getAttribute('aria-setsize')).toBe(fifth.el.getAttribute('aria-setsize'));
 
         cleanup();
       }));

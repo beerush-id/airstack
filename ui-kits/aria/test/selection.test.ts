@@ -1,6 +1,6 @@
 import { createLifecycle, mutable, withIsolation } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
-import { SelectionAria, selectionGroup, type SelectionOptions, type SelectionProps } from '../src/selection.js';
+import { SelectionAria, type SelectionOptions, type SelectionProps, selectionGroup } from '../src/selection.js';
 import { bind, component } from './utils.js';
 
 class TestItem extends SelectionAria {

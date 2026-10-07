@@ -103,14 +103,10 @@ describe('Breadcrumb - Composite Specifications', () => {
 
           links[1].el.focus();
 
-          links[1].el.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'End', bubbles: true, cancelable: true }),
-          );
+          links[1].el.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true, cancelable: true }));
           expect(document.activeElement).toBe(links[2].el);
 
-          links[2].el.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'Home', bubbles: true, cancelable: true }),
-          );
+          links[2].el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true, cancelable: true }));
           expect(document.activeElement).toBe(links[0].el);
 
           crumbEl.remove();
@@ -188,14 +184,12 @@ describe('Breadcrumb - Composite Specifications', () => {
           links[0].el.focus();
 
           links[0].el.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }),
+            new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true })
           );
           expect(document.activeElement).toBe(links[1].el);
           expect(document.activeElement).not.toBe(separators[0]);
 
-          links[1].el.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'End', bubbles: true, cancelable: true }),
-          );
+          links[1].el.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true, cancelable: true }));
           expect(document.activeElement).toBe(links[2].el);
           expect(document.activeElement).not.toBe(separators[1]);
 

@@ -29,7 +29,7 @@ describe('FilePicker - Coverage (cancel contract, constraint sync & key guards)'
             bubbles: event.bubbles,
             kind: event.constructor.name,
             detail: (event as FilePickerCancelEvent).detail,
-          }),
+          })
         );
 
         hidden?.dispatchEvent(new Event('cancel'));
@@ -169,28 +169,28 @@ describe('FilePicker - Coverage (cancel contract, constraint sync & key guards)'
     }));
 });
 
-  describe('Attribute Shielding Contract', () => {
-    const shieldScope = createLifecycle();
+describe('Attribute Shielding Contract', () => {
+  const shieldScope = createLifecycle();
 
-    afterAll(() => {
-      shieldScope.destroy();
-    });
-
-    it('exposes controller-managed keys on ownKeys for rest-prop omission', () =>
-      shieldScope.run(() => {
-        component().run(() => {
-          const trigger = aria<HTMLDivElement>(
-            'file-picker',
-            { accept: 'image/*', multiple: true, disabled: false },
-            { native: false },
-          );
-
-          for (const key of ['accept', 'multiple', 'capture', 'disabled', 'role', 'tabindex']) {
-            expect(trigger.ownKeys).toContain(key);
-          }
-
-          trigger.destroy();
-          expect(trigger.current).toBeNull();
-        });
-      }));
+  afterAll(() => {
+    shieldScope.destroy();
   });
+
+  it('exposes controller-managed keys on ownKeys for rest-prop omission', () =>
+    shieldScope.run(() => {
+      component().run(() => {
+        const trigger = aria<HTMLDivElement>(
+          'file-picker',
+          { accept: 'image/*', multiple: true, disabled: false },
+          { native: false }
+        );
+
+        for (const key of ['accept', 'multiple', 'capture', 'disabled', 'role', 'tabindex']) {
+          expect(trigger.ownKeys).toContain(key);
+        }
+
+        trigger.destroy();
+        expect(trigger.current).toBeNull();
+      });
+    }));
+});

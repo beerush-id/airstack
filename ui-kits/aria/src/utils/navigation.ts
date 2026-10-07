@@ -32,6 +32,12 @@ export interface RovingNavigationOptions {
   orientation?: Orientation;
 
   /**
+   * Whether both axes navigate: ArrowRight/ArrowDown forward, ArrowLeft/ArrowUp backward.
+   * Takes precedence over `orientation` for composites that travel in every direction.
+   */
+  bothAxes?: boolean;
+
+  /**
    * Whether navigation only moves focus without activating selection.
    * When true, only focus shifts; when false (default), click() is invoked.
    */
@@ -57,8 +63,12 @@ export function handleRovingKey<E extends BaseElement = BaseElement>(
   if (!container) return false;
 
   const isHorizontal = options.orientation === 'horizontal';
-  const isNext = isHorizontal ? event.key === 'ArrowRight' : event.key === 'ArrowDown';
-  const isPrev = isHorizontal ? event.key === 'ArrowLeft' : event.key === 'ArrowUp';
+  const isNext = options.bothAxes
+    ? event.key === 'ArrowRight' || event.key === 'ArrowDown'
+    : event.key === (isHorizontal ? 'ArrowRight' : 'ArrowDown');
+  const isPrev = options.bothAxes
+    ? event.key === 'ArrowLeft' || event.key === 'ArrowUp'
+    : event.key === (isHorizontal ? 'ArrowLeft' : 'ArrowUp');
   const isHome = event.key === 'Home';
   const isEnd = event.key === 'End';
 

@@ -68,12 +68,7 @@ describe('DateRangePicker - Composite Specifications', () => {
       scope.run(() => {
         component().run(() => {
           const props = mutable<DateRangePickerProps>({ value: null, open: true });
-          const { picker, days, cleanup } = buildRange(props, [
-            '2026-05-02',
-            '2026-05-04',
-            '2026-05-06',
-            '2026-05-09',
-          ]);
+          const { picker, days, cleanup } = buildRange(props, ['2026-05-02', '2026-05-04', '2026-05-06', '2026-05-09']);
 
           // Later day first, then an earlier one: the range still resolves in order
           click(days.get('2026-05-09'));
@@ -158,9 +153,7 @@ describe('DateRangePicker - Composite Specifications', () => {
           const drafts: unknown[] = [];
           const commits: unknown[] = [];
           pickerEl.addEventListener('input', (event) => drafts.push((event as CustomEvent).detail));
-          pickerEl.addEventListener('change', (event) =>
-            commits.push((event as CustomEvent).detail),
-          );
+          pickerEl.addEventListener('change', (event) => commits.push((event as CustomEvent).detail));
 
           click(days.get('2026-06-05'));
           expect(drafts).toEqual([['2026-06-05', '']]);
@@ -183,12 +176,7 @@ describe('DateRangePicker - Composite Specifications', () => {
             min: '2026-07-03',
             max: '2026-07-06',
           });
-          const { days, cleanup } = buildRange(props, [
-            '2026-07-01',
-            '2026-07-03',
-            '2026-07-05',
-            '2026-07-08',
-          ]);
+          const { days, cleanup } = buildRange(props, ['2026-07-01', '2026-07-03', '2026-07-05', '2026-07-08']);
 
           expect(days.get('2026-07-01')?.getAttribute('aria-disabled')).toBe('true');
           expect(days.get('2026-07-03')?.getAttribute('aria-disabled')).toBe('false');
@@ -218,15 +206,11 @@ describe('DateRangePicker - Composite Specifications', () => {
       scope.run(() => {
         component().run(() => {
           const props = mutable<DateRangePickerProps>({ value: null, open: false });
-          const { trigger, calendar, calendarEl, triggerEl, cleanup } = buildRange(props, [
-            '2026-08-01',
-          ]);
+          const { trigger, calendar, calendarEl, triggerEl, cleanup } = buildRange(props, ['2026-08-01']);
 
           expect(trigger.attributes['aria-haspopup']).toBe('dialog');
           expect(trigger.attributes['aria-expanded']).toBe('false');
-          expect(
-            document.getElementById(triggerEl.getAttribute('aria-controls') as string),
-          ).toBe(calendarEl);
+          expect(document.getElementById(triggerEl.getAttribute('aria-controls') as string)).toBe(calendarEl);
 
           expect(calendar.attributes.role).toBe('dialog');
           expect(calendarEl.getAttribute('aria-label')).toBe('Choose date range');
@@ -247,14 +231,10 @@ describe('DateRangePicker - Composite Specifications', () => {
       scope.run(() => {
         component().run(() => {
           const props = mutable<DateRangePickerProps>({ value: null, open: true });
-          const { days, cleanup } = buildRange(props, [
-            '2026-09-01',
-            '2026-09-02',
-            '2026-09-03',
-          ]);
+          const { days, cleanup } = buildRange(props, ['2026-09-01', '2026-09-02', '2026-09-03']);
 
           const stops = ['2026-09-01', '2026-09-02', '2026-09-03'].map((date) =>
-            days.get(date)?.getAttribute('tabindex'),
+            days.get(date)?.getAttribute('tabindex')
           );
 
           // A grid member holds exactly one tab stop, not three

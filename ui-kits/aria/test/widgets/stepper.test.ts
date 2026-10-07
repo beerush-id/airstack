@@ -137,12 +137,8 @@ describe('Stepper - Contract Specifications', () => {
 
           const live: unknown[] = [];
           const committed: unknown[] = [];
-          parts.inputEl.addEventListener('input', (event) =>
-            live.push((event as StepperEvent).detail),
-          );
-          parts.inputEl.addEventListener('change', (event) =>
-            committed.push((event as StepperEvent).detail),
-          );
+          parts.inputEl.addEventListener('input', (event) => live.push((event as StepperEvent).detail));
+          parts.inputEl.addEventListener('change', (event) => committed.push((event as StepperEvent).detail));
 
           parts.inputEl.focus();
           press(parts.inputEl, 'ArrowUp');

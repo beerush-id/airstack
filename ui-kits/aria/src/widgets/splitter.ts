@@ -12,6 +12,7 @@ import type {
  * Controller-dispatched splitter event carrying the committed partition in `detail`.
  */
 export type SplitterEvent = AriaEvent<number>;
+
 import { ariaBoolean } from '../utils/attributes.js';
 import { openDragSession } from '../utils/pointer.js';
 import { axisRatio, clampRange } from '../utils/range.js';
@@ -107,7 +108,9 @@ export class SplitterAria<
   public constructor(props: Partial<T> = {}, options: O = {} as O) {
     super(props, options);
 
-    this.omittedAttrs.push('oninput', 'onchange',
+    this.omittedAttrs.push(
+      'oninput',
+      'onchange',
       'value',
       'min',
       'max',

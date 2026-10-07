@@ -146,7 +146,8 @@ export class TextInputAria<
   public constructor(props: Partial<T> = {}, options: O = {} as O) {
     super(props, { native: true, ...options } as O);
     if (!this.options.role) (this.options as O).role = 'text-input' as O['role'];
-    this.omittedAttrs.push('onchange',
+    this.omittedAttrs.push(
+      'onchange',
       'value',
       'defaultValue',
       'kind',

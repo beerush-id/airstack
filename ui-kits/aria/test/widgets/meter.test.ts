@@ -86,7 +86,7 @@ describe('Meter - Contract Specifications', () => {
           const meter = aria<HTMLMeterElement>(
             'meter',
             { value: 30, min: 20, max: 60, label: 'Load' },
-            { native: true },
+            { native: true }
           );
 
           // 1. Creation & SSR: the native element carries the range directly
@@ -162,7 +162,7 @@ describe('Meter - Contract Specifications', () => {
           const meter = aria<HTMLDivElement>(
             'meter',
             { value: 30, min: 0, max: 100, label: 'Signal' },
-            { native: false },
+            { native: false }
           );
           const el = bind(document.createElement('div'), meter);
 

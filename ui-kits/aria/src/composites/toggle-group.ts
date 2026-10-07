@@ -2,7 +2,15 @@ import { $static, $symbol, createContext, uIndex } from '@airlib/core';
 import { roverCtx } from '../context.js';
 import { Aria } from '../core.js';
 import { selectionGroup } from '../selection.js';
-import type { AriaAttributes, AriaProps, BaseElement, Orientation, Primitive } from '../types.js';
+import type {
+  AriaAttributes,
+  AriaEvent,
+  AriaEventHandler,
+  AriaProps,
+  BaseElement,
+  DetachFn,
+  Primitive,
+} from '../types.js';
 import { ariaBoolean } from '../utils/attributes.js';
 import { handleRovingKey } from '../utils/navigation.js';
 import { ToggleAria, type ToggleAttributes, type ToggleOptions, type ToggleProps } from '../widgets/toggle.js';
@@ -39,21 +47,9 @@ export interface SingleToggleGroupProps<T extends Primitive = Primitive> extends
   value?: T;
 
   /**
-   * Keyboard navigation axis and aria-orientation.
-   * @default 'horizontal'
+   * Called with the member change event that reaches the container.
    */
-  orientation?: Orientation;
-
-  /**
-   * When true, arrows move focus without selecting until Enter/Space.
-   * @default true
-   */
-  manual?: boolean;
-
-  /**
-   * Whether an item must always remain active.
-   */
-  required?: boolean;
+  onchange?: AriaEventHandler<AriaEvent<boolean>>;
 
   /**
    * Whether user interaction is disabled across all toggles in the group.
@@ -80,15 +76,9 @@ export interface MultipleToggleGroupProps<T extends Primitive = Primitive> exten
   value?: T[];
 
   /**
-   * Keyboard navigation axis and aria-orientation.
-   * @default 'horizontal'
+   * Called with the member change event that reaches the container.
    */
-  orientation?: Orientation;
-
-  /**
-   * Whether at least one item must remain active.
-   */
-  required?: boolean;
+  onchange?: AriaEventHandler<AriaEvent<boolean>>;
 
   /**
    * Whether user interaction is disabled across all toggles in the group.
@@ -108,7 +98,6 @@ export type ToggleGroupProps<T extends Primitive = Primitive> = SingleToggleGrou
  */
 export interface ToggleGroupAttributes<E extends BaseElement = HTMLElement> extends AriaAttributes<E> {
   role?: 'group';
-  'aria-orientation'?: Orientation;
   'aria-disabled'?: 'true' | 'false';
 }
 
@@ -132,13 +121,12 @@ export class ToggleGroupAria<
 
     $static(() => {
       this.properties.id = this.properties.id ?? `${ROLE_TOGGLEGROUP}-${uIndex($symbol(ROLE_TOGGLEGROUP), true)}`;
-      this.properties.orientation = this.properties.orientation ?? 'horizontal';
     });
 
     toggleGroupCtx.set(this as unknown as ToggleGroupAria);
     roverCtx.set(this as unknown as Aria<BaseElement>);
     selectionGroup.set(this.properties as Record<string, unknown>);
-    this.omittedAttrs.push('aria-orientation');
+    this.omittedAttrs.push('id', 'value', 'multiple', 'onchange', 'aria-disabled');
 
     this.update();
   }
@@ -165,33 +153,35 @@ export class ToggleGroupAria<
   }
 
   /**
-   * Visual and keyboard roving navigation orientation of the toggle group.
-   */
-  public get orientation(): Orientation {
-    return this.properties.orientation ?? 'horizontal';
-  }
-
-  /**
    * Computes HTML and ARIA attributes for the toggle group container.
    */
   protected override createAttributes(): A {
     const disabled = this.disabled;
-    const orientation = this.orientation;
 
     return Object.assign(super.createAttributes(), {
       id: this.properties.id,
       role: 'group',
-      'aria-orientation': orientation,
       'aria-disabled': ariaBoolean(disabled),
       onkeydown: (e: KeyboardEvent) => {
         if (disabled || this.parentRover) return;
 
         handleRovingKey(this.element, e, {
           selector: TOGGLE_SELECTORS,
-          orientation,
-          manual: this.properties.manual ?? true,
+          bothAxes: true,
+          manual: true,
         });
       },
     }) as A;
+  }
+
+  /**
+   * Binds the container's change handling to the member commits that bubble up to it.
+   */
+  protected override attach(): DetachFn | void {
+    const host = this.element!;
+    const handleChange = (event: Event) => this.properties.onchange?.(event as AriaEvent<boolean>);
+
+    host.addEventListener('change', handleChange);
+    return () => host.removeEventListener('change', handleChange);
   }
 }

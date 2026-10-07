@@ -6,17 +6,16 @@ import { bind, component } from '../utils.js';
 function buildListbox(
   props: Partial<ListboxProps>,
   options: Array<{ value: string; label: string; disabled?: boolean }>,
-  host: 'custom' | 'native' = 'custom',
+  host: 'custom' | 'native' = 'custom'
 ) {
   const listbox =
     host === 'native'
       ? aria<HTMLSelectElement>('listbox', props as ListboxProps, { native: true })
       : aria<HTMLDivElement>('listbox', props as ListboxProps);
 
-  const listboxEl = bind(
-    document.createElement(host === 'native' ? 'select' : 'div'),
-    listbox,
-  ) as HTMLSelectElement | HTMLDivElement;
+  const listboxEl = bind(document.createElement(host === 'native' ? 'select' : 'div'), listbox) as
+    | HTMLSelectElement
+    | HTMLDivElement;
   document.body.appendChild(listboxEl);
 
   const members = options.map(({ value, label, disabled }) => {
@@ -78,9 +77,7 @@ describe('Listbox - Composite Specifications', () => {
           }
 
           // Entry lands on the selected option, addressed rather than focused
-          expect(listboxEl.getAttribute('aria-activedescendant')).toBe(
-            members[1].el.getAttribute('id'),
-          );
+          expect(listboxEl.getAttribute('aria-activedescendant')).toBe(members[1].el.getAttribute('id'));
           expect(activeOption(listboxEl)).toBe(members[1].el);
           expect(document.activeElement).not.toBe(members[1].el);
 
@@ -102,9 +99,7 @@ describe('Listbox - Composite Specifications', () => {
           ]);
 
           // A disabled first option cannot be the entry point
-          expect(listboxEl.getAttribute('aria-activedescendant')).toBe(
-            members[1].el.getAttribute('id'),
-          );
+          expect(listboxEl.getAttribute('aria-activedescendant')).toBe(members[1].el.getAttribute('id'));
           expect(members[0].el.getAttribute('aria-disabled')).toBe('true');
 
           cleanup();
@@ -138,9 +133,7 @@ describe('Listbox - Composite Specifications', () => {
 
           // Clamping: past the last option nothing moves and nothing re-commits
           const commits: unknown[] = [];
-          listboxEl.addEventListener('change', (event) =>
-            commits.push((event as CustomEvent).detail),
-          );
+          listboxEl.addEventListener('change', (event) => commits.push((event as CustomEvent).detail));
           press(listboxEl, 'ArrowDown');
           expect(props.value).toBe('d');
           expect(commits).toEqual([]);
@@ -201,9 +194,7 @@ describe('Listbox - Composite Specifications', () => {
           const live: unknown[] = [];
           const commits: unknown[] = [];
           listboxEl.addEventListener('input', (event) => live.push((event as CustomEvent).detail));
-          listboxEl.addEventListener('change', (event) =>
-            commits.push((event as CustomEvent).detail),
-          );
+          listboxEl.addEventListener('change', (event) => commits.push((event as CustomEvent).detail));
 
           listboxEl.focus();
           const down = press(listboxEl, 'ArrowDown');
@@ -260,8 +251,11 @@ describe('Listbox - Composite Specifications', () => {
           const props = mutable<ListboxProps>({ value: 'b' });
           const { listboxEl, members, cleanup } = buildListbox(
             props,
-            [{ value: 'a', label: 'Amsterdam' }, { value: 'b', label: 'Berlin' }],
-            'native',
+            [
+              { value: 'a', label: 'Amsterdam' },
+              { value: 'b', label: 'Berlin' },
+            ],
+            'native'
           );
 
           const select = listboxEl as HTMLSelectElement;

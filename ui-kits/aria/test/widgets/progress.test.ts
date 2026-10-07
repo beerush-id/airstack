@@ -188,7 +188,7 @@ describe('Progress - Contract Specifications', () => {
           const customBar = aria<HTMLDivElement>(
             'progress',
             { value: 10, min: 0, max: 100, label: 'Cache' },
-            { native: false },
+            { native: false }
           );
 
           const progressEl = bind(document.createElement('progress'), nativeBar);

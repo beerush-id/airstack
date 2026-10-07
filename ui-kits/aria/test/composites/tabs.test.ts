@@ -1,7 +1,7 @@
 import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
 import {
-  Aria,
+  type Aria,
   aria,
   type BaseElement,
   roverCtx,

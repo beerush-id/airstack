@@ -1,12 +1,5 @@
 import { SelectionAria, type SelectionAttributes, type SelectionOptions } from '../selection.js';
-import type {
-  AriaEvent,
-  AriaEventHandler,
-  AriaOptions,
-  AriaProps,
-  BaseElement,
-  Primitive,
-} from '../types.js';
+import type { AriaEvent, AriaEventHandler, AriaOptions, AriaProps, BaseElement, Primitive } from '../types.js';
 
 /**
  * Controller-dispatched switch event carrying the committed state in `detail`.

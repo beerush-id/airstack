@@ -3,11 +3,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { aria, type TabProps } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
-function buildTabs(
-  props: Partial<TabProps>,
-  names: string[],
-  options: { panelScrollable?: boolean } = {},
-) {
+function buildTabs(props: Partial<TabProps>, names: string[], options: { panelScrollable?: boolean } = {}) {
   const tabs = aria('tab', props as TabProps);
   const tabsEl = bind(document.createElement('div'), tabs);
   document.body.appendChild(tabsEl);
@@ -61,9 +57,7 @@ function press(el: HTMLElement, key: string) {
 }
 
 const selectedTab = () =>
-  Array.from(document.querySelectorAll('[role="tab"][aria-selected="true"]')).map(
-    (el) => el.textContent ?? '',
-  );
+  Array.from(document.querySelectorAll('[role="tab"][aria-selected="true"]')).map((el) => el.textContent ?? '');
 
 describe('Tab - Composite Specifications', () => {
   const scope = createLifecycle();
@@ -76,10 +70,10 @@ describe('Tab - Composite Specifications', () => {
     it('pairs each trigger to its own panel and back through resolvable addresses', () =>
       scope.run(() => {
         component().run(() => {
-          const { tabsEl, list, listEl, buttons, panels, cleanup } = buildTabs(
-            { id: 'acct', value: 'profile' },
-            ['profile', 'security'],
-          );
+          const { tabsEl, list, listEl, buttons, panels, cleanup } = buildTabs({ id: 'acct', value: 'profile' }, [
+            'profile',
+            'security',
+          ]);
 
           expect(tabsEl.hasAttribute('role')).toBe(false);
           expect(listEl.getAttribute('role')).toBe('tablist');
@@ -90,14 +84,10 @@ describe('Tab - Composite Specifications', () => {
           const profilePanel = panels[0];
           const securityPanel = panels[1];
 
-          expect(profileButton.button.attributes['aria-controls']).toBe(
-            profilePanel.el.id,
-          );
-          expect(profilePanel.el.getAttribute('aria-labelledby')).toBe(
-            profileButton.el.id,
-          );
+          expect(profileButton.button.attributes['aria-controls']).toBe(profilePanel.el.id);
+          expect(profilePanel.el.getAttribute('aria-labelledby')).toBe(profileButton.el.id);
           expect(document.getElementById(profileButton.el.getAttribute('aria-controls') as string)).toBe(
-            profilePanel.el,
+            profilePanel.el
           );
           expect(profilePanel.el.hasAttribute('hidden')).toBe(false);
 
@@ -107,9 +97,7 @@ describe('Tab - Composite Specifications', () => {
 
           // Exactly one tab is selected, and its panel is the only visible one
           expect(selectedTab()).toEqual(['profile']);
-          expect(
-            panels.filter((panel) => !panel.el.hidden).map((panel) => panel.name),
-          ).toEqual(['profile']);
+          expect(panels.filter((panel) => !panel.el.hidden).map((panel) => panel.name)).toEqual(['profile']);
 
           cleanup();
         });
@@ -152,7 +140,7 @@ describe('Tab - Composite Specifications', () => {
 
           const commits: unknown[] = [];
           tabsEl.addEventListener('change', (event) =>
-            commits.push({ detail: (event as CustomEvent).detail, bubbles: event.bubbles }),
+            commits.push({ detail: (event as CustomEvent).detail, bubbles: event.bubbles })
           );
 
           buttons[1].el.click();

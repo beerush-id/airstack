@@ -1,6 +1,6 @@
 import { $symbol, uIndex } from '@airlib/core';
 import { Aria } from '../../core.js';
-import { selectionGroup, type SelectionGroupProps } from '../../selection.js';
+import { type SelectionGroupProps, selectionGroup } from '../../selection.js';
 import type { AriaAttributes, AriaProps, BaseElement } from '../../types.js';
 import { ROLE_TAB, ROLE_TABPANEL } from './tab.js';
 

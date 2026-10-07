@@ -68,9 +68,7 @@ describe('FilePicker - Contract Specifications', () => {
           el.click();
           expect(opened).toHaveBeenCalledTimes(1);
 
-          el.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }),
-          );
+          el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }));
           expect(opened).toHaveBeenCalledTimes(2);
 
           el.click();
@@ -159,9 +157,7 @@ describe('FilePicker - Contract Specifications', () => {
           hidden?.addEventListener('click', opened);
 
           el.click();
-          el.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }),
-          );
+          el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }));
           expect(opened).not.toHaveBeenCalled();
 
           // Releasing the guard lets the same activation through
@@ -188,11 +184,7 @@ describe('FilePicker - Contract Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const trigger = aria<HTMLDivElement>(
-            'file-picker',
-            { accept: 'application/pdf' },
-            { native: false },
-          );
+          const trigger = aria<HTMLDivElement>('file-picker', { accept: 'application/pdf' }, { native: false });
 
           // 1. Creation & SSR
           expect(trigger.attributes.role).toBe('button');
@@ -220,12 +212,8 @@ describe('FilePicker - Contract Specifications', () => {
           el.dispatchEvent(space);
           expect(space.defaultPrevented).toBe(true);
 
-          el.dispatchEvent(
-            new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }),
-          );
-          el.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }),
-          );
+          el.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }));
+          el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }));
           expect(opened).toHaveBeenCalledTimes(2);
 
           // 5. Disablement announces on the ARIA plane and stops the bridge
