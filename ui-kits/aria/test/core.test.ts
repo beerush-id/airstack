@@ -648,4 +648,66 @@ describe('Core - Integrations', () => {
         expect(widget.attributes['aria-label']).toBe('Role is button');
       });
     }));
+
+  it('registers actionable controller on itself and ambient parent scope', () =>
+    scope.run(() => {
+      class ActionableWidget extends Aria {
+        public constructor() {
+          super();
+          this.markActionable();
+        }
+      }
+
+      const parentTree = component();
+      parentTree.run(() => {
+        const parent = new Aria();
+        expect(parent.actionable).toBeUndefined();
+
+        const childTree = component();
+        let child!: ActionableWidget;
+        childTree.run(() => {
+          child = new ActionableWidget();
+          expect(child.isActionable).toBe(true);
+          expect(child.actionable).toBe(child);
+          expect(parent.actionable).toBe(child);
+        });
+
+        child.destroy();
+        expect(parent.actionable).toBeUndefined();
+      });
+    }));
+
+  it('applies last-claim-wins when multiple actionable children mount within the same scope', () =>
+    scope.run(() => {
+      class ActionableWidget extends Aria {
+        public constructor() {
+          super();
+          this.markActionable();
+        }
+      }
+
+      const parentTree = component();
+      parentTree.run(() => {
+        const parent = new Aria();
+
+        const child1Tree = component();
+        let child1!: ActionableWidget;
+        child1Tree.run(() => {
+          child1 = new ActionableWidget();
+        });
+        expect(parent.actionable).toBe(child1);
+
+        const child2Tree = component();
+        let child2!: ActionableWidget;
+        child2Tree.run(() => {
+          child2 = new ActionableWidget();
+        });
+        expect(parent.actionable).toBe(child2);
+
+        child2.destroy();
+        expect(parent.actionable).toBeUndefined();
+
+        child1.destroy();
+      });
+    }));
 });

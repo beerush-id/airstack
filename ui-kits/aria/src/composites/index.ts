@@ -2,7 +2,6 @@ export * from './accordion/index.js';
 export * from './confirm.js';
 export * from './dialog.js';
 export * from './menu/index.js';
-export * from './popover.js';
 export * from './radio-group.js';
 export * from './select.js';
 export * from './stepper.js';

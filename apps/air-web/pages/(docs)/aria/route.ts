@@ -42,6 +42,7 @@ const stepperRoute = route.route('/stepper');
 const dialogRoute = route.route('/dialog');
 const confirmRoute = route.route('/confirm');
 const popoverRoute = route.route('/popover');
+const tooltipRoute = route.route('/tooltip');
 /** AirLib managed */
 
 export const ariaRoute = route;
@@ -85,5 +86,6 @@ export const ariaStepperRoute = stepperRoute;
 export const ariaDialogRoute = dialogRoute;
 export const ariaConfirmRoute = confirmRoute;
 export const ariaPopoverRoute = popoverRoute;
+export const ariaTooltipRoute = tooltipRoute;
 
 export default ariaRoute;

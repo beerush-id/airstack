@@ -55,6 +55,7 @@ export class ButtonAria<
       ...options,
     });
 
+    this.markActionable();
     this.update();
   }
 

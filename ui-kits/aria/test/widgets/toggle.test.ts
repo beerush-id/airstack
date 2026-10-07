@@ -490,5 +490,26 @@ describe('Toggle - Contract Specifications', () => {
           italicBtn.destroy();
         });
       }));
+
+    it('exposes itself as actionable and registers to ambient scope', () =>
+      scope.run(() => {
+        const parentTree = component();
+        parentTree.run(() => {
+          const parent = aria('section');
+          expect(parent.actionable).toBeUndefined();
+
+          const childTree = component();
+          let btn!: ToggleAria;
+          childTree.run(() => {
+            btn = aria('toggle');
+            expect(btn.isActionable).toBe(true);
+            expect(btn.actionable).toBe(btn);
+            expect(parent.actionable).toBe(btn);
+          });
+
+          btn.destroy();
+          expect(parent.actionable).toBeUndefined();
+        });
+      }));
   });
 });

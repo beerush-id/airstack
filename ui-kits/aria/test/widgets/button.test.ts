@@ -1,6 +1,6 @@
 import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it, vi } from 'vitest';
-import { aria, type ButtonProps } from '../../src/index.js';
+import { aria, type ButtonAria, type ButtonProps } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 describe('Button - Contract Specifications', () => {
@@ -678,6 +678,27 @@ describe('Button - Contract Specifications', () => {
           customBtn.destroy();
           expect(nativeBtn.current).toBeNull();
           expect(customBtn.current).toBeNull();
+        });
+      }));
+
+    it('exposes itself as actionable and registers to ambient scope', () =>
+      scope.run(() => {
+        const parentTree = component();
+        parentTree.run(() => {
+          const parent = aria('section');
+          expect(parent.actionable).toBeUndefined();
+
+          const childTree = component();
+          let btn!: ButtonAria;
+          childTree.run(() => {
+            btn = aria('button');
+            expect(btn.isActionable).toBe(true);
+            expect(btn.actionable).toBe(btn);
+            expect(parent.actionable).toBe(btn);
+          });
+
+          btn.destroy();
+          expect(parent.actionable).toBeUndefined();
         });
       }));
   });

@@ -1,0 +1,386 @@
+---
+title: 'Tooltip'
+description: 'Accessible non-interactive advisory popup displaying helper text on pointer hover or keyboard focus, complying with WCAG 2.1 SC 1.4.13.'
+nav: 'Tooltip'
+nav-priority: 294
+---
+
+<style>{`
+.tooltip-container { position: relative; display: inline-flex; }
+.tooltip-trigger {
+  anchor-name: var(--tooltip-anchor-name);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border: 1px solid #3f3f46;
+  background: #27272a;
+  color: #fafafa;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.tooltip-trigger:hover { background: #3f3f46; }
+.tooltip-trigger:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }
+.tooltip-panel {
+  position: fixed;
+  position-anchor: var(--tooltip-anchor-name);
+  top: anchor(bottom);
+  bottom: auto;
+  left: anchor(center);
+  transform: translateX(-50%);
+  position-area: bottom;
+  margin-top: 0.5rem;
+  border-radius: 0.375rem;
+  background: #18181b;
+  border: 1px solid #3f3f46;
+  color: #f4f4f5;
+  font-size: 0.75rem;
+  padding: 0.375rem 0.625rem;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  pointer-events: auto;
+  z-index: 50;
+}
+@supports (position-area: bottom) {
+  .tooltip-panel {
+    top: auto;
+    left: auto;
+    transform: none;
+  }
+}
+.tooltip-panel[data-tooltip-y="above"],
+.tooltip-panel[data-tooltip-y="top"] {
+  position-area: top;
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  top: auto;
+  bottom: anchor(top);
+}
+.tooltip-panel[data-tooltip-y="below"],
+.tooltip-panel[data-tooltip-y="bottom"] {
+  position-area: bottom;
+  margin-top: 0.5rem;
+  top: anchor(bottom);
+  bottom: auto;
+}
+.tooltip-panel[data-tooltip-x="left"] {
+  position-area: left;
+  left: anchor(left);
+  transform: none;
+}
+.tooltip-panel[data-tooltip-x="right"] {
+  position-area: right;
+  left: auto;
+  right: anchor(right);
+  transform: none;
+}
+.tooltip-panel[data-tooltip-x="before"] {
+  position-area: left;
+  left: auto;
+  right: anchor(left);
+  margin-right: 0.5rem;
+  transform: none;
+}
+.tooltip-panel[data-tooltip-x="after"] {
+  position-area: right;
+  left: anchor(right);
+  margin-left: 0.5rem;
+  transform: none;
+}
+.tooltip-panel[data-tooltip-x="between"],
+.tooltip-panel[data-tooltip-x="center"] {
+  left: anchor(center);
+  transform: translateX(-50%);
+}
+
+.tooltip-panel[data-tooltip-y="below"][data-tooltip-x="left"],
+.tooltip-panel[data-tooltip-y="bottom"][data-tooltip-x="left"] {
+  position-area: bottom span-right;
+  top: anchor(bottom);
+  left: anchor(left);
+  right: auto;
+  bottom: auto;
+  transform: none;
+}
+.tooltip-panel[data-tooltip-y="below"][data-tooltip-x="right"],
+.tooltip-panel[data-tooltip-y="bottom"][data-tooltip-x="right"] {
+  position-area: bottom span-left;
+  top: anchor(bottom);
+  right: anchor(right);
+  left: auto;
+  bottom: auto;
+  transform: none;
+}
+.tooltip-panel[data-tooltip-y="above"][data-tooltip-x="left"],
+.tooltip-panel[data-tooltip-y="top"][data-tooltip-x="left"] {
+  position-area: top span-right;
+  bottom: anchor(top);
+  left: anchor(left);
+  right: auto;
+  top: auto;
+  transform: none;
+}
+.tooltip-panel[data-tooltip-y="above"][data-tooltip-x="right"],
+.tooltip-panel[data-tooltip-y="top"][data-tooltip-x="right"] {
+  position-area: top span-left;
+  bottom: anchor(top);
+  right: anchor(right);
+  left: auto;
+  top: auto;
+  transform: none;
+}
+.tooltip-panel[data-tooltip-x="after"][data-tooltip-y="top"],
+.tooltip-panel[data-tooltip-x="after"][data-tooltip-y="above"] {
+  position-area: right span-bottom;
+  align-self: start;
+  top: anchor(top);
+  bottom: auto;
+  left: anchor(right);
+  right: auto;
+  margin-left: 0.5rem;
+  margin-top: 0;
+  margin-bottom: 0;
+  transform: none;
+}
+.tooltip-panel[data-tooltip-x="after"][data-tooltip-y="bottom"],
+.tooltip-panel[data-tooltip-x="after"][data-tooltip-y="below"] {
+  position-area: right span-top;
+  align-self: end;
+  bottom: anchor(bottom);
+  top: auto;
+  left: anchor(right);
+  right: auto;
+  margin-left: 0.5rem;
+  margin-top: 0;
+  margin-bottom: 0;
+  transform: none;
+}
+.tooltip-panel[data-tooltip-x="before"][data-tooltip-y="top"],
+.tooltip-panel[data-tooltip-x="before"][data-tooltip-y="above"] {
+  position-area: left span-bottom;
+  align-self: start;
+  top: anchor(top);
+  bottom: auto;
+  right: anchor(left);
+  left: auto;
+  margin-right: 0.5rem;
+  margin-top: 0;
+  margin-bottom: 0;
+  transform: none;
+}
+.tooltip-panel[data-tooltip-x="before"][data-tooltip-y="bottom"],
+.tooltip-panel[data-tooltip-x="before"][data-tooltip-y="below"] {
+  position-area: left span-top;
+  align-self: end;
+  bottom: anchor(bottom);
+  top: auto;
+  right: anchor(left);
+  left: auto;
+  margin-right: 0.5rem;
+  margin-top: 0;
+  margin-bottom: 0;
+  transform: none;
+}
+.tooltip-panel[hidden] { display: none; }
+.tooltip-text { margin: 0; line-height: 1.4; color: #f4f4f5; font-size: 0.75rem; }
+`}</style>
+
+# AirLib Headless Tooltip
+
+Displaying auxiliary advisory text when hovering over or focusing interactive elements is essential for contextual clarity. However, custom tooltips frequently fail core accessibility requirements: omitting `aria-describedby` linkages, clobbering screen reader focus, vanishing unexpectedly when users move the cursor onto the popup, or lacking immediate response on keyboard focus.
+
+**AirLib Headless Tooltip** (`aria('tooltip')`) is a single-unit self-discovering overlay widget compliant with **WCAG 2.1 SC 1.4.13 (Content on Hover or Focus)**:
+- **Scope Discovery**: Automatically discovers its interactive host candidate via ambient scope (`scope.actionable`) or falls back to its DOM `parentElement`.
+- **Hover & Focus Synchronization**: Pointer hover reveals after a configurable delay (`delay: 300ms`), while keyboard focus reveals immediately (0ms delay).
+- **Hoverable Advisory**: The tooltip remains visible when the pointer moves from trigger to panel.
+- **Escape Dismissal**: Pressing `Escape` hides the tooltip immediately and stops propagation.
+- **Advisory Semantics**: Compiles `role="tooltip"` on the panel and dynamically references it via `aria-describedby` on the trigger strictly while open.
+
+```tsx
+const host = aria('button');
+const tip = aria('tooltip', { delay: 300 });
+
+<button ref={host.ref} {...host.props}>
+  Save Draft
+  <div ref={tip.ref} {...tip.props}>
+    Saves your changes locally
+  </div>
+</button>
+```
+
+:::interactive[Advisory Hover and Focus Popup]
+```tsx
+import { aria, type TooltipProps } from '@airlib/aria';
+import { setup, teleport } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+const Button = setup<ComponentProps<'button'>>((props) => {
+  const btn = aria('button', props);
+  return () => (
+    <button ref={btn.ref} {...btn.props}>
+      {props.children}
+    </button>
+  );
+});
+
+const Tooltip = setup<TooltipProps>((props) => {
+  const tip = aria('tooltip', props);
+
+  return () => {
+    if (!tip.open) return null;
+
+    return teleport(
+      <div ref={tip.ref} {...tip.props}>
+        {props.children}
+      </div>
+    );
+  };
+});
+
+const TooltipDemo = (props: TooltipProps) => (
+  <div className="tooltip-container">
+    <Button className="tooltip-trigger">
+      <span>{props.mode?.length === 1 && props.mode[0] === 'hover' ? 'Hover Only' : 'Hover or Focus'}</span>
+      <Tooltip className="tooltip-panel" delay={props.delay} mode={props.mode} xDir={props.xDir} yDir={props.yDir}>
+        <p className="tooltip-text">WCAG 2.1 SC 1.4.13 advisory popup.</p>
+      </Tooltip>
+    </Button>
+  </div>
+);
+```
+
+<div className="flex justify-center p-6 gap-4">
+  <TooltipDemo delay={0} />
+  <TooltipDemo delay={0} yDir="above" />
+  <TooltipDemo delay={0} mode={['hover']} />
+</div>
+:::
+
+## Anatomy & Scope Discovery
+
+The tooltip widget is applied directly to the advisory floating element:
+
+```ts
+const tip = aria('tooltip', props?: TooltipProps, options?: TooltipOptions);
+```
+
+### Automatic Candidate Discovery
+
+When initialized, `TooltipAria` resolves its trigger anchor in two tiers:
+
+1. **Ambient Scope (`this.scope?.actionable`)**: If nested inside an interactive component that marks itself actionable (such as `ButtonAria`, `LinkAria`, or `ToggleAria`), the tooltip automatically registers an attribute refiner on that controller to inject `aria-describedby` (when open) and bind hover/focus handlers.
+2. **DOM Fallback (`this.element.parentElement`)**: When mounted directly inside a plain HTML host without an enclosing controller, `attach()` configures the parent element with `aria-describedby` and hover/focus/keyboard listeners, cleaning them up upon detachment.
+
+### Usage
+
+:::code-group
+
+```tsx [React]
+import { aria, type TooltipProps } from '@airlib/aria';
+import { setup, teleport } from '@airlib/react';
+
+export const Tooltip = setup<TooltipProps>((props) => {
+  const tip = aria('tooltip', props);
+
+  return () => {
+    if (!tip.open) return null;
+
+    return teleport(
+      <div ref={tip.ref} {...tip.props}>
+        {props.children}
+      </div>
+    );
+  };
+});
+```
+
+```tsx [SolidJS]
+import { aria, type TooltipProps } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import { Show } from 'solid-js';
+
+export const Tooltip = setup<TooltipProps>((props) => {
+  const tip = aria('tooltip', props);
+
+  return (
+    <Show when={tip.open}>
+      <div ref={tip.ref} {...tip.props}>
+        {props.children}
+      </div>
+    </Show>
+  );
+});
+```
+
+:::
+
+## Architectural & Accessibility Contracts
+
+### Semantic Layering
+
+| Host Element | Attributes Emitted | Semantics & Behavior |
+| :--- | :--- | :--- |
+| **Trigger (`<button>`)** | `aria-describedby` (when open) | Anchors hover and keyboard focus; injects description only while open. |
+| **Custom Trigger (`<div>`)** | `tabindex="0"`, `aria-describedby` (when open) | Receives focus; keyboard focus reveals tooltip immediately. |
+| **Panel (`<div>`)** | `id`, `role="tooltip"`, `hidden` | Strictly non-focusable advisory container; hoverable per WCAG 2.1 SC 1.4.13. |
+
+### WCAG 2.1 SC 1.4.13 Compliance
+
+1. **Dismissable**: Pressing the `Escape` key dismisses the tooltip immediately and stops propagation so underlying modals or page listeners are not triggered.
+2. **Hoverable**: Pointer can move from the trigger element over the advisory panel without dismissing the tooltip.
+3. **Persistent**: Once shown via hover or focus, remains visible until the user moves pointer away, blurs focus, or presses `Escape`.
+
+## Entity Specifications
+
+### `TooltipAria`
+
+- **Role / Type**: Overlay Widget (`aria('tooltip')`)
+- **Factory**: `aria('tooltip', props?, options?)` or `tooltip(props?, options?)`
+- **Parameters (`TooltipProps`)**:
+  - `open` *(boolean, optional, default `false`)*: Controls visibility of the tooltip advisory panel.
+  - `mode` *(('hover' | 'focus' | 'click')[], optional, default `['hover', 'focus']`)*: Activation trigger modes. Pass `['hover']` to suppress focus-triggered reveal.
+  - `delay` *(number, optional, default `300`)*: Hover delay in milliseconds before showing tooltip on pointerenter.
+  - `id` *(string, optional)*: Explicit base identifier used to coordinate `aria-describedby` and panel `id`. Auto-generated by default.
+  - `xDir` *('before' | 'after' | 'left' | 'between' | 'right', optional)*: Horizontal placement token.
+  - `yDir` *('top' | 'bottom' | 'above' | 'below' | 'between', optional)*: Vertical placement token.
+- **Controller Properties & Methods**:
+  - `open` *(boolean)*: Reactive open state getter/setter.
+  - `delay` *(number)*: Delay in milliseconds getter/setter.
+  - `show()`: Opens the tooltip immediately.
+  - `close()`: Closes the tooltip immediately.
+  - `toggle()`: Inverts the open state.
+  - `scheduleOpen()`: Starts the hover timer.
+  - `cancelOpen()`: Clears any active hover timer.
+
+## Events
+
+The tooltip element dispatches a `change` event whenever visibility commits:
+
+| Event | Type | Bubbles | Detail |
+| :--- | :--- | :--- | :--- |
+| `change` | `CustomEvent<boolean>` | `true` | `boolean` (new `open` state) |
+
+## Keyboard Navigation
+
+- **Focus**: Revealing tooltip immediately upon focus.
+- **Blur**: Dismisses tooltip upon blur.
+- **Escape**: Dismisses the open tooltip immediately and stops propagation.
+
+## What you get
+
+- **Self-discovering linkage.** Tooltips discover their actionable host automatically from ambient scope or parent DOM hierarchy without manual ID wiring.
+- **Immediate focus feedback.** Keyboard users don't wait for pointer delay timers; focus reveals content instantly.
+- **WCAG 2.1 SC 1.4.13 guarantee.** Pointer hover over the advisory panel does not cause flickering or dismissals.
+- **Zero focus hijacking.** The advisory panel never steals tab stops or keyboard focus.
+- **Clean SSR describedby linkage.** `aria-describedby` only links the trigger when open, preventing screen readers from reading advisory text prematurely.
+
+## Next Steps
+
+- **[Popover](/docs/aria/popover)**: Floating disclosure overlay with light dismissal and interactive panel controls.
+- **[Dialog](/docs/aria/dialog)**: Modal and non-modal focus-trapping dialog composite widgets.
+- **[Confirm](/docs/aria/confirm)**: Blocking confirmation alertdialogs with safe autofocus and non-dismissable choice requirements.
+- **[Disclosure](/docs/aria/disclosure)**: Expandable and collapsible sections without floating overlay elevation.

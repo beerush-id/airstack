@@ -56,7 +56,7 @@ export function normalizeAttrs<E extends BaseElement = HTMLElement>(
     if (key === 'class' || key === 'className') {
       target.class = classx(value as ClassInput);
     } else if (key === 'style') {
-      target.style = value && typeof value === 'object' ? stylex(value as StyleInput) : (value as never);
+      target.style = typeof value === 'object' ? stylex({ ...target.style, ...value } as StyleInput) : target.style;
     } else if (key.startsWith('on') && typeof value === 'function') {
       const existing = (target as Record<string, unknown>)[key];
       if (typeof existing === 'function') {

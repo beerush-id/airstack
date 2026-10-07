@@ -206,9 +206,7 @@ describe('Link - Contract Specifications', () => {
           // 1. Creation & SSR
           expect(link.current).toBeNull();
           expect(link.attributes.role).toBe('link');
-          expect(
-            Object.keys(link.attributes).filter((key) => key.startsWith('on')),
-          ).toEqual([]);
+          expect(Object.keys(link.attributes).filter((key) => key.startsWith('on'))).toEqual([]);
 
           // 2. DOM Binding
           const el = bind(document.createElement('span'), link);
@@ -238,12 +236,8 @@ describe('Link - Contract Specifications', () => {
           expect(delegated).toHaveLength(1);
 
           // 5. Space belongs to buttons, not links: a full press adds no navigation
-          el.dispatchEvent(
-            new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true }),
-          );
-          el.dispatchEvent(
-            new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }),
-          );
+          el.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true }));
+          el.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }));
           expect(hostClicks).toHaveLength(1);
 
           document.removeEventListener('click', onDocumentClick);
@@ -253,9 +247,7 @@ describe('Link - Contract Specifications', () => {
           link.destroy();
           expect(link.current).toBeNull();
 
-          el.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }),
-          );
+          el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }));
           expect(hostClicks).toHaveLength(1);
         });
       }));
@@ -293,11 +285,7 @@ describe('Link - Contract Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const link = aria<HTMLSpanElement>(
-            'link',
-            { href: '/admin', disabled: true },
-            { native: false },
-          );
+          const link = aria<HTMLSpanElement>('link', { href: '/admin', disabled: true }, { native: false });
 
           // 1. Creation & SSR
           expect(link.disabled).toBe(true);
@@ -346,9 +334,7 @@ describe('Link - Contract Specifications', () => {
           const clickSpy = vi.fn();
           el.addEventListener('click', clickSpy);
 
-          el.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }),
-          );
+          el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }));
           expect(clickSpy).toHaveBeenCalledTimes(1);
 
           // 5. Reconciliation: revocation suppresses navigation but keeps the target and the tab stop
@@ -357,9 +343,7 @@ describe('Link - Contract Specifications', () => {
           expect(el.getAttribute('aria-disabled')).toBe('true');
           expect(el.getAttribute('tabindex')).toBe('-1');
 
-          el.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }),
-          );
+          el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }));
           const click = new MouseEvent('click', { cancelable: true, bubbles: true });
           el.dispatchEvent(click);
           expect(clickSpy).toHaveBeenCalledTimes(2);
@@ -371,9 +355,7 @@ describe('Link - Contract Specifications', () => {
           expect(el.getAttribute('tabindex')).toBe('0');
           expect(el.getAttribute('aria-disabled')).toBe('false');
 
-          el.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }),
-          );
+          el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }));
           expect(clickSpy).toHaveBeenCalledTimes(3);
 
           // 6. Teardown
@@ -420,11 +402,7 @@ describe('Link - Contract Specifications', () => {
         const tree = component();
         tree.run(() => {
           const nativeLink = aria('link', { href: '/admin', disabled: true });
-          const customLink = aria<HTMLSpanElement>(
-            'link',
-            { href: '/admin', disabled: true },
-            { native: false },
-          );
+          const customLink = aria<HTMLSpanElement>('link', { href: '/admin', disabled: true }, { native: false });
 
           const anchor = bind(document.createElement('a'), nativeLink);
           const span = bind(document.createElement('span'), customLink);
@@ -456,6 +434,27 @@ describe('Link - Contract Specifications', () => {
           customLink.destroy();
           expect(nativeLink.current).toBeNull();
           expect(customLink.current).toBeNull();
+        });
+      }));
+
+    it('exposes itself as actionable and registers to ambient scope', () =>
+      scope.run(() => {
+        const parentTree = component();
+        parentTree.run(() => {
+          const parent = aria('section');
+          expect(parent.actionable).toBeUndefined();
+
+          const childTree = component();
+          let lnk!: ReturnType<typeof aria<'link'>>;
+          childTree.run(() => {
+            lnk = aria('link', { href: '/test' });
+            expect(lnk.isActionable).toBe(true);
+            expect(lnk.actionable).toBe(lnk);
+            expect(parent.actionable).toBe(lnk);
+          });
+
+          lnk.destroy();
+          expect(parent.actionable).toBeUndefined();
         });
       }));
   });

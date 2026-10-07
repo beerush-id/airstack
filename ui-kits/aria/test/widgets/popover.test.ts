@@ -81,7 +81,7 @@ describe('Popover - Contract Specifications', () => {
         const tree = component();
         tree.run(() => {
           const host = aria('button');
-          const hostEl = bind(document.createElement('button'), host);
+          const _hostEl = bind(document.createElement('button'), host);
 
           const props = mutable<PopoverProps>({ open: true });
           const popover = aria('popover', props);
@@ -96,9 +96,7 @@ describe('Popover - Contract Specifications', () => {
           document.body.appendChild(outside);
 
           // Interaction inside the overlay is not a dismissal signal
-          inside.dispatchEvent(
-            new MouseEvent('pointerdown', { bubbles: true, cancelable: true }),
-          );
+          inside.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, cancelable: true }));
           expect(props.open).toBe(true);
 
           // Pointer down anywhere else dismisses it
@@ -113,9 +111,7 @@ describe('Popover - Contract Specifications', () => {
           expect(props.open).toBe(true);
 
           // Escape is a separate duty and still closes it
-          popoverEl.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'Escape', cancelable: true, bubbles: true }),
-          );
+          popoverEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', cancelable: true, bubbles: true }));
           expect(props.open).toBe(false);
 
           popover.destroy();
@@ -150,9 +146,7 @@ describe('Popover - Contract Specifications', () => {
           expect(document.activeElement).toBe(field);
 
           // Escape hands it back
-          field.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'Escape', cancelable: true, bubbles: true }),
-          );
+          field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', cancelable: true, bubbles: true }));
           expect(props.open).toBe(false);
           expect(document.activeElement).toBe(hostEl);
 

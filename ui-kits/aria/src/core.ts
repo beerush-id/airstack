@@ -63,6 +63,16 @@ export class Aria<
   public readonly scope?: Aria<BaseElement, AriaProps, AriaAttributes<BaseElement>>;
 
   /**
+   * Primary actionable controller registered within this scope.
+   */
+  public actionable?: Aria<BaseElement, AriaProps, AriaAttributes<BaseElement>>;
+
+  /**
+   * Whether this controller acts as an actionable candidate for parent scopes and overlays.
+   */
+  public isActionable = false;
+
+  /**
    * The compiled HTML and ARIA attribute dictionary ready for JSX spread and SSR rendering.
    * Provides framework-translated attributes (e.g. className, onClick) for template binding.
    */
@@ -237,10 +247,24 @@ export class Aria<
   }
 
   /**
+   * Registers this controller as an actionable interactive candidate on itself and its parent scope.
+   */
+  protected markActionable(): void {
+    this.isActionable = true;
+    this.actionable = this as unknown as Aria<BaseElement, AriaProps, AriaAttributes<BaseElement>>;
+    if (this.scope) {
+      this.scope.actionable = this as unknown as Aria<BaseElement, AriaProps, AriaAttributes<BaseElement>>;
+    }
+  }
+
+  /**
    * Tears down the controller, executing cleanup functions, destroying observers, and unbinding DOM references.
    */
   public destroy(): void {
     this.detach?.();
+    if (this.scope?.actionable === (this as never)) {
+      this.scope.actionable = undefined;
+    }
     if (this.element) {
       for (const [key, value] of Object.entries(this.attrs)) {
         if (key.startsWith('on') && typeof value === 'function') {

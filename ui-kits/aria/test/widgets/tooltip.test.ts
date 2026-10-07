@@ -19,24 +19,18 @@ describe('Tooltip - Contract Specifications', () => {
   });
 
   function buildTree(props: TooltipProps) {
-    const tooltip = aria('tooltip', props);
-    const trigger = aria('tooltip-trigger');
-    const panel = aria('tooltip-panel');
-
+    const host = aria('button');
     const anchor = document.createElement('button');
-    const panelEl = document.createElement('div');
     anchor.textContent = 'Save draft';
     document.body.appendChild(anchor);
+    bind(anchor, host);
+
+    const tooltip = aria('tooltip', props);
+    const panelEl = document.createElement('div');
     document.body.appendChild(panelEl);
+    bind(panelEl, tooltip);
 
-    const tooltipEl = document.createElement('span');
-    document.body.appendChild(tooltipEl);
-
-    bind(tooltipEl, tooltip);
-    bind(anchor, trigger);
-    bind(panelEl, panel);
-
-    return { tooltip, trigger, panel, tooltipEl, anchor, panelEl };
+    return { host, tooltip, anchor, panelEl };
   }
 
   describe('Transient Advisory Disclosure Invariant', () => {
@@ -69,11 +63,9 @@ describe('Tooltip - Contract Specifications', () => {
           expect(parts.anchor.hasAttribute('aria-describedby')).toBe(false);
 
           parts.tooltip.destroy();
-          parts.trigger.destroy();
-          parts.panel.destroy();
+          parts.host.destroy();
           document.body.removeChild(parts.anchor);
           document.body.removeChild(parts.panelEl);
-          document.body.removeChild(parts.tooltipEl);
         });
       }));
 
@@ -85,16 +77,16 @@ describe('Tooltip - Contract Specifications', () => {
           const parts = buildTree(props);
 
           const commits: Array<{ detail: unknown; bubbles: boolean; kind: string }> = [];
-          parts.tooltipEl.addEventListener('change', (event) =>
+          parts.panelEl.addEventListener('change', (event) =>
             commits.push({
               detail: (event as CustomEvent).detail,
               bubbles: event.bubbles,
               kind: event.constructor.name,
-            }),
+            })
           );
 
           parts.anchor.focus();
-          parts.anchor.dispatchEvent(new FocusEvent('blur', { bubbles: true }));
+          parts.anchor.blur();
           parts.anchor.focus();
 
           expect(commits.map((entry) => entry.detail)).toEqual([true, false, true]);
@@ -106,11 +98,9 @@ describe('Tooltip - Contract Specifications', () => {
           expect(commits.map((entry) => entry.detail)).toEqual([true, false, true, false]);
 
           parts.tooltip.destroy();
-          parts.trigger.destroy();
-          parts.panel.destroy();
+          parts.host.destroy();
           document.body.removeChild(parts.anchor);
           document.body.removeChild(parts.panelEl);
-          document.body.removeChild(parts.tooltipEl);
         });
       }));
   });
@@ -124,7 +114,6 @@ describe('Tooltip - Contract Specifications', () => {
           const parts = buildTree(props);
 
           parts.anchor.dispatchEvent(new Event('pointerenter'));
-
           expect(props.open).toBe(false);
 
           vi.advanceTimersByTime(499);
@@ -135,7 +124,7 @@ describe('Tooltip - Contract Specifications', () => {
           expect(parts.panelEl.hidden).toBe(false);
 
           // Leaving and re-hovering restarts the wait
-          parts.anchor.dispatchEvent(new Event('pointerleave'));
+          parts.anchor.dispatchEvent(new PointerEvent('pointerleave'));
           expect(props.open).toBe(false);
 
           parts.anchor.dispatchEvent(new Event('pointerenter'));
@@ -150,11 +139,9 @@ describe('Tooltip - Contract Specifications', () => {
           expect(props.open).toBe(true);
 
           parts.tooltip.destroy();
-          parts.trigger.destroy();
-          parts.panel.destroy();
+          parts.host.destroy();
           document.body.removeChild(parts.anchor);
           document.body.removeChild(parts.panelEl);
-          document.body.removeChild(parts.tooltipEl);
         });
       }));
 
@@ -169,22 +156,24 @@ describe('Tooltip - Contract Specifications', () => {
           vi.advanceTimersByTime(100);
           expect(props.open).toBe(true);
 
-          // The pointer leaves the trigger but has not left the advisory
-          parts.anchor.dispatchEvent(new Event('pointerleave'));
-          parts.panelEl.dispatchEvent(new Event('pointerenter'));
+          // The pointer leaves the trigger into the panel
+          parts.anchor.dispatchEvent(new PointerEvent('pointerleave', { relatedTarget: parts.panelEl }));
+          parts.panelEl.dispatchEvent(new PointerEvent('pointerenter', { relatedTarget: parts.anchor }));
           vi.advanceTimersByTime(1000);
           expect(props.open).toBe(true);
 
-          // Only leaving both dismisses it
-          parts.panelEl.dispatchEvent(new Event('pointerleave'));
+          // The pointer moves from panel back to anchor
+          parts.panelEl.dispatchEvent(new PointerEvent('pointerleave', { relatedTarget: parts.anchor }));
+          expect(props.open).toBe(true);
+
+          // Leaving to document body dismisses it
+          parts.anchor.dispatchEvent(new PointerEvent('pointerleave', { relatedTarget: document.body }));
           expect(props.open).toBe(false);
 
           parts.tooltip.destroy();
-          parts.trigger.destroy();
-          parts.panel.destroy();
+          parts.host.destroy();
           document.body.removeChild(parts.anchor);
           document.body.removeChild(parts.panelEl);
-          document.body.removeChild(parts.tooltipEl);
         });
       }));
   });
@@ -203,12 +192,12 @@ describe('Tooltip - Contract Specifications', () => {
           parts.anchor.focus();
           expect(props.open).toBe(true);
 
-          const escape = new KeyboardEvent('keydown', {
+          const escapeEvent = new KeyboardEvent('keydown', {
             key: 'Escape',
             cancelable: true,
             bubbles: true,
           });
-          parts.anchor.dispatchEvent(escape);
+          parts.anchor.dispatchEvent(escapeEvent);
 
           expect(props.open).toBe(false);
           expect(parts.panelEl.hidden).toBe(true);
@@ -217,34 +206,60 @@ describe('Tooltip - Contract Specifications', () => {
           document.removeEventListener('keydown', onDocument);
 
           parts.tooltip.destroy();
-          parts.trigger.destroy();
-          parts.panel.destroy();
+          parts.host.destroy();
           document.body.removeChild(parts.anchor);
           document.body.removeChild(parts.panelEl);
-          document.body.removeChild(parts.tooltipEl);
         });
       }));
 
-    it('leaves no description linkage behind when the advisory is torn down while open', () =>
+    it('falls back to the parent element and withdraws the injection on teardown', () =>
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const props = mutable<TooltipProps>({ open: false });
-          const parts = buildTree(props);
+          const parentButton = document.createElement('button');
+          document.body.appendChild(parentButton);
 
-          parts.anchor.focus();
-          expect(parts.anchor.getAttribute('aria-describedby')).toBe(parts.panelEl.id);
+          const panelEl = document.createElement('div');
+          parentButton.appendChild(panelEl);
 
-          // Tearing down the advisory while visible must purge the pointer to it
-          parts.tooltip.destroy();
-          expect(parts.anchor.hasAttribute('aria-describedby')).toBe(false);
-          expect(props.open).toBe(false);
+          const tooltip = aria<HTMLDivElement>('tooltip', { open: false, delay: 100 });
+          tooltip.ref(panelEl);
 
-          parts.trigger.destroy();
-          parts.panel.destroy();
-          document.body.removeChild(parts.anchor);
-          document.body.removeChild(parts.panelEl);
-          document.body.removeChild(parts.tooltipEl);
+          expect(panelEl.getAttribute('role')).toBe('tooltip');
+          expect(panelEl.hidden).toBe(true);
+          expect(parentButton.hasAttribute('aria-describedby')).toBe(false);
+
+          parentButton.focus();
+          expect(tooltip.open).toBe(true);
+          expect(panelEl.hidden).toBe(false);
+          expect(parentButton.getAttribute('aria-describedby')).toBe(tooltip.id);
+
+          parentButton.dispatchEvent(new FocusEvent('blur', { bubbles: true }));
+          expect(tooltip.open).toBe(false);
+          expect(panelEl.hidden).toBe(true);
+          expect(parentButton.hasAttribute('aria-describedby')).toBe(false);
+
+          // Pointer hover on parentButton
+          parentButton.dispatchEvent(new Event('pointerenter'));
+          vi.advanceTimersByTime(100);
+          expect(tooltip.open).toBe(true);
+
+          // Escape keydown on parentButton
+          const escapeEvent = new KeyboardEvent('keydown', { key: 'Escape', cancelable: true, bubbles: true });
+          parentButton.dispatchEvent(escapeEvent);
+          expect(tooltip.open).toBe(false);
+
+          // Escape keydown on panelEl
+          tooltip.show();
+          expect(tooltip.open).toBe(true);
+          panelEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', cancelable: true, bubbles: true }));
+          expect(tooltip.open).toBe(false);
+
+          // Teardown cleans up
+          tooltip.destroy();
+          expect(parentButton.hasAttribute('aria-describedby')).toBe(false);
+
+          document.body.removeChild(parentButton);
         });
       }));
   });

@@ -22,10 +22,10 @@ import {
   DialogTitleAria,
   DialogTriggerAria,
   MenuAria,
-  MenubarAria,
-  type MenubarProps,
   MenuButtonAria,
   type MenuButtonProps,
+  MenubarAria,
+  type MenubarProps,
   MenuGroupAria,
   type MenuGroupProps,
   MenuItemAria,
@@ -38,11 +38,6 @@ import {
   MenuPanelAria,
   type MenuPanelProps,
   type MenuProps,
-  PopoverAria,
-  type PopoverOptions,
-  PopoverPanelAria,
-  type PopoverProps,
-  PopoverTriggerAria,
   RadioGroupAria,
   type RadioGroupProps,
   SelectAria,
@@ -129,6 +124,9 @@ import {
   OptionAria,
   type OptionOptions,
   type OptionProps,
+  PopoverAria,
+  type PopoverOptions,
+  type PopoverProps,
   ProgressAria,
   type ProgressOptions,
   type ProgressProps,
@@ -154,6 +152,9 @@ import {
   ToggleAria,
   type ToggleOptions,
   type ToggleProps,
+  TooltipAria,
+  type TooltipOptions,
+  type TooltipProps,
 } from './widgets/index.js';
 
 export * from './composites/index.js';
@@ -344,23 +345,17 @@ export function aria<E extends HTMLElement = HTMLElement>(
   props?: AriaProps
 ): ConfirmCancelAria<E>;
 
-export function aria<E extends BaseElement = HTMLElement>(
+export function aria<E extends HTMLElement = HTMLElement>(
   role: 'popover',
   props?: PopoverProps,
   options?: PopoverOptions
 ): PopoverAria<E>;
 
-export function aria<E extends BaseElement = HTMLButtonElement>(
-  role: 'popover-trigger',
-  props?: AriaProps,
-  options?: AriaOptions
-): PopoverTriggerAria<E>;
-
-export function aria<E extends BaseElement = HTMLElement>(
-  role: 'popover-panel',
-  props?: AriaProps,
-  options?: AriaOptions
-): PopoverPanelAria<E>;
+export function aria<E extends HTMLElement = HTMLElement>(
+  role: 'tooltip',
+  props?: TooltipProps,
+  options?: TooltipOptions
+): TooltipAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement>(
   role: 'disclosure',
@@ -555,10 +550,8 @@ export function aria(role: string, init?: unknown, options?: unknown): unknown {
       return new ConfirmCancelAria(init as never, options as never);
     case 'popover':
       return new PopoverAria(init as never, options as never);
-    case 'popover-trigger':
-      return new PopoverTriggerAria(init as never, options as never);
-    case 'popover-panel':
-      return new PopoverPanelAria(init as never, options as never);
+    case 'tooltip':
+      return new TooltipAria(init as never, options as never);
     case 'disclosure':
       return new DisclosureAria(init as never, options as never);
     case 'disclosure-trigger':

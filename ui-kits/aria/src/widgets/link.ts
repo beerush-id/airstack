@@ -70,6 +70,7 @@ export class LinkAria<
       ...options,
     });
 
+    this.markActionable();
     this.omittedAttrs.push('href', 'target', 'current', 'aria-disabled', 'aria-current');
     this.update();
   }
