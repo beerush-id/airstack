@@ -6,11 +6,26 @@ import {
   AccordionPanelAria,
   type AccordionPanelProps,
   type AccordionProps,
+  ConfirmActionAria,
+  ConfirmAria,
+  ConfirmCancelAria,
+  ConfirmDescriptionAria,
+  ConfirmPanelAria,
+  type ConfirmProps,
+  ConfirmTitleAria,
+  ConfirmTriggerAria,
+  DialogAria,
+  DialogCloseAria,
+  DialogDescriptionAria,
+  DialogPanelAria,
+  type DialogProps,
+  DialogTitleAria,
+  DialogTriggerAria,
   MenuAria,
-  MenuButtonAria,
-  type MenuButtonProps,
   MenubarAria,
   type MenubarProps,
+  MenuButtonAria,
+  type MenuButtonProps,
   MenuGroupAria,
   type MenuGroupProps,
   MenuItemAria,
@@ -23,6 +38,11 @@ import {
   MenuPanelAria,
   type MenuPanelProps,
   type MenuProps,
+  PopoverAria,
+  type PopoverOptions,
+  PopoverPanelAria,
+  type PopoverProps,
+  PopoverTriggerAria,
   RadioGroupAria,
   type RadioGroupProps,
   SelectAria,
@@ -82,6 +102,12 @@ import {
   CheckboxAria,
   type CheckboxOptions,
   type CheckboxProps,
+  DisclosureAria,
+  type DisclosureOptions,
+  DisclosurePanelAria,
+  type DisclosureProps,
+  DisclosureTriggerAria,
+  type DisclosureTriggerOptions,
   DividerAria,
   type DividerProps,
   FilePickerAria,
@@ -141,6 +167,7 @@ export * from './types.js';
 export * from './utils/attributes.js';
 export * from './utils/label.js';
 export * from './utils/navigation.js';
+export * from './utils/overlay.js';
 export * from './utils/range.js';
 export * from './widgets/index.js';
 
@@ -266,6 +293,91 @@ export function aria<E extends BaseElement = HTMLElement>(
 ): MeterAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement>(role: 'divider', props?: DividerProps): DividerAria<E>;
+
+export function aria<E extends HTMLElement = HTMLElement>(role: 'dialog', props?: DialogProps): DialogAria<E>;
+
+export function aria<E extends HTMLElement = HTMLElement>(
+  role: 'dialog-trigger',
+  props?: AriaProps
+): DialogTriggerAria<E>;
+
+export function aria<E extends HTMLElement = HTMLElement>(role: 'dialog-close', props?: AriaProps): DialogCloseAria<E>;
+
+export function aria<E extends HTMLElement = HTMLElement>(role: 'dialog-panel', props?: AriaProps): DialogPanelAria<E>;
+
+export function aria<E extends HTMLElement = HTMLElement>(role: 'dialog-title', props?: AriaProps): DialogTitleAria<E>;
+
+export function aria<E extends HTMLElement = HTMLElement>(
+  role: 'dialog-description',
+  props?: AriaProps
+): DialogDescriptionAria<E>;
+
+export function aria<E extends HTMLElement = HTMLElement>(role: 'confirm', props?: ConfirmProps): ConfirmAria<E>;
+
+export function aria<E extends HTMLElement = HTMLElement>(
+  role: 'confirm-trigger',
+  props?: AriaProps
+): ConfirmTriggerAria<E>;
+
+export function aria<E extends HTMLElement = HTMLElement>(
+  role: 'confirm-panel',
+  props?: AriaProps
+): ConfirmPanelAria<E>;
+
+export function aria<E extends HTMLElement = HTMLElement>(
+  role: 'confirm-title',
+  props?: AriaProps
+): ConfirmTitleAria<E>;
+
+export function aria<E extends HTMLElement = HTMLElement>(
+  role: 'confirm-description',
+  props?: AriaProps
+): ConfirmDescriptionAria<E>;
+
+export function aria<E extends HTMLElement = HTMLElement>(
+  role: 'confirm-action',
+  props?: AriaProps
+): ConfirmActionAria<E>;
+
+export function aria<E extends HTMLElement = HTMLElement>(
+  role: 'confirm-cancel',
+  props?: AriaProps
+): ConfirmCancelAria<E>;
+
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'popover',
+  props?: PopoverProps,
+  options?: PopoverOptions
+): PopoverAria<E>;
+
+export function aria<E extends BaseElement = HTMLButtonElement>(
+  role: 'popover-trigger',
+  props?: AriaProps,
+  options?: AriaOptions
+): PopoverTriggerAria<E>;
+
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'popover-panel',
+  props?: AriaProps,
+  options?: AriaOptions
+): PopoverPanelAria<E>;
+
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'disclosure',
+  props?: DisclosureProps,
+  options?: DisclosureOptions
+): DisclosureAria<E>;
+
+export function aria<E extends BaseElement = HTMLButtonElement>(
+  role: 'disclosure-trigger',
+  props?: AriaProps,
+  options?: DisclosureTriggerOptions
+): DisclosureTriggerAria<E>;
+
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'disclosure-panel',
+  props?: AriaProps
+): DisclosurePanelAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement>(
   role: 'slider',
@@ -415,6 +527,44 @@ export function aria(role: string, init?: unknown, options?: unknown): unknown {
       return new MeterAria(init as never, options as never);
     case 'divider':
       return new DividerAria(init as never, options as never);
+    case 'dialog':
+      return new DialogAria(init as never, options as never);
+    case 'dialog-trigger':
+      return new DialogTriggerAria(init as never, options as never);
+    case 'dialog-close':
+      return new DialogCloseAria(init as never, options as never);
+    case 'dialog-panel':
+      return new DialogPanelAria(init as never, options as never);
+    case 'dialog-title':
+      return new DialogTitleAria(init as never, options as never);
+    case 'dialog-description':
+      return new DialogDescriptionAria(init as never, options as never);
+    case 'confirm':
+      return new ConfirmAria(init as never, options as never);
+    case 'confirm-trigger':
+      return new ConfirmTriggerAria(init as never, options as never);
+    case 'confirm-panel':
+      return new ConfirmPanelAria(init as never, options as never);
+    case 'confirm-title':
+      return new ConfirmTitleAria(init as never, options as never);
+    case 'confirm-description':
+      return new ConfirmDescriptionAria(init as never, options as never);
+    case 'confirm-action':
+      return new ConfirmActionAria(init as never, options as never);
+    case 'confirm-cancel':
+      return new ConfirmCancelAria(init as never, options as never);
+    case 'popover':
+      return new PopoverAria(init as never, options as never);
+    case 'popover-trigger':
+      return new PopoverTriggerAria(init as never, options as never);
+    case 'popover-panel':
+      return new PopoverPanelAria(init as never, options as never);
+    case 'disclosure':
+      return new DisclosureAria(init as never, options as never);
+    case 'disclosure-trigger':
+      return new DisclosureTriggerAria(init as never, options as never);
+    case 'disclosure-panel':
+      return new DisclosurePanelAria(init as never);
     case 'slider':
       return new SliderAria(init as never, options as never);
     case 'slider-thumb':

@@ -96,7 +96,7 @@ const Meter = setup<MeterProps>((props) => {
   const gauge = aria('meter', props, { native: false });
 
   return () => (
-    <div ref={gauge.ref} {...gauge.restProps(['children'])} className={props.className}>
+    <div ref={gauge.ref} {...gauge.restProps(['children'])}>
       <span className="meter-fill" />
     </div>
   );
@@ -120,7 +120,7 @@ const Meter = setup<MeterProps>((props) => {
   const gauge = aria('meter', props, { native: false });
 
   return (
-    <div ref={gauge.ref} {...gauge.restProps(['children'])} className={props.className}>
+    <div ref={gauge.ref} {...gauge.restProps(['children'])}>
       <span className="meter-fill" />
     </div>
   );

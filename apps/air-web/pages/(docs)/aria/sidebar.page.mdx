@@ -74,7 +74,7 @@ const Sidebar = setup<SidebarProps>((props) => {
   ]);
 
   return () => (
-    <aside ref={sidebar.ref} {...restProps} {...sidebar.attributes} className={props.className}>
+    <aside ref={sidebar.ref} {...restProps} {...sidebar.attributes}>
       {props.children}
     </aside>
   );
@@ -102,7 +102,7 @@ const Sidebar = setup<SidebarProps>((props) => {
   ]);
 
   return (
-    <aside ref={sidebar.ref} {...restProps} {...sidebar.attributes} className={props.className}>
+    <aside ref={sidebar.ref} {...restProps} {...sidebar.attributes}>
       {props.children}
     </aside>
   );

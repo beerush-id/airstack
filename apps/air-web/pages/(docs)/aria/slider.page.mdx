@@ -108,7 +108,7 @@ const Slider = setup<SliderProps>((props) => {
   const thumb = aria('slider-thumb');
 
   return () => (
-    <div ref={slider.ref} {...slider.restProps(['children'])} className={props.className}>
+    <div ref={slider.ref} {...slider.restProps(['children'])}>
       <div ref={thumb.ref} {...thumb.props} />
       {props.children}
     </div>
@@ -137,7 +137,7 @@ const Slider = setup<SliderProps>((props) => {
   const thumb = aria('slider-thumb');
 
   return (
-    <div ref={slider.ref} {...slider.restProps(['children'])} className={props.className}>
+    <div ref={slider.ref} {...slider.restProps(['children'])}>
       <div ref={thumb.ref} {...thumb.props} />
       {props.children}
     </div>

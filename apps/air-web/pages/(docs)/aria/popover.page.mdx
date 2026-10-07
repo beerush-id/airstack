@@ -1,0 +1,358 @@
+---
+title: 'Popover'
+description: 'Accessible non-modal anchored floating overlay with light dismissal, focus management, native Popover API support, and CSS anchor variables.'
+nav: 'Popover'
+nav-priority: 293
+---
+
+<style>{`
+.popover-container { display: inline-flex; }
+.popover-trigger { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 500; padding: 0.5rem 1rem; border: 1px solid #3f3f46; background: #27272a; color: #fafafa; cursor: pointer; transition: background 0.15s ease; }
+.popover-trigger:hover { background: #3f3f46; }
+.popover-panel {
+  position: fixed;
+  top: anchor(bottom);
+  left: anchor(center);
+  transform: translateX(-50%);
+  position-area: bottom;
+  margin-top: 0.5rem;
+  width: 16rem;
+  border-radius: 0.75rem;
+  border: 1px solid #27272a;
+  background: #18181b;
+  color: #fafafa;
+  padding: 1rem;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+  z-index: 50;
+}
+@supports (position-area: bottom) {
+  .popover-panel {
+    top: auto;
+    left: auto;
+    transform: none;
+  }
+}
+.popover-panel[data-popover-y="above"] {
+  position-area: top;
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+}
+.popover-panel[data-popover-y="below"] {
+  position-area: bottom;
+  margin-top: 0.5rem;
+}
+.popover-panel[hidden] { display: none; }
+.popover-title { font-size: 0.875rem; font-weight: 600; margin: 0 0 0.5rem; color: #fafafa; }
+.popover-text { font-size: 0.8125rem; color: #a1a1aa; margin: 0 0 0.75rem; line-height: 1.4; }
+.popover-btn { display: inline-flex; width: 100%; justify-content: center; border-radius: 0.375rem; font-size: 0.75rem; font-weight: 500; padding: 0.375rem 0.5rem; border: 1px solid #3f3f46; background: #27272a; color: #fafafa; cursor: pointer; }
+.popover-btn:hover { background: #3f3f46; }
+`}</style>
+
+# AirLib Headless Popover
+
+The **Popover** unit coordinates floating overlays anchored to an interactive trigger element. Unlike modal dialogs, popovers are non-modal: they support light dismissal (dismissed on outside clicks or the `Escape` key), preserve access to background content without focus trapping, and restore focus to the trigger upon dismissal. **AirLib Headless Popover** (`aria('popover')`) coordinates state and accessibility linkage across both custom floating panels and the native HTML Popover API.
+
+```tsx
+const root = aria('popover', { xDir: 'between', yDir: 'below' });
+const trigger = root.trigger();
+const panel = root.panel();
+
+<>
+  <button ref={trigger.ref} {...trigger.props}>
+    Open Popover
+  </button>
+  <div ref={panel.ref} {...panel.props}>
+    <h4>Popover Content</h4>
+    <p>This floating overlay dismisses on outside clicks or Escape.</p>
+  </div>
+</>
+```
+
+:::interactive[Anchored Floating Popover]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup, teleport } from '@airlib/react';
+import type { ComponentProps, PropsWithChildren } from 'react';
+
+type PopoverProps = PropsWithChildren<{
+  open?: boolean;
+  id?: string;
+  dismissable?: boolean;
+  xDir?: 'before' | 'after' | 'left' | 'between' | 'right';
+  yDir?: 'above' | 'below' | 'between';
+}>;
+
+const PopoverRoot = setup<PopoverProps>((props) => {
+  aria('popover', props);
+  return () => props.children;
+});
+
+const PopoverTrigger = setup<ComponentProps<'button'>>((props) => {
+  const trigger = aria('popover-trigger', props);
+  return () => (
+    <button ref={trigger.ref} {...trigger.props}>
+      {props.children}
+    </button>
+  );
+});
+
+const PopoverPanel = setup<ComponentProps<'div'>>((props) => {
+  const panel = aria('popover-panel', props);
+
+  return () => {
+    if (!panel.popover?.open) return null;
+
+    return teleport(
+      <div ref={panel.ref} {...panel.props}>
+        {props.children}
+      </div>
+    );
+  };
+});
+
+const Popover = Object.assign(PopoverRoot, {
+  Trigger: PopoverTrigger,
+  Panel: PopoverPanel,
+});
+
+const PopoverDemo = () => (
+  <div className="popover-container">
+    <Popover xDir="between" yDir="below">
+      <Popover.Trigger className="popover-trigger">
+        <span>Settings Menu</span>
+        <span aria-hidden="true">▾</span>
+      </Popover.Trigger>
+      <Popover.Panel className="popover-panel">
+        <h4 className="popover-title">Quick Settings</h4>
+        <p className="popover-text">Adjust project preferences without leaving this screen.</p>
+      </Popover.Panel>
+    </Popover>
+  </div>
+);
+```
+
+<div className="flex justify-center p-6 gap-4">
+  <PopoverDemo />
+  <PopoverDemo />
+</div>
+:::
+
+## Anatomy & Entities
+
+A popover composite consists of three cooperating entities. You can instantiate them directly from the `popover` coordinator or via standalone role lookups:
+
+```ts
+// Coordinator
+const popover = aria('popover', props?: PopoverProps, options?: PopoverOptions);
+
+// Sub-Entities (factory methods or standalone role strings)
+const trigger = popover.trigger(); // or aria('popover-trigger')
+const panel   = popover.panel();   // or aria('popover-panel')
+```
+
+### Usage
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup, teleport } from '@airlib/react';
+import type { ComponentProps, PropsWithChildren } from 'react';
+
+type PopoverProps = PropsWithChildren<{
+  open?: boolean;
+  id?: string;
+  dismissable?: boolean;
+  xDir?: 'before' | 'after' | 'left' | 'between' | 'right';
+  yDir?: 'above' | 'below' | 'between';
+}>;
+
+const PopoverRoot = setup<PopoverProps>((props) => {
+  aria('popover', props);
+  return () => props.children;
+});
+
+const PopoverTrigger = setup<ComponentProps<'button'>>((props) => {
+  const trigger = aria('popover-trigger', props);
+  return () => (
+    <button ref={trigger.ref} {...trigger.props}>
+      {props.children}
+    </button>
+  );
+});
+
+const PopoverPanel = setup<ComponentProps<'div'>>((props) => {
+  const panel = aria('popover-panel', props);
+
+  return () => {
+    if (!panel.popover?.open) return null;
+
+    return teleport(
+      <div ref={panel.ref} {...panel.props}>
+        {props.children}
+      </div>
+    );
+  };
+});
+
+const Popover = Object.assign(PopoverRoot, {
+  Trigger: PopoverTrigger,
+  Panel: PopoverPanel,
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps, ParentProps } from 'solid-js';
+
+type PopoverProps = ParentProps<{
+  open?: boolean;
+  id?: string;
+  dismissable?: boolean;
+  xDir?: 'before' | 'after' | 'left' | 'between' | 'right';
+  yDir?: 'above' | 'below' | 'between';
+}>;
+
+const PopoverRoot = setup<PopoverProps>((props) => {
+  aria('popover', props);
+  return props.children;
+});
+
+const PopoverTrigger = setup<ComponentProps<'button'>>((props) => {
+  const trigger = aria('popover-trigger', props);
+  return (
+    <button ref={trigger.ref} {...trigger.props}>
+      {props.children}
+    </button>
+  );
+});
+
+const PopoverPanel = setup<ComponentProps<'div'>>((props) => {
+  const panel = aria('popover-panel', props);
+  return (
+    <div ref={panel.ref} {...panel.props}>
+      {props.children}
+    </div>
+  );
+});
+
+const Popover = Object.assign(PopoverRoot, {
+  Trigger: PopoverTrigger,
+  Panel: PopoverPanel,
+});
+```
+
+:::
+
+## Architectural & Accessibility Contracts
+
+### Semantic Layering
+
+| Host Element | Attributes Emitted | Semantics & Behavior |
+| :--- | :--- | :--- |
+| **Trigger (`<button>`)** | `aria-haspopup="dialog"`, `aria-expanded`, `aria-controls` | Native button activation; reflects open/closed state to assistive technology. |
+| **Custom Trigger (`<div>`)** | `role="button"`, `tabindex="0"`, `aria-expanded` | Space and Enter activation polyfill; disabled state removes tab stop. |
+| **Panel (Custom)** | `id`, `role="dialog"`, `hidden` | Hidden when closed; light dismissal via outside pointerdown and Escape key. Non-trapping focus. |
+| **Native Popover Panel** | `popover="auto"` or `"manual"` | Integrates with browser native popover top-layer elevation and light dismissal. |
+
+### Placement via CSS Anchor Positioning
+
+The popover composite wires CSS Anchor Positioning automatically between the trigger and panel elements without requiring manual ID coordination:
+
+- **Trigger (`style`)**: Automatically attaches `anchor-name: --popover-anchor-${id}` when open, and detaches it when closed to prevent lingering anchor registrations.
+- **Panel (`style` & attributes)**:
+  - `position-anchor: --popover-anchor-${id}`: Automatically wired to the paired trigger.
+  - `data-popover-x`: Selector attribute reflecting `xDir` (`before` | `after` | `left` | `between` | `right`).
+  - `data-popover-y`: Selector attribute reflecting `yDir` (`above` | `below` | `between`).
+
+Author stylesheets target placement declaratively using standard attribute selectors:
+
+```css
+.popover-panel[data-popover-y="below"] {
+  position-area: bottom;
+}
+.popover-panel[data-popover-x="right"] {
+  position-area: right;
+}
+```
+
+## Entity Specifications
+
+### Popover Coordinator
+
+The root coordinator managing ambient open state, unique ID namespaces, placement tokens, and dismissal settings across popover sub-parts.
+
+- **Role / Type**: Composite Coordinator
+- **Factory**: `aria('popover', props?, options?)` or `popover(props?, options?)`
+- **Parameters (`PopoverProps`)**:
+  - `open` *(boolean, optional, default `false`)*: Controls visibility of the popover overlay.
+  - `dismissable` *(boolean, optional, default `true`)*: Enables Escape key dismiss and outside click light dismissal.
+  - `id` *(string, optional)*: Explicit base identifier used to coordinate `aria-controls`. Auto-generated by default.
+  - `xDir` *('before' | 'after' | 'left' | 'between' | 'right', optional)*: Horizontal placement direction token.
+  - `yDir` *('above' | 'below' | 'between', optional)*: Vertical placement direction token.
+- **Options (`PopoverOptions`)**:
+  - `popupRole` *('dialog' | 'menu', optional, default `'dialog'`)*: Semantic role emitted on panel and `aria-haspopup`.
+- **Controller Properties & Methods**:
+  - `open` *(boolean)*: Reactive open state.
+  - `show()`: Opens the popover.
+  - `close()`: Closes the popover.
+  - `toggle()`: Toggles the open state.
+  - Sub-entity factories: `popover.panel()`, `popover.trigger()`.
+
+### Popover Panel
+
+The floating overlay container hosting the popover content, placement variables, and light-dismiss handlers.
+
+- **Role / Type**: `role="dialog"` or `role="menu"` (configured via `popupRole`)
+- **Factory**: `popover.panel(props?, options?)` or `aria('popover-panel', props?, options?)`
+- **Compiled Attributes (`panel.props`)**:
+  - `role`: `'dialog'` or `'menu'` on non-native elements.
+  - `id`: Matches trigger `aria-controls`.
+  - `hidden`: Applied when closed (custom element binding).
+  - `popover`: `'auto'` or `'manual'` on native popover API hosts.
+  - `data-popover-x`: Reflects `xDir` (`before` | `after` | `left` | `between` | `right`).
+  - `data-popover-y`: Reflects `yDir` (`above` | `below` | `between`).
+  - `style`: Automatically wires `position-anchor: --popover-anchor-${id}` and directional variables.
+- **Behaviors**:
+  - **Light dismiss**: Closes on pointerdown outside the panel, excluding clicks on the opening trigger.
+  - **Non-modal focus**: Focus moves to the panel on open without trapping, allowing free navigation back to the document.
+  - **Focus restoration**: Restores focus to the trigger element upon closing.
+  - **Toggle event**: Dispatches a `CustomEvent<{ open: boolean }>('toggle', { detail: { open } })` when state transitions.
+
+### Popover Trigger
+
+The interactive button opening and toggling the popover overlay.
+
+- **Role / Type**: Interactive Trigger Button
+- **Factory**: `popover.trigger(props?, options?)` or `aria('popover-trigger', props?, options?)`
+- **Compiled Attributes (`trigger.props`)**:
+  - `aria-haspopup`: `'dialog'` or `'menu'`.
+  - `aria-expanded`: `'true'` when open, `'false'` when closed.
+  - `aria-controls`: ID referencing the linked popover panel.
+  - `style`: Automatically attaches `anchor-name: --popover-anchor-${id}` when open.
+  - `type`: `'button'` on native button elements; `role="button"` and `tabindex="0"` on custom hosts.
+- **Behaviors**:
+  - Clicking toggles the popover open state.
+  - Caches the trigger element on open and restores active focus to it upon panel dismissal.
+
+## Keyboard Navigation
+
+- **Escape**: Light-dismisses the open popover if `dismissable: true`, restoring focus to the opening trigger button.
+- **Space / Enter**: Activates the trigger button to toggle the popover open and closed.
+- **Tab**: Traverses focus into interactive controls inside the popover and smoothly out into the surrounding document without trapping.
+
+## What you get
+
+- **Non-modal lightness.** Overlay stays non-modal, allowing keyboard and pointer users to interact with background content freely.
+- **Automatic focus restoration.** Focus lands cleanly back on the opening trigger when dismissed by keyboard or pointer.
+- **Declarative CSS anchor tokens.** Compiles placement tokens (`--anchor-x`, `--anchor-y`) for styling with native CSS Anchor Positioning without expensive runtime JS math.
+- **Light dismiss lifecycle.** Automatically closes when clicking outside or pressing Escape, preventing toggle race conditions with trigger exclusion.
+- **Native Popover API sync.** Seamlessly binds to HTML `popover="auto"` or `popover="manual"` attributes when native support is detected.
+
+## Next Steps
+
+- **[Dialog](/docs/aria/dialog)**: Modal and non-modal focus-trapping dialog composite widgets.
+- **[Confirm](/docs/aria/confirm)**: Blocking confirmation alertdialogs with safe autofocus and non-dismissable choice requirements.
+- **[Tooltip](/docs/aria/tooltip)**: Hover- and focus-triggered advisory popups for interactive controls.
+- **[Disclosure](/docs/aria/disclosure)**: Expandable and collapsible sections without floating overlay elevation.

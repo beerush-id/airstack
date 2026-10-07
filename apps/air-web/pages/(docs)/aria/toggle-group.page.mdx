@@ -72,10 +72,10 @@ type ToggleGroupProps = ComponentProps<'div'> & {
 
 const ToggleGroup = setup<ToggleGroupProps>((props) => {
   const group = aria('toggle-group', props);
-  const restProps = props.$omit([...group.ownKeys, 'children', 'className']);
+  const restProps = props.$omit([...group.ownKeys, 'children']);
 
   return () => (
-    <div ref={group.ref} {...restProps} {...group.attributes} className={props.className}>
+    <div ref={group.ref} {...restProps} {...group.attributes}>
       {props.children}
     </div>
   );
@@ -99,10 +99,10 @@ type ToggleGroupProps = ComponentProps<'div'> & {
 
 const ToggleGroup = setup<ToggleGroupProps>((props) => {
   const group = aria('toggle-group', props);
-  const restProps = props.$omit([...group.ownKeys, 'children', 'className']);
+  const restProps = props.$omit([...group.ownKeys, 'children']);
 
   return (
-    <div ref={group.ref} {...restProps} {...group.attributes} className={props.className}>
+    <div ref={group.ref} {...restProps} {...group.attributes}>
       {props.children}
     </div>
   );
@@ -151,10 +151,10 @@ type ToggleButtonProps = ComponentProps<'button'> & {
 
 const ToggleButton = setup<ToggleButtonProps>((props) => {
   const toggle = aria('toggle', props);
-  const restProps = props.$omit([...toggle.ownKeys, 'children', 'className']);
+  const restProps = props.$omit([...toggle.ownKeys, 'children']);
 
   return () => (
-    <button ref={toggle.ref} {...restProps} {...toggle.attributes} className={props.className}>
+    <button ref={toggle.ref} {...restProps} {...toggle.attributes}>
       {props.children}
     </button>
   );
@@ -173,10 +173,10 @@ type ToggleButtonProps = ComponentProps<'button'> & {
 
 const ToggleButton = setup<ToggleButtonProps>((props) => {
   const toggle = aria('toggle', props);
-  const restProps = props.$omit([...toggle.ownKeys, 'children', 'className']);
+  const restProps = props.$omit([...toggle.ownKeys, 'children']);
 
   return (
-    <button ref={toggle.ref} {...restProps} {...toggle.attributes} className={props.className}>
+    <button ref={toggle.ref} {...restProps} {...toggle.attributes}>
       {props.children}
     </button>
   );

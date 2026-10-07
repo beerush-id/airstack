@@ -73,10 +73,10 @@ type MenuProps = ComponentProps<'div'> & {
 
 const Menu = setup<MenuProps>((props) => {
   const menu = aria('menu', props);
-  const restProps = props.$omit([...menu.ownKeys, 'children', 'className']);
+  const restProps = props.$omit([...menu.ownKeys, 'children']);
 
   return () => (
-    <div ref={menu.ref} {...restProps} {...menu.attributes} className={props.className}>
+    <div ref={menu.ref} {...restProps} {...menu.attributes}>
       {props.children}
     </div>
   );
@@ -95,10 +95,10 @@ type MenuProps = ComponentProps<'div'> & {
 
 const Menu = setup<MenuProps>((props) => {
   const menu = aria('menu', props);
-  const restProps = props.$omit([...menu.ownKeys, 'children', 'className']);
+  const restProps = props.$omit([...menu.ownKeys, 'children']);
 
   return (
-    <div ref={menu.ref} {...restProps} {...menu.attributes} className={props.className}>
+    <div ref={menu.ref} {...restProps} {...menu.attributes}>
       {props.children}
     </div>
   );
@@ -141,10 +141,10 @@ type MenuButtonProps = ComponentProps<'button'> & {
 
 const MenuButton = setup<MenuButtonProps>((props) => {
   const button = aria('menu-button', props);
-  const restProps = props.$omit([...button.ownKeys, 'children', 'className']);
+  const restProps = props.$omit([...button.ownKeys, 'children']);
 
   return () => (
-    <button ref={button.ref} {...restProps} {...button.attributes} className={props.className}>
+    <button ref={button.ref} {...restProps} {...button.attributes}>
       {props.children}
     </button>
   );
@@ -162,10 +162,10 @@ type MenuButtonProps = ComponentProps<'button'> & {
 
 const MenuButton = setup<MenuButtonProps>((props) => {
   const button = aria('menu-button', props);
-  const restProps = props.$omit([...button.ownKeys, 'children', 'className']);
+  const restProps = props.$omit([...button.ownKeys, 'children']);
 
   return (
-    <button ref={button.ref} {...restProps} {...button.attributes} className={props.className}>
+    <button ref={button.ref} {...restProps} {...button.attributes}>
       {props.children}
     </button>
   );
@@ -217,10 +217,10 @@ type MenuPanelProps = ComponentProps<'div'> & {
 
 const MenuPanel = setup<MenuPanelProps>((props) => {
   const panel = aria('menu-panel', props);
-  const restProps = props.$omit([...panel.ownKeys, 'label', 'labelledby', 'orientation', 'children', 'className']);
+  const restProps = props.$omit([...panel.ownKeys, 'label', 'labelledby', 'orientation', 'children']);
 
   return () => (
-    <div ref={panel.ref} {...restProps} {...panel.attributes} className={props.className}>
+    <div ref={panel.ref} {...restProps} {...panel.attributes}>
       {props.children}
     </div>
   );
@@ -241,10 +241,10 @@ type MenuPanelProps = ComponentProps<'div'> & {
 
 const MenuPanel = setup<MenuPanelProps>((props) => {
   const panel = aria('menu-panel', props);
-  const restProps = props.$omit([...panel.ownKeys, 'label', 'labelledby', 'orientation', 'children', 'className']);
+  const restProps = props.$omit([...panel.ownKeys, 'label', 'labelledby', 'orientation', 'children']);
 
   return (
-    <div ref={panel.ref} {...restProps} {...panel.attributes} className={props.className}>
+    <div ref={panel.ref} {...restProps} {...panel.attributes}>
       {props.children}
     </div>
   );
@@ -289,10 +289,10 @@ type MenuItemProps = ComponentProps<'button'> & {
 
 const MenuItem = setup<MenuItemProps>((props) => {
   const item = aria('menu-item', props);
-  const restProps = props.$omit([...item.ownKeys, 'name', 'disabled', 'children', 'className']);
+  const restProps = props.$omit([...item.ownKeys, 'name', 'disabled', 'children']);
 
   return () => (
-    <button ref={item.ref} {...restProps} {...item.attributes} className={props.className}>
+    <button ref={item.ref} {...restProps} {...item.attributes}>
       {props.children}
     </button>
   );
@@ -311,10 +311,10 @@ type MenuItemProps = ComponentProps<'button'> & {
 
 const MenuItem = setup<MenuItemProps>((props) => {
   const item = aria('menu-item', props);
-  const restProps = props.$omit([...item.ownKeys, 'name', 'disabled', 'children', 'className']);
+  const restProps = props.$omit([...item.ownKeys, 'name', 'disabled', 'children']);
 
   return (
-    <button ref={item.ref} {...restProps} {...item.attributes} className={props.className}>
+    <button ref={item.ref} {...restProps} {...item.attributes}>
       {props.children}
     </button>
   );
@@ -361,10 +361,10 @@ type MenuItemCheckboxProps = ComponentProps<'button'> & {
 
 const MenuItemCheckbox = setup<MenuItemCheckboxProps>((props) => {
   const checkbox = aria('menu-item-checkbox', props);
-  const restProps = props.$omit([...checkbox.ownKeys, 'name', 'disabled', 'checked', 'children', 'className']);
+  const restProps = props.$omit([...checkbox.ownKeys, 'name', 'disabled', 'checked', 'children']);
 
   return () => (
-    <button ref={checkbox.ref} {...restProps} {...checkbox.attributes} className={props.className}>
+    <button ref={checkbox.ref} {...restProps} {...checkbox.attributes}>
       {props.children}
     </button>
   );
@@ -384,10 +384,10 @@ type MenuItemCheckboxProps = ComponentProps<'button'> & {
 
 const MenuItemCheckbox = setup<MenuItemCheckboxProps>((props) => {
   const checkbox = aria('menu-item-checkbox', props);
-  const restProps = props.$omit([...checkbox.ownKeys, 'name', 'disabled', 'checked', 'children', 'className']);
+  const restProps = props.$omit([...checkbox.ownKeys, 'name', 'disabled', 'checked', 'children']);
 
   return (
-    <button ref={checkbox.ref} {...restProps} {...checkbox.attributes} className={props.className}>
+    <button ref={checkbox.ref} {...restProps} {...checkbox.attributes}>
       {props.children}
     </button>
   );
@@ -433,10 +433,10 @@ type MenuGroupProps = ComponentProps<'div'> & {
 
 const MenuGroup = setup<MenuGroupProps>((props) => {
   const group = aria('menu-group', props);
-  const restProps = props.$omit([...group.ownKeys, 'label', 'labelledby', 'value', 'children', 'className']);
+  const restProps = props.$omit([...group.ownKeys, 'label', 'labelledby', 'value', 'children']);
 
   return () => (
-    <div ref={group.ref} {...restProps} {...group.attributes} className={props.className}>
+    <div ref={group.ref} {...restProps} {...group.attributes}>
       {props.children}
     </div>
   );
@@ -456,10 +456,10 @@ type MenuGroupProps = ComponentProps<'div'> & {
 
 const MenuGroup = setup<MenuGroupProps>((props) => {
   const group = aria('menu-group', props);
-  const restProps = props.$omit([...group.ownKeys, 'label', 'labelledby', 'value', 'children', 'className']);
+  const restProps = props.$omit([...group.ownKeys, 'label', 'labelledby', 'value', 'children']);
 
   return (
-    <div ref={group.ref} {...restProps} {...group.attributes} className={props.className}>
+    <div ref={group.ref} {...restProps} {...group.attributes}>
       {props.children}
     </div>
   );
@@ -509,10 +509,10 @@ type MenuItemRadioProps = ComponentProps<'button'> & {
 
 const MenuItemRadio = setup<MenuItemRadioProps>((props) => {
   const radio = aria('menu-item-radio', props);
-  const restProps = props.$omit([...radio.ownKeys, 'name', 'disabled', 'value', 'children', 'className']);
+  const restProps = props.$omit([...radio.ownKeys, 'name', 'disabled', 'value', 'children']);
 
   return () => (
-    <button ref={radio.ref} {...restProps} {...radio.attributes} className={props.className}>
+    <button ref={radio.ref} {...restProps} {...radio.attributes}>
       {props.children}
     </button>
   );
@@ -532,10 +532,10 @@ type MenuItemRadioProps = ComponentProps<'button'> & {
 
 const MenuItemRadio = setup<MenuItemRadioProps>((props) => {
   const radio = aria('menu-item-radio', props);
-  const restProps = props.$omit([...radio.ownKeys, 'name', 'disabled', 'value', 'children', 'className']);
+  const restProps = props.$omit([...radio.ownKeys, 'name', 'disabled', 'value', 'children']);
 
   return (
-    <button ref={radio.ref} {...restProps} {...radio.attributes} className={props.className}>
+    <button ref={radio.ref} {...restProps} {...radio.attributes}>
       {props.children}
     </button>
   );
@@ -588,10 +588,10 @@ type MenubarProps = ComponentProps<'div'> & {
 
 const Menubar = setup<MenubarProps>((props) => {
   const menubar = aria('menu-bar', props);
-  const restProps = props.$omit([...menubar.ownKeys, 'label', 'labelledby', 'orientation', 'children', 'className']);
+  const restProps = props.$omit([...menubar.ownKeys, 'label', 'labelledby', 'orientation', 'children']);
 
   return () => (
-    <div ref={menubar.ref} {...restProps} {...menubar.attributes} className={props.className}>
+    <div ref={menubar.ref} {...restProps} {...menubar.attributes}>
       {props.children}
     </div>
   );
@@ -611,10 +611,10 @@ type MenubarProps = ComponentProps<'div'> & {
 
 const Menubar = setup<MenubarProps>((props) => {
   const menubar = aria('menu-bar', props);
-  const restProps = props.$omit([...menubar.ownKeys, 'label', 'labelledby', 'orientation', 'children', 'className']);
+  const restProps = props.$omit([...menubar.ownKeys, 'label', 'labelledby', 'orientation', 'children']);
 
   return (
-    <div ref={menubar.ref} {...restProps} {...menubar.attributes} className={props.className}>
+    <div ref={menubar.ref} {...restProps} {...menubar.attributes}>
       {props.children}
     </div>
   );

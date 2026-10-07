@@ -74,7 +74,7 @@ const Switch = setup<SwitchProps>((props) => {
   const sw = aria('switch', props, { native: true });
 
   return () => (
-    <button ref={sw.ref} {...sw.restProps(['children', 'className'])} className={props.className}>
+    <button ref={sw.ref} {...sw.restProps(['children'])}>
       {props.children}
     </button>
   );
@@ -95,7 +95,7 @@ const Switch = setup<SwitchProps>((props) => {
   const sw = aria('switch', props, { native: true });
 
   return (
-    <button ref={sw.ref} {...sw.restProps(['children', 'className'])} className={props.className}>
+    <button ref={sw.ref} {...sw.restProps(['children'])}>
       {props.children}
     </button>
   );

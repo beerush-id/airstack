@@ -65,10 +65,10 @@ type NavigationProps = ComponentProps<'nav'> & {
 
 const Navigation = setup<NavigationProps>((props) => {
   const navigation = aria('navigation', props);
-  const restProps = props.$omit([...navigation.ownKeys, 'label', 'labelledby', 'children', 'className']);
+  const restProps = props.$omit([...navigation.ownKeys, 'label', 'labelledby', 'children']);
 
   return () => (
-    <nav ref={navigation.ref} {...restProps} {...navigation.attributes} className={props.className}>
+    <nav ref={navigation.ref} {...restProps} {...navigation.attributes}>
       {props.children}
     </nav>
   );
@@ -87,10 +87,10 @@ type NavigationProps = ComponentProps<'nav'> & {
 
 const Navigation = setup<NavigationProps>((props) => {
   const navigation = aria('navigation', props);
-  const restProps = props.$omit([...navigation.ownKeys, 'label', 'labelledby', 'children', 'className']);
+  const restProps = props.$omit([...navigation.ownKeys, 'label', 'labelledby', 'children']);
 
   return (
-    <nav ref={navigation.ref} {...restProps} {...navigation.attributes} className={props.className}>
+    <nav ref={navigation.ref} {...restProps} {...navigation.attributes}>
       {props.children}
     </nav>
   );

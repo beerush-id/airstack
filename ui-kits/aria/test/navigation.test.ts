@@ -1,5 +1,24 @@
 import { describe, expect, it, vi } from 'vitest';
-import { handleRovingKey } from '../src/utils/navigation.js';
+import { handleRovingKey, queryFocusable } from '../src/utils/navigation.js';
+
+describe('Navigation - queryFocusable', () => {
+  it('skips hidden inputs and disabled controls', () => {
+    const container = document.createElement('div');
+    const hiddenField = document.createElement('input');
+    hiddenField.type = 'hidden';
+    const locked = document.createElement('button');
+    locked.disabled = true;
+    const live = document.createElement('input');
+    container.appendChild(hiddenField);
+    container.appendChild(locked);
+    container.appendChild(live);
+    document.body.appendChild(container);
+
+    expect(queryFocusable(container)).toEqual([live]);
+
+    document.body.removeChild(container);
+  });
+});
 
 describe('Navigation - handleRovingKey', () => {
   it('navigates next and previous with wrapping in vertical orientation', () => {

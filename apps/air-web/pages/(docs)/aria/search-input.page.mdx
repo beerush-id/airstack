@@ -77,7 +77,7 @@ const SearchInput = setup<SearchInputProps>((props) => {
   const search = aria('search-input', props);
 
   return () => (
-    <input ref={search.ref} {...search.restProps(['children', 'className'])} className={props.className} />
+    <input ref={search.ref} {...search.restProps(['children'])} />
   );
 });
 ```
@@ -98,7 +98,7 @@ const SearchInput = setup<SearchInputProps>((props) => {
   const search = aria('search-input', props);
 
   return (
-    <input ref={search.ref} {...search.restProps(['children', 'className'])} className={props.className} />
+    <input ref={search.ref} {...search.restProps(['children'])} />
   );
 });
 ```

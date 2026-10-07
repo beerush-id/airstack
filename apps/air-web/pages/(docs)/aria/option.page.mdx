@@ -78,7 +78,7 @@ const Option = setup<OptionProps>((props) => {
   const option = aria('option', props);
 
   return () => (
-    <li ref={option.ref} {...option.restProps(['children', 'className'])} className={props.className}>
+    <li ref={option.ref} {...option.restProps(['children'])}>
       {props.children}
     </li>
   );
@@ -100,7 +100,7 @@ const Option = setup<OptionProps>((props) => {
   const option = aria('option', props);
 
   return (
-    <li ref={option.ref} {...option.restProps(['children', 'className'])} className={props.className}>
+    <li ref={option.ref} {...option.restProps(['children'])}>
       {props.children}
     </li>
   );
@@ -160,7 +160,7 @@ const DemoSelect = setup<DemoSelectProps>((props) => {
   const select = aria('select', props);
 
   return () => (
-    <ul ref={select.ref} {...select.restProps(['value', 'disabled', 'children', 'className'])} className={props.className}>
+    <ul ref={select.ref} {...select.restProps(['value', 'disabled', 'children'])}>
       {props.children}
     </ul>
   );

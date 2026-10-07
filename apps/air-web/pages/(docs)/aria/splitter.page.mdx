@@ -88,7 +88,7 @@ const Splitter = setup<SplitterProps>((props) => {
   const partition = aria('splitter', props);
 
   return () => (
-    <div ref={partition.ref} {...partition.restProps(['children'])} className={props.className}>
+    <div ref={partition.ref} {...partition.restProps(['children'])}>
       {props.children}
     </div>
   );
@@ -113,7 +113,7 @@ const Splitter = setup<SplitterProps>((props) => {
   const partition = aria('splitter', props);
 
   return (
-    <div ref={partition.ref} {...partition.restProps(['children'])} className={props.className}>
+    <div ref={partition.ref} {...partition.restProps(['children'])}>
       {props.children}
     </div>
   );

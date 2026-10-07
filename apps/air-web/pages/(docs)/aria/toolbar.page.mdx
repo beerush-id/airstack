@@ -64,10 +64,10 @@ type ToolbarProps = ComponentProps<'div'> & {
 
 const Toolbar = setup<ToolbarProps>((props) => {
   const toolbar = aria('toolbar', props);
-  const restProps = props.$omit([...toolbar.ownKeys, 'children', 'className']);
+  const restProps = props.$omit([...toolbar.ownKeys, 'children']);
 
   return () => (
-    <div ref={toolbar.ref} {...restProps} {...toolbar.attributes} className={props.className}>
+    <div ref={toolbar.ref} {...restProps} {...toolbar.attributes}>
       {props.children}
     </div>
   );
@@ -86,10 +86,10 @@ type ToolbarProps = ComponentProps<'div'> & {
 
 const Toolbar = setup<ToolbarProps>((props) => {
   const toolbar = aria('toolbar', props);
-  const restProps = props.$omit([...toolbar.ownKeys, 'children', 'className']);
+  const restProps = props.$omit([...toolbar.ownKeys, 'children']);
 
   return (
-    <div ref={toolbar.ref} {...restProps} {...toolbar.attributes} className={props.className}>
+    <div ref={toolbar.ref} {...restProps} {...toolbar.attributes}>
       {props.children}
     </div>
   );
@@ -131,10 +131,10 @@ type ToolbarButtonProps = ComponentProps<'button'> & {
 
 const ToolbarButton = setup<ToolbarButtonProps>((props) => {
   const button = aria('button', props);
-  const restProps = props.$omit([...button.ownKeys, 'children', 'className']);
+  const restProps = props.$omit([...button.ownKeys, 'children']);
 
   return () => (
-    <button ref={button.ref} {...restProps} {...button.attributes} className={props.className}>
+    <button ref={button.ref} {...restProps} {...button.attributes}>
       {props.children}
     </button>
   );
@@ -152,10 +152,10 @@ type ToolbarButtonProps = ComponentProps<'button'> & {
 
 const ToolbarButton = setup<ToolbarButtonProps>((props) => {
   const button = aria('button', props);
-  const restProps = props.$omit([...button.ownKeys, 'children', 'className']);
+  const restProps = props.$omit([...button.ownKeys, 'children']);
 
   return (
-    <button ref={button.ref} {...restProps} {...button.attributes} className={props.className}>
+    <button ref={button.ref} {...restProps} {...button.attributes}>
       {props.children}
     </button>
   );
@@ -199,10 +199,10 @@ type ToolbarToggleProps = ComponentProps<'button'> & {
 
 const ToolbarToggle = setup<ToolbarToggleProps>((props) => {
   const toggle = aria('toggle', props);
-  const restProps = props.$omit([...toggle.ownKeys, 'children', 'className']);
+  const restProps = props.$omit([...toggle.ownKeys, 'children']);
 
   return () => (
-    <button ref={toggle.ref} {...restProps} {...toggle.attributes} className={props.className}>
+    <button ref={toggle.ref} {...restProps} {...toggle.attributes}>
       {props.children}
     </button>
   );
@@ -221,10 +221,10 @@ type ToolbarToggleProps = ComponentProps<'button'> & {
 
 const ToolbarToggle = setup<ToolbarToggleProps>((props) => {
   const toggle = aria('toggle', props);
-  const restProps = props.$omit([...toggle.ownKeys, 'children', 'className']);
+  const restProps = props.$omit([...toggle.ownKeys, 'children']);
 
   return (
-    <button ref={toggle.ref} {...restProps} {...toggle.attributes} className={props.className}>
+    <button ref={toggle.ref} {...restProps} {...toggle.attributes}>
       {props.children}
     </button>
   );

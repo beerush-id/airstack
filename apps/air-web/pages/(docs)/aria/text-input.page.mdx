@@ -82,7 +82,7 @@ const TextInput = setup<TextInputProps>((props) => {
   const input = aria('text-input', props);
 
   return () => (
-    <input ref={input.ref} {...input.restProps(['children', 'className'])} className={props.className} />
+    <input ref={input.ref} {...input.restProps(['children'])} />
   );
 });
 ```
@@ -105,7 +105,7 @@ const TextInput = setup<TextInputProps>((props) => {
   const input = aria('text-input', props);
 
   return (
-    <input ref={input.ref} {...input.restProps(['children', 'className'])} className={props.className} />
+    <input ref={input.ref} {...input.restProps(['children'])} />
   );
 });
 ```

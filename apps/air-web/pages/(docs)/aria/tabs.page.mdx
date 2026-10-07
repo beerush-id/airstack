@@ -73,10 +73,10 @@ type TabsProps = ComponentProps<'div'> & {
 
 const Tabs = setup<TabsProps>((props) => {
   const tabs = aria('tab', props);
-  const restProps = props.$omit([...tabs.ownKeys, 'children', 'className']);
+  const restProps = props.$omit([...tabs.ownKeys, 'children']);
 
   return () => (
-    <div ref={tabs.ref} {...restProps} {...tabs.attributes} className={props.className}>
+    <div ref={tabs.ref} {...restProps} {...tabs.attributes}>
       {props.children}
     </div>
   );
@@ -99,10 +99,10 @@ type TabsProps = ComponentProps<'div'> & {
 
 const Tabs = setup<TabsProps>((props) => {
   const tabs = aria('tab', props);
-  const restProps = props.$omit([...tabs.ownKeys, 'children', 'className']);
+  const restProps = props.$omit([...tabs.ownKeys, 'children']);
 
   return (
-    <div ref={tabs.ref} {...restProps} {...tabs.attributes} className={props.className}>
+    <div ref={tabs.ref} {...restProps} {...tabs.attributes}>
       {props.children}
     </div>
   );
@@ -146,10 +146,10 @@ type TabListProps = ComponentProps<'div'> & {
 
 const TabList = setup<TabListProps>((props) => {
   const list = aria('tab-list', props);
-  const restProps = props.$omit([...list.ownKeys, 'children', 'className']);
+  const restProps = props.$omit([...list.ownKeys, 'children']);
 
   return () => (
-    <div ref={list.ref} {...restProps} {...list.attributes} className={props.className}>
+    <div ref={list.ref} {...restProps} {...list.attributes}>
       {props.children}
     </div>
   );
@@ -168,10 +168,10 @@ type TabListProps = ComponentProps<'div'> & {
 
 const TabList = setup<TabListProps>((props) => {
   const list = aria('tab-list', props);
-  const restProps = props.$omit([...list.ownKeys, 'children', 'className']);
+  const restProps = props.$omit([...list.ownKeys, 'children']);
 
   return (
-    <div ref={list.ref} {...restProps} {...list.attributes} className={props.className}>
+    <div ref={list.ref} {...restProps} {...list.attributes}>
       {props.children}
     </div>
   );
@@ -220,10 +220,10 @@ type TabButtonProps = ComponentProps<'button'> & {
 
 const TabButton = setup<TabButtonProps>((props) => {
   const button = aria('tab-button', props);
-  const restProps = props.$omit([...button.ownKeys, 'children', 'className']);
+  const restProps = props.$omit([...button.ownKeys, 'children']);
 
   return () => (
-    <button ref={button.ref} {...restProps} {...button.attributes} className={props.className}>
+    <button ref={button.ref} {...restProps} {...button.attributes}>
       {props.children}
     </button>
   );
@@ -244,10 +244,10 @@ type TabButtonProps = ComponentProps<'button'> & {
 
 const TabButton = setup<TabButtonProps>((props) => {
   const button = aria('tab-button', props);
-  const restProps = props.$omit([...button.ownKeys, 'children', 'className']);
+  const restProps = props.$omit([...button.ownKeys, 'children']);
 
   return (
-    <button ref={button.ref} {...restProps} {...button.attributes} className={props.className}>
+    <button ref={button.ref} {...restProps} {...button.attributes}>
       {props.children}
     </button>
   );
@@ -295,10 +295,10 @@ type TabPanelProps = ComponentProps<'div'> & {
 
 const TabPanel = setup<TabPanelProps>((props) => {
   const panel = aria('tab-panel', props);
-  const restProps = props.$omit([...panel.ownKeys, 'children', 'className']);
+  const restProps = props.$omit([...panel.ownKeys, 'children']);
 
   return () => (
-    <div ref={panel.ref} {...restProps} {...panel.attributes} className={props.className}>
+    <div ref={panel.ref} {...restProps} {...panel.attributes}>
       {props.children}
     </div>
   );
@@ -317,10 +317,10 @@ type TabPanelProps = ComponentProps<'div'> & {
 
 const TabPanel = setup<TabPanelProps>((props) => {
   const panel = aria('tab-panel', props);
-  const restProps = props.$omit([...panel.ownKeys, 'children', 'className']);
+  const restProps = props.$omit([...panel.ownKeys, 'children']);
 
   return (
-    <div ref={panel.ref} {...restProps} {...panel.attributes} className={props.className}>
+    <div ref={panel.ref} {...restProps} {...panel.attributes}>
       {props.children}
     </div>
   );

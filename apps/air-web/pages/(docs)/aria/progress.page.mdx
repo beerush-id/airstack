@@ -110,7 +110,7 @@ const Progress = setup<ProgressProps>((props) => {
   const bar = aria('progress', props, { native: false });
 
   return () => (
-    <div ref={bar.ref} {...bar.restProps(['children'])} className={props.className}>
+    <div ref={bar.ref} {...bar.restProps(['children'])}>
       <span className="progress-fill" />
     </div>
   );
@@ -134,7 +134,7 @@ const Progress = setup<ProgressProps>((props) => {
   const bar = aria('progress', props, { native: false });
 
   return (
-    <div ref={bar.ref} {...bar.restProps(['children'])} className={props.className}>
+    <div ref={bar.ref} {...bar.restProps(['children'])}>
       <span className="progress-fill" />
     </div>
   );

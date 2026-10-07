@@ -73,10 +73,10 @@ type SelectProps = ComponentProps<'ul'> & {
 
 const Select = setup<SelectProps>((props) => {
   const select = aria('select', props);
-  const restProps = props.$omit([...select.ownKeys, 'children', 'className']);
+  const restProps = props.$omit([...select.ownKeys, 'children']);
 
   return () => (
-    <ul ref={select.ref} {...restProps} {...select.attributes} className={props.className}>
+    <ul ref={select.ref} {...restProps} {...select.attributes}>
       {props.children}
     </ul>
   );
@@ -100,10 +100,10 @@ type SelectProps = ComponentProps<'ul'> & {
 
 const Select = setup<SelectProps>((props) => {
   const select = aria('select', props);
-  const restProps = props.$omit([...select.ownKeys, 'children', 'className']);
+  const restProps = props.$omit([...select.ownKeys, 'children']);
 
   return (
-    <ul ref={select.ref} {...restProps} {...select.attributes} className={props.className}>
+    <ul ref={select.ref} {...restProps} {...select.attributes}>
       {props.children}
     </ul>
   );
@@ -154,10 +154,10 @@ type SelectOptionProps = ComponentProps<'li'> & {
 
 const SelectOption = setup<SelectOptionProps>((props) => {
   const option = aria('option', props);
-  const restProps = props.$omit([...option.ownKeys, 'children', 'className']);
+  const restProps = props.$omit([...option.ownKeys, 'children']);
 
   return () => (
-    <li ref={option.ref} {...restProps} {...option.attributes} className={props.className}>
+    <li ref={option.ref} {...restProps} {...option.attributes}>
       {props.children}
     </li>
   );
@@ -177,10 +177,10 @@ type SelectOptionProps = ComponentProps<'li'> & {
 
 const SelectOption = setup<SelectOptionProps>((props) => {
   const option = aria('option', props);
-  const restProps = props.$omit([...option.ownKeys, 'children', 'className']);
+  const restProps = props.$omit([...option.ownKeys, 'children']);
 
   return (
-    <li ref={option.ref} {...restProps} {...option.attributes} className={props.className}>
+    <li ref={option.ref} {...restProps} {...option.attributes}>
       {props.children}
     </li>
   );

@@ -65,10 +65,10 @@ type FormLandmarkProps = ComponentProps<'form'> & {
 
 const FormLandmark = setup<FormLandmarkProps>((props) => {
   const form = aria('form', props);
-  const restProps = props.$omit([...form.ownKeys, 'label', 'labelledby', 'children', 'className']);
+  const restProps = props.$omit([...form.ownKeys, 'label', 'labelledby', 'children']);
 
   return () => (
-    <form ref={form.ref} {...restProps} {...form.attributes} className={props.className}>
+    <form ref={form.ref} {...restProps} {...form.attributes}>
       {props.children}
     </form>
   );
@@ -87,10 +87,10 @@ type FormLandmarkProps = ComponentProps<'form'> & {
 
 const FormLandmark = setup<FormLandmarkProps>((props) => {
   const form = aria('form', props);
-  const restProps = props.$omit([...form.ownKeys, 'label', 'labelledby', 'children', 'className']);
+  const restProps = props.$omit([...form.ownKeys, 'label', 'labelledby', 'children']);
 
   return (
-    <form ref={form.ref} {...restProps} {...form.attributes} className={props.className}>
+    <form ref={form.ref} {...restProps} {...form.attributes}>
       {props.children}
     </form>
   );

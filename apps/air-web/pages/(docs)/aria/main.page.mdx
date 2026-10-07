@@ -65,10 +65,10 @@ type MainProps = ComponentProps<'main'> & {
 
 const Main = setup<MainProps>((props) => {
   const main = aria('main', props);
-  const restProps = props.$omit([...main.ownKeys, 'label', 'labelledby', 'children', 'className']);
+  const restProps = props.$omit([...main.ownKeys, 'label', 'labelledby', 'children']);
 
   return () => (
-    <main ref={main.ref} {...restProps} {...main.attributes} className={props.className}>
+    <main ref={main.ref} {...restProps} {...main.attributes}>
       {props.children}
     </main>
   );
@@ -87,10 +87,10 @@ type MainProps = ComponentProps<'main'> & {
 
 const Main = setup<MainProps>((props) => {
   const main = aria('main', props);
-  const restProps = props.$omit([...main.ownKeys, 'label', 'labelledby', 'children', 'className']);
+  const restProps = props.$omit([...main.ownKeys, 'label', 'labelledby', 'children']);
 
   return (
-    <main ref={main.ref} {...restProps} {...main.attributes} className={props.className}>
+    <main ref={main.ref} {...restProps} {...main.attributes}>
       {props.children}
     </main>
   );

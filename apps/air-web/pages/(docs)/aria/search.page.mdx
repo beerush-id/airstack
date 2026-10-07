@@ -65,10 +65,10 @@ type SearchProps = ComponentProps<'search'> & {
 
 const Search = setup<SearchProps>((props) => {
   const search = aria('search', props);
-  const restProps = props.$omit([...search.ownKeys, 'label', 'labelledby', 'children', 'className']);
+  const restProps = props.$omit([...search.ownKeys, 'label', 'labelledby', 'children']);
 
   return () => (
-    <search ref={search.ref} {...restProps} {...search.attributes} className={props.className}>
+    <search ref={search.ref} {...restProps} {...search.attributes}>
       {props.children}
     </search>
   );
@@ -87,10 +87,10 @@ type SearchProps = ComponentProps<'search'> & {
 
 const Search = setup<SearchProps>((props) => {
   const search = aria('search', props);
-  const restProps = props.$omit([...search.ownKeys, 'label', 'labelledby', 'children', 'className']);
+  const restProps = props.$omit([...search.ownKeys, 'label', 'labelledby', 'children']);
 
   return (
-    <search ref={search.ref} {...restProps} {...search.attributes} className={props.className}>
+    <search ref={search.ref} {...restProps} {...search.attributes}>
       {props.children}
     </search>
   );

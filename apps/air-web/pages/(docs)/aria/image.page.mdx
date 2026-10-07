@@ -79,7 +79,7 @@ const Avatar = setup<AvatarProps>((props) => {
   const fallback = aria('image-fallback');
 
   return () => (
-    <div ref={image.ref} {...image.restProps(['children', 'className'])} className={props.className}>
+    <div ref={image.ref} {...image.restProps(['children'])}>
       <img ref={content.ref} {...content.props} />
       <div ref={fallback.ref} {...fallback.props}>
         {props.children}
@@ -105,7 +105,7 @@ const Avatar = setup<AvatarProps>((props) => {
   const fallback = aria('image-fallback');
 
   return (
-    <div ref={image.ref} {...image.restProps(['children', 'className'])} className={props.className}>
+    <div ref={image.ref} {...image.restProps(['children'])}>
       <img ref={content.ref} {...content.props} />
       <div ref={fallback.ref} {...fallback.props}>
         {props.children}

@@ -113,7 +113,7 @@ const Stepper = setup<StepperProps>((props) => {
   const decrement = aria('stepper-dec');
 
   return () => (
-    <div ref={stepper.ref} {...stepper.restProps(['children'])} className={props.className}>
+    <div ref={stepper.ref} {...stepper.restProps(['children'])}>
       <button ref={decrement.ref} {...decrement.props} aria-label="Decrease">−</button>
       <input ref={input.ref} {...input.props} aria-label={props.label} />
       <button ref={increment.ref} {...increment.props} aria-label="Increase">+</button>
@@ -146,7 +146,7 @@ const Stepper = setup<StepperProps>((props) => {
   const decrement = aria('stepper-dec');
 
   return (
-    <div ref={stepper.ref} {...stepper.restProps(['children'])} className={props.className}>
+    <div ref={stepper.ref} {...stepper.restProps(['children'])}>
       <button ref={decrement.ref} {...decrement.props} aria-label="Decrease">−</button>
       <input ref={input.ref} {...input.props} aria-label={props.label} />
       <button ref={increment.ref} {...increment.props} aria-label="Increase">+</button>

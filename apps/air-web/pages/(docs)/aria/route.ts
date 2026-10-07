@@ -14,6 +14,7 @@ const linkRoute = route.route('/link');
 const progressRoute = route.route('/progress');
 const meterRoute = route.route('/meter');
 const dividerRoute = route.route('/divider');
+const disclosureRoute = route.route('/disclosure');
 const splitterRoute = route.route('/splitter');
 const searchInputRoute = route.route('/search-input');
 const numberStepperRoute = route.route('/number-stepper');
@@ -38,6 +39,9 @@ const toggleRoute = route.route('/toggle');
 const filePickerRoute = route.route('/file-picker');
 const sliderRoute = route.route('/slider');
 const stepperRoute = route.route('/stepper');
+const dialogRoute = route.route('/dialog');
+const confirmRoute = route.route('/confirm');
+const popoverRoute = route.route('/popover');
 /** AirLib managed */
 
 export const ariaRoute = route;
@@ -53,6 +57,7 @@ export const ariaLinkRoute = linkRoute;
 export const ariaProgressRoute = progressRoute;
 export const ariaMeterRoute = meterRoute;
 export const ariaDividerRoute = dividerRoute;
+export const ariaDisclosureRoute = disclosureRoute;
 export const ariaSplitterRoute = splitterRoute;
 export const ariaSearchInputRoute = searchInputRoute;
 export const ariaNumberStepperRoute = numberStepperRoute;
@@ -77,5 +82,8 @@ export const ariaToggleRoute = toggleRoute;
 export const ariaFilePickerRoute = filePickerRoute;
 export const ariaSliderRoute = sliderRoute;
 export const ariaStepperRoute = stepperRoute;
+export const ariaDialogRoute = dialogRoute;
+export const ariaConfirmRoute = confirmRoute;
+export const ariaPopoverRoute = popoverRoute;
 
 export default ariaRoute;

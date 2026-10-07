@@ -78,7 +78,7 @@ const RadioCard = setup<RadioCardProps>((props) => {
   const radio = aria('radio', props, { native: false });
 
   return () => (
-    <div ref={radio.ref} {...radio.restProps(['title', 'price', 'children', 'className'])} className={props.className}>
+    <div ref={radio.ref} {...radio.restProps(['title', 'price', 'children'])}>
       <strong>{props.title}</strong>
       <span>{props.price}</span>
     </div>
@@ -103,7 +103,7 @@ const RadioCard = setup<RadioCardProps>((props) => {
   const radio = aria('radio', props, { native: false });
 
   return (
-    <div ref={radio.ref} {...radio.restProps(['title', 'price', 'children', 'className'])} className={props.className}>
+    <div ref={radio.ref} {...radio.restProps(['title', 'price', 'children'])}>
       <strong>{props.title}</strong>
       <span>{props.price}</span>
     </div>
@@ -163,7 +163,7 @@ const DemoRadioGroup = setup<DemoRadioGroupProps>((props) => {
   const group = aria('radio-group', props);
 
   return () => (
-    <div ref={group.ref} {...group.restProps(['value', 'disabled', 'children', 'className'])} className={props.className}>
+    <div ref={group.ref} {...group.restProps(['value', 'disabled', 'children'])}>
       {props.children}
     </div>
   );

@@ -89,7 +89,7 @@ const FilePicker = setup<FilePickerProps>((props) => {
   const trigger = aria('file-picker', props);
 
   return () => (
-    <button ref={trigger.ref} {...trigger.restProps(['children', 'className'])} className={props.className}>
+    <button ref={trigger.ref} {...trigger.restProps(['children'])}>
       {props.children}
     </button>
   );
@@ -112,7 +112,7 @@ const FilePicker = setup<FilePickerProps>((props) => {
   const trigger = aria('file-picker', props);
 
   return (
-    <button ref={trigger.ref} {...trigger.restProps(['children', 'className'])} className={props.className}>
+    <button ref={trigger.ref} {...trigger.restProps(['children'])}>
       {props.children}
     </button>
   );

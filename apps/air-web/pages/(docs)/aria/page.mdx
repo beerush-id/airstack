@@ -59,10 +59,10 @@ export type ActionButtonProps = ComponentProps<'button'> & {
 
 export const ActionButton = setup<ActionButtonProps>((props) => {
   const button = aria('button', props);
-  const restProps = props.$omit([...button.ownKeys, 'disabled', 'children', 'className']);
+  const restProps = props.$omit([...button.ownKeys, 'disabled', 'children']);
 
   return () => (
-    <button ref={button.ref} {...restProps} {...button.attributes} className={props.className}>
+    <button ref={button.ref} {...restProps} {...button.attributes}>
       {props.children}
     </button>
   );
@@ -80,10 +80,10 @@ export type ActionButtonProps = ComponentProps<'button'> & {
 
 export const ActionButton = setup<ActionButtonProps>((props) => {
   const button = aria('button', props);
-  const restProps = props.$omit([...button.ownKeys, 'disabled', 'children', 'className']);
+  const restProps = props.$omit([...button.ownKeys, 'disabled', 'children']);
 
   return (
-    <button ref={button.ref} {...restProps} {...button.attributes} className={props.className}>
+    <button ref={button.ref} {...restProps} {...button.attributes}>
       {props.children}
     </button>
   );
@@ -102,7 +102,7 @@ When building reusable components that forward consumer props to underlying DOM 
 `Aria.prototype.ownKeys` exposes the exact array of attribute and listener names currently compiled on `controller.attributes`. Passing `controller.ownKeys` along with component-specific keys to `props.$omit(...)` produces a clean `restProps` object:
 
 ```tsx
-const restProps = props.$omit([...controller.ownKeys, 'children', 'className', ...controlledKeys]);
+const restProps = props.$omit([...controller.ownKeys, 'children', ...controlledKeys]);
 ```
 
 Spreading `{...restProps}` before `{...controller.attributes}` ensures that consumer props (such as custom `onClick`, `title`, or `data-*` attributes) safely reach the DOM without overriding ARIA contracts.
@@ -120,6 +120,8 @@ Standalone accessible controls:
 
 - [Button](/docs/aria/button)
 - [Checkbox](/docs/aria/checkbox)
+- [Dialog](/docs/aria/dialog)
+- [Disclosure](/docs/aria/disclosure)
 - [Divider](/docs/aria/divider)
 - [Link](/docs/aria/link)
 - [Meter](/docs/aria/meter)

@@ -65,10 +65,10 @@ type FooterProps = ComponentProps<'footer'> & {
 
 const Footer = setup<FooterProps>((props) => {
   const footer = aria('footer', props);
-  const restProps = props.$omit([...footer.ownKeys, 'label', 'labelledby', 'children', 'className']);
+  const restProps = props.$omit([...footer.ownKeys, 'label', 'labelledby', 'children']);
 
   return () => (
-    <footer ref={footer.ref} {...restProps} {...footer.attributes} className={props.className}>
+    <footer ref={footer.ref} {...restProps} {...footer.attributes}>
       {props.children}
     </footer>
   );
@@ -87,10 +87,10 @@ type FooterProps = ComponentProps<'footer'> & {
 
 const Footer = setup<FooterProps>((props) => {
   const footer = aria('footer', props);
-  const restProps = props.$omit([...footer.ownKeys, 'label', 'labelledby', 'children', 'className']);
+  const restProps = props.$omit([...footer.ownKeys, 'label', 'labelledby', 'children']);
 
   return (
-    <footer ref={footer.ref} {...restProps} {...footer.attributes} className={props.className}>
+    <footer ref={footer.ref} {...restProps} {...footer.attributes}>
       {props.children}
     </footer>
   );

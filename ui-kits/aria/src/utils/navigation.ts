@@ -1,6 +1,22 @@
 import type { BaseElement, Orientation } from '../types.js';
 
 /**
+ * CSS selector matching keyboard-focusable controls inside a container.
+ */
+export const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+/**
+ * Collects keyboard-focusable controls inside a container in document order.
+ *
+ * @param container - The element to search within
+ * @returns Focusable descendant elements in document order
+ */
+export function queryFocusable(container: BaseElement): HTMLElement[] {
+  return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
+}
+
+/**
  * Configuration options for roving keyboard navigation across composite items.
  */
 export interface RovingNavigationOptions {

@@ -81,9 +81,7 @@ const Alert = setup<AlertProps>((props) => {
     <div
       ref={announcer.ref}
       aria-label={props.label}
-      {...announcer.restProps(['label', 'children', 'className'])}
-      className={props.className}
-    >
+      {...announcer.restProps(['label', 'children'])}>
       {props.children}
     </div>
   );
@@ -109,9 +107,7 @@ const Alert = setup<AlertProps>((props) => {
     <div
       ref={announcer.ref}
       aria-label={props.label}
-      {...announcer.restProps(['label', 'children', 'className'])}
-      className={props.className}
-    >
+      {...announcer.restProps(['label', 'children'])}>
       {props.children}
     </div>
   );
@@ -222,9 +218,7 @@ const Status = setup<StatusProps>((props) => {
     <div
       ref={announcer.ref}
       aria-label={props.label}
-      {...announcer.restProps(['label', 'children', 'className'])}
-      className={props.className}
-    >
+      {...announcer.restProps(['label', 'children'])}>
       {props.children}
     </div>
   );
@@ -251,9 +245,7 @@ const Status = setup<StatusProps>((props) => {
     <div
       ref={announcer.ref}
       aria-label={props.label}
-      {...announcer.restProps(['label', 'children', 'className'])}
-      className={props.className}
-    >
+      {...announcer.restProps(['label', 'children'])}>
       {props.children}
     </div>
   );
@@ -371,7 +363,7 @@ const Log = setup<LogProps>((props) => {
   const announcer = aria('announcer', inherit(props, { atomic: false }));
 
   return () => (
-    <ul ref={announcer.ref} aria-label={props.label} {...announcer.restProps(['label', 'children', 'className'])} className={props.className}>
+    <ul ref={announcer.ref} aria-label={props.label} {...announcer.restProps(['label', 'children'])}>
       {props.children}
     </ul>
   );
@@ -394,7 +386,7 @@ const Log = setup<LogProps>((props) => {
   const announcer = aria('announcer', inherit(props, { atomic: false }));
 
   return (
-    <ul ref={announcer.ref} aria-label={props.label} {...announcer.restProps(['label', 'children', 'className'])} className={props.className}>
+    <ul ref={announcer.ref} aria-label={props.label} {...announcer.restProps(['label', 'children'])}>
       {props.children}
     </ul>
   );
@@ -503,9 +495,7 @@ const Timer = setup<TimerProps>((props) => {
     <div
       ref={announcer.ref}
       aria-label={props.label}
-      {...announcer.restProps(['label', 'children', 'className'])}
-      className={props.className}
-    >
+      {...announcer.restProps(['label', 'children'])}>
       {props.children}
     </div>
   );
@@ -530,9 +520,7 @@ const Timer = setup<TimerProps>((props) => {
     <div
       ref={announcer.ref}
       aria-label={props.label}
-      {...announcer.restProps(['label', 'children', 'className'])}
-      className={props.className}
-    >
+      {...announcer.restProps(['label', 'children'])}>
       {props.children}
     </div>
   );
@@ -649,9 +637,7 @@ const Marquee = setup<MarqueeProps>((props) => {
     <div
       ref={announcer.ref}
       aria-label={props.label}
-      {...announcer.restProps(['label', 'children', 'className'])}
-      className={props.className}
-    >
+      {...announcer.restProps(['label', 'children'])}>
       {props.children}
     </div>
   );
@@ -676,9 +662,7 @@ const Marquee = setup<MarqueeProps>((props) => {
     <div
       ref={announcer.ref}
       aria-label={props.label}
-      {...announcer.restProps(['label', 'children', 'className'])}
-      className={props.className}
-    >
+      {...announcer.restProps(['label', 'children'])}>
       {props.children}
     </div>
   );

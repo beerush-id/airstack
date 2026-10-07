@@ -65,10 +65,10 @@ type SectionProps = ComponentProps<'section'> & {
 
 const Section = setup<SectionProps>((props) => {
   const section = aria('section', props);
-  const restProps = props.$omit([...section.ownKeys, 'label', 'labelledby', 'children', 'className']);
+  const restProps = props.$omit([...section.ownKeys, 'label', 'labelledby', 'children']);
 
   return () => (
-    <section ref={section.ref} {...restProps} {...section.attributes} className={props.className}>
+    <section ref={section.ref} {...restProps} {...section.attributes}>
       {props.children}
     </section>
   );
@@ -87,10 +87,10 @@ type SectionProps = ComponentProps<'section'> & {
 
 const Section = setup<SectionProps>((props) => {
   const section = aria('section', props);
-  const restProps = props.$omit([...section.ownKeys, 'label', 'labelledby', 'children', 'className']);
+  const restProps = props.$omit([...section.ownKeys, 'label', 'labelledby', 'children']);
 
   return (
-    <section ref={section.ref} {...restProps} {...section.attributes} className={props.className}>
+    <section ref={section.ref} {...restProps} {...section.attributes}>
       {props.children}
     </section>
   );

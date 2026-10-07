@@ -69,7 +69,7 @@ const ToggleButton = setup<ToggleButtonProps>((props) => {
   const toggle = aria('toggle', props);
 
   return () => (
-    <button ref={toggle.ref} {...toggle.restProps(['children', 'className'])} className={props.className}>
+    <button ref={toggle.ref} {...toggle.restProps(['children'])}>
       {props.children}
     </button>
   );
@@ -90,7 +90,7 @@ const ToggleButton = setup<ToggleButtonProps>((props) => {
   const toggle = aria('toggle', props);
 
   return (
-    <button ref={toggle.ref} {...toggle.restProps(['children', 'className'])} className={props.className}>
+    <button ref={toggle.ref} {...toggle.restProps(['children'])}>
       {props.children}
     </button>
   );

@@ -68,10 +68,10 @@ type AccordionProps = ComponentProps<'div'> & {
 
 const Accordion = setup<AccordionProps>((props) => {
   const accordion = aria('accordion', props);
-  const restProps = props.$omit([...accordion.ownKeys, 'children', 'className']);
+  const restProps = props.$omit([...accordion.ownKeys, 'children']);
 
   return () => (
-    <div ref={accordion.ref} {...restProps} {...accordion.attributes} className={props.className}>
+    <div ref={accordion.ref} {...restProps} {...accordion.attributes}>
       {props.children}
     </div>
   );
@@ -94,10 +94,10 @@ type AccordionProps = ComponentProps<'div'> & {
 
 const Accordion = setup<AccordionProps>((props) => {
   const accordion = aria('accordion', props);
-  const restProps = props.$omit([...accordion.ownKeys, 'children', 'className']);
+  const restProps = props.$omit([...accordion.ownKeys, 'children']);
 
   return (
-    <div ref={accordion.ref} {...restProps} {...accordion.attributes} className={props.className}>
+    <div ref={accordion.ref} {...restProps} {...accordion.attributes}>
       {props.children}
     </div>
   );
@@ -146,10 +146,10 @@ type AccordionButtonProps = ComponentProps<'button'> & {
 
 const AccordionButton = setup<AccordionButtonProps>((props) => {
   const button = aria('accordion-button', props);
-  const restProps = props.$omit([...button.ownKeys, 'children', 'className']);
+  const restProps = props.$omit([...button.ownKeys, 'children']);
 
   return () => (
-    <button ref={button.ref} {...restProps} {...button.attributes} className={props.className}>
+    <button ref={button.ref} {...restProps} {...button.attributes}>
       {props.children}
     </button>
   );
@@ -170,10 +170,10 @@ type AccordionButtonProps = ComponentProps<'button'> & {
 
 const AccordionButton = setup<AccordionButtonProps>((props) => {
   const button = aria('accordion-button', props);
-  const restProps = props.$omit([...button.ownKeys, 'children', 'className']);
+  const restProps = props.$omit([...button.ownKeys, 'children']);
 
   return (
-    <button ref={button.ref} {...restProps} {...button.attributes} className={props.className}>
+    <button ref={button.ref} {...restProps} {...button.attributes}>
       {props.children}
     </button>
   );
@@ -221,10 +221,10 @@ type AccordionPanelProps = ComponentProps<'div'> & {
 
 const AccordionPanel = setup<AccordionPanelProps>((props) => {
   const panel = aria('accordion-panel', props);
-  const restProps = props.$omit([...panel.ownKeys, 'children', 'className']);
+  const restProps = props.$omit([...panel.ownKeys, 'children']);
 
   return () => (
-    <div ref={panel.ref} {...restProps} {...panel.attributes} className={props.className}>
+    <div ref={panel.ref} {...restProps} {...panel.attributes}>
       {props.children}
     </div>
   );
@@ -243,10 +243,10 @@ type AccordionPanelProps = ComponentProps<'div'> & {
 
 const AccordionPanel = setup<AccordionPanelProps>((props) => {
   const panel = aria('accordion-panel', props);
-  const restProps = props.$omit([...panel.ownKeys, 'children', 'className']);
+  const restProps = props.$omit([...panel.ownKeys, 'children']);
 
   return (
-    <div ref={panel.ref} {...restProps} {...panel.attributes} className={props.className}>
+    <div ref={panel.ref} {...restProps} {...panel.attributes}>
       {props.children}
     </div>
   );

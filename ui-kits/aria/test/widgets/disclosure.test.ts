@@ -1,6 +1,6 @@
 import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it, vi } from 'vitest';
-import { aria, type DisclosureProps } from '../../src/index.js';
+import { aria, type DisclosureEvent, type DisclosureProps } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 describe('Disclosure - Contract Specifications', () => {
@@ -43,9 +43,7 @@ describe('Disclosure - Contract Specifications', () => {
           expect(panelEl.hidden).toBe(true);
 
           // 4. Enter toggles on keydown
-          triggerEl.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }),
-          );
+          triggerEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }));
           expect(props.expanded).toBe(true);
           expect(panelEl.hidden).toBe(false);
 
@@ -58,9 +56,7 @@ describe('Disclosure - Contract Specifications', () => {
           triggerEl.dispatchEvent(space);
           expect(space.defaultPrevented).toBe(true);
 
-          triggerEl.dispatchEvent(
-            new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }),
-          );
+          triggerEl.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true }));
           expect(props.expanded).toBe(false);
           expect(panelEl.hidden).toBe(true);
 
@@ -85,13 +81,13 @@ describe('Disclosure - Contract Specifications', () => {
           const panelEl = bind(document.createElement('div'), panel);
 
           const veto = (event: Event) => event.preventDefault();
-          triggerEl.addEventListener('click', veto);
+          triggerEl.addEventListener('click', veto, { capture: true });
 
           triggerEl.click();
           expect(props.expanded).toBe(false);
           expect(panelEl.hidden).toBe(true);
 
-          triggerEl.removeEventListener('click', veto);
+          triggerEl.removeEventListener('click', veto, { capture: true });
           triggerEl.click();
           expect(props.expanded).toBe(true);
 
@@ -209,7 +205,7 @@ describe('Disclosure - Contract Specifications', () => {
 
           const seen: Array<{ detail: unknown; bubbles: boolean }> = [];
           host.addEventListener('toggle', (event) =>
-            seen.push({ detail: (event as CustomEvent).detail, bubbles: event.bubbles }),
+            seen.push({ detail: (event as DisclosureEvent).detail, bubbles: event.bubbles })
           );
 
           const onDocument = vi.fn();
@@ -263,7 +259,7 @@ describe('Disclosure - Contract Specifications', () => {
           expect(customTriggerEl.getAttribute('aria-expanded')).toBe('false');
 
           customTriggerEl.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true }),
+            new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true })
           );
           expect(customDisclosure.expanded).toBe(true);
           expect(customTriggerEl.getAttribute('aria-expanded')).toBe('true');

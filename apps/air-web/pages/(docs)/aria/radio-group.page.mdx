@@ -70,10 +70,10 @@ type RadioGroupProps = ComponentProps<'div'> & {
 
 const RadioGroup = setup<RadioGroupProps>((props) => {
   const group = aria('radio-group', props);
-  const restProps = props.$omit([...group.ownKeys, 'children', 'className']);
+  const restProps = props.$omit([...group.ownKeys, 'children']);
 
   return () => (
-    <div ref={group.ref} {...restProps} {...group.attributes} className={props.className}>
+    <div ref={group.ref} {...restProps} {...group.attributes}>
       {props.children}
     </div>
   );
@@ -97,10 +97,10 @@ type RadioGroupProps = ComponentProps<'div'> & {
 
 const RadioGroup = setup<RadioGroupProps>((props) => {
   const group = aria('radio-group', props);
-  const restProps = props.$omit([...group.ownKeys, 'children', 'className']);
+  const restProps = props.$omit([...group.ownKeys, 'children']);
 
   return (
-    <div ref={group.ref} {...restProps} {...group.attributes} className={props.className}>
+    <div ref={group.ref} {...restProps} {...group.attributes}>
       {props.children}
     </div>
   );
@@ -153,10 +153,10 @@ type RadioCardProps = ComponentProps<'div'> & {
 
 const RadioCard = setup<RadioCardProps>((props) => {
   const radio = aria('radio', props, { native: false });
-  const restProps = props.$omit([...radio.ownKeys, 'title', 'price', 'children', 'className']);
+  const restProps = props.$omit([...radio.ownKeys, 'title', 'price', 'children']);
 
   return () => (
-    <div ref={radio.ref} {...restProps} {...radio.attributes} className={props.className}>
+    <div ref={radio.ref} {...restProps} {...radio.attributes}>
       <strong>{props.title}</strong>
       <span>{props.price}</span>
     </div>
@@ -178,10 +178,10 @@ type RadioCardProps = ComponentProps<'div'> & {
 
 const RadioCard = setup<RadioCardProps>((props) => {
   const radio = aria('radio', props, { native: false });
-  const restProps = props.$omit([...radio.ownKeys, 'title', 'price', 'children', 'className']);
+  const restProps = props.$omit([...radio.ownKeys, 'title', 'price', 'children']);
 
   return (
-    <div ref={radio.ref} {...restProps} {...radio.attributes} className={props.className}>
+    <div ref={radio.ref} {...restProps} {...radio.attributes}>
       <strong>{props.title}</strong>
       <span>{props.price}</span>
     </div>

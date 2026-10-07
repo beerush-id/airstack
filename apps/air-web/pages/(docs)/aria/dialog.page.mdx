@@ -1,0 +1,420 @@
+---
+title: 'Dialog'
+description: 'Accessible modal and non-modal overlay dialogs with focus trapping, Escape dismissal, and focus restoration.'
+nav: 'Dialog'
+nav-priority: 293
+---
+
+<style>{`
+.dialog-root { display: inline-flex; flex-direction: column; align-items: center; }
+.dialog-trigger { display: inline-flex; align-items: center; justify-content: center; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 500; padding: 0.5rem 1rem; border: 1px solid #27272a; background: #18181b; color: #fafafa; cursor: pointer; }
+.dialog-trigger:hover { background: #27272a; }
+.dialog-panel { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 26rem; border-radius: 0.75rem; border: 1px solid #27272a; background: #18181b; color: #fafafa; padding: 1.5rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); z-index: 50; }
+.dialog-panel[hidden] { display: none; }
+.dialog-floating { position: fixed; top: auto; bottom: 1.5rem; right: 1.5rem; left: auto; transform: none; width: 20rem; padding: 1rem; }
+.dialog-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; }
+.dialog-title { font-size: 1.125rem; font-weight: 600; margin: 0 0 0.5rem; color: #fafafa; }
+.dialog-header .dialog-title { font-size: 0.875rem; margin: 0; }
+.dialog-description { font-size: 0.875rem; color: #a1a1aa; margin: 0 0 1.25rem; line-height: 1.4; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
+.dialog-close { display: inline-flex; align-items: center; justify-content: center; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 500; padding: 0.375rem 0.75rem; border: 1px solid #3f3f46; background: #27272a; color: #fafafa; cursor: pointer; }
+.dialog-close:hover { background: #3f3f46; }
+.dialog-close-icon { background: transparent; border: none; color: #a1a1aa; cursor: pointer; font-size: 0.875rem; padding: 0.25rem; border-radius: 0.25rem; }
+.dialog-close-icon:hover { color: #fafafa; }
+`}</style>
+
+# AirLib Headless Dialog
+
+Building a dialog looks simple until accessibility details pile up: focus must be trapped inside modal panels, background content must stay inert, pressing `Escape` needs to offer a cancelable veto before closing, focus must return to the trigger that opened it, and clicking outside should dismiss cleanly. **AirLib Headless Dialog** (`aria('dialog')`) coordinates these parts across native `<dialog>` elements and custom HTML trees with zero styling opinions.
+
+```tsx
+const dialog = aria('dialog', { open: false });
+const trigger = dialog.trigger();
+const panel = dialog.panel();
+const title = dialog.title();
+const description = dialog.description();
+const close = dialog.close();
+
+<>
+  <button ref={trigger.ref} {...trigger.props}>Edit Profile</button>
+  <div ref={panel.ref} {...panel.props}>
+    <h2 ref={title.ref} {...title.props}>Edit Profile</h2>
+    <p ref={description.ref} {...description.props}>Make changes to your account here.</p>
+    <button ref={close.ref} {...close.props}>Save & Close</button>
+  </div>
+</>
+```
+
+:::interactive[Modal Dialog]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup, teleport } from '@airlib/react';
+import type { ComponentProps, PropsWithChildren } from 'react';
+
+type DialogProps = PropsWithChildren<{
+  open?: boolean;
+  modality?: 'modal' | 'nonmodal';
+}>;
+
+const DialogRoot = setup<DialogProps>((props) => {
+  aria('dialog', props);
+  return () => props.children;
+});
+
+const DialogTrigger = setup<ComponentProps<'button'>>((props) => {
+  const trigger = aria('dialog-trigger', props);
+  return () => (
+    <button ref={trigger.ref} {...trigger.props}>
+      {props.children}
+    </button>
+  );
+});
+
+const DialogPanel = setup<ComponentProps<'div'>>((props) => {
+  const panel = aria('dialog-panel', props);
+
+  return () => {
+    if (!panel.dialog?.open) return null;
+
+    return teleport(
+      <div ref={panel.ref} {...panel.props}>
+        {props.children}
+      </div>
+    );
+  };
+});
+
+const DialogTitle = setup<ComponentProps<'h3'>>((props) => {
+  const title = aria('dialog-title', props);
+  return () => (
+    <h3 ref={title.ref} {...title.props}>
+      {props.children}
+    </h3>
+  );
+});
+
+const DialogDescription = setup<ComponentProps<'p'>>((props) => {
+  const description = aria('dialog-description', props);
+  return () => (
+    <p ref={description.ref} {...description.props}>
+      {props.children}
+    </p>
+  );
+});
+
+const DialogClose = setup<ComponentProps<'button'>>((props) => {
+  const close = aria('dialog-close', props);
+  return () => (
+    <button ref={close.ref} {...close.props}>
+      {props.children}
+    </button>
+  );
+});
+
+const Dialog = Object.assign(DialogRoot, {
+  Trigger: DialogTrigger,
+  Panel: DialogPanel,
+  Title: DialogTitle,
+  Description: DialogDescription,
+  Close: DialogClose,
+});
+
+const DialogDemo = () => (
+  <Dialog>
+    <Dialog.Trigger className="dialog-trigger">
+      Manage Account
+    </Dialog.Trigger>
+    <Dialog.Panel className="dialog-panel">
+      <Dialog.Title className="dialog-title">
+        Account Settings
+      </Dialog.Title>
+      <Dialog.Description className="dialog-description">
+        Update your security settings and notifications.
+      </Dialog.Description>
+      <div className="dialog-actions">
+        <Dialog.Close className="dialog-close">
+          Close
+        </Dialog.Close>
+      </div>
+    </Dialog.Panel>
+  </Dialog>
+);
+```
+
+<div className="flex justify-center p-6 gap-4">
+  <DialogDemo />
+  <DialogDemo />
+</div>
+:::
+
+:::interactive[Non-Modal Floating Dialog]
+```tsx
+const NonModalDemo = () => (
+  <Dialog modality="nonmodal">
+    <Dialog.Trigger className="dialog-trigger">
+      Toggle Floating Notes
+    </Dialog.Trigger>
+    <Dialog.Panel className="dialog-panel dialog-floating">
+      <div className="dialog-header">
+        <Dialog.Title className="dialog-title">
+          Scratchpad (Non-Modal)
+        </Dialog.Title>
+        <Dialog.Close className="dialog-close-icon">
+          ✕
+        </Dialog.Close>
+      </div>
+      <p className="dialog-description">
+        This panel is non-modal (`aria-modal="false"`). You can interact with the rest of the page while it stays open.
+      </p>
+    </Dialog.Panel>
+  </Dialog>
+);
+```
+
+<div className="flex justify-center p-6 gap-4">
+  <NonModalDemo />
+  <NonModalDemo />
+</div>
+:::
+
+## Anatomy & Entities
+
+A dialog is composed of six cooperating entities. You can instantiate them directly from the `dialog` coordinator or via standalone role lookups:
+
+```ts
+// Coordinator
+const dialog = aria('dialog', props?: DialogAttributes);
+
+// Sub-Entities (factory methods or standalone role strings)
+const trigger     = dialog.trigger();      // or aria('dialog-trigger')
+const panel       = dialog.panel();        // or aria('dialog-panel')
+const title       = dialog.title();        // or aria('dialog-title')
+const description = dialog.description();  // or aria('dialog-description')
+const close       = dialog.close();        // or aria('dialog-close')
+```
+
+### Usage
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup, teleport } from '@airlib/react';
+import type { ComponentProps, PropsWithChildren } from 'react';
+
+type DialogProps = PropsWithChildren<{
+  open?: boolean;
+  modality?: 'modal' | 'nonmodal';
+}>;
+
+const DialogRoot = setup<DialogProps>((props) => {
+  aria('dialog', props);
+  return () => props.children;
+});
+
+const DialogTrigger = setup<ComponentProps<'button'>>((props) => {
+  const trigger = aria('dialog-trigger', props);
+  return () => (
+    <button ref={trigger.ref} {...trigger.props}>
+      {props.children}
+    </button>
+  );
+});
+
+const DialogPanel = setup<ComponentProps<'div'>>((props) => {
+  const panel = aria('dialog-panel', props);
+
+  return () => {
+    if (!panel.dialog?.open) return null;
+
+    return teleport(
+      <div ref={panel.ref} {...panel.props}>
+        {props.children}
+      </div>
+    );
+  };
+});
+
+const DialogClose = setup<ComponentProps<'button'>>((props) => {
+  const close = aria('dialog-close', props);
+  return () => (
+    <button ref={close.ref} {...close.props}>
+      {props.children}
+    </button>
+  );
+});
+
+const Dialog = Object.assign(DialogRoot, {
+  Trigger: DialogTrigger,
+  Panel: DialogPanel,
+  Close: DialogClose,
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps, ParentProps } from 'solid-js';
+
+type DialogProps = ParentProps<{
+  open?: boolean;
+  modality?: 'modal' | 'nonmodal';
+}>;
+
+const DialogRoot = setup<DialogProps>((props) => {
+  aria('dialog', props);
+  return props.children;
+});
+
+const DialogTrigger = setup<ComponentProps<'button'>>((props) => {
+  const trigger = aria('dialog-trigger', props);
+  return (
+    <button ref={trigger.ref} {...trigger.props}>
+      {props.children}
+    </button>
+  );
+});
+
+const DialogPanel = setup<ComponentProps<'div'>>((props) => {
+  const panel = aria('dialog-panel', props);
+  return (
+    <div ref={panel.ref} {...panel.props}>
+      {props.children}
+    </div>
+  );
+});
+
+const DialogClose = setup<ComponentProps<'button'>>((props) => {
+  const close = aria('dialog-close', props);
+  return (
+    <button ref={close.ref} {...close.props}>
+      {props.children}
+    </button>
+  );
+});
+
+const Dialog = Object.assign(DialogRoot, {
+  Trigger: DialogTrigger,
+  Panel: DialogPanel,
+  Close: DialogClose,
+});
+```
+
+:::
+
+## Entity Specifications
+
+### Dialog Coordinator
+
+The root coordinator managing composite state, unique IDs, and lifecycle orchestration across all dialog parts.
+
+- **Role / Type**: Composite Coordinator
+- **Factory**: `aria('dialog', attributes?)` or `dialog(attributes?)`
+- **Parameters (`DialogAttributes`)**:
+  - `open` *(boolean, optional, default `false`)*: Controls visibility of the dialog overlay.
+  - `modality` *('modal' | 'nonmodal', optional, default `'modal'`)*: Modal dialogs trap focus and announce `aria-modal="true"`. Non-modal dialogs allow background interaction and announce `aria-modal="false"`.
+  - `dismissable` *(boolean, optional, default `true`)*: Enables Escape key dismiss and outside click light dismissal.
+  - `id` *(string, optional)*: Explicit base identifier used to coordinate `aria-controls`, `aria-labelledby`, and `aria-describedby`. Auto-generated by default.
+- **Controller Properties & Methods**:
+  - `open` *(boolean)*: Reactive open state.
+  - `show()`: Opens the dialog.
+  - `close()`: Closes the dialog.
+  - `toggle()`: Toggles the open state.
+  - Sub-entity factories: `dialog.panel()`, `dialog.trigger()`, `dialog.close()`, `dialog.title()`, `dialog.description()`.
+
+### Dialog Panel
+
+The overlay window container hosting the dialog content, interactive children, and status attributes.
+
+- **Role / Type**: `role="dialog"` (omitted when bound to native `<dialog>`)
+- **Factory**: `dialog.panel(attributes?)` or `aria('dialog-panel', attributes?)`
+- **Parameters (`DialogPanelAttributes`)**:
+  - Standard HTML attributes (`id`, `className`, etc.).
+- **Compiled Attributes (`panel.props`)**:
+  - `role`: `'dialog'` on non-dialog elements; native `<dialog>` handles role implicitly.
+  - `id`: Matches trigger `aria-controls`.
+  - `aria-modal`: `'true'` when `modality="modal"`, `'false'` when `modality="nonmodal"`.
+  - `aria-labelledby`: ID of the child `dialog-title` (when present).
+  - `aria-describedby`: ID of the child `dialog-description` (when present).
+  - `tabIndex`: `-1` for programmatic focus management.
+  - `hidden`: Applied when closed (synchronizes native `<dialog>` state).
+- **Behaviors**:
+  - **Focus trapping**: When modal, traps `Tab` and `Shift+Tab` cycles inside the panel element.
+  - **Light dismiss**: Closes on pointer down outside the panel boundary, ignoring clicks on the opening trigger.
+  - **Cancelable Escape**: Dispatches a standard `cancel` event before closing. Calling `event.preventDefault()` vetoes dismissal.
+  - **Native `<dialog>` integration**: Synchronizes via native `showModal()`, `show()`, and `close()` methods automatically.
+
+### Dialog Trigger
+
+The control button that toggles or opens the dialog panel.
+
+- **Role / Type**: Interactive Trigger Button
+- **Factory**: `dialog.trigger(attributes?)` or `aria('dialog-trigger', attributes?)`
+- **Parameters (`DialogTriggerAttributes`)**:
+  - Standard HTML attributes.
+- **Compiled Attributes (`trigger.props`)**:
+  - `aria-haspopup`: `'dialog'`
+  - `aria-expanded`: `'true'` when open, `'false'` when closed.
+  - `aria-controls`: ID referencing the linked dialog panel.
+- **Behaviors**:
+  - Clicking toggles the dialog open state.
+  - Automatically records the trigger element on open and restores focus back to it on panel close.
+
+### Dialog Close
+
+The action control button that dismisses the dialog panel.
+
+- **Role / Type**: Interactive Dismiss Button
+- **Factory**: `dialog.close(attributes?)` or `aria('dialog-close', attributes?)`
+- **Parameters (`DialogCloseAttributes`)**:
+  - Standard HTML attributes.
+- **Compiled Attributes (`close.props`)**:
+  - `aria-label`: Defaults to `'Close'` when no child text or label is present.
+- **Behaviors**:
+  - Clicking invokes `dialog.close()` and triggers focus restoration.
+
+### Dialog Title
+
+The heading element that labels the dialog for screen readers and assistive technology.
+
+- **Role / Type**: Accessible Label
+- **Factory**: `dialog.title(attributes?)` or `aria('dialog-title', attributes?)`
+- **Parameters (`DialogTitleAttributes`)**:
+  - Standard HTML attributes.
+- **Compiled Attributes (`title.props`)**:
+  - `id`: Unique identifier referenced by the panel's `aria-labelledby`.
+
+### Dialog Description
+
+The text container that describes the dialog's purpose or primary prompt.
+
+- **Role / Type**: Accessible Description
+- **Factory**: `dialog.description(attributes?)` or `aria('dialog-description', attributes?)`
+- **Parameters (`DialogDescriptionAttributes`)**:
+  - Standard HTML attributes.
+- **Compiled Attributes (`description.props`)**:
+  - `id`: Unique identifier referenced by the panel's `aria-describedby`.
+
+## Keyboard Navigation
+
+- **Tab**: Moves focus through interactive elements inside the dialog. In modal dialogs, focus is trapped and cycles circularly within the panel.
+- **Shift + Tab**: Moves focus backwards through interactive elements inside the dialog. Wraps circularly to the last focusable element when modal.
+- **Escape**: Dismisses the open dialog if `dismissable: true`. Dispatches a cancelable `cancel` event on the panel before closing, allowing consumers to call `event.preventDefault()` to veto dismissal.
+- **Space / Enter**: Activates the trigger button to open or toggle the dialog, or activates the close button to dismiss it.
+
+## What you get
+
+- **Strict focus trapping.** Automatically traps `Tab` and `Shift+Tab` cycles inside modal panels, preventing keyboard users from escaping into background content.
+- **Automatic focus restoration.** Captures the trigger or active element before opening and restores focus cleanly upon closing.
+- **Outside light dismiss.** Automatically detects outside clicks and dismisses the panel, while intelligently ignoring trigger clicks to prevent toggle race conditions.
+- **Cancelable Escape dismissal.** Emits a standard `cancel` event before dismissal, enabling unsaved-change confirmation dialogs to veto close requests.
+- **Headless multi-part linkages.** Deterministically synchronizes `aria-controls`, `aria-labelledby`, and `aria-describedby` across parts without framework lock-in.
+- **Native `<dialog>` synchronization.** Seamlessly binds to HTML `<dialog>` elements via native `showModal()`, `show()`, and `close()` methods.
+
+## Next Steps
+
+- **[Confirm](/docs/aria/confirm)**: Specialized alert dialog composite for high-priority confirmation prompts.
+- **[Popover](/docs/aria/popover)**: Non-modal anchored overlay panels for dropdowns and auxiliary content.
+- **[Tooltip](/docs/aria/tooltip)**: Hover and focus triggered advisory popups for interactive controls.
+- **[Disclosure](/docs/aria/disclosure)**: Expandable and collapsible content panels without overlay promotion.
+

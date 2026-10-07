@@ -1,0 +1,212 @@
+---
+title: 'Disclosure'
+description: 'Single show-hide unit coordinating trigger toggling and panel expansion across native details and custom elements.'
+nav: 'Disclosure'
+nav-priority: 292
+---
+
+# AirLib Headless Disclosure
+
+A collapsible section looks like a button over hidden content until the platform gets involved: the trigger must announce its state without owning it, the panel must leave the tab flow without losing its semantics, both ends must address each other without holding references, a cancelled activation must change nothing, and a disabled unit must go quiet without forgetting where it was. **AirLib Headless Disclosure** (`aria('disclosure')` + `aria('disclosure-trigger')` + `aria('disclosure-panel')`) owns that coordination — a container holding the expansion state with a trigger and panel deriving their linkage from it, without dictating markup or styles.
+
+```tsx
+const disclosure = aria('disclosure', props);
+const trigger = aria('disclosure-trigger');
+const panel = aria('disclosure-panel');
+
+<div ref={disclosure.ref} {...disclosure.props}>
+  <button ref={trigger.ref} {...trigger.props}>Shipping details</button>
+  <div ref={panel.ref} {...panel.props}>Arrives in 2–3 days.</div>
+</div>
+```
+
+<style>{`.demo-disclosure{display:flex;flex-direction:column;gap:.25rem;max-width:22rem}.demo-disclosuretrigger{display:flex;align-items:center;justify-content:space-between;gap:.5rem;width:100%;border:1px solid #d4d4d8;border-radius:.75rem;background:#fff;padding:.625rem .875rem;font-size:.875rem;font-weight:500;color:#18181b;cursor:pointer;outline:none}.demo-disclosuretrigger:hover{background:#f4f4f5}.demo-disclosuretrigger:focus-visible{box-shadow:0 0 0 2px #18181b}.demo-disclosuretrigger[aria-disabled="true"]{opacity:.4;cursor:not-allowed}.demo-disclosurechevron{display:inline-block;transition:transform .15s ease;color:#52525b}.demo-disclosuretrigger[aria-expanded="true"] .demo-disclosurechevron{transform:rotate(180deg)}.demo-disclosurepanel{border:1px solid #e4e4e7;border-radius:.75rem;background:#fafafa;padding:.75rem .875rem;font-size:.875rem;color:#3f3f46}.demo-disclosurepanel[hidden]{display:none}`}</style>
+
+:::interactive[Disclosure With Trigger And Panel]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type DemoDisclosureProps = ComponentProps<'div'> & {
+  expanded?: boolean;
+  disabled?: boolean;
+  label?: string;
+};
+
+const DemoDisclosure = setup<DemoDisclosureProps>((props) => {
+  const disclosure = aria('disclosure', props);
+  const trigger = aria('disclosure-trigger');
+  const panel = aria('disclosure-panel');
+
+  return () => (
+    <div ref={disclosure.ref} {...disclosure.props} className="demo-disclosure">
+      <button ref={trigger.ref} {...trigger.props} className="demo-disclosuretrigger">
+        <span>{props.label}</span>
+        <span aria-hidden="true" className="demo-disclosurechevron">▾</span>
+      </button>
+      <div ref={panel.ref} {...panel.props} className="demo-disclosurepanel">
+        {props.children}
+      </div>
+    </div>
+  );
+}, 'DemoDisclosure');
+```
+
+<div className="inline-flex flex-col mx-auto gap-6">
+  <DemoDisclosure label="Shipping details" expanded={true}>Arrives in 2–3 business days, tracked door to door.</DemoDisclosure>
+  <DemoDisclosure label="Return policy">Unused items come back within 30 days for a full refund.</DemoDisclosure>
+  <DemoDisclosure label="Locked section" disabled={true}>Membership unlocks this content.</DemoDisclosure>
+</div>
+:::
+
+## Disclosure
+
+Single show-hide unit with a container coordinator, an interactive trigger, and a collapsible region panel.
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'disclosure',
+  props?: DisclosureProps,
+  options?: DisclosureOptions
+): DisclosureAria<E>
+
+aria<E extends BaseElement = HTMLButtonElement>(
+  role: 'disclosure-trigger',
+  props?: AriaProps,
+  options?: DisclosureTriggerOptions
+): DisclosureTriggerAria<E>
+
+aria<E extends BaseElement = HTMLElement>(
+  role: 'disclosure-panel',
+  props?: AriaProps
+): DisclosurePanelAria<E>
+```
+
+### Usage
+
+:::code-group
+
+```tsx [React] executable
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type DisclosureProps = ComponentProps<'div'> & {
+  expanded?: boolean;
+  disabled?: boolean;
+  label?: string;
+};
+
+const Disclosure = setup<DisclosureProps>((props) => {
+  const disclosure = aria('disclosure', props);
+  const trigger = aria('disclosure-trigger');
+  const panel = aria('disclosure-panel');
+
+  return () => (
+    <div ref={disclosure.ref} {...disclosure.restProps(['children'])}>
+      <button ref={trigger.ref} {...trigger.props}>{props.label}</button>
+      <div ref={panel.ref} {...panel.props}>{props.children}</div>
+    </div>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type DisclosureProps = ComponentProps<'div'> & {
+  expanded?: boolean;
+  disabled?: boolean;
+  label?: string;
+};
+
+const Disclosure = setup<DisclosureProps>((props) => {
+  const disclosure = aria('disclosure', props);
+  const trigger = aria('disclosure-trigger');
+  const panel = aria('disclosure-panel');
+
+  return (
+    <div ref={disclosure.ref} {...disclosure.restProps(['children'])}>
+      <button ref={trigger.ref} {...trigger.props}>{props.label}</button>
+      <div ref={panel.ref} {...panel.props}>{props.children}</div>
+    </div>
+  );
+});
+```
+
+:::
+
+Native hosts keep platform mechanics with the same controllers:
+
+```tsx
+const disclosure = aria('disclosure', props, { native: true });
+const summary = aria('disclosure-trigger');
+
+<details ref={disclosure.ref} {...disclosure.props}>
+  <summary ref={summary.ref} {...summary.props}>Shipping details</summary>
+  <div>Arrives in 2–3 days.</div>
+</details>
+```
+
+### Parameters
+
+- `props.id` *(string, optional)*: Pair namespace the trigger and panel derive their linkage from. Falls back to a generated `disclosure-N` namespace.
+- `props.expanded` *(boolean, optional, default `false`)*: Whether the panel is open. Writes commit through the container and announce on it.
+- `props.disabled` *(boolean, optional)*: Blocks activation and state change on every part, announcing `aria-disabled="true"` on the trigger without moving the panel.
+- `options.native` *(boolean, optional, default `false`)*: Bind the container to a native `<details>` host, mirroring `open` and adopting browser toggles instead of dispatching.
+- `trigger options.native` *(boolean, optional, default `true`)*: Bind to a native `<button>` or `<summary>` (no `role`, `disabled` reflected); set `false` for a custom element (`role="button"`, `tabindex`, `aria-disabled` polyfill).
+
+### Events
+
+The expansion announcement dispatches on the container carrying the committed state (`boolean`):
+
+```ts
+import type { DisclosureEvent } from '@airlib/aria';
+
+disclosure.current?.addEventListener('toggle', (event) => {
+  const expanded = (event as DisclosureEvent).detail;
+});
+```
+
+- `toggle`: `CustomEvent` with `bubbles: false`, after `expanded` commits on a custom host. On a native `<details>` host the browser dispatches `toggle` itself — the controller adopts it into `expanded` and never re-dispatches.
+
+### How it behaves
+
+- One state drives both ends: the trigger compiles `aria-expanded` and `aria-controls`, the panel compiles `role="region"`, `aria-labelledby`, and `hidden` — all derived from the container's `expanded` as `f(containerId)` addresses, never object references.
+- Click, `Enter`, and `Space` each toggle exactly once per gesture: `Space` suppresses scrolling on keydown and commits on keyup, `Enter` commits on keydown. A cancelled initiating event (`defaultPrevented`) or `disabled` toggles nothing, and a disabled trigger leaves the key event itself uncanceled.
+- The panel collapses through `hidden`, never by dropping semantics: `role="region"` stays announced while collapsed and no `aria-hidden` is ever compiled.
+- Native triggers keep `disabled` reflected with the `aria-disabled` mirror; custom triggers compile `role="button"` with `tabindex="0"` (`-1` while disabled). The redundant button role is always omitted on native hosts.
+- Reads go through `disclosure.expanded` / `trigger.expanded` / `panel.expanded`, writes through `disclosure.expanded = …` or the `toggle()` alias — both refuse while disabled. Direct `props.expanded` writes move the panel without announcing.
+
+## Putting It Together
+
+Once your components are wired with `aria(...)`, compose single collapsibles with honest linkage:
+
+```tsx
+<div className="flex flex-col gap-4 max-w-sm">
+  <Disclosure label="Shipping details">Arrives in 2–3 days.</Disclosure>
+</div>
+```
+
+## Keyboard Navigation
+
+- **Tab**: Focuses the trigger (`tabindex="0"` on custom hosts, resolving to `tabindex="-1"` while disabled; native hosts follow the platform).
+- **Enter**: Toggles the panel on keydown.
+- **Space**: Suppresses scrolling on keydown, toggles the panel on keyup — one toggle per full press.
+- **Every other key**: Left unclaimed for the browser and assistive technology.
+
+## What you get
+
+- **One state, two addresses.** Container-owned expansion with trigger-to-panel linkage derived deterministically, no prop drilling.
+- **Honest activation.** Pointer, Enter, and Space each commit once; cancellations and disablement change nothing.
+- **Native when you want it.** `<details>`/`<summary>` mechanics pass through with the same controllers.
+- **Quiet announcement.** A single non-bubbling `toggle` per commit, typed as `DisclosureEvent`.
+
+## Next Steps
+
+- **[Accordion](/docs/aria/accordion)**: Coordinate multiple collapsible sections with header focus management.
+- **[Tabs](/docs/aria/tabs)**: Pair triggers and panels with single-select tab semantics.
+- **[Divider](/docs/aria/divider)**: The static structural divider that stays out of the tab order.

@@ -65,10 +65,10 @@ type HeaderProps = ComponentProps<'header'> & {
 
 const Header = setup<HeaderProps>((props) => {
   const header = aria('header', props);
-  const restProps = props.$omit([...header.ownKeys, 'label', 'labelledby', 'children', 'className']);
+  const restProps = props.$omit([...header.ownKeys, 'label', 'labelledby', 'children']);
 
   return () => (
-    <header ref={header.ref} {...restProps} {...header.attributes} className={props.className}>
+    <header ref={header.ref} {...restProps} {...header.attributes}>
       {props.children}
     </header>
   );
@@ -87,10 +87,10 @@ type HeaderProps = ComponentProps<'header'> & {
 
 const Header = setup<HeaderProps>((props) => {
   const header = aria('header', props);
-  const restProps = props.$omit([...header.ownKeys, 'label', 'labelledby', 'children', 'className']);
+  const restProps = props.$omit([...header.ownKeys, 'label', 'labelledby', 'children']);
 
   return (
-    <header ref={header.ref} {...restProps} {...header.attributes} className={props.className}>
+    <header ref={header.ref} {...restProps} {...header.attributes}>
       {props.children}
     </header>
   );
