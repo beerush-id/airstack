@@ -1,21 +1,38 @@
 import { effect } from '@airlib/core';
 import { Aria } from '../core.js';
-import type { AriaAttributes, AriaOptions, AriaProps, BaseElement, DetachFn } from '../types.js';
+import type {
+  AriaAttributes,
+  AriaEvent,
+  AriaEventHandler,
+  AriaOptions,
+  AriaProps,
+  BaseElement,
+  DetachFn,
+} from '../types.js';
 
 /**
  * Controller-dispatched file-picker event carrying the chosen files in `detail`.
  */
-export type FilePickerEvent = CustomEvent<File[]>;
+export type FilePickerEvent = AriaEvent<File[]>;
 
 /**
  * Controller-dispatched file-picker cancellation event.
  */
-export type FilePickerCancelEvent = CustomEvent<void>;
+export type FilePickerCancelEvent = AriaEvent<void>;
 
 /**
  * Reactive input properties for FilePickerAria.
  */
 export interface FilePickerProps extends AriaProps {
+  /**
+   * Called with the selected files after a successful pick.
+   */
+  onchange?: AriaEventHandler<FilePickerEvent>;
+
+  /**
+   * Called when the picker closes without a selection.
+   */
+  oncancel?: AriaEventHandler<FilePickerCancelEvent>;
   /**
    * Accepted file types filter forwarded to the hidden file input.
    */
@@ -80,7 +97,7 @@ export class FilePickerAria<
       ...options,
     });
 
-    this.omittedAttrs.push('accept', 'multiple', 'capture');
+    this.omittedAttrs.push('accept', 'multiple', 'capture', 'onchange', 'oncancel');
     this.update();
   }
 
@@ -137,11 +154,15 @@ export class FilePickerAria<
     const onChange = (event: Event): void => {
       event.stopPropagation();
       const files = Array.from(picker.files!);
-      host.dispatchEvent(new CustomEvent<File[]>('change', { bubbles: true, detail: files }));
+      const changeEvent: FilePickerEvent = new CustomEvent('change', { bubbles: true, detail: files });
+      host.dispatchEvent(changeEvent);
+      this.properties.onchange?.(changeEvent);
     };
     const onCancel = (event: Event): void => {
       event.stopPropagation();
-      host.dispatchEvent(new CustomEvent<void>('cancel', { bubbles: false }));
+      const cancelEvent: FilePickerCancelEvent = new CustomEvent('cancel', { bubbles: false });
+      host.dispatchEvent(cancelEvent);
+      this.properties.oncancel?.(cancelEvent);
     };
     picker.addEventListener('change', onChange);
     picker.addEventListener('cancel', onCancel);

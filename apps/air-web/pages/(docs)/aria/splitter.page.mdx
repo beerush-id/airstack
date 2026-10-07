@@ -138,7 +138,28 @@ Pane sizes read the published variable — no math in the component:
 - `props.step` *(number, optional, default `1`)*: Increment applied per arrow keystroke.
 - `props.disabled` *(boolean, optional)*: Blocks pointer and keyboard resizing, parks the handle at `tabindex="-1"`, and announces `aria-disabled="true"` without changing the allocation.
 - `props.label` *(string, optional)*: Accessible handle name compiled to `aria-label`.
-- `props.orientation` *('horizontal' | 'vertical', optional, default `'horizontal'`)*: Divider axis, announced as `aria-orientation` only when vertical.
+- `props.oninput` *(function, optional)*: Called with the committed size after each arrow keystroke or drag move.
+- `props.onchange` *(function, optional)*: Called with the committed size when the interaction ends.
+
+### Events
+
+Declare the handlers as props and the controller calls them with the committed event — `detail` is typed, no cast:
+
+```ts
+const splitter = aria('splitter', {
+  value: 50,
+  oninput: (event) => {
+    const size = event.detail;
+  },
+  onchange: (event) => {
+    const committed = event.detail;
+  },
+});
+```
+
+- `input`: dispatched with `bubbles: true` on every committed size, whether from a keystroke or a drag move.
+- `change`: dispatched with `bubbles: true` when the interaction ends — a keyboard commit, or a drag release that actually moved the partition. A press that commits nothing stays silent.
+- Attaching to the handle still works, but there the DOM library types the listener as `Event`, so reading `detail` needs `event as SplitterEvent`.
 
 ### How it behaves
 

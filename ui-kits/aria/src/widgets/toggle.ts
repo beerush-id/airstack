@@ -1,5 +1,12 @@
 import { SelectionAria, type SelectionAttributes, type SelectionOptions } from '../selection.js';
-import type { AriaOptions, AriaProps, BaseElement, Primitive } from '../types.js';
+import type {
+  AriaEvent,
+  AriaEventHandler,
+  AriaOptions,
+  AriaProps,
+  BaseElement,
+  Primitive,
+} from '../types.js';
 
 /**
  * Configuration options for ToggleAria.
@@ -18,6 +25,10 @@ export interface ToggleOptions extends AriaOptions {
  * @template T - Member value type when in a group
  */
 export interface ToggleProps<T extends Primitive = Primitive> extends AriaProps {
+  /**
+   * Called with the committed state when the selection changes.
+   */
+  onchange?: AriaEventHandler<AriaEvent<boolean>>;
   /**
    * Member value token when nested inside a toggle group.
    */
@@ -69,7 +80,7 @@ export class ToggleAria<
     });
 
     this.markActionable();
-    this.omittedAttrs.push('value');
+    this.omittedAttrs.push('value', 'onchange');
     this.update();
   }
 

@@ -1,6 +1,13 @@
 import { createContext } from '@airlib/core';
 import { Aria } from '../core.js';
-import type { AriaAttributes, AriaOptions, AriaProps, BaseElement } from '../types.js';
+import type {
+  AriaAttributes,
+  AriaEvent,
+  AriaEventHandler,
+  AriaOptions,
+  AriaProps,
+  BaseElement,
+} from '../types.js';
 import { ariaBoolean } from '../utils/attributes.js';
 import { clampRange } from '../utils/range.js';
 
@@ -12,7 +19,7 @@ export const stepperCtx = createContext<StepperAria>();
 /**
  * Controller-dispatched stepper event carrying the committed value in `detail`.
  */
-export type StepperEvent = CustomEvent<number>;
+export type StepperEvent = AriaEvent<number>;
 
 /**
  * Reactive input properties for StepperAria.
@@ -67,6 +74,21 @@ export interface StepperProps extends AriaProps {
 /**
  * Behavioral configuration options for StepperInputAria.
  */
+/**
+ * Reactive input properties for the stepper's spinbutton input.
+ */
+export interface StepperInputProps extends AriaProps {
+  /**
+   * Called with the committed value after each step or typed commit.
+   */
+  oninput?: AriaEventHandler<StepperEvent>;
+
+  /**
+   * Called with the committed value when the interaction ends.
+   */
+  onchange?: AriaEventHandler<StepperEvent>;
+}
+
 export interface StepperInputOptions extends AriaOptions {}
 
 /**
@@ -229,7 +251,7 @@ export class StepperAria<
  */
 export class StepperInputAria<
   E extends BaseElement = HTMLInputElement,
-  T extends AriaProps = AriaProps,
+  T extends StepperInputProps = StepperInputProps,
   A extends StepperInputAttributes<E> = StepperInputAttributes<E>,
   O extends StepperInputOptions = StepperInputOptions,
 > extends Aria<E, T, A, O> {
@@ -242,6 +264,7 @@ export class StepperInputAria<
       native: false,
       ...options,
     });
+    this.omittedAttrs.push('oninput', 'onchange');
     this.update();
   }
 
@@ -339,11 +362,15 @@ export class StepperInputAria<
   private commitChange(): void {
     if (!this.dirty) return;
     this.dirty = false;
-    this.element!.dispatchEvent(new CustomEvent<number>('change', { bubbles: true, detail: this.stepper!.value }));
+    const event: StepperEvent = new CustomEvent('change', { bubbles: true, detail: this.stepper!.value });
+    this.element!.dispatchEvent(event);
+    this.properties.onchange?.(event);
   }
 
   private notifyInput(): void {
-    this.element!.dispatchEvent(new CustomEvent<number>('input', { bubbles: true, detail: this.stepper!.value }));
+    const event: StepperEvent = new CustomEvent('input', { bubbles: true, detail: this.stepper!.value });
+    this.element!.dispatchEvent(event);
+    this.properties.oninput?.(event);
   }
 }
 

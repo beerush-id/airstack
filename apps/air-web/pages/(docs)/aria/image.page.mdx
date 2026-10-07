@@ -122,6 +122,7 @@ const Avatar = setup<AvatarProps>((props) => {
 - `props.src` *(string, optional)*: Source URL. Absent means `idle`; setting it commits `loading` before any result is accepted.
 - `props.alt` *(string, required)*: Alternative text shared by content and fallback. Empty string marks the image decorative.
 - `props.status` *(report-only)*: Current lifecycle (`idle` | `loading` | `loaded` | `error`). Read it, never assign it — the unit owns loading.
+- `props.onchange` *(function, optional)*: Called with the accepted lifecycle after each status transition.
 
 ### How it behaves
 

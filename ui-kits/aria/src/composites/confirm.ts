@@ -1,5 +1,5 @@
 import { $static, $symbol, createContext, uIndex } from '@airlib/core';
-import type { AriaOptions, AriaProps, DetachFn } from '../types.js';
+import type { AriaEvent, AriaEventHandler, AriaOptions, AriaProps, DetachFn } from '../types.js';
 import {
   DialogAria,
   DialogCloseAria,
@@ -21,12 +21,12 @@ const CONFIRM_SYMBOL = $symbol('confirm');
 /**
  * Controller-dispatched confirmation event.
  */
-export type ConfirmEvent = CustomEvent<void>;
+export type ConfirmEvent = AriaEvent<void>;
 
 /**
  * Controller-dispatched cancellation event.
  */
-export type CancelEvent = CustomEvent<void>;
+export type CancelEvent = AriaEvent<void>;
 
 /**
  * Ambient instance context for the enclosing Confirm coordinator.
@@ -37,10 +37,8 @@ export const confirmCtx = createContext<ConfirmAria>();
  * Reactive input properties for ConfirmAria.
  */
 export interface ConfirmProps extends DialogProps {
-  onconfirm?: (e: ConfirmEvent) => void;
-  onConfirm?: (e: ConfirmEvent) => void;
-  oncancel?: (e: CancelEvent) => void;
-  onCancel?: (e: CancelEvent) => void;
+  onconfirm?: AriaEventHandler<ConfirmEvent>;
+  oncancel?: AriaEventHandler<CancelEvent>;
 }
 
 /**
@@ -93,7 +91,7 @@ export class ConfirmAria<E extends HTMLElement = HTMLElement> extends DialogAria
     super(props, options);
     this.id = $static(() => this.properties.id ?? `confirm-${uIndex(CONFIRM_SYMBOL, true)}`);
     confirmCtx.set(this as never);
-    this.omittedAttrs.push('onConfirm', 'onconfirm', 'onCancel', 'onCancel');
+    this.omittedAttrs.push('onconfirm', 'oncancel');
     this.update();
   }
 
@@ -232,8 +230,7 @@ export class ConfirmActionAria<E extends HTMLElement = HTMLElement> extends Dial
     }
     const evt: ConfirmEvent = new CustomEvent('confirm', { bubbles: true, cancelable: true });
     this.element?.dispatchEvent(evt);
-    const onConfirm = this.confirm?.properties.onconfirm ?? this.confirm?.properties.onConfirm;
-    onConfirm?.(evt);
+    this.confirm?.properties.onconfirm?.(evt);
     if (!evt.defaultPrevented) {
       this.confirm?.close();
     }
@@ -267,8 +264,7 @@ export class ConfirmCancelAria<E extends HTMLElement = HTMLElement> extends Dial
     }
     const evt: CancelEvent = new CustomEvent('cancel', { bubbles: true, cancelable: true });
     this.element?.dispatchEvent(evt);
-    const onCancel = this.confirm?.properties.oncancel ?? this.confirm?.properties.onCancel;
-    onCancel?.(evt);
+    this.confirm?.properties.oncancel?.(evt);
     if (!evt.defaultPrevented) {
       this.confirm?.close();
     }

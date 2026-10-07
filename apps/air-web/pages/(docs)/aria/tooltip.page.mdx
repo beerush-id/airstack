@@ -320,6 +320,19 @@ export const Tooltip = setup<TooltipProps>((props) => {
 
 ## Architectural & Accessibility Contracts
 
+### Events
+
+`onchange` is called with the open state after the tooltip toggles, and the same `change` `CustomEvent<boolean>` (`bubbles: true`) dispatches on the panel — tooltips announce visibility with `change`, unlike the `toggle` a popover emits:
+
+```ts
+const tooltip = aria('tooltip', {
+  open: false,
+  onchange: (event) => {
+    const isOpen = event.detail;
+  },
+});
+```
+
 ### Semantic Layering
 
 | Host Element | Attributes Emitted | Semantics & Behavior |

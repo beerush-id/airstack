@@ -1,12 +1,21 @@
 import { $static, $symbol, type AnyType, createContext, effect, uIndex } from '@airlib/core';
 import { Aria } from './core.js';
-import type { AriaAttributes, AriaOptions, AriaProps, BaseElement, DetachFn, Orientation } from './types.js';
+import type {
+  AriaAttributes,
+  AriaEvent,
+  AriaEventHandler,
+  AriaOptions,
+  AriaProps,
+  BaseElement,
+  DetachFn,
+  Orientation,
+} from './types.js';
 import { bindLabel } from './utils/label.js';
 
 /**
  * Capability-dispatched selection event carrying the committed state in `detail`.
  */
-export type SelectionEvent = CustomEvent<boolean>;
+export type SelectionEvent = AriaEvent<boolean>;
 
 /**
  * Shared state coordinated by an enclosing selection group.
@@ -57,6 +66,10 @@ export const selectionGroup = createContext<SelectionGroupProps>();
  * Reactive input properties for SelectionAria.
  */
 export interface SelectionProps extends AriaProps {
+  /**
+   * Called with the committed state after the selection changes.
+   */
+  onchange?: AriaEventHandler<SelectionEvent>;
   /**
    * Explicit DOM element identifier.
    */
@@ -150,7 +163,7 @@ export abstract class SelectionAria<
     const role = this.options.role ?? 'item';
     this.id = `${role}-${uIndex($symbol(role), true)}`;
 
-    this.omittedAttrs.push('id', 'disabled', this.stateKey);
+    this.omittedAttrs.push('id', 'disabled', 'onchange', this.stateKey);
     if (!this.isNative) {
       this.omittedAttrs.push('tabindex', 'aria-disabled');
     }
@@ -312,7 +325,9 @@ export abstract class SelectionAria<
     if (this.selected === was) return;
     const host = this.element;
     if (host) {
-      host.dispatchEvent(new CustomEvent<boolean>('change', { bubbles: true, detail: this.selected }));
+      const event: SelectionEvent = new CustomEvent('change', { bubbles: true, detail: this.selected });
+      host.dispatchEvent(event);
+      this.properties.onchange?.(event);
     }
   }
 

@@ -1,6 +1,14 @@
 import { $static, $symbol, createContext, uIndex } from '@airlib/core';
 import { Aria } from '../core.js';
-import type { AriaAttributes, AriaOptions, AriaProps, BaseElement, DetachFn } from '../types.js';
+import type {
+  AriaAttributes,
+  AriaEvent,
+  AriaEventHandler,
+  AriaOptions,
+  AriaProps,
+  BaseElement,
+  DetachFn,
+} from '../types.js';
 import { attachOverlayLifecycle } from '../utils/overlay.js';
 
 const DIALOG_SYMBOL = $symbol('dialog');
@@ -13,7 +21,7 @@ export const dialogCtx = createContext<DialogAria>();
 /**
  * Controller-dispatched dialog event for custom panel lifecycle notifications.
  */
-export type DialogEvent = CustomEvent<void>;
+export type DialogEvent = AriaEvent<void>;
 
 /**
  * Reactive input properties for DialogAria.
@@ -38,6 +46,16 @@ export interface DialogProps extends AriaProps {
    * Whether the dialog can be dismissed via Escape or outside interaction.
    */
   dismissable?: boolean;
+
+  /**
+   * Called after the dialog opens.
+   */
+  onopen?: AriaEventHandler<DialogEvent>;
+
+  /**
+   * Called after the dialog closes, through every dismissal path.
+   */
+  onclose?: AriaEventHandler<DialogEvent>;
 }
 
 /**
@@ -117,7 +135,7 @@ export class DialogAria<E extends HTMLElement = HTMLElement> extends Aria<
 
   public constructor(props: Partial<DialogProps> = {}, options: DialogOptions = {}) {
     super(props, options);
-    this.omittedAttrs.push('id', 'open', 'modality', 'dismissable');
+    this.omittedAttrs.push('id', 'open', 'modality', 'dismissable', 'onopen', 'onclose');
     this.id = $static(() => this.properties.id ?? `dialog-${uIndex(DIALOG_SYMBOL, true)}`);
     dialogCtx.set(this as never);
     this.update();
@@ -266,18 +284,33 @@ export class DialogPanelAria<E extends HTMLElement = HTMLElement> extends Aria<
       isModal: () => this.dialog?.modality !== 'nonmodal',
       isDismissable: () => this.dialog?.dismissable ?? true,
       excludeFromDismiss: (target: Node) => {
-        if (target instanceof Element && target.closest(`[aria-controls="${panelId}"]`)) {
-          return true;
-        }
-        return false;
+        return !!(target instanceof Element && target.closest(`[aria-controls="${panelId}"]`));
       },
-      onClose: () => {
+      dismiss: () => {
         if (this.dialog) {
           this.dialog.open = false;
         }
       },
+      onOpen: () => this.notifyLifecycle('open'),
+      onClose: () => this.notifyLifecycle('close'),
       isNative: this.isNative,
     });
+  }
+
+  /**
+   * Dispatches a dialog lifecycle event on the panel and invokes the matching consumer handler.
+   *
+   * @param type - Lifecycle transition to announce
+   */
+  private notifyLifecycle(type: 'open' | 'close'): void {
+    const event: DialogEvent = new CustomEvent(type, { bubbles: false });
+    this.element!.dispatchEvent(event);
+
+    if (type === 'open') {
+      this.dialog?.properties.onopen?.(event);
+    } else {
+      this.dialog?.properties.onclose?.(event);
+    }
   }
 }
 

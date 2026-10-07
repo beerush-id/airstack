@@ -346,6 +346,43 @@ describe('NumberStepper - Contract Specifications', () => {
           expect(spin.current).toBeNull();
         });
       }));
+
+    it('falls back to the minimum and then to zero when no value is declared', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const bounded = aria<HTMLDivElement>('number-stepper', { min: 3, max: 9 });
+          expect(bounded.value).toBe(3);
+
+          const unbounded = aria<HTMLDivElement>('number-stepper');
+          expect(unbounded.value).toBe(0);
+
+          bounded.destroy();
+          unbounded.destroy();
+        });
+      }));
+
+    it('withholds typed commits while disabled', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const inputs: number[] = [];
+          const spin = aria<HTMLInputElement>(
+            'number-stepper',
+            { value: 4, min: 0, max: 20, disabled: true, oninput: (event) => inputs.push(event.detail) },
+            { native: true }
+          );
+          const el = bind(document.createElement('input'), spin);
+
+          el.value = '12';
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+
+          expect(inputs).toEqual([]);
+          expect(spin.value).toBe(4);
+
+          spin.destroy();
+        });
+      }));
   });
 
   describe('Range Normalization & Boundary Clamping Invariant', () => {

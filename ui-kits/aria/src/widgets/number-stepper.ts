@@ -5,11 +5,6 @@ import { ariaBoolean, ariaRequired } from '../utils/attributes.js';
 import { clampRange } from '../utils/range.js';
 
 /**
- * Controller-dispatched number-stepper event carrying the committed value in `detail`.
- */
-export type NumberStepperEvent = CustomEvent<number>;
-
-/**
  * Reactive input properties for NumberStepperAria.
  */
 export interface NumberStepperProps extends AriaProps {

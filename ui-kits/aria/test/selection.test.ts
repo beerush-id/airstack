@@ -1,4 +1,4 @@
-import { createLifecycle, mutable } from '@airlib/core';
+import { createLifecycle, mutable, withIsolation } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
 import { SelectionAria, selectionGroup, type SelectionOptions, type SelectionProps } from '../src/selection.js';
 import { bind, component } from './utils.js';
@@ -333,8 +333,8 @@ describe('Selection - Contract Specifications', () => {
           });
         }));
 
-      it('falls back to self-claim or explicit id when group has no id', () =>
-        scope.run(() => {
+      it('falls back to self-claim or explicit id when group has no id', async () => {
+        await withIsolation(() => {
           const tree = component();
           tree.run(() => {
             const group = mutable({ value: 'opt-1' });
@@ -349,10 +349,11 @@ describe('Selection - Contract Specifications', () => {
             expect(custom.properties.id).toBe('explicit-id');
             expect(custom.attributes.id).toBe('explicit-id');
           });
-        }));
+        });
+      });
 
-      it('resolves standalone item IDs without a group', () =>
-        scope.run(() => {
+      it('resolves standalone item IDs without a group', async () => {
+        await withIsolation(() => {
           const tree = component();
           tree.run(() => {
             // Explicit ID
@@ -371,7 +372,36 @@ describe('Selection - Contract Specifications', () => {
             expect(unassigned.id).toBe('item-2');
             expect(unassigned.attributes.id).toBe('item-2');
           });
-        }));
+        });
+      });
+
+      it('seeds a single-select group from a member that starts selected', async () => {
+        await withIsolation(() => {
+          const tree = component();
+          tree.run(() => {
+            const group = mutable<{ value?: string }>({});
+            selectionGroup.set(group);
+
+            new TestItem({ value: 'starter', selected: true });
+
+            expect(group.value).toBe('starter');
+          });
+        });
+      });
+
+      it('seeds a required single-select group from an idempotent member', async () => {
+        await withIsolation(() => {
+          const tree = component();
+          tree.run(() => {
+            const group = mutable<{ value?: string; required?: boolean }>({ required: true });
+            selectionGroup.set(group);
+
+            new TestItem({ value: 'always' }, { idempotent: true });
+
+            expect(group.value).toBe('always');
+          });
+        });
+      });
 
       it('coordinates group.value across items with value payloads', () =>
         scope.run(() => {

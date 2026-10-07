@@ -112,6 +112,8 @@ The track and thumb come from CSS keyed on `aria-checked` (see the style block a
 - `props.value` *(Primitive, optional)*: Choice candidate value when nested inside a selection group.
 - `props.name` *(string, optional)*: Semantic identity key or field name on the parent settings group.
 - `props.disabled` *(boolean, optional)*: Blocks activation and state commits.
+- `props.oninput` *(function, optional)*: Called with the committed state after each activation.
+- `props.onchange` *(function, optional)*: Called with the committed state when the selection changes.
 - `options.native` *(boolean, optional, default `false`)*: Pass `true` when wrapping a native `<button>` host where the browser handles focus and key events.
 
 ### How it behaves

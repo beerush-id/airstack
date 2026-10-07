@@ -1,11 +1,19 @@
 import { SelectionAria, type SelectionAttributes, type SelectionOptions } from '../selection.js';
-import type { AriaInvalid, AriaOptions, AriaProps, BaseElement, Primitive } from '../types.js';
+import type {
+  AriaEvent,
+  AriaEventHandler,
+  AriaInvalid,
+  AriaOptions,
+  AriaProps,
+  BaseElement,
+  Primitive,
+} from '../types.js';
 import { ariaInvalid, ariaRequired } from '../utils/attributes.js';
 
 /**
  * Controller-dispatched checkbox event carrying the committed state in `detail`.
  */
-export type CheckboxEvent = CustomEvent<boolean>;
+export type CheckboxEvent = AriaEvent<boolean>;
 
 /**
  * Reactive input properties for CheckboxAria.
@@ -13,6 +21,15 @@ export type CheckboxEvent = CustomEvent<boolean>;
  * @template T - Value payload type extending Primitive
  */
 export interface CheckboxProps<T extends Primitive = Primitive> extends AriaProps {
+  /**
+   * Called with the committed state after each activation.
+   */
+  oninput?: AriaEventHandler<CheckboxEvent>;
+
+  /**
+   * Called with the committed state when the selection changes.
+   */
+  onchange?: AriaEventHandler<AriaEvent<boolean>>;
   /**
    * Whether the checkbox is in a checked state.
    */
@@ -98,6 +115,8 @@ export class CheckboxAria<
     this.omittedAttrs.push(
       'value',
       'name',
+      'oninput',
+      'onchange',
       'indeterminate',
       'required',
       'aria-checked',
@@ -157,7 +176,9 @@ export class CheckboxAria<
     if (this.isNative || this.checked === was) return;
     const host = this.element;
     if (host) {
-      host.dispatchEvent(new CustomEvent<boolean>('input', { bubbles: true, detail: this.checked }));
+      const event: CheckboxEvent = new CustomEvent('input', { bubbles: true, detail: this.checked });
+      host.dispatchEvent(event);
+      this.properties.oninput?.(event);
     }
   }
 

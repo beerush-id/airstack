@@ -116,6 +116,7 @@ The selected row comes from CSS keyed on `aria-selected` (see the style block ab
 - `props.value` *(Primitive, required)*: Choice candidate value matching the active selection of the enclosing group.
 - `props.selected` *(boolean, optional)*: Local selected hint in standalone mode; grouped options always derive from the ambient group value. A hint claims an empty registry.
 - `props.disabled` *(boolean, optional)*: Blocks activation and state commits.
+- `props.onchange` *(function, optional)*: Called with the selected state when the selection changes.
 - `options.native` *(boolean, optional, default `false`)*: Pass `true` when binding native `<option>` elements inside a `<select>`.
 - `options.toggle` *(boolean, optional, default `false`)*: Opt in to inverting a standalone selection on activation; without it standalone activation is select-only.
 

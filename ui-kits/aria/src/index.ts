@@ -49,6 +49,7 @@ import {
   type StepperButtonOptions,
   StepperInputAria,
   type StepperInputOptions,
+  type StepperInputProps,
   type StepperProps,
   TabAria,
   TabButtonAria,
@@ -411,7 +412,7 @@ export function aria<E extends BaseElement = HTMLElement>(role: 'stepper', props
 
 export function aria<E extends BaseElement = HTMLInputElement>(
   role: 'stepper-input',
-  props?: AriaProps,
+  props?: StepperInputProps,
   options?: StepperInputOptions
 ): StepperInputAria<E>;
 

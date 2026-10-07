@@ -29,9 +29,10 @@ export interface OverlayLifecycleOptions {
   isDismissable?: () => boolean;
 
   /**
-   * Callback invoked to close the overlay.
+   * Requests the owner to close the overlay. Invoked on a dismissal path, before any
+   * state changes; the owner performs the actual close.
    */
-  onClose: () => void;
+  dismiss: () => void;
 
   /**
    * Whether bound to a native <dialog> host.
@@ -55,6 +56,18 @@ export interface OverlayLifecycleOptions {
    * Optional predicate to exclude external elements (such as triggers) from outside dismissal.
    */
   excludeFromDismiss?: (target: Node) => boolean;
+
+  /**
+   * Invoked after the overlay becomes visible: native display, focus capture, and
+   * autofocus all settled. Fires once per transition, never at attach time.
+   */
+  onOpen?: () => void;
+
+  /**
+   * Invoked after the overlay stops being visible, from every path that closes it
+   * (programmatic state write, Escape, light dismissal, or native close).
+   */
+  onClose?: () => void;
 }
 
 /**
@@ -73,11 +86,13 @@ export function attachOverlayLifecycle(options: OverlayLifecycleOptions): Detach
     isOpen,
     isModal = () => true,
     isDismissable = () => true,
-    onClose,
+    dismiss,
     isNative = false,
     autoFocus,
     restoreFocus = true,
     excludeFromDismiss,
+    onOpen,
+    onClose,
   } = options;
 
   let previouslyFocused: HTMLElement | null = null;
@@ -145,6 +160,7 @@ export function attachOverlayLifecycle(options: OverlayLifecycleOptions): Detach
             });
           }
         }
+        onOpen?.();
       }
     } else if (hasOpened) {
       hasOpened = false;
@@ -165,6 +181,8 @@ export function attachOverlayLifecycle(options: OverlayLifecycleOptions): Detach
         previouslyFocused.focus();
         previouslyFocused = null;
       }
+
+      onClose?.();
     }
   });
   cleanups.push(stopEffect);
@@ -173,7 +191,7 @@ export function attachOverlayLifecycle(options: OverlayLifecycleOptions): Detach
     if (!isOpen() || !isDismissable()) return;
     const target = e.target as Node;
     if (element.contains(target) || excludeFromDismiss?.(target)) return;
-    onClose();
+    dismiss();
   };
   document.addEventListener('pointerdown', onDocumentPointerDown);
   cleanups.push(() => {
@@ -186,11 +204,11 @@ export function attachOverlayLifecycle(options: OverlayLifecycleOptions): Detach
       if (!isDismissable()) {
         e.preventDefault();
       } else {
-        onClose();
+        dismiss();
       }
     };
     const onNativeClose = (): void => {
-      onClose();
+      dismiss();
     };
 
     dialogEl.addEventListener('cancel', onNativeCancel);
@@ -207,7 +225,7 @@ export function attachOverlayLifecycle(options: OverlayLifecycleOptions): Detach
       isOpen,
       isModal,
       isDismissable,
-      onClose,
+      dismiss,
     });
   };
   element.addEventListener('keydown', onKeyDown);
@@ -245,10 +263,10 @@ export function handleOverlayKeyDown(
     isOpen: () => boolean;
     isModal?: () => boolean;
     isDismissable?: () => boolean;
-    onClose: () => void;
+    dismiss: () => void;
   }
 ): boolean {
-  const { element, isOpen, isModal = () => true, isDismissable = () => true, onClose } = options;
+  const { element, isOpen, isModal = () => true, isDismissable = () => true, dismiss } = options;
 
   if (event.key === 'Escape') {
     if (!isOpen() || !isDismissable()) {
@@ -264,11 +282,7 @@ export function handleOverlayKeyDown(
     element.dispatchEvent(cancelEvent);
 
     if (!cancelEvent.defaultPrevented) {
-      onClose();
-      const closeEvent = new CustomEvent<void>('close', {
-        bubbles: false,
-      });
-      element.dispatchEvent(closeEvent);
+      dismiss();
       return true;
     }
     return false;

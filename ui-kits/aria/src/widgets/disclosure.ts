@@ -1,6 +1,14 @@
 import { $symbol, createContext, uIndex } from '@airlib/core';
 import { Aria } from '../core.js';
-import type { AriaAttributes, AriaOptions, AriaProps, BaseElement, DetachFn } from '../types.js';
+import type {
+  AriaAttributes,
+  AriaEvent,
+  AriaEventHandler,
+  AriaOptions,
+  AriaProps,
+  BaseElement,
+  DetachFn,
+} from '../types.js';
 import { ariaBoolean } from '../utils/attributes.js';
 
 /**
@@ -11,12 +19,16 @@ export const disclosureCtx = createContext<DisclosureAria>();
 /**
  * Controller-dispatched disclosure event carrying the committed expansion in `detail`.
  */
-export type DisclosureEvent = CustomEvent<boolean>;
+export type DisclosureEvent = AriaEvent<boolean>;
 
 /**
  * Reactive input properties for DisclosureAria.
  */
 export interface DisclosureProps extends AriaProps {
+  /**
+   * Called with the expanded state after the disclosure toggles.
+   */
+  ontoggle?: AriaEventHandler<DisclosureEvent>;
   /**
    * Deterministic identity and namespace for trigger/panel pair derivation.
    */
@@ -115,7 +127,7 @@ export class DisclosureAria<
     });
     disclosureCtx.set(this as unknown as DisclosureAria);
 
-    this.omittedAttrs.push('id', 'expanded', 'disabled');
+    this.omittedAttrs.push('id', 'expanded', 'disabled', 'ontoggle');
     this.update();
   }
 
@@ -183,7 +195,9 @@ export class DisclosureAria<
     if (this.isNative) return;
     const host = this.element;
     if (host) {
-      host.dispatchEvent(new CustomEvent<boolean>('toggle', { bubbles: false, detail: this.expanded }));
+      const event: DisclosureEvent = new CustomEvent('toggle', { bubbles: false, detail: this.expanded });
+      host.dispatchEvent(event);
+      this.properties.ontoggle?.(event);
     }
   }
 }

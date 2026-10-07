@@ -316,6 +316,19 @@ export const Popover = setup<PopoverProps>((props) => {
 
 ## Architectural & Accessibility Contracts
 
+### Events
+
+`ontoggle` is called with the open state after the popover toggles, and the same `toggle` `CustomEvent<boolean>` (`bubbles: false`) dispatches on the panel:
+
+```ts
+const popover = aria('popover', {
+  open: false,
+  ontoggle: (event) => {
+    const isOpen = event.detail;
+  },
+});
+```
+
 ### Semantic Layering
 
 | Host Element | Attributes Emitted | Semantics & Behavior |

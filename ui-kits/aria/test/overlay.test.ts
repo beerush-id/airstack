@@ -17,7 +17,7 @@ describe('Overlay Utility - Lifecycle & Focus Management', () => {
       const detach = attachOverlayLifecycle({
         element: panel,
         isOpen: () => state.open,
-        onClose: () => {
+        dismiss: () => {
           state.open = false;
         },
       });
@@ -45,7 +45,7 @@ describe('Overlay Utility - Lifecycle & Focus Management', () => {
       const detach = attachOverlayLifecycle({
         element: panel,
         isOpen: () => state.open,
-        onClose: () => {
+        dismiss: () => {
           state.open = false;
         },
       });
@@ -69,7 +69,7 @@ describe('Overlay Utility - Lifecycle & Focus Management', () => {
       const detach = attachOverlayLifecycle({
         element: panel,
         isOpen: () => state.open,
-        onClose: () => {
+        dismiss: () => {
           state.open = false;
         },
         restoreFocus: true,
@@ -94,7 +94,7 @@ describe('Overlay Utility - Lifecycle & Focus Management', () => {
       const detach = attachOverlayLifecycle({
         element: panel,
         isOpen: () => state.open,
-        onClose: () => {
+        dismiss: () => {
           state.open = false;
         },
         restoreFocus: false,
@@ -119,7 +119,7 @@ describe('Overlay Utility - Lifecycle & Focus Management', () => {
       const detach = attachOverlayLifecycle({
         element: panel,
         isOpen: () => state.open,
-        onClose: () => {
+        dismiss: () => {
           state.open = false;
         },
         autoFocus: true,
@@ -142,7 +142,7 @@ describe('Overlay Utility - Lifecycle & Focus Management', () => {
       const detach = attachOverlayLifecycle({
         element: panel,
         isOpen: () => state.open,
-        onClose: () => {
+        dismiss: () => {
           state.open = false;
         },
         autoFocus: true,
@@ -164,7 +164,7 @@ describe('Overlay Utility - Lifecycle & Focus Management', () => {
       const detach = attachOverlayLifecycle({
         element: panel,
         isOpen: () => state.open,
-        onClose: () => {
+        dismiss: () => {
           state.open = false;
         },
         autoFocus: true,
@@ -188,7 +188,7 @@ describe('Overlay Utility - Lifecycle & Focus Management', () => {
         element: modalPanel,
         isOpen: () => modalState.open,
         isModal: () => true,
-        onClose: () => {
+        dismiss: () => {
           modalState.open = false;
         },
       });
@@ -211,7 +211,7 @@ describe('Overlay Utility - Lifecycle & Focus Management', () => {
         element: nonModalPanel,
         isOpen: () => nonModalState.open,
         isModal: () => false,
-        onClose: () => {
+        dismiss: () => {
           nonModalState.open = false;
         },
       });
@@ -233,7 +233,7 @@ describe('Overlay Utility - Lifecycle & Focus Management', () => {
         element: panel,
         isOpen: () => state.open,
         isModal: () => true,
-        onClose: () => {
+        dismiss: () => {
           state.open = false;
         },
       });
@@ -263,7 +263,7 @@ describe('Overlay Utility - Lifecycle & Focus Management', () => {
         element: panel,
         isOpen: () => state.open,
         isModal: () => true,
-        onClose: () => {
+        dismiss: () => {
           state.open = false;
         },
       });
@@ -277,7 +277,7 @@ describe('Overlay Utility - Lifecycle & Focus Management', () => {
   });
 
   describe('attachOverlayLifecycle - Outside Pointer Dismissal', () => {
-    it('invokes onClose when clicking outside an open dismissable overlay', () => {
+    it('invokes dismiss when clicking outside an open dismissable overlay', () => {
       const state = mutable({ open: true });
       const panel = document.createElement('div');
       const insideChild = document.createElement('span');
@@ -291,7 +291,7 @@ describe('Overlay Utility - Lifecycle & Focus Management', () => {
       const detach = attachOverlayLifecycle({
         element: panel,
         isOpen: () => state.open,
-        onClose: closeSpy,
+        dismiss: closeSpy,
       });
 
       // Click inside child
@@ -316,7 +316,7 @@ describe('Overlay Utility - Lifecycle & Focus Management', () => {
         element: panel,
         isOpen: () => state.open,
         isDismissable: () => false,
-        onClose: closeSpy,
+        dismiss: closeSpy,
       });
 
       document.body.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
@@ -342,7 +342,7 @@ describe('Overlay Utility - Lifecycle & Focus Management', () => {
         element: panel,
         isOpen: () => state.open,
         excludeFromDismiss: (target) => target === trigger,
-        onClose: closeSpy,
+        dismiss: closeSpy,
       });
 
       trigger.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
@@ -370,7 +370,7 @@ describe('Overlay Utility - Lifecycle & Focus Management', () => {
         isOpen: () => state.open,
         isModal: () => state.modal,
         isNative: true,
-        onClose: () => {
+        dismiss: () => {
           state.open = false;
         },
       });
@@ -399,7 +399,7 @@ describe('Overlay Utility - Lifecycle & Focus Management', () => {
         isOpen: () => state.open,
         isDismissable: () => state.dismissable,
         isNative: true,
-        onClose: () => {
+        dismiss: () => {
           state.open = false;
         },
       });
@@ -435,7 +435,7 @@ describe('Overlay Utility - Lifecycle & Focus Management', () => {
         element: panel,
         isOpen: () => true,
         isModal: () => true,
-        onClose: vi.fn(),
+        dismiss: vi.fn(),
       });
 
       expect(handled).toBe(true);
@@ -458,7 +458,7 @@ describe('Overlay Utility - Lifecycle & Focus Management', () => {
         element: panel,
         isOpen: () => true,
         isModal: () => true,
-        onClose: vi.fn(),
+        dismiss: vi.fn(),
       });
       expect(normalHandled).toBe(false);
       expect(normalTab.defaultPrevented).toBe(false);
@@ -469,7 +469,7 @@ describe('Overlay Utility - Lifecycle & Focus Management', () => {
         element: panel,
         isOpen: () => true,
         isModal: () => true,
-        onClose: vi.fn(),
+        dismiss: vi.fn(),
       });
       expect(shiftHandled).toBe(true);
       expect(shiftTab.defaultPrevented).toBe(true);
@@ -486,7 +486,7 @@ describe('Overlay Utility - Lifecycle & Focus Management', () => {
         element: panel,
         isOpen: () => true,
         isModal: () => true,
-        onClose: vi.fn(),
+        dismiss: vi.fn(),
       });
       expect(normalShiftHandled).toBe(false);
       expect(normalShiftTab.defaultPrevented).toBe(false);
@@ -497,7 +497,7 @@ describe('Overlay Utility - Lifecycle & Focus Management', () => {
         element: panel,
         isOpen: () => true,
         isModal: () => true,
-        onClose: vi.fn(),
+        dismiss: vi.fn(),
       });
       expect(wrapHandled).toBe(true);
       expect(wrapTab.defaultPrevented).toBe(true);
@@ -511,7 +511,7 @@ describe('Overlay Utility - Lifecycle & Focus Management', () => {
         element: panel,
         isOpen: () => true,
         isModal: () => true,
-        onClose: vi.fn(),
+        dismiss: vi.fn(),
       });
       expect(pullTab.defaultPrevented).toBe(true);
       expect(document.activeElement).toBe(btn1);
@@ -528,7 +528,7 @@ describe('Overlay Utility - Lifecycle & Focus Management', () => {
         element: panel,
         isOpen: () => true,
         isModal: () => true,
-        onClose: vi.fn(),
+        dismiss: vi.fn(),
       });
       expect(pullShiftTab.defaultPrevented).toBe(true);
       expect(document.activeElement).toBe(btn2);
@@ -544,7 +544,7 @@ describe('Overlay Utility - Lifecycle & Focus Management', () => {
         handleOverlayKeyDown(enterEvt, {
           element: panel,
           isOpen: () => true,
-          onClose: vi.fn(),
+          dismiss: vi.fn(),
         })
       ).toBe(false);
 
@@ -553,7 +553,7 @@ describe('Overlay Utility - Lifecycle & Focus Management', () => {
         handleOverlayKeyDown(tabEvt, {
           element: panel,
           isOpen: () => false,
-          onClose: vi.fn(),
+          dismiss: vi.fn(),
         })
       ).toBe(false);
 
@@ -562,7 +562,7 @@ describe('Overlay Utility - Lifecycle & Focus Management', () => {
           element: panel,
           isOpen: () => true,
           isModal: () => false,
-          onClose: vi.fn(),
+          dismiss: vi.fn(),
         })
       ).toBe(false);
 
@@ -571,7 +571,7 @@ describe('Overlay Utility - Lifecycle & Focus Management', () => {
         handleOverlayKeyDown(escEvt, {
           element: panel,
           isOpen: () => false,
-          onClose: vi.fn(),
+          dismiss: vi.fn(),
         })
       ).toBe(false);
 
@@ -580,7 +580,7 @@ describe('Overlay Utility - Lifecycle & Focus Management', () => {
           element: panel,
           isOpen: () => true,
           isDismissable: () => false,
-          onClose: vi.fn(),
+          dismiss: vi.fn(),
         })
       ).toBe(false);
 
@@ -591,7 +591,7 @@ describe('Overlay Utility - Lifecycle & Focus Management', () => {
         handleOverlayKeyDown(defaultEsc, {
           element: panel,
           isOpen: () => true,
-          onClose: closeSpy,
+          dismiss: closeSpy,
         })
       ).toBe(true);
       expect(closeSpy).toHaveBeenCalledTimes(1);
@@ -601,7 +601,7 @@ describe('Overlay Utility - Lifecycle & Focus Management', () => {
         handleOverlayKeyDown(defaultTab, {
           element: panel,
           isOpen: () => true,
-          onClose: vi.fn(),
+          dismiss: vi.fn(),
         })
       ).toBe(true);
     });
@@ -617,7 +617,7 @@ describe('Overlay Utility - Lifecycle & Focus Management', () => {
           void state.counter;
           return state.open;
         },
-        onClose: vi.fn(),
+        dismiss: vi.fn(),
       });
 
       state.counter++;

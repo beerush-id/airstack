@@ -120,6 +120,8 @@ The check glyph comes from CSS keyed on `aria-checked` (see the style block abov
 - `props.invalid` *(boolean | 'grammar' | 'spelling', optional)*: Field validity, compiling to `aria-invalid`.
 - `props.name` *(string, optional)*: Semantic identity key or field name on the parent group or form.
 - `props.value` *(AnyType, optional)*: Choice candidate value when nested inside a multi-selection group.
+- `props.oninput` *(function, optional)*: Called with the committed state after each activation.
+- `props.onchange` *(function, optional)*: Called with the committed state when the selection changes.
 - `options.native` *(boolean, optional, default `true`)*: Pass `false` when wrapping custom non-input elements (such as `<div>` or `<span>`).
 
 ### How it behaves

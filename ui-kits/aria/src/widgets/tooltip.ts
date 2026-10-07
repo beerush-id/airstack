@@ -1,4 +1,5 @@
 import { $symbol } from '@airlib/core';
+import type { AriaEvent, AriaEventHandler } from '../types.js';
 import {
   type OverlayTriggerMode,
   PopoverAria,
@@ -12,7 +13,16 @@ const TOOLTIP_SYMBOL = $symbol('tooltip');
 /**
  * Reactive input properties for TooltipAria.
  */
+/**
+ * Controller-dispatched tooltip visibility event carrying the open state in `detail`.
+ */
+export type TooltipEvent = AriaEvent<boolean>;
+
 export interface TooltipProps extends PopoverProps {
+  /**
+   * Called with the open state after the tooltip toggles.
+   */
+  onchange?: AriaEventHandler<TooltipEvent>;
   /**
    * Activation trigger modes for opening and closing the tooltip.
    * @default ['hover', 'focus']
@@ -58,6 +68,11 @@ export function tooltip<E extends HTMLElement = HTMLElement>(
  * WCAG aria-describedby relationship with host trigger.
  */
 export class TooltipAria<E extends HTMLElement = HTMLElement> extends PopoverAria<E> {
+  public constructor(props: Partial<TooltipProps> = {}, options: PopoverOptions = {}) {
+    super(props, options);
+    this.omittedAttrs.push('onchange');
+  }
+
   public override get mode(): OverlayTriggerMode[] {
     return this.properties.mode ?? ['hover', 'focus'];
   }
@@ -105,6 +120,8 @@ export class TooltipAria<E extends HTMLElement = HTMLElement> extends PopoverAri
   }
 
   protected override dispatchVisibilityEvent(el: HTMLElement, isOpen: boolean): void {
-    el.dispatchEvent(new CustomEvent<boolean>('change', { bubbles: true, detail: isOpen }));
+    const event: TooltipEvent = new CustomEvent('change', { bubbles: true, detail: isOpen });
+    el.dispatchEvent(event);
+    (this.properties as TooltipProps).onchange?.(event);
   }
 }

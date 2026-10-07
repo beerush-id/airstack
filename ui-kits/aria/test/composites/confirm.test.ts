@@ -155,17 +155,17 @@ describe('Confirm Composite Widget (alertdialog)', () => {
         bind(actionEl, action);
         bind(cancelEl, cancel);
 
-        const onConfirm = vi.fn();
-        const onCancel = vi.fn();
-        panelEl.addEventListener('confirm', onConfirm);
-        panelEl.addEventListener('cancel', onCancel);
+        const onconfirm = vi.fn();
+        const oncancel = vi.fn();
+        panelEl.addEventListener('confirm', onconfirm);
+        panelEl.addEventListener('cancel', oncancel);
 
         actionEl.click();
-        expect(onConfirm).toHaveBeenCalledTimes(1);
+        expect(onconfirm).toHaveBeenCalledTimes(1);
 
         root.open = true;
         cancelEl.click();
-        expect(onCancel).toHaveBeenCalledTimes(1);
+        expect(oncancel).toHaveBeenCalledTimes(1);
 
         panel.ref(null);
         action.ref(null);
@@ -295,11 +295,11 @@ describe('Confirm Composite Widget (alertdialog)', () => {
       });
     });
 
-    it('invokes onConfirm and onCancel on coordinator without attaching element', () => {
+    it('invokes onconfirm and oncancel on coordinator without attaching element', () => {
       withContext(() => {
-        const onConfirm = vi.fn();
-        const onCancel = vi.fn();
-        const root = confirm({ open: true, onConfirm, onCancel });
+        const onconfirm = vi.fn();
+        const oncancel = vi.fn();
+        const root = confirm({ open: true, onconfirm, oncancel });
 
         const action = root.action();
         const cancel = root.cancel();
@@ -307,11 +307,11 @@ describe('Confirm Composite Widget (alertdialog)', () => {
         const cancelEl = bind(document.createElement('button'), cancel);
 
         actionEl.click();
-        expect(onConfirm).toHaveBeenCalledTimes(1);
+        expect(onconfirm).toHaveBeenCalledTimes(1);
 
         root.open = true;
         cancelEl.click();
-        expect(onCancel).toHaveBeenCalledTimes(1);
+        expect(oncancel).toHaveBeenCalledTimes(1);
 
         action.ref(null);
         cancel.ref(null);

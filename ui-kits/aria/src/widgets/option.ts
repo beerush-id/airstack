@@ -1,5 +1,5 @@
 import { SelectionAria, type SelectionAttributes, type SelectionOptions } from '../selection.js';
-import type { AriaProps, BaseElement, Primitive } from '../types.js';
+import type { AriaEvent, AriaEventHandler, AriaProps, BaseElement, Primitive } from '../types.js';
 
 /**
  * Reactive input properties for an individual Option widget.
@@ -7,6 +7,10 @@ import type { AriaProps, BaseElement, Primitive } from '../types.js';
  * @template T - Candidate value type
  */
 export interface OptionProps<T extends Primitive = Primitive> extends AriaProps {
+  /**
+   * Called with the committed state when the selection changes.
+   */
+  onchange?: AriaEventHandler<AriaEvent<boolean>>;
   /**
    * Choice candidate value matching select active value.
    */
@@ -78,8 +82,22 @@ export class OptionAria<
   public constructor(props: Partial<T> = {}, options: Partial<O> = {}) {
     super(props, { native: false, ...options, role: ROLE_OPTION, allowKeys: [] });
     this.standaloneToggle = !!options.toggle;
-    this.omittedAttrs.push('value', 'aria-selected');
+    this.omittedAttrs.push('value', 'onchange', 'aria-selected');
     this.update();
+  }
+
+  /**
+   * Whether this option is selected within its group.
+   */
+  public override get selected(): boolean {
+    return super.selected;
+  }
+
+  /**
+   * Selects or deselects this option through the group's coordination rules.
+   */
+  public override set selected(value: boolean) {
+    super.selected = value;
   }
 
   /**

@@ -1,6 +1,13 @@
 import { $static, $symbol, effect, type StyleInput, uIndex } from '@airlib/core';
 import { Aria } from '../core.js';
-import type { AriaAttributes, AriaOptions, AriaProps, DetachFn } from '../types.js';
+import type {
+  AriaAttributes,
+  AriaEvent,
+  AriaEventHandler,
+  AriaOptions,
+  AriaProps,
+  DetachFn,
+} from '../types.js';
 
 const POPOVER_SYMBOL = $symbol('popover');
 
@@ -12,7 +19,16 @@ export type OverlayTriggerMode = 'hover' | 'focus' | 'click';
 /**
  * Reactive input properties for PopoverAria and overlay subclasses.
  */
+/**
+ * Controller-dispatched popover visibility event carrying the open state in `detail`.
+ */
+export type PopoverEvent = AriaEvent<boolean>;
+
 export interface PopoverProps extends AriaProps {
+  /**
+   * Called with the open state after the popover toggles.
+   */
+  ontoggle?: AriaEventHandler<PopoverEvent>;
   /**
    * DOM element identifier for the overlay panel.
    */
@@ -116,7 +132,7 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
 
   public constructor(props: Partial<PopoverProps> = {}, options: PopoverOptions = {}) {
     super(props, options);
-    this.omittedAttrs.push('open', 'mode', 'delay', 'dismissable', 'lightDismiss', 'xDir', 'yDir');
+    this.omittedAttrs.push('open', 'mode', 'delay', 'dismissable', 'lightDismiss', 'xDir', 'yDir', 'ontoggle');
     this.id = $static(() => this.properties.id ?? `${this.anchorPrefix}-${uIndex(this.instanceSymbol, true)}`);
 
     const candidate = this.scope?.actionable;
@@ -299,7 +315,9 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
   }
 
   protected dispatchVisibilityEvent(el: HTMLElement, isOpen: boolean): void {
-    el.dispatchEvent(new CustomEvent<boolean>('toggle', { bubbles: false, detail: isOpen }));
+    const event: PopoverEvent = new CustomEvent('toggle', { bubbles: false, detail: isOpen });
+    el.dispatchEvent(event);
+    this.properties.ontoggle?.(event);
   }
 
   protected override createAttributes(): PopoverAttributes<E> {

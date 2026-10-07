@@ -14,12 +14,20 @@ export type AriaInvalid = boolean | 'grammar' | 'spelling';
 
 /**
  * Controller-dispatched DOM event carrying a committed value in `detail`.
- * Per-role aliases (e.g. `SliderEvent`) fix the payload so consumers cast only
- * the event, never the detail type.
+ * Per-role aliases (e.g. `SliderEvent`) fix the payload for the role.
  *
  * @template T - Committed value type carried in `detail`
  */
 export type AriaEvent<T = unknown> = CustomEvent<T>;
+
+/**
+ * Consumer callback for a controller-dispatched event. The role invokes it with the
+ * dispatched event, so `detail` is typed at the call site without a cast and browser
+ * events of the same name never reach it.
+ *
+ * @template T - Controller-dispatched event type
+ */
+export type AriaEventHandler<T extends Event> = (event: T) => void;
 
 /**
  * Base reactive input properties for Aria controllers.

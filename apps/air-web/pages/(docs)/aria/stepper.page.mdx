@@ -171,6 +171,8 @@ The container compiles `role="group"` and never takes the value role itself. Par
 - `props.readonly` *(boolean, optional)*: Keeps the input focusable and announced while refusing every change.
 - `props.required` *(boolean, optional)*: Required validation indicator.
 - `props.valuetext` *(string, optional)*: Human-readable value compiled to `aria-valuetext` on the input.
+- `props.oninput` *(function, optional, on `stepper-input`)*: Called with the committed value after each step.
+- `props.onchange` *(function, optional, on `stepper-input`)*: Called with the committed value when the interaction ends.
 - `options.native` *(boolean, optional, default `false`)*: Bind the input to a native `<input type="number">`; the browser owns keys and stepping, the controller syncs typed values.
 
 ### Events
@@ -178,16 +180,17 @@ The container compiles `role="group"` and never takes the value role itself. Par
 Both events dispatch on the input element carrying the shared value (`number`):
 
 ```ts
-import type { StepperEvent } from '@airlib/aria';
-
-input.current?.addEventListener('input', (event) => {
-  const value = (event as StepperEvent).detail;
-});
-
-input.current?.addEventListener('change', (event) => {
-  const committed = (event as StepperEvent).detail;
+const input = aria('stepper-input', {
+  oninput: (event) => {
+    const value = event.detail;
+  },
+  onchange: (event) => {
+    const committed = event.detail;
+  },
 });
 ```
+
+Attaching to the input element still works, but there the DOM library types the listener as `Event`, so reading `detail` needs `event as StepperEvent`.
 
 - `input`: `CustomEvent` with `bubbles: true`, after each committed step.
 - `change`: `CustomEvent` with `bubbles: true`, when the interaction ends (key release or blur) with a committed value. Steps that commit nothing stay silent.

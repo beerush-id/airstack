@@ -1,17 +1,26 @@
 import { $static } from '@airlib/core';
 import { Aria } from '../core.js';
-import type { AriaAttributes, AriaInvalid, AriaOptions, AriaProps, BaseElement, DetachFn } from '../types.js';
+import type {
+  AriaAttributes,
+  AriaEvent,
+  AriaEventHandler,
+  AriaInvalid,
+  AriaOptions,
+  AriaProps,
+  BaseElement,
+  DetachFn,
+} from '../types.js';
 import { ariaBoolean, ariaInvalid, ariaRequired } from '../utils/attributes.js';
 
 /**
  * Controller-dispatched text-input event carrying the committed text in `detail`.
  */
-export type TextInputEvent = CustomEvent<string>;
+export type TextInputEvent = AriaEvent<string>;
 
 /**
  * Controller-dispatched search-input event carrying the committed query in `detail`.
  */
-export type SearchInputEvent = CustomEvent<string>;
+export type SearchInputEvent = AriaEvent<string>;
 
 /**
  * Configuration options for TextInputAria.
@@ -33,6 +42,10 @@ export type TextInputKind = 'text' | 'password' | 'search' | 'email' | 'tel' | '
  * Reactive inputs for TextInputAria.
  */
 export interface TextInputProps extends AriaProps {
+  /**
+   * Called with the committed text when the value commits.
+   */
+  onchange?: AriaEventHandler<TextInputEvent>;
   /**
    * Live text value.
    */
@@ -133,7 +146,7 @@ export class TextInputAria<
   public constructor(props: Partial<T> = {}, options: O = {} as O) {
     super(props, { native: true, ...options } as O);
     if (!this.options.role) (this.options as O).role = 'text-input' as O['role'];
-    this.omittedAttrs.push(
+    this.omittedAttrs.push('onchange',
       'value',
       'defaultValue',
       'kind',
@@ -228,7 +241,9 @@ export class TextInputAria<
       if (current === this.lastCommitted) return;
       this.lastCommitted = current;
       if (this.disabled) return;
-      host.dispatchEvent(new CustomEvent<string>('change', { bubbles: true, detail: current }));
+      const event: TextInputEvent = new CustomEvent('change', { bubbles: true, detail: current });
+      host.dispatchEvent(event);
+      this.properties.onchange?.(event);
     };
     host.addEventListener('blur', onBlur);
     return () => host.removeEventListener('blur', onBlur);

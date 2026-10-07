@@ -1,10 +1,17 @@
 import { SelectionAria, type SelectionAttributes, type SelectionOptions } from '../selection.js';
-import type { AriaOptions, AriaProps, BaseElement, Primitive } from '../types.js';
+import type {
+  AriaEvent,
+  AriaEventHandler,
+  AriaOptions,
+  AriaProps,
+  BaseElement,
+  Primitive,
+} from '../types.js';
 
 /**
  * Controller-dispatched switch event carrying the committed state in `detail`.
  */
-export type SwitchEvent = CustomEvent<boolean>;
+export type SwitchEvent = AriaEvent<boolean>;
 
 /**
  * Configuration options for SwitchAria.
@@ -23,6 +30,15 @@ export interface SwitchOptions extends AriaOptions {
  * @template T - Candidate value type when nested in a selection group
  */
 export interface SwitchProps<T extends Primitive = Primitive> extends AriaProps {
+  /**
+   * Called with the committed state after each activation.
+   */
+  oninput?: AriaEventHandler<SwitchEvent>;
+
+  /**
+   * Called with the committed state when the selection changes.
+   */
+  onchange?: AriaEventHandler<AriaEvent<boolean>>;
   /**
    * Choice candidate value if nested in a selection group.
    */
@@ -76,7 +92,7 @@ export class SwitchAria<
       key: 'checked',
     });
 
-    this.omittedAttrs.push('value', 'name', 'aria-checked');
+    this.omittedAttrs.push('value', 'name', 'oninput', 'onchange', 'aria-checked');
     this.update();
   }
 
@@ -119,7 +135,9 @@ export class SwitchAria<
     if (this.isNative || this.checked === was) return;
     const host = this.element;
     if (host) {
-      host.dispatchEvent(new CustomEvent<boolean>('input', { bubbles: true, detail: this.checked }));
+      const event: SwitchEvent = new CustomEvent('input', { bubbles: true, detail: this.checked });
+      host.dispatchEvent(event);
+      this.properties.oninput?.(event);
     }
   }
 

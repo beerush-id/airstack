@@ -1,5 +1,12 @@
 import { SelectionAria, type SelectionAttributes, type SelectionOptions } from '../selection.js';
-import type { AriaOptions, AriaProps, BaseElement, Primitive } from '../types.js';
+import type {
+  AriaEvent,
+  AriaEventHandler,
+  AriaOptions,
+  AriaProps,
+  BaseElement,
+  Primitive,
+} from '../types.js';
 
 /**
  * Reactive input properties for RadioAria.
@@ -7,6 +14,10 @@ import type { AriaOptions, AriaProps, BaseElement, Primitive } from '../types.js
  * @template T - Candidate value type
  */
 export interface RadioProps<T extends Primitive = Primitive> extends AriaProps {
+  /**
+   * Called with the committed state when the selection changes.
+   */
+  onchange?: AriaEventHandler<AriaEvent<boolean>>;
   /**
    * Choice candidate value matching parent group value.
    */
@@ -77,7 +88,7 @@ export class RadioAria<
       allowKeys: [' '],
     });
 
-    this.omittedAttrs.push('value', 'name', 'aria-checked');
+    this.omittedAttrs.push('value', 'name', 'onchange', 'aria-checked');
     this.update();
   }
 

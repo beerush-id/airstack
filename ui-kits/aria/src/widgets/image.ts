@@ -1,6 +1,13 @@
 import { $static, createContext, effect } from '@airlib/core';
 import { Aria } from '../core.js';
-import type { AriaAttributes, AriaOptions, AriaProps, BaseElement } from '../types.js';
+import type {
+  AriaAttributes,
+  AriaEvent,
+  AriaEventHandler,
+  AriaOptions,
+  AriaProps,
+  BaseElement,
+} from '../types.js';
 
 /**
  * Ambient instance context for the enclosing Image orchestrator.
@@ -15,12 +22,16 @@ export type ImageStatus = 'idle' | 'loading' | 'loaded' | 'error';
 /**
  * Controller-dispatched image event carrying the lifecycle status in `detail`.
  */
-export type ImageEvent = CustomEvent<ImageStatus>;
+export type ImageEvent = AriaEvent<ImageStatus>;
 
 /**
  * Reactive input properties for ImageAria.
  */
 export interface ImageProps extends AriaProps {
+  /**
+   * Called with the loader status after each status transition.
+   */
+  onchange?: AriaEventHandler<ImageEvent>;
   /**
    * Image source URL.
    */
@@ -116,7 +127,7 @@ export class ImageAria<
   public constructor(props: Partial<T> = {}, options: O = {} as O) {
     super(props, options);
     imageCtx.set(this as unknown as ImageAria);
-    this.omittedAttrs.push('src', 'alt', 'status');
+    this.omittedAttrs.push('src', 'alt', 'status', 'onchange');
 
     $static(() => {
       this.appliedSrc = this.properties.src;
@@ -193,7 +204,9 @@ export class ImageAria<
     this.properties.status = status;
     const host = this.element;
     if (host) {
-      host.dispatchEvent(new CustomEvent<ImageStatus>('change', { bubbles: true, detail: status }));
+      const event: ImageEvent = new CustomEvent('change', { bubbles: true, detail: status });
+      host.dispatchEvent(event);
+      this.properties.onchange?.(event);
     }
   }
 

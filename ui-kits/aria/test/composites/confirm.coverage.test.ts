@@ -223,37 +223,7 @@ describe('Confirm Composite - Coverage & Edge Cases', () => {
       });
     });
 
-    it('invokes onConfirm and onCancel callbacks on coordinator', () => {
-      withContext(() => {
-        let confirmed = false;
-        let canceled = false;
-        const root = confirm({
-          open: true,
-          onConfirm: () => {
-            confirmed = true;
-          },
-          onCancel: () => {
-            canceled = true;
-          },
-        });
-
-        const action = root.action();
-        const cancel = root.cancel();
-        const actionEl = bind(document.createElement('button'), action);
-        const cancelEl = bind(document.createElement('button'), cancel);
-
-        actionEl.click();
-        expect(confirmed).toBe(true);
-
-        cancelEl.click();
-        expect(canceled).toBe(true);
-
-        action.ref(null);
-        cancel.ref(null);
-      });
-    });
-
-    it('invokes lowercase onconfirm and oncancel callbacks', () => {
+    it('invokes onconfirm and oncancel callbacks on coordinator', () => {
       withContext(() => {
         let confirmed = false;
         let canceled = false;

@@ -1,9 +1,17 @@
-import type { AriaAttributes, AriaOptions, BaseElement, DetachFn, Orientation } from '../types.js';
+import type {
+  AriaAttributes,
+  AriaEvent,
+  AriaEventHandler,
+  AriaOptions,
+  BaseElement,
+  DetachFn,
+  Orientation,
+} from '../types.js';
 
 /**
  * Controller-dispatched splitter event carrying the committed partition in `detail`.
  */
-export type SplitterEvent = CustomEvent<number>;
+export type SplitterEvent = AriaEvent<number>;
 import { ariaBoolean } from '../utils/attributes.js';
 import { openDragSession } from '../utils/pointer.js';
 import { axisRatio, clampRange } from '../utils/range.js';
@@ -13,6 +21,15 @@ import { DividerAria, type DividerProps } from './divider.js';
  * Reactive input properties for SplitterAria.
  */
 export interface SplitterProps extends DividerProps {
+  /**
+   * Called with the committed size after each drag move or key step.
+   */
+  oninput?: AriaEventHandler<SplitterEvent>;
+
+  /**
+   * Called with the committed size when the interaction ends.
+   */
+  onchange?: AriaEventHandler<SplitterEvent>;
   /**
    * Current partition position in percentage points.
    */
@@ -90,7 +107,7 @@ export class SplitterAria<
   public constructor(props: Partial<T> = {}, options: O = {} as O) {
     super(props, options);
 
-    this.omittedAttrs.push(
+    this.omittedAttrs.push('oninput', 'onchange',
       'value',
       'min',
       'max',
@@ -264,10 +281,14 @@ export class SplitterAria<
   };
 
   private notifyInput(): void {
-    this.element!.dispatchEvent(new CustomEvent<number>('input', { bubbles: true, detail: this.value }));
+    const event: SplitterEvent = new CustomEvent('input', { bubbles: true, detail: this.value });
+    this.element!.dispatchEvent(event);
+    this.properties.oninput?.(event);
   }
 
   private notifyChange(): void {
-    this.element!.dispatchEvent(new CustomEvent<number>('change', { bubbles: true, detail: this.value }));
+    const event: SplitterEvent = new CustomEvent('change', { bubbles: true, detail: this.value });
+    this.element!.dispatchEvent(event);
+    this.properties.onchange?.(event);
   }
 }

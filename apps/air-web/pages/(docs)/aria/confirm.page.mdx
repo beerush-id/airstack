@@ -54,8 +54,8 @@ import type { ComponentProps, PropsWithChildren } from 'react';
 type ConfirmProps = PropsWithChildren<{
   open?: boolean;
   id?: string;
-  onConfirm?: (e: ConfirmEvent) => void;
-  onCancel?: (e: CancelEvent) => void;
+  onconfirm?: (e: ConfirmEvent) => void;
+  oncancel?: (e: CancelEvent) => void;
 }>;
 
 const ConfirmRoot = setup<ConfirmProps>((props) => {
@@ -311,6 +311,32 @@ const Confirm = Object.assign(ConfirmRoot, {
 ### Confirm Coordinator
 
 The root coordinator managing open state, unique ID namespacing, and ambient context propagation across confirm parts.
+
+#### Events
+
+`confirm` is a dialog, so it carries the dialog lifecycle and adds the two alertdialog decisions:
+
+```ts
+const confirm = aria('confirm', {
+  open: false,
+  onconfirm: () => {
+    // the destructive action was taken
+  },
+  oncancel: () => {
+    // the user declined, or the panel was dismissed
+  },
+  onopen: () => {
+    // the panel is visible and focus is captured
+  },
+  onclose: () => {
+    // the panel is hidden and focus has returned to the trigger
+  },
+});
+```
+
+- `confirm` and `cancel` dispatch as bubbling, cancelable `CustomEvent`s on the panel when their buttons activate.
+- `open` and `close` dispatch from the overlay lifecycle's own visibility edge, once per transition, whichever path caused it.
+- `DialogProps` has no `oncancel` for the Escape veto — `confirm` is non-dismissable, so Escape and outside clicks are suppressed and the decision belongs to the two buttons.
 
 - **Role / Type**: Composite Coordinator
 - **Factory**: `aria('confirm', props?)` or `confirm(props?)`

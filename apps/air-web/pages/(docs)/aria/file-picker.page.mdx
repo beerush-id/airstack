@@ -129,6 +129,8 @@ The compiled dictionary carries `type="button"` and `disabled` on native hosts, 
 - `props.multiple` *(boolean, optional)*: Multi-file selection flag, synced onto the hidden input.
 - `props.capture` *('user' | 'environment', optional)*: Media capture source for mobile devices.
 - `props.disabled` *(boolean, optional)*: Blocks the picker from opening.
+- `props.onchange` *(function, optional)*: Called with the selected files after a successful pick.
+- `props.oncancel` *(function, optional)*: Called when the picker closes without a selection.
 - `options.native` *(boolean, optional, default `true`)*: Bind a native `<button>`; set `false` for custom hosts.
 
 ### Events
@@ -136,16 +138,17 @@ The compiled dictionary carries `type="button"` and `disabled` on native hosts, 
 Both events dispatch on the trigger element:
 
 ```ts
-import type { FilePickerEvent } from '@airlib/aria';
-
-trigger.current?.addEventListener('change', (event) => {
-  const files = (event as FilePickerEvent).detail;
-});
-
-trigger.current?.addEventListener('cancel', () => {
-  // picker dismissed without a selection
+const picker = aria('file-picker', {
+  onchange: (event) => {
+    const files = event.detail;
+  },
+  oncancel: () => {
+    // picker dismissed without a selection
+  },
 });
 ```
+
+Attaching to the trigger still works, but there the DOM library types the listener as `Event`, so reading `detail` needs `event as FilePickerEvent`.
 
 - `change`: `CustomEvent<File[]>` with `bubbles: true`, carrying the selected files.
 - `cancel`: `CustomEvent<void>` with `bubbles: false`, fired on picker dismissal without selection.

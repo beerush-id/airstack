@@ -159,23 +159,29 @@ The track compiles `role="group"` only for dual-thumb tuples — a single value 
 - `props.valuetext` *(string | ((val: number) => string), optional)*: Readable value text, static or derived per endpoint.
 - `props.orientation` *(horizontal | vertical, optional, default `horizontal`)*: Stepping axis and announced orientation.
 - `props.disabled` *(boolean, optional)*: Blocks stepping and drag.
+- `props.oninput` *(function, optional)*: Called with the live value after each committed step or drag move.
+- `props.onchange` *(function, optional)*: Called with the committed value when the interaction ends.
 - `options.native` *(boolean, optional, default `false`)*: Bind a native `<input type="range">`; the browser owns keys and drag, the controller syncs state.
 
 ### Events
 
 Both events dispatch on the thumb element carrying the slider value (`number`, or the tuple for ranges):
 
+Declare the handlers as props and the controller calls them with the committed event — `detail` is typed, no cast:
+
 ```ts
-import type { SliderEvent } from '@airlib/aria';
-
-thumb.current?.addEventListener('input', (event) => {
-  const value = (event as SliderEvent).detail;
-});
-
-thumb.current?.addEventListener('change', (event) => {
-  const committed = (event as SliderEvent).detail;
+const slider = aria('slider', {
+  value: 30,
+  oninput: (event) => {
+    const value = event.detail;
+  },
+  onchange: (event) => {
+    const committed = event.detail;
+  },
 });
 ```
+
+Attaching to the element still works, but there the DOM library types the listener as `Event`, so reading `detail` needs `event as SliderEvent`. Import the type from `@airlib/aria` when you take that path.
 
 - `input`: `CustomEvent` with `bubbles: true`, after each committed step or drag move.
 - `change`: `CustomEvent` with `bubbles: true`, when the interaction ends (key release, blur, or pointer up) with a committed value. Presses that commit nothing stay silent.

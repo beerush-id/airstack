@@ -175,24 +175,15 @@ Page keys move by ten times `step`, fixed at class-definition level rather than 
 
 ### Events
 
-On a custom host both events dispatch on the element carrying the value (`number`):
+This face dispatches no events of its own. It owns value, bounds, and spinbutton semantics; every commit is a state write you observe reactively through `props.value`, or on a native host through the browser's own `input`/`change` — which carry no `detail`, so read the element:
 
 ```ts
-import type { NumberStepperEvent } from '@airlib/aria';
-
-stepper.current?.addEventListener('input', (event) => {
-  const value = (event as NumberStepperEvent).detail;
-});
-
-stepper.current?.addEventListener('change', (event) => {
-  const committed = (event as NumberStepperEvent).detail;
-});
+const oninput = (event: Event): void => {
+  const value = Number((event.currentTarget as HTMLInputElement).value);
+};
 ```
 
-- `input`: `CustomEvent` with `bubbles: true`, after each committed value update.
-- `change`: `CustomEvent` with `bubbles: true`, on blur following value commits.
-
-On a native host `input`/`change` are browser-dispatched on direct editing; when the change comes from a step-button activation, the controller dispatches them.
+For a face that emits `input`/`change` `CustomEvent`s carrying the committed number, use the `stepper` composite (its `stepper-input` part dispatches them and takes `oninput`/`onchange`), or the `slider`, which carries its own value events.
 
 ### How it behaves
 

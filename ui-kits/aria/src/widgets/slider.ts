@@ -1,6 +1,15 @@
 import { $static, createContext } from '@airlib/core';
 import { Aria } from '../core.js';
-import type { AriaAttributes, AriaOptions, AriaProps, BaseElement, DetachFn, Orientation } from '../types.js';
+import type {
+  AriaAttributes,
+  AriaEvent,
+  AriaEventHandler,
+  AriaOptions,
+  AriaProps,
+  BaseElement,
+  DetachFn,
+  Orientation,
+} from '../types.js';
 import { ariaBoolean } from '../utils/attributes.js';
 import { openDragSession } from '../utils/pointer.js';
 import { axisRatio, clampRange } from '../utils/range.js';
@@ -14,7 +23,7 @@ export const sliderCtx = createContext<SliderAria>();
  * Controller-dispatched slider event carrying the committed value or
  * low/high tuple in `detail`.
  */
-export type SliderEvent = CustomEvent<number | [number, number]>;
+export type SliderEvent = AriaEvent<number | [number, number]>;
 
 /**
  * Behavioral configuration options for SliderAria.
@@ -64,6 +73,16 @@ export interface SliderProps extends AriaProps {
    * Whether the slider is disabled from user interaction.
    */
   disabled?: boolean;
+
+  /**
+   * Called after each committed step or drag move with the live value.
+   */
+  oninput?: AriaEventHandler<SliderEvent>;
+
+  /**
+   * Called when the interaction ends with a committed value.
+   */
+  onchange?: AriaEventHandler<SliderEvent>;
 }
 
 /**
@@ -132,7 +151,7 @@ export class SliderAria<
     });
     sliderCtx.set(this as unknown as SliderAria);
 
-    this.omittedAttrs.push('value', 'min', 'max', 'step', 'page', 'valuetext', 'orientation');
+    this.omittedAttrs.push('value', 'min', 'max', 'step', 'page', 'valuetext', 'orientation', 'oninput', 'onchange');
     this.update();
   }
 
@@ -377,15 +396,11 @@ export class SliderAria<
   private commitTrackChange(): void {
     if (!this.dirty) return;
     this.dirty = false;
-    this.element!.dispatchEvent(
-      new CustomEvent<number | [number, number]>('change', { bubbles: true, detail: this.value })
-    );
+    dispatchSlider(this.element!, 'change', this.value, this.properties.onchange);
   }
 
   private notifyTrackInput(): void {
-    this.element!.dispatchEvent(
-      new CustomEvent<number | [number, number]>('input', { bubbles: true, detail: this.value })
-    );
+    dispatchSlider(this.element!, 'input', this.value, this.properties.oninput);
   }
 
   private snap(raw: number): number {
@@ -558,16 +573,32 @@ export class SliderThumbAria<E extends BaseElement = HTMLElement> extends Aria<
   private commitChange(): void {
     if (!this.dirty) return;
     this.dirty = false;
-    this.element!.dispatchEvent(
-      new CustomEvent<number | [number, number]>('change', { bubbles: true, detail: this.slider!.value })
-    );
+    dispatchSlider(this.element!, 'change', this.slider!.value, this.slider!.properties.onchange);
   }
 
   private notifyInput(): void {
-    this.element!.dispatchEvent(
-      new CustomEvent<number | [number, number]>('input', { bubbles: true, detail: this.slider!.value })
-    );
+    dispatchSlider(this.element!, 'input', this.slider!.value, this.slider!.properties.oninput);
   }
+}
+
+/**
+ * Dispatches a committed slider value on the given target and invokes the matching
+ * consumer handler with it.
+ *
+ * @param target - Element carrying the dispatched event
+ * @param type - Commit kind: live `input` or released `change`
+ * @param value - Committed value or low/high tuple
+ * @param handler - Consumer callback for this commit kind
+ */
+function dispatchSlider(
+  target: Element,
+  type: 'input' | 'change',
+  value: number | [number, number],
+  handler?: AriaEventHandler<SliderEvent>
+): void {
+  const event: SliderEvent = new CustomEvent(type, { bubbles: true, detail: value });
+  target.dispatchEvent(event);
+  handler?.(event);
 }
 
 const HANDLED_KEYS = ['ArrowRight', 'ArrowUp', 'ArrowLeft', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End'];

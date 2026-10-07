@@ -90,8 +90,9 @@ export function aria<E extends BaseElement = HTMLInputElement>(
   - Step buttons follow the Button contract and disable automatically when `value` reaches `min` or `max`.
 
 5. **Events**:
-  - Native host: `input` / `change` are browser-dispatched on direct editing; when the change comes from step-button
-    activation, the controller dispatches them.
-  - Custom host:
-    - `input` — after each committed value update, `CustomEvent<number>('input', { bubbles: true, detail: value })`.
-    - `change` — on blur following value commits, `CustomEvent<number>('change', { bubbles: true, detail: value })`.
+  - This face dispatches no events of its own: it is a number input that owns value, bounds, and spinbutton semantics.
+  - Native host: `input` / `change` are browser-dispatched on direct editing and carry no `detail`. Observe the value
+    reactively through `props.value`, or read it from the element.
+  - Custom host: stepping keys commit into `value` without a controller event. For controller-dispatched `input` /
+    `change` carrying `CustomEvent<number>` with the committed value in `detail`, use the `stepper` composite, whose
+    `stepper-input` part emits them.
