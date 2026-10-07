@@ -33,14 +33,19 @@ export interface RadioGroupProps<T extends Primitive = Primitive> {
   name?: string;
   /** Active radio value (default: null; once set, a radio never deselects through itself) */
   value?: T | null;
+  /** Layout axis for arrow key navigation (default: 'vertical') */
+  orientation?: 'horizontal' | 'vertical';
+  /** Validation state compiled to aria-invalid on the group */
+  invalid?: AriaInvalid;
   /** Requirement flag → aria-required only; never auto-selects (default: false) */
   required?: boolean;
   disabled?: boolean;
 }
 ```
 
-> The group carries only `value`, `multiple`, `disabled` (`docs/radio-group.md:9-14`). Arrows auto-select (`:26`); the
-> roving tab stop falls back to the first enabled radio when `value` is `null` (`:48`). Validity is a Field concern.
+> Arrows auto-select (`:26`); the roving tab stop falls back to the first enabled radio when `value` is `null` (`:48`).
+> Group is the pipe, so `invalid` lives on the group (`aria-invalid`). There is no `manual` mode — arrows always select.
+
 
 #### `RadioOptions`
 

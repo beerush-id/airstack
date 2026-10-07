@@ -138,6 +138,8 @@ A radio never deselects through itself: clicking or pressing Space on the select
 
 ## Putting It Together
 
+To coordinate mutual exclusivity and arrow-key roving focus across multiple choices, wrap them in a container managed by `aria('radio-group')`. See the [Radio Group](/docs/aria/radio-group) documentation for complete group parameters and keyboard roving behavior.
+
 Once your components are wired with `aria(...)`, compose them to build radio controls with honest state:
 
 ```tsx

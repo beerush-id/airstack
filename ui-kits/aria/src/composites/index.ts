@@ -1,4 +1,5 @@
 export * from './accordion/index.js';
+export * from './checkbox-group.js';
 export * from './confirm.js';
 export * from './dialog.js';
 export * from './menu/index.js';

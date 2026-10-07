@@ -53,12 +53,6 @@ export interface RadioGroupProps<T extends Primitive = Primitive> extends AriaPr
   orientation?: Orientation;
 
   /**
-   * When false, arrows move focus and select immediately.
-   * @default false
-   */
-  manual?: boolean;
-
-  /**
    * Enforces a selection constraint requiring a non-empty value.
    */
   required?: boolean;
@@ -158,7 +152,7 @@ export class RadioGroupAria<
         handleRovingKey(this.element, e, {
           selector: RADIO_SELECTORS,
           orientation,
-          manual: this.properties.manual ?? false,
+          manual: false,
         });
       },
     }) as A;

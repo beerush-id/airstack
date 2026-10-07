@@ -1,6 +1,6 @@
 import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
-import { Aria, aria, type BaseElement, radioGroupCtx, type RadioGroupProps, roverCtx } from '../../src/index.js';
+import { type Aria, aria, type BaseElement, type RadioGroupProps, radioGroupCtx, roverCtx } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 describe('RadioGroup - Composite Specifications', () => {
@@ -106,18 +106,18 @@ describe('RadioGroup - Composite Specifications', () => {
       });
     }));
 
-  it('supports manual navigation, orientation fallback, and parent rover keydown guard', () =>
+  it('supports orientation fallback and parent rover keydown guard', () =>
     scope.run(() => {
       component().run(() => {
-        const manualGroup = aria('radio-group', { manual: true });
-        const manualEl = bind(document.createElement('div'), manualGroup);
-        manualEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
+        const group = aria('radio-group');
+        const groupEl = bind(document.createElement('div'), group);
+        groupEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
 
-        delete (manualGroup.properties as Record<string, unknown>).orientation;
-        expect(manualGroup.orientation).toBe('vertical');
+        delete (group.properties as Record<string, unknown>).orientation;
+        expect(group.orientation).toBe('vertical');
 
         // Parent rover ignores keydown
-        roverCtx.set(manualGroup as unknown as Aria<BaseElement>);
+        roverCtx.set(group as unknown as Aria<BaseElement>);
         const childGroup = aria('radio-group');
         const childEl = bind(document.createElement('div'), childGroup);
         childEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
@@ -188,8 +188,21 @@ describe('RadioGroup - Composite Specifications', () => {
           expect(pro.checked).toBe(false);
           expect(proEl.checked).toBe(false);
           expect(team.checked).toBe(true);
-          expect(teamEl.getAttribute('aria-checked')).toBe('true');
-          expect(proEl.getAttribute('aria-checked')).toBe('false');
+          expect(teamEl.checked).toBe(true);
+
+          // Custom radio members project aria-checked
+          const customBasic = component().run(() =>
+            radioGroupCtx.get()!.radio({ value: 'c-basic' }, { native: false })
+          );
+          const customPro = component().run(() => radioGroupCtx.get()!.radio({ value: 'c-pro' }, { native: false }));
+          const customBasicEl = bind(document.createElement('div'), customBasic);
+          const customProEl = bind(document.createElement('div'), customPro);
+          groupEl.append(customBasicEl, customProEl);
+
+          customProEl.click();
+          expect(props.value).toBe('c-pro');
+          expect(customProEl.getAttribute('aria-checked')).toBe('true');
+          expect(customBasicEl.getAttribute('aria-checked')).toBe('false');
 
           groupEl.remove();
         });
@@ -271,40 +284,38 @@ describe('RadioGroup - Composite Specifications', () => {
         });
       }));
 
-    it('moves focus only under manual navigation and lets Space make the choice', () =>
+    it('does not commit on Enter and ignores Space on already checked radio', () =>
       scope.run(() => {
         component().run(() => {
-          const props = mutable<RadioGroupProps>({ value: 'a', manual: true });
+          const props = mutable<RadioGroupProps>({ value: 'a' });
           const group = aria('radio-group', props);
           const groupEl = bind(document.createElement('div'), group);
           document.body.appendChild(groupEl);
 
-          const a = component().run(() => radioGroupCtx.get()!.radio({ value: 'a' }));
-          const b = component().run(() => radioGroupCtx.get()!.radio({ value: 'b' }));
+          const a = component().run(() => radioGroupCtx.get()!.radio({ value: 'a' }, { native: false }));
+          const b = component().run(() => radioGroupCtx.get()!.radio({ value: 'b' }, { native: false }));
 
-          const aEl = bind(document.createElement('input'), a);
-          const bEl = bind(document.createElement('input'), b);
+          const aEl = bind(document.createElement('div'), a);
+          const bEl = bind(document.createElement('div'), b);
           groupEl.append(aEl, bEl);
 
-          aEl.focus();
+          bEl.focus();
 
-          const down = new KeyboardEvent('keydown', {
-            key: 'ArrowDown',
-            bubbles: true,
-            cancelable: true,
-          });
-          groupEl.dispatchEvent(down);
-
-          // Focus travels, the selection waits
-          expect(document.activeElement).toBe(bEl);
+          // Enter commits nothing
+          bEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
           expect(props.value).toBe('a');
           expect(b.checked).toBe(false);
-          expect(down.defaultPrevented).toBe(true);
 
-          const space = new KeyboardEvent('keyup', { key: ' ', bubbles: true, cancelable: true });
-          bEl.dispatchEvent(space);
+          // Space on unchecked radio commits selection
+          bEl.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true }));
+          bEl.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', bubbles: true, cancelable: true }));
           expect(props.value).toBe('b');
           expect(b.checked).toBe(true);
+
+          // Space on already checked radio commits nothing (idempotent)
+          bEl.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true }));
+          bEl.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', bubbles: true, cancelable: true }));
+          expect(props.value).toBe('b');
 
           groupEl.remove();
         });
@@ -394,10 +405,13 @@ describe('RadioGroup - Composite Specifications', () => {
           const groupEl = bind(document.createElement('div'), group);
 
           expect(groupEl.getAttribute('role')).toBe('radiogroup');
-          expect(groupEl.getAttribute('aria-required')).toBe('false');
+          expect(groupEl.getAttribute('aria-required')).toBeNull();
 
           props.required = true;
           expect(groupEl.getAttribute('aria-required')).toBe('true');
+
+          props.required = false;
+          expect(groupEl.getAttribute('aria-required')).toBeNull();
 
           props.invalid = 'grammar';
           expect(groupEl.getAttribute('aria-invalid')).toBe('grammar');

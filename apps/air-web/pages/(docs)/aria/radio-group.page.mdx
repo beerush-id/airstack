@@ -1,240 +1,180 @@
 ---
 title: 'Radio Group'
-description: 'Headless accessible radio group composite coordinating single selection and roving focus across inputs or custom cards.'
+description: 'Single-selection group composite coordinating mutual exclusivity, roving focus, and form isolation.'
 nav: 'Radio Group'
 nav-priority: 340
 ---
 
-# Radio Group
+# AirLib Headless Radio Group
 
-Plan pickers, pricing cards, and segmented settings require mutually exclusive selection where exactly one choice wins. Native radio inputs enforce mutual exclusion, but styling rich cards often breaks native keyboard roving focus, requires manual tabindex management, or clutters page flow with multiple tab stops.
+A radio group looks simple until you build a custom one: native `<input type="radio">` tags enforce mutual exclusivity but resist custom layout, while rich card containers need hand-rolled `role="radiogroup"`, circular arrow roving focus, fallback tab stops when unselected, `aria-required`, and form isolation. **AirLib Headless Radio Group** (`aria('radio-group')`) coordinates single-selection across native inputs or custom cards — circular roving focus, instant selection, and validation projection included, without dictating markup or styles.
 
-`@airlib/aria` provides headless behavioral bridges for radio groups. It coordinates single-choice selection across native `<input>` elements or rich custom cards, manages circular arrow-key roving focus, and projects required WAI-ARIA attributes onto your elements without dictating markup or styles.
+```tsx
+const group = aria('radio-group', props);
 
-You compose a radio group using these pieces:
+<div ref={group.ref} {...group.props} />
+```
 
-- **Radio Group**: The container element that compiles `role="radiogroup"` and manages mutual exclusivity across radio buttons.
-- **Radio**: The choice button or card that reflects `aria-checked` from the parent group's active value.
+<style>{`.demo-radio-group{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.75rem;padding:1.5rem;border:1px solid #e4e4e7;border-radius:.75rem;background:#fafafa}.demo-radio-card{display:flex;flex-direction:column;justify-content:space-between;padding:1rem;border-radius:.5rem;border:1px solid #e4e4e7;background:#fff;cursor:pointer;transition:border-color .15s,box-shadow .15s}.demo-radio-card:hover{border-color:#a1a1aa}.demo-radio-card[aria-checked="true"]{border-color:#18181b;box-shadow:0 0 0 2px rgba(24,24,27,.1)}.demo-radio-card[aria-disabled="true"]{opacity:.5;cursor:not-allowed}`}</style>
 
-## What you get
+:::interactive[Custom Radio Group]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
 
-- **One Tab stop.** Tabbing into the group lands on the selected radio; tabbing again exits the group completely.
-- **Mutual exclusivity.** Selecting an option sets it as the active choice and deselects all siblings automatically.
-- **Arrow navigation with instant selection.** Arrow keys navigate across options and select immediately by default (`manual: false`).
-- **Idempotent selection.** Once selected, activating a radio button again remains selected.
-- **Support for rich cards.** Build custom card elements using `native: false` while retaining full roving focus and arrow navigation.
+type DemoRadioGroupProps = ComponentProps<'div'> & {
+  value?: string;
+  name?: string;
+  orientation?: 'horizontal' | 'vertical';
+  required?: boolean;
+  disabled?: boolean;
+};
+
+const DemoRadioGroup = setup<DemoRadioGroupProps>((props) => {
+  const group = aria('radio-group', props);
+
+  return () => (
+    <div ref={group.ref} {...group.props} className="demo-radio-group">
+      {props.children}
+    </div>
+  );
+}, 'DemoRadioGroup');
+
+type DemoRadioCardProps = ComponentProps<'div'> & {
+  value: string;
+  title: string;
+  price: string;
+  disabled?: boolean;
+};
+
+const DemoRadioCard = setup<DemoRadioCardProps>((props) => {
+  const radio = aria('radio', props, { native: false });
+
+  return () => (
+    <div ref={radio.ref} {...radio.restProps(['title', 'price', 'children'])} className="demo-radio-card">
+      <strong>{props.title}</strong>
+      <span>{props.price}</span>
+    </div>
+  );
+}, 'DemoRadioCard');
+```
+
+<DemoRadioGroup value="pro">
+  <DemoRadioCard value="starter" title="Starter" price="$0 / mo" />
+  <DemoRadioCard value="pro" title="Pro" price="$29 / mo" />
+  <DemoRadioCard value="enterprise" title="Enterprise" price="Custom" />
+</DemoRadioGroup>
+:::
 
 ## Radio Group
 
-In Aria, Radio Group is the container group controller created with `aria('radio-group')` that compiles `role="radiogroup"` and coordinates mutual exclusivity across radio buttons.
+Single-selection group controller that compiles `role="radiogroup"` and coordinates mutual exclusivity.
 
 ```ts
-aria(role: 'radio-group', props?: RadioGroupProps<T>): RadioGroupAria<E>
+aria<E extends BaseElement = HTMLElement, T extends Primitive = Primitive>(
+  role: 'radio-group',
+  props?: RadioGroupProps<T>
+): RadioGroupAria<E, RadioGroupProps<T>>
 ```
+
+### Usage
+
+:::code-group
+
+```tsx [React] executable
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type RadioGroupProps = ComponentProps<'div'> & {
+  id?: string;
+  value?: string;
+  name?: string;
+  orientation?: 'horizontal' | 'vertical';
+  required?: boolean;
+  disabled?: boolean;
+};
+
+const RadioGroup = setup<RadioGroupProps>((props) => {
+  const group = aria('radio-group', props);
+
+  return () => (
+    <div ref={group.ref} {...group.props}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type RadioGroupProps = ComponentProps<'div'> & {
+  id?: string;
+  value?: string;
+  name?: string;
+  orientation?: 'horizontal' | 'vertical';
+  required?: boolean;
+  disabled?: boolean;
+};
+
+const RadioGroup = setup<RadioGroupProps>((props) => {
+  const group = aria('radio-group', props);
+
+  return (
+    <div ref={group.ref} {...group.props}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
 
 ### Parameters
 
-- `props.value` *(Primitive, optional)*: Active radio value token. Once selected, cannot be deselected.
+- `props.value` *(Primitive, optional)*: Active radio value token. Once selected, cannot be deselected through itself.
 - `props.name` *(string, optional)*: HTML form field name forwarded to native radio inputs.
 - `props.orientation` *('vertical' | 'horizontal', optional, default `'vertical'`)*: Keyboard navigation axis and compiled `aria-orientation`.
-- `props.manual` *(boolean, optional, default `false`)*: When `false` (default), arrow navigation selects the newly focused radio immediately. Pass `true` to require `Space` to select.
-- `props.required` *(boolean, optional, default `false`)*: Compiles `aria-required="true"` to signal that a selection is required.
-- `props.invalid` *(boolean | 'grammar' | 'spelling', optional)*: Indicates an invalid input state, compiling to `aria-invalid`.
+- `props.required` *(boolean, optional, default `false`)*: Compiles `aria-required="true"` when true.
+- `props.invalid` *(boolean | 'grammar' | 'spelling', optional)*: Validation state compiled to `aria-invalid`.
 - `props.id` *(string, optional)*: DOM element identifier.
-- `props.disabled` *(boolean, optional)*: Disables the entire radio group.
+- `props.disabled` *(boolean, optional)*: Disables the entire radio group and suppresses arrow navigation.
 
 ### How it behaves
 
-Compiles `role="radiogroup"` and acts as a single tab stop in the page tab order. It coordinates roving focus across child radio buttons. By default (`manual: false`), arrow keys navigate to the next or previous radio and immediately select it. Activating an already selected radio is idempotent.
+- Compiles `role="radiogroup"`, `aria-orientation`, and `aria-required="true"` when required.
+- Manages roving focus across child radios along the configured axis. Arrow navigation wraps circularly at boundaries and automatically selects the newly focused candidate in one transition.
+- When `value` is `null` or unselected, the roving tab stop falls back to the first enabled radio so the group remains reachable via `Tab`.
+- Re-activating an already checked radio is idempotent. `Enter` commits nothing.
+- The compiled attributes carry only accessibility metadata; `name` and `value` are preserved for native form submission.
 
-### Usage
+## Radio Items
 
-To use Radio Group, create the group instance with `aria('radio-group', props)`, then pass `group.ref` and spread `group.attributes` onto your container element:
-
-:::code-group
-
-```tsx [React] executable
-import { aria } from '@airlib/aria';
-import { setup } from '@airlib/react';
-import type { ComponentProps } from 'react';
-
-type RadioGroupProps = ComponentProps<'div'> & {
-  id?: string;
-  value?: string;
-  name?: string;
-  orientation?: 'horizontal' | 'vertical';
-  manual?: boolean;
-  required?: boolean;
-  disabled?: boolean;
-};
-
-const RadioGroup = setup<RadioGroupProps>((props) => {
-  const group = aria('radio-group', props);
-  const restProps = props.$omit([...group.ownKeys, 'children']);
-
-  return () => (
-    <div ref={group.ref} {...restProps} {...group.attributes}>
-      {props.children}
-    </div>
-  );
-});
-```
-
-```tsx [SolidJS]
-import { aria } from '@airlib/aria';
-import { setup } from '@airlib/solid';
-import type { ComponentProps } from 'solid-js';
-
-type RadioGroupProps = ComponentProps<'div'> & {
-  id?: string;
-  value?: string;
-  name?: string;
-  orientation?: 'horizontal' | 'vertical';
-  manual?: boolean;
-  required?: boolean;
-  disabled?: boolean;
-};
-
-const RadioGroup = setup<RadioGroupProps>((props) => {
-  const group = aria('radio-group', props);
-  const restProps = props.$omit([...group.ownKeys, 'children']);
-
-  return (
-    <div ref={group.ref} {...restProps} {...group.attributes}>
-      {props.children}
-    </div>
-  );
-});
-```
-
-:::
-
-## Radio
-
-In Aria, Radio is the choice button created with `aria('radio')` that reflects selection state and participates in the group's roving focus.
-
-```ts
-aria(role: 'radio', props: RadioProps<T>, options?: RadioOptions): RadioAria<E>
-```
-
-### Parameters
-
-- `props.value` *(Primitive, required)*: Choice candidate value matching the parent group's active value.
-- `props.name` *(string, optional)*: Native HTML form field name pass-through.
-- `props.checked` *(boolean, optional)*: Initial checked hint when parent is uncontrolled.
-- `props.disabled` *(boolean, optional)*: Disables this radio option and causes keyboard navigation to skip it.
-- `options.native` *(boolean, optional, default `true`)*: Pass `false` when binding to custom non-input elements (such as rich `<div>` cards).
-
-### How it behaves
-
-Projects `aria-checked="true"` when its `value` matches the parent group's active value, and `aria-checked="false"` otherwise. It assigns `tabindex="0"` to the checked radio, and `tabindex="-1"` to unchecked radios. Activating via click, `Space`, or arrow keys assigns its `value` to the parent group.
-
-:::note[Custom Cards vs Native Inputs]
-When building custom card containers (like `<div>`), pass `{ native: false }` to the engine options inside your component to ensure Space and Enter keyboard listeners are attached.
-:::
-
-### Usage
-
-To use Radio, create the radio instance with `aria('radio', props, { native: false })` for custom cards, then pass `radio.ref` and spread `radio.attributes` onto your card element:
-
-:::code-group
-
-```tsx [React] executable
-import { aria } from '@airlib/aria';
-import { setup } from '@airlib/react';
-import type { ComponentProps } from 'react';
-
-type RadioCardProps = ComponentProps<'div'> & {
-  value: string;
-  name?: string;
-  title: string;
-  price: string;
-};
-
-const RadioCard = setup<RadioCardProps>((props) => {
-  const radio = aria('radio', props, { native: false });
-  const restProps = props.$omit([...radio.ownKeys, 'title', 'price', 'children']);
-
-  return () => (
-    <div ref={radio.ref} {...restProps} {...radio.attributes}>
-      <strong>{props.title}</strong>
-      <span>{props.price}</span>
-    </div>
-  );
-});
-```
-
-```tsx [SolidJS]
-import { aria } from '@airlib/aria';
-import { setup } from '@airlib/solid';
-import type { ComponentProps } from 'solid-js';
-
-type RadioCardProps = ComponentProps<'div'> & {
-  value: string;
-  name?: string;
-  title: string;
-  price: string;
-};
-
-const RadioCard = setup<RadioCardProps>((props) => {
-  const radio = aria('radio', props, { native: false });
-  const restProps = props.$omit([...radio.ownKeys, 'title', 'price', 'children']);
-
-  return (
-    <div ref={radio.ref} {...restProps} {...radio.attributes}>
-      <strong>{props.title}</strong>
-      <span>{props.price}</span>
-    </div>
-  );
-});
-```
-
-:::
-
-## Putting It Together
-
-Once your components are wired with `aria(...)`, compose them to build accessible radio groups:
-
-```tsx
-<RadioGroup value="pro">
-  <RadioCard value="starter" title="Starter" price="$0 / mo" />
-  <RadioCard value="pro" title="Pro" price="$29 / mo" />
-  <RadioCard value="enterprise" title="Enterprise" price="Custom" />
-</RadioGroup>
-```
-
-:::interactive[Radio Group Interactive Demo]
-<RadioGroup value="pro" className="grid grid-cols-1 sm:grid-cols-3 gap-3 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6 bg-zinc-50/50 dark:bg-zinc-900/50">
-  <RadioCard
-    value="starter"
-    title="Starter"
-    price="$0 / mo"
-    className="flex flex-col justify-between p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 cursor-pointer transition-all hover:border-zinc-300 dark:hover:border-zinc-700 aria-checked:border-primary aria-checked:ring-2 aria-checked:ring-primary/20"
-  />
-  <RadioCard
-    value="pro"
-    title="Pro"
-    price="$29 / mo"
-    className="flex flex-col justify-between p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 cursor-pointer transition-all hover:border-zinc-300 dark:hover:border-zinc-700 aria-checked:border-primary aria-checked:ring-2 aria-checked:ring-primary/20"
-  />
-  <RadioCard
-    value="enterprise"
-    title="Enterprise"
-    price="Custom"
-    className="flex flex-col justify-between p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 cursor-pointer transition-all hover:border-zinc-300 dark:hover:border-zinc-700 aria-checked:border-primary aria-checked:ring-2 aria-checked:ring-primary/20"
-  />
-</RadioGroup>
-:::
+Individual choices within a radio group are managed using the `radio` role controller (`aria('radio')`). See the [Radio](/docs/aria/radio) documentation for complete parameter reference, native input binding, and custom host configurations.
 
 ## Keyboard Navigation
 
-- **ArrowDown / ArrowRight**: Moves roving focus to the next radio and selects it (when `manual={false}`, default).
-- **ArrowUp / ArrowLeft**: Moves roving focus to the previous radio and selects it.
-- **Home / End**: Moves focus directly to the first or last enabled radio in the group.
-- **Space**: Selects the focused radio (when `manual={true}`).
+- **ArrowDown / ArrowRight**: Moves roving focus to the next enabled radio and selects it immediately.
+- **ArrowUp / ArrowLeft**: Moves roving focus to the previous enabled radio and selects it immediately.
+- **Home / End**: Moves focus directly to the first or last enabled radio in the group and selects it immediately.
+- **Space**: Selects an unchecked focused radio; idempotent on an already selected radio.
+- **Enter**: Inert (commits nothing).
+
+## What you get
+
+- **One Tab stop.** Tabbing into the group lands on the selected radio (or first enabled radio when none is selected); tabbing again exits the group completely.
+- **Mutual exclusivity.** Selecting an option sets it as the active choice and deselects all siblings automatically.
+- **Arrow navigation with instant selection.** Arrow keys navigate across options and select immediately in one transition.
+- **Idempotent selection.** Once selected, activating a radio button again remains selected.
+- **Support for rich cards.** Build custom card elements using `native: false` while retaining full roving focus and arrow navigation.
 
 ## Next Steps
 
+- **[Radio](/docs/aria/radio)**: Dedicated standalone radio button controller specifications.
 - **[Select](/docs/aria/select)**: Build scrollable option lists supporting single or multi-value selection.
 - **[Toggle Group](/docs/aria/toggle-group)**: Group toggle buttons with single or multiple active states.
 - **[Tabs](/docs/aria/tabs)**: Organize content panels with paired tab triggers and content sections.

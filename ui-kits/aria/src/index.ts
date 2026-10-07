@@ -6,6 +6,8 @@ import {
   AccordionPanelAria,
   type AccordionPanelProps,
   type AccordionProps,
+  CheckboxGroupAria,
+  type CheckboxGroupProps,
   ConfirmActionAria,
   ConfirmAria,
   ConfirmCancelAria,
@@ -219,6 +221,11 @@ export function aria<E extends BaseElement = HTMLElement, T extends Primitive = 
   role: 'radio-group',
   props?: RadioGroupProps<T>
 ): RadioGroupAria<E>;
+
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'checkbox-group',
+  props?: CheckboxGroupProps
+): CheckboxGroupAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement, T extends Primitive = Primitive>(
   role: 'select',
@@ -590,6 +597,8 @@ export function aria(role: string, init?: unknown, options?: unknown): unknown {
       return new RadioAria(init as never, options as never);
     case 'radio-group':
       return new RadioGroupAria(init as never);
+    case 'checkbox-group':
+      return new CheckboxGroupAria(init as never);
     case 'select':
       return new SelectAria(init as never);
     case 'option':

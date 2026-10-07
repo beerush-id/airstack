@@ -1,24 +1,21 @@
 import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
-import { aria, type CheckboxGroupItemAria, type CheckboxGroupProps } from '../../src/index.js';
+import { aria, type CheckboxAria, type CheckboxGroupProps } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
-type Item = { value: string; item: CheckboxGroupItemAria; el: HTMLElement };
+type Item = { value: string; item: CheckboxAria; el: HTMLElement };
 
-function buildGroup(
-  props: Partial<CheckboxGroupProps>,
-  values: string[],
-  host: 'native' | 'custom' = 'native',
-) {
-  const group = aria('checkbox-group', { label: 'Notifications', ...props } as CheckboxGroupProps);
+function buildGroup(props: Partial<CheckboxGroupProps>, values: string[], host: 'native' | 'custom' = 'native') {
+  if (props.label === undefined) {
+    props.label = 'Notifications';
+  }
+  const group = aria('checkbox-group', props as CheckboxGroupProps);
   const groupEl = bind(document.createElement(host === 'native' ? 'fieldset' : 'div'), group);
   document.body.appendChild(groupEl);
 
   const items: Item[] = values.map((value) => {
     const item =
-      host === 'native'
-        ? aria('checkbox-group-item', { value })
-        : aria<HTMLDivElement>('checkbox-group-item', { value }, { native: false });
+      host === 'native' ? aria('checkbox', { value }) : aria<HTMLDivElement>('checkbox', { value }, { native: false });
 
     const el = bind(document.createElement(host === 'native' ? 'input' : 'div'), item);
     groupEl.appendChild(el);
@@ -97,20 +94,21 @@ describe('CheckboxGroup - Composite Specifications', () => {
               detail: (event as CustomEvent).detail,
               bubbles: event.bubbles,
               kind: event.constructor.name,
-            }),
+            })
           );
 
           items[0].el.click();
           items[1].el.click();
           items[0].el.click();
 
-          expect(commits.map((entry) => entry.detail)).toEqual([['a'], ['a', 'b'], ['b']]);
-          expect(commits[0].bubbles).toBe(true);
-          expect(commits[0].kind).toBe('CustomEvent');
+          const customCommits = commits.filter((entry) => entry.kind === 'CustomEvent');
+          expect(customCommits.map((entry) => entry.detail)).toEqual([true, true, false]);
+          expect(customCommits[0].bubbles).toBe(true);
+          expect(props.value).toEqual(['b']);
 
           // An external write is not an announcement: nobody acted
           props.value = ['a', 'b'];
-          expect(commits).toHaveLength(3);
+          expect(commits.filter((entry) => entry.kind === 'CustomEvent')).toHaveLength(3);
 
           cleanup();
         });
