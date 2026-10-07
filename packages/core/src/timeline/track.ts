@@ -3,7 +3,7 @@ import { assign } from '../engine/helper.js';
 import { mutable, passive } from '../reactive/index.js';
 import type { AnyType } from '../types.js';
 import { uuid } from '../utils/uuid.js';
-import { TimelineSegment, type TimelineSegmentInit, type TimelineSegmentOptions, type TimelineSegmentSnapshot } from './segment.js';
+import { TimelineSegment, type TimelineSegmentInit, type TimelineSegmentSnapshot } from './segment.js';
 import type { FrameState, Timeline } from './timeline.js';
 
 export type TimelineTrackOptions = {
@@ -16,17 +16,24 @@ export type TimelineTrackOptions = {
 export type TimelineTrackSnapshot = {
   id: string;
   options: TimelineTrackOptions;
+  props?: Record<string, AnyType>;
   segments: TimelineSegmentSnapshot[];
 };
 
 /**
  * Organizational lane container grouping synchronized child segments on a Timeline.
  */
-export class TimelineTrack {
+export class TimelineTrack<P extends Record<string, AnyType> = Record<string, AnyType>> {
   /**
    * Unique identifier for this track instance.
    */
   public id = uuid();
+
+  /**
+   * Reactive consumer-owned data slot (e.g. lane-wide defaults shared by every segment on this track).
+   * The timeline never reads or writes it; it only persists it through snapshot and hydrate.
+   */
+  public props: P;
 
   /**
    * Collection of synchronized child segments belonging to this track.
@@ -38,12 +45,15 @@ export class TimelineTrack {
    *
    * @param {Timeline} timeline - Master timeline coordinator owning this track.
    * @param {Partial<TimelineTrackOptions>} [options] - Initial track configuration.
+   * @param {P} [props] - Consumer-owned data slot.
    */
   constructor(
     public readonly timeline: Timeline,
-    options: Partial<TimelineTrackOptions> = {}
+    options: Partial<TimelineTrackOptions> = {},
+    props: P = {} as P
   ) {
     this.options = mutable({ ...options });
+    this.props = mutable({ ...props });
     timeline.tracks.add(this);
   }
 
@@ -102,11 +112,14 @@ export class TimelineTrack {
    * Adds a segment to this track.
    *
    * @param {TimelineSegmentInit} [options] - Segment configuration options.
-   * @returns {TimelineSegment} The instantiated segment.
+   * @param {SP} [props] - Consumer-owned data slot for the segment.
+   * @returns {TimelineSegment<SP>} The instantiated segment.
    */
-  @passive
-  public addSegment(options: TimelineSegmentInit = {}): TimelineSegment {
-    return new TimelineSegment(this, options);
+  public addSegment<SP extends Record<string, AnyType> = Record<string, AnyType>>(
+    options: TimelineSegmentInit = {},
+    props?: SP
+  ): TimelineSegment<SP> {
+    return this.createSegment(options, props) as TimelineSegment<SP>;
   }
 
   /**
@@ -146,6 +159,7 @@ export class TimelineTrack {
     return {
       id: this.id,
       options: { ...anchor.get(this.options, true) },
+      props: { ...anchor.get(this.props, true) },
       segments: Array.from(this.segments, (segment) => segment.snapshot()),
     };
   }
@@ -163,7 +177,14 @@ export class TimelineTrack {
     if (snapshot.options) {
       assign(this.options, snapshot.options);
     }
+    if (snapshot.props) {
+      assign(this.props, snapshot.props as Partial<P>);
+    }
     if (snapshot.segments) {
+      for (const segment of this.segments) {
+        /* istanbul ignore next */
+        segment.destroy();
+      }
       this.segments.clear();
       for (const segmentSnapshot of snapshot.segments) {
         this.addSegment(segmentSnapshot.options).hydrate(segmentSnapshot);
@@ -191,4 +212,9 @@ export class TimelineTrack {
   }
 
   private options: TimelineTrackOptions;
+
+  @passive
+  private createSegment(options: TimelineSegmentInit, props?: Record<string, AnyType>): TimelineSegment {
+    return new TimelineSegment(this, options, props);
+  }
 }

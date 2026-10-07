@@ -31,11 +31,12 @@ export type TimelineSegmentInit = Omit<Partial<TimelineSegmentOptions>, 'startFr
 export type TimelineSegmentSnapshot = {
   id: string;
   options: TimelineSegmentOptions;
+  props?: Record<string, AnyType>;
   scenes?: TimelineSceneSnapshot[];
 };
 
-export type TimelineTransitionState = {
-  segment: TimelineSegment;
+export type TimelineTransitionState<P extends Record<string, AnyType> = Record<string, AnyType>> = {
+  props: P;
   from: TimelineScene;
   to?: TimelineScene;
   progress: number;
@@ -43,16 +44,24 @@ export type TimelineTransitionState = {
   time: number;
 };
 
-export type TimelineTransitionSubscriber = (state: TimelineTransitionState) => void;
+export type TimelineTransitionSubscriber<P extends Record<string, AnyType> = Record<string, AnyType>> = (
+  state: TimelineTransitionState<P>
+) => void;
 
 /**
  * Individual bounded segment synchronized by subscribing to a master Timeline clock.
  */
-export class TimelineSegment {
+export class TimelineSegment<P extends Record<string, AnyType> = Record<string, AnyType>> {
   /**
    * Unique identifier for this segment instance.
    */
   public id = uuid();
+
+  /**
+   * Reactive consumer-owned data slot (e.g. base CSS properties merged with scene data to build transitions).
+   * The timeline never reads or writes it; it only persists it through snapshot and hydrate.
+   */
+  public props: P;
 
   /**
    * Reactive playback and timing state of this segment.
@@ -91,11 +100,14 @@ export class TimelineSegment {
    *
    * @param {TimelineTrack} track - Parent track owning this segment.
    * @param {TimelineSegmentInit} [options] - Initial segment configuration.
+   * @param {P} [props] - Consumer-owned data slot.
    */
   constructor(
     public readonly track: TimelineTrack,
-    options: TimelineSegmentInit = {}
+    options: TimelineSegmentInit = {},
+    props: P = {} as P
   ) {
+    this.props = mutable({ ...props });
     this.frameRate = this.track.timeline.frameRate;
     const startFrame =
       options.startFrame !== undefined
@@ -115,7 +127,7 @@ export class TimelineSegment {
       totalFrames: 0,
     });
 
-    track.segments.add(this);
+    track.segments.add(this as never);
     this.refresh();
   }
 
@@ -311,10 +323,10 @@ export class TimelineSegment {
   /**
    * Subscribes a listener to keyframe transition updates between activeScene and nextScene.
    *
-   * @param {TimelineTransitionSubscriber} subscriber - Callback receiving current transition state.
+   * @param {TimelineTransitionSubscriber<P>} subscriber - Callback receiving current transition state.
    * @returns {() => void} Teardown function to unsubscribe.
    */
-  public onTransition(subscriber: TimelineTransitionSubscriber): () => void {
+  public onTransition(subscriber: TimelineTransitionSubscriber<P>): () => void {
     this.transitionSubscribers.add(subscriber);
     return () => this.transitionSubscribers.delete(subscriber);
   }
@@ -328,7 +340,7 @@ export class TimelineSegment {
    */
   @passive
   public addScene(options: TimelineSceneInit = {}, data: Record<string, AnyType> = {}): TimelineScene {
-    return new TimelineScene(this, options, data);
+    return new TimelineScene(this as never, options, data);
   }
 
   /**
@@ -415,6 +427,7 @@ export class TimelineSegment {
     return {
       id: this.id,
       options: { ...anchor.get(this.options, true) },
+      props: { ...anchor.get(this.props, true) },
       scenes: anchor.get(this.scenes, true).map((scene) => scene.snapshot()),
     };
   }
@@ -433,6 +446,9 @@ export class TimelineSegment {
       assign(this.options, snapshot.options);
       this.refresh();
     }
+    if (snapshot.props) {
+      assign(this.props, snapshot.props as Partial<P>);
+    }
     if (snapshot.scenes) {
       this.scenes.length = 0;
       for (const sceneSnapshot of snapshot.scenes) {
@@ -448,7 +464,7 @@ export class TimelineSegment {
    * Removes this segment from its parent track and destroys it.
    */
   public remove(): void {
-    this.track.removeSegment(this);
+    this.track.removeSegment(this as never);
     this.destroy();
   }
 
@@ -559,7 +575,7 @@ export class TimelineSegment {
   private options: TimelineSegmentOptions;
   private sceneSpanValid = false;
   private subscribers = new Set<TimelineSubscriber>();
-  private transitionSubscribers = new Set<TimelineTransitionSubscriber>();
+  private transitionSubscribers = new Set<TimelineTransitionSubscriber<P>>();
 
   private notify(): void {
     for (const subscriber of this.subscribers) {
@@ -572,8 +588,8 @@ export class TimelineSegment {
       return;
     }
 
-    const transitionState: TimelineTransitionState = {
-      segment: this,
+    const transitionState: TimelineTransitionState<P> = {
+      props: this.props,
       from: this.activeScene,
       to: this.nextScene,
       progress: this.progress,

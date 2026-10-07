@@ -260,6 +260,15 @@ export function getContextStore(): AsyncStore {
   return $module.async.getStore()!.get(CONTEXT_STORE_KEY) as AsyncStore;
 }
 
+export function getRootContextStore() {
+  let store = getContextStore();
+  while (store.parent) {
+    /* istanbul ignore next */
+    store = store.parent;
+  }
+  return store;
+}
+
 /**
  * Sets the currently active Context Store.
  * @param {AsyncStore} store

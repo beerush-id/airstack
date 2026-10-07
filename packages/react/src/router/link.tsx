@@ -1,4 +1,4 @@
-import { classx, derived, untrack } from '@airlib/core';
+import { captureStack, classx, derived, untrack } from '@airlib/core';
 import { Route } from '@airlib/router';
 import type { MouseEventHandler, ReactNode, RefObject } from 'react';
 import { setup } from '../hoc.js';
@@ -75,7 +75,23 @@ export const Link = setup<LinkProps<AnyRoute>>((props) => {
       }
 
       if (router && href) {
-        route = untrack(() => router.find(target, true)?.route);
+        const match = untrack(() => router.find(target, true));
+
+        if (!match?.exception) route = match!.route;
+        if (match?.exception) {
+          const error = new Error('Unreachable link detected.');
+          captureStack.violation.general(
+            `Unreachable link detected`,
+            `Attempted to use <Link href="${href}">, but no route matched the URL.`,
+            error,
+            [
+              'Unreachable links degrade user experience and SEO score.',
+              '- Avoid using string-based href; prefer the type-safe "to" prop.',
+              '- If the link is external, make sure it does not share the same origin as the app, or use a standard <a> tag.',
+            ]
+          );
+        }
+
         /* istanbul ignore next */
         if (route?.index) route = route.index as unknown as AnyRoute;
       }

@@ -1,6 +1,7 @@
 import { anchor } from '../engine/anchor.js';
 import { assign } from '../engine/helper.js';
 import { mutable, passive } from '../reactive/index.js';
+import type { AnyType } from '../types.js';
 import { uuid } from '../utils/uuid.js';
 import { animationFrame, cancelFrame, type FrameId, frameToTime, timeToFrame } from './helper.js';
 import { TimelineMarker, type TimelineMarkerInit, type TimelineMarkerSnapshot } from './marker.js';
@@ -38,6 +39,7 @@ export type TimelineSubscriber = (state: FrameState) => void;
 export type TimelineSnapshot = {
   id: string;
   options: TimelineOptions;
+  props?: Record<string, AnyType>;
   tracks: TimelineTrackSnapshot[];
   markers?: TimelineMarkerSnapshot[];
 };
@@ -45,11 +47,17 @@ export type TimelineSnapshot = {
 /**
  * Real-time master timeline controller driven by requestAnimationFrame.
  */
-export class Timeline {
+export class Timeline<P extends Record<string, AnyType> = Record<string, AnyType>> {
   /**
    * Unique identifier for this timeline instance.
    */
   public id = uuid();
+
+  /**
+   * Reactive consumer-owned data slot (e.g. composition-wide defaults such as base CSS properties).
+   * The timeline never reads or writes it; it only persists it through snapshot and hydrate.
+   */
+  public props: P;
 
   /**
    * Reactive playback and timing state of the master timeline.
@@ -76,8 +84,11 @@ export class Timeline {
    * Creates a real-time master timeline coordinator.
    *
    * @param {TimelineInit} [options] - Initial configuration (framerate, speed, bounds, repeat).
+   * @param {P} [props] - Consumer-owned data slot.
    */
-  constructor(options: TimelineInit = {}) {
+  constructor(options: TimelineInit = {}, props: P = {} as P) {
+    this.props = mutable({ ...props });
+
     const frameRate = Math.max(1, options.frameRate ?? 30);
     const startFrame =
       options.startFrame !== undefined
@@ -272,11 +283,14 @@ export class Timeline {
    * Adds a track to the timeline.
    *
    * @param {Partial<TimelineTrackOptions>} [options] - Track configuration options.
-   * @returns {TimelineTrack} The instantiated track.
+   * @param {TP} [props] - Consumer-owned data slot for the track.
+   * @returns {TimelineTrack<TP>} The instantiated track.
    */
-  @passive
-  public addTrack(options: Partial<TimelineTrackOptions> = {}): TimelineTrack {
-    return new TimelineTrack(this, options);
+  public addTrack<TP extends Record<string, AnyType> = Record<string, AnyType>>(
+    options: Partial<TimelineTrackOptions> = {},
+    props?: TP
+  ): TimelineTrack<TP> {
+    return this.createTrack(options, props) as TimelineTrack<TP>;
   }
 
   /**
@@ -557,6 +571,7 @@ export class Timeline {
     return {
       id: this.id,
       options: { ...anchor.get(this.options, true) },
+      props: { ...anchor.get(this.props, true) },
       tracks: Array.from(this.tracks, (track) => track.snapshot()),
       markers: Array.from(this.markers, (marker) => marker.snapshot()),
     };
@@ -592,6 +607,10 @@ export class Timeline {
       }
 
       this.refresh();
+    }
+
+    if (snapshot.props) {
+      assign(this.props, snapshot.props as Partial<P>);
     }
 
     if (snapshot.tracks) {
@@ -647,6 +666,11 @@ export class Timeline {
     return Math.max(this.minFrame, this.options.endFrame ?? this.state.totalFrames);
   }
 
+  @passive
+  private createTrack(options: Partial<TimelineTrackOptions>, props?: Record<string, AnyType>): TimelineTrack {
+    return new TimelineTrack(this, options, props);
+  }
+
   private notify(): void {
     for (const track of this.tracks) {
       track.tick(this.state);
@@ -668,8 +692,12 @@ export class Timeline {
  * Creates and initializes a new master Timeline instance.
  *
  * @param {TimelineInit} [options] - Initial configuration (framerate, speed, bounds, repeat).
- * @returns {Timeline} A configured Timeline coordinator instance.
+ * @param {P} [props] - Consumer-owned data slot (e.g. composition-wide defaults).
+ * @returns {Timeline<P>} A configured Timeline coordinator instance.
  */
-export function createTimeline(options?: TimelineInit): Timeline {
-  return new Timeline(options);
+export function createTimeline<P extends Record<string, AnyType> = Record<string, AnyType>>(
+  options?: TimelineInit,
+  props?: P
+): Timeline<P> {
+  return new Timeline(options, props);
 }
