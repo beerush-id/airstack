@@ -21,6 +21,11 @@ export interface ToolbarProps extends AriaProps {
   orientation?: Orientation;
 
   /**
+   * Accessible name announced for the toolbar.
+   */
+  label?: string;
+
+  /**
    * Whether user interaction is disabled across the entire toolbar.
    */
   disabled?: boolean;
@@ -33,6 +38,7 @@ export interface ToolbarProps extends AriaProps {
  */
 export interface ToolbarAttributes<E extends BaseElement = HTMLElement> extends AriaAttributes<E> {
   role?: 'toolbar';
+  'aria-label'?: string;
   'aria-orientation'?: Orientation;
   'aria-disabled'?: 'true' | 'false';
 }
@@ -87,6 +93,7 @@ export class ToolbarAria<
 
     return Object.assign(super.createAttributes(), {
       role: 'toolbar',
+      'aria-label': this.properties.label,
       'aria-orientation': orientation,
       'aria-disabled': ariaBoolean(disabled),
       onkeydown: (e: KeyboardEvent) => {

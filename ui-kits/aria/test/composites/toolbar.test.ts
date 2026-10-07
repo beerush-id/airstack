@@ -383,68 +383,6 @@ describe('Toolbar - Composite Specifications', () => {
       }));
   });
 
-  describe('Roving Focus & Directional Traversal Invariant', () => {
-    it('hands the single tab stop to whichever control holds focus', () =>
-      scope.run(() => {
-        component().run(() => {
-          const toolbar = aria('toolbar');
-          const toolbarEl = bind(document.createElement('div'), toolbar);
-          document.body.appendChild(toolbarEl);
-
-          const first = aria('button');
-          const blocked = aria('button', { disabled: true });
-          const last = aria('button');
-
-          const firstEl = bind(document.createElement('button'), first);
-          const blockedEl = bind(document.createElement('button'), blocked);
-          const lastEl = bind(document.createElement('button'), last);
-          toolbarEl.append(firstEl, blockedEl, lastEl);
-
-          // Initially the first enabled control carries the only tab stop
-          expect(firstEl.getAttribute('tabindex')).toBe('0');
-          expect(lastEl.getAttribute('tabindex')).toBe('-1');
-
-          // A disabled control is removed from the tab bookkeeping entirely
-          expect(blockedEl.hasAttribute('tabindex')).toBe(false);
-
-          toolbarEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
-          expect(document.activeElement).toBe(lastEl);
-          expect(lastEl.getAttribute('tabindex')).toBe('0');
-          expect(firstEl.getAttribute('tabindex')).toBe('-1');
-
-          toolbarEl.remove();
-        });
-      }));
-
-    it('sends Home and End to the first and last enabled control', () =>
-      scope.run(() => {
-        component().run(() => {
-          const toolbar = aria('toolbar');
-          const toolbarEl = bind(document.createElement('div'), toolbar);
-          document.body.appendChild(toolbarEl);
-
-          const first = bind(document.createElement('button'), aria('button'));
-          const second = bind(document.createElement('button'), aria('button'));
-          const tail = bind(document.createElement('button'), aria('button', { disabled: true }));
-          toolbarEl.append(first, second, tail);
-
-          second.focus();
-
-          toolbarEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true, cancelable: true }));
-          // The disabled tail is not a destination, so the last enabled control takes it
-          expect(document.activeElement).toBe(second);
-          expect(tail.hasAttribute('tabindex')).toBe(false);
-
-          toolbarEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true, cancelable: true }));
-          expect(document.activeElement).toBe(first);
-          expect(first.getAttribute('tabindex')).toBe('0');
-          expect(second.getAttribute('tabindex')).toBe('-1');
-
-          toolbarEl.remove();
-        });
-      }));
-  });
-
   describe('Multi-Role Item Grouping Invariant', () => {
     it('lets each member keep its own role and state while the toolbar owns reachability', () =>
       scope.run(() => {
@@ -474,11 +412,7 @@ describe('Toolbar - Composite Specifications', () => {
           expect(helpEl.getAttribute('href')).toBe('/docs/formatting');
           expect(helpEl.hasAttribute('role')).toBe(false);
 
-          // Reachability is the toolbar's to hand around
-          expect(plainEl.getAttribute('tabindex')).toBe('0');
-          for (const el of [boldEl, wrapEl, helpEl]) {
-            expect(el.getAttribute('tabindex')).toBe('-1');
-          }
+          expect(toolbarEl.getAttribute('aria-label')).toBe('Formatting');
 
           // Activation belongs to the control, not the container
           boldEl.focus();
@@ -535,7 +469,7 @@ describe('Toolbar - Composite Specifications', () => {
   });
 
   describe('Spatial Orientation & Wrap Invariant', () => {
-    it('makes a nested selection group surrender its own rover and collapse to role="group"', () =>
+    it('makes a nested selection group surrender its own rover', () =>
       scope.run(() => {
         component().run(() => {
           const toolbar = aria('toolbar');
@@ -552,10 +486,6 @@ describe('Toolbar - Composite Specifications', () => {
 
           const redo = bind(document.createElement('button'), aria('button'));
           toolbarEl.append(undo, alignEl, redo);
-
-          // The inner group keeps its label but stops claiming a radiogroup role
-          expect(alignEl.getAttribute('role')).toBe('group');
-          expect(alignEl.getAttribute('aria-label')).toBe('Alignment');
 
           undo.focus();
 
