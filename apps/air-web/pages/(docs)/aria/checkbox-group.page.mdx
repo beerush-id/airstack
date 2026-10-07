@@ -1,0 +1,169 @@
+---
+title: 'Checkbox Group'
+description: 'Multi-selection coordinator managing independent checkbox choices without roving focus.'
+nav: 'Checkbox Group'
+nav-priority: 345
+---
+
+# AirLib Headless Checkbox Group
+
+A checkbox group looks simple until you coordinate state across custom cards: native checkboxes in a `<fieldset>` manage independent tab stops but resist layout, while rich multi-select containers require `role="group"`, `aria-label`, ambient set membership, and cascaded group disablement without roving focus. **AirLib Headless Checkbox Group** (`aria('checkbox-group')`) coordinates multi-selection across native inputs or custom cards — ambient array membership, independent tab navigation, and form boundary support included, without dictating markup or styles.
+
+```tsx
+const group = aria('checkbox-group', props);
+
+<div ref={group.ref} {...group.props} />
+```
+
+<style>{`.demo-checkbox-group{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.75rem;padding:1.5rem;border:1px solid #e4e4e7;border-radius:.75rem;background:#fafafa}.demo-checkbox-card{display:flex;flex-direction:column;justify-content:space-between;padding:1rem;border-radius:.5rem;border:1px solid #e4e4e7;background:#fff;cursor:pointer;transition:border-color .15s,box-shadow .15s}.demo-checkbox-card:hover{border-color:#a1a1aa}.demo-checkbox-card[aria-checked="true"]{border-color:#18181b;box-shadow:0 0 0 2px rgba(24,24,27,.1)}.demo-checkbox-card[aria-disabled="true"]{opacity:.5;cursor:not-allowed}`}</style>
+
+:::interactive[Custom Checkbox Group]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type DemoCheckboxGroupProps = ComponentProps<'div'> & {
+  value?: string[];
+  label?: string;
+  disabled?: boolean;
+};
+
+const DemoCheckboxGroup = setup<DemoCheckboxGroupProps>((props) => {
+  const group = aria('checkbox-group', props);
+
+  return () => (
+    <div ref={group.ref} {...group.props} className="demo-checkbox-group">
+      {props.children}
+    </div>
+  );
+}, 'DemoCheckboxGroup');
+
+type DemoCheckboxCardProps = ComponentProps<'div'> & {
+  value: string;
+  title: string;
+  description: string;
+  disabled?: boolean;
+};
+
+const DemoCheckboxCard = setup<DemoCheckboxCardProps>((props) => {
+  const checkbox = aria('checkbox', props, { native: false });
+
+  return () => (
+    <div ref={checkbox.ref} {...checkbox.restProps(['title', 'description', 'children'])} className="demo-checkbox-card">
+      <strong>{props.title}</strong>
+      <span style={{ fontSize: '0.875rem', color: '#71717a' }}>{props.description}</span>
+    </div>
+  );
+}, 'DemoCheckboxCard');
+```
+
+<DemoCheckboxGroup value={['email', 'sms']} label="Notification channels">
+  <DemoCheckboxCard value="email" title="Email" description="Daily digests and alerts" />
+  <DemoCheckboxCard value="sms" title="SMS" description="Critical security notices" />
+  <DemoCheckboxCard value="push" title="Push" description="Real-time mobile updates" />
+</DemoCheckboxGroup>
+:::
+
+## Checkbox Group
+
+Multi-selection container coordinator that compiles `role="group"` and ambiently manages the checked array.
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'checkbox-group',
+  props?: CheckboxGroupProps
+): CheckboxGroupAria<E>
+```
+
+### Usage
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type CheckboxGroupProps = ComponentProps<'div'> & {
+  id?: string;
+  value?: string[];
+  disabled?: boolean;
+  label?: string;
+};
+
+const CheckboxGroup = setup<CheckboxGroupProps>((props) => {
+  const group = aria('checkbox-group', props);
+
+  return () => (
+    <div ref={group.ref} {...group.props}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type CheckboxGroupProps = ComponentProps<'div'> & {
+  id?: string;
+  value?: string[];
+  disabled?: boolean;
+  label?: string;
+};
+
+const CheckboxGroup = setup<CheckboxGroupProps>((props) => {
+  const group = aria('checkbox-group', props);
+
+  return (
+    <div ref={group.ref} {...group.props}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
+
+### Parameters
+
+- `props.value` *(string[], optional, default `[]`)*: Array of currently checked member values.
+- `props.disabled` *(boolean, optional)*: Disables the entire group and cascades disablement to all members.
+- `props.label` *(string, optional)*: Accessible text label applied via `aria-label`.
+- `props.id` *(string, optional)*: Explicit DOM identifier and group namespace.
+
+### How it behaves
+
+- Compiles `role="group"` on non-`<fieldset>` elements, and omits `role` when attached to a native `<fieldset>`.
+- Ambiently provides the selection context with `multiple: true` so member checkboxes automatically sync membership without direct prop drilling.
+- Activating a member checkbox toggles its presence in `group.value` without clearing sibling items.
+- Preserves independent tab stops per WAI-ARIA APG specifications — does not introduce roving focus or swallow arrow keys.
+
+## Checkbox Items
+
+Individual choice units within a checkbox group are managed using the standard `checkbox` role controller (`aria('checkbox')`). See the [Checkbox](/docs/aria/checkbox) documentation for complete parameter reference, native input binding, and tri-state indeterminate configurations.
+
+## Keyboard Navigation
+
+- **Tab**: Moves focus to each individual enabled checkbox in the group sequentially.
+- **Shift + Tab**: Moves focus to the previous checkbox in reverse tab order.
+- **Space**: Toggles the focused checkbox on and off.
+- **Arrow Keys**: Ignored by the group container; native page scrolling or custom composite behaviors remain unaffected.
+
+## What you get
+
+- **APG Compliance.** Respects standard checkbox group design patterns where each member is an independent tab stop without roving focus.
+- **Native fieldset awareness.** Automatically omits redundant `role="group"` when bound to a native `<fieldset>`.
+- **Ambient set coordination.** Synchronizes checked array state with child `aria('checkbox')` items seamlessly.
+- **Disabled cascade.** Disabling the group automatically locks out all member checkboxes.
+- **Zero markup lock-in.** Render native `<input type="checkbox">` elements or rich custom interactive cards.
+
+## Next Steps
+
+- **[Checkbox](/docs/aria/checkbox)**: Dedicated single checkbox controller with tri-state indeterminate support.
+- **[Radio Group](/docs/aria/radio-group)**: Single-selection group composite coordinating mutual exclusivity and roving focus.
+- **[Toggle Group](/docs/aria/toggle-group)**: Group toggle buttons with single or multiple active states.
+- **[Select](/docs/aria/select)**: Build dropdown option lists supporting single or multi-value selection.
