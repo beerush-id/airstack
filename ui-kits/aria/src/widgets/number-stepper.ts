@@ -203,7 +203,7 @@ export class NumberStepperAria<
     if (this.isNative) {
       return Object.assign(attrs, {
         type: 'number',
-        defaultValue: this.value,
+        value: this.value,
         min: this.min,
         max: this.max,
         step: this.step,

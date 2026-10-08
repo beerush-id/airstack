@@ -139,8 +139,8 @@ describe('Stepper - Coverage', () => {
 
         const inputEl = parts.inputEl as unknown as HTMLInputElement;
         expect(parts.input.attributes.type).toBe('number');
-        expect(parts.input.attributes.value).toBeUndefined();
-        expect(parts.input.attributes.defaultValue).toBe(4);
+        expect(parts.input.attributes.value).toBe(4);
+        expect(parts.input.attributes.defaultValue).toBeUndefined();
         expect(parts.input.attributes.min).toBe(0);
         expect(parts.input.attributes.max).toBe(10);
         expect(parts.input.attributes.step).toBe(2);

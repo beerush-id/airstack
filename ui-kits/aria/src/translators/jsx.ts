@@ -5,8 +5,9 @@ import type { TranslateFn } from '../types.js';
  * Mapping from native HTML attribute names to React JSX prop names.
  */
 const REACT_PROP_MAP: Record<string, string> = {
-  class: 'className',
   for: 'htmlFor',
+  class: 'className',
+  value: 'defaultValue',
   tabindex: 'tabIndex',
   readonly: 'readOnly',
   autocomplete: 'autoComplete',

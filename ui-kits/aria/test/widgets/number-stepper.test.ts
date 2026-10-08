@@ -1,4 +1,4 @@
-import { createLifecycle, mutable } from '@airlib/core';
+import { type AnyType, createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
 import { aria, type NumberStepperProps } from '../../src/index.js';
 import { bind, component } from '../utils.js';
@@ -198,8 +198,8 @@ describe('NumberStepper - Contract Specifications', () => {
           expect(spin.attributes.min).toBe(0);
           expect(spin.attributes.max).toBe(10);
           expect(spin.attributes.step).toBe(2);
-          expect(spin.attributes.value).toBeUndefined();
-          expect(spin.attributes.defaultValue).toBe(7);
+          expect(spin.attributes.value).toBe(7);
+          expect(spin.attributes.defaultValue).toBeUndefined();
 
           // 2. Mount Phase
           const el = bind(document.createElement('input'), spin);
@@ -369,7 +369,7 @@ describe('NumberStepper - Contract Specifications', () => {
           const inputs: number[] = [];
           const spin = aria<HTMLInputElement>(
             'number-stepper',
-            { value: 4, min: 0, max: 20, disabled: true, oninput: (event) => inputs.push(event.detail) },
+            { value: 4, min: 0, max: 20, disabled: true, oninput: (event: AnyType) => inputs.push(event.detail) },
             { native: true }
           );
           const el = bind(document.createElement('input'), spin);

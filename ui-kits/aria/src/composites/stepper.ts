@@ -287,7 +287,7 @@ export class StepperInputAria<
     if (this.isNative) {
       return Object.assign(super.createAttributes(), {
         type: 'number',
-        defaultValue: stepper.value,
+        value: stepper.value,
         min: stepper.min,
         max: stepper.max,
         step: stepper.step,
