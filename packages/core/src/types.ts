@@ -1064,9 +1064,9 @@ export type ContextReader<T> = {
    */
   key: symbol;
   /**
-   * Retrieves the current value from the context.
+   * Retrieves the current value from the context with optional fallback.
    */
-  get(): T;
+  get(fallback?: T): T;
   /**
    * Updates the context with a new value.
    * @param value - The new value to set in the context.

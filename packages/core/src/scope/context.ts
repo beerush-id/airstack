@@ -336,8 +336,8 @@ export function createContext<T>(keyOrValue?: T, valueOrKey?: symbol) {
 
   return {
     key: ctxKey,
-    get() {
-      return getContext(ctxKey, ctxFallback);
+    get(fallback?: T) {
+      return getContext(ctxKey, fallback ?? ctxFallback);
     },
     set(value: T) {
       setContext(ctxKey, value);
