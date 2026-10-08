@@ -318,7 +318,9 @@ export const Popover = setup<PopoverProps>((props) => {
 
 ### Events
 
-`ontoggle` is called with the open state after the popover toggles, and the same `toggle` `CustomEvent<boolean>` (`bubbles: false`) dispatches on the panel:
+- `onopen` is called when the popover opens
+- `onclose` is called when the popover closes
+- `ontoggle` is called with the open state after the popover toggles, and the same `toggle` `CustomEvent<boolean>` (`bubbles: false`) dispatches on the panel:
 
 ```ts
 const popover = aria('popover', {

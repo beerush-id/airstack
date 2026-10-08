@@ -1,84 +1,256 @@
 ---
 title: 'Select'
-description: 'Headless accessible select composite supporting single and multi-selection with roving keyboard focus.'
+description: 'Popup option-selection composite: a combobox trigger opening a listbox panel for single or multi-selection.'
 nav: 'Select'
 nav-priority: 350
 ---
 
-# Select
+# AirLib Headless Select
 
-A select presents a scrollable list of choices for single-selection dropdowns, multi-select pickers, or tag assigners. Forcing keyboard users to tab through every row clutters page navigation. A WAI-ARIA listbox acts as a single tab stop, using arrow keys to rove focus across options while reflecting selection state through assistive technology.
+A select is the option list collapsed behind a button: closed it shows one value, open it offers every choice. Hand-rolled markup gets you half there — a button that never announces its popup, arrow keys that scroll the document instead of opening the list, focus lost to the void on dismiss, and a selection no assistive technology hears about. **AirLib Headless Select** (`aria('select')`) is a role-less root orchestrating a combobox trigger, a popup listbox panel, and option members: toggling plus arrow-open on the trigger, delegated dismissal and focus restoration, roving with typeahead in the panel, single or multiple selection, and committed values announced on the root — without dictating markup or styles.
 
-`@airlib/aria` provides headless behavioral bridges for selects. It coordinates single and multi-selection models, manages keyboard roving focus with boundary wrapping, and projects the compiled `listbox` role attributes onto your elements without dictating markup or styles.
+```tsx
+const select = aria('select', props);
 
-You compose a select using these pieces:
+<div ref={select.ref} {...select.props} />
+```
 
-- **Select**: The container element that compiles `role="listbox"` and manages single or multi-value selection with roving focus.
-- **Select Option**: The selectable item that compiles `role="option"` and synchronizes its `aria-selected` state with the parent select.
+<style>{`
+.demo-select {
+  display: inline-flex;
+  position: relative;
+  flex-direction: column;
+  gap: .375rem;
+  max-width: 16rem;
+}
 
-## What you get
+.demo-select-trigger {
+  anchor-name: var(--popover-anchor-name);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  padding: .5rem .75rem;
+  border: 1px solid #e4e4e7;
+  border-radius: .75rem;
+  background: #fff;
+  font-size: .9375rem;
+  cursor: pointer;
+}
 
-- **One Tab stop.** Tabbing into the select lands on the active option; tabbing again exits the select completely.
-- **Single or multi-selection.** Accepts a single value token or an array of values when `multiple={true}`.
-- **Focus separated from selection.** Arrow keys navigate between options without auto-selecting until `Space` or `Enter` is pressed (`manual: true` default in single mode).
-- **Configurable constraints.** Allows deselecting to empty by default, or enforces persistent selection via `required={true}`.
-- **Circular roving navigation.** Arrow keys rove through enabled options and wrap at list boundaries.
+.demo-select-trigger::after {
+  content: "▾";
+  font-size: .75rem;
+  opacity: .6;
+}
+
+.demo-select-trigger[aria-expanded="true"]::after {
+  content: "▴";
+}
+
+.demo-select-trigger[aria-disabled="true"] {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+.demo-select-panel {
+  position: fixed;
+  position-anchor: var(--popover-anchor-name);
+  top: anchor(bottom);
+  left: anchor(left);
+  position-area: bottom;
+  margin: .375rem 0 0;
+  min-width: anchor-size(width);
+  display: flex;
+  flex-direction: column;
+  gap: .125rem;
+  padding: .375rem;
+  border: 1px solid #e4e4e7;
+  border-radius: .75rem;
+  background: #fff;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, .25);
+  z-index: 50;
+}
+
+@supports (position-area: bottom) {
+  .demo-select-panel {
+    top: auto;
+    left: anchor(left);
+  }
+}
+
+.demo-select-panel[hidden] {
+  display: none;
+}
+
+.demo-select-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  padding: .5rem .75rem;
+  border-radius: .5rem;
+  border: 1px solid transparent;
+  font-size: .9375rem;
+  cursor: pointer;
+}
+
+.demo-select-option:hover {
+  background: #f4f4f5;
+}
+
+.demo-select-option:focus-visible {
+  outline: none;
+  border-color: #18181b;
+  background: #18181b;
+  color: #fff;
+}
+
+.demo-select-option[aria-selected="true"]::after {
+  content: "✓";
+  font-size: .8125rem;
+}
+
+.demo-select-option[aria-disabled="true"] {
+  opacity: .4;
+  cursor: not-allowed;
+}
+`}</style>
+
+:::interactive[Single-Select Dropdown]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup, teleport, renderDynamic } from '@airlib/react';
+import type { ComponentProps, ReactNode } from 'react';
+
+type DemoSelectProps = ComponentProps<'div'> & {
+  value?: string | null;
+  open?: boolean;
+};
+
+const DemoSelect = setup<DemoSelectProps>((props) => {
+  const select = aria('select', props);
+
+  return () => (
+    <div ref={select.ref} {...select.restProps(['children'])} className="demo-select">
+      {props.children}
+    </div>
+  );
+}, 'DemoSelect');
+
+type DemoSelectTriggerProps = ComponentProps<'button'>;
+
+const DemoSelectTrigger = setup<DemoSelectTriggerProps>((props) => {
+  const trigger = aria('select-trigger', props);
+
+  return () => (
+    <button ref={trigger.ref} {...trigger.restProps(['children'])} className="demo-select-trigger">
+      {trigger.text || 'Select'}
+    </button>
+  );
+}, 'DemoSelectTrigger');
+
+type DemoSelectPanelProps = ComponentProps<'div'> & {
+  children: ReactNode;
+};
+
+const DemoSelectPanel = setup<DemoSelectPanelProps>((props) => {
+  const panel = aria('select-panel', props);
+
+  return () => {
+    if (!panel.open) return null;
+
+    return teleport(
+      <div ref={panel.ref} {...panel.restProps(['children'])} className="demo-select-panel">
+        {props.children}
+      </div>
+    );
+  };
+}, 'DemoSelectPanel');
+
+type DemoOptionProps = ComponentProps<'div'> & {
+  value: string;
+  disabled?: boolean;
+  children: ReactNode;
+};
+
+const DemoOption = setup<DemoOptionProps>((props) => {
+  const option = aria('option', props);
+
+  return () => (
+    <div ref={option.ref} {...option.restProps(['children'])} className="demo-select-option">
+      {props.children}
+    </div>
+  );
+}, 'DemoOption');
+
+const options = {
+  ams: "Amsterdam",
+  ber: "Berlin",
+  cop: "Copenhagen",
+  dub: "Dublin",
+  vil: "Vilnius"
+};
+
+const Demo = (props) => (
+  <DemoSelect {...props}>
+    <DemoSelectTrigger />
+    <DemoSelectPanel>
+      {Object.entries(options).map(([value, label]) => (
+        <DemoOption key={value} value={value}>{label}</DemoOption>
+      ))}
+    </DemoSelectPanel>
+  </DemoSelect>
+);
+```
+
+<div className="inline-flex mx-auto gap-4">
+  <Demo />
+  <Demo required />
+  <Demo multiple />
+</div>
+:::
+
+Click the trigger — or focus it and press `ArrowDown`. `Escape` closes without committing and lands focus back on the trigger; `Space` or `Enter` on an option commits and closes.
 
 ## Select
 
-In Aria, Select is the container controller created with `aria('select')` that compiles `role="listbox"` and manages option selection and roving focus.
+Role-less root orchestrator hosting the selection and the popup visibility, publishing ambient context for the trigger, the panel, and the options.
 
 ```ts
-aria<E extends BaseElement = HTMLElement, T extends Primitive = Primitive>(
+aria<E extends BaseElement = HTMLElement>(
   role: 'select',
-  props?: SelectProps<T>
+  props?: SelectProps
 ): SelectAria<E>
 ```
 
-### Parameters
-
-- `props.value` *(Primitive | Primitive[], optional)*: Active selection value token in single mode, or array of tokens when `multiple: true`.
-- `props.multiple` *(boolean, optional, default `false`)*: Enables concurrent multi-option selection, compiling `aria-multiselectable="true"`.
-- `props.orientation` *('vertical' | 'horizontal', optional, default `'vertical'`)*: Focus movement axis and compiled `aria-orientation`.
-- `props.manual` *(boolean, optional, default `true`)*: In single mode, arrow navigation moves focus without selecting until `Enter` or `Space` is pressed.
-- `props.required` *(boolean, optional, default `false`)*: Enforces that at least one option must remain selected.
-- `props.invalid` *(boolean | 'grammar' | 'spelling', optional)*: Indicates an invalid input state, compiling to `aria-invalid`.
-- `props.id` *(string, optional)*: Namespace or DOM element identifier.
-- `props.disabled` *(boolean, optional)*: Disables the entire select.
-
-### How it behaves
-
-Compiles `role="listbox"` and `aria-multiselectable` (`"true"` if multiple, `"false"` if single). It acts as a single tab stop in the page tab order. Only the active option receives `tabindex="0"`, while other options receive `tabindex="-1"`. Arrow keys rove focus across enabled options along the configured orientation. In single mode, selecting an active option deselects it unless `required: true` is set; selecting an inactive option sets it as the active value. In multiple mode, activating an option toggles its presence in the selection array.
-
 ### Usage
-
-To use Select, create the select instance with `aria('select', props)`, then pass `select.ref` and spread `select.attributes` onto your list container element:
 
 :::code-group
 
-```tsx [React] executable
+```tsx [React]
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
 import type { ComponentProps } from 'react';
 
-type SelectProps = ComponentProps<'ul'> & {
-  id?: string;
-  value?: string | string[];
+type SelectProps = ComponentProps<'div'> & {
+  value?: string | string[] | null;
+  open?: boolean;
   multiple?: boolean;
-  orientation?: 'horizontal' | 'vertical';
-  manual?: boolean;
-  required?: boolean;
+  query?: string;
   disabled?: boolean;
+  required?: boolean;
+  onopen?: () => void;
+  onclose?: () => void;
 };
 
 const Select = setup<SelectProps>((props) => {
   const select = aria('select', props);
-  const restProps = props.$omit([...select.ownKeys, 'children']);
 
   return () => (
-    <ul ref={select.ref} {...restProps} {...select.attributes}>
+    <div ref={select.ref} {...select.restProps(['children'])}>
       {props.children}
-    </ul>
+    </div>
   );
 });
 ```
@@ -88,78 +260,81 @@ import { aria } from '@airlib/aria';
 import { setup } from '@airlib/solid';
 import type { ComponentProps } from 'solid-js';
 
-type SelectProps = ComponentProps<'ul'> & {
-  id?: string;
-  value?: string | string[];
+type SelectProps = ComponentProps<'div'> & {
+  value?: string | string[] | null;
+  open?: boolean;
   multiple?: boolean;
-  orientation?: 'horizontal' | 'vertical';
-  manual?: boolean;
-  required?: boolean;
+  query?: string;
   disabled?: boolean;
+  required?: boolean;
+  onopen?: () => void;
+  onclose?: () => void;
 };
 
 const Select = setup<SelectProps>((props) => {
   const select = aria('select', props);
-  const restProps = props.$omit([...select.ownKeys, 'children']);
 
   return (
-    <ul ref={select.ref} {...restProps} {...select.attributes}>
+    <div ref={select.ref} {...select.restProps(['children'])}>
       {props.children}
-    </ul>
+    </div>
   );
 });
 ```
 
 :::
 
-## Select Option
+For multiple selection declare the array archetype: `{ multiple: true, value: ['ams', 'ber'] }`. `multiple` and `value` narrow together.
 
-In Aria, a Select Option is a selectable choice item created with `aria('option')` that compiles `role="option"` and synchronizes its selected state with the parent select.
+### Parameters
+
+- `props.value` *(string | null | string[], optional)*: Selected option value in the single archetype (`null` is the unselected token); an array of tokens in the multiple archetype.
+- `props.open` *(boolean, optional)*: Popup visibility flag, readable and writable through `select.open`.
+- `props.multiple` *(boolean, optional, default `false`)*: Declares the multi-select archetype, where `value` is an array of tokens.
+- `props.query` *(string, optional)*: Filter query.
+- `props.disabled` *(boolean, optional)*: Locks out toggling and committing across the whole select.
+- `props.required` *(boolean, optional)*: A required select with nothing selected is claimed by the first enabled option.
+- `props.id` *(string, optional)*: Explicit DOM identifier. Generated as `select-<n>` when omitted; the panel derives `{id}-panel`.
+- `props.onopen` / `props.onclose` *(handlers, optional)*: Called when the popup opens or closes.
+
+### How it behaves
+
+- Compiles no `role` — the root is a non-semantic container.
+- A programmatic write (`select.open = true` or `props.open = true`) flips visibility and flows through to the trigger's `aria-expanded`, but dispatches nothing on its own: visibility events come from the popup lifecycle.
+- A commit in single mode closes the popup; a commit in multiple mode leaves it open.
+
+## Select Trigger
+
+Popup anchor compiling the combobox face and toggling the panel.
 
 ```ts
-aria(role: 'option', props: OptionProps<T>, options?: OptionOptions): OptionAria<E>
+aria<E extends BaseElement = HTMLElement>(
+  role: 'select-trigger',
+  props?: SelectTriggerProps
+): SelectTriggerAria<E>
 ```
-
-### Parameters
-
-- `props.value` *(Primitive, required)*: Choice candidate value matching the select active value.
-- `props.selected` *(boolean, optional)*: Initial selection hint when the parent select is uncontrolled.
-- `props.disabled` *(boolean, optional)*: Disables this option and causes keyboard navigation to skip it.
-- `options.native` *(boolean, optional, default `false`)*: Set to `true` when bound to a native `<option>` element.
-
-### How it behaves
-
-Compiles `role="option"`, projects `aria-selected="true"` when matching the parent select's active selection, and reflects `aria-selected="false"` otherwise. It manages `tabindex` (`0` when focused, `-1` when inactive) to participate in the select's roving focus strip. Activating via click, `Space`, or `Enter` updates parent selection according to the select's single or multi-select rules.
-
-:::note[Option Widget]
-`Option` is also used as a standalone widget in `@airlib/aria`. When nested inside a select, it coordinates automatically through ambient parent context.
-:::
 
 ### Usage
 
-To use Select Option, create the option instance with `aria('option', props)`, then pass `option.ref` and spread `option.attributes` onto your list item element:
-
 :::code-group
 
-```tsx [React] executable
+```tsx [React]
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
 import type { ComponentProps } from 'react';
 
-type SelectOptionProps = ComponentProps<'li'> & {
-  value: string;
-  selected?: boolean;
+type SelectTriggerProps = ComponentProps<'button'> & {
+  id?: string;
   disabled?: boolean;
 };
 
-const SelectOption = setup<SelectOptionProps>((props) => {
-  const option = aria('option', props);
-  const restProps = props.$omit([...option.ownKeys, 'children']);
+const SelectTrigger = setup<SelectTriggerProps>((props) => {
+  const trigger = aria('select-trigger', props);
 
   return () => (
-    <li ref={option.ref} {...restProps} {...option.attributes}>
+    <button ref={trigger.ref} {...trigger.restProps(['children'])}>
       {props.children}
-    </li>
+    </button>
   );
 });
 ```
@@ -169,94 +344,140 @@ import { aria } from '@airlib/aria';
 import { setup } from '@airlib/solid';
 import type { ComponentProps } from 'solid-js';
 
-type SelectOptionProps = ComponentProps<'li'> & {
-  value: string;
-  selected?: boolean;
+type SelectTriggerProps = ComponentProps<'button'> & {
+  id?: string;
   disabled?: boolean;
 };
 
-const SelectOption = setup<SelectOptionProps>((props) => {
-  const option = aria('option', props);
-  const restProps = props.$omit([...option.ownKeys, 'children']);
+const SelectTrigger = setup<SelectTriggerProps>((props) => {
+  const trigger = aria('select-trigger', props);
 
   return (
-    <li ref={option.ref} {...restProps} {...option.attributes}>
+    <button ref={trigger.ref} {...trigger.restProps(['children'])}>
       {props.children}
-    </li>
+    </button>
   );
 });
 ```
 
 :::
 
-## Putting It Together
+### Parameters
 
-Once your components are wired with `aria(...)`, compose them to build accessible selects:
+- `props.id` *(string, optional)*: DOM element identifier.
+- `props.disabled` *(boolean, optional)*: Disables this trigger. Select-level disablement applies too.
 
-```tsx
-<Select value="apple">
-  <SelectOption value="apple">
-    <span>Apple</span>
-    <span>Fruit</span>
-  </SelectOption>
-  <SelectOption value="banana">
-    <span>Banana</span>
-    <span>Fruit</span>
-  </SelectOption>
-  <SelectOption value="cherry">
-    <span>Cherry</span>
-    <span>Fruit</span>
-  </SelectOption>
-  <SelectOption value="date">
-    <span>Date</span>
-    <span>Fruit</span>
-  </SelectOption>
-</Select>
+### How it behaves
+
+- Compiles `role="combobox"`, `aria-haspopup="listbox"`, `aria-expanded` tracking the popup, and `aria-controls` pointing at the panel id.
+- Click, `Enter`, and `Space` toggle the popup; `ArrowDown` and `ArrowUp` on a closed trigger open it.
+- `Escape` closes without committing and restores focus to the trigger.
+- A disabled trigger refuses toggling and opening, on a native `<button>` (real `disabled`) and on custom hosts (`tabindex="-1"` plus `aria-disabled="true"`).
+
+## Select Panel
+
+Popup listbox inheriting the listbox's traversal, typeahead, and option coordination, with dismissal and focus delegated to an internal popover.
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'select-panel',
+  props?: SelectPanelProps
+): SelectPanelAria<E>
 ```
 
-:::interactive[Select Interactive Demo]
-<Select value="apple" className="flex flex-col gap-1 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 bg-zinc-50/50 dark:bg-zinc-900/50 max-w-xs">
-  <SelectOption
-    value="apple"
-    className="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200/60 dark:hover:bg-zinc-800/60 aria-selected:bg-primary aria-selected:text-white"
-  >
-    <span>Apple</span>
-    <span className="text-xs opacity-75">Fruit</span>
-  </SelectOption>
-  <SelectOption
-    value="banana"
-    className="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200/60 dark:hover:bg-zinc-800/60 aria-selected:bg-primary aria-selected:text-white"
-  >
-    <span>Banana</span>
-    <span className="text-xs opacity-75">Fruit</span>
-  </SelectOption>
-  <SelectOption
-    value="cherry"
-    className="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200/60 dark:hover:bg-zinc-800/60 aria-selected:bg-primary aria-selected:text-white"
-  >
-    <span>Cherry</span>
-    <span className="text-xs opacity-75">Fruit</span>
-  </SelectOption>
-  <SelectOption
-    value="date"
-    className="flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200/60 dark:hover:bg-zinc-800/60 aria-selected:bg-primary aria-selected:text-white"
-  >
-    <span>Date</span>
-    <span className="text-xs opacity-75">Fruit</span>
-  </SelectOption>
-</Select>
+`SelectPanelProps` is the listbox props. The panel adopts the select's ambient context and proxies `open`, `onopen`, and `onclose` to and from the internal popover.
+
+### Usage
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type SelectPanelProps = ComponentProps<'div'>;
+
+const SelectPanel = setup<SelectPanelProps>((props) => {
+  const panel = aria('select-panel', props);
+
+  return () => (
+    <div ref={panel.ref} {...panel.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type SelectPanelProps = ComponentProps<'div'>;
+
+const SelectPanel = setup<SelectPanelProps>((props) => {
+  const panel = aria('select-panel', props);
+
+  return (
+    <div ref={panel.ref} {...panel.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
 :::
+
+### How it behaves
+
+- Compiles `role="listbox"` and holds the panel id the trigger's `aria-controls` points at.
+- Traversal moves focus and commits nothing; activation commits through the option's own rules.
+- Outside click and `Escape` dismiss through the internal popover; opening focuses the selected option first, else the first focusable.
+
+## Options
+
+Individual choices are the standard `option` role controller (`aria('option')`) — ambiently coordinated, selected rather than checked, and inert to keys of their own. See the [Option](/docs/aria/option) documentation for its value, label, and disablement contract.
+
+## Events
+
+| Event | Authored by | Trigger | `detail` |
+| :--- | :--- | :--- | :--- |
+| `input` | The option | Focus landed on it — arrows, `Home`/`End`, typeahead, or a click | That option's value |
+| `change` | The select root | Activation committed the selection | The whole updated value |
+| `open` / `onopen` | The popup | The panel opened | The open state |
+| `close` / `onclose` | The popup | The panel closed | The open state |
+
+```tsx
+const select = aria('select', {
+  value: 'ams',
+  onopen: () => hideHint(),
+  onclose: () => restoreHint(),
+});
+```
+
+A programmatic write (`select.open = true` or `props.open = true`) flips visibility but dispatches nothing: an external write is neither an opening gesture nor a commit, because nobody acted.
 
 ## Keyboard Navigation
 
-- **ArrowDown / ArrowRight**: Moves roving focus to the next option in the list.
-- **ArrowUp / ArrowLeft**: Moves roving focus to the previous option in the list.
-- **Home / End**: Moves focus directly to the first or last enabled option.
-- **Space / Enter**: Selects the focused option (or toggles selection when `multiple: true`).
-- **Tab**: Exits the select completely and moves focus to the next element on the page.
+| Key | Behavior |
+| :--- | :--- |
+| `Click` / `Enter` / `Space` on the trigger | Toggles the popup. |
+| `ArrowDown` / `ArrowUp` on a closed trigger | Opens the popup. |
+| `ArrowDown` / `ArrowUp` / `Home` / `End` in the panel | Roves across options without committing. |
+| `Space` / `Enter` on an option | Commits the selection. |
+| `Escape` | Closes without committing and restores focus to the trigger. |
+| `Tab` | Exits the select completely. |
+
+## What you get
+
+- **A popup without popup plumbing.** Dismissal, positioning, and focus restoration are delegated to the internal popover, so the select never reimplements them.
+- **Traversal that never selects.** Roving forwards `input` with the cursor value; only activation dispatches `change` with the committed value.
+- **Single closes, multiple stays.** The commit rule follows the archetype, so multi-select pickers never slam shut mid-choice.
+- **Claimed when required.** A `required` select with nothing selected is announced through the first enabled option instead of silence.
+- **Zero markup lock-in.** Native `<button>` or a custom trigger host, `<div>` or `<ul>` panel, rich option rows.
 
 ## Next Steps
 
-- **[Menu](/docs/aria/menu)**: Build action menus, popups, and menubars with roving focus.
-- **[Tabs](/docs/aria/tabs)**: Organize content panels with reciprocal tab triggers and panels.
-- **[Radio Group](/docs/aria/radio-group)**: Build mutually exclusive radio choice selections.
+- **[Option](/docs/aria/option)**: The selection member this composite coordinates.
+- **[Listbox](/docs/aria/listbox)**: The same option list always visible, without trigger or popup.

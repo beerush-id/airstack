@@ -26,10 +26,10 @@ import {
   ListboxAria,
   type ListboxProps,
   MenuAria,
-  MenubarAria,
-  type MenubarProps,
   MenuButtonAria,
   type MenuButtonProps,
+  MenubarAria,
+  type MenubarProps,
   MenuGroupAria,
   type MenuGroupProps,
   MenuItemAria,
@@ -45,7 +45,12 @@ import {
   RadioGroupAria,
   type RadioGroupProps,
   SelectAria,
+  SelectPanelAria,
+  type SelectPanelProps,
   type SelectProps,
+  SelectTriggerAria,
+  type SelectTriggerOptions,
+  type SelectTriggerProps,
   StepperAria,
   StepperButtonAria,
   type StepperButtonOptions,
@@ -232,10 +237,18 @@ export function aria<E extends BaseElement = HTMLElement>(
 
 export function aria<E extends BaseElement = HTMLElement>(role: 'listbox', props?: ListboxProps): ListboxAria<E>;
 
-export function aria<E extends BaseElement = HTMLElement, T extends Primitive = Primitive>(
-  role: 'select',
-  props?: SelectProps<T>
-): SelectAria<E>;
+export function aria<E extends BaseElement = HTMLElement>(role: 'select', props?: SelectProps): SelectAria<E>;
+
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'select-trigger',
+  props?: SelectTriggerProps,
+  options?: SelectTriggerOptions
+): SelectTriggerAria<E>;
+
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'select-panel',
+  props?: SelectPanelProps
+): SelectPanelAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement, T extends Primitive = Primitive>(
   role: 'option',
@@ -608,6 +621,10 @@ export function aria(role: string, init?: unknown, options?: unknown): unknown {
       return new ListboxAria(init as never);
     case 'select':
       return new SelectAria(init as never);
+    case 'select-trigger':
+      return new SelectTriggerAria(init as never, options as never);
+    case 'select-panel':
+      return new SelectPanelAria(init as never);
     case 'option':
       return new OptionAria(init as never, options as never);
     case 'accordion':

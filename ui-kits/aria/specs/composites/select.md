@@ -9,22 +9,22 @@ button and a popup listbox.
 
 ### Composite Parts (Entity Tree)
 
-- **`Select`**: Root orchestrator (publishes ambient `selectCtx` hosting selection and `open` state).
+- **`Select`**: Root orchestrator (publishes ambient props context hosting selection and `open` state).
 - **`SelectTrigger`**: Trigger button opening the listbox (compiles `role="combobox"`, `aria-haspopup="listbox"`,
-  `aria-expanded`, `aria-controls`, `aria-activedescendant`).
-- **`SelectPopup`**: Popup listbox container (compiles `role="listbox"`, `aria-multiselectable` when multiple).
-- **`SelectOption`**: Option member (compiles `role="option"`, `aria-selected`, `aria-disabled`).
+  `aria-expanded`, `aria-controls`). Claims itself as anchor via `this.markActionable()`.
+- **`SelectPanel`**: Popup listbox panel inheriting from [Listbox](listbox.md) (compiles `role="listbox"`, creates internal `PopoverAria` proxying `open`, `onopen`, and `onclose` to ambient props).
+- **`Option`**: Composed option members (compiles `role="option"`). See [Option](../widgets/option.md).
 
 ---
 
 ## The Three Semantic Layers
 
-| Part / Role         | HTML Semantic                                  | WAI-ARIA Semantic                                                                                        | Aria Package Semantic Contract                                                            |
-|:--------------------|:-----------------------------------------------|:---------------------------------------------------------------------------------------------------------|:------------------------------------------------------------------------------------------|
-| **`Select` (Root)** | Logical container (`<div>` or fragment).       | None (role omitted).                                                                                     | Root orchestrator hosting `value`, `open`, `multiple`, `disabled`, `required`.            |
-| **`SelectTrigger`** | Native `<button type="button">` or non-button. | `role="combobox"`, `aria-haspopup="listbox"`, `aria-expanded`, `aria-controls`, `aria-activedescendant`. | Toggles popup, navigates options via typeahead and arrow keys, displays active selection. |
-| **`SelectPopup`**   | Dropdown container (`<div>` or `<ul>`).        | `role="listbox"`, `aria-multiselectable="true"` when multiple.                                           | Houses option list. Hidden when closed.                                                   |
-| **`SelectOption`**  | List item (`<div>` or `<li>`).                 | `role="option"`, `aria-selected`, `aria-disabled`.                                                       | Choice candidate: `this.props.value`. Active when matching `select.value`.                |
+| Part / Role         | HTML Semantic                                  | WAI-ARIA Semantic                                                                | Aria Package Semantic Contract                                                                                             |
+|:--------------------|:-----------------------------------------------|:---------------------------------------------------------------------------------|:---------------------------------------------------------------------------------------------------------------------------|
+| **`Select` (Root)** | Non-semantic container (`<div>` or fragment).  | None (role omitted).                                                             | Root orchestrator hosting `value`, `open`, `multiple`, `query`, `disabled`, `required`. Publishes ambient host context.    |
+| **`SelectTrigger`** | Native `<button type="button">` or custom.     | `role="combobox"`, `aria-haspopup="listbox"`, `aria-expanded`, `aria-controls`.  | Claims anchor via `this.markActionable()`. Toggles popup visibility; opens on arrow down/up.                              |
+| **`SelectPanel`**   | Dropdown container (`<div>` or `<ul>`).        | `role="listbox"`.                                                                | Popup panel. Inherits [Listbox](listbox.md), creating an internal Popover proxying `open`, `onopen`, and `onclose`.        |
+| **`Option`**        | List item (`<div>` or `<li>`).                 | `role="option"`.                                                                 | Composed from [Option](../widgets/option.md).                                                                              |
 
 ---
 
@@ -39,8 +39,12 @@ export interface SingleSelectProps {
   multiple?: false;
   /** Active option value */
   value?: string | null;
+  /** Filter query */
+  query?: string;
   /** Popup visibility flag */
   open?: boolean;
+  onopen?: () => void;
+  onclose?: () => void;
   disabled?: boolean;
   required?: boolean;
 }
@@ -53,8 +57,12 @@ export interface MultipleSelectProps {
   multiple: true;
   /** Array of active option values */
   value?: string[];
+  /** Filter query */
+  query?: string;
   /** Popup visibility flag */
   open?: boolean;
+  onopen?: () => void;
+  onclose?: () => void;
   disabled?: boolean;
   required?: boolean;
 }
@@ -66,15 +74,6 @@ export interface MultipleSelectProps {
 export type SelectProps = SingleSelectProps | MultipleSelectProps;
 ```
 
-#### `SelectTriggerOptions`
-
-```ts
-export interface SelectTriggerOptions {
-  /** Whether bound to native <button> (default: true) */
-  native?: boolean;
-}
-```
-
 #### `SelectTriggerProps`
 
 ```ts
@@ -84,69 +83,54 @@ export interface SelectTriggerProps {
 }
 ```
 
-#### `SelectPopupProps`
+#### `SelectPanelProps`
 
 ```ts
-export interface SelectPopupProps {
-  id?: string;
-}
-```
-
-#### `SelectOptionProps`
-
-```ts
-export interface SelectOptionProps {
-  value: string;
-  label?: string;
-  disabled?: boolean;
-}
+export type SelectPanelProps = ListboxProps;
 ```
 
 ### 2. Overload Contracts
 
 ```ts
-// Select: Root orchestrator
+// Select: Root orchestrator hosting ambient context
 export function aria<E extends BaseElement = HTMLElement>(
   role: 'select',
   props?: SelectProps
 ): SelectAria<E>;
 
 // SelectTrigger: Combobox button
-export function aria<E extends BaseElement = HTMLButtonElement>(
+export function aria<E extends BaseElement = HTMLElement>(
   role: 'select-trigger',
-  props?: SelectTriggerProps,
-  options?: SelectTriggerOptions
+  props?: SelectTriggerProps
 ): SelectTriggerAria<E>;
 
-// SelectPopup: Listbox popup
+// SelectPanel: Popup panel inheriting from Listbox
 export function aria<E extends BaseElement = HTMLElement>(
-  role: 'select-popup',
-  props?: SelectPopupProps
-): SelectPopupAria<E>;
-
-// SelectOption: Option item
-export function aria<E extends BaseElement = HTMLElement>(
-  role: 'select-option',
-  props: SelectOptionProps
-): SelectOptionAria<E>;
+  role: 'select-panel',
+  props?: SelectPanelProps
+): SelectPanelAria<E>;
 ```
 
 ---
 
 ## State & Lifecycle Rules
 
-1. **Trigger Toggling**:
+1. **Trigger Toggling & Anchoring**:
+  - Claims itself as anchor by calling `this.markActionable()`.
   - Pointer `click`, `Enter`, and `Space` toggle `open`.
-  - `DownArrow` on closed trigger opens popup and highlights first enabled option.
-  - `UpArrow` on closed trigger opens popup and highlights last enabled option.
+  - `DownArrow` on closed trigger opens popup.
+  - `UpArrow` on closed trigger opens popup.
+  - `Escape` closes popup without committing changes; focus restores to trigger.
 
-2. **Open Navigation**:
-  - Arrow keys `Up` / `Down` move virtual focus through visible options, updating `aria-activedescendant` on trigger.
-  - `Home` / `End` highlight first / last enabled option.
-  - Typeahead: printable characters navigate matching option labels with 500ms debounce.
-  - `Enter` or `Space` commits selection: closes popup in single-select; keeps open in multi-select.
-  - `Escape` closes popup without committing changes.
-  - Focus restores to trigger on close.
+2. **Composition & Popup Delegation**:
+  - The popup is rendered with `SelectPanel` (`aria('select-panel')`), which inherits `ListboxAria` and creates an internal `PopoverAria` instance.
+  - Member items are rendered with `Option` (`aria('option')`).
+  - `SelectPanel` adopts `select`'s ambient context (`this.properties = ambientProps ?? props`), proxying `open`, `onopen`, and `onclose` to/from the internal popover.
+  - Light dismissal (outside click, Escape) and positioning are handled by the internal popover.
+  - In single-select mode, committing selection automatically closes the popup; in multi-select mode, it remains open.
 
 3. **Events**:
-  - Dispatches `CustomEvent<string | null | string[]>('change', { bubbles: true, detail: select.value })` on container.
+  - `input`: Forwarded from `SelectPanel` when roving options.
+  - `change`: Dispatched on `select` when selection commits with the updated `value`.
+  - `open` / `onopen`: Emitted when the popup opens.
+  - `close` / `onclose`: Emitted when the popup closes.
