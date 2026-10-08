@@ -1,299 +1,187 @@
 ---
 title: 'Toolbar'
-description: 'Headless accessible toolbar composite with single-tab-stop roving focus and nested group delegation.'
+description: 'Headless focus container that takes over arrow-key roving across every control inside it.'
 nav: 'Toolbar'
 nav-priority: 330
 ---
 
-# Toolbar
+# AirLib Headless Toolbar
 
-Editor toolbars pack undo, redo, formatting toggles, and alignment options into a single compact bar. Forcing keyboard users to press `Tab` through every single control slows navigation and clutters page flow. A WAI-ARIA toolbar groups these controls into a single tab stop, using arrow keys to rove focus across tools.
+An editor bar packs undo, redo, formatting toggles, and alignment options into one strip. Assistive technology announces it as a loose pile of controls with no name and no relationship, and the arrow keys do not travel along it. Nesting a radio group or a toggle group inside makes that second half worse: each group claims the arrows for itself, so they stop at the group boundary. **AirLib Headless Toolbar** (`aria('toolbar')`) names the strip for assistive technology and carries arrow-key travel across everything inside it — nested groups keep their own role and their own selection state.
 
-`@airlib/aria` provides a headless focus manager for toolbars. It coordinates circular arrow-key roving focus across all descendant controls, takes over roving handlers from nested groups, and compiles required accessibility attributes without dictating markup, styling, or component structure.
+```tsx
+const toolbar = aria('toolbar', props);
 
-You compose a toolbar using these pieces:
+<div ref={toolbar.ref} {...toolbar.props} />
+```
 
-- **Toolbar**: The container element that compiles `role="toolbar"` and manages roving focus across all child controls.
-- **Action Buttons**: Standard buttons created with `aria('button')` that execute actions on click or Space/Enter.
-- **Toggle Buttons**: Two-state buttons created with `aria('toggle')` that maintain independent pressed states.
+<style>{`.demo-toolbar{display:flex;align-items:center;gap:.25rem;padding:.5rem;border:1px solid #e4e4e7;border-radius:.75rem;background:#fafafa}.demo-toolbar-button,.demo-toolbar-toggle{padding:.375rem .75rem;border:1px solid transparent;border-radius:.5rem;background:transparent;font-size:.875rem;font-weight:500;color:#3f3f46;cursor:pointer;transition:background-color .15s,border-color .15s,color .15s}.demo-toolbar-button:hover,.demo-toolbar-toggle:hover{background:#e4e4e7}.demo-toolbar-button:focus-visible,.demo-toolbar-toggle:focus-visible{outline:2px solid #18181b;outline-offset:2px}.demo-toolbar-toggle[aria-pressed="true"]{border-color:#18181b;background:#18181b;color:#fff}.demo-toolbar-toggle[aria-disabled="true"],.demo-toolbar-button[aria-disabled="true"]{opacity:.5;cursor:not-allowed}.demo-toolbar-separator{width:1px;height:1.25rem;margin:0 .25rem;background:#d4d4d8}`}</style>
 
-## What you get
+:::interactive[Editor Toolbar]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
 
-- **One Tab stop.** The entire toolbar acts as a single stop in the page tab order; tabbing again exits the toolbar completely.
-- **Stateless focus management.** The toolbar coordinates keyboard focus without holding state; pressed and checked states stay on each control.
-- **Circular roving focus.** Arrow keys navigate across enabled controls and wrap at boundaries without leaking focus to outside elements.
-- **Focus separated from activation.** Arrow navigation moves focus only; controls activate exclusively on click, `Space`, or `Enter`.
-- **Nested rover takeover.** Nested groups retain their selection semantics while delegating arrow-key roving navigation to the parent toolbar.
+type DemoToolbarProps = ComponentProps<'div'> & {
+  label?: string;
+  orientation?: 'horizontal' | 'vertical';
+  disabled?: boolean;
+};
+
+const DemoToolbar = setup<DemoToolbarProps>((props) => {
+  const toolbar = aria('toolbar', props);
+
+  return () => (
+    <div ref={toolbar.ref} {...toolbar.props} className="demo-toolbar">
+      {props.children}
+    </div>
+  );
+}, 'DemoToolbar');
+
+type DemoToolbarButtonProps = ComponentProps<'button'> & {
+  disabled?: boolean;
+};
+
+const DemoToolbarButton = setup<DemoToolbarButtonProps>((props) => {
+  const button = aria('button', props);
+
+  return () => (
+    <button ref={button.ref} {...button.restProps(['children'])} className="demo-toolbar-button">
+      {props.children}
+    </button>
+  );
+}, 'DemoToolbarButton');
+
+type DemoToolbarToggleProps = ComponentProps<'button'> & {
+  pressed?: boolean;
+  disabled?: boolean;
+};
+
+const DemoToolbarToggle = setup<DemoToolbarToggleProps>((props) => {
+  const toggle = aria('toggle', props);
+
+  return () => (
+    <button ref={toggle.ref} {...toggle.restProps(['children'])} className="demo-toolbar-toggle">
+      {props.children}
+    </button>
+  );
+}, 'DemoToolbarToggle');
+```
+
+<DemoToolbar label="Formatting">
+  <DemoToolbarButton>Undo</DemoToolbarButton>
+  <DemoToolbarButton>Redo</DemoToolbarButton>
+  <div className="demo-toolbar-separator" role="separator" />
+  <DemoToolbarToggle pressed={false}>Bold</DemoToolbarToggle>
+  <DemoToolbarToggle pressed={true}>Italic</DemoToolbarToggle>
+  <DemoToolbarToggle pressed={false}>Underline</DemoToolbarToggle>
+</DemoToolbar>
+:::
 
 ## Toolbar
 
-In Aria, Toolbar is the focus manager container created with `aria('toolbar')` that compiles `role="toolbar"` and coordinates keyboard roving focus across all child controls.
+Stateless focus container that compiles `role="toolbar"` and owns arrow-key travel across its descendants.
 
 ```ts
-aria<E extends BaseElement = HTMLElement>(role: 'toolbar', props?: ToolbarProps): ToolbarAria<E>
+aria<E extends BaseElement = HTMLElement>(
+  role: 'toolbar',
+  props?: ToolbarProps
+): ToolbarAria<E>
 ```
+
+### Usage
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type ToolbarProps = ComponentProps<'div'> & {
+  label?: string;
+  orientation?: 'horizontal' | 'vertical';
+  disabled?: boolean;
+};
+
+const Toolbar = setup<ToolbarProps>((props) => {
+  const toolbar = aria('toolbar', props);
+
+  return () => (
+    <div ref={toolbar.ref} {...toolbar.props}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type ToolbarProps = ComponentProps<'div'> & {
+  label?: string;
+  orientation?: 'horizontal' | 'vertical';
+  disabled?: boolean;
+};
+
+const Toolbar = setup<ToolbarProps>((props) => {
+  const toolbar = aria('toolbar', props);
+
+  return (
+    <div ref={toolbar.ref} {...toolbar.props}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
 
 ### Parameters
 
-- `props.orientation` *('horizontal' | 'vertical', optional, default `'horizontal'`)*: Axis along which arrow keys rove focus, compiled to `aria-orientation`.
-- `props.disabled` *(boolean, optional)*: Disables the toolbar container.
+- `props.label` *(string, optional)*: Accessible name for the toolbar, applied via `aria-label`.
+- `props.orientation` *('horizontal' | 'vertical', optional, default `'horizontal'`)*: Axis the arrow keys travel, compiled to `aria-orientation`.
+- `props.disabled` *(boolean, optional)*: Locks the toolbar out of keyboard roving and announces `aria-disabled`.
 
 ### How it behaves
 
-Compiles `role="toolbar"` and acts as a single tab stop in the page tab order. Only the active control receives `tabindex="0"`, while all other controls receive `tabindex="-1"`. Arrow keys rove focus across enabled descendant controls along the configured axis (`ArrowRight`/`ArrowLeft` for horizontal, `ArrowDown`/`ArrowUp` for vertical) with circular wrapping. When nested selection groups are placed inside, the toolbar takes over roving focus across the scope chain while compiling the nested containers as `role="group"`.
+- Compiles `role="toolbar"`, an explicit `aria-disabled` baseline, and `aria-orientation` on both axes.
+- Arrow keys move focus across every enabled control in the bar and wrap at both ends, never escaping to elements outside it.
+- Arrows move focus only. Activation stays with the control, on its own `click`, `Enter`, or `Space`.
+- Controls you add or remove later are picked up on the next keystroke.
+- A radio group or toggle group inside the toolbar keeps working as itself — same role, same label, same value — while the toolbar carries the arrows across it.
+- Pressed and checked state stays on each control; the toolbar holds none.
+- A disabled toolbar claims no keystroke at all.
 
 :::tip[No Toolbar Item Role]
-WAI-ARIA does not define a separate toolbar item role. Any focusable control placed inside—such as a button, toggle, checkbox, or link—automatically participates in the toolbar's roving focus.
+WAI-ARIA defines no toolbar item role, so there is no `Toolbar.Item` to reach for. Any focusable control you place inside — button, toggle, checkbox, link — participates in roving by being there.
 :::
 
-### Usage
+## Controls
 
-To use Toolbar, create the toolbar instance with `aria('toolbar', props)`, then pass `toolbar.ref` and spread `toolbar.attributes` onto your container element:
-
-:::code-group
-
-```tsx [React] executable
-import { aria } from '@airlib/aria';
-import { setup } from '@airlib/react';
-import type { ComponentProps } from 'react';
-
-type ToolbarProps = ComponentProps<'div'> & {
-  orientation?: 'horizontal' | 'vertical';
-  disabled?: boolean;
-};
-
-const Toolbar = setup<ToolbarProps>((props) => {
-  const toolbar = aria('toolbar', props);
-  const restProps = props.$omit([...toolbar.ownKeys, 'children']);
-
-  return () => (
-    <div ref={toolbar.ref} {...restProps} {...toolbar.attributes}>
-      {props.children}
-    </div>
-  );
-});
-```
-
-```tsx [SolidJS]
-import { aria } from '@airlib/aria';
-import { setup } from '@airlib/solid';
-import type { ComponentProps } from 'solid-js';
-
-type ToolbarProps = ComponentProps<'div'> & {
-  orientation?: 'horizontal' | 'vertical';
-  disabled?: boolean;
-};
-
-const Toolbar = setup<ToolbarProps>((props) => {
-  const toolbar = aria('toolbar', props);
-  const restProps = props.$omit([...toolbar.ownKeys, 'children']);
-
-  return (
-    <div ref={toolbar.ref} {...restProps} {...toolbar.attributes}>
-      {props.children}
-    </div>
-  );
-});
-```
-
-:::
-
-## Action Button
-
-In Aria, an Action Button inside a toolbar is a standard button created with `aria('button')` that participates in the toolbar's roving focus.
-
-```ts
-aria(role: 'button', props?: ButtonProps, options?: ButtonOptions): ButtonAria
-```
-
-### Parameters
-
-- `props.disabled` *(boolean, optional)*: Prevents user interaction and causes keyboard roving to skip this button.
-
-### How it behaves
-
-Acts as an action trigger within the toolbar. When focused, pressing `Enter` or `Space` triggers its click action. Arrow keys move focus past the button without firing its click handler.
-
-### Usage
-
-To use an Action Button, create the button instance with `aria('button', props)`, then pass `button.ref` and spread `button.attributes` onto your button element:
-
-:::code-group
-
-```tsx [React] executable
-import { aria } from '@airlib/aria';
-import { setup } from '@airlib/react';
-import type { ComponentProps } from 'react';
-
-type ToolbarButtonProps = ComponentProps<'button'> & {
-  disabled?: boolean;
-};
-
-const ToolbarButton = setup<ToolbarButtonProps>((props) => {
-  const button = aria('button', props);
-  const restProps = props.$omit([...button.ownKeys, 'children']);
-
-  return () => (
-    <button ref={button.ref} {...restProps} {...button.attributes}>
-      {props.children}
-    </button>
-  );
-});
-```
-
-```tsx [SolidJS]
-import { aria } from '@airlib/aria';
-import { setup } from '@airlib/solid';
-import type { ComponentProps } from 'solid-js';
-
-type ToolbarButtonProps = ComponentProps<'button'> & {
-  disabled?: boolean;
-};
-
-const ToolbarButton = setup<ToolbarButtonProps>((props) => {
-  const button = aria('button', props);
-  const restProps = props.$omit([...button.ownKeys, 'children']);
-
-  return (
-    <button ref={button.ref} {...restProps} {...button.attributes}>
-      {props.children}
-    </button>
-  );
-});
-```
-
-:::
-
-## Toggle Button
-
-In Aria, a Toggle Button inside a toolbar is a two-state control created with `aria('toggle')` that maintains its own pressed state while participating in roving focus.
-
-```ts
-aria(role: 'toggle', props?: ToggleProps, options?: ButtonOptions): ToggleAria
-```
-
-### Parameters
-
-- `props.pressed` *(boolean, optional, default `false`)*: Reflects whether the toggle is currently active via `aria-pressed`.
-- `props.disabled` *(boolean, optional)*: Prevents user interaction.
-
-### How it behaves
-
-Projects `aria-pressed` reflecting its `pressed` state. Pressing `Enter` or `Space` flips its state. Moving focus with arrow keys roves past the toggle without altering its pressed value.
-
-### Usage
-
-To use a Toggle Button, create the toggle instance with `aria('toggle', props)`, then pass `toggle.ref` and spread `toggle.attributes` onto your button element:
-
-:::code-group
-
-```tsx [React] executable
-import { aria } from '@airlib/aria';
-import { setup } from '@airlib/react';
-import type { ComponentProps } from 'react';
-
-type ToolbarToggleProps = ComponentProps<'button'> & {
-  pressed?: boolean;
-  disabled?: boolean;
-};
-
-const ToolbarToggle = setup<ToolbarToggleProps>((props) => {
-  const toggle = aria('toggle', props);
-  const restProps = props.$omit([...toggle.ownKeys, 'children']);
-
-  return () => (
-    <button ref={toggle.ref} {...restProps} {...toggle.attributes}>
-      {props.children}
-    </button>
-  );
-});
-```
-
-```tsx [SolidJS]
-import { aria } from '@airlib/aria';
-import { setup } from '@airlib/solid';
-import type { ComponentProps } from 'solid-js';
-
-type ToolbarToggleProps = ComponentProps<'button'> & {
-  pressed?: boolean;
-  disabled?: boolean;
-};
-
-const ToolbarToggle = setup<ToolbarToggleProps>((props) => {
-  const toggle = aria('toggle', props);
-  const restProps = props.$omit([...toggle.ownKeys, 'children']);
-
-  return (
-    <button ref={toggle.ref} {...restProps} {...toggle.attributes}>
-      {props.children}
-    </button>
-  );
-});
-```
-
-:::
-
-## Putting It Together
-
-Once your components are wired with `aria(...)`, compose them to build accessible toolbars:
-
-```tsx
-<Toolbar>
-  <ToolbarButton onClick={() => console.log('Undo')}>Undo</ToolbarButton>
-  <ToolbarButton onClick={() => console.log('Redo')}>Redo</ToolbarButton>
-  <div role="separator" />
-  <ToolbarToggle pressed={false}>Bold</ToolbarToggle>
-  <ToolbarToggle pressed={false}>Italic</ToolbarToggle>
-  <ToolbarToggle pressed={false}>Underline</ToolbarToggle>
-</Toolbar>
-```
-
-:::interactive[Toolbar Interactive Demo]
-<Toolbar className="flex items-center gap-1 border border-zinc-200 dark:border-zinc-800 rounded-xl p-2 bg-zinc-50/50 dark:bg-zinc-900/50">
-  <ToolbarButton
-    className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
-    onClick={() => console.log('Undo')}
-  >
-    Undo
-  </ToolbarButton>
-  <ToolbarButton
-    className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
-    onClick={() => console.log('Redo')}
-  >
-    Redo
-  </ToolbarButton>
-  <div className="w-px h-5 bg-zinc-300 dark:bg-zinc-700 mx-1" />
-  <ToolbarToggle
-    pressed={false}
-    className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-800 aria-pressed:bg-primary aria-pressed:text-white"
-  >
-    Bold
-  </ToolbarToggle>
-  <ToolbarToggle
-    pressed={false}
-    className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-800 aria-pressed:bg-primary aria-pressed:text-white"
-  >
-    Italic
-  </ToolbarToggle>
-  <ToolbarToggle
-    pressed={false}
-    className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-800 aria-pressed:bg-primary aria-pressed:text-white"
-  >
-    Underline
-  </ToolbarToggle>
-</Toolbar>
-:::
+Toolbar members are the ordinary role controllers: [`aria('button')`](/docs/aria/button), [`aria('toggle')`](/docs/aria/toggle), [`aria('checkbox')`](/docs/aria/checkbox), [`aria('link')`](/docs/aria/link). Each keeps its own props, projections, and activation keys. Nested groups such as [`aria('radio-group')`](/docs/aria/radio-group) and [`aria('toggle-group')`](/docs/aria/toggle-group) keep coordinating their own value while the toolbar owns the arrows.
 
 ## Keyboard Navigation
 
-- **ArrowRight / ArrowLeft**: Moves focus across horizontal controls (wraps circularly at boundaries).
-- **ArrowDown / ArrowUp**: Moves focus across vertical controls (when `orientation="vertical"`).
-- **Home / End**: Moves focus directly to the first or last enabled control in the toolbar.
-- **Space / Enter**: Activates the focused action button or flips the state of a focused toggle.
-- **Tab**: Exits the toolbar completely and moves focus to the next interactive element on the page.
+- **ArrowRight / ArrowLeft**: Moves focus across controls in a horizontal toolbar, wrapping at both ends.
+- **ArrowDown / ArrowUp**: Moves focus across controls in a vertical toolbar, wrapping at both ends.
+- **Home / End**: Moves focus to the first or last enabled control.
+- **Space / Enter**: Left to the focused control, which activates itself.
+- **Tab**: Left to the browser, moving focus to the next interactive element on the page.
+
+## What you get
+
+- **Arrow travel across the whole bar.** One press moves one control, straight through any nested group.
+- **Groups stay groups.** A radio group or toggle group inside a toolbar keeps its role, its label, and its selection behavior.
+- **Nothing to configure.** No value, no selection timing, no list of members.
+- **Controls come and go freely.** Add or remove a button without wiring it up.
+- **Zero markup lock-in.** Native controls or custom hosts; the toolbar only moves focus.
 
 ## Next Steps
 
-- **[Tabs](/docs/aria/tabs)**: Build tabbed content sections with paired triggers and content panels.
+- **[Toggle Group](/docs/aria/toggle-group)**: Coordinate single or multiple active toggle buttons.
+- **[Radio Group](/docs/aria/radio-group)**: Single-selection group coordinating mutual exclusivity.
 - **[Menu](/docs/aria/menu)**: Coordinate action menus and popup overlays with keyboard focus management.
-- **[Button](/docs/aria/button)**: Explore standalone button behaviors, click polyfills, and accessibility attributes.

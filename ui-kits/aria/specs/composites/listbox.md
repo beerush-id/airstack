@@ -1,16 +1,15 @@
 # Listbox Specification
 
-The inline option-selection unit. Coordinates single or multiple selection, active-option navigation, and typeahead
-without requiring a trigger or open state.
+The option-selection group. Coordinates single or multiple option selection with a single tab-stop and typeahead
+capability.
 
 - **Entity**: `listbox`
 - **WAI-ARIA Role**: `listbox`
 
 ### Composite Parts (Entity Tree)
 
-- **`Listbox`**: Container coordinator (compiles `role="listbox"`, `aria-multiselectable`, `aria-activedescendant`,
-  `tabindex="0"`).
-- **`ListboxOption`**: Option members (compiles `role="option"`, `aria-selected`, `aria-disabled`).
+- **`Listbox`**: Group coordinator (compiles `role="listbox"`, `aria-multiselectable`).
+- **`Option`**: Option members (compiles `role="option"`, `aria-selected`, `aria-disabled`). See [Option](../widgets/option.md).
 
 ---
 
@@ -18,8 +17,8 @@ without requiring a trigger or open state.
 
 | Part / Role         | HTML Semantic                                                                  | WAI-ARIA Semantic                                                                                                                                                                                                                          | Aria Package Semantic Contract                                                                                                                                                                                                                   |
 |:--------------------|:-------------------------------------------------------------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **`Listbox`**       | Native list `<select size="2+">` or non-semantic container (`<div>` / `<ul>`). | `role="listbox"` (omitted on native `<select>`), `aria-multiselectable`, `aria-activedescendant`, `aria-required="true"` when `required`, `aria-label` from `label`, `tabindex="0"` (custom; `aria-disabled` + no tab stop when disabled). | Container coordinator. Props: `ListboxProps`. Hosts `value`, `multiple`, `disabled`, `required`, `label`. `required` is a constraint only and never auto-selects (`docs/listbox.md:34`). Manages virtual focus or native selection pass-through. |
-| **`ListboxOption`** | Native `<option>` or non-semantic element (`<li>` / `<div>`).                  | `role="option"`, `aria-selected`, `aria-disabled`, `aria-label` (explicit `label`; default = text content, `:20,61`), `id` for active-descendant. Excluded from sequential focus.                                                          | Choice candidate: `this.props.value`. Derived active state via equality (single) or membership (multiple).                                                                                                                                       |
+| **`Listbox`**       | Non-semantic container (`<div>` / `<ul>`). | `role="listbox"`, `aria-multiselectable`, `aria-required="true"` when `required`, `aria-label` from `label`. Single tab-stop. | Group coordinator. Props: `ListboxProps`. Adopts `ambientProps ?? props`. Coordinates selection, single tab-stop navigation, typeahead, and optional query filtering. |
+| **`Option`**        | Non-semantic element (`<li>` / `<div>`).   | `role="option"`, `aria-selected`, `aria-disabled`, `aria-label` (explicit `label`; default = text content).                     | Choice member: `this.props.value`. Handled by [Option](../widgets/option.md).                                                                                           |
 
 ---
 
@@ -33,6 +32,7 @@ without requiring a trigger or open state.
 export interface SingleListboxProps {
   multiple?: false;
   value?: string | null;
+  query?: string;
   disabled?: boolean;
   required?: boolean;
   label?: string;
@@ -45,6 +45,7 @@ export interface SingleListboxProps {
 export interface MultipleListboxProps {
   multiple: true;
   value?: string[];
+  query?: string;
   disabled?: boolean;
   required?: boolean;
   label?: string;
@@ -57,70 +58,34 @@ export interface MultipleListboxProps {
 export type ListboxProps = SingleListboxProps | MultipleListboxProps;
 ```
 
-#### `ListboxOptions`
-
-```ts
-export interface ListboxOptions {
-  /** Whether bound to native list-style <select size="2+"> (default: false) */
-  native?: boolean;
-}
-```
-
-#### `ListboxOptionOptions`
-
-```ts
-export interface ListboxOptionOptions {
-  /** Whether bound to native <option> (default: false) */
-  native?: boolean;
-}
-```
-
-#### `ListboxOptionProps`
-
-```ts
-export interface ListboxOptionProps {
-  value: string;
-  label?: string;
-  disabled?: boolean;
-}
-```
-
 ### 2. Overload Contracts
 
 ```ts
 // Listbox: Inline listbox container
 export function aria<E extends BaseElement = HTMLElement>(
   role: 'listbox',
-  props?: ListboxProps,
-  options?: ListboxOptions
+  props?: ListboxProps
 ): ListboxAria<E>;
-
-// ListboxOption: Member option
-export function aria<E extends BaseElement = HTMLElement>(
-  role: 'listbox-option' | 'option',
-  props: ListboxOptionProps,
-  options?: ListboxOptionOptions
-): ListboxOptionAria<E>;
 ```
 
 ---
 
 ## State & Lifecycle Rules
 
-1. **Focus & Active Descendant**:
-  - Single sequential tab stop (`tabindex="0"` on container).
-  - DOM focus remains on the container; active option is exposed via `aria-activedescendant`.
-  - On entry: previously active enabled option, or first selected enabled option, or first enabled option.
+1. **Tab Stop & Navigation**:
+  - Exactly one tab-stop for the composite group in the sequential tab order.
+  - `Down` / `Up` move focus to next / previous enabled option.
+  - `Home` / `End` move focus to first / last enabled option.
+  - Typeahead: printable characters match against options' `textContent` to move focus (500ms debounce).
 
-2. **Keyboard Navigation**:
-  - `Down` / `Up` move to next / previous enabled option, clamping at boundaries.
-  - `Home` / `End` move to first / last enabled option.
-  - Typeahead: printable characters navigate matching option labels with 500ms debounce.
-  - Single-selection: arrow navigation or activation commits the active option value.
-  - Multiple-selection: navigation moves focus without changing selection; `Space` / `Enter` toggles target option
-    membership.
+2. **Activation & Selection**:
+  - Activation (`Space`, `Enter`, click) selects the focused option.
+  - Single: sets or replaces the scalar value (`string | null`).
+  - Multiple: toggles membership in the collection value (`string[]`).
 
 3. **Events**:
-  - When native `<select>`: native `input` and `change` pass through.
-  - When custom: dispatches `CustomEvent<string | null | string[]>('input', { bubbles: true, detail: value })` and
-    `CustomEvent<string | null | string[]>('change', { bubbles: true, detail: value })` on container.
+  - `input`: When roving, the focused option dispatches an `input` event with its value as `detail`, which the container forwards.
+  - `change`: Dispatched on selection commit (value update via activation).
+
+4. **Composition & Ambient Host**:
+  - Resolves properties as `this.properties = ambientProps ?? props`: adopts the enclosing host's props directly when nested; otherwise uses its own direct `props`.

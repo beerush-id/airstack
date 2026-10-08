@@ -23,11 +23,13 @@ import {
   type DialogProps,
   DialogTitleAria,
   DialogTriggerAria,
+  ListboxAria,
+  type ListboxProps,
   MenuAria,
-  MenuButtonAria,
-  type MenuButtonProps,
   MenubarAria,
   type MenubarProps,
+  MenuButtonAria,
+  type MenuButtonProps,
   MenuGroupAria,
   type MenuGroupProps,
   MenuItemAria,
@@ -228,6 +230,8 @@ export function aria<E extends BaseElement = HTMLElement>(
   props?: CheckboxGroupProps
 ): CheckboxGroupAria<E>;
 
+export function aria<E extends BaseElement = HTMLElement>(role: 'listbox', props?: ListboxProps): ListboxAria<E>;
+
 export function aria<E extends BaseElement = HTMLElement, T extends Primitive = Primitive>(
   role: 'select',
   props?: SelectProps<T>
@@ -235,7 +239,7 @@ export function aria<E extends BaseElement = HTMLElement, T extends Primitive = 
 
 export function aria<E extends BaseElement = HTMLElement, T extends Primitive = Primitive>(
   role: 'option',
-  props: OptionProps<T>,
+  props?: OptionProps<T>,
   options?: OptionOptions
 ): OptionAria<E>;
 
@@ -600,6 +604,8 @@ export function aria(role: string, init?: unknown, options?: unknown): unknown {
       return new RadioGroupAria(init as never);
     case 'checkbox-group':
       return new CheckboxGroupAria(init as never);
+    case 'listbox':
+      return new ListboxAria(init as never);
     case 'select':
       return new SelectAria(init as never);
     case 'option':

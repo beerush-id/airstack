@@ -1,5 +1,5 @@
 import { SelectionAria, type SelectionAttributes, type SelectionOptions } from '../selection.js';
-import type { AriaEvent, AriaEventHandler, AriaProps, BaseElement, Primitive } from '../types.js';
+import type { AriaEvent, AriaEventHandler, AriaProps, BaseElement, DetachFn, Primitive } from '../types.js';
 
 /**
  * Reactive input properties for an individual Option widget.
@@ -131,5 +131,26 @@ export class OptionAria<
       tabindex: isDisabled ? -1 : isSelected ? 0 : -1,
       'aria-selected': isSelected ? 'true' : 'false',
     }) as A;
+  }
+
+  /**
+   * Announces the option's own value as `input` when it takes the group's cursor.
+   *
+   * @returns Teardown callback releasing the inherited label binding and the focus listener
+   */
+  protected override attach(): DetachFn | void {
+    const detach = super.attach();
+    const host = this.element!;
+
+    const handleFocus = (): void => {
+      host.dispatchEvent(new CustomEvent('input', { bubbles: true, detail: this.value }));
+    };
+
+    host.addEventListener('focus', handleFocus);
+
+    return () => {
+      detach?.();
+      host.removeEventListener('focus', handleFocus);
+    };
   }
 }

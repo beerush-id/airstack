@@ -44,6 +44,7 @@ const confirmRoute = route.route('/confirm');
 const popoverRoute = route.route('/popover');
 const tooltipRoute = route.route('/tooltip');
 const checkboxGroupRoute = route.route('/checkbox-group');
+const listboxRoute = route.route('/listbox');
 /** AirLib managed */
 
 export const ariaRoute = route;
@@ -89,5 +90,6 @@ export const ariaConfirmRoute = confirmRoute;
 export const ariaPopoverRoute = popoverRoute;
 export const ariaTooltipRoute = tooltipRoute;
 export const ariaCheckboxGroupRoute = checkboxGroupRoute;
+export const ariaListboxRoute = listboxRoute;
 
 export default ariaRoute;

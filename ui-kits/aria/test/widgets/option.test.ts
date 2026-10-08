@@ -130,7 +130,7 @@ describe('Option - Contract Specifications', () => {
           expect(option.selected).toBe(false);
           expect(option.attributes['aria-selected']).toBe('false');
 
-          const disabledUnselected = aria('option', { selected: false, disabled: true });
+          const disabledUnselected = aria('option', { selected: false, disabled: true } as OptionProps);
           expect(disabledUnselected.attributes.tabindex).toBe(-1);
           expect(disabledUnselected.attributes['aria-disabled']).toBe('true');
         });
@@ -440,6 +440,31 @@ describe('Option - Contract Specifications', () => {
   });
 
   describe('Inertness & Guarding Invariant', () => {
+    it('announces its own value as input when it takes focus', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const group = mutable({ value: 'a' });
+          selectionGroup.set(group);
+
+          const optB = aria('option', { value: 'b' });
+          const elB = bind(document.createElement('div'), optB);
+          document.body.appendChild(elB);
+
+          const seen: Array<{ detail: unknown; bubbled: boolean }> = [];
+          elB.addEventListener('input', (event) =>
+            seen.push({ detail: (event as CustomEvent).detail, bubbled: event.bubbles })
+          );
+
+          elB.focus();
+
+          expect(seen).toEqual([{ detail: 'b', bubbled: true }]);
+
+          optB.destroy();
+          elB.remove();
+        });
+      }));
+
     it('claims no keystroke on its own because traversal belongs to the enclosing popup', () =>
       scope.run(() => {
         const tree = component();

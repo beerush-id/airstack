@@ -1,0 +1,208 @@
+---
+title: 'Listbox'
+description: 'Inline option-selection coordinator with roving focus and typeahead, built on the shared selection group.'
+nav: 'Listbox'
+nav-priority: 350
+---
+
+# AirLib Headless Listbox
+
+A listbox is the option list that never leaves the page: no trigger, no popup, no open state. Plain markup gets you half there — a `<div>` list announces nothing, arrow keys scroll the document instead of moving through choices, and every option you make focusable turns the list into a tab-stop maze. **AirLib Headless Listbox** (`aria('listbox')`) is a selection group whose members are options: one tab stop, roving arrow traversal, typeahead over the option text, single or multiple selection, and a value announcement on the container — without dictating markup or styles.
+
+```tsx
+const listbox = aria('listbox', props);
+
+<div ref={listbox.ref} {...listbox.props} />
+```
+
+<style>{`.demo-listbox{display:flex;flex-direction:column;gap:.125rem;max-height:13rem;overflow-y:auto;margin:0;padding:.375rem;border:1px solid #e4e4e7;border-radius:.75rem;background:#fff}.demo-listbox-option{display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.5rem .75rem;border-radius:.5rem;border:1px solid transparent;font-size:.9375rem;cursor:pointer}.demo-listbox-option:hover{background:#f4f4f5}.demo-listbox-option:focus-visible{outline:none;border-color:#18181b;background:#18181b;color:#fff}.demo-listbox-option[aria-selected="true"]::after{content:"✓";font-size:.8125rem}.demo-listbox-option[aria-disabled="true"]{opacity:.4;cursor:not-allowed}`}</style>
+
+:::interactive[Single-Select Listbox]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps, ReactNode } from 'react';
+
+type DemoListboxProps = ComponentProps<'div'> & {
+  value?: string | null;
+  label?: string;
+};
+
+const DemoListbox = setup<DemoListboxProps>((props) => {
+  const listbox = aria('listbox', props);
+
+  return () => (
+    <div ref={listbox.ref} {...listbox.restProps(['children'])} className="demo-listbox">
+      {props.children}
+    </div>
+  );
+}, 'DemoListbox');
+
+type DemoOptionProps = ComponentProps<'div'> & {
+  value: string;
+  disabled?: boolean;
+  children: ReactNode;
+};
+
+const DemoOption = setup<DemoOptionProps>((props) => {
+  const option = aria('option', props);
+
+  return () => (
+    <div ref={option.ref} {...option.restProps(['children'])} className="demo-listbox-option">
+      {props.children}
+    </div>
+  );
+}, 'DemoOption');
+```
+
+<DemoListbox label="Departure city" value="ams">
+  <DemoOption value="ams">Amsterdam</DemoOption>
+  <DemoOption value="ber">Berlin</DemoOption>
+  <DemoOption value="cop">Copenhagen</DemoOption>
+  <DemoOption value="dub" disabled>Dublin</DemoOption>
+  <DemoOption value="vil">Vilnius</DemoOption>
+</DemoListbox>
+:::
+
+Tab into the list, then use `ArrowDown`, `End`, or type `c`. Traversal moves focus and commits nothing; `Space` or `Enter` picks.
+
+## Listbox
+
+Inline option-selection container that coordinates `option` members through the ambient selection group, holds one tab stop, and answers arrow keys and typeahead.
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'listbox',
+  props?: ListboxProps
+): ListboxAria<E>
+```
+
+`ListboxAria`'s own constructor takes a second argument, `deferred`. A controller that extends the listbox calls `super(props, true)` to skip the base's first attribute compilation, then `this.update()` once it owns the attribute shape — how the select popup reuses traversal, typeahead and selection instead of duplicating them. It is not part of the `aria('listbox', props)` surface.
+
+### Usage
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type ListboxProps = ComponentProps<'div'> & {
+  id?: string;
+  label?: string;
+  value?: string | null;
+  disabled?: boolean;
+  required?: boolean;
+  oninput?: (event: CustomEvent<string>) => void;
+  onchange?: (event: CustomEvent<string | null>) => void;
+};
+
+const Listbox = setup<ListboxProps>((props) => {
+  const listbox = aria('listbox', props);
+
+  return () => (
+    <div ref={listbox.ref} {...listbox.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type ListboxProps = ComponentProps<'div'> & {
+  id?: string;
+  label?: string;
+  value?: string | null;
+  disabled?: boolean;
+  required?: boolean;
+  oninput?: (event: CustomEvent<string>) => void;
+  onchange?: (event: CustomEvent<string | null>) => void;
+};
+
+const Listbox = setup<ListboxProps>((props) => {
+  const listbox = aria('listbox', props);
+
+  return (
+    <div ref={listbox.ref} {...listbox.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
+
+For multiple selection declare the array archetype: `{ multiple: true, value: ['email', 'sms'] }`. `multiple` and `value` narrow together, so `onchange` receives `string[]` instead of `string | null`.
+
+### Parameters
+
+- `props.value` *(string | null, optional)*: Selected option value in the single archetype; `null` is the unselected token. Defaults to unselected.
+- `props.multiple` *(boolean, optional, default `false`)*: Declares the multi-select archetype, where `value` is an array of tokens and defaults to `[]`.
+- `props.label` *(string, optional)*: Accessible name compiled as `aria-label`. A listbox without a name is unidentifiable to assistive technology, so pass it or name the container with `aria-labelledby` through `.refine()`.
+- `props.required` *(boolean, optional)*: Compiles `aria-required="true"` — the attribute is absent while not required — and refuses releasing the current selection.
+- `props.disabled` *(boolean, optional)*: Withdraws the tab stop, cascades disablement to every option, and claims no keystroke.
+- `props.id` *(string, optional)*: Explicit DOM identifier for the container. Generated as `listbox-<n>` when omitted.
+- `props.oninput` *(handler, optional)*: Called with the option's `input` event as the cursor moves onto it; `detail` is that option's value.
+- `props.onchange` *(handler, optional)*: Called with the container's `change` event after a commit; `detail` is the whole value, typed to the archetype without a cast.
+
+### How it behaves
+
+- Compiles `role="listbox"`, `aria-label` when named, and an explicit `aria-disabled` baseline. `aria-required="true"` and `aria-multiselectable="true"` appear only when declared.
+- **One tab stop, wherever the selection is.** The selected option carries `tabindex="0"` and every other option carries `-1`, so the list is entered once and traversed with arrows. While nothing is selected the container itself takes the stop, so an empty list stays reachable.
+- Traversal is the shared roving mechanism used by radio group, toggle group and toolbar: `ArrowDown` and `ArrowUp` move focus to the next and previous enabled option, wrapping at both ends, `Home` and `End` jump to the ends, disabled options are stepped over, none of it changes the selection, and every move announces `input`.
+- Selection changes only through activation — a pointer click on an option, or `Space` / `Enter` on the focused one — and then follows the option's own rules: single selection moves the value, multiple selection toggles membership, re-activation releases the holder, and `required` refuses the release.
+- Typeahead matches the option's **text content**: a case-insensitive prefix searched forward from the focused option, wrapping around. Keystrokes accumulate for 500 ms, so `c` then `o` narrows through Cologne, Copenhagen, and a repeated letter walks every option sharing the prefix. A query that matches nothing restarts from the character you just typed.
+- Yields modifier chords (`Ctrl`/`Cmd`/`Alt`), non-printable keys, and any keystroke a consumer canceled with `preventDefault()`. While a `toolbar` encloses the listbox, the toolbar owns the arrows and the listbox claims nothing.
+- Disabling the container removes the tab stop and refuses both traversal and activation, and the cascade returns cleanly when the constraint lifts.
+
+### Events
+
+Traversal and commitment are different announcements, and they come from different places. `input` is dispatched by the **option that just took the cursor**, carrying its own value, and bubbles up through the container — which forwards it to `props.oninput` and synthesizes nothing of its own. `change` is the **container's** event, dispatched when a commit updates the value:
+
+| Event | Authored by | Trigger | `detail` |
+| :--- | :--- | :--- | :--- |
+| `input` | The option | Focus landed on it — arrows, `Home`/`End`, typeahead, or a click | `string` — that option's value |
+| `change` | The container | Activation set, replaced, or toggled the value | `string \| null` single, `string[]` multiple |
+
+```tsx
+const listbox = aria('listbox', {
+  value: 'ams',
+  oninput: (event) => markCursor(event.detail),
+  onchange: (event) => submit(event.detail),
+});
+```
+
+Filter on `event.target` when you need to tell the container's `change` apart from the member commit that caused it. `change` carries a **snapshot** of the value, so a stored detail is never rewritten by a later commit. A programmatic write (`listbox.value = 'ber'` or `props.value = 'ber'`) re-derives every option and moves the tab stop, but dispatches nothing: an external write is neither a move nor a commit, because nobody acted.
+
+## Options
+
+Individual choices are the standard `option` role controller (`aria('option')`) — ambiently coordinated, selected rather than checked, and inert to keys of their own. See the [Option](/docs/aria/option) documentation for its value, label, and disablement contract.
+
+## Keyboard Navigation
+
+| Key | Behavior |
+| :--- | :--- |
+| `Tab` | Enters the list once, on the selected option — or on the container while nothing is selected. |
+| `ArrowDown` / `ArrowUp` | Moves focus to the next / previous enabled option, wrapping at both ends. Selects nothing. |
+| `Home` / `End` | Moves focus to the first / last enabled option. |
+| Printable character | Moves focus to the next option whose text starts with the query. |
+| `Space` / `Enter` | Commits the focused option. |
+
+## What you get
+
+- **One tab stop, and the traversal that already exists.** The listbox rides the same roving machinery as radio group, toggle group and toolbar, so nested groups surrender to an enclosing toolbar without extra wiring.
+- **Traversal that never selects.** Moving the cursor and committing a choice are separate gestures, which is what multiple selection requires and what a keyboard user expects from a list.
+- **Typeahead that finds the option you meant** — text prefix, forward from the cursor, wrapping, accumulating inside a 500 ms window.
+- **Two announcements, two authors.** `input` comes from the option that took the cursor and carries its value; `change` comes from the container and carries the committed value as a snapshot, never a live array a later commit will rewrite.
+- **Zero markup lock-in.** Render `<div>` rows, `<li>` rows inside a `<ul>`, or rich rows with codes and descriptions.
+
+## Next Steps
+
+- **[Option](/docs/aria/option)**: The selection member this container coordinates.
+- **[Select](/docs/aria/select)**: The same option list collapsed behind a trigger and a popup.
+- **[Radio Group](/docs/aria/radio-group)** and **[Checkbox Group](/docs/aria/checkbox-group)**: Always-visible choices in a form, where every member is its own tab stop.
