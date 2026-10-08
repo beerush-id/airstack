@@ -1,6 +1,6 @@
 import {
-  type AnyType,
   anchor,
+  type AnyType,
   createContext,
   createObserver,
   mutable,
@@ -252,6 +252,7 @@ export class Aria<
   protected markActionable(): void {
     this.isActionable = true;
     this.actionable = this as unknown as Aria<BaseElement, AriaProps, AriaAttributes<BaseElement>>;
+
     if (this.scope) {
       this.scope.actionable = this as unknown as Aria<BaseElement, AriaProps, AriaAttributes<BaseElement>>;
     }

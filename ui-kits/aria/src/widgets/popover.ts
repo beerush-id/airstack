@@ -3,11 +3,14 @@ import { Aria } from '../core.js';
 import type { AriaAttributes, AriaEvent, AriaEventHandler, AriaOptions, AriaProps, DetachFn } from '../types.js';
 
 const POPOVER_SYMBOL = $symbol('popover');
+const FOCUSABLE_SELECTOR = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
+export type PopoverRole = 'dialog' | 'menu' | 'tooltip' | 'listbox';
 
 /**
  * Supported activation trigger modes for anchored overlays.
  */
-export type OverlayTriggerMode = 'hover' | 'focus' | 'click';
+export type OverlayTriggerMode = 'hover' | 'focus' | 'click' | 'rove';
 
 /**
  * Reactive input properties for PopoverAria and overlay subclasses.
@@ -71,7 +74,7 @@ export interface PopoverOptions extends AriaOptions {
    * Semantic popup role reflected in the panel role.
    * @default 'dialog'
    */
-  popupRole?: 'dialog' | 'menu';
+  popupRole?: PopoverRole;
 }
 
 /**
@@ -79,7 +82,7 @@ export interface PopoverOptions extends AriaOptions {
  */
 export interface PopoverAttributes<E extends HTMLElement = HTMLElement> extends AriaAttributes<E> {
   id?: string;
-  role?: 'dialog' | 'menu' | 'tooltip';
+  role?: PopoverRole;
   popover?: 'auto' | 'manual';
   hidden?: boolean;
   'data-popover-x'?: 'before' | 'after' | 'left' | 'between' | 'right';
@@ -142,7 +145,7 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
     return this.properties.dismissable ?? true;
   }
 
-  public get popupRole(): 'dialog' | 'menu' | 'tooltip' {
+  public get popupRole(): PopoverRole {
     return this.options.popupRole ?? 'dialog';
   }
 
@@ -151,10 +154,10 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
     this.omittedAttrs.push('open', 'mode', 'delay', 'dismissable', 'lightDismiss', 'xDir', 'yDir', 'ontoggle');
     this.id = $static(() => this.properties.id ?? `${this.anchorPrefix}-${uIndex(this.instanceSymbol, true)}`);
 
-    const candidate = this.scope?.actionable;
-    if (candidate) {
-      this.target = candidate as never;
-      const unrefine = candidate.refine(() => {
+    const trigger = this.scope?.actionable;
+    if (trigger) {
+      this.target = trigger as never;
+      const release = trigger.refine(() => {
         const attrs: Record<string, unknown> = {
           ...this.createTriggerAttributes(),
           style: this.open
@@ -180,7 +183,7 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
 
         return attrs;
       });
-      this.cleanups.add(unrefine);
+      this.cleanups.add(release);
     }
 
     this.update();
@@ -269,6 +272,12 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
   }
 
   protected handleKeyDown(e: KeyboardEvent): void {
+    if (this.mode.includes('rove') && !this.open && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+      e.preventDefault();
+      this.show();
+      return;
+    }
+
     if (e.key === 'Escape' && this.open) {
       e.preventDefault();
       e.stopPropagation();
@@ -417,11 +426,21 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
         if (this.managesFocus) {
           if (isOpen) {
             this.previousFocused = document.activeElement as HTMLElement | null;
-            const firstFocusable = el.querySelector<HTMLElement>(
-              'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-            );
-            if (firstFocusable) {
-              firstFocusable.focus();
+
+            let toFocus: HTMLElement | undefined;
+            const focusableEntries = el.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+
+            for (const candidate of Array.from(focusableEntries)) {
+              if (candidate.getAttribute('aria-selected') === 'true') {
+                toFocus = candidate;
+                break;
+              }
+            }
+
+            toFocus ??= focusableEntries[0];
+
+            if (toFocus) {
+              toFocus.focus();
             } else if (el.tabIndex >= 0) {
               el.focus();
             }

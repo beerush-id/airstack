@@ -165,6 +165,92 @@ describe('Popover - Contract Specifications', () => {
       }));
   });
 
+  describe('Rove Mode Invariant', () => {
+    it('opens on Up and Down arrows while closed and keeps click toggling', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const host = aria('button');
+          const hostEl = bind(document.createElement('button'), host);
+          document.body.appendChild(hostEl);
+
+          const props = mutable<PopoverProps>({ open: false, mode: ['click', 'rove'] });
+          const popover = aria('popover', props);
+          const popoverEl = document.createElement('div');
+          document.body.appendChild(popoverEl);
+          popover.ref(popoverEl);
+
+          expect(hostEl.getAttribute('aria-expanded')).toBe('false');
+
+          hostEl.dispatchEvent(
+            new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true })
+          );
+          expect(props.open).toBe(true);
+          expect(hostEl.getAttribute('aria-expanded')).toBe('true');
+
+          props.open = false;
+          hostEl.dispatchEvent(
+            new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true })
+          );
+          expect(props.open).toBe(true);
+
+          hostEl.click();
+          expect(props.open).toBe(false);
+
+          hostEl.click();
+          expect(props.open).toBe(true);
+
+          popover.destroy();
+          host.destroy();
+          document.body.removeChild(hostEl);
+          document.body.removeChild(popoverEl);
+        });
+      }));
+  });
+
+  describe('Focus On Open Invariant', () => {
+    it('focuses the first selected child, else the first focusable item', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const host = aria('button');
+          const hostEl = bind(document.createElement('button'), host);
+          document.body.appendChild(hostEl);
+
+          const props = mutable<PopoverProps>({ open: false });
+          const popover = aria('popover', props);
+          const popoverEl = document.createElement('div');
+          document.body.appendChild(popoverEl);
+          popover.ref(popoverEl);
+
+          const plain = document.createElement('button');
+          const chosen = document.createElement('button');
+          chosen.setAttribute('aria-selected', 'true');
+          const other = document.createElement('button');
+          popoverEl.append(plain, chosen, other);
+
+          expect(popover.attributes.role).toBe('dialog');
+          expect(popoverEl.hidden).toBe(true);
+
+          hostEl.focus();
+          props.open = true;
+          expect(document.activeElement).toBe(chosen);
+          expect(popoverEl.hidden).toBe(false);
+
+          chosen.removeAttribute('aria-selected');
+          props.open = false;
+          hostEl.focus();
+          props.open = true;
+          expect(document.activeElement).toBe(plain);
+
+          popover.destroy();
+          host.destroy();
+          document.body.removeChild(hostEl);
+          document.body.removeChild(popoverEl);
+        });
+      }));
+  });
+
   describe('Trigger Association & Expansion Invariant', () => {
     it('wires the scoped host toggle and keeps the expansion announcement in step', () =>
       scope.run(() => {
