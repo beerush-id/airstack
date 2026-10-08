@@ -2,6 +2,7 @@ export * from './animation.js';
 export * from './clipboard.js';
 export * from './cursor.js';
 export * from './drag.js';
+export * from './event.js';
 export * from './geo.js';
 export * from './interactive.js';
 export * from './keyboard.js';
