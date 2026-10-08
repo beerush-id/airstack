@@ -1,4 +1,5 @@
 import { $static, $symbol, effect, type StyleInput, uIndex } from '@airlib/core';
+import { withEvents } from '@airlib/core/browser';
 import { Aria } from '../core.js';
 import type { AriaAttributes, AriaEvent, AriaEventHandler, AriaOptions, AriaProps, DetachFn } from '../types.js';
 
@@ -21,11 +22,6 @@ export type OverlayTriggerMode = 'hover' | 'focus' | 'click' | 'rove';
 export type PopoverEvent = AriaEvent<boolean>;
 
 export interface PopoverProps extends AriaProps {
-  /**
-   * Called with the open state after the popover toggles.
-   */
-  ontoggle?: AriaEventHandler<PopoverEvent>;
-
   /**
    * DOM element identifier for the overlay panel.
    */
@@ -64,6 +60,19 @@ export interface PopoverProps extends AriaProps {
    * Vertical placement token.
    */
   yDir?: 'top' | 'bottom' | 'above' | 'below' | 'between';
+
+  /**
+   * Called with the open state when the popover opens.
+   */
+  onopen?: AriaEventHandler<PopoverEvent>;
+  /**
+   * Called with the open state when the popover closes.
+   */
+  onclose?: AriaEventHandler<PopoverEvent>;
+  /**
+   * Called with the open state after the popover toggles.
+   */
+  ontoggle?: AriaEventHandler<PopoverEvent>;
 }
 
 /**
@@ -116,7 +125,7 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
   PopoverOptions
 > {
   public id: string;
-  protected target?: Aria<HTMLElement, AriaProps, AriaAttributes<HTMLElement>>;
+  protected target?: Aria<HTMLElement, AriaProps, AriaAttributes> & { disabled?: boolean };
   protected previousFocused: HTMLElement | null = null;
   protected openTimer?: ReturnType<typeof setTimeout>;
   protected cleanups = new Set<() => void>();
@@ -149,62 +158,49 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
     return this.options.popupRole ?? 'dialog';
   }
 
+  protected get anchorPrefix(): string {
+    return 'popover';
+  }
+
+  protected get instanceSymbol(): symbol {
+    return POPOVER_SYMBOL;
+  }
+
+  protected get managesFocus(): boolean {
+    return true;
+  }
+
   public constructor(props: Partial<PopoverProps> = {}, options: PopoverOptions = {}) {
     super(props, options);
-    this.omittedAttrs.push('open', 'mode', 'delay', 'dismissable', 'lightDismiss', 'xDir', 'yDir', 'ontoggle');
     this.id = $static(() => this.properties.id ?? `${this.anchorPrefix}-${uIndex(this.instanceSymbol, true)}`);
+    this.target = this.scope?.actionable as unknown as Aria;
+    this.omittedAttrs.push('open', 'mode', 'delay', 'dismissable', 'lightDismiss', 'xDir', 'yDir', 'ontoggle');
 
-    const trigger = this.scope?.actionable;
-    if (trigger) {
-      this.target = trigger as never;
-      const release = trigger.refine(() => {
-        const attrs: Record<string, unknown> = {
-          ...this.createTriggerAttributes(),
-          style: this.open
-            ? {
-                'anchor-name': `--${this.anchorPrefix}-anchor-${this.id}`,
-                [`--${this.anchorPrefix}-anchor-name`]: `--${this.anchorPrefix}-anchor-${this.id}`,
-              }
-            : undefined,
-        };
-
-        if (this.mode.includes('click')) {
-          attrs.onclick = (e: MouseEvent) => this.handleClick(e);
-        }
-        if (this.mode.includes('hover')) {
-          attrs.onpointerenter = () => this.handleTriggerEnter();
-          attrs.onpointerleave = (e: PointerEvent) => this.handleTriggerLeave(e);
-        }
-        if (this.mode.includes('focus')) {
-          attrs.onfocus = () => this.handleFocus();
-          attrs.onblur = () => this.handleBlur();
-        }
-        attrs.onkeydown = (e: KeyboardEvent) => this.handleKeyDown(e);
-
-        return attrs;
-      });
-      this.cleanups.add(release);
-    }
-
+    this.attachTrigger();
     this.update();
   }
 
   public toggle(): void {
+    if (this.target?.disabled) return;
     this.open = !this.open;
   }
 
   public show(): void {
     this.cancelOpen();
+    if (this.target?.disabled) return;
     this.open = true;
   }
 
   public close(): void {
     this.cancelOpen();
+    if (this.target?.disabled) return;
     this.open = false;
   }
 
   public scheduleOpen(): void {
     this.cancelOpen();
+    if (this.target?.disabled) return;
+
     if (this.delay > 0) {
       this.openTimer = setTimeout(() => {
         this.open = true;
@@ -223,29 +219,140 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
 
   public override destroy(): void {
     this.cancelOpen();
+
     if (this.open && this.managesFocus) {
       const restoreTarget = this.target?.current;
       if (restoreTarget && document.contains(restoreTarget)) {
         restoreTarget.focus();
       }
     }
+
     for (const cleanup of this.cleanups) {
       cleanup();
     }
+
     this.cleanups.clear();
     super.destroy();
   }
 
-  protected get anchorPrefix(): string {
-    return 'popover';
+  protected override createAttributes(): PopoverAttributes<E> {
+    const attrs: PopoverAttributes<E> = {
+      id: this.id,
+      role: this.popupRole,
+    };
+
+    if (this.isNative) {
+      attrs.popover = this.dismissable ? 'auto' : 'manual';
+    } else if (!this.open) {
+      attrs.hidden = true;
+    }
+
+    if (this.open) {
+      attrs.style = {
+        positionAnchor: `--${this.anchorPrefix}-anchor-${this.id}`,
+        [`--${this.anchorPrefix}-anchor-name`]: `--${this.anchorPrefix}-anchor-${this.id}`,
+      } as StyleInput;
+    }
+
+    if (this.properties.xDir) {
+      attrs[`data-${this.anchorPrefix}-x`] = this.properties.xDir;
+    }
+    if (this.properties.yDir) {
+      attrs[`data-${this.anchorPrefix}-y`] = this.properties.yDir;
+    }
+
+    return attrs;
   }
 
-  protected get instanceSymbol(): symbol {
-    return POPOVER_SYMBOL;
-  }
+  protected override attach(): DetachFn {
+    const el = this.element!;
+    const cleanups: Array<() => void> = [];
+    const hostEl = this.target?.current ?? el.parentElement;
+    this.ensureTrigger(hostEl);
 
-  protected get managesFocus(): boolean {
-    return true;
+    if (this.mode.includes('hover')) {
+      const onPanelEnter = () => this.cancelOpen();
+      const onPanelLeave = (e: PointerEvent) => {
+        if (hostEl?.contains(e.relatedTarget as Node)) return;
+        this.close();
+      };
+      el.addEventListener('pointerenter', onPanelEnter);
+      el.addEventListener('pointerleave', onPanelLeave);
+      cleanups.push(() => {
+        el.removeEventListener('pointerenter', onPanelEnter);
+        el.removeEventListener('pointerleave', onPanelLeave);
+      });
+    }
+
+    const stopEffect = effect((e) => {
+      const isOpen = this.open;
+      if (e.type === 'init') return;
+
+      if (this.managesFocus) {
+        if (isOpen) {
+          this.previousFocused = document.activeElement as HTMLElement | null;
+
+          let toFocus: HTMLElement | undefined;
+          const focusableEntries = el.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+
+          for (const candidate of Array.from(focusableEntries)) {
+            if (candidate.getAttribute('aria-selected') === 'true') {
+              toFocus = candidate;
+              break;
+            }
+          }
+
+          toFocus ??= focusableEntries[0];
+
+          if (toFocus) {
+            toFocus.focus();
+          } else if (el.tabIndex >= 0) {
+            el.focus();
+          }
+        } else {
+          const restoreTarget = this.previousFocused ?? hostEl;
+          if (restoreTarget && document.contains(restoreTarget)) {
+            restoreTarget.focus();
+          }
+          this.previousFocused = null;
+        }
+      }
+
+      this.dispatchVisibilityEvent(el, isOpen);
+    });
+    cleanups.push(stopEffect);
+
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (!this.open || !this.dismissable) return;
+      const target = e.target as Node | null;
+      if (target && !el.contains(target) && !hostEl?.contains(target)) {
+        this.open = false;
+      }
+    };
+
+    const handleEscapeKey = (e: KeyboardEvent) => {
+      this.handleKeyDown(e);
+    };
+
+    const unListen = withEvents((listen) => {
+      listen(document, 'pointerdown', handleOutsideClick);
+      listen(window, 'keydown', handleEscapeKey);
+      listen(el, 'keydown', handleEscapeKey);
+    });
+    cleanups.push(unListen);
+
+    return () => {
+      this.cancelOpen();
+
+      if (hostEl && !this.target) {
+        hostEl.style.removeProperty('anchor-name');
+        hostEl.style.removeProperty(`--${this.anchorPrefix}-anchor-name`);
+      }
+
+      for (const cleanup of cleanups) {
+        cleanup();
+      }
+    };
   }
 
   protected handleClick(e: MouseEvent): void {
@@ -299,194 +406,64 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
     };
   }
 
-  protected applyFallbackTrigger(hostEl: HTMLElement, isOpen: boolean): void {
-    hostEl.setAttribute('aria-haspopup', 'dialog');
-    hostEl.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-    hostEl.setAttribute('aria-controls', this.id);
-  }
-
-  protected removeFallbackTrigger(hostEl: HTMLElement): void {
-    hostEl.removeAttribute('aria-haspopup');
-    hostEl.removeAttribute('aria-expanded');
-    hostEl.removeAttribute('aria-controls');
-  }
-
   protected dispatchVisibilityEvent(el: HTMLElement, isOpen: boolean): void {
+    if (isOpen) {
+      const openEvent = new CustomEvent('open', { bubbles: true, detail: isOpen });
+      el.dispatchEvent(openEvent);
+      this.properties.onopen?.(openEvent);
+    } else {
+      const closeEvent = new CustomEvent('close', { bubbles: true, detail: isOpen });
+      el.dispatchEvent(closeEvent);
+      this.properties.onclose?.(closeEvent);
+    }
+
     const event: PopoverEvent = new CustomEvent('toggle', { bubbles: false, detail: isOpen });
     el.dispatchEvent(event);
     this.properties.ontoggle?.(event);
   }
 
-  protected override createAttributes(): PopoverAttributes<E> {
-    const attrs: PopoverAttributes<E> = {
-      id: this.id,
-      role: this.popupRole,
-    };
+  protected ensureTrigger(element?: HTMLElement | null) {
+    if (this.target || !element) return;
 
-    if (this.isNative) {
-      attrs.popover = this.dismissable ? 'auto' : 'manual';
-    } else if (!this.open) {
-      attrs.hidden = true;
-    }
-
-    if (this.open) {
-      attrs.style = {
-        'position-anchor': `--${this.anchorPrefix}-anchor-${this.id}`,
-        [`--${this.anchorPrefix}-anchor-name`]: `--${this.anchorPrefix}-anchor-${this.id}`,
-      } as StyleInput;
-    }
-
-    if (this.properties.xDir) {
-      attrs[`data-${this.anchorPrefix}-x`] = this.properties.xDir;
-    }
-    if (this.properties.yDir) {
-      attrs[`data-${this.anchorPrefix}-y`] = this.properties.yDir;
-    }
-
-    return attrs;
+    this.target = new Aria();
+    this.target.current = element;
+    this.attachTrigger();
   }
 
-  protected override attach(): DetachFn {
-    const el = this.element!;
-    const cleanups: Array<() => void> = [];
-    const hostEl = this.target?.current ?? el.parentElement;
+  protected attachTrigger() {
+    if (!this.target) return () => {};
 
-    if (hostEl && !this.target) {
-      this.applyFallbackTrigger(hostEl, this.open);
+    const unRefine = this.target.refine(() => {
+      const attrs: AriaAttributes = {
+        ...this.createTriggerAttributes(),
+        style: this.open
+          ? ({
+              anchorName: `--${this.anchorPrefix}-anchor-${this.id}`,
+              [`--${this.anchorPrefix}-anchor-name`]: `--${this.anchorPrefix}-anchor-${this.id}`,
+            } as StyleInput)
+          : undefined,
+      };
 
-      const cleanHost: Array<() => void> = [];
       if (this.mode.includes('click')) {
-        const onClick = (e: MouseEvent) => this.handleClick(e);
-        hostEl.addEventListener('click', onClick);
-        cleanHost.push(() => hostEl.removeEventListener('click', onClick));
+        attrs.onclick = (e: MouseEvent) => this.handleClick(e);
       }
       if (this.mode.includes('hover')) {
-        const onEnter = () => this.handleTriggerEnter();
-        const onLeave = (e: PointerEvent) => this.handleTriggerLeave(e);
-        hostEl.addEventListener('pointerenter', onEnter);
-        hostEl.addEventListener('pointerleave', onLeave);
-        cleanHost.push(() => {
-          hostEl.removeEventListener('pointerenter', onEnter);
-          hostEl.removeEventListener('pointerleave', onLeave);
-        });
+        attrs.onpointerenter = () => this.handleTriggerEnter();
+        attrs.onpointerleave = (e: PointerEvent) => this.handleTriggerLeave(e);
       }
       if (this.mode.includes('focus')) {
-        const onFocus = () => this.handleFocus();
-        const onBlur = () => this.handleBlur();
-        hostEl.addEventListener('focus', onFocus);
-        hostEl.addEventListener('blur', onBlur);
-        cleanHost.push(() => {
-          hostEl.removeEventListener('focus', onFocus);
-          hostEl.removeEventListener('blur', onBlur);
-        });
+        attrs.onfocus = () => this.handleFocus();
+        attrs.onblur = () => this.handleBlur();
       }
-      const onKey = (e: KeyboardEvent) => this.handleKeyDown(e);
-      hostEl.addEventListener('keydown', onKey);
-      cleanHost.push(() => hostEl.removeEventListener('keydown', onKey));
+      attrs.onkeydown = (e: KeyboardEvent) => this.handleKeyDown(e);
 
-      cleanups.push(() => {
-        this.removeFallbackTrigger(hostEl);
-        for (const c of cleanHost) c();
-      });
-    }
-
-    if (this.mode.includes('hover')) {
-      const onPanelEnter = () => this.cancelOpen();
-      const onPanelLeave = (e: PointerEvent) => {
-        if (hostEl?.contains(e.relatedTarget as Node)) return;
-        this.close();
-      };
-      el.addEventListener('pointerenter', onPanelEnter);
-      el.addEventListener('pointerleave', onPanelLeave);
-      cleanups.push(() => {
-        el.removeEventListener('pointerenter', onPanelEnter);
-        el.removeEventListener('pointerleave', onPanelLeave);
-      });
-    }
-
-    let wasOpen = this.open;
-    const stopEffect = effect(() => {
-      const isOpen = this.open;
-
-      if (hostEl && !this.target) {
-        this.applyFallbackTrigger(hostEl, isOpen);
-        if (isOpen) {
-          hostEl.style.setProperty('anchor-name', `--${this.anchorPrefix}-anchor-${this.id}`);
-          hostEl.style.setProperty(`--${this.anchorPrefix}-anchor-name`, `--${this.anchorPrefix}-anchor-${this.id}`);
-        } else {
-          hostEl.style.removeProperty('anchor-name');
-          hostEl.style.removeProperty(`--${this.anchorPrefix}-anchor-name`);
-        }
-      }
-
-      if (isOpen !== wasOpen) {
-        wasOpen = isOpen;
-        this.dispatchVisibilityEvent(el, isOpen);
-
-        if (this.managesFocus) {
-          if (isOpen) {
-            this.previousFocused = document.activeElement as HTMLElement | null;
-
-            let toFocus: HTMLElement | undefined;
-            const focusableEntries = el.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
-
-            for (const candidate of Array.from(focusableEntries)) {
-              if (candidate.getAttribute('aria-selected') === 'true') {
-                toFocus = candidate;
-                break;
-              }
-            }
-
-            toFocus ??= focusableEntries[0];
-
-            if (toFocus) {
-              toFocus.focus();
-            } else if (el.tabIndex >= 0) {
-              el.focus();
-            }
-          } else {
-            const restoreTarget = this.previousFocused ?? hostEl;
-            if (restoreTarget && document.contains(restoreTarget)) {
-              restoreTarget.focus();
-            }
-            this.previousFocused = null;
-          }
-        }
-      }
+      return attrs;
     });
-    cleanups.push(stopEffect);
 
-    const handlePointerDown = (e: MouseEvent) => {
-      if (!this.open || !this.dismissable) return;
-      const target = e.target as Node | null;
-      if (target && !el.contains(target) && !hostEl?.contains(target)) {
-        this.open = false;
-      }
-    };
-
-    const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      this.handleKeyDown(e);
-    };
-
-    document.addEventListener('pointerdown', handlePointerDown);
-    window.addEventListener('keydown', handleGlobalKeyDown);
-    el.addEventListener('keydown', handleGlobalKeyDown);
-
-    cleanups.push(() => {
-      document.removeEventListener('pointerdown', handlePointerDown);
-      window.removeEventListener('keydown', handleGlobalKeyDown);
-      el.removeEventListener('keydown', handleGlobalKeyDown);
-    });
+    this.cleanups.add(unRefine);
 
     return () => {
-      this.cancelOpen();
-      if (hostEl && !this.target) {
-        hostEl.style.removeProperty('anchor-name');
-        hostEl.style.removeProperty(`--${this.anchorPrefix}-anchor-name`);
-      }
-      for (const cleanup of cleanups) {
-        cleanup();
-      }
+      this.cleanups.delete(unRefine);
     };
   }
 }

@@ -170,6 +170,7 @@ export interface GlobalHTMLAttributes<E extends BaseElement = HTMLElement> exten
 export interface AriaAttributes<E extends BaseElement = HTMLElement> extends GlobalHTMLAttributes<E> {
   role?: string;
   'aria-label'?: string;
+  'aria-haspopup'?: string;
   'aria-labelledby'?: string;
   'aria-describedby'?: string;
   'aria-controls'?: string;

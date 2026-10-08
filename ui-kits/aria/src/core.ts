@@ -1,6 +1,6 @@
 import {
-  anchor,
   type AnyType,
+  anchor,
   createContext,
   createObserver,
   mutable,
@@ -9,6 +9,7 @@ import {
 } from '@airlib/core';
 import type {
   AriaAttributes,
+  AriaEvent,
   AriaOptions,
   AriaProps,
   BaseElement,
@@ -300,6 +301,18 @@ export class Aria<
     }
 
     return { ...props, ...this.attributes };
+  }
+
+  /**
+   * Dispatches an AriaEvent to the bound DOM element.
+   *
+   * @param event - The AriaEvent to dispatch
+   * @param bubbles - Whether the event should bubble up the component tree
+   */
+  public dispatch(event: AriaEvent, bubbles: boolean = true) {
+    if (!this.element) return;
+    this.element.dispatchEvent(event);
+    if (bubbles) this.scope?.dispatch(event, bubbles);
   }
 
   /**

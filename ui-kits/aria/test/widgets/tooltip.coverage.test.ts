@@ -1,6 +1,6 @@
 import { createLifecycle } from '@airlib/core';
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { aria, TooltipAria, tooltip } from '../../src/index.js';
+import { aria, tooltip, TooltipAria } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 describe('Tooltip Widget (Coverage & Edge Cases)', () => {
@@ -67,7 +67,7 @@ describe('Tooltip Widget (Coverage & Edge Cases)', () => {
     expect(tip.attributes['data-tooltip-x']).toBe('after');
     expect(tip.attributes['data-tooltip-y']).toBe('top');
     expect(tip.attributes.style).toEqual({
-      'position-anchor': `--tooltip-anchor-${tip.id}`,
+      positionAnchor: `--tooltip-anchor-${tip.id}`,
       '--tooltip-anchor-name': `--tooltip-anchor-${tip.id}`,
     });
 
