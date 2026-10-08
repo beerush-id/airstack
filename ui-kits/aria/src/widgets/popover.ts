@@ -22,6 +22,7 @@ export interface PopoverProps extends AriaProps {
    * Called with the open state after the popover toggles.
    */
   ontoggle?: AriaEventHandler<PopoverEvent>;
+
   /**
    * DOM element identifier for the overlay panel.
    */
@@ -50,12 +51,6 @@ export interface PopoverProps extends AriaProps {
    * @default true
    */
   dismissable?: boolean;
-
-  /**
-   * Alias for dismissable.
-   * @default true
-   */
-  lightDismiss?: boolean;
 
   /**
    * Horizontal placement token.
@@ -123,6 +118,34 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
   protected openTimer?: ReturnType<typeof setTimeout>;
   protected cleanups = new Set<() => void>();
 
+  public get mode(): OverlayTriggerMode[] {
+    return this.properties.mode ?? ['click'];
+  }
+
+  public get delay(): number {
+    return this.properties.delay ?? 0;
+  }
+
+  public set delay(value: number) {
+    this.properties.delay = value;
+  }
+
+  public get open(): boolean {
+    return !!this.properties.open;
+  }
+
+  public set open(value: boolean) {
+    this.properties.open = value;
+  }
+
+  public get dismissable(): boolean {
+    return this.properties.dismissable ?? true;
+  }
+
+  public get popupRole(): 'dialog' | 'menu' | 'tooltip' {
+    return this.options.popupRole ?? 'dialog';
+  }
+
   public constructor(props: Partial<PopoverProps> = {}, options: PopoverOptions = {}) {
     super(props, options);
     this.omittedAttrs.push('open', 'mode', 'delay', 'dismissable', 'lightDismiss', 'xDir', 'yDir', 'ontoggle');
@@ -161,46 +184,6 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
     }
 
     this.update();
-  }
-
-  protected get anchorPrefix(): string {
-    return 'popover';
-  }
-
-  protected get instanceSymbol(): symbol {
-    return POPOVER_SYMBOL;
-  }
-
-  protected get managesFocus(): boolean {
-    return true;
-  }
-
-  public get mode(): OverlayTriggerMode[] {
-    return this.properties.mode ?? ['click'];
-  }
-
-  public get delay(): number {
-    return this.properties.delay ?? 0;
-  }
-
-  public set delay(value: number) {
-    this.properties.delay = value;
-  }
-
-  public get open(): boolean {
-    return !!this.properties.open;
-  }
-
-  public set open(value: boolean) {
-    this.properties.open = value;
-  }
-
-  public get dismissable(): boolean {
-    return this.properties.dismissable ?? this.properties.lightDismiss ?? true;
-  }
-
-  public get popupRole(): 'dialog' | 'menu' | 'tooltip' {
-    return this.options.popupRole ?? 'dialog';
   }
 
   public toggle(): void {
@@ -248,6 +231,18 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
     }
     this.cleanups.clear();
     super.destroy();
+  }
+
+  protected get anchorPrefix(): string {
+    return 'popover';
+  }
+
+  protected get instanceSymbol(): symbol {
+    return POPOVER_SYMBOL;
+  }
+
+  protected get managesFocus(): boolean {
+    return true;
   }
 
   protected handleClick(e: MouseEvent): void {

@@ -105,7 +105,7 @@ describe('Popover - Contract Specifications', () => {
 
           // Reopening, then opting out of light dismissal
           props.open = true;
-          props.lightDismiss = false;
+          props.dismissable = false;
 
           outside.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, cancelable: true }));
           expect(props.open).toBe(true);
