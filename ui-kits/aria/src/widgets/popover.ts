@@ -284,9 +284,12 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
       });
     }
 
+    let lastSeen: boolean | undefined;
     const stopEffect = effect((e) => {
       const isOpen = this.open;
-      if (e.type === 'init') return;
+      if (e.type === 'init' || lastSeen === isOpen) return;
+
+      lastSeen = isOpen;
 
       if (this.managesFocus) {
         if (isOpen) {
