@@ -45,7 +45,7 @@ describe('Listbox - Consumer Event Contract', () => {
       tree.run(() => {
         const oninput = vi.fn();
         const onchange = vi.fn();
-        const props = mutable<ListboxProps>({ value: null, oninput, onchange });
+        const props = mutable<ListboxProps>({ oninput, onchange });
         const { listboxEl, members, cleanup } = buildListbox(props, [
           { value: 'a', text: 'Amsterdam' },
           { value: 'b', text: 'Berlin' },
@@ -107,7 +107,7 @@ describe('Listbox - Consumer Event Contract', () => {
         expectTypeOf(event.detail).toEqualTypeOf<string>();
       },
       onchange: (event) => {
-        expectTypeOf(event.detail).toEqualTypeOf<string | null>();
+        expectTypeOf(event.detail).toEqualTypeOf<string>();
       },
     };
 

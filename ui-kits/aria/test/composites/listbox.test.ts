@@ -64,7 +64,7 @@ describe('Listbox - Composite Specifications', () => {
           expect(stops(members)).toEqual(['-1', '0', '-1']);
           expect(listboxEl.hasAttribute('tabindex')).toBe(false);
 
-          props.value = null;
+          props.value = undefined;
           expect(listboxEl.getAttribute('tabindex')).toBe('0');
           expect(stops(members)).toEqual(['-1', '-1', '-1']);
 
@@ -197,7 +197,7 @@ describe('Listbox - Composite Specifications', () => {
     it('commits the option traversal landed on and moves the stop with it', () =>
       scope.run(() => {
         component().run(() => {
-          const props = mutable<ListboxProps>({ value: null });
+          const props = mutable<ListboxProps>({});
           const { listboxEl, members, cleanup } = buildListbox(props, [
             { value: 'a', text: 'Amsterdam' },
             { value: 'b', text: 'Berlin' },
@@ -208,7 +208,7 @@ describe('Listbox - Composite Specifications', () => {
 
           expect(press(listboxEl, 'ArrowDown').defaultPrevented).toBe(true);
           expect(document.activeElement).toBe(members[0].el);
-          expect(props.value).toBeNull();
+          expect(props.value).toBeUndefined();
 
           expect(press(members[0].el, ' ').defaultPrevented).toBe(true);
           expect(props.value).toBe('a');

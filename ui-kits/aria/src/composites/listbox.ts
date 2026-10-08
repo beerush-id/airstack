@@ -45,7 +45,7 @@ export interface SingleListboxProps extends ListboxBaseProps {
   /**
    * Selected option value; `null` is the unselected token.
    */
-  value?: string | null;
+  value?: string;
 
   /**
    * Called with the option value as traversal moves the cursor onto it.
@@ -55,7 +55,7 @@ export interface SingleListboxProps extends ListboxBaseProps {
   /**
    * Called with the whole value after a member commit reaches the container.
    */
-  onchange?: AriaEventHandler<AriaEvent<string | null>>;
+  onchange?: AriaEventHandler<AriaEvent<string>>;
 }
 
 /**
@@ -121,6 +121,10 @@ export class ListboxAria<
   private queryTimer?: ReturnType<typeof setTimeout>;
   private parentRover = roverCtx.get();
 
+  public get id() {
+    return this.properties.id;
+  }
+
   public constructor(props: Partial<T> = {}, deferred = false) {
     const ambientProps = listboxCtx.get(props as ListboxProps);
     super(ambientProps as Partial<T>);
@@ -147,11 +151,11 @@ export class ListboxAria<
    * Value currently held by the container: the selected token, or the array of tokens in
    * the multiple archetype. Writing it re-derives every option without announcing a commit.
    */
-  public get value(): string | string[] | null | undefined {
+  public get value(): string | string[] | undefined {
     return this.properties.value;
   }
 
-  public set value(val: string | string[] | null | undefined) {
+  public set value(val: string | string[] | undefined) {
     this.properties.value = val;
   }
 
@@ -169,7 +173,7 @@ export class ListboxAria<
     const disabled = this.disabled;
 
     const attrs: Record<string, unknown> = {
-      id: this.properties.id,
+      id: this.id,
       role: ROLE_LISTBOX,
       tabindex: disabled || this.selected ? undefined : 0,
       'aria-disabled': ariaBoolean(disabled),
@@ -219,6 +223,18 @@ export class ListboxAria<
     };
   }
 
+  protected announceChange() {
+    const host = this.element!;
+    const value = this.properties.value;
+    const detail = Array.isArray(value) ? [...value] : value;
+
+    const event: AriaEvent<unknown> = new CustomEvent('change', { bubbles: true, detail });
+    host.dispatchEvent(event);
+    (this.properties.onchange as AriaEventHandler<AriaEvent<unknown>> | undefined)?.(event);
+
+    return event;
+  }
+
   private get selected(): boolean {
     const value = this.properties.value;
     return Array.isArray(value) ? value.length > 0 : value !== undefined && value !== null;
@@ -242,16 +258,6 @@ export class ListboxAria<
 
     this.search(event.key);
   };
-
-  private announceChange(): void {
-    const host = this.element!;
-    const value = this.properties.value;
-    const detail = Array.isArray(value) ? [...value] : value;
-
-    const change: AriaEvent<unknown> = new CustomEvent('change', { bubbles: true, detail });
-    host.dispatchEvent(change);
-    (this.properties.onchange as AriaEventHandler<AriaEvent<unknown>> | undefined)?.(change);
-  }
 
   private enabledOptions(): HTMLElement[] {
     return Array.from(this.element!.querySelectorAll<HTMLElement>(ENABLED_OPTION_SELECTOR));
