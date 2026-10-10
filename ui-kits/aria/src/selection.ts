@@ -89,11 +89,6 @@ export interface SelectionProps extends AriaProps {
    * Value payload for collection membership or group coordination.
    */
   value?: AnyType;
-
-  /**
-   * Text label for accessibility purposes.
-   */
-  label?: string;
 }
 
 /**

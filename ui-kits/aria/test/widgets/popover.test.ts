@@ -61,14 +61,15 @@ describe('Popover - Contract Specifications', () => {
           expect(popover.open).toBe(true);
           expect(parentButton.getAttribute('aria-expanded')).toBe('true');
 
-          // Teardown removes the injected attributes and the listeners with them
+          // Teardown removes the attributes reaction and the listeners with them,
+          // preserving the last state of the attributes
           popover.destroy();
-          expect(parentButton.hasAttribute('aria-haspopup')).toBe(false);
-          expect(parentButton.hasAttribute('aria-expanded')).toBe(false);
-          expect(parentButton.hasAttribute('aria-controls')).toBe(false);
-
           parentButton.click();
-          expect(popover.open).toBe(true);
+
+          expect(parentButton.hasAttribute('aria-haspopup')).toBe(true);
+          expect(parentButton.getAttribute('aria-expanded')).toBe('false');
+          expect(parentButton.hasAttribute('aria-controls')).toBe(true);
+          expect(popover.open).toBe(false);
 
           document.body.removeChild(parentButton);
         });
@@ -182,16 +183,12 @@ describe('Popover - Contract Specifications', () => {
 
           expect(hostEl.getAttribute('aria-expanded')).toBe('false');
 
-          hostEl.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true })
-          );
+          hostEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
           expect(props.open).toBe(true);
           expect(hostEl.getAttribute('aria-expanded')).toBe('true');
 
           props.open = false;
-          hostEl.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true })
-          );
+          hostEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true }));
           expect(props.open).toBe(true);
 
           hostEl.click();

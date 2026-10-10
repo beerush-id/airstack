@@ -1,4 +1,4 @@
-import { $symbol } from '@airlib/core';
+import { $symbol, type AnyType } from '@airlib/core';
 import { selectionGroup } from '../selection.js';
 import type { AriaEvent, AriaEventHandler, AriaOptions, AriaProps, BaseElement, DetachFn } from '../types.js';
 import type { PopoverAria } from '../widgets/popover.js';
@@ -134,6 +134,15 @@ export class SelectAria<E extends BaseElement = HTMLElement> extends PopupAria<E
     this.properties.value = value;
   }
 
+  /**
+   * Label of the current choice(s).
+   */
+  public get label() {
+    const value = this.properties.value;
+    const values = Array.isArray(value) ? value : [value];
+    return values.map((key) => this.valueMap?.[key as string] ?? key).join(', ');
+  }
+
   public get text(): string {
     return this.properties.text ?? '';
   }
@@ -149,7 +158,10 @@ export class SelectAria<E extends BaseElement = HTMLElement> extends PopupAria<E
     return !!this.properties.multiple;
   }
 
-  public constructor(props: SelectProps = {}) {
+  public constructor(
+    props: SelectProps = {},
+    public valueMap: Record<string, AnyType> = {}
+  ) {
     super(props, {
       name: 'select',
       symbol: SELECT_SYMBOL,
@@ -234,8 +246,18 @@ export class SelectTriggerAria<E extends BaseElement = HTMLElement> extends Popu
     return this.host?.value;
   }
 
+  /**
+   * Get the currently selected text(s).
+   */
   public get text(): string {
     return this.host?.text ?? '';
+  }
+
+  /**
+   * Get the label of the current choice(s).
+   */
+  public get label() {
+    return this.host?.label ?? '';
   }
 
   /**

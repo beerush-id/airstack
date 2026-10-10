@@ -287,6 +287,8 @@ export class Aria<
     for (const cleanup of this.cleanups) {
       cleanup();
     }
+
+    this.refiners.clear();
     this.cleanups.clear();
     this.observer.destroy();
     this.element = null;

@@ -121,10 +121,18 @@ const combobox = aria('combobox', props);
 :::interactive[Filterable City Picker]
 ```tsx
 import { aria } from '@airlib/aria';
-import { setup, shadowPortal } from '@airlib/react';
+import { setup, shadowPortal, derived, For } from '@airlib/react';
 import type { ComponentProps, ReactNode } from 'react';
+import combobox from '@airlib-cache/metadata/(docs)/aria/combobox';
 
-const cities = ['Amsterdam', 'Berlin', 'Copenhagen', 'Dublin', 'Vilnius'];
+const cityMap = {
+  ams: 'Amsterdam',
+  ber: 'Berlin',
+  cop: 'Copenhagen',
+  dnb: 'Dublin',
+  vil: 'Vilnius',
+};
+const cities = Object.entries(cityMap);
 
 type DemoComboboxProps = ComponentProps<'div'> & {
   value?: string | null;
@@ -133,43 +141,32 @@ type DemoComboboxProps = ComponentProps<'div'> & {
 };
 
 const DemoCombobox = setup<DemoComboboxProps>((props) => {
-  const combobox = aria('combobox', props);
+  const combobox = aria('combobox', props, cityMap);
 
-  return () => {
+  const visible = derived(() => {
     const query = combobox.query.trim().toLowerCase();
-    const visible = cities.filter((city) => city.toLowerCase().includes(query));
+    return cities.filter(([key, value]) => key.toLowerCase().includes(query) || value.toLowerCase().includes(query));
+  });
 
-    return (
-      <div ref={combobox.ref} {...combobox.restProps(['children'])} className="demo-combobox">
-        <DemoComboboxInput
-          text={combobox.query || combobox.text}
-          onQuery={(value) => {
-            combobox.query = value;
-          }}
-        />
-        <DemoComboboxPanel>
-          {visible.length === 0
-            ? <p className="demo-combobox-empty">No city matches</p>
-            : visible.map((city) => (
-                <DemoOption key={city} value={city.toLowerCase()}>{city}</DemoOption>
-              ))}
-        </DemoComboboxPanel>
-      </div>
-    );
-  };
+  return () => (
+    <div ref={combobox.ref} {...combobox.restProps(['children'])} className="demo-combobox">
+      <DemoComboboxInput />
+      <DemoComboboxPanel>
+        <For each={() => visible.value}>
+          {([key, city]) => (
+            <DemoOption value={key}>{city}</DemoOption>
+          )}
+        </For>
+      </DemoComboboxPanel>
+    </div>
+  );
 }, 'DemoCombobox');
 
 const DemoComboboxInput = setup<{ text: string; onQuery: (value: string) => void }>((props) => {
   const input = aria<HTMLInputElement>('combobox-input', {});
 
   return () => (
-    <input
-      ref={input.ref}
-      {...input.restProps()}
-      className="demo-combobox-input"
-      value={props.text}
-      onChange={(event) => props.onQuery(event.currentTarget.value)}
-    />
+    <input ref={input.ref} {...input.restProps()} placeholder="Type to filter..." className="demo-combobox-input" />
   );
 }, 'DemoComboboxInput');
 
@@ -200,10 +197,15 @@ const DemoOption = setup<DemoOptionProps>((props) => {
   );
 }, 'DemoOption');
 ```
+```html
+  <DemoCombobox />
+  <DemoCombobox value="ber" required />
+  <DemoCombobox disabled />
+```
 
 <div className="inline-flex mx-auto gap-4">
   <DemoCombobox />
-  <DemoCombobox required />
+  <DemoCombobox value="ber" required />
   <DemoCombobox disabled />
 </div>
 :::

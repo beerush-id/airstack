@@ -1,4 +1,4 @@
-import { $symbol } from '@airlib/core';
+import { $symbol, type AnyType } from '@airlib/core';
 import { selectionGroup } from '../selection.js';
 import type { AriaEvent, AriaEventHandler, AriaOptions, AriaProps, BaseElement, DetachFn } from '../types.js';
 import type { PopoverAria } from '../widgets/popover.js';
@@ -52,6 +52,11 @@ interface ComboboxBaseProps extends PopupProps {
    * Called with the whole value after a member commit reaches the container.
    */
   onchange?: AriaEventHandler<ComboboxChangeEvent>;
+
+  /**
+   * Map of option values to their labels.
+   */
+  valueMap?: Record<AnyType, AnyType>;
 }
 
 /**
@@ -169,6 +174,15 @@ export class ComboboxAria<E extends BaseElement = HTMLElement> extends PopupAria
   }
 
   /**
+   * Label of the current choice(s).
+   */
+  public get label() {
+    const value = this.properties.value;
+    const values = Array.isArray(value) ? value : [value];
+    return values.map((key) => this.valueMap?.[key as string] || key).join(', ');
+  }
+
+  /**
    * Label of the current choice — the text the field shows while the user is not filtering.
    */
   public get text(): string {
@@ -182,7 +196,10 @@ export class ComboboxAria<E extends BaseElement = HTMLElement> extends PopupAria
     this.properties.text = value;
   }
 
-  public constructor(props: ComboboxProps = {}) {
+  public constructor(
+    props: ComboboxProps = {},
+    public valueMap: Record<AnyType, AnyType> = {}
+  ) {
     super(props, {
       name: 'combobox',
       symbol: COMBOBOX_SYMBOL,
@@ -274,6 +291,36 @@ export class ComboboxInputAria<E extends BaseElement = HTMLElement> extends Popu
   ComboboxInputAttributes<E>,
   ComboboxInputOptions
 > {
+  protected declare host: ComboboxAria;
+
+  /**
+   * Current combobox value.
+   */
+  public get value() {
+    return this.host?.value ?? '';
+  }
+
+  /**
+   * Current combobox label.
+   */
+  public get label() {
+    return this.host?.label ?? '';
+  }
+
+  /**
+   * Current combobox text.
+   */
+  public get text() {
+    return this.host?.text ?? '';
+  }
+
+  /**
+   * Current combobox query.
+   */
+  public get query() {
+    return this.host?.query ?? '';
+  }
+
   /**
    * @param props - User-provided input properties.
    * @param options - User-provided input options.
@@ -293,12 +340,15 @@ export class ComboboxInputAria<E extends BaseElement = HTMLElement> extends Popu
     const attrs = super.createAttributes() as ComboboxInputAttributes<E>;
 
     if (this.isNative) {
-      const { query, text, value } = this.host?.properties ?? {};
-
       Object.assign(attrs, {
         name: this.host?.triggerId,
         type: 'text',
-        value: query || text || value || '',
+        value: this.query || this.label || this.text,
+        required: this.host?.properties.required,
+      });
+    } else {
+      Object.assign(attrs, {
+        'aria-required': this.host?.properties.required ? 'true' : 'false',
       });
     }
 
@@ -378,6 +428,13 @@ export class ComboboxPanelAria<E extends BaseElement = HTMLElement> extends List
    */
   public get open() {
     return this.popup.open;
+  }
+
+  /**
+   * Current combobox query.
+   */
+  public get query() {
+    return this.host?.query ?? '';
   }
 
   /**

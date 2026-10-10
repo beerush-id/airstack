@@ -490,7 +490,7 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
   protected attachTrigger() {
     if (!this.target) return () => {};
 
-    const unRefine = this.target.refine(() => {
+    this.target.refine(() => {
       const attrs: AriaAttributes = {
         ...this.createTriggerAttributes(),
         style: this.open
@@ -523,11 +523,5 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
 
       return attrs;
     });
-
-    this.cleanups.add(unRefine);
-
-    return () => {
-      this.cleanups.delete(unRefine);
-    };
   }
 }

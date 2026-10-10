@@ -117,9 +117,9 @@ export class ListboxAria<
   T extends ListboxProps = ListboxProps,
   A extends ListboxAttributes<E> = ListboxAttributes<E>,
 > extends Aria<E, T, A> {
-  private query = '';
   private queryTimer?: ReturnType<typeof setTimeout>;
   private parentRover = roverCtx.get();
+  private searchQuery = '';
 
   public get id() {
     return this.properties.id;
@@ -270,12 +270,12 @@ export class ListboxAria<
 
     clearTimeout(this.queryTimer);
     this.queryTimer = setTimeout(() => {
-      this.query = '';
+      this.searchQuery = '';
     }, TYPEAHEAD_WINDOW);
 
     const focused = this.focusedOption();
     const from = focused ? options.indexOf(focused) : -1;
-    const seed = this.query as string;
+    const seed = this.searchQuery as string;
 
     let query = seed + key.toLowerCase();
     let matched = this.match(options, from, query);
@@ -286,11 +286,11 @@ export class ListboxAria<
     }
 
     if (!matched) {
-      this.query = '';
+      this.searchQuery = '';
       return;
     }
 
-    this.query = query;
+    this.searchQuery = query;
     matched.focus();
   }
 

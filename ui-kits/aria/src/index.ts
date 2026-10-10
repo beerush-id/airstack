@@ -1,3 +1,4 @@
+import type { AnyType } from '@airlib/core';
 import {
   AccordionAria,
   AccordionButtonAria,
@@ -32,10 +33,10 @@ import {
   ListboxAria,
   type ListboxProps,
   MenuAria,
-  MenuButtonAria,
-  type MenuButtonProps,
   MenubarAria,
   type MenubarProps,
+  MenuButtonAria,
+  type MenuButtonProps,
   MenuGroupAria,
   type MenuGroupProps,
   MenuItemAria,
@@ -243,7 +244,11 @@ export function aria<E extends BaseElement = HTMLElement>(
 
 export function aria<E extends BaseElement = HTMLElement>(role: 'listbox', props?: ListboxProps): ListboxAria<E>;
 
-export function aria<E extends BaseElement = HTMLElement>(role: 'combobox', props?: ComboboxProps): ComboboxAria<E>;
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'combobox',
+  props?: ComboboxProps,
+  dictionary?: Record<AnyType, AnyType>
+): ComboboxAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement>(
   role: 'combobox-input',
@@ -256,7 +261,11 @@ export function aria<E extends BaseElement = HTMLElement>(
   props?: ComboboxPanelProps
 ): ComboboxPanelAria<E>;
 
-export function aria<E extends BaseElement = HTMLElement>(role: 'select', props?: SelectProps): SelectAria<E>;
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'select',
+  props?: SelectProps,
+  dictionary?: Record<AnyType, AnyType>
+): SelectAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement>(
   role: 'select-trigger',
@@ -639,13 +648,13 @@ export function aria(role: string, init?: unknown, options?: unknown): unknown {
     case 'listbox':
       return new ListboxAria(init as never);
     case 'combobox':
-      return new ComboboxAria(init as never);
+      return new ComboboxAria(init as never, options as never);
     case 'combobox-input':
       return new ComboboxInputAria(init as never, options as never);
     case 'combobox-panel':
       return new ComboboxPanelAria(init as never);
     case 'select':
-      return new SelectAria(init as never);
+      return new SelectAria(init as never, options as never);
     case 'select-trigger':
       return new SelectTriggerAria(init as never, options as never);
     case 'select-panel':
