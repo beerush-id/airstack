@@ -1,7 +1,7 @@
 import { $static, $symbol, createContext, uIndex } from '@airlib/core';
 import { Aria } from '../core.js';
 import type { AriaAttributes, AriaEvent, AriaEventHandler, AriaOptions, AriaProps, BaseElement } from '../types.js';
-import { PopoverAria, type PopoverRole } from '../widgets/popover.js';
+import { type OverlayTriggerMode, PopoverAria, type PopoverRole } from '../widgets/popover.js';
 
 export const popupCtx = createContext<PopupAria>();
 
@@ -225,12 +225,12 @@ export abstract class PopupPanel extends Aria {
   abstract popup: PopoverAria;
 }
 
-export function bindPanel(panel: PopupPanel) {
+export function bindPanel(panel: PopupPanel, mode: OverlayTriggerMode[] = ['click', 'rove']) {
   panel.actionable = panel.scope?.actionable;
 
   panel.popup = new PopoverAria(
     {
-      mode: ['click', 'rove'],
+      mode,
       get xDir() {
         return panel.properties.xDir ?? 'left';
       },

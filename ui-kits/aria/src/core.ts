@@ -1,12 +1,13 @@
 import {
-  type AnyType,
   anchor,
+  type AnyType,
   createContext,
   createObserver,
   mutable,
   onCleanup,
   type StateObserver,
 } from '@airlib/core';
+import { currentAria } from './context.js';
 import type {
   AriaAttributes,
   AriaEvent,
@@ -135,7 +136,28 @@ export class Aria<
     this.update();
 
     if (element) {
-      this.detach = this.attach()!;
+      const handleFocus = () => {
+        currentAria.set(this as unknown as Aria);
+      };
+      const handleBlur = () => {
+        const current = currentAria.get();
+        if (current && current !== this) return;
+        currentAria.set(undefined);
+      };
+
+      const attachInternal = () => {
+        element.addEventListener('focus', handleFocus);
+        element.addEventListener('blur', handleBlur);
+      };
+
+      const detach = this.attach()!;
+      attachInternal();
+
+      this.detach = () => {
+        detach?.();
+        element.removeEventListener('focus', handleFocus);
+        element.removeEventListener('blur', handleBlur);
+      };
     }
 
     return () => this.detach?.();
@@ -248,18 +270,6 @@ export class Aria<
   }
 
   /**
-   * Registers this controller as an actionable interactive candidate on itself and its parent scope.
-   */
-  protected markActionable(): void {
-    this.isActionable = true;
-    this.actionable = this as unknown as Aria<BaseElement, AriaProps, AriaAttributes<BaseElement>>;
-
-    if (this.scope) {
-      this.scope.actionable = this as unknown as Aria<BaseElement, AriaProps, AriaAttributes<BaseElement>>;
-    }
-  }
-
-  /**
    * Tears down the controller, executing cleanup functions, destroying observers, and unbinding DOM references.
    */
   public destroy(): void {
@@ -313,6 +323,33 @@ export class Aria<
     if (!this.element) return;
     this.element.dispatchEvent(event);
     if (bubbles) this.scope?.dispatch(event, bubbles);
+  }
+
+  /**
+   * Optional callback to capture and process change from a child component.
+   *
+   * @param target - The child component element
+   * @param value - The value to capture
+   */
+  public captureChange?(target: BaseElement, value?: unknown): void;
+
+  /**
+   * Requests the capture of options from the current role or its parent scope.
+   */
+  protected dispatchChange(value?: unknown) {
+    let role = this as unknown as Aria;
+    if (typeof role.captureChange === 'function') {
+      role.captureChange(role.element!, value);
+      return;
+    }
+
+    while (role) {
+      role = role.scope as unknown as Aria;
+      if (typeof role?.captureChange === 'function') {
+        role.captureChange(role.element!, value);
+        return;
+      }
+    }
   }
 
   /**
@@ -377,6 +414,18 @@ export class Aria<
     if (this.element) {
       applyAttributes(this.element, this.attrs, this.prevAttrs);
       this.prevAttrs = { ...this.attrs };
+    }
+  }
+
+  /**
+   * Registers this controller as an actionable interactive candidate on itself and its parent scope.
+   */
+  protected markActionable(): void {
+    this.isActionable = true;
+    this.actionable = this as unknown as Aria<BaseElement, AriaProps, AriaAttributes<BaseElement>>;
+
+    if (this.scope) {
+      this.scope.actionable = this as unknown as Aria<BaseElement, AriaProps, AriaAttributes<BaseElement>>;
     }
   }
 

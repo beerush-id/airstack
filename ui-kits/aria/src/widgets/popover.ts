@@ -4,14 +4,16 @@ import { Aria } from '../core.js';
 import type { AriaAttributes, AriaEvent, AriaEventHandler, AriaOptions, AriaProps, DetachFn } from '../types.js';
 
 const POPOVER_SYMBOL = $symbol('popover');
-const FOCUSABLE_SELECTOR = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+const FOCUSABLE_SELECTOR = ['button', '[href]', 'input', 'select', 'textarea', '[tabindex]']
+  .map((s) => `${s}:not(:disabled, [aria-disabled='true'])`)
+  .join(', ');
 
 export type PopoverRole = 'dialog' | 'menu' | 'tooltip' | 'listbox';
 
 /**
  * Supported activation trigger modes for anchored overlays.
  */
-export type OverlayTriggerMode = 'hover' | 'focus' | 'click' | 'rove';
+export type OverlayTriggerMode = 'hover' | 'focus' | 'click' | 'rove' | 'combo';
 
 /**
  * Reactive input properties for PopoverAria and overlay subclasses.
@@ -50,6 +52,12 @@ export interface PopoverProps extends AriaProps {
    * @default true
    */
   dismissable?: boolean;
+
+  /**
+   * Auto-focus flag: focus the first focusable element when the overlay opens.
+   * @default true
+   */
+  autofocus?: boolean;
 
   /**
    * Horizontal placement token.
@@ -129,6 +137,7 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
   protected previousFocused: HTMLElement | null = null;
   protected openTimer?: ReturnType<typeof setTimeout>;
   protected cleanups = new Set<() => void>();
+  protected restoring = false;
 
   public get mode(): OverlayTriggerMode[] {
     return this.properties.mode ?? ['click'];
@@ -166,15 +175,16 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
     return POPOVER_SYMBOL;
   }
 
-  protected get managesFocus(): boolean {
-    return true;
+  protected get autofocus(): boolean {
+    return this.properties.autofocus ?? true;
   }
 
   public constructor(props: Partial<PopoverProps> = {}, options: PopoverOptions = {}) {
     super(props, options);
     this.id = $static(() => this.properties.id ?? `${this.anchorPrefix}-${uIndex(this.instanceSymbol, true)}`);
     this.target = this.scope?.actionable as unknown as Aria;
-    this.omittedAttrs.push('open', 'mode', 'delay', 'dismissable', 'lightDismiss', 'xDir', 'yDir', 'ontoggle');
+    this.omittedAttrs.push('open', 'mode', 'delay', 'dismissable', 'xDir', 'yDir', 'ontoggle', 'autofocus');
+    this.dispatchedState = $static(() => this.properties.open ?? false);
 
     this.attachTrigger();
     this.update();
@@ -220,10 +230,10 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
   public override destroy(): void {
     this.cancelOpen();
 
-    if (this.open && this.managesFocus) {
+    if (this.open && this.autofocus) {
       const restoreTarget = this.target?.current;
       if (restoreTarget && document.contains(restoreTarget)) {
-        restoreTarget.focus();
+        this.refocus(restoreTarget);
       }
     }
 
@@ -239,18 +249,16 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
     const attrs: PopoverAttributes<E> = {
       id: this.id,
       role: this.popupRole,
+      hidden: !this.open,
     };
 
     if (this.isNative) {
       attrs.popover = this.dismissable ? 'auto' : 'manual';
-    } else if (!this.open) {
-      attrs.hidden = true;
     }
 
     if (this.open) {
       attrs.style = {
         positionAnchor: `--${this.anchorPrefix}-anchor-${this.id}`,
-        [`--${this.anchorPrefix}-anchor-name`]: `--${this.anchorPrefix}-anchor-${this.id}`,
       } as StyleInput;
     }
 
@@ -284,44 +292,8 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
       });
     }
 
-    let lastSeen: boolean | undefined;
-    const stopEffect = effect((e) => {
-      const isOpen = this.open;
-      if (e.type === 'init' || lastSeen === isOpen) return;
-
-      lastSeen = isOpen;
-
-      if (this.managesFocus) {
-        if (isOpen) {
-          this.previousFocused = document.activeElement as HTMLElement | null;
-
-          let toFocus: HTMLElement | undefined;
-          const focusableEntries = el.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
-
-          for (const candidate of Array.from(focusableEntries)) {
-            if (candidate.getAttribute('aria-selected') === 'true') {
-              toFocus = candidate;
-              break;
-            }
-          }
-
-          toFocus ??= focusableEntries[0];
-
-          if (toFocus) {
-            toFocus.focus();
-          } else if (el.tabIndex >= 0) {
-            el.focus();
-          }
-        } else {
-          const restoreTarget = this.previousFocused ?? hostEl;
-          if (restoreTarget && document.contains(restoreTarget)) {
-            restoreTarget.focus();
-          }
-          this.previousFocused = null;
-        }
-      }
-
-      this.dispatchVisibilityEvent(el, isOpen);
+    const stopEffect = effect.client(() => {
+      this.handleTransition();
     });
     cleanups.push(stopEffect);
 
@@ -333,14 +305,14 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
       }
     };
 
-    const handleEscapeKey = (e: KeyboardEvent) => {
-      this.handleKeyDown(e);
+    const handleDismissKey = (e: KeyboardEvent) => {
+      this.handleDismissKey(e);
     };
 
     const unListen = withEvents((listen) => {
       listen(document, 'pointerdown', handleOutsideClick);
-      listen(window, 'keydown', handleEscapeKey);
-      listen(el, 'keydown', handleEscapeKey);
+      listen(window, 'keydown', handleDismissKey);
+      listen(el, 'keydown', handleDismissKey);
     });
     cleanups.push(unListen);
 
@@ -349,13 +321,34 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
 
       if (hostEl && !this.target) {
         hostEl.style.removeProperty('anchor-name');
-        hostEl.style.removeProperty(`--${this.anchorPrefix}-anchor-name`);
       }
 
       for (const cleanup of cleanups) {
         cleanup();
       }
     };
+  }
+
+  protected handleTransition() {
+    if (!this.element) return;
+
+    const el = this.element!;
+    const isOpen = this.open;
+    const hostEl = this.target?.current ?? el.parentElement;
+
+    if (this.autofocus) {
+      if (isOpen) {
+        this.previousFocused = document.activeElement as HTMLElement | null;
+
+        if (!this.mode.includes('combo')) {
+          this.focusPopupContent();
+        }
+      } else {
+        this.restoreOverlayFocus(el, hostEl);
+      }
+    }
+
+    this.dispatchVisibilityEvent(el, isOpen);
   }
 
   protected handleClick(e: MouseEvent): void {
@@ -388,17 +381,73 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
       return;
     }
 
+    if (this.mode.includes('combo') && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+      e.preventDefault();
+
+      if (this.open) {
+        this.focusPopupContent();
+      } else {
+        this.show();
+      }
+
+      return;
+    }
+
+    this.handleDismissKey(e);
+  }
+
+  protected handleDismissKey(e: KeyboardEvent): void {
     if (e.key === 'Escape' && this.open) {
       e.preventDefault();
       e.stopPropagation();
       this.close();
-      if (this.managesFocus) {
+      if (this.autofocus) {
         const restoreTarget = this.previousFocused ?? this.target?.current;
         if (restoreTarget && document.contains(restoreTarget)) {
-          restoreTarget.focus();
+          this.refocus(restoreTarget);
         }
       }
     }
+  }
+
+  private focusPopupContent(): void {
+    const el = this.element!;
+    const entries = el.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+    let toFocus: HTMLElement | undefined;
+
+    for (const candidate of Array.from(entries)) {
+      if (candidate.getAttribute('aria-selected') === 'true') {
+        toFocus = candidate;
+        break;
+      }
+    }
+
+    toFocus ??= entries[0];
+
+    if (toFocus) {
+      toFocus.focus();
+    } else if (el.tabIndex >= 0) {
+      el.focus();
+    }
+  }
+
+  protected restoreOverlayFocus(panel: HTMLElement, hostEl?: HTMLElement | null): void {
+    if (this.mode.includes('combo') && !panel.contains(document.activeElement)) {
+      this.previousFocused = null;
+      return;
+    }
+
+    const restoreTarget = this.previousFocused ?? hostEl;
+    if (restoreTarget && document.contains(restoreTarget)) {
+      this.refocus(restoreTarget);
+    }
+    this.previousFocused = null;
+  }
+
+  protected refocus(target: HTMLElement): void {
+    this.restoring = true;
+    target.focus();
+    this.restoring = false;
   }
 
   protected createTriggerAttributes(): Record<string, unknown> {
@@ -409,7 +458,11 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
     };
   }
 
+  protected dispatchedState = false;
   protected dispatchVisibilityEvent(el: HTMLElement, isOpen: boolean): void {
+    if (this.dispatchedState === isOpen) return;
+    this.dispatchedState = isOpen;
+
     if (isOpen) {
       const openEvent = new CustomEvent('open', { bubbles: true, detail: isOpen });
       el.dispatchEvent(openEvent);
@@ -442,7 +495,6 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
         style: this.open
           ? ({
               anchorName: `--${this.anchorPrefix}-anchor-${this.id}`,
-              [`--${this.anchorPrefix}-anchor-name`]: `--${this.anchorPrefix}-anchor-${this.id}`,
             } as StyleInput)
           : undefined,
       };
@@ -457,6 +509,14 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
       if (this.mode.includes('focus')) {
         attrs.onfocus = () => this.handleFocus();
         attrs.onblur = () => this.handleBlur();
+      }
+      if (this.mode.includes('combo')) {
+        attrs.onclick = () => {
+          if (!this.restoring) this.show();
+        };
+        attrs.onfocus = () => {
+          if (!this.restoring) this.show();
+        };
       }
       attrs.onkeydown = (e: KeyboardEvent) => this.handleKeyDown(e);
 

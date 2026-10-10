@@ -29,12 +29,12 @@ describe('Option - Coverage (events, guards & teardown completeness)', () => {
           elB.click();
           expect(group.value).toBe('b');
           expect(optB.selected).toBe(true);
-          expect(seen).toEqual([true]);
+          expect(seen).toEqual(['b']);
 
           elB.click();
           expect(group.value).toBeUndefined();
           expect(optB.selected).toBe(false);
-          expect(seen).toEqual([true, false]);
+          expect(seen).toEqual(['b', null]);
 
           optA.destroy();
           optB.destroy();

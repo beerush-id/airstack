@@ -175,7 +175,7 @@ export class ListboxAria<
     const attrs: Record<string, unknown> = {
       id: this.id,
       role: ROLE_LISTBOX,
-      tabindex: disabled || this.selected ? undefined : 0,
+      tabindex: disabled ? undefined : 0,
       'aria-disabled': ariaBoolean(disabled),
       onkeydown: this.handleKeyDown,
     };
@@ -233,11 +233,6 @@ export class ListboxAria<
     (this.properties.onchange as AriaEventHandler<AriaEvent<unknown>> | undefined)?.(event);
 
     return event;
-  }
-
-  private get selected(): boolean {
-    const value = this.properties.value;
-    return Array.isArray(value) ? value.length > 0 : value !== undefined && value !== null;
   }
 
   private readonly handleKeyDown = (event: KeyboardEvent): void => {

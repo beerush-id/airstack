@@ -1,19 +1,19 @@
 import { $symbol } from '@airlib/core';
 import { selectionGroup } from '../selection.js';
-import type { AriaEvent, AriaEventHandler, AriaOptions, AriaProps, BaseElement } from '../types.js';
+import type { AriaEvent, AriaEventHandler, AriaOptions, AriaProps, BaseElement, DetachFn } from '../types.js';
 import type { PopoverAria } from '../widgets/popover.js';
-import { ListboxAria, type ListboxAttributes, type ListboxProps, listboxCtx } from './listbox.js';
+import { ListboxAria, type ListboxAttributes, listboxCtx, type ListboxProps } from './listbox.js';
 import {
   bindPanel,
   PopupAria,
   type PopupCloseEvent,
+  popupCtx,
   type PopupOpenEvent,
   type PopupPanel,
   type PopupProps,
   PopupTriggerAria,
   type PopupTriggerAttributes,
   type PopupTriggerOptions,
-  popupCtx,
 } from './popup.js';
 
 /**
@@ -157,13 +157,26 @@ export class SelectAria<E extends BaseElement = HTMLElement> extends PopupAria<E
       panelRole: 'listbox',
     });
 
-    this.omittedAttrs.push('value', 'query', 'multiple', 'required');
+    this.omittedAttrs.push('value', 'query', 'multiple', 'required', 'text');
 
     popupCtx.set(this as never);
     listboxCtx.set(this.properties as ListboxProps);
     selectionGroup.set(this.properties as Record<string, unknown>);
 
     this.update();
+  }
+
+  /**
+   * Captures the current selection and emits a change event.
+   */
+  public captureChange() {
+    if (!this.element) return;
+
+    const panel = document.getElementById(this.panelId);
+    const selected = panel?.querySelectorAll('[aria-selected="true"]');
+    this.text = Array.from(selected ?? [])
+      .map((el) => el.textContent)
+      .join(', ');
   }
 
   /**
@@ -185,6 +198,15 @@ export class SelectAria<E extends BaseElement = HTMLElement> extends PopupAria<E
    */
   public trigger(props?: SelectTriggerProps, options?: SelectTriggerOptions) {
     return new SelectTriggerAria(props, options);
+  }
+
+  /**
+   * Captures the current selection and delegates to the base implementation.
+   */
+  protected attach(): DetachFn | void {
+    const detach = super.attach();
+    this.captureChange();
+    return detach;
   }
 }
 
@@ -222,6 +244,7 @@ export class SelectTriggerAria<E extends BaseElement = HTMLElement> extends Popu
    */
   public constructor(props: Partial<SelectTriggerProps> = {}, options: AriaOptions = { native: true }) {
     super(props, options);
+    this.omittedAttrs.push('value', 'text');
     this.update();
   }
 }
@@ -275,6 +298,7 @@ export class SelectPanelAria<E extends BaseElement = HTMLElement> extends Listbo
     super(props, true);
 
     this.host = popupCtx.get() as SelectAria;
+    this.omittedAttrs.push('query', 'text');
     bindPanel(this as unknown as PopupPanel);
 
     this.update();
@@ -286,6 +310,10 @@ export class SelectPanelAria<E extends BaseElement = HTMLElement> extends Listbo
   public override destroy(): void {
     this.popup.destroy();
     super.destroy();
+  }
+
+  protected override createAttributes(): ListboxAttributes<E> {
+    return Object.assign((this.popup as unknown as this).attrs, super.createAttributes());
   }
 
   /**
@@ -300,17 +328,7 @@ export class SelectPanelAria<E extends BaseElement = HTMLElement> extends Listbo
     if (!this.properties.multiple) {
       this.popup.close();
     }
-    this.applyText();
 
     return event;
-  }
-
-  protected applyText() {
-    if (!this.host) return;
-
-    const selected = this.element?.querySelectorAll('[aria-selected="true"]');
-    this.host.text = Array.from(selected ?? [])
-      .map((el) => el.textContent)
-      .join(', ');
   }
 }

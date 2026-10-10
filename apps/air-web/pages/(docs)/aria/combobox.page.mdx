@@ -1,0 +1,509 @@
+---
+title: 'Combobox'
+description: 'Filterable choice composite: an editable combobox input driving a filtered listbox popup with keyboard selection.'
+nav: 'Combobox'
+nav-priority: 355
+---
+
+# AirLib Headless Combobox
+
+A combobox is a text field with an opinion: you can type what you want *or* pick from what exists, and the list narrows as you type. Hand-rolled markup usually delivers one of those two and breaks the other — an input that never announces its popup, arrow keys that scroll the document instead of opening the list, a popup that grabs the caret the moment it appears so the field stops accepting text, and a selection that overwrites what the developer typed. **AirLib Headless Combobox** (`aria('combobox')`) is a role-less root orchestrating an editable `combobox` input, a popup listbox panel, and option members: typing drives a `query` that stays separate from the selected `value`, the popup opens on the first keystroke without touching your caret, traversal and commits run through the listbox you already know, and the query remains exactly what you wrote — the engine never rewrites your state behind your back.
+
+```tsx
+const combobox = aria('combobox', props);
+
+<div ref={combobox.ref} {...combobox.props} />
+```
+
+<style>{`
+.demo-combobox {
+  display: inline-flex;
+  position: relative;
+  flex-direction: column;
+  gap: .375rem;
+  max-width: 16rem;
+}
+
+.demo-combobox-input {
+  anchor-name: var(--popover-anchor-name);
+  padding: .5rem .75rem;
+  border: 1px solid #e4e4e7;
+  border-radius: .75rem;
+  background: #fff;
+  font-size: .9375rem;
+}
+
+.demo-combobox-input[aria-expanded="true"] {
+  border-color: #18181b;
+}
+
+.demo-combobox-input:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+.demo-combobox-input[aria-disabled="true"] {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+.demo-combobox-panel {
+  position: fixed;
+  position-anchor: var(--popover-anchor-name);
+  top: anchor(bottom);
+  left: anchor(left);
+  position-area: bottom;
+  margin: .375rem 0 0;
+  min-width: anchor-size(width);
+  display: flex;
+  flex-direction: column;
+  gap: .125rem;
+  padding: .375rem;
+  border: 1px solid #e4e4e7;
+  border-radius: .75rem;
+  background: #fff;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, .25);
+  z-index: 50;
+}
+
+@supports (position-area: bottom) {
+  .demo-combobox-panel {
+    top: auto;
+    left: anchor(left);
+  }
+}
+
+.demo-combobox-panel[hidden] {
+  display: none;
+}
+
+.demo-combobox-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  padding: .5rem .75rem;
+  border-radius: .5rem;
+  border: 1px solid transparent;
+  font-size: .9375rem;
+  cursor: pointer;
+}
+
+.demo-combobox-option:hover {
+  background: #f4f4f5;
+}
+
+.demo-combobox-option:focus-visible {
+  outline: none;
+  border-color: #18181b;
+  background: #18181b;
+  color: #fff;
+}
+
+.demo-combobox-option[aria-selected="true"]::after {
+  content: "✓";
+  font-size: .8125rem;
+}
+
+.demo-combobox-option[aria-disabled="true"] {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+.demo-combobox-empty {
+  margin: 0;
+  padding: .5rem .75rem;
+  font-size: .875rem;
+  opacity: .6;
+}
+`}</style>
+
+:::interactive[Filterable City Picker]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup, shadowPortal } from '@airlib/react';
+import type { ComponentProps, ReactNode } from 'react';
+
+const cities = ['Amsterdam', 'Berlin', 'Copenhagen', 'Dublin', 'Vilnius'];
+
+type DemoComboboxProps = ComponentProps<'div'> & {
+  value?: string | null;
+  query?: string;
+  open?: boolean;
+};
+
+const DemoCombobox = setup<DemoComboboxProps>((props) => {
+  const combobox = aria('combobox', props);
+
+  return () => {
+    const query = combobox.query.trim().toLowerCase();
+    const visible = cities.filter((city) => city.toLowerCase().includes(query));
+
+    return (
+      <div ref={combobox.ref} {...combobox.restProps(['children'])} className="demo-combobox">
+        <DemoComboboxInput
+          text={combobox.query || combobox.text}
+          onQuery={(value) => {
+            combobox.query = value;
+          }}
+        />
+        <DemoComboboxPanel>
+          {visible.length === 0
+            ? <p className="demo-combobox-empty">No city matches</p>
+            : visible.map((city) => (
+                <DemoOption key={city} value={city.toLowerCase()}>{city}</DemoOption>
+              ))}
+        </DemoComboboxPanel>
+      </div>
+    );
+  };
+}, 'DemoCombobox');
+
+const DemoComboboxInput = setup<{ text: string; onQuery: (value: string) => void }>((props) => {
+  const input = aria<HTMLInputElement>('combobox-input', {});
+
+  return () => (
+    <input
+      ref={input.ref}
+      {...input.restProps()}
+      className="demo-combobox-input"
+      value={props.text}
+      onChange={(event) => props.onQuery(event.currentTarget.value)}
+    />
+  );
+}, 'DemoComboboxInput');
+
+const DemoComboboxPanel = setup<{ children: ReactNode }>((props) => {
+  const panel = aria<HTMLElement>('combobox-panel', {});
+  const shadow = shadowPortal(() => panel.open);
+
+  return () => shadow(
+    <div ref={panel.ref} {...panel.restProps(['children'])} className="demo-combobox-panel">
+      {props.children}
+    </div>
+  );
+}, 'DemoComboboxPanel');
+
+type DemoOptionProps = ComponentProps<'div'> & {
+  value: string;
+  disabled?: boolean;
+  children: ReactNode;
+};
+
+const DemoOption = setup<DemoOptionProps>((props) => {
+  const option = aria('option', props);
+
+  return () => (
+    <div ref={option.ref} {...option.restProps(['children'])} className="demo-combobox-option">
+      {props.children}
+    </div>
+  );
+}, 'DemoOption');
+```
+
+<div className="inline-flex mx-auto gap-4">
+  <DemoCombobox />
+  <DemoCombobox required />
+  <DemoCombobox disabled />
+</div>
+:::
+
+Click or tab into the field — the popup opens, the caret stays put, and typing narrows the list. `ArrowDown` hands focus to the matches, `ArrowDown` / `ArrowUp` travel them, `Enter` commits, and the field then reads the city you chose. Reopening shows the whole list again, because choosing freed the filter.
+
+## Combobox
+
+Role-less root orchestrator hosting the filter query, the selection, and the popup visibility, publishing ambient context for the input, the panel, and the options.
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'combobox',
+  props?: ComboboxProps
+): ComboboxAria<E>
+```
+
+### Usage
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type ComboboxProps = ComponentProps<'div'> & {
+  value?: string | string[] | null;
+  query?: string;
+  open?: boolean;
+  multiple?: boolean;
+  disabled?: boolean;
+  required?: boolean;
+  onopen?: () => void;
+  onclose?: () => void;
+  oninput?: () => void;
+  onchange?: () => void;
+};
+
+const Combobox = setup<ComboboxProps>((props) => {
+  const combobox = aria('combobox', props);
+
+  return () => (
+    <div ref={combobox.ref} {...combobox.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type ComboboxProps = ComponentProps<'div'> & {
+  value?: string | string[] | null;
+  query?: string;
+  open?: boolean;
+  multiple?: boolean;
+  disabled?: boolean;
+  required?: boolean;
+  onopen?: () => void;
+  onclose?: () => void;
+  oninput?: () => void;
+  onchange?: () => void;
+};
+
+const Combobox = setup<ComboboxProps>((props) => {
+  const combobox = aria('combobox', props);
+
+  return (
+    <div ref={combobox.ref} {...combobox.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
+
+For multiple selection declare the array archetype: `{ multiple: true, value: ['ams', 'ber'] }`. `multiple` and `value` narrow together.
+
+Filtering is your render job: read `combobox.query`, narrow your own data, and render the survivors as `option` members. The controller never hides or reorders options for you, so nothing about your data shape leaks into the engine.
+
+### Parameters
+
+- `props.query` *(string, optional, default `""`)*: Filter text, readable and writable through `combobox.query`. Typing in the input writes it; a commit or a leave clears it.
+- `props.text` *(string, published by the engine, default `""`)*: Label of the current choice, readable through `combobox.text`. Render the field as `combobox.query || combobox.text`.
+- `props.value` *(string | null | string[], optional)*: Selected option value in the single archetype (`null` is the unselected token); an array of tokens in the multiple archetype. Never written by typing.
+- `props.open` *(boolean, optional)*: Popup visibility flag, readable and writable through `combobox.open`.
+- `props.multiple` *(boolean, optional, default `false`)*: Declares the multi-select archetype, where `value` is an array of tokens.
+- `props.disabled` *(boolean, optional)*: Locks out typing, toggling, and committing across the whole combobox.
+- `props.required` *(boolean, optional)*: A required combobox with nothing selected is claimed by the first mounted option.
+- `props.id` *(string, optional)*: Explicit DOM identifier. Generated as `combobox-<n>` when omitted; the panel derives `{id}-panel`.
+- `props.onopen` / `props.onclose` *(handlers, optional)*: Called when the popup opens or closes.
+- `props.oninput` / `props.onchange` *(handlers, optional)*: Called with the cursor announcement and with the committed value.
+
+### How it behaves
+
+- Compiles no `role` — the root is a non-semantic container.
+- `query` is the filter and `text` is the chosen label. Typing writes `query` and selects nothing; a commit publishes that option's label as `text` and frees `query`, so the next opening offers the whole list again instead of one stale match.
+- Leaving the composite (focus out beyond the field and the popup) also publishes `text` and clears `query` — the field falls back to the current choice. `Escape` and arrow travel inside the composite are not leaving, so a filter in progress is never reset under you.
+- A commit in single mode closes the popup; a commit in multiple mode leaves it open.
+- A programmatic write (`combobox.open = true`) flips visibility and flows through to the input's `aria-expanded`, but dispatches nothing on its own: visibility events come from the popup lifecycle.
+
+## Combobox Input
+
+The editable field carrying the combobox face: it writes the query, opens the popup, and anchors the panel.
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'combobox-input',
+  props?: ComboboxInputProps,
+  options?: ComboboxInputOptions
+): ComboboxInputAria<E>
+```
+
+### Usage
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type ComboboxInputProps = ComponentProps<'input'> & {
+  id?: string;
+  disabled?: boolean;
+};
+
+const ComboboxInput = setup<ComboboxInputProps>((props) => {
+  const input = aria<HTMLInputElement>('combobox-input', props);
+
+  return () => <input ref={input.ref} {...input.restProps()} />;
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type ComboboxInputProps = ComponentProps<'input'> & {
+  id?: string;
+  disabled?: boolean;
+};
+
+const ComboboxInput = setup<ComboboxInputProps>((props) => {
+  const input = aria<HTMLInputElement>('combobox-input', props);
+
+  return <input ref={input.ref} {...input.restProps()} />;
+});
+```
+
+:::
+
+The engine never emits the HTML `value` attribute, so the field's text is yours to bind: `value={combobox.query || combobox.text}` with an `onChange` writing the typed value back into `query`. That binding is what lets the field read the filter while you type and the chosen label once you pick or move away. Bind a `value` without a matching write and React restores the prop's text before the engine's own `input` listener runs, silently dropping every keystroke.
+
+### Parameters
+
+- `props.id` *(string, optional)*: DOM element identifier.
+- `props.disabled` *(boolean, optional)*: Disables this input. Combobox-level disablement applies too.
+
+### How it behaves
+
+- Compiles `role="combobox"`, a fixed `aria-autocomplete="list"`, `aria-haspopup="listbox"`, `aria-expanded` tracking the popup, and `aria-controls` pointing at the panel id.
+- On a native `<input>` host it compiles `type="text"` and real `disabled`; on a custom host it compiles `tabindex` plus `aria-disabled`.
+- Focus opens the popup, and the field keeps DOM focus while it does — the popup never steals the caret mid-word. A click on the field never closes what focus just opened.
+- The `input` event you receive while typing is the browser's own, never a re-dispatch.
+- `ArrowDown` / `ArrowUp` open a closed popup; while it is open they hand focus to the selected option, or to the list itself while nothing is selected.
+- `Enter` and `Space` stay text keys — commits happen on the option that holds focus, never by hijacking the field.
+- While disabled nothing is typed into the state, nothing opens, and nothing commits.
+- Claims itself as the popup's anchor, so the panel positions and dismisses against the field without any wrapper component.
+
+## Combobox Panel
+
+Popup listbox inheriting the listbox's traversal, typeahead, and option coordination, with dismissal and focus delegated to an internal popover.
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'combobox-panel',
+  props?: ComboboxPanelProps
+): ComboboxPanelAria<E>
+```
+
+`ComboboxPanelProps` is the listbox props. The panel adopts the combobox's ambient context and proxies `open`, `onopen`, and `onclose` to and from the internal popover.
+
+### Usage
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup, teleport } from '@airlib/react';
+import type { ComponentProps, ReactNode } from 'react';
+
+type ComboboxPanelProps = ComponentProps<'div'> & {
+  children: ReactNode;
+};
+
+const ComboboxPanel = setup<ComboboxPanelProps>((props) => {
+  const panel = aria<HTMLElement>('combobox-panel', props);
+
+  return () => (
+    <div ref={panel.ref} {...panel.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps, JSX } from 'solid-js';
+
+type ComboboxPanelProps = ComponentProps<'div'> & {
+  children: JSX.Element;
+};
+
+const ComboboxPanel = setup<ComboboxPanelProps>((props) => {
+  const panel = aria<HTMLElement>('combobox-panel', props);
+
+  return (
+    <div ref={panel.ref} {...panel.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
+
+Keep the panel mounted: the popover compiles `hidden` while closed, so the popup disappears without unmounting, and the same instance keeps managing its open/close edges, dismissal, and focus return. Render it conditionally instead and the first opening has no edge to react to, so the popup's own lifecycle starts one step behind the state.
+
+### How it behaves
+
+- Compiles `role="listbox"` and holds the panel id the input's `aria-controls` points at.
+- Traversal moves focus and commits nothing; activation commits through the option's own rules.
+- Outside click and `Escape` dismiss through the internal popover; dismissal returns focus to the field, and opening never moves focus out of it.
+- Disabled traversal and typeahead while the combobox is disabled.
+
+## Options
+
+Individual choices are the standard `option` role controller (`aria('option')`) — ambiently coordinated, selected rather than checked, and inert to keys of their own. See the [Option](/docs/aria/option) documentation for its value, label, and disablement contract.
+
+## Events
+
+| Event | Authored by | Trigger | `detail` |
+| :--- | :--- | :--- | :--- |
+| `input` | The input element | Typing (the browser's own event) | None — read `combobox.query` |
+| `input` | The option | Focus landed on it — arrows, `Home`/`End`, typeahead, or a click | That option's value |
+| `change` | The combobox root | Activation committed the selection | The whole updated value |
+| `open` / `onopen` | The popup | The panel opened | The open state |
+| `close` / `onclose` | The popup | The panel closed | The open state |
+
+```tsx
+const combobox = aria('combobox', {
+  query: '',
+  value: 'ams',
+  onopen: () => hideHint(),
+  onclose: () => restoreHint(),
+});
+```
+
+Typing is a native event and is never re-dispatched by the engine: the field already announced it. A programmatic write (`combobox.query = 'be'`) changes the filter without pretending a keystroke happened.
+
+## Keyboard Navigation
+
+| Key | Behavior |
+| :--- | :--- |
+| Typing in the field | Writes `query`, opens the popup, narrows the list. Selects nothing. |
+| `Focus` on the field | Opens the popup and keeps the caret in the field. |
+| `ArrowDown` / `ArrowUp` on a closed field | Opens the popup. |
+| `ArrowDown` / `ArrowUp` on the open field | Hands focus to the selected option, or to the list while nothing is selected. |
+| `ArrowDown` / `ArrowUp` / `Home` / `End` in the list | Roves across options without committing. |
+| `Enter` on an option | Commits the selection and puts that option's label in the field. |
+| `Escape` | Closes the popup, selects nothing, and returns focus to the field. |
+| `Tab` | Steps from the field into the option list. Leaving the composite adopts the current choice's label and closes the popup. |
+
+## Accessibility notes
+
+- The `combobox` role lives on the editable field, with `aria-autocomplete="list"` fixed: assistive technology is told suggestions appear in a separate list, never inline completion in the field.
+- Name the field yourself — `aria-label` or `aria-labelledby` on the input. The engine does not invent a label.
+- Because the popup list is filtered data, announce the result count from your own live region when it changes; the combobox role carries no count semantics.
+- Keep the option's visible text equal to what it commits, so a filtered list still reads the same to assistive technology as it does to a pointer.
+
+## What you get
+
+- **Query and value that never conflate.** Typing filters; committing selects; neither overwrites the other.
+- **A popup without popup plumbing.** Dismissal, positioning, and focus restoration are delegated to the internal popover.
+- **The field shows what you chose.** `text` carries the chosen label and `query` carries only the filter, so the field reads `Berlin` after a pick and the reopened list still offers every city.
+- **A caret you keep.** The popup opens on focus or typing without pulling focus out of the field, and one arrow press moves you into the list.
+- **Single closes, multiple stays.** The commit rule follows the archetype.
+- **Zero markup lock-in.** Native `<input>` or a custom host, `<div>` or `<ul>` panel, rich option rows.
+
+## Next steps
+
+- **[Select](/docs/aria/select)**: The same popup for picking only, with a button trigger instead of a field.
+- **[Listbox](/docs/aria/listbox)**: The filtered option list always visible, without the popup.
+- **[Option](/docs/aria/option)**: The selection member this composite coordinates.

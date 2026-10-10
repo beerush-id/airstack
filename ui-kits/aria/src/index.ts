@@ -8,6 +8,12 @@ import {
   type AccordionProps,
   CheckboxGroupAria,
   type CheckboxGroupProps,
+  ComboboxAria,
+  ComboboxInputAria,
+  type ComboboxInputProps,
+  ComboboxPanelAria,
+  type ComboboxPanelProps,
+  type ComboboxProps,
   ConfirmActionAria,
   ConfirmAria,
   ConfirmCancelAria,
@@ -99,7 +105,7 @@ import {
   type SidebarProps,
 } from './landmarks/index.js';
 import { AnnouncerAria, type AnnouncerOptions, type AnnouncerProps } from './live/index.js';
-import type { AriaProps, BaseElement, Primitive } from './types.js';
+import type { AriaOptions, AriaProps, BaseElement, Primitive } from './types.js';
 import {
   ButtonAria,
   type ButtonOptions,
@@ -236,6 +242,19 @@ export function aria<E extends BaseElement = HTMLElement>(
 ): CheckboxGroupAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement>(role: 'listbox', props?: ListboxProps): ListboxAria<E>;
+
+export function aria<E extends BaseElement = HTMLElement>(role: 'combobox', props?: ComboboxProps): ComboboxAria<E>;
+
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'combobox-input',
+  props?: ComboboxInputProps,
+  options?: AriaOptions
+): ComboboxInputAria<E>;
+
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'combobox-panel',
+  props?: ComboboxPanelProps
+): ComboboxPanelAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement>(role: 'select', props?: SelectProps): SelectAria<E>;
 
@@ -619,6 +638,12 @@ export function aria(role: string, init?: unknown, options?: unknown): unknown {
       return new CheckboxGroupAria(init as never);
     case 'listbox':
       return new ListboxAria(init as never);
+    case 'combobox':
+      return new ComboboxAria(init as never);
+    case 'combobox-input':
+      return new ComboboxInputAria(init as never, options as never);
+    case 'combobox-panel':
+      return new ComboboxPanelAria(init as never);
     case 'select':
       return new SelectAria(init as never);
     case 'select-trigger':

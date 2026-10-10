@@ -329,6 +329,7 @@ export abstract class SelectionAria<
       detail: this.group ? this.group.value : this.selected,
     });
 
+    this.dispatchChange(this.selected);
     this.element.dispatchEvent(event);
     this.properties.onchange?.(event);
   }
@@ -428,6 +429,8 @@ export abstract class SelectionAria<
    * @returns Teardown callback to unbind the label listener, or void if native or unbound
    */
   protected override attach(): DetachFn | void {
+    this.dispatchChange(this.selected);
+
     if (!this.isNative) {
       return bindLabel(this.element!);
     }

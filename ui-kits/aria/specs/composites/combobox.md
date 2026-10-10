@@ -3,23 +3,23 @@
 The filterable text choice unit. Pairs direct text editing with a dynamic filtered popup listbox and keyboard selection
 (`docs/combobox.md`).
 
-### Composite Parts
+### Composite Parts (Entity Tree)
 
-- **`Combobox`**: Container coordinator (hosts ambient `text`/`value`/`open`).
-- **`ComboboxInput`**: Text input (`role="combobox"`, `aria-autocomplete="list"`, `aria-expanded`, `aria-controls`,
-  `aria-activedescendant`).
-- **`ComboboxPopup`**: Popup listbox (`role="listbox"`), composed from the Listbox unit.
-- **`ComboboxOption`**: Option member (`role="option"`, `aria-selected`, `aria-disabled`).
+- **`Combobox`**: Root orchestrator (publishes ambient props context hosting selection, filter query, and `open` state).
+- **`ComboboxInput`**: Text input (compiles `role="combobox"`, `aria-autocomplete="list"`, `aria-expanded`, `aria-controls`). Claims itself as anchor via `this.markActionable()`.
+- **`ComboboxPanel`**: Popup listbox panel inheriting from [Listbox](listbox.md) (compiles `role="listbox"`, creates internal `PopoverAria` proxying `open`, `onopen`, and `onclose` to ambient props).
+- **`Option`**: Composed option members (compiles `role="option"`). See [Option](../widgets/option.md).
 
 ---
 
 ## The Three Semantic Layers
 
-| Part / Role          | HTML Semantic               | WAI-ARIA Semantic                                                                                                                                                                                                                            | Aria Package Semantic Contract                                                                                              |
-|:---------------------|:----------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:----------------------------------------------------------------------------------------------------------------------------|
-| **`ComboboxInput`**  | Native `<input>` or custom. | `role="combobox"`, `aria-autocomplete="list"` (fixed by the source), `aria-expanded`, `aria-controls` (popup id), `aria-activedescendant` (highlighted option id); native `disabled` / custom `aria-disabled` + `tabindex`; `aria-required`. | DOM focus stays in the input for all interactions; the popup's highlighted option is published via `aria-activedescendant`. |
-| **`ComboboxPopup`**  | Overlay `<div>`.            | `role="listbox"`, `id`.                                                                                                                                                                                                                      | Filtered option set; **hidden when closed** (removed from tab order and a11y tree). Composed from the Listbox unit.         |
-| **`ComboboxOption`** | `<div>`/`<li>`.             | `role="option"`, `aria-selected`, `aria-disabled`.                                                                                                                                                                                           | Selection derived from ambient `combobox.value === option.value`.                                                           |
+| Part / Role          | HTML Semantic                                 | WAI-ARIA Semantic                                                                                   | Aria Package Semantic Contract                                                                                                |
+|:---------------------|:----------------------------------------------|:----------------------------------------------------------------------------------------------------|:------------------------------------------------------------------------------------------------------------------------------|
+| **`Combobox` (Root)**| Non-semantic container (`<div>` or fragment). | None (role omitted).                                                                                | Root orchestrator hosting `value`, `query`, `open`, `multiple`, `disabled`, `required`. Publishes ambient host context.       |
+| **`ComboboxInput`**  | Native `<input>` or custom.                   | `role="combobox"`, `aria-autocomplete="list"`, `aria-expanded`, `aria-controls` (popup id).         | Claims anchor via `this.markActionable()`. Text input driving filter query and popup expansion.                                |
+| **`ComboboxPanel`**  | Overlay container (`<div>` or `<ul>`).        | `role="listbox"`.                                                                                   | Popup panel. Inherits [Listbox](listbox.md), creating an internal Popover proxying `open`, `onopen`, and `onclose`.           |
+| **`Option`**         | List item (`<li>` or `<div>`).                | `role="option"`.                                                                                    | Composed from [Option](../widgets/option.md).                                                                                 |
 
 ---
 
@@ -27,67 +27,110 @@ The filterable text choice unit. Pairs direct text editing with a dynamic filter
 
 ### 1. Props Contracts
 
-#### `ComboboxProps`
+#### `SingleComboboxProps`
 
 ```ts
-export interface ComboboxProps {
+export interface SingleComboboxProps {
+  multiple?: false;
   id?: string;
-  /** Filter query string (default: "") — distinct from the selected value */
-  text?: string;
+  /** Filter query string (default: "") — distinct from selected value */
+  query?: string;
   /** Selected option value (default: null) */
   value?: string | null;
   /** Popup visibility (default: false) */
   open?: boolean;
+  onopen?: () => void;
+  onclose?: () => void;
   disabled?: boolean;
   required?: boolean;
 }
 ```
 
-#### `ComboboxOptionProps`
+#### `MultipleComboboxProps`
 
 ```ts
-export interface ComboboxOptionProps {
-  /** Option identifier, unique within the Combobox */
-  value: string;
-  /** Matching / naming / committed-text label (default: text content) */
-  label?: string;
+export interface MultipleComboboxProps {
+  multiple: true;
+  id?: string;
+  /** Filter query string (default: "") — distinct from selected value */
+  query?: string;
+  /** Selected option values */
+  value?: string[];
+  /** Popup visibility (default: false) */
+  open?: boolean;
+  onopen?: () => void;
+  onclose?: () => void;
+  disabled?: boolean;
+  required?: boolean;
+}
+```
+
+#### `ComboboxProps`
+
+```ts
+export type ComboboxProps = SingleComboboxProps | MultipleComboboxProps;
+```
+
+#### `ComboboxInputProps`
+
+```ts
+export interface ComboboxInputProps {
+  id?: string;
   disabled?: boolean;
 }
 ```
 
-> `aria-autocomplete` is fixed to `"list"` (`docs/combobox.md:47,55`); it is not a configurable prop. `text` (query)
-> and `value` (selected option) are distinct inputs (`:11-12`). The popup id is derived from the combobox namespace —
-> the same deterministic pair-id mechanism as select.
+#### `ComboboxPanelProps`
+
+```ts
+export type ComboboxPanelProps = ListboxProps;
+```
+
+> `aria-autocomplete` is fixed to `"list"`. `query` (filter string) and `value` (selected option) are distinct
+> reactive inputs.
 
 ### 2. Overload Contracts
 
 ```ts
-export function aria<E extends BaseElement = HTMLInputElement>(role: 'combobox', props?: ComboboxProps): ComboboxAria<E>;
-export function aria<E extends BaseElement = HTMLElement>(role: 'combobox-input', props?: AriaProps): ComboboxInputAria<E>;
-export function aria<E extends BaseElement = HTMLElement>(role: 'combobox-popup', props?: AriaProps): ComboboxPopupAria<E>;
-export function aria<E extends BaseElement = HTMLElement>(role: 'combobox-option', props: ComboboxOptionProps): ComboboxOptionAria<E>;
+// Combobox: Root orchestrator hosting ambient context
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'combobox',
+  props?: ComboboxProps
+): ComboboxAria<E>;
+
+// ComboboxInput: Text input element compiling role="combobox"
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'combobox-input',
+  props?: ComboboxInputProps
+): ComboboxInputAria<E>;
+
+// ComboboxPanel: Popup panel inheriting from Listbox
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'combobox-panel',
+  props?: ComboboxPanelProps
+): ComboboxPanelAria<E>;
 ```
 
 ---
 
 ## State & Lifecycle Rules
 
-1. **Popup Coordination** (`docs/combobox.md:33,48-50`): `aria-expanded` reflects `open`; `aria-controls` → popup id;
-   `aria-activedescendant` → highlighted option id (withdrawn when closed); DOM focus stays in the input throughout.
+1. **Popup Coordination & Anchoring**:
+  - `Combobox` orchestrates ambient host state (`value`, `query`, `open`, `disabled`).
+  - `ComboboxInput` claims itself as anchor by calling `this.markActionable()`.
+  - `ComboboxInput` reflects `aria-expanded` from `open` and points `aria-controls` to the popup id.
+  - Typing in the input updates `query` and opens the popup.
 
-2. **Typing & Filtering** (`docs/combobox.md:27`): typing updates `text` and opens the popup when matching options
-   exist; matching is case-insensitive against option `label`s.
+2. **Composition & Popup Delegation**:
+  - The popup is rendered with `ComboboxPanel` (`aria('combobox-panel')`), which inherits `ListboxAria` and creates an internal `PopoverAria` instance.
+  - Member items are rendered with `Option` (`aria('option')`).
+  - `ComboboxPanel` adopts `combobox`'s ambient context (`this.properties = ambientProps ?? props`), proxying `open`, `onopen`, and `onclose` to/from the internal popover.
+  - Light dismissal (outside click, Escape) and positioning are handled by the internal popover.
+  - Option filtering is driven by `query`, filtering visible options without conflating internal typeahead.
+  - `Escape` closes the popup; if closed with uncommitted edits, reverts `query`.
 
-3. **Keyboard** (`docs/combobox.md:29-32`):
-  - `Down` / `Up` move highlight through visible options without committing. `Home` / `End` → first / last visible.
-  - `Enter` commits the highlighted option to `value`, sets `text` to the option label, and closes the popup.
-  - `Escape` closes the popup if open; if closed with uncommitted edits, reverts `text` to the committed value's label.
-
-4. **Selection** (`docs/combobox.md:34`): option `selected = combobox.value === option.value`. Disabled options cannot
-   be highlighted or selected.
-
-5. **Events** (`docs/combobox.md:38-41`):
-  - `input` — native `<input>`: browser-dispatched, not re-dispatched; custom:
-    `CustomEvent<string>('input', { bubbles: true, detail: text })` when `text` changes.
-  - `change` — on the Combobox container after `value` commits,
-    `CustomEvent<string | null>('change', { bubbles: true, detail: value })`.
+3. **Events**:
+  - `input`: Dispatched when `query` updates from typing, and forwarded from `ComboboxPanel` when roving options.
+  - `change`: Dispatched on `combobox` when selection commits with updated `value`.
+  - `open` / `onopen`: Emitted when the popup opens.
+  - `close` / `onclose`: Emitted when the popup closes.

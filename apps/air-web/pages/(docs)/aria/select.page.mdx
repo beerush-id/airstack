@@ -120,7 +120,7 @@ const select = aria('select', props);
 :::interactive[Single-Select Dropdown]
 ```tsx
 import { aria } from '@airlib/aria';
-import { setup, teleport, renderDynamic } from '@airlib/react';
+import { setup, shadowPortal } from '@airlib/react';
 import type { ComponentProps, ReactNode } from 'react';
 
 type DemoSelectProps = ComponentProps<'div'> & {
@@ -156,16 +156,13 @@ type DemoSelectPanelProps = ComponentProps<'div'> & {
 
 const DemoSelectPanel = setup<DemoSelectPanelProps>((props) => {
   const panel = aria('select-panel', props);
+  const shadow = shadowPortal(() => panel.open);
 
-  return () => {
-    if (!panel.open) return null;
-
-    return teleport(
-      <div ref={panel.ref} {...panel.restProps(['children'])} className="demo-select-panel">
-        {props.children}
-      </div>
-    );
-  };
+  return () => shadow(
+    <div ref={panel.ref} {...panel.restProps(['children'])} className="demo-select-panel">
+      {props.children}
+    </div>
+  );
 }, 'DemoSelectPanel');
 
 type DemoOptionProps = ComponentProps<'div'> & {

@@ -97,7 +97,7 @@ export class TooltipAria<E extends HTMLElement = HTMLElement> extends PopoverAri
     return TOOLTIP_SYMBOL;
   }
 
-  protected override get managesFocus(): boolean {
+  protected override get autofocus(): boolean {
     return false;
   }
 

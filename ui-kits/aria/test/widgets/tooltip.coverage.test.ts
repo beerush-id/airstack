@@ -68,7 +68,6 @@ describe('Tooltip Widget (Coverage & Edge Cases)', () => {
     expect(tip.attributes['data-tooltip-y']).toBe('top');
     expect(tip.attributes.style).toEqual({
       positionAnchor: `--tooltip-anchor-${tip.id}`,
-      '--tooltip-anchor-name': `--tooltip-anchor-${tip.id}`,
     });
 
     tip.destroy();
