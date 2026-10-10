@@ -463,4 +463,109 @@ describe('Combobox - Coverage', () => {
         });
       }));
   });
+
+  describe('Unbound Accessor Invariant', () => {
+    it('reads empty query and text before binding assigns defaults', () =>
+      scope.run(() => {
+        component().run(() => {
+          const combobox = aria<HTMLElement>('combobox', { value: null });
+          expect(combobox.query).toBe('');
+          expect(combobox.text).toBe('');
+          combobox.destroy();
+        });
+      }));
+
+    it('writes the choice label through the text setter', () =>
+      scope.run(() => {
+        component().run(() => {
+          const props = mutable<ComboboxProps>({ query: '', value: null, open: false });
+          const { combobox, cleanup } = buildCombobox(props, [{ value: 'a', text: 'Amsterdam' }]);
+
+          combobox.text = 'Berlin';
+          expect(combobox.text).toBe('Berlin');
+          expect(props.text).toBe('Berlin');
+
+          cleanup();
+        });
+      }));
+
+    it('leaves query and text alone when capturing without a bound element', () =>
+      scope.run(() => {
+        component().run(() => {
+          const combobox = aria<HTMLElement>('combobox', { value: null });
+          combobox.query = 'am';
+          combobox.text = 'keep';
+
+          combobox.captureChange();
+          expect(combobox.query).toBe('am');
+          expect(combobox.text).toBe('keep');
+
+          combobox.destroy();
+        });
+      }));
+
+    it('proxies value and query from the host input', () =>
+      scope.run(() => {
+        component().run(() => {
+          const props = mutable<ComboboxProps>({ query: '', value: null, open: false });
+          const { combobox, input, cleanup } = buildCombobox(props, [{ value: 'a', text: 'Amsterdam' }]);
+
+          expect(input.value).toBe('');
+
+          combobox.query = 'am';
+          expect(input.query).toBe('am');
+
+          combobox.value = 'a';
+          expect(input.value).toBe('a');
+
+          cleanup();
+        });
+
+        component().run(() => {
+          const lone = aria<HTMLInputElement>('combobox-input', {});
+          expect(lone.value).toBe('');
+          expect(lone.query).toBe('');
+          lone.destroy();
+        });
+      }));
+
+    it('proxies query from the host panel', () =>
+      scope.run(() => {
+        component().run(() => {
+          const props = mutable<ComboboxProps>({ query: '', value: null, open: false });
+          const { combobox, panel, cleanup } = buildCombobox(props, [{ value: 'a', text: 'Amsterdam' }]);
+
+          combobox.query = 'am';
+          expect(panel.query).toBe('am');
+
+          cleanup();
+        });
+
+        component().run(() => {
+          const lone = aria<HTMLElement>('combobox-panel', {});
+          expect(lone.query).toBe('');
+          lone.destroy();
+        });
+      }));
+
+    it('marks required on a custom-host input', () =>
+      scope.run(() => {
+        component().run(() => {
+          const props = mutable<ComboboxProps>({ query: '', value: null, open: false, required: true });
+          const combobox = aria<HTMLElement>('combobox', props);
+          const comboboxEl = bind(document.createElement('div'), combobox);
+          document.body.appendChild(comboboxEl);
+
+          const input = combobox.input({}, { native: false });
+          const inputEl = bind(document.createElement('div'), input);
+          comboboxEl.appendChild(inputEl);
+
+          expect(inputEl.getAttribute('aria-required')).toBe('true');
+
+          input.destroy();
+          combobox.destroy();
+          comboboxEl.remove();
+        });
+      }));
+  });
 });

@@ -1,6 +1,6 @@
 import { createLifecycle } from '@airlib/core';
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { aria, popover } from '../../src/index.js';
+import { aria, PopoverAria, popover } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 describe('Popover - Coverage & Edge Cases', () => {
@@ -322,6 +322,280 @@ describe('Popover - Coverage & Edge Cases', () => {
 
         pop.destroy();
         document.body.removeChild(parent);
+      });
+    }));
+
+  it('ignores toggle, show, close, and scheduleOpen while the scoped trigger is disabled', () =>
+    scope.run(() => {
+      const tree = component();
+      tree.run(() => {
+        const host = aria('button', { disabled: true });
+        const hostEl = bind(document.createElement('button'), host);
+        document.body.appendChild(hostEl);
+
+        const pop = aria('popover');
+        const popEl = document.createElement('div');
+        document.body.appendChild(popEl);
+        pop.ref(popEl);
+
+        pop.toggle();
+        expect(pop.open).toBe(false);
+
+        pop.show();
+        expect(pop.open).toBe(false);
+
+        pop.scheduleOpen();
+        vi.advanceTimersByTime(1000);
+        expect(pop.open).toBe(false);
+
+        pop.open = true;
+        pop.close();
+        expect(pop.open).toBe(true);
+
+        pop.destroy();
+        host.destroy();
+        document.body.removeChild(hostEl);
+        document.body.removeChild(popEl);
+      });
+    }));
+
+  it('cancels a pending hover open when the pointer enters the panel', () =>
+    scope.run(() => {
+      const tree = component();
+      tree.run(() => {
+        const host = aria('button');
+        const hostEl = bind(document.createElement('button'), host);
+        document.body.appendChild(hostEl);
+
+        const pop = aria('popover', { mode: ['hover'], delay: 100 });
+        const popEl = document.createElement('div');
+        document.body.appendChild(popEl);
+        pop.ref(popEl);
+
+        hostEl.dispatchEvent(new Event('pointerenter'));
+        expect(pop.open).toBe(false);
+
+        popEl.dispatchEvent(new Event('pointerenter'));
+        vi.advanceTimersByTime(200);
+        expect(pop.open).toBe(false);
+
+        pop.destroy();
+        host.destroy();
+        document.body.removeChild(hostEl);
+        document.body.removeChild(popEl);
+      });
+    }));
+
+  it('closes on panel pointerleave to the outside but stays when returning to the host', () =>
+    scope.run(() => {
+      const tree = component();
+      tree.run(() => {
+        const host = aria('button');
+        const hostEl = bind(document.createElement('button'), host);
+        document.body.appendChild(hostEl);
+
+        const pop = aria('popover', { mode: ['hover'], delay: 0 });
+        const popEl = document.createElement('div');
+        document.body.appendChild(popEl);
+        pop.ref(popEl);
+
+        hostEl.dispatchEvent(new Event('pointerenter'));
+        expect(pop.open).toBe(true);
+
+        popEl.dispatchEvent(new PointerEvent('pointerleave', { relatedTarget: hostEl }));
+        expect(pop.open).toBe(true);
+
+        popEl.dispatchEvent(new PointerEvent('pointerleave', { relatedTarget: document.body }));
+        expect(pop.open).toBe(false);
+
+        pop.destroy();
+        host.destroy();
+        document.body.removeChild(hostEl);
+        document.body.removeChild(popEl);
+      });
+    }));
+
+  it('keeps the popover open when the trigger pointerleave lands inside the panel', () =>
+    scope.run(() => {
+      const tree = component();
+      tree.run(() => {
+        const host = aria('button');
+        const hostEl = bind(document.createElement('button'), host);
+        document.body.appendChild(hostEl);
+
+        const pop = aria('popover', { mode: ['hover'], delay: 0 });
+        const popEl = document.createElement('div');
+        const inside = document.createElement('span');
+        popEl.appendChild(inside);
+        document.body.appendChild(popEl);
+        pop.ref(popEl);
+
+        hostEl.dispatchEvent(new Event('pointerenter'));
+        expect(pop.open).toBe(true);
+
+        hostEl.dispatchEvent(new PointerEvent('pointerleave', { relatedTarget: inside }));
+        expect(pop.open).toBe(true);
+
+        hostEl.dispatchEvent(new PointerEvent('pointerleave', { relatedTarget: document.body }));
+        expect(pop.open).toBe(false);
+
+        pop.destroy();
+        host.destroy();
+        document.body.removeChild(hostEl);
+        document.body.removeChild(popEl);
+      });
+    }));
+
+  it('opens on trigger click and focus in combo mode', () =>
+    scope.run(() => {
+      const tree = component();
+      tree.run(() => {
+        const host = aria('button');
+        const hostEl = bind(document.createElement('button'), host);
+        document.body.appendChild(hostEl);
+
+        const pop = aria('popover', { mode: ['combo'] });
+        const popEl = document.createElement('div');
+        document.body.appendChild(popEl);
+        pop.ref(popEl);
+
+        hostEl.click();
+        expect(pop.open).toBe(true);
+
+        pop.close();
+        expect(pop.open).toBe(false);
+
+        hostEl.focus();
+        expect(pop.open).toBe(true);
+
+        pop.destroy();
+        host.destroy();
+        document.body.removeChild(hostEl);
+        document.body.removeChild(popEl);
+      });
+    }));
+
+  it('hands ArrowDown to the panel in combo mode and dismisses on Escape', () =>
+    scope.run(() => {
+      const tree = component();
+      tree.run(() => {
+        const host = aria('button');
+        const hostEl = bind(document.createElement('button'), host);
+        document.body.appendChild(hostEl);
+
+        const pop = aria('popover', { mode: ['combo'] });
+        const popEl = document.createElement('div');
+        const child = document.createElement('button');
+        popEl.appendChild(child);
+        document.body.appendChild(popEl);
+        pop.ref(popEl);
+
+        const arrow = new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true });
+        hostEl.dispatchEvent(arrow);
+        expect(arrow.defaultPrevented).toBe(true);
+        expect(pop.open).toBe(true);
+
+        hostEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
+        expect(document.activeElement).toBe(child);
+
+        hostEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+        expect(pop.open).toBe(false);
+
+        hostEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+        expect(pop.open).toBe(false);
+
+        pop.destroy();
+        host.destroy();
+        document.body.removeChild(hostEl);
+        document.body.removeChild(popEl);
+      });
+    }));
+
+  it('skips focus restoration on Escape when autofocus is off', () =>
+    scope.run(() => {
+      const tree = component();
+      tree.run(() => {
+        const host = aria('button');
+        const hostEl = bind(document.createElement('button'), host);
+        document.body.appendChild(hostEl);
+
+        const pop = aria('popover', { autofocus: false });
+        const popEl = document.createElement('div');
+        document.body.appendChild(popEl);
+        pop.ref(popEl);
+
+        hostEl.click();
+        expect(pop.open).toBe(true);
+
+        const focused = document.activeElement;
+        hostEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+        expect(pop.open).toBe(false);
+        expect(document.activeElement).toBe(focused);
+
+        pop.destroy();
+        host.destroy();
+        document.body.removeChild(hostEl);
+        document.body.removeChild(popEl);
+      });
+    }));
+
+  it('runs subclass-registered teardowns on destroy', () =>
+    scope.run(() => {
+      class ProbePopover extends PopoverAria {
+        public released = false;
+
+        public arm() {
+          this.cleanups.add(() => {
+            this.released = true;
+          });
+        }
+      }
+
+      const tree = component();
+      tree.run(() => {
+        const pop = new ProbePopover();
+        pop.arm();
+
+        pop.destroy();
+        expect(pop.released).toBe(true);
+      });
+    }));
+
+  it('restores focus to the trigger on combo close only while the cursor sits in the panel', () =>
+    scope.run(() => {
+      const tree = component();
+      tree.run(() => {
+        const host = aria('button');
+        const hostEl = bind(document.createElement('button'), host);
+        document.body.appendChild(hostEl);
+
+        const pop = aria('popover', { mode: ['combo'] });
+        const popEl = document.createElement('div');
+        const child = document.createElement('button');
+        popEl.appendChild(child);
+        document.body.appendChild(popEl);
+        pop.ref(popEl);
+
+        hostEl.addEventListener('focus', () => hostEl.click());
+
+        hostEl.focus();
+        expect(pop.open).toBe(true);
+
+        child.focus();
+        pop.close();
+        expect(pop.open).toBe(false);
+        expect(document.activeElement).toBe(hostEl);
+
+        hostEl.blur();
+        pop.open = true;
+        pop.close();
+        expect(pop.open).toBe(false);
+        expect(document.activeElement).not.toBe(hostEl);
+
+        pop.destroy();
+        host.destroy();
+        document.body.removeChild(hostEl);
+        document.body.removeChild(popEl);
       });
     }));
 });

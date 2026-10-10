@@ -1,6 +1,6 @@
 import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
-import { aria, type SelectProps } from '../../src/index.js';
+import { aria, SelectAria, SelectPanelAria, type SelectProps, SelectTriggerAria } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 function buildSelect(props: SelectProps, options: Array<{ value: string; text: string; disabled?: boolean }>) {
@@ -129,6 +129,144 @@ describe('Select - Coverage', () => {
           const second = buildSelect(multi, [{ value: 'a', text: 'Amsterdam' }]);
           expect(second.select.multiple).toBe(true);
           second.cleanup();
+        });
+      }));
+  });
+
+  describe('Value Accessor Invariant', () => {
+    it('reads and writes the selection through the value accessor', () =>
+      scope.run(() => {
+        component().run(() => {
+          const props = mutable<SelectProps>({ value: null, open: false });
+          const { select, cleanup } = buildSelect(props, [
+            { value: 'a', text: 'Amsterdam' },
+            { value: 'b', text: 'Berlin' },
+          ]);
+
+          expect(select.value).toBeNull();
+
+          select.value = 'b';
+          expect(select.value).toBe('b');
+          expect(props.value).toBe('b');
+
+          cleanup();
+        });
+      }));
+
+    it('labels choices through the value map in both archetypes', () =>
+      scope.run(() => {
+        component().run(() => {
+          const single = buildSelect(mutable<SelectProps>({ value: 'a', open: false }), [
+            { value: 'a', text: 'Amsterdam' },
+          ]);
+          expect(single.select.label).toBe('a');
+          single.cleanup();
+
+          const multi = buildSelect(mutable<SelectProps>({ value: ['a', 'b'], open: false, multiple: true }), [
+            { value: 'a', text: 'Amsterdam' },
+            { value: 'b', text: 'Berlin' },
+          ]);
+          expect(multi.select.label).toBe('a, b');
+          multi.cleanup();
+
+          const mapped = new SelectAria({ value: 'a' }, { a: 'Amsterdam', b: 'Berlin' });
+          expect(mapped.label).toBe('Amsterdam');
+          mapped.destroy();
+
+          const mappedMulti = new SelectAria({ value: ['a', 'b'], multiple: true }, { a: 'Amsterdam', b: 'Berlin' });
+          expect(mappedMulti.label).toBe('Amsterdam, Berlin');
+          mappedMulti.destroy();
+        });
+      }));
+
+    it('reads empty text by default and normalizes assigned text', () =>
+      scope.run(() => {
+        component().run(() => {
+          const props = mutable<SelectProps>({ value: null, open: false });
+          const { select, cleanup } = buildSelect(props, [{ value: 'a', text: 'Amsterdam' }]);
+
+          expect(select.text).toBe('');
+
+          select.text = 'Berlin';
+          expect(select.text).toBe('Berlin');
+
+          select.text = undefined as unknown as string;
+          expect(select.text).toBe('');
+
+          cleanup();
+        });
+      }));
+
+    it('leaves text alone when capturing without a bound element', () =>
+      scope.run(() => {
+        component().run(() => {
+          const select = aria<HTMLElement>('select', { value: null });
+          select.text = 'keep';
+
+          select.captureChange();
+          expect(select.text).toBe('keep');
+
+          const bare = aria<HTMLElement>('select', { value: null });
+          expect(bare.text).toBe('');
+          bare.destroy();
+
+          select.destroy();
+        });
+      }));
+
+    it('creates bound panel and trigger instances through the factories', () =>
+      scope.run(() => {
+        component().run(() => {
+          const props = mutable<SelectProps>({ value: null, open: false });
+          const { select, cleanup } = buildSelect(props, [{ value: 'a', text: 'Amsterdam' }]);
+
+          const panel = select.panel();
+          expect(panel).toBeInstanceOf(SelectPanelAria);
+          panel.destroy();
+
+          const trigger = select.trigger();
+          expect(trigger).toBeInstanceOf(SelectTriggerAria);
+          trigger.destroy();
+
+          cleanup();
+        });
+      }));
+
+    it('proxies value, text, and label from the host trigger', () =>
+      scope.run(() => {
+        component().run(() => {
+          const props = mutable<SelectProps>({ value: 'a', open: false });
+          const { select, trigger, cleanup } = buildSelect(props, [{ value: 'a', text: 'Amsterdam' }]);
+
+          select.text = 'Berlin';
+          expect(trigger.value).toBe('a');
+          expect(trigger.text).toBe('Berlin');
+          expect(trigger.label).toBe('a');
+
+          cleanup();
+        });
+
+        component().run(() => {
+          const lone = aria<HTMLButtonElement>('select-trigger', {});
+          expect(lone.value).toBeUndefined();
+          expect(lone.text).toBe('');
+          expect(lone.label).toBe('');
+          lone.destroy();
+        });
+      }));
+
+    it('reads popup visibility through the panel open getter', () =>
+      scope.run(() => {
+        component().run(() => {
+          const props = mutable<SelectProps>({ value: null, open: false });
+          const { select, panel, cleanup } = buildSelect(props, [{ value: 'a', text: 'Amsterdam' }]);
+
+          expect(panel.open).toBe(false);
+
+          select.open = true;
+          expect(panel.open).toBe(true);
+
+          cleanup();
         });
       }));
   });

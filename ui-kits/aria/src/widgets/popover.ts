@@ -320,10 +320,6 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
     return () => {
       this.cancelOpen();
 
-      if (hostEl && !this.target) {
-        hostEl.style.removeProperty('anchor-name');
-      }
-
       for (const cleanup of cleanups) {
         cleanup();
       }
@@ -331,8 +327,6 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
   }
 
   protected handleTransition() {
-    if (!this.element) return;
-
     const el = this.element!;
     const isOpen = this.open;
     const hostEl = this.target?.current ?? el.parentElement;
@@ -487,8 +481,8 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
     this.attachTrigger();
   }
 
-  protected attachTrigger() {
-    if (!this.target) return () => {};
+  protected attachTrigger(): void {
+    if (!this.target) return;
 
     this.target.refine(() => {
       const attrs: AriaAttributes = {
