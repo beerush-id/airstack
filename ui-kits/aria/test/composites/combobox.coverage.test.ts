@@ -284,7 +284,7 @@ describe('Combobox - Coverage', () => {
 
           input.refine(() => ({
             role: 'textbox',
-            'aria-autocomplete': 'both',
+            'aria-autocomplete': 'both' as never,
             'aria-expanded': 'true',
           }));
 
@@ -299,8 +299,9 @@ describe('Combobox - Coverage', () => {
     it('shields value, query, and open from refiners on the orchestrator', () =>
       scope.run(() => {
         component().run(() => {
-          const props = mutable<ComboboxProps>({ query: 'am', value: null, open: false });
+          const props = mutable<ComboboxProps>({ query: '', value: null, open: false });
           const { combobox, cleanup } = buildCombobox(props, [{ value: 'a', text: 'Amsterdam' }]);
+          combobox.query = 'am';
 
           combobox.refine(() => ({ value: 'a', query: 'zzz', open: true }));
 

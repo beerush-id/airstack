@@ -320,8 +320,7 @@ export class Aria<
    * @param bubbles - Whether the event should bubble up the component tree
    */
   public dispatch(event: AriaEvent, bubbles: boolean = true) {
-    if (!this.element) return;
-    this.element.dispatchEvent(event);
+    if (this.element) this.element.dispatchEvent(event);
     if (bubbles) this.scope?.dispatch(event, bubbles);
   }
 
@@ -339,14 +338,14 @@ export class Aria<
   protected dispatchChange(value?: unknown) {
     let role = this as unknown as Aria;
     if (typeof role.captureChange === 'function') {
-      role.captureChange(role.element!, value);
+      role.captureChange(this.element!, value);
       return;
     }
 
     while (role) {
       role = role.scope as unknown as Aria;
       if (typeof role?.captureChange === 'function') {
-        role.captureChange(role.element!, value);
+        role.captureChange(this.element!, value);
         return;
       }
     }

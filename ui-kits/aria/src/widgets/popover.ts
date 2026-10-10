@@ -7,6 +7,7 @@ const POPOVER_SYMBOL = $symbol('popover');
 const FOCUSABLE_SELECTOR = ['button', '[href]', 'input', 'select', 'textarea', '[tabindex]']
   .map((s) => `${s}:not(:disabled, [aria-disabled='true'])`)
   .join(', ');
+const POPOVER_ROVING_KEYS = new Set(['ArrowDown', 'ArrowUp']);
 
 export type PopoverRole = 'dialog' | 'menu' | 'tooltip' | 'listbox';
 
@@ -336,7 +337,7 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
     const isOpen = this.open;
     const hostEl = this.target?.current ?? el.parentElement;
 
-    if (this.autofocus) {
+    if (this.autofocus && this.dispatchedState !== isOpen) {
       if (isOpen) {
         this.previousFocused = document.activeElement as HTMLElement | null;
 
@@ -375,13 +376,13 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
   }
 
   protected handleKeyDown(e: KeyboardEvent): void {
-    if (this.mode.includes('rove') && !this.open && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+    if (this.mode.includes('rove') && POPOVER_ROVING_KEYS.has(e.key) && !this.open) {
       e.preventDefault();
       this.show();
       return;
     }
 
-    if (this.mode.includes('combo') && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+    if (this.mode.includes('combo') && POPOVER_ROVING_KEYS.has(e.key)) {
       e.preventDefault();
 
       if (this.open) {

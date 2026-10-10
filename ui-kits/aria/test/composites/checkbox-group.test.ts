@@ -1,4 +1,4 @@
-import { createLifecycle, mutable } from '@airlib/core';
+import { type AnyType, createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
 import { aria, type CheckboxAria, type CheckboxGroupProps } from '../../src/index.js';
 import { bind, component } from '../utils.js';
@@ -20,7 +20,7 @@ function buildGroup(props: Partial<CheckboxGroupProps>, values: string[], host: 
     const el = bind(document.createElement(host === 'native' ? 'input' : 'div'), item);
     groupEl.appendChild(el);
     return { value, item, el };
-  });
+  }) as AnyType[];
 
   const cleanup = () => {
     for (const { item } of items) {
@@ -89,20 +89,21 @@ describe('CheckboxGroup - Composite Specifications', () => {
           const { groupEl, items, cleanup } = buildGroup(props, ['a', 'b']);
 
           const commits: Array<{ detail: unknown; bubbles: boolean; kind: string }> = [];
-          groupEl.addEventListener('change', (event) =>
+          groupEl.addEventListener('change', (event) => {
+            const detail = (event as CustomEvent).detail;
             commits.push({
-              detail: (event as CustomEvent).detail,
+              detail: Array.isArray(detail) ? [...detail] : detail,
               bubbles: event.bubbles,
               kind: event.constructor.name,
-            })
-          );
+            });
+          });
 
           items[0].el.click();
           items[1].el.click();
           items[0].el.click();
 
           const customCommits = commits.filter((entry) => entry.kind === 'CustomEvent');
-          expect(customCommits.map((entry) => entry.detail)).toEqual([true, true, false]);
+          expect(customCommits.map((entry) => entry.detail)).toEqual([['a'], ['a', 'b'], ['b']]);
           expect(customCommits[0].bubbles).toBe(true);
           expect(props.value).toEqual(['b']);
 

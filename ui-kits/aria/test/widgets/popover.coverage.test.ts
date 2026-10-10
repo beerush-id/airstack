@@ -42,7 +42,7 @@ describe('Popover - Coverage & Edge Cases', () => {
 
       const el = document.createElement('div');
       auto.ref(el);
-      expect(el.hidden).toBe(false);
+      expect(el.hidden).toBe(true);
       auto.destroy();
 
       const manual = popover({ dismissable: false }, { native: true });

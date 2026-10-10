@@ -107,19 +107,10 @@ export class TooltipAria<E extends HTMLElement = HTMLElement> extends PopoverAri
     };
   }
 
-  protected override applyFallbackTrigger(hostEl: HTMLElement, isOpen: boolean): void {
-    if (isOpen) {
-      hostEl.setAttribute('aria-describedby', this.id);
-    } else {
-      hostEl.removeAttribute('aria-describedby');
-    }
-  }
-
-  protected override removeFallbackTrigger(hostEl: HTMLElement): void {
-    hostEl.removeAttribute('aria-describedby');
-  }
-
   protected override dispatchVisibilityEvent(el: HTMLElement, isOpen: boolean): void {
+    if (this.dispatchedState === isOpen) return;
+    this.dispatchedState = isOpen;
+
     const event: TooltipEvent = new CustomEvent('change', { bubbles: true, detail: isOpen });
     el.dispatchEvent(event);
     (this.properties as TooltipProps).onchange?.(event);

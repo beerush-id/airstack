@@ -62,14 +62,14 @@ describe('Listbox - Composite Specifications', () => {
           expect(listboxEl.getAttribute('role')).toBe('listbox');
           expect(listboxEl.getAttribute('aria-label')).toBe('Cities');
           expect(stops(members)).toEqual(['-1', '0', '-1']);
-          expect(listboxEl.hasAttribute('tabindex')).toBe(false);
+          expect(listboxEl.getAttribute('tabindex')).toBe('0');
 
           props.value = undefined;
           expect(listboxEl.getAttribute('tabindex')).toBe('0');
           expect(stops(members)).toEqual(['-1', '-1', '-1']);
 
           props.value = 'c';
-          expect(listboxEl.hasAttribute('tabindex')).toBe(false);
+          expect(listboxEl.getAttribute('tabindex')).toBe('0');
           expect(stops(members)).toEqual(['-1', '-1', '0']);
 
           cleanup();
@@ -306,7 +306,7 @@ describe('Listbox - Composite Specifications', () => {
           expect(listboxEl.getAttribute('aria-required')).toBe('true');
           expect(props.value).toBe('a');
           expect(stops(members)).toEqual(['0', '-1']);
-          expect(listboxEl.hasAttribute('tabindex')).toBe(false);
+          expect(listboxEl.getAttribute('tabindex')).toBe('0');
 
           cleanup();
         });

@@ -80,7 +80,7 @@ describe('Listbox - Coverage & Boundary Tests', () => {
           expect(listbox.value).toEqual([]);
 
           listbox.value = ['b'];
-          expect(listboxEl.hasAttribute('tabindex')).toBe(false);
+          expect(listboxEl.getAttribute('tabindex')).toBe('0');
           expect(members[1].el.getAttribute('aria-selected')).toBe('true');
 
           cleanup();

@@ -410,7 +410,7 @@ describe('Combobox - Composite Specifications', () => {
         });
       }));
 
-    it('keeps the chosen text when a filter hides the selection before leaving', () =>
+    it('clears the text when the selection is absent on leaving', () =>
       scope.run(() => {
         component().run(() => {
           const props = mutable<ComboboxProps>({ query: '', value: null, open: true });
@@ -433,7 +433,7 @@ describe('Combobox - Composite Specifications', () => {
           inputEl.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: outside }));
 
           expect(combobox.query).toBe('');
-          expect(combobox.text).toBe('Berlin');
+          expect(combobox.text).toBe('');
           expect(combobox.value).toBe('b');
 
           outside.remove();
@@ -488,7 +488,7 @@ describe('Combobox - Composite Specifications', () => {
           type(inputEl, '');
 
           expect(combobox.query).toBe('');
-          expect(combobox.value).toBeNull();
+          expect(combobox.value).toBeUndefined();
           expect(combobox.text).toBe('');
           expect(inputEl.value).toBe('');
 

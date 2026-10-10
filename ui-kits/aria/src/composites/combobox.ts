@@ -250,15 +250,15 @@ export class ComboboxAria<E extends BaseElement = HTMLElement> extends PopupAria
     };
   }
 
-  public captureChange(target?: BaseElement) {
-    if (!this.element || (target as HTMLElement | null) === this.actionable?.current) return;
+  public captureChange() {
+    if (!this.element) return;
 
     const panel = document.getElementById(this.panelId);
     const selected = panel?.querySelectorAll('[aria-selected="true"]');
-    this.text = Array.from(selected ?? [])
+    const text = Array.from(selected ?? [])
       .map((el) => el.textContent)
       .join(', ');
-    this.query = '';
+    this.assign({ query: '', text });
   }
 }
 
@@ -293,11 +293,16 @@ export class ComboboxInputAria<E extends BaseElement = HTMLElement> extends Popu
     const attrs = super.createAttributes() as ComboboxInputAttributes<E>;
 
     if (this.isNative) {
-      attrs.type = 'text';
+      const { query, text, value } = this.host?.properties ?? {};
+
+      Object.assign(attrs, {
+        name: this.host?.triggerId,
+        type: 'text',
+        value: query || text || value || '',
+      });
     }
 
     attrs['aria-autocomplete'] = 'list';
-    (attrs as Record<string, unknown>).oninput = this.handleInput;
 
     return attrs;
   }
@@ -313,10 +318,16 @@ export class ComboboxInputAria<E extends BaseElement = HTMLElement> extends Popu
       (this.element as unknown as HTMLInputElement | null)?.select?.();
     };
 
+    const handleInput = (event: Event): void => {
+      this.handleInput(event);
+    };
+
+    host.addEventListener('input', handleInput);
     host.addEventListener('focus', selectLabel);
 
     return () => {
       detach?.();
+      host.removeEventListener('input', handleInput);
       host.removeEventListener('focus', selectLabel);
     };
   }
@@ -329,11 +340,10 @@ export class ComboboxInputAria<E extends BaseElement = HTMLElement> extends Popu
     if (host.query === '' && host.text !== '' && value.length > host.text.length && value.startsWith(host.text)) {
       value = value.slice(host.text.length);
     }
-    host.query = value;
-    host.open = true;
+    host.assign({ query: value, open: true });
 
     if (value === '' && !host.multiple) {
-      if (host.value !== null && host.value !== undefined) host.value = null;
+      if (host.value !== null && host.value !== undefined) host.value = undefined;
       if (host.text !== '') host.properties.text = '';
     }
   };

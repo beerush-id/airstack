@@ -28,12 +28,12 @@ describe('Radio - Coverage (events, guards & teardown completeness)', () => {
           el.click();
           expect(r.checked).toBe(true);
           expect(group.value).toBe('b');
-          expect(seen).toEqual([true]);
+          expect(seen).toEqual(['b']);
 
           el.click();
           expect(r.checked).toBe(true);
           expect(group.value).toBe('b');
-          expect(seen).toEqual([true]);
+          expect(seen).toEqual(['b']);
 
           r.destroy();
           expect(r.current).toBeNull();

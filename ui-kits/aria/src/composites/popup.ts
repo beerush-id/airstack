@@ -99,6 +99,13 @@ export class PopupAria<
   O extends PopupOptions = PopupOptions,
 > extends Aria<E, P, A, O> {
   /**
+   * The unique DOM element identifier.
+   */
+  public get id() {
+    return this.properties.id;
+  }
+
+  /**
    * Whether the popup is currently open.
    */
   public get open(): boolean {
@@ -125,6 +132,13 @@ export class PopupAria<
    */
   public get panelId(): string {
     return `${this.properties.id}-panel`;
+  }
+
+  /**
+   * Deterministic trigger identifier shared with the panel's aria-controls.
+   */
+  public get triggerId(): string {
+    return `${this.properties.id}-trigger`;
   }
 
   public options: O;
@@ -196,7 +210,7 @@ export class PopupTriggerAria<
     const disabled = this.disabled;
 
     const attrs: PopupTriggerAttributes<E> = {
-      id: this.properties.id,
+      id: host?.triggerId,
       role: host?.options.triggerRole ?? 'combobox',
       'aria-haspopup': host?.options?.panelRole ?? 'listbox',
       'aria-expanded': host?.open ? 'true' : 'false',

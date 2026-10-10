@@ -502,11 +502,11 @@ describe('ToggleGroup - Composite Specifications', () => {
           );
 
           members[1].el.click();
-          expect(commits).toEqual([{ bubbles: true, detail: true, source: 'member' }]);
+          expect(commits).toEqual([{ bubbles: true, detail: 'b', source: 'member' }]);
           expect(props.value).toBe('b');
 
           members[1].el.click();
-          expect(commits.map(({ detail }) => detail)).toEqual([true, false]);
+          expect(commits.map(({ detail }) => detail)).toEqual(['b', null]);
           expect(props.value).toBeUndefined();
           cleanup();
         });
@@ -519,14 +519,18 @@ describe('ToggleGroup - Composite Specifications', () => {
           const { groupEl, members, cleanup } = buildGroup(props, ['a', 'b']);
 
           const commits: Array<{ detail: unknown; set: string[] }> = [];
-          groupEl.addEventListener('change', (event) =>
-            commits.push({ detail: (event as CustomEvent).detail, set: [...(props.value as string[])] })
-          );
+          groupEl.addEventListener('change', (event) => {
+            const detail = (event as CustomEvent).detail;
+            commits.push({
+              detail: Array.isArray(detail) ? [...detail] : detail,
+              set: [...(props.value as string[])],
+            });
+          });
 
           members[0].el.click();
           members[1].el.click();
           members[0].el.click();
-          expect(commits.map(({ detail }) => detail)).toEqual([true, true, false]);
+          expect(commits.map(({ detail }) => detail)).toEqual([['a'], ['a', 'b'], ['b']]);
           expect(commits.map(({ set }) => set)).toEqual([['a'], ['a', 'b'], ['b']]);
           cleanup();
         });
@@ -543,12 +547,12 @@ describe('ToggleGroup - Composite Specifications', () => {
           const { members, cleanup } = buildGroup(props, ['a', 'b']);
 
           members[1].el.click();
-          expect(commits).toEqual([[true, 'b']]);
+          expect(commits).toEqual([['b', 'b']]);
 
           members[1].el.click();
           expect(commits).toEqual([
-            [true, 'b'],
-            [false, null],
+            ['b', 'b'],
+            [null, null],
           ]);
 
           props.value = 'a';
