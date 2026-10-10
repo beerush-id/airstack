@@ -140,17 +140,19 @@ export class OptionAria<
    */
   protected override attach(): DetachFn | void {
     const detach = super.attach();
-    const host = this.element!;
+    const element = this.element!;
 
     const handleFocus = (): void => {
-      host.dispatchEvent(new CustomEvent('input', { bubbles: true, detail: this.value }));
+      const event = new CustomEvent('input', { bubbles: true, detail: this.value, cancelable: true });
+      element.dispatchEvent(event);
+      this.dispatch(event);
     };
 
-    host.addEventListener('focus', handleFocus);
+    element.addEventListener('focus', handleFocus);
 
     return () => {
       detach?.();
-      host.removeEventListener('focus', handleFocus);
+      element.removeEventListener('focus', handleFocus);
     };
   }
 }

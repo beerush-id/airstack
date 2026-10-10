@@ -338,19 +338,10 @@ export class SelectPanelAria<E extends BaseElement = HTMLElement> extends Listbo
     return Object.assign((this.popup as unknown as this).attrs, super.createAttributes());
   }
 
-  /**
-   * Announces a value change to the select orchestrator and closes the popup
-   * if single-select.
-   * @return dispatched event.
-   */
-  protected override announceChange() {
-    const event = super.announceChange();
-    this.host?.dispatch(event);
-
-    if (!this.properties.multiple) {
+  protected capture(event: AriaEvent): void {
+    if (event.type === 'change' && !this.properties.multiple) {
       this.popup.close();
     }
-
-    return event;
+    super.capture(event);
   }
 }

@@ -748,7 +748,7 @@ describe('Combobox - Composite Specifications', () => {
           const changes: unknown[] = [];
           panelEl.addEventListener('input', (event) => roved.push((event as ComboboxInputEvent).detail));
           comboboxEl.addEventListener('change', (event) => {
-            if (event.target === comboboxEl) changes.push((event as ComboboxChangeEvent).detail);
+            changes.push((event as ComboboxChangeEvent).detail);
           });
 
           members[0].el.focus();

@@ -391,28 +391,23 @@ describe('Listbox - Composite Specifications', () => {
 
           members[0].el.focus();
 
-          const seen: Array<{ kind: string; detail: unknown; fromContainer: boolean }> = [];
+          const seen: Array<{ kind: string; detail: unknown }> = [];
           for (const kind of ['input', 'change']) {
             listboxEl.addEventListener(kind, (event) =>
               seen.push({
                 kind,
                 detail: (event as CustomEvent).detail,
-                fromContainer: event.target === listboxEl,
               })
             );
           }
 
           press(members[0].el, 'ArrowDown');
 
-          expect(seen.filter((entry) => entry.kind === 'input')).toEqual([
-            { kind: 'input', detail: 'b', fromContainer: false },
-          ]);
+          expect(seen.filter((entry) => entry.kind === 'input')).toEqual([{ kind: 'input', detail: 'b' }]);
 
           press(members[1].el, 'Enter');
           expect(props.value).toBe('b');
-          expect(seen.filter((entry) => entry.kind === 'change' && entry.fromContainer)).toEqual([
-            { kind: 'change', detail: 'b', fromContainer: true },
-          ]);
+          expect(seen.filter((entry) => entry.kind === 'change')).toEqual([{ kind: 'change', detail: 'b' }]);
 
           cleanup();
         });
@@ -455,13 +450,12 @@ describe('Listbox - Composite Specifications', () => {
             { value: 'b', text: 'Berlin' },
           ]);
 
-          const commits: Array<{ kind: string; detail: unknown; fromContainer: boolean }> = [];
+          const commits: Array<{ kind: string; detail: unknown }> = [];
           for (const kind of ['input', 'change']) {
             listboxEl.addEventListener(kind, (event) =>
               commits.push({
                 kind,
                 detail: (event as CustomEvent).detail,
-                fromContainer: event.target === listboxEl,
               })
             );
           }
@@ -469,9 +463,7 @@ describe('Listbox - Composite Specifications', () => {
           members[1].el.click();
 
           expect(props.value).toBe('b');
-          expect(commits.filter((entry) => entry.fromContainer)).toEqual([
-            { kind: 'change', detail: 'b', fromContainer: true },
-          ]);
+          expect(commits.filter((entry) => entry)).toEqual([{ kind: 'change', detail: 'b' }]);
 
           cleanup();
         });

@@ -201,38 +201,9 @@ export class ListboxAria<
    * whole value. Also keeps a pending typeahead query from outliving the container.
    */
   protected override attach(): DetachFn {
-    const host = this.element!;
-
-    const handleInput = (event: Event) => {
-      this.properties.oninput?.(event as AriaEvent<string>);
-    };
-
-    const handleChange = (event: Event) => {
-      if (event.target === host) return;
-
-      this.announceChange();
-    };
-
-    host.addEventListener('input', handleInput);
-    host.addEventListener('change', handleChange);
-
     return () => {
-      host.removeEventListener('input', handleInput);
-      host.removeEventListener('change', handleChange);
       clearTimeout(this.queryTimer);
     };
-  }
-
-  protected announceChange() {
-    const host = this.element!;
-    const value = this.properties.value;
-    const detail = Array.isArray(value) ? [...value] : value;
-
-    const event: AriaEvent<unknown> = new CustomEvent('change', { bubbles: true, detail });
-    host.dispatchEvent(event);
-    (this.properties.onchange as AriaEventHandler<AriaEvent<unknown>> | undefined)?.(event);
-
-    return event;
   }
 
   private readonly handleKeyDown = (event: KeyboardEvent): void => {

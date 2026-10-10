@@ -325,7 +325,7 @@ describe('Listbox - Coverage & Boundary Tests', () => {
 
           const commits: unknown[] = [];
           listboxEl.addEventListener('change', (event) => {
-            if (event.target === listboxEl) commits.push((event as CustomEvent).detail);
+            commits.push((event as CustomEvent).detail);
           });
 
           members[1].el.click();

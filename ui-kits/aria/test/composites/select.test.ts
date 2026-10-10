@@ -235,7 +235,7 @@ describe('Select - Composite Specifications', () => {
           const changes: unknown[] = [];
           panelEl.addEventListener('input', (event) => inputs.push((event as SelectInputEvent).detail));
           selectEl.addEventListener('change', (event) => {
-            if (event.target === selectEl) changes.push((event as SelectChangeEvent).detail);
+            changes.push((event as SelectChangeEvent).detail);
           });
 
           members[0].el.focus();

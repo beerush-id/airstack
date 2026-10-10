@@ -78,7 +78,10 @@ describe('Listbox - Consumer Event Contract', () => {
     scope.run(() => {
       const tree = component();
       tree.run(() => {
-        const onchange = vi.fn();
+        const changes = [] as string[][];
+        const onchange = vi.fn().mockImplementation((e) => {
+          changes.push([...(e as CustomEvent).detail]);
+        });
         const props = mutable<ListboxProps>({ multiple: true, value: [], onchange });
         const { members, cleanup } = buildListbox(props, [
           { value: 'a', text: 'Amsterdam' },
@@ -90,11 +93,7 @@ describe('Listbox - Consumer Event Contract', () => {
         members[0].el.click();
 
         expect(onchange).toHaveBeenCalledTimes(3);
-        expect(onchange.mock.calls.map(({ 0: event }) => (event as CustomEvent).detail)).toEqual([
-          ['a'],
-          ['a', 'b'],
-          ['b'],
-        ]);
+        expect(changes).toEqual([['a'], ['a', 'b'], ['b']]);
         expect(props.value).toEqual(['b']);
 
         cleanup();

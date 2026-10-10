@@ -122,6 +122,11 @@ export interface SelectionOptions extends AriaOptions {
    * @default [' ', 'Enter']
    */
   allowKeys?: string[];
+
+  /**
+   * Whether the item is enforced to be required to be selected.
+   */
+  required?: boolean;
 }
 
 /**
@@ -157,6 +162,10 @@ export abstract class SelectionAria<
    */
   public id: string;
 
+  protected get required() {
+    return this.options.required ?? this.group?.required ?? false;
+  }
+
   public constructor(props: Partial<T> = {}, options: O = {} as O) {
     super(props, options);
 
@@ -182,7 +191,7 @@ export abstract class SelectionAria<
           }
         } else if (
           this.group!.value === undefined &&
-          (this.properties.selected || (this.idempotent && !!this.group!.required))
+          (this.properties.selected || (this.idempotent && this.required))
         ) {
           this.group!.value = this.value;
         }
@@ -261,11 +270,8 @@ export abstract class SelectionAria<
    */
   protected get idempotent(): boolean {
     if (this.options.idempotent !== undefined) return this.options.idempotent;
-
-    if (this.group) {
-      if (this.group.multiple) return false;
-      return !!this.group.required;
-    }
+    if (this.required) return true;
+    if (this.group?.multiple) return false;
 
     return false;
   }
@@ -321,6 +327,12 @@ export abstract class SelectionAria<
     this.notifyChange(was);
   }
 
+  protected capture(event: AriaEvent): void {
+    if (event.type === 'change') {
+      this.properties.onchange?.(event as SelectionEvent);
+    }
+  }
+
   private notifyChange(was: boolean): void {
     if (this.selected === was || !this.element) return;
 
@@ -331,7 +343,7 @@ export abstract class SelectionAria<
 
     this.dispatchChange(this.selected);
     this.element.dispatchEvent(event);
-    this.properties.onchange?.(event);
+    this.dispatch(event);
   }
 
   /**
@@ -384,8 +396,8 @@ export abstract class SelectionAria<
       Object.assign(attrs, {
         tabindex: isDisabled ? -1 : 0,
         'aria-disabled': isDisabled ? 'true' : 'false',
-        onkeydown: this.handleKeyDown,
         onkeyup: this.handleKeyUp,
+        onkeydown: this.handleKeyDown,
       });
     }
 
@@ -407,7 +419,6 @@ export abstract class SelectionAria<
       event.preventDefault();
       this.spaceArmed = true;
     } else if (event.key === 'Enter') {
-      event.preventDefault();
       (event.currentTarget as HTMLElement)?.click?.();
     }
   };

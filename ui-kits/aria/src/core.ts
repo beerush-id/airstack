@@ -316,17 +316,6 @@ export class Aria<
   }
 
   /**
-   * Dispatches an AriaEvent to the bound DOM element.
-   *
-   * @param event - The AriaEvent to dispatch
-   * @param bubbles - Whether the event should bubble up the component tree
-   */
-  public dispatch(event: AriaEvent, bubbles: boolean = true) {
-    if (this.element) this.element.dispatchEvent(event);
-    if (bubbles) this.scope?.dispatch(event, bubbles);
-  }
-
-  /**
    * Optional callback to capture and process change from a child component.
    *
    * @param target - The child component element
@@ -351,6 +340,29 @@ export class Aria<
         return;
       }
     }
+  }
+
+  /**
+   * Captures the `input` and `change` event and forwards it as-is to the `oninput` and `onchange` callback.
+   * @param event - The AriaEvent to capture
+   */
+  protected capture(event: AriaEvent): void {
+    if (event.type === 'input') {
+      this.properties.oninput?.(event as AriaEvent<string>);
+    }
+    if (event.type === 'change') {
+      this.properties.onchange?.(event as never);
+    }
+  }
+
+  /**
+   * Dispatches an AriaEvent to the bound DOM element.
+   *
+   * @param event - The AriaEvent to dispatch
+   */
+  protected dispatch(event: AriaEvent) {
+    this.capture?.(event);
+    if (event.bubbles) this.scope?.dispatch(event);
   }
 
   /**
