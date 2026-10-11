@@ -1,4 +1,5 @@
-import { $symbol, type AnyType } from '@airlib/core';
+import { $symbol, type AnyType, effect, untrack } from '@airlib/core';
+import { shadow } from '@airlib/core/browser';
 import { selectionGroup } from '../selection.js';
 import type { AriaEvent, AriaEventHandler, AriaOptions, AriaProps, BaseElement, DetachFn } from '../types.js';
 import type { PopoverAria } from '../widgets/popover.js';
@@ -173,13 +174,20 @@ export class ComboboxAria<E extends BaseElement = HTMLElement> extends PopupAria
     return !!this.properties.multiple;
   }
 
+  public get valueMap() {
+    return this.properties.valueMap ?? this.__valueMap ?? {};
+  }
+
   /**
    * Label of the current choice(s).
    */
   public get label() {
     const value = this.properties.value;
     const values = Array.isArray(value) ? value : [value];
-    return values.map((key) => this.valueMap?.[key as string] || key).join(', ');
+    return values
+      .map((key) => this.valueMap[key as string])
+      .filter(Boolean)
+      .join(', ');
   }
 
   /**
@@ -196,10 +204,7 @@ export class ComboboxAria<E extends BaseElement = HTMLElement> extends PopupAria
     this.properties.text = value;
   }
 
-  public constructor(
-    props: ComboboxProps = {},
-    public valueMap: Record<AnyType, AnyType> = {}
-  ) {
+  public constructor(props: ComboboxProps = {}, valueMap: Record<AnyType, AnyType> = {}) {
     super(props, {
       name: 'combobox',
       symbol: COMBOBOX_SYMBOL,
@@ -207,7 +212,8 @@ export class ComboboxAria<E extends BaseElement = HTMLElement> extends PopupAria
       panelRole: 'listbox',
     });
 
-    this.omittedAttrs.push('value', 'query', 'multiple', 'required', 'text');
+    this.__valueMap = valueMap;
+    this.omittedAttrs.push('value', 'query', 'multiple', 'required', 'text', 'valueMap');
 
     popupCtx.set(this as never);
     listboxCtx.set(this.properties as ListboxProps);
@@ -241,13 +247,13 @@ export class ComboboxAria<E extends BaseElement = HTMLElement> extends PopupAria
    * Keeps the field's text aligned with the selection: a commit publishes the chosen option's
    * label as `text` and frees the `query` filter; leaving the composite does the same.
    */
-  protected override attach(): DetachFn {
+  protected override attach() {
     const host = this.element!;
 
     const withinComposite = (node: Node): boolean => {
       if (host.contains(node)) return true;
 
-      const panel = document.getElementById(this.panelId);
+      const panel = shadow.getElementById(this.panelId);
       return !!panel?.contains(node);
     };
 
@@ -259,24 +265,26 @@ export class ComboboxAria<E extends BaseElement = HTMLElement> extends PopupAria
       this.open = false;
     };
 
-    host.addEventListener('focusout', handleFocusOut);
-    this.captureChange();
+    this.on('focusout', handleFocusOut);
 
-    return () => {
-      host.removeEventListener('focusout', handleFocusOut);
-    };
+    return effect.client(() => {
+      void this.value;
+      untrack(() => this.captureChange());
+    });
   }
 
   public captureChange() {
     if (!this.element) return;
 
-    const panel = document.getElementById(this.panelId);
+    const panel = shadow.getElementById(this.panelId);
     const selected = panel?.querySelectorAll('[aria-selected="true"]');
     const text = Array.from(selected ?? [])
       .map((el) => el.textContent)
       .join(', ');
     this.assign({ query: '', text });
   }
+
+  private readonly __valueMap?: Record<AnyType, AnyType>;
 }
 
 /**
@@ -343,7 +351,7 @@ export class ComboboxInputAria<E extends BaseElement = HTMLElement> extends Popu
       Object.assign(attrs, {
         name: this.host?.triggerId,
         type: 'text',
-        value: this.query || this.label || this.text,
+        value: this.query || this.label || this.text || this.value,
         required: this.host?.properties.required,
       });
     } else {
@@ -455,7 +463,7 @@ export class ComboboxPanelAria<E extends BaseElement = HTMLElement> extends List
     super(props, true);
 
     this.host = popupCtx.get() as ComboboxAria;
-    this.omittedAttrs.push('query', 'text');
+    this.omittedAttrs.push('value', 'query', 'multiple', 'required', 'text', 'valueMap');
     bindPanel(this as unknown as PopupPanel, ['combo']);
 
     this.update();

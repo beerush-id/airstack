@@ -1,4 +1,5 @@
 import { $symbol, type AnyType } from '@airlib/core';
+import { shadow } from '@airlib/core/browser';
 import { selectionGroup } from '../selection.js';
 import type { AriaEvent, AriaEventHandler, AriaOptions, AriaProps, BaseElement, DetachFn } from '../types.js';
 import type { PopoverAria } from '../widgets/popover.js';
@@ -140,7 +141,10 @@ export class SelectAria<E extends BaseElement = HTMLElement> extends PopupAria<E
   public get label() {
     const value = this.properties.value;
     const values = Array.isArray(value) ? value : [value];
-    return values.map((key) => this.valueMap?.[key as string] ?? key).join(', ');
+    return values
+      .map((key) => this.valueMap?.[key as string])
+      .filter(Boolean)
+      .join(', ');
   }
 
   public get text(): string {
@@ -184,7 +188,7 @@ export class SelectAria<E extends BaseElement = HTMLElement> extends PopupAria<E
   public captureChange() {
     if (!this.element) return;
 
-    const panel = document.getElementById(this.panelId);
+    const panel = shadow.getElementById(this.panelId);
     const selected = panel?.querySelectorAll('[aria-selected="true"]');
     this.text = Array.from(selected ?? [])
       .map((el) => el.textContent)

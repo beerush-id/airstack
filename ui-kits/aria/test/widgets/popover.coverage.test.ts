@@ -401,13 +401,20 @@ describe('Popover - Coverage & Edge Cases', () => {
         document.body.appendChild(popEl);
         pop.ref(popEl);
 
-        hostEl.dispatchEvent(new Event('pointerenter'));
+        // 1. Enter host
+        hostEl.dispatchEvent(new PointerEvent('pointerenter'));
         expect(pop.open).toBe(true);
-
+        // 2. Move from host into popover
+        hostEl.dispatchEvent(new PointerEvent('pointerleave', { relatedTarget: popEl }));
+        popEl.dispatchEvent(new PointerEvent('pointerenter', { relatedTarget: hostEl }));
+        expect(pop.open).toBe(true);
+        // 3. Move from popover back to host
         popEl.dispatchEvent(new PointerEvent('pointerleave', { relatedTarget: hostEl }));
+        hostEl.dispatchEvent(new PointerEvent('pointerenter', { relatedTarget: popEl }));
         expect(pop.open).toBe(true);
-
-        popEl.dispatchEvent(new PointerEvent('pointerleave', { relatedTarget: document.body }));
+        // 4. Move from host to outside
+        hostEl.dispatchEvent(new PointerEvent('pointerleave', { relatedTarget: document.body }));
+        // If delay/debounce is present, await tick/advance timer here
         expect(pop.open).toBe(false);
 
         pop.destroy();

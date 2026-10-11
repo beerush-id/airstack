@@ -308,6 +308,10 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
     });
     cleanups.push(unListen);
 
+    if (this.autofocus && !this.mode.includes('combo') && this.open) {
+      this.placeFocus();
+    }
+
     return () => {
       this.cancelOpen();
 

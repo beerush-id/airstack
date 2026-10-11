@@ -133,7 +133,7 @@ describe('Tooltip Widget (Coverage & Edge Cases)', () => {
       });
     }));
 
-  it('handles panel pointer events and escape keydown', () =>
+  it('handles pointer events and escape keydown across trigger and panel', () =>
     scope.run(() => {
       const tree = component();
       tree.run(() => {
@@ -147,32 +147,40 @@ describe('Tooltip Widget (Coverage & Edge Cases)', () => {
         document.body.appendChild(tipEl);
         bind(tipEl, tip);
 
-        // Panel pointerenter cancels pending open
-        tip.scheduleOpen();
-        tipEl.dispatchEvent(new Event('pointerenter'));
+        // 1. Leaving trigger before delay cancels pending open
+        btnEl.dispatchEvent(new PointerEvent('pointerenter'));
+        btnEl.dispatchEvent(new PointerEvent('pointerleave', { relatedTarget: document.body }));
         vi.advanceTimersByTime(300);
         expect(tip.open).toBe(false);
 
-        // Show tooltip
-        tip.show();
+        // 2. Hovering trigger opens tooltip after delay
+        btnEl.dispatchEvent(new PointerEvent('pointerenter'));
+        vi.advanceTimersByTime(200);
         expect(tip.open).toBe(true);
 
-        // Non-escape on panel does nothing
-        tipEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', cancelable: true }));
+        // 3. Non-escape key on trigger does not close
+        btnEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
         expect(tip.open).toBe(true);
 
-        // Pointerleave from panel to btnEl does not close
+        // 4. Moving from trigger to panel preserves open state
+        btnEl.dispatchEvent(new PointerEvent('pointerleave', { relatedTarget: tipEl }));
+        tipEl.dispatchEvent(new PointerEvent('pointerenter', { relatedTarget: btnEl }));
+        expect(tip.open).toBe(true);
+
+        // 5. Returning from panel to trigger preserves open state
         tipEl.dispatchEvent(new PointerEvent('pointerleave', { relatedTarget: btnEl }));
+        btnEl.dispatchEvent(new PointerEvent('pointerenter', { relatedTarget: tipEl }));
         expect(tip.open).toBe(true);
 
-        // Pointerleave from panel to outside closes
-        tipEl.dispatchEvent(new PointerEvent('pointerleave', { relatedTarget: document.body }));
+        // 6. Leaving trigger to outside closes after delay
+        btnEl.dispatchEvent(new PointerEvent('pointerleave', { relatedTarget: document.body }));
+        vi.advanceTimersByTime(200);
         expect(tip.open).toBe(false);
 
-        // Escape when open on panel closes
+        // 7. Escape key closes tooltip immediately
         tip.show();
         expect(tip.open).toBe(true);
-        tipEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', cancelable: true }));
+        btnEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
         expect(tip.open).toBe(false);
 
         tip.destroy();

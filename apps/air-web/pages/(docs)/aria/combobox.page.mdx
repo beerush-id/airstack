@@ -141,7 +141,7 @@ type DemoComboboxProps = ComponentProps<'div'> & {
 };
 
 const DemoCombobox = setup<DemoComboboxProps>((props) => {
-  const combobox = aria('combobox', props, cityMap);
+  const combobox = aria('combobox', props);
 
   const visible = derived(() => {
     const query = combobox.query.trim().toLowerCase();
@@ -199,12 +199,14 @@ const DemoOption = setup<DemoOptionProps>((props) => {
 ```
 ```html
   <DemoCombobox />
+  <DemoCombobox valueMap={cityMap} value="ber" required />
   <DemoCombobox value="ber" required />
   <DemoCombobox disabled />
 ```
 
-<div className="inline-flex mx-auto gap-4">
+<div className="grid grid-cols-2 mx-auto gap-4">
   <DemoCombobox />
+  <DemoCombobox valueMap={cityMap} value="ber" required />
   <DemoCombobox value="ber" required />
   <DemoCombobox disabled />
 </div>
