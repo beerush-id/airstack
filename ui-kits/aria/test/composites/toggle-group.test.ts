@@ -1,4 +1,4 @@
-import { createLifecycle, mutable } from '@airlib/core';
+import { type AnyType, createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
 import { aria, type ToggleAria, type ToggleGroupProps } from '../../src/index.js';
 import { bind, component } from '../utils.js';
@@ -17,7 +17,7 @@ function buildGroup(props: Partial<ToggleGroupProps>, values: string[], host: 'n
     const el = bind(document.createElement(host === 'native' ? 'button' : 'div'), toggle);
     groupEl.appendChild(el);
     return { value, toggle, el };
-  });
+  }) as AnyType[];
 
   const cleanup = () => {
     for (const { toggle } of members) {

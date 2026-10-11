@@ -2,15 +2,7 @@ import { $static, $symbol, createContext, uIndex } from '@airlib/core';
 import { roverCtx } from '../context.js';
 import { Aria } from '../core.js';
 import { selectionGroup } from '../selection.js';
-import type {
-  AriaAttributes,
-  AriaEvent,
-  AriaEventHandler,
-  AriaProps,
-  BaseElement,
-  DetachFn,
-  Primitive,
-} from '../types.js';
+import type { AriaAttributes, AriaEvent, AriaEventHandler, AriaProps, BaseElement, Primitive } from '../types.js';
 import { ariaBoolean } from '../utils/attributes.js';
 import { handleRovingKey } from '../utils/navigation.js';
 import { ToggleAria, type ToggleAttributes, type ToggleOptions, type ToggleProps } from '../widgets/toggle.js';
@@ -172,16 +164,5 @@ export class ToggleGroupAria<
         });
       },
     }) as A;
-  }
-
-  /**
-   * Binds the container's change handling to the member commits that bubble up to it.
-   */
-  protected override attach(): DetachFn | void {
-    const host = this.element!;
-    const handleChange = (event: Event) => this.properties.onchange?.(event as AriaEvent<boolean>);
-
-    host.addEventListener('change', handleChange);
-    return () => host.removeEventListener('change', handleChange);
   }
 }

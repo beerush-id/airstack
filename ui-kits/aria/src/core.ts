@@ -375,6 +375,7 @@ export class Aria<
    * @param event - The AriaEvent to capture
    */
   protected capture(event: AriaEvent): void {
+    if (!this.observer.active) return;
     if (event.type === 'input') {
       this.properties.oninput?.(event as AriaEvent<string>);
     }
@@ -389,6 +390,7 @@ export class Aria<
    * @param event - The AriaEvent to dispatch
    */
   protected dispatch(event: AriaEvent) {
+    if (!this.observer.active) return;
     this.capture?.(event);
     if (event.bubbles) this.scope?.dispatch(event);
   }

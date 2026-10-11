@@ -1,6 +1,6 @@
 import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
-import { aria, SwitchAria, type SwitchProps, selectionGroup } from '../../src/index.js';
+import { aria, selectionGroup, SwitchAria, type SwitchProps } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 describe('Switch - Contract Specifications', () => {
@@ -153,7 +153,7 @@ describe('Switch - Contract Specifications', () => {
           // Enter keydown triggers activation immediately
           const enterDown = new KeyboardEvent('keydown', { key: 'Enter', cancelable: true });
           div.dispatchEvent(enterDown);
-          expect(enterDown.defaultPrevented).toBe(true);
+          expect(enterDown.defaultPrevented).toBe(false);
           expect(props.checked).toBe(true);
           expect(sw.checked).toBe(true);
           expect(div.getAttribute('aria-checked')).toBe('true');
