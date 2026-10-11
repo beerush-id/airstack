@@ -1,6 +1,7 @@
 export * from './animation.js';
 export * from './clipboard.js';
 export * from './cursor.js';
+export * from './dom.js';
 export * from './drag.js';
 export * from './event.js';
 export * from './geo.js';

@@ -1,6 +1,7 @@
 import { isBrowser } from '@airlib/core';
 import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { shadowRoot } from '@airlib/core/browser';
 
 export interface Teleporter {
   /**
@@ -56,8 +57,6 @@ teleportFn.as = (id: string, content: ReactNode) => {
 
 export const teleport = teleportFn as Teleporter;
 
-let SHADOW_ELEMENT: HTMLElement | undefined;
-
 /**
  * Creates a shadow portal.
  * @param condition - The condition to determine if the content should be portaled or not.
@@ -65,15 +64,11 @@ let SHADOW_ELEMENT: HTMLElement | undefined;
  * @returns A function that takes React node(s) to render.
  */
 export function shadowPortal(condition: () => boolean, target?: string | Element) {
-  if (!SHADOW_ELEMENT && isBrowser()) {
-    SHADOW_ELEMENT = document.createElement('airlib-shadow');
-    SHADOW_ELEMENT.setAttribute('hidden', '');
-    document.documentElement.prepend(SHADOW_ELEMENT);
-  }
+  const SHADOW_ROOT = shadowRoot()!;
 
   return (content: ReactNode) => {
     const inShadow = !condition();
-    const mountElm = inShadow ? SHADOW_ELEMENT : target;
+    const mountElm = inShadow ? SHADOW_ROOT : target;
     return teleport(content, mountElm);
   };
 }
