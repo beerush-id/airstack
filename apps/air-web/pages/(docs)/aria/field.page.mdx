@@ -58,13 +58,7 @@ const DemoFieldControl = setup<DemoFieldControlProps>((props) => {
   const control = aria('field-control');
 
   return () => (
-    <input
-      ref={control.ref}
-      type={props.type}
-      placeholder={props.placeholder}
-      onInput={props.onInput}
-      {...control.props}
-      className="demo-field-input"
+    <input ref={control.ref} {...control.props} className="demo-field-input"
     />
   );
 }, 'DemoFieldControl');
