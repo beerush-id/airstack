@@ -94,9 +94,9 @@ const DemoFieldError = setup<DemoFieldErrorProps>((props) => {
 }, 'DemoFieldError');
 
 const Demo = (props) => (
-  <DemoField id={props.id} required invalid={props.invalid}>
+  <DemoField id={props.id} type="email" value={'de@do'} required={props.required} placeholder="you@example.com" oninput={(e) => console.log('New value:', e.target.value)}>
     <DemoFieldLabel>Email address</DemoFieldLabel>
-    <DemoFieldControl type="email" placeholder="you@example.com" />
+    <DemoFieldControl />
     <DemoFieldDescription>We will send a sign-in link to this address.</DemoFieldDescription>
     <DemoFieldError>Enter a valid email address to continue.</DemoFieldError>
   </DemoField>
@@ -104,12 +104,12 @@ const Demo = (props) => (
 ```
 ```html
   <Demo id="demo-signin" />
-  <Demo id="demo-signin-error" invalid />
+  <Demo id="demo-signin-error" required />
 ```
 
 <div className="flex flex-col gap-6 mx-auto">
   <Demo id="demo-signin" />
-  <Demo id="demo-signin-error" invalid />
+  <Demo id="demo-signin-error" required />
 </div>
 :::
 

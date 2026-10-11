@@ -1,6 +1,6 @@
 import { $static, $symbol, createContext, uIndex } from '@airlib/core';
 import { Aria } from '../core.js';
-import type { AriaAttributes, AriaOptions, AriaProps, BaseElement } from '../types.js';
+import type { AriaAttributes, AriaEvent, AriaOptions, AriaProps, BaseElement, EventHandler } from '../types.js';
 
 /**
  * Ambient instance context for the enclosing Field coordinator.
@@ -55,6 +55,11 @@ export interface FieldProps extends AriaProps {
    * Whether the field has been touched.
    */
   touched?: boolean;
+
+  /**
+   * Input event handler.
+   */
+  oninput?: EventHandler<InputEvent, HTMLInputElement>;
 }
 
 export interface FieldOptions extends AriaOptions {
@@ -209,7 +214,7 @@ export class FieldAria<
     $static(() => {
       this.properties.id = this.properties.id ?? `${ROLE_FIELD}-${uIndex($symbol(ROLE_FIELD), true)}`;
     });
-    this.omittedAttrs.push('id', 'type', 'value', 'invalid', 'disabled', 'required', 'placeholder');
+    this.omittedAttrs.push('id', 'type', 'value', 'invalid', 'oninput', 'disabled', 'required', 'placeholder');
 
     fieldCtx.set(this as unknown as FieldAria);
     this.update();
@@ -303,6 +308,8 @@ export class FieldControlAria<
       } else {
         this.field.invalid = !target.checkValidity();
       }
+
+      this.dispatch(e as never as AriaEvent);
     });
     this.on('blur', () => {
       if (!this.field) return;
