@@ -75,7 +75,6 @@ export interface FieldOptions extends AriaOptions {
  */
 export interface FieldAttributes<E extends BaseElement = HTMLElement> extends AriaAttributes<E> {
   id: string;
-  role?: 'group';
 }
 
 /**
@@ -121,6 +120,7 @@ export interface FieldDescriptionAttributes<E extends BaseElement = HTMLElement>
  */
 export interface FieldErrorAttributes<E extends BaseElement = HTMLElement> extends AriaAttributes<E> {
   id: string;
+  hidden?: boolean;
   'aria-live': 'polite';
 }
 
