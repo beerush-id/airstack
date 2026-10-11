@@ -78,7 +78,7 @@ export class TabPanelAria<
   public constructor(props: Partial<T> = {}) {
     super(props);
     this.group = selectionGroup.get();
-    this.omittedAttrs.push('id', 'aria-labelledby');
+    this.omittedAttrs.push('id', 'aria-labelledby', 'name');
     this.update();
   }
 

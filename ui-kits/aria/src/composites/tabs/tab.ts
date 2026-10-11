@@ -92,6 +92,8 @@ export class TabAria<
       this.properties.orientation = this.properties.orientation ?? TabAria.config.orientation;
     });
 
+    this.omittedAttrs.push('value');
+
     tabCtx.set(this as unknown as TabAria);
     selectionGroup.set(this.properties);
 

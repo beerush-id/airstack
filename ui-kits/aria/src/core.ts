@@ -1,6 +1,6 @@
 import {
-  type AnyType,
   anchor,
+  type AnyType,
   createContext,
   createObserver,
   mutable,
@@ -30,7 +30,7 @@ export const OMITTED_ATTRIBUTES = ['manual', 'multiple', 'movable', 'orientation
 /**
  * Core library-managed attributes common across all interactive Aria controllers.
  */
-export const COMMON_ATTRIBUTES = ['role', 'type', 'disabled', 'tabindex', 'aria-disabled'];
+export const COMMON_ATTRIBUTES = ['role', 'type', 'disabled', 'tabindex', 'aria-disabled', 'aria-selected'];
 
 /**
  * Ambient context scope for active Aria controllers.
