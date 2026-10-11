@@ -1,16 +1,34 @@
 import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
-import { aria, type FieldProps } from '../../src/index.js';
+import { aria, type FieldOptions, type FieldProps } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
-function buildField(props: Partial<FieldProps>, controlHost: 'native' | 'custom' = 'native') {
-  const field = aria('field', props as FieldProps);
+const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+async function type(input: HTMLInputElement, value: string) {
+  input.value = value;
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+  await flush();
+}
+
+function blurOut(element: HTMLElement) {
+  element.dispatchEvent(new FocusEvent('blur'));
+}
+
+function buildField(
+  props: Partial<FieldProps>,
+  options?: FieldOptions,
+  controlHost: 'native' | 'custom' = 'native',
+) {
+  const field = aria('field', props as FieldProps, options);
   const fieldEl = bind(document.createElement('div'), field);
   document.body.appendChild(fieldEl);
 
   const label = component().run(() => {
-    const part = aria('field-label');
-    return { part, el: bind(document.createElement('label'), part) };
+    const part = controlHost === 'native' ? aria('field-label') : aria('field-label', {}, { native: false });
+    const el = bind(document.createElement(controlHost === 'native' ? 'label' : 'span'), part);
+    fieldEl.appendChild(el);
+    return { part, el };
   });
 
   const control = component().run(() => {
@@ -34,8 +52,6 @@ function buildField(props: Partial<FieldProps>, controlHost: 'native' | 'custom'
     return { part, el };
   });
 
-  fieldEl.insertBefore(label.el, fieldEl.firstChild);
-
   const controllers = [field, label.part, control.part, description.part, error.part];
 
   const cleanup = () => {
@@ -56,69 +72,45 @@ describe('Field - Composite Specifications', () => {
     scope.destroy();
   });
 
-  describe('Ambient Form Context & ID Propagation Invariant', () => {
+  describe('Wiring', () => {
     it('derives every part address from one ambient field id', () =>
       scope.run(() => {
         component().run(() => {
           const props = mutable<FieldProps>({ id: 'email' });
-          const { control, description, error, cleanup } = buildField(props);
+          const { label, control, description, error, cleanup } = buildField(props);
 
+          expect(label.el.id).toBe('email-label');
           expect(control.el.id).toBe('email-control');
           expect(description.el.id).toBe('email-desc');
           expect(error.el.id).toBe('email-error');
-
           expect(control.el.getAttribute('aria-describedby')).toBe('email-desc');
 
           cleanup();
         });
       }));
 
-    it('names each field with a generated namespace when the author declares none', () =>
+    it('names each part from a generated namespace when the author declares none', () =>
       scope.run(() => {
         component().run(() => {
-          const { field, control, description, cleanup } = buildField({});
+          const { fieldEl, control, description, cleanup } = buildField({});
 
-          expect(typeof field.attributes.id).toBe('string');
-          expect(String(field.attributes.id)).toMatch(/^field-/);
-
-          // The derived addresses follow the generated namespace, not a literal
-          expect(control.el.id).toBe(`${field.attributes.id}-control`);
-          expect(description.el.id).toBe(`${field.attributes.id}-desc`);
+          expect(fieldEl.id).toMatch(/^field-/);
+          expect(control.el.id).toBe(`${fieldEl.id}-control`);
+          expect(description.el.id).toBe(`${fieldEl.id}-desc`);
           expect(control.el.getAttribute('aria-describedby')).toBe(description.el.id);
 
           cleanup();
         });
       }));
 
-    it('resolves every referenced id against a live element', () =>
-      scope.run(() => {
-        component().run(() => {
-          const { control, description, error, cleanup } = buildField({ id: 'signup', invalid: true });
-
-          const referenced = (control.el.getAttribute('aria-describedby') ?? '').split(' ');
-          expect(referenced).toHaveLength(2);
-
-          for (const id of referenced) {
-            expect(document.getElementById(id)).not.toBeNull();
-          }
-
-          expect(referenced).toContain(description.el.id);
-          expect(referenced).toContain(error.el.id);
-
-          cleanup();
-        });
-      }));
-  });
-
-  describe('Associated Label & Description Invariant', () => {
-    it('binds a native label to the control with for, without a redundant labelledby', () =>
+    it('binds a native label to the control with for and names the control from it', () =>
       scope.run(() => {
         component().run(() => {
           const { label, control, cleanup } = buildField({ id: 'username' });
 
-          expect(label.el.htmlFor).toBe('username-control');
+          expect((label.el as HTMLLabelElement).htmlFor).toBe('username-control');
           expect(label.el.hasAttribute('role')).toBe(false);
-          expect(control.el.hasAttribute('aria-labelledby')).toBe(false);
+          expect(control.el.getAttribute('aria-labelledby')).toBe('username-label');
 
           cleanup();
         });
@@ -127,152 +119,278 @@ describe('Field - Composite Specifications', () => {
     it('gives a custom label an address for the control to point at', () =>
       scope.run(() => {
         component().run(() => {
-          const field = aria('field', { id: 'search' });
-          const fieldEl = bind(document.createElement('div'), field);
-          document.body.appendChild(fieldEl);
+          const { label, control, cleanup } = buildField({ id: 'search' }, undefined, 'custom');
 
-          const label = component().run(() => {
-            const part = aria('field-label', {}, { native: false });
-            const el = bind(document.createElement('span'), part);
-            fieldEl.appendChild(el);
-            return { part, el };
-          });
-
-          const control = component().run(() => {
-            const part = aria('field-control');
-            const el = bind(document.createElement('input'), part);
-            fieldEl.appendChild(el);
-            return { part, el };
-          });
-
-          expect(label.el.id).toBeTruthy();
+          expect(label.el.id).toBe('search-label');
           expect(control.el.getAttribute('aria-labelledby')).toBe(label.el.id);
           expect(label.el.hasAttribute('for')).toBe(false);
 
-          field.destroy();
-          label.part.destroy();
-          control.part.destroy();
-          fieldEl.remove();
+          cleanup();
         });
       }));
 
-    it('keeps helper text permanently referenced and the error referenced only while invalid', () =>
+    it('keeps helper text referenced for the life of the field and leaves the failure to aria-errormessage', () =>
       scope.run(() => {
         component().run(() => {
-          const props = mutable<FieldProps>({ id: 'promo', invalid: false });
+          const props = mutable<FieldProps>({ id: 'promo' });
           const { control, description, error, cleanup } = buildField(props);
 
           expect(control.el.getAttribute('aria-describedby')).toBe(description.el.id);
           expect(description.el.getAttribute('aria-live')).toBeNull();
           expect(error.el.getAttribute('aria-live')).toBe('polite');
+          expect(error.el.hidden).toBe(true);
+          expect(control.el.hasAttribute('aria-invalid')).toBe(false);
 
-          props.invalid = true;
-          expect(control.el.getAttribute('aria-describedby')).toBe(`${description.el.id} ${error.el.id}`);
-          expect(control.el.getAttribute('aria-invalid')).toBe('true');
+          cleanup();
+        });
+      }));
 
-          // Withdrawing the failure keeps the helper and drops the announcement
-          props.invalid = false;
-          expect(control.el.getAttribute('aria-describedby')).toBe(description.el.id);
+    it('addresses every control from the field id without a role on the root', () =>
+      scope.run(() => {
+        component().run(() => {
+          const { fieldEl, cleanup } = buildField({ id: 'note' });
+
+          expect(fieldEl.id).toBe('note');
+          expect(fieldEl.hasAttribute('role')).toBe(false);
 
           cleanup();
         });
       }));
   });
 
-  describe('Constraint Reflection & State Projection Invariant', () => {
-    it('reflects constraints through native properties on a native control', () =>
+  describe('Input', () => {
+    it('renders the authored type, placeholder, and value onto the control', () =>
       scope.run(() => {
         component().run(() => {
-          const props = mutable<FieldProps>({ required: false, disabled: false });
-          const { control, cleanup } = buildField(props, 'native');
+          const { control, cleanup } = buildField({
+            id: 'mail',
+            type: 'email',
+            placeholder: 'you@example.com',
+            value: 'ada@example.com',
+          });
 
           const input = control.el as HTMLInputElement;
-          expect(input.required).toBe(false);
-          expect(input.disabled).toBe(false);
-          expect(input.hasAttribute('aria-required')).toBe(false);
-          expect(input.hasAttribute('aria-disabled')).toBe(false);
+          expect(input.type).toBe('email');
+          expect(input.placeholder).toBe('you@example.com');
+          expect(input.value).toBe('ada@example.com');
 
-          props.required = true;
-          props.disabled = true;
-          expect(input.required).toBe(true);
+          cleanup();
+        });
+      }));
+
+    it('takes the typed value into the field and reports it to oninput', async () =>
+      scope.run(async () => {
+        await component().run(async () => {
+          const seen: unknown[] = [];
+          const props = mutable<FieldProps>({
+            id: 'handle',
+            oninput: (event) => {
+              seen.push(event);
+            },
+          });
+          const { control, cleanup } = buildField(props);
+          const input = control.el as HTMLInputElement;
+
+          await type(input, 'ada');
+
+          expect(props.value).toBe('ada');
+          expect(seen).toHaveLength(1);
+
+          cleanup();
+        });
+      }));
+
+    it('follows a value written from the outside back onto the control', async () =>
+      scope.run(async () => {
+        await component().run(async () => {
+          const props = mutable<FieldProps>({ id: 'city', value: 'Bandung' });
+          const { control, cleanup } = buildField(props);
+          const input = control.el as HTMLInputElement;
+
+          expect(input.value).toBe('Bandung');
+
+          props.value = 'Jakarta';
+          await flush();
+
+          expect(input.value).toBe('Jakarta');
+
+          cleanup();
+        });
+      }));
+
+    it('disables the native control while the field is disabled', async () =>
+      scope.run(async () => {
+        await component().run(async () => {
+          const props = mutable<FieldProps>({ id: 'locked', disabled: true });
+          const { control, cleanup } = buildField(props);
+          const input = control.el as HTMLInputElement;
+
           expect(input.disabled).toBe(true);
 
+          props.disabled = false;
+          await flush();
+
+          expect(input.disabled).toBe(false);
+
+          cleanup();
+        });
+      }));
+  });
+
+  describe('Validation', () => {
+    const shortOf = (min: number) => (value?: string | number) =>
+      String(value ?? '').length < min ? `At least ${min} characters` : undefined;
+
+    it('holds the failure back until the developer leaves the field, then wires it like a native input', async () =>
+      scope.run(async () => {
+        await component().run(async () => {
+          const props = mutable<FieldProps>({ id: 'signin', type: 'email', value: 'de@do' });
+          const { control, description, error, cleanup } = buildField(props);
+          const input = control.el as HTMLInputElement;
+
+          expect(input.value).toBe('de@do');
+          expect(input.type).toBe('email');
+          expect(control.el.hasAttribute('aria-invalid')).toBe(false);
+          expect(error.el.hidden).toBe(true);
+
+          await type(input, 'd');
+
+          expect(props.invalid).toBe(true);
+          expect(control.el.hasAttribute('aria-invalid')).toBe(false);
+          expect(error.el.hidden).toBe(true);
+
+          blurOut(input);
+          await flush();
+
+          expect(props.touched).toBe(true);
+          expect(control.el.getAttribute('aria-invalid')).toBe('true');
+          expect(control.el.getAttribute('aria-errormessage')).toBe(error.el.id);
+          expect(control.el.getAttribute('aria-describedby')).toBe(description.el.id);
+          expect(error.el.hidden).toBe(false);
+
+          await type(input, 'de@do');
+
+          expect(props.invalid).toBe(false);
+          expect(control.el.hasAttribute('aria-invalid')).toBe(false);
+          expect(control.el.hasAttribute('aria-errormessage')).toBe(false);
+          expect(error.el.hidden).toBe(true);
+
           cleanup();
         });
       }));
 
-    it('reflects the same constraints through ARIA states on a custom control', () =>
+    it('exposes the field state and its setters to the developer', async () =>
+      scope.run(async () => {
+        await component().run(async () => {
+          const props = mutable<FieldProps>({
+            id: 'profile',
+            type: 'email',
+            placeholder: 'you@example.com',
+            value: 'ada@example.com',
+            required: true,
+            disabled: true,
+          });
+          const { field, cleanup } = buildField(props);
+
+          expect(field.id).toBe('profile');
+          expect(field.type).toBe('email');
+          expect(field.value).toBe('ada@example.com');
+          expect(field.placeholder).toBe('you@example.com');
+          expect(field.required).toBe(true);
+          expect(field.disabled).toBe(true);
+          expect(field.invalid).toBe(false);
+          expect(field.touched).toBe(false);
+          expect(field.canValidate).toBe(false);
+          expect(field.validate('anything')).toBeUndefined();
+          expect(field.invalidMessages).toBeUndefined();
+
+          field.touched = true;
+          field.invalidMessages = 'Server rejected it';
+          await flush();
+
+          expect(props.touched).toBe(true);
+          expect(props.invalidMessages).toBe('Server rejected it');
+
+          cleanup();
+        });
+      }));
+
+    it('takes an authored validate rule over the built-in one', async () =>
+      scope.run(async () => {
+        await component().run(async () => {
+          const props = mutable<FieldProps>({ id: 'password' });
+          const { control, cleanup } = buildField(props, { validate: shortOf(8) });
+          const input = control.el as HTMLInputElement;
+
+          await type(input, 'short');
+
+          expect(props.invalid).toBe(true);
+          expect(props.invalidMessages).toBe('At least 8 characters');
+
+          await type(input, 'longenough');
+
+          expect(props.invalid).toBe(false);
+          expect(props.invalidMessages).toBeFalsy();
+          expect(control.el.hasAttribute('aria-invalid')).toBe(false);
+
+          cleanup();
+        });
+      }));
+
+    it('reflects the requirement on the native control without an ARIA mirror', () =>
       scope.run(() => {
         component().run(() => {
-          const props = mutable<FieldProps>({ required: true, disabled: false });
-          const { control, cleanup } = buildField(props, 'custom');
+          const props = mutable<FieldProps>({ id: 'address', required: true });
+          const { control, cleanup } = buildField(props);
+          const input = control.el as HTMLInputElement;
+
+          expect(input.required).toBe(true);
+          expect(input.hasAttribute('aria-required')).toBe(false);
+
+          cleanup();
+        });
+      }));
+  });
+
+  describe('Custom host parity', () => {
+    it('reflects constraints through ARIA states instead of native properties', async () =>
+      scope.run(async () => {
+        await component().run(async () => {
+          const props = mutable<FieldProps>({ id: 'rating', required: true });
+          const { control, cleanup } = buildField(props, undefined, 'custom');
 
           expect(control.el.getAttribute('aria-required')).toBe('true');
-          expect(control.el.hasAttribute('aria-disabled')).toBe(false);
-
-          props.disabled = true;
-          expect(control.el.getAttribute('aria-disabled')).toBe('true');
-
-          props.disabled = false;
-          props.required = false;
-          expect(control.el.getAttribute('aria-required')).toBe('false');
           expect(control.el.getAttribute('aria-disabled')).toBe('false');
 
+          props.disabled = true;
+          await flush();
+
+          expect(control.el.getAttribute('aria-disabled')).toBe('true');
+
           cleanup();
         });
       }));
+  });
 
-    it('takes on the grouping role only when the field holds more than one control', () =>
-      scope.run(() => {
-        component().run(() => {
-          const single = buildField({ id: 'note' });
-          expect(single.fieldEl.getAttribute('role')).toBeNull();
-          expect(single.field.attributes.role).toBeUndefined();
-          single.cleanup();
+  describe('Teardown', () => {
+    it('leaves the DOM frozen once every part is destroyed', async () =>
+      scope.run(async () => {
+        await component().run(async () => {
+          const props = mutable<FieldProps>({ id: 'token', required: true });
+          const { control, cleanup } = buildField(props);
+          const input = control.el as HTMLInputElement;
 
-          const grouping = aria('field', { id: 'range' });
-          const groupingEl = bind(document.createElement('div'), grouping);
-          document.body.appendChild(groupingEl);
+          expect(input.required).toBe(true);
 
-          const lower = component().run(() => {
-            const part = aria('field-control');
-            groupingEl.appendChild(bind(document.createElement('input'), part));
-            return part;
-          });
+          cleanup();
 
-          const upper = component().run(() => {
-            const part = aria('field-control');
-            groupingEl.appendChild(bind(document.createElement('input'), part));
-            return part;
-          });
-
-          expect(grouping.attributes.role).toBe('group');
-          expect(groupingEl.getAttribute('role')).toBe('group');
-
-          grouping.destroy();
-          lower.destroy();
-          upper.destroy();
-          groupingEl.remove();
-        });
-      }));
-
-    it('stops propagating state to a control after the field is destroyed', () =>
-      scope.run(() => {
-        component().run(() => {
-          const props = mutable<FieldProps>({ id: 'token', invalid: false, required: true });
-          const { field, control, cleanup } = buildField(props);
-
-          expect((control.el as HTMLInputElement).required).toBe(true);
-
-          field.destroy();
-
-          props.invalid = true;
           props.required = false;
-          expect(control.el.hasAttribute('aria-invalid')).toBe(false);
-          expect((control.el as HTMLInputElement).required).toBe(true);
-          expect(control.el.getAttribute('aria-describedby')).toBe(`${props.id}-desc`);
+          props.invalidMessages = 'Late failure';
+          await flush();
 
-          cleanup();
+          expect(input.required).toBe(true);
+          expect(control.el.hasAttribute('aria-invalid')).toBe(false);
+          expect(control.el.getAttribute('aria-describedby')).toBe('token-desc');
         });
       }));
   });
