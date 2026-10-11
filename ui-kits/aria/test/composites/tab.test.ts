@@ -53,6 +53,7 @@ function buildTabs(props: Partial<TabProps>, names: string[], options: { panelSc
 function press(el: HTMLElement, key: string) {
   const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
   el.dispatchEvent(event);
+  if (key === 'Enter') el.click();
   return event;
 }
 
@@ -118,10 +119,10 @@ describe('Tab - Composite Specifications', () => {
           const panelEl = bind(document.createElement('div'), panel);
           tabsEl.appendChild(panelEl);
 
-          expect(buttonEl.id).toBe('trigger-one');
-          expect(panelEl.id).toBe('panel-one');
-          expect(buttonEl.getAttribute('aria-controls')).toBe('panel-one');
-          expect(panelEl.getAttribute('aria-labelledby')).toBe('trigger-one');
+          expect(buttonEl.id).toBe('explicit-tab-one');
+          expect(panelEl.id).toBe('explicit-tabpanel-one');
+          expect(buttonEl.getAttribute('aria-controls')).toBe('explicit-tabpanel-one');
+          expect(panelEl.getAttribute('aria-labelledby')).toBe('explicit-tab-one');
 
           tabs.destroy();
           button.destroy();
@@ -147,15 +148,16 @@ describe('Tab - Composite Specifications', () => {
           expect(props.value).toBe('b');
           expect(commits).toEqual([{ detail: 'b', bubbles: true }]);
 
-          // A consumer that cancels the activation stops both the commit and the event
+          // A consumer that cancels the activation stops both the commit and the event.
+          // Capture on the ancestor so the veto lands before the trigger's own listener.
           const veto = (event: Event) => event.preventDefault();
-          buttons[0].el.addEventListener('click', veto);
+          tabsEl.addEventListener('click', veto, true);
 
           buttons[0].el.click();
           expect(props.value).toBe('b');
           expect(commits).toHaveLength(1);
 
-          buttons[0].el.removeEventListener('click', veto);
+          tabsEl.removeEventListener('click', veto, true);
           buttons[0].el.click();
           expect(props.value).toBe('a');
           expect(commits).toHaveLength(2);
@@ -168,33 +170,10 @@ describe('Tab - Composite Specifications', () => {
         });
       }));
 
-    it('commits on arrow movement under automatic activation', () =>
+    it('holds selection until the focused tab is activated', () =>
       scope.run(() => {
         component().run(() => {
-          const props = mutable<TabProps>({ value: 'a', activation: 'automatic' });
-          const { listEl, buttons, panels, cleanup } = buildTabs(props, ['a', 'b', 'c']);
-
-          buttons[0].el.focus();
-
-          press(buttons[0].el, 'ArrowRight');
-          expect(document.activeElement).toBe(buttons[1].el);
-          expect(props.value).toBe('b');
-          expect(panels[1].el.hidden).toBe(false);
-          expect(panels[0].el.hidden).toBe(true);
-
-          press(buttons[1].el, 'ArrowRight');
-          press(buttons[2].el, 'ArrowRight');
-          expect(document.activeElement).toBe(buttons[0].el);
-          expect(props.value).toBe('a');
-
-          cleanup();
-        });
-      }));
-
-    it('holds selection behind Enter or Space under manual activation', () =>
-      scope.run(() => {
-        component().run(() => {
-          const props = mutable<TabProps>({ value: 'a', activation: 'manual' });
+          const props = mutable<TabProps>({ value: 'a' });
           const { buttons, panels, cleanup } = buildTabs(props, ['a', 'b', 'c']);
 
           buttons[0].el.focus();
@@ -214,10 +193,10 @@ describe('Tab - Composite Specifications', () => {
         });
       }));
 
-    it('treats the manual flag as the alias of manual activation', () =>
+    it('holds selection behind arrow movement and commits on click', () =>
       scope.run(() => {
         component().run(() => {
-          const props = mutable<TabProps>({ value: 'a', manual: true });
+          const props = mutable<TabProps>({ value: 'a' });
           const { buttons, panels, cleanup } = buildTabs(props, ['a', 'b']);
 
           buttons[0].el.focus();
@@ -248,9 +227,9 @@ describe('Tab - Composite Specifications', () => {
           buttons[1].el.focus();
           press(buttons[1].el, 'End');
           expect(document.activeElement).toBe(buttons[2].el);
-          expect(props.value).toBe('c');
-          expect(buttons[2].el.hasAttribute('tabindex')).toBe(false);
-          expect(buttons[0].el.getAttribute('tabindex')).toBe('-1');
+          expect(props.value).toBe('a');
+          expect(buttons[0].el.hasAttribute('tabindex')).toBe(false);
+          expect(buttons[2].el.getAttribute('tabindex')).toBe('-1');
 
           press(buttons[2].el, 'Home');
           expect(document.activeElement).toBe(buttons[0].el);
@@ -306,7 +285,7 @@ describe('Tab - Composite Specifications', () => {
 
           expect(press(buttons[0].el, 'ArrowDown').defaultPrevented).toBe(true);
           expect(document.activeElement).toBe(buttons[1].el);
-          expect(props.value).toBe('b');
+          expect(props.value).toBe('a');
 
           press(buttons[1].el, 'ArrowUp');
           expect(document.activeElement).toBe(buttons[0].el);

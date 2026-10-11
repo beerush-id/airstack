@@ -189,10 +189,9 @@ export abstract class SelectionAria<
           if (this.properties.selected && !this.group!.value.includes(this.value)) {
             this.group!.value.push(this.value);
           }
-        } else if (
-          this.group!.value === undefined &&
-          (this.properties.selected || (this.idempotent && this.required))
-        ) {
+        } else if (this.properties.selected) {
+          this.group!.value = this.value;
+        } else if (this.group!.value === undefined && this.idempotent && this.required) {
           this.group!.value = this.value;
         }
       });

@@ -42,8 +42,6 @@ export class TabListAria<
   E extends BaseElement = HTMLElement,
   A extends TabListAttributes<E> = TabListAttributes<E>,
 > extends Aria<E, TabListProps, A> {
-  private parentRover = roverCtx.get();
-
   /**
    * Enclosing Tab orchestrator controller.
    */
@@ -76,12 +74,12 @@ export class TabListAria<
       'aria-label': this.properties.label,
       'aria-labelledby': this.properties.labelledby,
       onkeydown: (e: KeyboardEvent) => {
-        if (this.tab?.properties.disabled || this.parentRover) return;
+        if (this.tab?.properties.disabled) return;
 
         handleRovingKey(this.element, e, {
           selector: TAB_SELECTORS,
           orientation: this.orientation,
-          manual: this.tab?.properties.manual ?? true,
+          manual: true,
         });
       },
     }) as A;

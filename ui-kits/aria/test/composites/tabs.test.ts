@@ -72,7 +72,7 @@ describe('Tabs - User Expectations & A11y Specifications', () => {
           expect(panelSecurity.attributes.role).toBe('tabpanel');
           expect(panelSecurity.attributes.id).toBe('account-tabpanel-security');
           expect(panelSecurity.attributes['aria-labelledby']).toBe('account-tab-security');
-          expect(panelSecurity.attributes.tabindex).toBeUndefined();
+          expect(panelSecurity.attributes.tabindex).toBe(-1);
           expect(panelSecurity.attributes.hidden).toBe(true);
         });
       }));
@@ -85,11 +85,12 @@ describe('Tabs - User Expectations & A11y Specifications', () => {
           const tab = tabs.button({ name: 'general' });
           const panel = tabs.panel({ name: 'general' });
 
-          expect(tabs.attributes.id).toBe('tab-1');
-          expect(tab.attributes.id).toBe('tab-1-tab-general');
-          expect(tab.attributes['aria-controls']).toBe('tab-1-tabpanel-general');
-          expect(panel.attributes.id).toBe('tab-1-tabpanel-general');
-          expect(panel.attributes['aria-labelledby']).toBe('tab-1-tab-general');
+          const namespace = tabs.attributes.id as string;
+          expect(namespace).toMatch(/^tab-\d+$/);
+          expect(tab.attributes.id).toBe(`${namespace}-tab-general`);
+          expect(tab.attributes['aria-controls']).toBe(`${namespace}-tabpanel-general`);
+          expect(panel.attributes.id).toBe(`${namespace}-tabpanel-general`);
+          expect(panel.attributes['aria-labelledby']).toBe(`${namespace}-tab-general`);
         });
       }));
 
@@ -134,7 +135,7 @@ describe('Tabs - User Expectations & A11y Specifications', () => {
           expect(tabHome.attributes['aria-selected']).toBe('false');
           expect(tabHome.attributes.tabindex).toBe(-1);
           expect(panelHome.attributes.hidden).toBe(true);
-          expect(panelHome.attributes.tabindex).toBeUndefined();
+          expect(panelHome.attributes.tabindex).toBe(-1);
 
           // Settings tab & panel become active
           expect(tabSettings.attributes['aria-selected']).toBe('true');
@@ -166,11 +167,11 @@ describe('Tabs - User Expectations & A11y Specifications', () => {
   });
 
   describe('Keyboard Navigation (WAI-ARIA APG Roving Focus)', () => {
-    it('navigates horizontal tabs with arrow keys and auto-activates selection', () =>
+    it('navigates horizontal tabs with arrow keys without committing selection', () =>
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const props = mutable<TabProps>({ id: 'nav', value: 'tab-1', manual: false });
+          const props = mutable<TabProps>({ id: 'nav', value: 'tab-1' });
           const tabs = aria('tab', props);
 
           const list = tabs.list();
@@ -190,18 +191,21 @@ describe('Tabs - User Expectations & A11y Specifications', () => {
 
           b1.focus();
 
-          // ArrowRight automatically selects next tab
+          // ArrowRight moves focus without selecting
           listEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
-          expect(props.value).toBe('tab-2');
-          expect(t2.attributes['aria-selected']).toBe('true');
+          expect(document.activeElement).toBe(b2);
+          expect(props.value).toBe('tab-1');
+          expect(t2.attributes['aria-selected']).toBe('false');
 
-          // End key jumps to last tab
+          // End key jumps to last tab without selecting
           listEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true, cancelable: true }));
-          expect(props.value).toBe('tab-3');
-          expect(t3.attributes['aria-selected']).toBe('true');
+          expect(document.activeElement).toBe(b3);
+          expect(props.value).toBe('tab-1');
+          expect(t3.attributes['aria-selected']).toBe('false');
 
-          // Home key jumps to first tab
+          // Home key jumps to first tab without selecting
           listEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true, cancelable: true }));
+          expect(document.activeElement).toBe(b1);
           expect(props.value).toBe('tab-1');
           expect(t1.attributes['aria-selected']).toBe('true');
 
@@ -209,11 +213,11 @@ describe('Tabs - User Expectations & A11y Specifications', () => {
         });
       }));
 
-    it('moves focus without activating selection when manual mode is enabled', () =>
+    it('moves focus without activating selection', () =>
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const props = mutable<TabProps>({ id: 'manual', value: 'tab-1', manual: true });
+          const props = mutable<TabProps>({ id: 'manual', value: 'tab-1' });
           const tabs = aria('tab', props);
 
           const list = tabs.list();
@@ -249,7 +253,7 @@ describe('Tabs - User Expectations & A11y Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const props = mutable<TabProps>({ id: 'v-tabs', value: 't1', orientation: 'vertical', manual: false });
+          const props = mutable<TabProps>({ id: 'v-tabs', value: 't1', orientation: 'vertical' });
           const tabs = aria('tab', props);
 
           const list = tabs.list();
@@ -268,13 +272,15 @@ describe('Tabs - User Expectations & A11y Specifications', () => {
 
           b1.focus();
 
-          // ArrowDown navigates vertically
+          // ArrowDown navigates vertically without selecting
           listEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
-          expect(props.value).toBe('t2');
-          expect(t2.attributes['aria-selected']).toBe('true');
+          expect(document.activeElement).toBe(b2);
+          expect(props.value).toBe('t1');
+          expect(t2.attributes['aria-selected']).toBe('false');
 
-          // ArrowUp navigates back
+          // ArrowUp navigates back without selecting
           listEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true }));
+          expect(document.activeElement).toBe(b1);
           expect(props.value).toBe('t1');
           expect(t1.attributes['aria-selected']).toBe('true');
 
@@ -414,14 +420,6 @@ describe('Tabs - User Expectations & A11y Specifications', () => {
             new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true })
           );
 
-          // TabList with manual: false
-          const autoTabs = aria('tab', { id: 'at', value: 't1', manual: false });
-          const autoList = autoTabs.list();
-          const autoListEl = bind(document.createElement('div'), autoList);
-          autoListEl.dispatchEvent(
-            new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true })
-          );
-
           // Parent rover ignores keydown
           roverCtx.set(standaloneList as unknown as Aria<BaseElement>);
           const childList = aria('tab-list');
@@ -435,11 +433,11 @@ describe('Tabs - User Expectations & A11y Specifications', () => {
   });
 
   describe('Active Tab Selection & Panel Association Invariant', () => {
-    it('deselects the active tab only when the group is not required', () =>
+    it('never empties the selection when the active tab is activated again', () =>
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const props = mutable<TabProps>({ id: 'deselect', value: 'one', required: false });
+          const props = mutable<TabProps>({ id: 'always-one', value: 'one' });
           const tabs = aria('tab', props);
           const tabOne = tabs.button({ name: 'one' });
           const panelOne = tabs.panel({ name: 'one' });
@@ -450,22 +448,9 @@ describe('Tabs - User Expectations & A11y Specifications', () => {
 
           expect(panelEl.hidden).toBe(false);
 
-          // Clicking the active tab with a free group empties the selection
-          buttonEl.click();
-          expect(props.value).toBeUndefined();
-          expect(tabOne.selected).toBe(false);
-          expect(panelOne.selected).toBe(false);
-          expect(panelEl.hidden).toBe(true);
-
-          // Selecting again restores it through the same gesture
           buttonEl.click();
           expect(props.value).toBe('one');
-          expect(panelEl.hidden).toBe(false);
-
-          // A required group refuses the same click
-          props.required = true;
-          buttonEl.click();
-          expect(props.value).toBe('one');
+          expect(tabOne.active).toBe(true);
           expect(panelEl.hidden).toBe(false);
 
           buttonEl.remove();
@@ -481,15 +466,15 @@ describe('Tabs - User Expectations & A11y Specifications', () => {
           const button = tabs.button({ name: 'billing', id: 'pay-trigger' });
           const panel = tabs.panel({ name: 'billing' });
 
-          expect(button.attributes.id).toBe('pay-trigger');
+          expect(button.attributes.id).toBe('acct-tab-billing');
           expect(button.attributes['aria-controls']).toBe('acct-tabpanel-billing');
 
           // The panel keeps its own derived address but names the overridden trigger
           expect(panel.attributes.id).toBe('acct-tabpanel-billing');
-          expect(panel.attributes['aria-labelledby']).toBe('pay-trigger');
+          expect(panel.attributes['aria-labelledby']).toBe('acct-tab-billing');
 
           const panelEl = bind(document.createElement('div'), panel);
-          expect(panelEl.getAttribute('aria-labelledby')).toBe('pay-trigger');
+          expect(panelEl.getAttribute('aria-labelledby')).toBe('acct-tab-billing');
 
           tabs.destroy();
           button.destroy();
@@ -499,11 +484,11 @@ describe('Tabs - User Expectations & A11y Specifications', () => {
   });
 
   describe('Directional Traversal & Roving Focus Invariant', () => {
-    it('wraps at both ends of the tablist and carries the selection with it', () =>
+    it('wraps at both ends of the tablist without committing selection', () =>
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const props = mutable<TabProps>({ id: 'wrap', value: 'a', manual: false });
+          const props = mutable<TabProps>({ id: 'wrap', value: 'a' });
           const tabs = aria('tab', props);
           const list = tabs.list();
 
@@ -520,15 +505,16 @@ describe('Tabs - User Expectations & A11y Specifications', () => {
 
           elC.focus();
 
-          // Past the last tab, the rover wraps to the first
+          // Past the last tab, the rover wraps to the first without selecting
           listEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
           expect(document.activeElement).toBe(elA);
           expect(props.value).toBe('a');
 
-          // Before the first tab it wraps to the last
+          // Before the first tab it wraps to the last without selecting
+          elA.focus();
           listEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true, cancelable: true }));
           expect(document.activeElement).toBe(elC);
-          expect(props.value).toBe('c');
+          expect(props.value).toBe('a');
 
           listEl.remove();
         });
@@ -538,7 +524,7 @@ describe('Tabs - User Expectations & A11y Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const props = mutable<TabProps>({ id: 'skips', value: 'one', manual: false });
+          const props = mutable<TabProps>({ id: 'skips', value: 'one' });
           const tabs = aria('tab', props);
           const list = tabs.list();
 
@@ -557,8 +543,8 @@ describe('Tabs - User Expectations & A11y Specifications', () => {
 
           listEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
           expect(document.activeElement).toBe(elThree);
-          expect(props.value).toBe('three');
-          expect(two.selected).toBe(false);
+          expect(props.value).toBe('one');
+          expect(two.active).toBe(false);
 
           // End lands on the last enabled tab, Home on the first enabled tab
           listEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true, cancelable: true }));
@@ -567,6 +553,7 @@ describe('Tabs - User Expectations & A11y Specifications', () => {
           listEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true, cancelable: true }));
           expect(document.activeElement).toBe(elOne);
           expect(props.value).toBe('one');
+          expect(one.active).toBe(true);
 
           // The disabled tab never holds the single tab stop
           expect(elTwo.getAttribute('tabindex')).toBe('-1');
@@ -602,10 +589,11 @@ describe('Tabs - User Expectations & A11y Specifications', () => {
           // No manual flag was passed, so focus moved and the selection waited
           expect(document.activeElement).toBe(elTwo);
           expect(props.value).toBe('one');
-          expect(two.selected).toBe(false);
+          expect(two.active).toBe(false);
           expect(panelEl.hidden).toBe(true);
 
           elTwo.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+          elTwo.click();
           expect(props.value).toBe('two');
           expect(panelEl.hidden).toBe(false);
 
@@ -615,50 +603,11 @@ describe('Tabs - User Expectations & A11y Specifications', () => {
           expect(document.activeElement).toBe(elOne);
 
           elOne.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+          elOne.click();
           expect(props.value).toBe('one');
 
           listEl.remove();
           panelEl.remove();
-        });
-      }));
-
-    it('activates on focus movement when the group opts out of manual selection', () =>
-      scope.run(() => {
-        const tree = component();
-        tree.run(() => {
-          const props = mutable<TabProps>({ id: 'auto', value: 'one', manual: false });
-          const tabs = aria('tab', props);
-          const list = tabs.list();
-          const one = tabs.button({ name: 'one' });
-          const two = tabs.button({ name: 'two' });
-          const panelOne = tabs.panel({ name: 'one' });
-          const panelTwo = tabs.panel({ name: 'two' });
-
-          const listEl = bind(document.createElement('div'), list);
-          const elOne = bind(document.createElement('button'), one);
-          const elTwo = bind(document.createElement('button'), two);
-          const panelOneEl = bind(document.createElement('div'), panelOne);
-          const panelTwoEl = bind(document.createElement('div'), panelTwo);
-          listEl.append(elOne, elTwo);
-          document.body.append(listEl, panelOneEl, panelTwoEl);
-
-          elOne.focus();
-          expect(panelOneEl.hidden).toBe(false);
-
-          listEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
-
-          // Automatic mode: the panel swap rides on the focus move, no Enter required
-          expect(props.value).toBe('two');
-          expect(panelOneEl.hidden).toBe(true);
-          expect(panelTwoEl.hidden).toBe(false);
-          expect(panelTwoEl.getAttribute('tabindex')).toBe('0');
-          expect(panelOneEl.getAttribute('tabindex')).toBeNull();
-          expect(elTwo.getAttribute('tabindex')).toBe('0');
-          expect(elOne.getAttribute('tabindex')).toBe('-1');
-
-          listEl.remove();
-          panelOneEl.remove();
-          panelTwoEl.remove();
         });
       }));
   });

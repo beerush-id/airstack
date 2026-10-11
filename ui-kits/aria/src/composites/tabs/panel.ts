@@ -1,6 +1,6 @@
 import { $symbol, uIndex } from '@airlib/core';
 import { Aria } from '../../core.js';
-import { type SelectionGroupProps, selectionGroup } from '../../selection.js';
+import { selectionGroup, type SelectionGroupProps } from '../../selection.js';
 import type { AriaAttributes, AriaProps, BaseElement } from '../../types.js';
 import { ROLE_TAB, ROLE_TABPANEL } from './tab.js';
 
@@ -50,6 +50,27 @@ export class TabPanelAria<
   public id: string = `${ROLE_TABPANEL}-${uIndex($symbol(ROLE_TABPANEL), true)}`;
 
   /**
+   * Semantic identity key resolved with fallbacks: name -> id.
+   */
+  public get key(): string {
+    return this.properties.name ?? this.properties.id ?? this.id;
+  }
+
+  /**
+   * Whether this panel's paired tab button is currently active.
+   */
+  public get active() {
+    return this.selected;
+  }
+
+  /**
+   * Whether this panel's paired tab button is currently active.
+   */
+  public get selected(): boolean {
+    return this.group?.value === this.key;
+  }
+
+  /**
    * Associated tab selection group props.
    */
   protected group?: SelectionGroupProps;
@@ -62,20 +83,6 @@ export class TabPanelAria<
   }
 
   /**
-   * Semantic identity key resolved with fallbacks: name -> id.
-   */
-  public get key(): string {
-    return this.properties.name ?? this.properties.id ?? this.id;
-  }
-
-  /**
-   * Whether this panel's paired tab button is currently active.
-   */
-  public get selected(): boolean {
-    return this.group?.value === this.key;
-  }
-
-  /**
    * Compiles HTML and ARIA attributes for the tab panel.
    *
    * @returns TabPanel attributes dictionary
@@ -83,12 +90,14 @@ export class TabPanelAria<
   protected override createAttributes(): A {
     const scope = this.group?.id ? `${this.group.id}-` : '';
     const key = this.key;
+    const selfId = `${scope}${ROLE_TABPANEL}-${key}`;
+    const buttonId = `${scope}${ROLE_TAB}-${key}`;
 
     return Object.assign(super.createAttributes(), {
+      id: selfId,
       role: ROLE_TABPANEL,
-      id: this.properties.id ?? `${scope}${ROLE_TABPANEL}-${key}`,
-      'aria-labelledby': `${scope}${ROLE_TAB}-${key}`,
-      tabindex: this.selected ? 0 : undefined,
+      'aria-labelledby': buttonId,
+      tabindex: this.selected ? 0 : -1,
       hidden: !this.selected,
     }) as A;
   }

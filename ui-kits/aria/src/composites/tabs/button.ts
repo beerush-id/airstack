@@ -73,12 +73,17 @@ export class TabButtonAria<
   A extends TabButtonAttributes<E> = TabButtonAttributes<E>,
   O extends TabButtonOptions = TabButtonOptions,
 > extends SelectionAria<E, SelectionProps, A, SelectionOptions> {
+  public get active() {
+    return this.selected;
+  }
+
   public constructor(props: Partial<T> = {}, options: Partial<O> = {}) {
     super(props as SelectionProps, {
       native: true,
       ...options,
       role: ROLE_TAB,
       valueKey: 'name',
+      required: true,
     });
     this.omittedAttrs.push('aria-controls');
     this.update();
@@ -94,13 +99,16 @@ export class TabButtonAria<
     const value = this.value;
     const isSelected = this.selected;
 
+    const selfId = `${scope}${ROLE_TAB}-${value}`;
+    const panelId = `${scope}${ROLE_TABPANEL}-${value}`;
+
     return Object.assign(super.createAttributes(), {
-      id: this.properties.id ?? `${scope}${ROLE_TAB}-${value}`,
+      id: selfId,
       role: ROLE_TAB,
       type: this.isNative ? 'button' : undefined,
       'aria-selected': ariaBoolean(isSelected),
       'aria-disabled': ariaBoolean(this.disabled),
-      'aria-controls': `${scope}${ROLE_TABPANEL}-${value}`,
+      'aria-controls': panelId,
       tabindex: this.isNative ? (isSelected ? undefined : -1) : this.disabled ? -1 : isSelected ? 0 : -1,
     }) as A;
   }

@@ -1,7 +1,7 @@
 import { $static, $symbol, createContext, uIndex } from '@airlib/core';
 import { Aria } from '../../core.js';
-import { selectionGroup } from '../../selection.js';
-import type { AriaAttributes, AriaProps, BaseElement, Orientation } from '../../types.js';
+import { selectionGroup, type SelectionOptions } from '../../selection.js';
+import type { AriaAttributes, AriaEvent, AriaEventHandler, AriaProps, BaseElement, Orientation } from '../../types.js';
 import { TabButtonAria, type TabButtonOptions, type TabButtonProps } from './button.js';
 import { TabListAria, type TabListProps } from './list.js';
 import { TabPanelAria, type TabPanelProps } from './panel.js';
@@ -39,21 +39,15 @@ export interface TabProps extends AriaProps {
   orientation?: Orientation;
 
   /**
-   * Whether tab activation requires manual Enter/Space press instead of automatic arrow key focus.
-   * @default true
-   */
-  manual?: boolean;
-
-  /**
-   * Enforces a selection constraint requiring a non-empty value.
-   * @default true
-   */
-  required?: boolean;
-
-  /**
    * Whether all tabs within the group are disabled from user interaction.
    */
   disabled?: boolean;
+
+  /**
+   * Callback function triggered when the active tab changes.
+   * @param value - The new active tab value
+   */
+  onchange?: AriaEventHandler<AriaEvent<string>>;
 }
 
 /**
@@ -82,38 +76,25 @@ export class TabAria<
   E extends BaseElement = HTMLElement,
   T extends TabProps = TabProps,
   A extends TabAttributes<E> = TabAttributes<E>,
-> extends Aria<E, T, A> {
-  /**
-   * Global default configuration for Tab.
-   */
-  public static config: TabConfig = {
-    orientation: DEFAULT_ORIENTATION,
-  };
-
-  /**
-   * Configures global default settings for all Tab instances.
-   *
-   * @param config - Partial global tab configuration
-   */
-  public static configure(config: Partial<TabConfig>): void {
-    Object.assign(TabAria.config, config);
-  }
-
+> extends Aria<E, T, A, SelectionOptions> {
   /**
    * Guaranteed unique controller instance identifier generated at instantiation.
    */
-  public id: string = `${ROLE_TAB}-${uIndex($symbol(ROLE_TAB), true)}`;
+  public get id() {
+    return this.properties.id;
+  }
 
   public constructor(props: Partial<T> = {}) {
-    super(props);
+    super(props, { required: true });
+
     $static(() => {
-      this.properties.id = this.properties.id ?? this.id;
+      this.properties.id = this.properties.id ?? `${ROLE_TAB}-${uIndex($symbol(ROLE_TAB), true)}`;
       this.properties.orientation = this.properties.orientation ?? TabAria.config.orientation;
-      this.properties.required = this.properties.required ?? true;
-      this.properties.manual = this.properties.manual ?? true;
     });
+
     tabCtx.set(this as unknown as TabAria);
     selectionGroup.set(this.properties);
+
     this.update();
   }
 
@@ -163,5 +144,21 @@ export class TabAria<
     return Object.assign(super.createAttributes(), {
       id: this.properties.id!,
     }) as A;
+  }
+
+  /**
+   * Global default configuration for Tab.
+   */
+  public static config: TabConfig = {
+    orientation: DEFAULT_ORIENTATION,
+  };
+
+  /**
+   * Configures global default settings for all Tab instances.
+   *
+   * @param config - Partial global tab configuration
+   */
+  public static configure(config: Partial<TabConfig>): void {
+    Object.assign(TabAria.config, config);
   }
 }

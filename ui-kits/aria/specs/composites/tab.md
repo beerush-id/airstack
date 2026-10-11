@@ -38,10 +38,6 @@ export interface TabProps {
   value?: string;
   /** Tablist axis orientation (default: 'horizontal') */
   orientation?: 'horizontal' | 'vertical';
-  /** Activation timing: 'automatic' (arrows activate) or 'manual' (arrows focus only, Enter/Space activates). Default: 'automatic' */
-  activation?: 'automatic' | 'manual';
-  /** Backwards-compatible alias for activation === 'manual' */
-  manual?: boolean;
   /** Disables the entire tab group */
   disabled?: boolean;
 }
@@ -134,6 +130,8 @@ export function aria<E extends BaseElement = HTMLElement>(
 2. **Activation**:
   - Activating a tab button via pointer `click` or keyboard commits `this.tab.value = this.props.name` when not disabled
     and `!event.defaultPrevented`.
+  - Activating the already-active tab commits nothing and emits nothing: exactly one tab is always selected,
+    selection never empties through interaction.
   - Emits `CustomEvent<string>('change', { bubbles: true, detail: this.tab.value })` on the Tab container.
 
 3. **Roving Tabindex Navigation**:
@@ -141,5 +139,5 @@ export function aria<E extends BaseElement = HTMLElement>(
     - Horizontal: `ArrowRight` (next, wraps), `ArrowLeft` (prev, wraps).
     - Vertical: `ArrowDown` (next, wraps), `ArrowUp` (prev, wraps).
     - `Home` / `End`: First / last enabled tab button.
-  - Under `activation: 'automatic'` (default): Moving focus immediately commits selection.
-  - Under `activation: 'manual'`: Focus moves without selection; tab button activates upon `Enter` or `Space`.
+  - Focus moves without selection; a tab button activates upon `Enter` or `Space` (or pointer `click`).
+    Roving never commits selection.
