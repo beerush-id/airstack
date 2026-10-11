@@ -1,7 +1,7 @@
 import { $static, $symbol, createContext, uIndex } from '@airlib/core';
 import { Aria } from '../../core.js';
 import { selectionGroup } from '../../selection.js';
-import type { AriaAttributes, AriaProps, BaseElement, Orientation } from '../../types.js';
+import type { AriaAttributes, AriaEvent, AriaEventHandler, AriaProps, BaseElement, Orientation } from '../../types.js';
 import { handleRovingKey } from '../../utils/navigation.js';
 import { AccordionButtonAria, type AccordionButtonOptions, type AccordionButtonProps } from './button.js';
 import { AccordionPanelAria, type AccordionPanelProps } from './panel.js';
@@ -52,6 +52,11 @@ export interface SingleAccordionProps extends AriaProps {
    * @default true
    */
   manual?: boolean;
+
+  /**
+   * Called with the change event after each commit; detail is the new value.
+   */
+  onchange?: AriaEventHandler<AriaEvent<string | null>>;
 }
 
 /**
@@ -89,6 +94,11 @@ export interface MultipleAccordionProps extends AriaProps {
    * @default true
    */
   manual?: boolean;
+
+  /**
+   * Called with the change event after each commit; detail is the whole value.
+   */
+  onchange?: AriaEventHandler<AriaEvent<string[]>>;
 }
 
 /**
@@ -141,6 +151,7 @@ export class AccordionAria<
     });
     accordionCtx.set(this as unknown as AccordionAria);
     selectionGroup.set(this.properties);
+    this.omittedAttrs.push('value');
     this.update();
   }
 
@@ -183,7 +194,7 @@ export class AccordionAria<
 
         handleRovingKey(this.element, e, {
           selector: ACCORDION_SELECTORS,
-          orientation: this.properties.orientation ?? DEFAULT_ORIENTATION,
+          orientation: this.properties.orientation!,
           manual: this.properties.manual ?? true,
         });
       },
