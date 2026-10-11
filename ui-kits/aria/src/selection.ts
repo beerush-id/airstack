@@ -327,12 +327,6 @@ export abstract class SelectionAria<
     this.notifyChange(was);
   }
 
-  protected capture(event: AriaEvent): void {
-    if (event.type === 'change') {
-      this.properties.onchange?.(event as SelectionEvent);
-    }
-  }
-
   private notifyChange(was: boolean): void {
     if (this.selected === was || !this.element) return;
 

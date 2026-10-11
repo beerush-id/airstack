@@ -1,6 +1,6 @@
 import {
-  anchor,
   type AnyType,
+  anchor,
   createContext,
   createObserver,
   mutable,
@@ -8,6 +8,7 @@ import {
   type StateObserver,
 } from '@airlib/core';
 import { currentAria } from './context.js';
+import { EventMap, type GenericHandler } from './event.js';
 import type {
   AriaAttributes,
   AriaEvent,
@@ -57,6 +58,11 @@ export class Aria<
    * Stores the component's interactive inputs and states (e.g. disabled, active, checked) for fine-grained reactivity.
    */
   public properties: T;
+
+  /**
+   * Headless event delegation and lifecycle manager bound to this controller.
+   */
+  public readonly events: EventMap<E> = new EventMap<E>();
 
   /**
    * The enclosing parent Aria controller discovered from ambient execution scope.
@@ -132,31 +138,14 @@ export class Aria<
     }
 
     this.element = element;
+    this.events.element = element ?? undefined;
     this.prevAttrs = undefined;
     this.update();
 
     if (element) {
-      const handleFocus = () => {
-        currentAria.set(this as unknown as Aria);
-      };
-      const handleBlur = () => {
-        const current = currentAria.get();
-        if (current && current !== this) return;
-        currentAria.set(undefined);
-      };
-
-      const attachInternal = () => {
-        element.addEventListener('focus', handleFocus);
-        element.addEventListener('blur', handleBlur);
-      };
-
       const detach = this.attach()!;
-      attachInternal();
-
       this.detach = () => {
         detach?.();
-        element.removeEventListener('focus', handleFocus);
-        element.removeEventListener('blur', handleBlur);
       };
     }
 
@@ -201,6 +190,16 @@ export class Aria<
   protected refiners = new Set<RefineFn<T, A>>();
 
   /**
+   * Map of event handlers contributed by the controller's own createAttributes().
+   */
+  protected ownEvents = new Map<string, GenericHandler>();
+
+  /**
+   * Map of event handlers contributed by individual refiners.
+   */
+  protected refinerEvents = new Map<RefineFn<T, A>, Map<string, GenericHandler>>();
+
+  /**
    * Reactive state observer instance managed by AirLib.
    * Automatically re-runs attribute computation whenever tracked reactive state properties mutate.
    */
@@ -235,6 +234,15 @@ export class Aria<
     ariaScope.set(this as unknown as Aria<BaseElement, object, AriaAttributes<BaseElement>>);
 
     this.properties = (anchor.has(props) ? props : mutable(props)) as T;
+    this.events.add('focus', () => {
+      currentAria.set(this as unknown as Aria);
+    });
+    this.events.add('blur', () => {
+      const current = currentAria.get();
+      if (current && current !== this) return;
+      currentAria.set(undefined);
+    });
+
     this.observer = createObserver(() => {
       this.update();
     });
@@ -259,14 +267,38 @@ export class Aria<
    * @param refiner - Callback receiving the reactive state and returning attribute overrides
    * @returns An unregister teardown callback to remove the refiner and purge stale attributes
    */
-  public refine(refiner: RefineFn<T, A>): () => void {
+  public refine(refiner: RefineFn<T, A>): (destroyed?: boolean) => void {
     this.refiners.add(refiner);
     this.update(false, refiner);
 
-    return () => {
+    return (destroyed?: boolean) => {
       this.refiners.delete(refiner);
+      const handlers = this.refinerEvents.get(refiner);
+      if (handlers) {
+        for (const [key, handler] of handlers.entries()) {
+          this.events.remove(key, handler);
+        }
+        this.refinerEvents.delete(refiner);
+      }
+      if (destroyed) return;
       this.update();
     };
+  }
+
+  /**
+   * Registers an event listener on the controller's host element.
+   *
+   * Coordinates listeners through the controller's {@link events} manager, automatically
+   * maintaining attachment across DOM element transitions and lifecycle changes.
+   *
+   * @param type - DOM event type or custom event name (e.g. 'click', 'keydown')
+   * @param handler - Event listener callback invoked when the event fires
+   * @returns A teardown function to unregister the event listener
+   */
+  public on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+  public on<EV extends Event = Event>(type: string, handler: (event: EV) => void): () => void;
+  public on(type: string, handler: GenericHandler): () => void {
+    return this.events.add(type, handler);
   }
 
   /**
@@ -277,13 +309,9 @@ export class Aria<
     if (this.scope?.actionable === (this as never)) {
       this.scope.actionable = undefined;
     }
-    if (this.element) {
-      for (const [key, value] of Object.entries(this.attrs)) {
-        if (key.startsWith('on') && typeof value === 'function') {
-          this.element.removeEventListener(key.slice(2).toLowerCase(), value as EventListener);
-        }
-      }
-    }
+    this.events.destroy();
+    this.ownEvents.clear();
+    this.refinerEvents.clear();
     for (const cleanup of this.cleanups) {
       cleanup();
     }
@@ -387,6 +415,41 @@ export class Aria<
   protected attach(): DetachFn | void {}
 
   /**
+   * Synchronizes a group of event handlers (from own attributes or a refiner) with the controller's EventMap.
+   *
+   * @param registry - Storage map tracking the active handlers for this group.
+   * @param source - Raw attribute dictionary containing potential on* handler properties.
+   */
+  protected syncEvents(registry: Map<string, GenericHandler>, source: Record<string, unknown>): void {
+    const next = new Map<string, GenericHandler>();
+
+    for (const [key, value] of Object.entries(source)) {
+      if (key.startsWith('on') && typeof value === 'function') {
+        next.set(key, value as GenericHandler);
+      }
+    }
+
+    for (const [key, handler] of registry.entries()) {
+      const nextHandler = next.get(key);
+      if (nextHandler !== handler) {
+        this.events.remove(key, handler);
+      }
+    }
+
+    for (const [key, handler] of next.entries()) {
+      const prevHandler = registry.get(key);
+      if (prevHandler !== handler) {
+        this.events.add(key, handler);
+      }
+    }
+
+    registry.clear();
+    for (const [key, handler] of next.entries()) {
+      registry.set(key, handler);
+    }
+  }
+
+  /**
    * Recomputes attributes inside the reactive observer and schedules DOM synchronization.
    *
    * @param reinit - Whether to reinitialize attributes from createAttributes
@@ -395,16 +458,34 @@ export class Aria<
   protected update(reinit = true, refine?: RefineFn<T, A>): void {
     this.observer.run(() => {
       if (reinit) {
-        this.attrs = normalizeAttrs(this.createAttributes() as Record<string, unknown>);
+        const ownAttrs = this.createAttributes() as Record<string, unknown>;
+        this.syncEvents(this.ownEvents, ownAttrs);
+        this.attrs = normalizeAttrs(ownAttrs);
       }
 
       if (refine) {
-        const overrides = refine(this.properties, this.attrs as unknown as A);
-        if (overrides) normalizeAttrs(overrides as Record<string, unknown>, this.attrs, this.omittedAttrs);
+        const overrides = refine(this.properties, this.attrs as unknown as A) as Record<string, unknown> | undefined;
+        if (overrides) {
+          let refinerMap = this.refinerEvents.get(refine);
+          if (!refinerMap) {
+            refinerMap = new Map();
+            this.refinerEvents.set(refine, refinerMap);
+          }
+          this.syncEvents(refinerMap, overrides);
+          normalizeAttrs(overrides, this.attrs, this.omittedAttrs);
+        }
       } else {
-        for (const refiner of this.refiners) {
-          const overrides = refiner(this.properties, this.attrs as unknown as A);
-          if (overrides) normalizeAttrs(overrides as Record<string, unknown>, this.attrs, this.omittedAttrs);
+        for (const r of this.refiners) {
+          const overrides = r(this.properties, this.attrs as unknown as A) as Record<string, unknown> | undefined;
+          if (overrides) {
+            let refinerMap = this.refinerEvents.get(r);
+            if (!refinerMap) {
+              refinerMap = new Map();
+              this.refinerEvents.set(r, refinerMap);
+            }
+            this.syncEvents(refinerMap, overrides);
+            normalizeAttrs(overrides, this.attrs, this.omittedAttrs);
+          }
         }
       }
     });

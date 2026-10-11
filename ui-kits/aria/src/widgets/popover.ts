@@ -277,24 +277,15 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
     const el = this.element!;
     const cleanups: Array<() => void> = [];
     const hostEl = this.target?.current ?? el.parentElement;
-    this.ensureTrigger(hostEl);
 
-    if (this.mode.includes('hover')) {
-      const onPanelEnter = () => this.cancelOpen();
-      const onPanelLeave = (e: PointerEvent) => {
-        if (hostEl?.contains(e.relatedTarget as Node)) return;
-        this.close();
-      };
-      el.addEventListener('pointerenter', onPanelEnter);
-      el.addEventListener('pointerleave', onPanelLeave);
-      cleanups.push(() => {
-        el.removeEventListener('pointerenter', onPanelEnter);
-        el.removeEventListener('pointerleave', onPanelLeave);
-      });
-    }
+    const detachFallback = this.ensureTrigger(hostEl);
+    cleanups.push(detachFallback);
 
     const stopEffect = effect.client(() => {
+      if (this.dispatchedState === this.open) return;
+
       this.handleTransition();
+      this.dispatchedState = this.open;
     });
     cleanups.push(stopEffect);
 
@@ -331,12 +322,12 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
     const isOpen = this.open;
     const hostEl = this.target?.current ?? el.parentElement;
 
-    if (this.autofocus && this.dispatchedState !== isOpen) {
+    if (this.autofocus) {
       if (isOpen) {
         this.previousFocused = document.activeElement as HTMLElement | null;
 
         if (!this.mode.includes('combo')) {
-          this.focusPopupContent();
+          this.placeFocus();
         }
       } else {
         this.restoreOverlayFocus(el, hostEl);
@@ -346,41 +337,36 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
     this.dispatchVisibilityEvent(el, isOpen);
   }
 
-  protected handleClick(e: MouseEvent): void {
+  protected handleClick = (e: MouseEvent): void => {
     if (e.defaultPrevented) return;
     if (this.element?.contains(e.target as Node)) return;
     this.toggle();
-  }
+  };
 
-  protected handleTriggerEnter(): void {
+  protected handleTriggerEnter = (): void => {
     this.scheduleOpen();
-  }
+  };
 
-  protected handleTriggerLeave(e: PointerEvent): void {
+  protected handleTriggerLeave = (e: PointerEvent): void => {
     if (this.element?.contains(e.relatedTarget as Node)) return;
     this.close();
-  }
+  };
 
-  protected handleFocus(): void {
+  protected handleFocus = (): void => {
     this.show();
-  }
+  };
 
-  protected handleBlur(): void {
+  protected handleBlur = (): void => {
     this.close();
-  }
+  };
 
-  protected handleKeyDown(e: KeyboardEvent): void {
-    if (this.mode.includes('rove') && POPOVER_ROVING_KEYS.has(e.key) && !this.open) {
-      e.preventDefault();
-      this.show();
-      return;
-    }
-
-    if (this.mode.includes('combo') && POPOVER_ROVING_KEYS.has(e.key)) {
+  protected handleKeyDown = (e: KeyboardEvent): void => {
+    const canRove = this.mode.includes('rove') || this.mode.includes('combo');
+    if (canRove && POPOVER_ROVING_KEYS.has(e.key)) {
       e.preventDefault();
 
       if (this.open) {
-        this.focusPopupContent();
+        this.placeFocus();
       } else {
         this.show();
       }
@@ -389,7 +375,11 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
     }
 
     this.handleDismissKey(e);
-  }
+  };
+
+  protected handleCombo = () => {
+    if (!this.restoring) this.show();
+  };
 
   protected handleDismissKey(e: KeyboardEvent): void {
     if (e.key === 'Escape' && this.open) {
@@ -405,11 +395,11 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
     }
   }
 
-  private focusPopupContent(): void {
+  protected placeFocus() {
     const el = this.element!;
     const entries = el.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
-    let toFocus: HTMLElement | undefined;
 
+    let toFocus: HTMLElement | undefined;
     for (const candidate of Array.from(entries)) {
       if (candidate.getAttribute('aria-selected') === 'true') {
         toFocus = candidate;
@@ -474,17 +464,22 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
   }
 
   protected ensureTrigger(element?: HTMLElement | null) {
-    if (this.target || !element) return;
+    if (this.target || !element) return () => {};
 
     this.target = new Aria();
     this.target.current = element;
     this.attachTrigger();
+
+    return () => {
+      this.target?.destroy();
+      this.target = undefined;
+    };
   }
 
   protected attachTrigger(): void {
     if (!this.target) return;
 
-    this.target.refine(() => {
+    const release = this.target.refine(() => {
       const attrs: AriaAttributes = {
         ...this.createTriggerAttributes(),
         style: this.open
@@ -495,27 +490,24 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
       };
 
       if (this.mode.includes('click')) {
-        attrs.onclick = (e: MouseEvent) => this.handleClick(e);
+        attrs.onclick = this.handleClick;
       }
       if (this.mode.includes('hover')) {
-        attrs.onpointerenter = () => this.handleTriggerEnter();
-        attrs.onpointerleave = (e: PointerEvent) => this.handleTriggerLeave(e);
+        attrs.onpointerenter = this.handleTriggerEnter;
+        attrs.onpointerleave = this.handleTriggerLeave;
       }
       if (this.mode.includes('focus')) {
-        attrs.onfocus = () => this.handleFocus();
-        attrs.onblur = () => this.handleBlur();
+        attrs.onfocus = this.handleFocus;
+        attrs.onblur = this.handleBlur;
       }
       if (this.mode.includes('combo')) {
-        attrs.onclick = () => {
-          if (!this.restoring) this.show();
-        };
-        attrs.onfocus = () => {
-          if (!this.restoring) this.show();
-        };
+        attrs.onclick = this.handleCombo;
+        attrs.onfocus = this.handleCombo;
       }
-      attrs.onkeydown = (e: KeyboardEvent) => this.handleKeyDown(e);
+      attrs.onkeydown = this.handleKeyDown;
 
       return attrs;
     });
+    this.cleanups.add(() => release(true));
   }
 }

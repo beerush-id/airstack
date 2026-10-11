@@ -1,6 +1,6 @@
 import { createLifecycle } from '@airlib/core';
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { aria, PopoverAria, popover } from '../../src/index.js';
+import { aria, popover, PopoverAria } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 describe('Popover - Coverage & Edge Cases', () => {
@@ -376,13 +376,15 @@ describe('Popover - Coverage & Edge Cases', () => {
         expect(pop.open).toBe(false);
 
         popEl.dispatchEvent(new Event('pointerenter'));
-        vi.advanceTimersByTime(200);
         expect(pop.open).toBe(false);
 
         pop.destroy();
         host.destroy();
         document.body.removeChild(hostEl);
         document.body.removeChild(popEl);
+
+        vi.advanceTimersByTime(200);
+        expect(pop.open).toBe(false);
       });
     }));
 

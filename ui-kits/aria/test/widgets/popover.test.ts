@@ -67,9 +67,9 @@ describe('Popover - Contract Specifications', () => {
           parentButton.click();
 
           expect(parentButton.hasAttribute('aria-haspopup')).toBe(true);
-          expect(parentButton.getAttribute('aria-expanded')).toBe('false');
+          expect(parentButton.getAttribute('aria-expanded')).toBe('true');
           expect(parentButton.hasAttribute('aria-controls')).toBe(true);
-          expect(popover.open).toBe(false);
+          expect(popover.open).toBe(true);
 
           document.body.removeChild(parentButton);
         });

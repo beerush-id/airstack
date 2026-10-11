@@ -57,16 +57,6 @@ export function normalizeAttrs<E extends BaseElement = HTMLElement>(
       target.class = classx(value as ClassInput);
     } else if (key === 'style') {
       target.style = typeof value === 'object' ? stylex({ ...target.style, ...value } as StyleInput) : target.style;
-    } else if (key.startsWith('on') && typeof value === 'function') {
-      const existing = (target as Record<string, unknown>)[key];
-      if (typeof existing === 'function') {
-        (target as Record<string, unknown>)[key] = (e: Event) => {
-          (existing as (e: Event) => void)(e);
-          (value as (e: Event) => void)(e);
-        };
-      } else {
-        (target as Record<string, unknown>)[key] = value;
-      }
     } else {
       (target as Record<string, unknown>)[key] = value;
     }
@@ -108,15 +98,7 @@ export function applyAttributes<E extends BaseElement>(
 
   // 1. Remove attributes that no longer exist in nextProps
   for (const key of Object.keys(prev)) {
-    if (key.startsWith('on')) {
-      if (!(key in next) || prev[key] !== next[key]) {
-        const eventName = key.slice(2).toLowerCase();
-        if (typeof prev[key] === 'function') {
-          element.removeEventListener(eventName, prev[key]);
-        }
-      }
-      continue;
-    }
+    if (key.startsWith('on')) continue;
 
     if (!(key in next)) {
       if (key === 'style') {
@@ -133,14 +115,8 @@ export function applyAttributes<E extends BaseElement>(
 
   // 2. Set or update new/changed attributes
   for (const [key, value] of Object.entries(next)) {
-    if (key.startsWith('on')) {
-      if (typeof value === 'function' && prev[key] !== value) {
-        const eventName = key.slice(2).toLowerCase();
-        element.addEventListener(eventName, value as EventListener);
-      }
-      continue;
-    }
-
+    if (key.startsWith('on')) continue;
+    if (key in prev && prev[key] === value) continue;
     if (key in prev && prev[key] === value) continue;
 
     if (key === 'class' || key === 'className') {
