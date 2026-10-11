@@ -17,11 +17,6 @@ export interface FieldProps extends AriaProps {
   id?: string;
 
   /**
-   * Validation failure flag.
-   */
-  invalid?: boolean;
-
-  /**
    * Requirement flag.
    */
   required?: boolean;
@@ -30,6 +25,42 @@ export interface FieldProps extends AriaProps {
    * Disabled flag inherited by controls.
    */
   disabled?: boolean;
+
+  /**
+   * Input type.
+   */
+  type?: string;
+
+  /**
+   * Input value.
+   */
+  value?: string | number;
+
+  /**
+   * Input placeholder.
+   */
+  placeholder?: string;
+
+  /**
+   * Whether the field is invalid.
+   */
+  invalid?: boolean;
+
+  /**
+   * Invalid messages.
+   */
+  invalidMessages?: string | string[];
+
+  /**
+   * Whether the field has been touched.
+   */
+  touched?: boolean;
+}
+
+export interface FieldOptions extends AriaOptions {
+  validate?: (value?: string | number) => string | string[] | void;
+  labelled?: boolean;
+  described?: boolean;
 }
 
 /**
@@ -61,11 +92,12 @@ export interface FieldControlAttributes<E extends BaseElement = HTMLElement> ext
   id: string;
   disabled?: boolean;
   required?: boolean;
+  'aria-invalid'?: 'true';
   'aria-disabled'?: 'true' | 'false';
   'aria-required'?: 'true' | 'false';
-  'aria-invalid'?: 'true';
-  'aria-describedby'?: string;
   'aria-labelledby'?: string;
+  'aria-describedby'?: string;
+  'aria-errormessage'?: string;
 }
 
 /**
@@ -89,12 +121,6 @@ export interface FieldErrorAttributes<E extends BaseElement = HTMLElement> exten
 
 const ROLE_FIELD = 'field';
 
-const liveFields = new WeakSet<FieldAria>();
-
-function liveField(field: FieldAria | undefined): FieldAria | undefined {
-  return field && liveFields.has(field) ? field : undefined;
-}
-
 /**
  * Container coordinator hosting ambient field ID, disabled, invalid, and required state.
  *
@@ -106,63 +132,40 @@ export class FieldAria<
   E extends BaseElement = HTMLElement,
   T extends FieldProps = FieldProps,
   A extends FieldAttributes<E> = FieldAttributes<E>,
-> extends Aria<E, T, A> {
-  /**
-   * Controls registered under this field, driving the grouping role.
-   */
-  protected controls = new Set<FieldControlAria>();
-
-  /**
-   * Labels registered under this field, driving custom-label association.
-   */
-  protected labels = new Set<FieldLabelAria>();
-
-  public constructor(props: Partial<T> = {}, options: AriaOptions = {}) {
-    super(props, options);
-
-    $static(() => {
-      this.properties.id = this.properties.id ?? `${ROLE_FIELD}-${uIndex($symbol(ROLE_FIELD), true)}`;
-    });
-
-    liveFields.add(this as never);
-    fieldCtx.set(this as unknown as FieldAria);
-    this.omittedAttrs.push('id');
-    this.update();
+> extends Aria<E, T, A, FieldOptions> {
+  public get id() {
+    return this.properties.id!;
   }
 
-  public override destroy(): void {
-    liveFields.delete(this as never);
-    super.destroy();
+  public get type() {
+    return this.properties.type ?? 'text';
+  }
+
+  public get value() {
+    return this.properties.value;
+  }
+
+  public set value(value: string | number | undefined) {
+    this.properties.value = value;
   }
 
   /**
-   * Registers a control, recomputing the grouping role for the new count.
+   * Whether the field currently fails validation.
    */
-  public registerControl(control: FieldControlAria): void {
-    this.controls.add(control);
-    this.update();
+  public get invalid(): boolean {
+    return !!this.properties.invalid;
   }
 
-  /**
-   * Unregisters a destroyed control, recomputing the grouping role.
-   */
-  public unregisterControl(control: FieldControlAria): void {
-    this.controls.delete(control);
-    this.update();
+  public set invalid(value: boolean) {
+    this.properties.invalid = value;
   }
 
-  /**
-   * Registers a label for custom-label association discovery.
-   */
-  public registerLabel(label: FieldLabelAria): void {
-    this.labels.add(label);
+  public get touched(): boolean {
+    return !!this.properties.touched;
   }
 
-  /**
-   * First registered label, if any.
-   */
-  public get label(): FieldLabelAria | undefined {
-    return this.labels.values().next().value;
+  public set touched(value: boolean) {
+    this.properties.touched = value;
   }
 
   /**
@@ -173,13 +176,6 @@ export class FieldAria<
   }
 
   /**
-   * Whether the field currently fails validation.
-   */
-  public get invalid(): boolean {
-    return !!this.properties.invalid;
-  }
-
-  /**
    * Whether the field is required.
    */
   public get required(): boolean {
@@ -187,58 +183,48 @@ export class FieldAria<
   }
 
   /**
-   * Computes HTML and ARIA attributes for the field container.
+   * Input placeholder.
    */
-  protected override createAttributes(): A {
-    const attrs: Record<string, unknown> = {
-      id: this.properties.id,
-      role: !this.isNative && this.controls.size > 1 ? 'group' : undefined,
-    };
-
-    return attrs as A;
+  public get placeholder(): string {
+    return this.properties.placeholder ?? '';
   }
-}
 
-/**
- * Label association member binding to the field control via `for` or ID reference.
- *
- * @template E - Target Element type (defaults to HTMLLabelElement)
- * @template A - Compiled attributes dictionary type
- */
-export class FieldLabelAria<
-  E extends BaseElement = HTMLLabelElement,
-  A extends FieldLabelAttributes<E> = FieldLabelAttributes<E>,
-> extends Aria<E, AriaProps, A> {
-  /**
-   * Enclosing Field coordinator discovered from ambient context.
-   */
-  protected field = fieldCtx.get();
+  public get canValidate() {
+    return typeof this.options.validate === 'function';
+  }
 
-  public constructor(props: Partial<AriaProps> = {}, options: AriaOptions = {}) {
-    super(props, options);
-    liveField(this.field)?.registerLabel(this as unknown as FieldLabelAria);
-    this.omittedAttrs.push('for');
+  public get invalidMessages(): string | string[] | undefined {
+    return this.properties.invalidMessages;
+  }
+
+  public set invalidMessages(messages: string | string[] | undefined) {
+    this.properties.invalidMessages = messages;
+  }
+
+  public declare options: FieldOptions;
+
+  public constructor(props: Partial<T> = {}, options: AriaOptions = {}) {
+    super(props, { labelled: true, described: true, ...options });
+
+    $static(() => {
+      this.properties.id = this.properties.id ?? `${ROLE_FIELD}-${uIndex($symbol(ROLE_FIELD), true)}`;
+    });
+    this.omittedAttrs.push('id', 'type', 'value', 'invalid', 'disabled', 'required', 'placeholder');
+
+    fieldCtx.set(this as unknown as FieldAria);
     this.update();
   }
 
-  /**
-   * Labels bind `<label>` far more often than custom elements,
-   * so native is the default unless explicitly declined.
-   */
-  public override get isNative(): boolean {
-    return this.options.native ?? true;
+  public validate(value?: string | number) {
+    return this.options?.validate?.(value);
   }
 
   /**
-   * Computes HTML attributes for the label element.
+   * Computes HTML and ARIA attributes for the field container.
    */
   protected override createAttributes(): A {
-    const field = liveField(this.field);
-    const fieldId = field ? field.properties.id! : '';
-
     return {
-      id: `${fieldId}-label`,
-      for: field && this.isNative ? `${fieldId}-control` : undefined,
+      id: this.properties.id,
     } as A;
   }
 }
@@ -259,10 +245,25 @@ export class FieldControlAria<
    */
   protected field = fieldCtx.get();
 
-  /**
-   * ARIA state keys announced at least once, kept explicit afterwards.
-   */
-  protected announced = new Set<string>();
+  public get type() {
+    return this.field?.type ?? 'text';
+  }
+
+  public get value() {
+    return this.field?.value ?? '';
+  }
+
+  public get invalid() {
+    return this.field?.invalid ?? false;
+  }
+
+  public get disabled() {
+    return this.field?.disabled ?? false;
+  }
+
+  public get required() {
+    return this.field?.required ?? false;
+  }
 
   /**
    * Controls bind native inputs far more often than custom elements,
@@ -274,61 +275,120 @@ export class FieldControlAria<
 
   public constructor(props: Partial<AriaProps> = {}, options: AriaOptions = {}) {
     super(props, options);
-    liveField(this.field)?.registerControl(this as unknown as FieldControlAria);
-    this.omittedAttrs.push('id', 'aria-describedby', 'aria-labelledby');
+    this.omittedAttrs.push(
+      'id',
+      'type',
+      'value',
+      'disabled',
+      'required',
+      'placeholder',
+      'aria-labelledby',
+      'aria-describedby',
+      'aria-errormessage'
+    );
+
+    this.on('input', (e: KeyboardEvent) => {
+      if (!this.field) return;
+
+      const target = e.target as HTMLInputElement;
+      const value = target.value;
+      this.field.value = value;
+
+      if (this.field.canValidate) {
+        const message = this.field.validate(value);
+        this.field!.assign({
+          invalid: !!message,
+          invalidMessages: message!,
+        });
+      } else {
+        this.field.invalid = !target.checkValidity();
+      }
+    });
+    this.on('blur', () => {
+      if (!this.field) return;
+      this.field.touched = true;
+    });
+
     this.update();
-  }
-
-  public override destroy(): void {
-    liveField(this.field)?.unregisterControl(this as unknown as FieldControlAria);
-    super.destroy();
-  }
-
-  /**
-   * Projects a custom-host ARIA state, omitted until first announced.
-   */
-  protected projectState(key: 'aria-disabled' | 'aria-required', value: boolean): 'true' | 'false' | undefined {
-    if (value) {
-      this.announced.add(key);
-      return 'true';
-    }
-
-    return this.announced.has(key) ? 'false' : undefined;
   }
 
   /**
    * Computes HTML and ARIA attributes for the control element.
    */
   protected override createAttributes(): A {
-    const field = liveField(this.field);
-    if (!field) {
-      return { ...this.attrs } as unknown as A;
-    }
+    const field = this.field;
+    if (!field) return {} as A;
 
-    const fieldId = field.properties.id!;
-    const invalid = field.invalid;
-    const describedby = invalid ? `${fieldId}-desc ${fieldId}-error` : `${fieldId}-desc`;
-    const label = field.label;
-    const labelledby = label && !label.isNative ? `${fieldId}-label` : undefined;
+    const { labelled, described } = field.options;
+    const key = field.id;
+    const invalid = field.touched && field.invalid;
+
+    const attrs = {
+      id: `${key}-control`,
+      'aria-invalid': invalid ? 'true' : undefined,
+      'aria-labelledby': labelled ? `${key}-label` : undefined,
+      'aria-describedby': described ? `${key}-desc` : undefined,
+      'aria-errormessage': invalid ? `${key}-error` : undefined,
+    } as A;
 
     if (this.isNative) {
-      return {
-        id: `${fieldId}-control`,
-        disabled: field.disabled,
-        required: field.required,
-        'aria-invalid': invalid ? 'true' : undefined,
-        'aria-describedby': describedby,
-        'aria-labelledby': labelledby,
-      } as A;
+      Object.assign(attrs, {
+        type: field.type,
+        value: this.value,
+        disabled: this.disabled,
+        required: this.required,
+        placeholder: field.placeholder,
+      });
+    } else {
+      Object.assign(attrs, {
+        'aria-disabled': this.disabled ? 'true' : 'false',
+        'aria-required': this.required ? 'true' : 'false',
+      });
     }
 
+    return attrs;
+  }
+}
+
+/**
+ * Label association member binding to the field control via `for` or ID reference.
+ *
+ * @template E - Target Element type (defaults to HTMLLabelElement)
+ * @template A - Compiled attributes dictionary type
+ */
+export class FieldLabelAria<
+  E extends BaseElement = HTMLLabelElement,
+  A extends FieldLabelAttributes<E> = FieldLabelAttributes<E>,
+> extends Aria<E, AriaProps, A> {
+  /**
+   * Enclosing Field coordinator discovered from ambient context.
+   */
+  protected field = fieldCtx.get();
+
+  public constructor(props: Partial<AriaProps> = {}, options: AriaOptions = {}) {
+    super(props, options);
+    this.omittedAttrs.push('for');
+    this.update();
+  }
+
+  /**
+   * Labels bind `<label>` far more often than custom elements,
+   * so native is the default unless explicitly declined.
+   */
+  public override get isNative(): boolean {
+    return this.options.native ?? true;
+  }
+
+  /**
+   * Computes HTML attributes for the label element.
+   */
+  protected override createAttributes(): A {
+    if (!this.field) return {} as A;
+    const fieldId = this.field?.id;
+
     return {
-      id: `${fieldId}-control`,
-      'aria-disabled': this.projectState('aria-disabled', field.disabled),
-      'aria-required': this.projectState('aria-required', field.required),
-      'aria-invalid': invalid ? 'true' : undefined,
-      'aria-describedby': describedby,
-      'aria-labelledby': labelledby,
+      id: `${fieldId}-label`,
+      for: this.isNative ? `${fieldId}-control` : undefined,
     } as A;
   }
 }
@@ -358,11 +418,10 @@ export class FieldDescriptionAria<
    * Computes HTML attributes for the description element.
    */
   protected override createAttributes(): A {
-    const field = liveField(this.field);
-    const fieldId = field ? field.properties.id! : '';
+    if (!this.field) return {} as A;
 
     return {
-      id: `${fieldId}-desc`,
+      id: `${this.field.id}-desc`,
     } as A;
   }
 }
@@ -382,9 +441,18 @@ export class FieldErrorAria<
    */
   protected field = fieldCtx.get();
 
+  public get visible() {
+    if (!this.field) return false;
+    return this.field.touched && this.field?.invalid;
+  }
+
+  public get message() {
+    return this.field?.invalidMessages;
+  }
+
   public constructor(props: Partial<AriaProps> = {}, options: AriaOptions = {}) {
     super(props, options);
-    this.omittedAttrs.push('id');
+    this.omittedAttrs.push('id', 'hidden', 'aria-live');
     this.update();
   }
 
@@ -392,11 +460,11 @@ export class FieldErrorAria<
    * Computes HTML and ARIA attributes for the error element.
    */
   protected override createAttributes(): A {
-    const field = liveField(this.field);
-    const fieldId = field ? field.properties.id! : '';
+    if (!this.field) return {} as A;
 
     return {
-      id: `${fieldId}-error`,
+      id: `${this.field.id}-error`,
+      hidden: !this.visible,
       'aria-live': 'polite',
     } as A;
   }
