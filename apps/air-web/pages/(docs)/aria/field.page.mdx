@@ -1,0 +1,451 @@
+---
+title: 'Field'
+description: 'Form-field association unit wiring labels, controls, descriptions, and error messages without manual ID ceremony.'
+nav: 'Field'
+nav-priority: 347
+---
+
+# AirLib Headless Field
+
+Every form repeats the same wiring by hand: a `<label>` needs `for` matching the input's `id`, helper text needs an `id` referenced by `aria-describedby`, and error messages must appear in `aria-describedby` exactly while invalid — plus `aria-live` so screen readers announce them. Miss one link and the field silently degrades for assistive technology. **AirLib Headless Field** (`aria('field')`) hosts an ambient field namespace that wires labels, slotted controls, descriptions, and error messages automatically — on native inputs or custom controls, without dictating markup or styles.
+
+```tsx
+const field = aria('field', props);
+
+<div ref={field.ref} {...field.props} />
+```
+
+<style>{`.demo-field{display:grid;gap:.5rem;max-width:22rem;padding:1.5rem;border:1px solid #e4e4e7;border-radius:.75rem;background:#fafafa}.demo-field-label{font-size:.875rem;font-weight:600;color:#18181b}.demo-field-input{padding:.5rem .75rem;border:1px solid #d4d4d8;border-radius:.5rem;background:#fff;font-size:.875rem}.demo-field-input[aria-invalid="true"]{border-color:#dc2626;box-shadow:0 0 0 2px rgba(220,38,38,.12)}.demo-field-desc{font-size:.75rem;color:#71717a}.demo-field-error{display:none;font-size:.75rem;color:#dc2626}.demo-field:has([aria-invalid="true"]) .demo-field-error{display:block}`}</style>
+
+:::interactive[Sign-in field with error wiring]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type DemoFieldProps = ComponentProps<'div'> & {
+  id?: string;
+  invalid?: boolean;
+  required?: boolean;
+  disabled?: boolean;
+};
+
+const DemoField = setup<DemoFieldProps>((props) => {
+  const field = aria('field', props);
+
+  return () => (
+    <div ref={field.ref} {...field.restProps(['children'])} className="demo-field">
+      {props.children}
+    </div>
+  );
+}, 'DemoField');
+
+type DemoFieldLabelProps = ComponentProps<'label'>;
+
+const DemoFieldLabel = setup<DemoFieldLabelProps>((props) => {
+  const label = aria('field-label');
+
+  return () => (
+    <label ref={label.ref} {...label.props} className="demo-field-label">
+      {props.children}
+    </label>
+  );
+}, 'DemoFieldLabel');
+
+type DemoFieldControlProps = ComponentProps<'input'>;
+
+const DemoFieldControl = setup<DemoFieldControlProps>((props) => {
+  const control = aria('field-control');
+
+  return () => (
+    <input
+      ref={control.ref}
+      type={props.type}
+      placeholder={props.placeholder}
+      onInput={props.onInput}
+      {...control.props}
+      className="demo-field-input"
+    />
+  );
+}, 'DemoFieldControl');
+
+type DemoFieldDescriptionProps = ComponentProps<'p'>;
+
+const DemoFieldDescription = setup<DemoFieldDescriptionProps>((props) => {
+  const description = aria('field-description');
+
+  return () => (
+    <p ref={description.ref} {...description.props} className="demo-field-desc">
+      {props.children}
+    </p>
+  );
+}, 'DemoFieldDescription');
+
+type DemoFieldErrorProps = ComponentProps<'p'>;
+
+const DemoFieldError = setup<DemoFieldErrorProps>((props) => {
+  const error = aria('field-error');
+
+  return () => (
+    <p ref={error.ref} {...error.props} className="demo-field-error">
+      {props.children}
+    </p>
+  );
+}, 'DemoFieldError');
+
+const Demo = (props) => (
+  <DemoField id={props.id} required invalid={props.invalid}>
+    <DemoFieldLabel>Email address</DemoFieldLabel>
+    <DemoFieldControl type="email" placeholder="you@example.com" />
+    <DemoFieldDescription>We will send a sign-in link to this address.</DemoFieldDescription>
+    <DemoFieldError>Enter a valid email address to continue.</DemoFieldError>
+  </DemoField>
+);
+```
+```html
+  <Demo id="demo-signin" />
+  <Demo id="demo-signin-error" invalid />
+```
+
+<div className="flex flex-col gap-6 mx-auto">
+  <Demo id="demo-signin" />
+  <Demo id="demo-signin-error" invalid />
+</div>
+:::
+
+Compare the two fields: the invalid one gains the error id in `aria-describedby`, carries `aria-invalid`, and shows the error through its polite live region — all from one `invalid` flag on the field.
+
+## Field container
+
+Ambient coordinator hosting the field namespace, validation state, and grouping role. Parts created inside its setup scope discover it automatically — no prop drilling.
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'field',
+  props?: FieldProps,
+  options?: AriaOptions
+): FieldAria<E>
+```
+
+### Usage
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+
+const EmailField = setup<{ invalid?: boolean }>((props) => {
+  const field = aria('field', { id: 'email', required: true, invalid: props.invalid });
+
+  return () => (
+    <div ref={field.ref} {...field.props}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+
+const EmailField = setup<{ invalid?: boolean }>((props) => {
+  const field = aria('field', { id: 'email', required: true, invalid: props.invalid });
+
+  return (
+    <div ref={field.ref} {...field.props}>
+      {props.children}
+    </div>
+  );
+});
+:::
+
+### Parameters
+
+- `props.id` *(string, optional)*: Explicit field namespace. Generated as `field-*` when omitted; every part derives its address from it.
+- `props.invalid` *(boolean, optional)*: Validation failure flag. Appends the error id to `aria-describedby` and sets `aria-invalid` on the control.
+- `props.required` *(boolean, optional)*: Requirement flag reflected onto the control.
+- `props.disabled` *(boolean, optional)*: Disabled flag inherited by the control.
+- `options.native` *(boolean, optional)*: Declare `{ native: true }` when binding a native `<fieldset>`, which omits the redundant grouping role.
+
+### How it behaves
+
+- Derives every part address from one namespace: `{id}-control`, `{id}-label`, `{id}-desc`, `{id}-error`.
+- Takes `role="group"` only while holding more than one control; a lone input stays role-less.
+- Binding a `<fieldset>` means passing `{ native: true }`, which keeps the native grouping semantics and drops the explicit role.
+- Destroying the field detaches every part — controls freeze their last state instead of following a dead coordinator.
+
+## Field Label
+
+Accessible-name member binding to the control through `for` on a native label, or through an ID reference on a custom element. Finds its field through ambient context — create it in the same setup scope as the field.
+
+```ts
+aria<E extends BaseElement = HTMLLabelElement>(
+  role: 'field-label',
+  props?: AriaProps,
+  options?: AriaOptions
+): FieldLabelAria<E>
+```
+
+### Usage
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type FieldLabelProps = ComponentProps<'label'>;
+
+const FieldLabel = setup<FieldLabelProps>((props) => {
+  const label = aria('field-label');
+
+  return () => (
+    <label ref={label.ref} {...label.props}>
+      {props.children}
+    </label>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type FieldLabelProps = ComponentProps<'label'>;
+
+const FieldLabel = setup<FieldLabelProps>((props) => {
+  const label = aria('field-label');
+
+  return (
+    <label ref={label.ref} {...label.props}>
+      {props.children}
+    </label>
+  );
+});
+```
+
+:::
+
+### Parameters
+
+- `options.native` *(boolean, optional, default `true`)*: Native `<label>` hosts compile `for`. Pass `false` on custom elements, which receive the `{id}-label` address instead.
+
+### How it behaves
+
+- A `<label>` compiles `for` pointing at the control, with no redundant `aria-labelledby`.
+- A custom element receives the `{id}-label` address, which the control points at via `aria-labelledby`.
+- With no live field above it, a native label omits `for` rather than pointing at a missing control.
+
+## Field Control
+
+Slotted proxy reflecting ambient field state onto the bound element. Finds its field through ambient context — create it in the same setup scope as the field.
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'field-control',
+  props?: AriaProps,
+  options?: AriaOptions
+): FieldControlAria<E>
+```
+
+### Usage
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type FieldControlProps = ComponentProps<'input'>;
+
+const FieldControl = setup<FieldControlProps>((props) => {
+  const control = aria('field-control');
+
+  return () => (
+    <input ref={control.ref} type={props.type} {...control.props} />
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type FieldControlProps = ComponentProps<'input'>;
+
+const FieldControl = setup<FieldControlProps>((props) => {
+  const control = aria('field-control');
+
+  return (
+    <input ref={control.ref} type={props.type} {...control.props} />
+  );
+});
+```
+
+:::
+
+### Parameters
+
+- `options.native` *(boolean, optional, default `true`)*: Native inputs receive real `disabled` and `required`. Pass `false` on custom controls, which receive `aria-disabled` and `aria-required` instead.
+
+### How it behaves
+
+- Native inputs (`<input>`, `<select>`, `<textarea>`) reflect `disabled` and `required` as properties, plus `aria-invalid` and `aria-describedby`.
+- Custom controls project `aria-disabled` and `aria-required` — announced explicitly once set, then kept explicit.
+- `aria-describedby` always references the description, appending the error id while the field is invalid.
+- Destroying the field freezes the control at its last state instead of following dead props.
+
+## Field Description
+
+Helper-text container referenced through the control's `aria-describedby` for the life of the field. Finds its field through ambient context — create it in the same setup scope as the field.
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'field-description',
+  props?: AriaProps
+): FieldDescriptionAria<E>
+```
+
+### Usage
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type FieldDescriptionProps = ComponentProps<'p'>;
+
+const FieldDescription = setup<FieldDescriptionProps>((props) => {
+  const description = aria('field-description');
+
+  return () => (
+    <p ref={description.ref} {...description.props}>
+      {props.children}
+    </p>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type FieldDescriptionProps = ComponentProps<'p'>;
+
+const FieldDescription = setup<FieldDescriptionProps>((props) => {
+  const description = aria('field-description');
+
+  return (
+    <p ref={description.ref} {...description.props}>
+      {props.children}
+    </p>
+  );
+});
+```
+
+:::
+
+### Parameters
+
+- Takes no role-specific props or options — `<p>` is the only host, so there is nothing to declare.
+
+### How it behaves
+
+- Carries the `{id}-desc` address and stays referenced for the life of the field.
+- Carries no live region — helper text is reference content, not an announcement.
+
+## Field Error
+
+Failure-message container with a polite live region, referenced only while the field is invalid. Finds its field through ambient context — create it in the same setup scope as the field.
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'field-error',
+  props?: AriaProps
+): FieldErrorAria<E>
+```
+
+### Usage
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type FieldErrorProps = ComponentProps<'p'>;
+
+const FieldError = setup<FieldErrorProps>((props) => {
+  const error = aria('field-error');
+
+  return () => (
+    <p ref={error.ref} {...error.props}>
+      {props.children}
+    </p>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type FieldErrorProps = ComponentProps<'p'>;
+
+const FieldError = setup<FieldErrorProps>((props) => {
+  const error = aria('field-error');
+
+  return (
+    <p ref={error.ref} {...error.props}>
+      {props.children}
+    </p>
+  );
+});
+```
+
+:::
+
+### Parameters
+
+- Takes no role-specific props or options — `<p>` is the only host, so there is nothing to declare.
+
+### How it behaves
+
+- Carries the `{id}-error` address with `aria-live="polite"`.
+- Joins `aria-describedby` only while the field's `invalid` is true; withdrawing the failure drops the reference while the helper stays.
+
+## Native and custom hosts
+
+Each part defaults to the host you almost always bind: `field-label` assumes `<label>`, `field-control` assumes a native input. Only custom hosts declare themselves with `{ native: false }`, and only the container takes `{ native: true }` (for `<fieldset>`). Descriptions and errors take no host option at all — `<p>` is the only host there is. The same field logic drives a native checkout form and a fully custom design-system control.
+
+## Keyboard Navigation
+
+- **Tab**: Moves into the field's control and out to the next focusable element; the field adds no tab stops of its own.
+- **Shift + Tab**: Returns to the previous focusable element in reverse order.
+- **Enter / Space**: Owned entirely by the bound control; the field claims no keystrokes.
+
+## What you get
+
+- **Zero ID ceremony.** One namespace fans out to every part — no hand-matched `for`, `id`, or `describedby` strings.
+- **Error wiring that follows state.** Flipping `invalid` swaps the error in and out of `aria-describedby` and announces through a polite live region.
+- **Native parity on demand.** Native hosts get real `disabled`/`required`/`for`; custom hosts get the equivalent ARIA states from the same code.
+- **Honest grouping.** Multi-control fields group; lone inputs and fieldsets don't get redundant roles.
+- **Clean teardown.** Destroying the field freezes parts instead of leaking listeners or projecting from dead state.
+
+## Next Steps
+
+- **[Text Input](/docs/aria/text-input)**: The input controller to slot into `field-control` for text, search, and password faces.
+- **[Checkbox Group](/docs/aria/checkbox-group)**: Multi-control grouping with ambient coordination — the pattern Field extends to forms.
+- **[Select](/docs/aria/select)**: Dropdown composite whose panel and trigger can live inside a Field.
+- **[Form](/docs/aria/form)**: The landmark that owns submission for the fields it contains.

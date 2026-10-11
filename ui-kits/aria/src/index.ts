@@ -30,13 +30,19 @@ import {
   type DialogProps,
   DialogTitleAria,
   DialogTriggerAria,
+  FieldAria,
+  FieldControlAria,
+  FieldDescriptionAria,
+  FieldErrorAria,
+  FieldLabelAria,
+  type FieldProps,
   ListboxAria,
   type ListboxProps,
   MenuAria,
-  MenubarAria,
-  type MenubarProps,
   MenuButtonAria,
   type MenuButtonProps,
+  MenubarAria,
+  type MenubarProps,
   MenuGroupAria,
   type MenuGroupProps,
   MenuItemAria,
@@ -243,6 +249,27 @@ export function aria<E extends BaseElement = HTMLElement>(
 ): CheckboxGroupAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement>(role: 'listbox', props?: ListboxProps): ListboxAria<E>;
+
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'field',
+  props?: FieldProps,
+  options?: AriaOptions
+): FieldAria<E>;
+export function aria<E extends BaseElement = HTMLLabelElement>(
+  role: 'field-label',
+  props?: AriaProps,
+  options?: AriaOptions
+): FieldLabelAria<E>;
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'field-control',
+  props?: AriaProps,
+  options?: AriaOptions
+): FieldControlAria<E>;
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'field-description',
+  props?: AriaProps
+): FieldDescriptionAria<E>;
+export function aria<E extends BaseElement = HTMLElement>(role: 'field-error', props?: AriaProps): FieldErrorAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement>(
   role: 'combobox',
@@ -647,6 +674,16 @@ export function aria(role: string, init?: unknown, options?: unknown): unknown {
       return new CheckboxGroupAria(init as never);
     case 'listbox':
       return new ListboxAria(init as never);
+    case 'field':
+      return new FieldAria(init as never, options as never);
+    case 'field-label':
+      return new FieldLabelAria(init as never, options as never);
+    case 'field-control':
+      return new FieldControlAria(init as never, options as never);
+    case 'field-description':
+      return new FieldDescriptionAria(init as never, options as never);
+    case 'field-error':
+      return new FieldErrorAria(init as never, options as never);
     case 'combobox':
       return new ComboboxAria(init as never, options as never);
     case 'combobox-input':

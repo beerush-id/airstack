@@ -3,6 +3,7 @@ export * from './checkbox-group.js';
 export * from './combobox.js';
 export * from './confirm.js';
 export * from './dialog.js';
+export * from './field.js';
 export * from './listbox.js';
 export * from './menu/index.js';
 export * from './radio-group.js';

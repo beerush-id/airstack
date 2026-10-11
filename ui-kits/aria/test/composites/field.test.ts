@@ -14,8 +14,7 @@ function buildField(props: Partial<FieldProps>, controlHost: 'native' | 'custom'
   });
 
   const control = component().run(() => {
-    // The field-control overload takes no options, so the host element is the only signal
-    const part = aria('field-control');
+    const part = controlHost === 'native' ? aria('field-control') : aria('field-control', {}, { native: false });
     const el = bind(document.createElement(controlHost === 'native' ? 'input' : 'div'), part);
     fieldEl.appendChild(el);
     return { part, el };
@@ -133,7 +132,7 @@ describe('Field - Composite Specifications', () => {
           document.body.appendChild(fieldEl);
 
           const label = component().run(() => {
-            const part = aria('field-label');
+            const part = aria('field-label', {}, { native: false });
             const el = bind(document.createElement('span'), part);
             fieldEl.appendChild(el);
             return { part, el };
