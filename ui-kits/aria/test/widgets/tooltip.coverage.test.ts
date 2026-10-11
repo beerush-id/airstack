@@ -18,6 +18,24 @@ describe('Tooltip Widget (Coverage & Edge Cases)', () => {
     scope.destroy();
   });
 
+  it('ignores a repeated visibility transition in the same direction', () => {
+    const seen: boolean[] = [];
+    const tip = tooltip({ onchange: (event: CustomEvent<boolean>) => seen.push(event.detail) });
+    const el = document.createElement('div');
+    tip.ref(el);
+    document.body.appendChild(el);
+
+    tip.open = true;
+    tip.open = true;
+    tip.open = false;
+    tip.open = false;
+
+    expect(seen).toEqual([true, false]);
+
+    tip.destroy();
+    el.remove();
+  });
+
   it('exposes tooltip factory function and instantiates correctly', () => {
     const tip = tooltip({ id: 'custom-tip', open: true, delay: 500 });
     expect(tip).toBeInstanceOf(TooltipAria);

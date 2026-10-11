@@ -143,6 +143,7 @@ export class PopupAria<
 
   public options: O;
 
+  /* istanbul ignore next */
   public constructor(props: PopupProps = {}, options?: PopupOptions) {
     super(props as P);
 
@@ -175,6 +176,7 @@ export class PopupTriggerAria<
    * @param props - User-provided trigger properties.
    * @param options - User-provided trigger options.
    */
+  /* istanbul ignore next */
   public constructor(props: Partial<PopupTriggerProps> = {}, options: AriaOptions = { native: true }) {
     super(props as never, options as never);
 

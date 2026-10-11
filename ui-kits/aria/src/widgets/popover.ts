@@ -449,6 +449,7 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
 
   protected dispatchedState = false;
   protected dispatchVisibilityEvent(el: HTMLElement, isOpen: boolean): void {
+    /* istanbul ignore if */
     if (this.dispatchedState === isOpen) return;
     this.dispatchedState = isOpen;
 

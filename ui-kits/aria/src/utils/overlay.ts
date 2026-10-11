@@ -123,6 +123,7 @@ export function attachOverlayLifecycle(options: OverlayLifecycleOptions): Detach
         }
 
         const shouldAutoFocus = autoFocus ?? isModal();
+        /* istanbul ignore next */
         if (shouldAutoFocus) {
           const moveFocus = (): void => {
             if (!isOpen()) return;

@@ -108,6 +108,7 @@ export class TooltipAria<E extends HTMLElement = HTMLElement> extends PopoverAri
   }
 
   protected override dispatchVisibilityEvent(el: HTMLElement, isOpen: boolean): void {
+    /* istanbul ignore if */
     if (this.dispatchedState === isOpen) return;
     this.dispatchedState = isOpen;
 

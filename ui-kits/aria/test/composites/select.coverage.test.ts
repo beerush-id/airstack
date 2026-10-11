@@ -1,6 +1,6 @@
 import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
-import { aria, SelectPanelAria, type SelectProps, SelectTriggerAria } from '../../src/index.js';
+import { aria, SelectAria, SelectPanelAria, type SelectProps, SelectTriggerAria } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 function buildSelect(props: SelectProps, options: Array<{ value: string; text: string; disabled?: boolean }>) {
@@ -46,6 +46,76 @@ describe('Select - Coverage', () => {
 
   afterAll(() => {
     scope.destroy();
+  });
+
+  describe('Public Read Surface', () => {
+    it('exposes the id, the labels of the current choice, and the part factories', () =>
+      scope.run(() => {
+        component().run(() => {
+          const select = new SelectAria({ id: 'picker', value: 'b' }, { a: 'Alpha', b: 'Beta' });
+
+          expect(select.id).toBe('picker');
+          expect(select.label).toBe('Beta');
+
+          const panel = select.panel();
+          const trigger = select.trigger();
+
+          expect(panel).toBeInstanceOf(SelectPanelAria);
+          expect(trigger).toBeInstanceOf(SelectTriggerAria);
+          expect(trigger.value).toBe('b');
+          expect(trigger.text).toBe('');
+          expect(trigger.label).toBe('Beta');
+
+          const multi = new SelectAria({ value: ['a', 'b'], multiple: true }, { a: 'Alpha', b: 'Beta' });
+          expect(multi.label).toBe('Alpha, Beta');
+
+          const unknown = new SelectAria({ value: 'missing' }, { a: 'Alpha' });
+          expect(unknown.label).toBe('');
+
+          panel.destroy();
+          trigger.destroy();
+          multi.destroy();
+          unknown.destroy();
+          select.destroy();
+        });
+      }));
+
+    it('reads an empty label when nothing is selected', () =>
+      scope.run(() => {
+        component().run(() => {
+          const select = new SelectAria({ id: 'empty' }, { a: 'Alpha' });
+
+          expect(select.label).toBe('');
+          expect(select.text).toBe('');
+
+          select.destroy();
+        });
+      }));
+
+    it('keeps a trigger built without a select inert and honors explicit trigger options', () =>
+      scope.run(() => {
+        component().run(() => {
+          const orphan = new SelectTriggerAria({});
+
+          expect(orphan.value).toBeUndefined();
+          expect(orphan.text).toBe('');
+          expect(orphan.label).toBe('');
+
+          orphan.destroy();
+
+          const select = new SelectAria({ id: 'picker', value: 'a' }, { a: 'Alpha' });
+          const custom = select.trigger({}, { native: false });
+          const el = bind(document.createElement('div'), custom);
+          document.body.appendChild(el);
+
+          expect(custom.value).toBe('a');
+          expect(custom.label).toBe('Alpha');
+
+          custom.destroy();
+          select.destroy();
+          el.remove();
+        });
+      }));
   });
 
   describe('Defaults Invariant', () => {

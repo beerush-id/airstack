@@ -117,7 +117,6 @@ export function applyAttributes<E extends BaseElement>(
   for (const [key, value] of Object.entries(next)) {
     if (key.startsWith('on')) continue;
     if (key in prev && prev[key] === value) continue;
-    if (key in prev && prev[key] === value) continue;
 
     if (key === 'class' || key === 'className') {
       if (value) {

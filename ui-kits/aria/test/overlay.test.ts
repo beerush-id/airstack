@@ -3,6 +3,132 @@ import { describe, expect, it, vi } from 'vitest';
 import { attachOverlayLifecycle, handleOverlayKeyDown } from '../src/utils/overlay.js';
 
 describe('Overlay Utility - Lifecycle & Focus Management', () => {
+  describe('Autofocus Scheduling', () => {
+    const frame = () => new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+
+    it('focuses the panel itself when it holds no focusable child', async () => {
+      const state = mutable({ open: false });
+      const panel = document.createElement('div');
+      panel.tabIndex = -1;
+      document.body.appendChild(panel);
+
+      const detach = attachOverlayLifecycle({
+        element: panel,
+        isOpen: () => state.open,
+        dismiss: () => {
+          state.open = false;
+        },
+        autoFocus: true,
+      });
+
+      state.open = true;
+      expect(document.activeElement).toBe(panel);
+
+      await frame();
+
+      state.open = false;
+      detach();
+      panel.remove();
+    });
+
+    it('cancels a pending focus frame when the overlay reopens before it runs', async () => {
+      const state = mutable({ open: false });
+      const panel = document.createElement('div');
+      const target = document.createElement('button');
+      target.setAttribute('autofocus', '');
+      panel.appendChild(target);
+      document.body.appendChild(panel);
+
+      const detach = attachOverlayLifecycle({
+        element: panel,
+        isOpen: () => state.open,
+        dismiss: () => {
+          state.open = false;
+        },
+        autoFocus: true,
+      });
+
+      state.open = true;
+      await frame();
+      state.open = false;
+      state.open = true;
+
+      await frame();
+      await frame();
+
+      expect(document.activeElement).toBe(target);
+
+      state.open = false;
+      detach();
+      panel.remove();
+    });
+
+    it('leaves focus alone in the scheduled frame once the overlay has closed', async () => {
+      const state = mutable({ open: false });
+      const outside = document.createElement('button');
+      const panel = document.createElement('div');
+      const target = document.createElement('button');
+      target.setAttribute('autofocus', '');
+      panel.appendChild(target);
+      document.body.appendChild(outside);
+      document.body.appendChild(panel);
+
+      outside.focus();
+
+      const detach = attachOverlayLifecycle({
+        element: panel,
+        isOpen: () => state.open,
+        dismiss: () => {
+          state.open = false;
+        },
+        autoFocus: true,
+      });
+
+      state.open = true;
+      await frame();
+      state.open = false;
+
+      await frame();
+
+      expect(document.activeElement).toBe(outside);
+
+      detach();
+      outside.remove();
+      panel.remove();
+    });
+
+    it('pulls focus back to the autofocus target when the frame finds it elsewhere', async () => {
+      const state = mutable({ open: false });
+      const panel = document.createElement('div');
+      const target = document.createElement('button');
+      const other = document.createElement('button');
+      target.setAttribute('autofocus', '');
+      panel.appendChild(target);
+      panel.appendChild(other);
+      document.body.appendChild(panel);
+
+      const detach = attachOverlayLifecycle({
+        element: panel,
+        isOpen: () => state.open,
+        dismiss: () => {
+          state.open = false;
+        },
+        autoFocus: true,
+      });
+
+      state.open = true;
+      other.focus();
+
+      await frame();
+
+      expect(document.activeElement).toBe(target);
+
+      state.open = false;
+      detach();
+      panel.remove();
+    });
+  });
+
   describe('attachOverlayLifecycle - Focus Capture & Restoration', () => {
     it('captures active element on open and restores focus on close', () => {
       const state = mutable({ open: false });

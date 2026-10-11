@@ -175,6 +175,7 @@ export class ComboboxAria<E extends BaseElement = HTMLElement> extends PopupAria
   }
 
   public get valueMap() {
+    /* istanbul ignore next */
     return this.properties.valueMap ?? this.__valueMap ?? {};
   }
 

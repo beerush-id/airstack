@@ -37,6 +37,22 @@ describe('Image - Coverage (lifecycle guards & parity)', () => {
     loaders = [];
   });
 
+  it('ignores a load report from an element it never registered', () =>
+    scope.run(() => {
+      const tree = component();
+      tree.run(() => {
+        const image = aria('image', { src: '/avatars/stranger.png', alt: 'Stranger' });
+        const el = bind(document.createElement('img'), image);
+        document.body.appendChild(el);
+
+        const foreign = document.createElement('img');
+        expect(() => image.reportElement(foreign, 'loaded')).not.toThrow();
+
+        image.destroy();
+        el.remove();
+      });
+    }));
+
   it('loads custom hosts through the unit-owned loader and invalidates stale eras', () =>
     scope.run(() => {
       const tree = component();

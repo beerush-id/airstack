@@ -18,6 +18,29 @@ describe('Popover - Coverage & Edge Cases', () => {
     scope.destroy();
   });
 
+  it('ignores a repeated visibility transition in the same direction', () => {
+    const events: string[] = [];
+    const p = popover();
+    const el = document.createElement('div');
+    p.ref(el);
+    document.body.appendChild(el);
+    el.addEventListener('open', () => events.push('open'));
+    el.addEventListener('close', () => events.push('close'));
+
+    p.show();
+    p.show();
+    expect(p.open).toBe(true);
+
+    p.close();
+    p.close();
+    expect(p.open).toBe(false);
+
+    expect(events).toEqual(['open', 'close']);
+
+    p.destroy();
+    el.remove();
+  });
+
   it('provides show(), close(), and toggle() methods on instance', () =>
     scope.run(() => {
       const p = popover();

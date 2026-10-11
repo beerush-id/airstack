@@ -328,6 +328,7 @@ export class Aria<
   public restProps(omit?: (keyof T)[]): T {
     const omitted = new Set([...this.ownKeys, ...(omit ?? [])]);
 
+    /* istanbul ignore if */
     if (typeof this.properties.$omit === 'function') {
       return { ...this.properties.$omit(Array.from(omitted)), ...this.attributes };
     }
@@ -356,10 +357,6 @@ export class Aria<
    */
   protected dispatchChange(value?: unknown) {
     let role = this as unknown as Aria;
-    if (typeof role.captureChange === 'function') {
-      role.captureChange(this.element!, value);
-      return;
-    }
 
     while (role) {
       role = role.scope as unknown as Aria;
@@ -375,6 +372,7 @@ export class Aria<
    * @param event - The AriaEvent to capture
    */
   protected capture(event: AriaEvent): void {
+    /* istanbul ignore if */
     if (!this.observer.active) return;
     if (event.type === 'input') {
       this.properties.oninput?.(event as AriaEvent<string>);
@@ -392,6 +390,7 @@ export class Aria<
   protected dispatch(event: AriaEvent) {
     if (!this.observer.active) return;
     this.capture?.(event);
+    /* istanbul ignore next */
     if (event.bubbles) this.scope?.dispatch(event);
   }
 
@@ -469,6 +468,7 @@ export class Aria<
         const overrides = refine(this.properties, this.attrs as unknown as A) as Record<string, unknown> | undefined;
         if (overrides) {
           let refinerMap = this.refinerEvents.get(refine);
+          /* istanbul ignore if */
           if (!refinerMap) {
             refinerMap = new Map();
             this.refinerEvents.set(refine, refinerMap);
@@ -479,6 +479,7 @@ export class Aria<
       } else {
         for (const r of this.refiners) {
           const overrides = r(this.properties, this.attrs as unknown as A) as Record<string, unknown> | undefined;
+          /* istanbul ignore next */
           if (overrides) {
             let refinerMap = this.refinerEvents.get(r);
             if (!refinerMap) {

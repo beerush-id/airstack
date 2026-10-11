@@ -49,6 +49,24 @@ function type(el: HTMLInputElement, value: string): void {
 describe('Combobox - Coverage', () => {
   const scope = createLifecycle();
 
+  describe('Value Map', () => {
+    it('prefers the authored map and falls back to an empty one', () =>
+      scope.run(() => {
+        component().run(() => {
+          const authored = buildCombobox(
+            { id: 'cb-authored', valueMap: { a: 'Alpha' } } as ComboboxProps,
+            [{ value: 'a', text: 'Alpha' }],
+          );
+          expect(authored.combobox.valueMap).toEqual({ a: 'Alpha' });
+          authored.cleanup();
+
+          const empty = buildCombobox({ id: 'cb-empty' }, [{ value: 'b', text: 'Beta' }]);
+          expect(empty.combobox.valueMap).toEqual({});
+          empty.cleanup();
+        });
+      }));
+  });
+
   afterAll(() => {
     scope.destroy();
   });
