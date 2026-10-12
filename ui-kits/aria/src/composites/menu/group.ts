@@ -1,78 +1,66 @@
-import { createContext } from '@airlib/core';
 import { Aria } from '../../core.js';
-import { selectionGroup } from '../../selection.js';
-import type { AriaAttributes, AriaProps, BaseElement, Primitive } from '../../types.js';
+import { selectionGroup, type SelectionGroupProps } from '../../selection.js';
+import type { AriaAttributes, BaseElement } from '../../types.js';
+import { type MenuAria, menuCtx } from './menu.js';
 
 /**
- * Ambient instance context for the enclosing MenuGroup coordinator.
- */
-export const menuGroupCtx = createContext<MenuGroupAria>();
-
-/**
- * Reactive input properties for MenuGroupAria.
+ * Reactive input properties for the Menu item group section.
  *
- * @template T - Member value token type
+ * @template T - Scoped radio value type
  */
-export interface MenuGroupProps<T extends Primitive = Primitive> extends AriaProps {
+export interface MenuItemGroupProps extends SelectionGroupProps {
   /**
-   * Accessible label.
+   * Accessible name announced for the section.
    */
   label?: string;
 
   /**
-   * Element ID providing accessible label.
+   * Element ID providing the accessible name.
    */
   labelledby?: string;
-
-  /**
-   * Scoped radio value for child menu-item-radio elements.
-   */
-  value?: T;
 }
 
 /**
- * Compiled HTML and ARIA attributes for a menu group container.
+ * Compiled HTML and ARIA attributes for a menu item group section.
  *
  * @template E - Target Element type
  */
-export interface MenuGroupAttributes<E extends BaseElement = HTMLElement> extends AriaAttributes<E> {
+export interface MenuItemGroupAttributes<E extends BaseElement = HTMLElement> extends AriaAttributes<E> {
   role?: 'group';
   'aria-label'?: string;
   'aria-labelledby'?: string;
 }
 
 /**
- * Headless menu subgroup container publishing an independent scoped
- * selection value for its menu-item-radio members. Non-radio members
- * are unaffected.
+ * Structural menu section compiling `role="group"`.
+ * Publishes its own selection group context scoping mutually exclusive
+ * radio selection strictly to this subgroup.
  *
  * @template E - Target Element type (defaults to HTMLElement)
- * @template T - Reactive props type
- * @template A - Compiled attributes dictionary type
+ * @template T - Scoped radio value type
  */
-export class MenuGroupAria<
-  E extends BaseElement = HTMLElement,
-  T extends MenuGroupProps = MenuGroupProps,
-  A extends MenuGroupAttributes<E> = MenuGroupAttributes<E>,
-> extends Aria<E, T, A> {
-  public constructor(props: Partial<T> = {}) {
+export class MenuGroupAria<E extends BaseElement = HTMLElement> extends Aria<
+  E,
+  MenuItemGroupProps,
+  MenuItemGroupAttributes<E>
+> {
+  protected declare host: MenuAria;
+
+  public constructor(props: MenuItemGroupProps = {}) {
     super(props);
 
-    menuGroupCtx.set(this as unknown as MenuGroupAria);
-    selectionGroup.set(this.properties as Record<string, unknown>);
+    this.host = menuCtx.get();
+    this.omittedAttrs.push('label', 'labelledby', 'value');
+
+    selectionGroup.set(this.properties);
     this.update();
   }
 
-  /**
-   * Computes HTML and ARIA attributes for the menu group container.
-   *
-   * @returns Compiled group attributes dictionary
-   */
-  protected override createAttributes(): A {
+  protected override createAttributes(): MenuItemGroupAttributes<E> {
     return Object.assign(super.createAttributes(), {
       role: 'group',
       'aria-label': this.properties.label,
       'aria-labelledby': this.properties.labelledby,
-    }) as A;
+    }) as MenuItemGroupAttributes<E>;
   }
 }

@@ -1,95 +1,95 @@
-import type { AriaAttributes, BaseElement, Orientation } from '../../types.js';
-import { MenuContainerAria, menuCtx, ROLE_MENU } from './container.js';
-import type { MenubarProps } from './menubar.js';
+import type { AriaProps, BaseElement } from '../../types.js';
+import type { PopoverAria } from '../../widgets/popover.js';
+import { ListboxAria, type ListboxAttributes } from '../listbox.js';
+import { bindPanel, type PopupPanel } from '../popup.js';
+import { type MenuAria, menuCtx } from './menu.js';
+import { selectionGroup } from '../../selection.js';
+
+const ROLE_PANEL = 'menu';
+const ITEM_SELECTOR = ['[role="menuitem"]', '[role="menuitemcheckbox"]', "[role='menuitemradio']"];
+const ENABLED_ITEM_SELECTOR = ITEM_SELECTOR.map((s) => `${s}:not([aria-disabled="true"]):not(:disabled)`).join(',');
 
 /**
- * Reactive input properties for the menu popup panel.
+ * Reactive input properties for the Menu popup panel.
  */
-export interface MenuPanelProps extends MenubarProps {
+export interface MenuPanelProps extends AriaProps {
   /**
    * Optional DOM element identifier.
    */
   id?: string;
 
   /**
-   * Element ID providing accessible label.
+   * Accessible name announced for the menu.
+   */
+  label?: string;
+
+  /**
+   * Element ID providing the accessible name.
    */
   labelledby?: string;
 }
 
 /**
- * Compiled HTML and ARIA attributes for a menu container.
- *
- * @template E - Target Element type
- */
-export interface MenuPanelAttributes<E extends BaseElement = HTMLElement> extends AriaAttributes<E> {
-  role?: 'menu';
-  'aria-orientation'?: Orientation;
-  'aria-label'?: string;
-  'aria-labelledby'?: string;
-}
-
-/**
- * Headless WAI-ARIA menu panel managing vertical roving focus
- * across command items. Claims the Escape keystroke; popup dismissal
- * and focus-return belong to the trigger/popover layer.
+ * Popup menu container inheriting listbox mechanics and proxying overlay
+ * dismissal, positioning, and focus management through an internal popover.
+ * Always vertical; roves across menu item roles with arrows, Home/End,
+ * typeahead, and activates the focused item on Enter/Space.
  *
  * @template E - Target Element type (defaults to HTMLElement)
- * @template T - Reactive props type
- * @template A - Compiled attributes dictionary type
  */
-export class MenuPanelAria<
-  E extends BaseElement = HTMLElement,
-  T extends MenuPanelProps = MenuPanelProps,
-  A extends MenuPanelAttributes<E> = MenuPanelAttributes<E>,
-> extends MenuContainerAria<E, T, A> {
-  protected override readonly containerRole: 'menu' = 'menu';
-  protected override readonly defaultOrientation: Orientation = 'vertical';
+export class MenuPanelAria<E extends BaseElement = HTMLElement> extends ListboxAria<E> {
+  /**
+   * Enclosing menu orchestrator discovered from ambient context.
+   */
+  public host?: MenuAria;
+  public popup!: PopoverAria;
 
-  private root = menuCtx.get();
+  protected override selector = ITEM_SELECTOR.join(',');
+  protected override enabledSelector = ENABLED_ITEM_SELECTOR;
 
-  public constructor(props: Partial<T> = {}) {
-    super(props);
-    this.omittedAttrs.push('id', 'aria-orientation');
+  /**
+   * Unique panel identifier derived from the paired root namespace.
+   */
+  public override get id() {
+    return this.host ? `${this.host.id}-menu` : this.properties.id;
+  }
+
+  /**
+   * Whether the popup is currently open.
+   */
+  public get open() {
+    return this.popup.open;
+  }
+
+  /**
+   * Sets the internal panel element reference and delegates to the popup.
+   *
+   * @param element - Element to track.
+   */
+  /* istanbul ignore next: no flow assigns panel.current; popup tracks the element through its own ref */
+  public override set current(element: E | null) {
+    super.current = element;
+    this.popup.current = element as unknown as HTMLElement;
+  }
+
+  protected override createAttributes(): ListboxAttributes<E> {
+    return Object.assign((this.popup as unknown as this).attrs, super.createAttributes(), {
+      role: ROLE_PANEL,
+      'aria-orientation': 'vertical',
+    });
+  }
+
+  /**
+   * @param props - User-provided panel properties.
+   */
+  public constructor(props: MenuPanelProps = {}) {
+    super(props, true);
+
+    this.host = menuCtx.get();
+    this.omittedAttrs.push('labelledby');
+    bindPanel(this as unknown as PopupPanel);
+
+    selectionGroup.set(undefined);
     this.update();
-  }
-
-  /**
-   * Visual and keyboard navigation orientation of the panel.
-   */
-  public get orientation(): Orientation {
-    return this.properties.orientation ?? this.defaultOrientation;
-  }
-
-  /**
-   * Computes HTML and ARIA attributes for the menu popup panel.
-   *
-   * @returns Menu panel attributes dictionary
-   */
-  protected override createAttributes(): A {
-    return Object.assign(super.createAttributes(), {
-      id: this.properties.id ?? (this.root ? `${this.root.properties.id}-${ROLE_MENU}` : undefined),
-      'aria-orientation': this.orientation,
-      'aria-label': this.properties.label,
-      'aria-labelledby': this.properties.labelledby,
-    }) as A;
-  }
-
-  /**
-   * Claims the Escape keystroke for popup dismissal wiring.
-   * Dismissal and focus-return belong to the trigger/popover layer;
-   * the menu core only owns the keystroke while focus is inside.
-   *
-   * @param event - Keyboard event bubbled from a menu item
-   */
-  protected override handleKey(event: KeyboardEvent): void {
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      event.stopPropagation();
-      if (this.root) this.root.open = false;
-      return;
-    }
-
-    super.handleKey(event);
   }
 }

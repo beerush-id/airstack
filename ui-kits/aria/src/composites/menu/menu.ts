@@ -1,108 +1,105 @@
-import { $static, $symbol, uIndex } from '@airlib/core';
-import { Aria } from '../../core.js';
-import type { AriaAttributes, AriaProps, BaseElement } from '../../types.js';
+import { $symbol, type ContextReader } from '@airlib/core';
+import type { AriaEvent, AriaEventHandler, BaseElement } from '../../types.js';
+import { listboxCtx, type ListboxProps } from '../listbox.js';
+import { PopupAria, type PopupCloseEvent, popupCtx, type PopupOpenEvent, type PopupProps } from '../popup.js';
 import { MenuButtonAria, type MenuButtonProps } from './button.js';
-import { menuCtx, ROLE_MENU } from './container.js';
 import type { MenuItemOptions } from './item.js';
 import { MenuPanelAria, type MenuPanelProps } from './panel.js';
 
 /**
+ * Controller-dispatched menu event carrying the acting item's name or committed state.
+ */
+export type MenuOpenEvent = PopupOpenEvent;
+export type MenuCloseEvent = PopupCloseEvent;
+export type MenuCommandEvent = AriaEvent<string>;
+
+export const menuCtx = popupCtx as ContextReader<MenuAria>;
+
+/**
  * Reactive input properties for the Menu root orchestrator.
  */
-export interface MenuProps extends AriaProps {
+export interface MenuProps extends Omit<PopupProps, 'query' | 'required' | 'onopen' | 'onclose'> {
   /**
-   * Optional DOM element identifier scoping pair linkage.
+   * Called after the popup opens.
    */
-  id?: string;
+  onopen?: AriaEventHandler<MenuOpenEvent>;
 
   /**
-   * Whether the paired popup panel is open.
+   * Called after the popup closes, through every dismissal path.
    */
-  open?: boolean;
+  onclose?: AriaEventHandler<MenuCloseEvent>;
+
+  /**
+   * Root-level command listener; item `command` events bubble here.
+   */
+  oncommand?: AriaEventHandler<MenuCommandEvent>;
+
+  /**
+   * Pointer-hover transition delay in ms (default: 150).
+   */
+  delay?: number;
 }
 
-/**
- * Compiled HTML and ARIA attributes for the menu root wrapper.
- *
- * @template E - Target Element type
- */
-export interface MenuAttributes<E extends BaseElement = HTMLElement> extends AriaAttributes<E> {
-  id?: string;
-}
+const MENU_SYMBOL = $symbol('menu');
 
 /**
- * Root logical orchestrator pairing a menu trigger with its popup panel.
- * Owns open state and the pair id namespace; holds zero selection state.
+ * Root orchestrator hosting menu popup visibility.
+ * Compiles no role; publishes ambient context for trigger, panel, and items.
  *
  * @template E - Target Element type (defaults to HTMLElement)
- * @template T - Reactive props type
- * @template A - Compiled attributes dictionary type
  */
-export class MenuAria<
-  E extends BaseElement = HTMLElement,
-  T extends MenuProps = MenuProps,
-  A extends MenuAttributes<E> = MenuAttributes<E>,
-> extends Aria<E, T, A> {
+export class MenuAria<E extends BaseElement = HTMLElement> extends PopupAria<E, MenuProps> {
   /**
-   * Guaranteed unique controller instance identifier generated at instantiation.
+   * Deterministic panel identifier shared with the trigger's aria-controls.
    */
-  public id: string = `${ROLE_MENU}-${uIndex($symbol(ROLE_MENU), true)}`;
+  public override get panelId(): string {
+    return `${this.properties.id}-menu`;
+  }
 
-  public constructor(props: Partial<T> = {}) {
-    super(props);
-    $static(() => {
-      this.properties.id = this.properties.id ?? this.id;
-      this.properties.open = this.properties.open ?? false;
-    });
-    menuCtx.set(this as unknown as MenuAria);
+  public get open() {
+    return !!this.properties.open;
+  }
+
+  public set open(open: boolean) {
+    this.properties.open = open;
+  }
+
+  public constructor(props: MenuProps = {}) {
+    super(props, { name: 'menu', symbol: MENU_SYMBOL, panelRole: 'menu' });
+
+    this.omittedAttrs.push('delay', 'oncommand');
+
+    menuCtx.set(this as never);
+    listboxCtx.set(this.properties as ListboxProps);
+
     this.update();
   }
 
   /**
-   * Whether the paired popup panel is open.
+   * Creates a new MenuButtonAria instance paired to this root.
+   *
+   * @param props - User-provided trigger properties.
+   * @param options - User-provided trigger options.
+   * @returns - Configured trigger instance.
    */
-  public get open(): boolean {
-    return !!this.properties.open;
-  }
-
-  public set open(value: boolean) {
-    this.properties.open = value;
+  public button(props?: MenuButtonProps, options?: MenuItemOptions): MenuButtonAria {
+    return new MenuButtonAria(props, options);
   }
 
   /**
-   * Spawns a MenuButtonAria trigger controller bound to this menu instance.
+   * Creates a new MenuPanelAria instance paired to this root.
    *
-   * @template TE - Target Element type (defaults to HTMLButtonElement)
-   * @param props - MenuButton reactive properties
-   * @param options - MenuButton configuration options
-   * @returns Configured MenuButtonAria instance
+   * @param props - User-provided panel properties.
+   * @returns - Configured panel instance.
    */
-  public button<TE extends BaseElement = HTMLButtonElement>(
-    props: Partial<MenuButtonProps> = {},
-    options?: Partial<MenuItemOptions>
-  ): MenuButtonAria<TE> {
-    return new MenuButtonAria<TE>(props, options);
+  public panel(props?: MenuPanelProps): MenuPanelAria {
+    return new MenuPanelAria(props);
   }
 
-  /**
-   * Spawns a MenuPanelAria popup panel controller bound to this menu instance.
-   *
-   * @template PE - Target Element type (defaults to HTMLElement)
-   * @param props - Menu panel reactive properties
-   * @returns Configured MenuPanelAria instance
-   */
-  public panel<PE extends BaseElement = HTMLElement>(props: Partial<MenuPanelProps> = {}): MenuPanelAria<PE> {
-    return new MenuPanelAria<PE>(props);
-  }
-
-  /**
-   * Compiles base attributes for the menu root element.
-   *
-   * @returns Menu root attributes dictionary
-   */
-  protected override createAttributes(): A {
-    return Object.assign(super.createAttributes(), {
-      id: this.properties.id!,
-    }) as A;
+  protected capture(event: AriaEvent): void {
+    super.capture(event);
+    if (event.type === 'command') {
+      this.properties.oncommand?.(event as MenuCommandEvent);
+    }
   }
 }

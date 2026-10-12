@@ -39,15 +39,15 @@ import {
   ListboxAria,
   type ListboxProps,
   MenuAria,
-  MenuButtonAria,
-  type MenuButtonProps,
   MenubarAria,
   type MenubarProps,
+  MenuButtonAria,
+  type MenuButtonProps,
   MenuGroupAria,
-  type MenuGroupProps,
   MenuItemAria,
   MenuItemCheckboxAria,
   type MenuItemCheckboxProps,
+  type MenuItemGroupProps,
   type MenuItemOptions,
   type MenuItemProps,
   MenuItemRadioAria,
@@ -514,7 +514,10 @@ export function aria<E extends BaseElement = HTMLButtonElement>(
   options?: MenuItemOptions
 ): MenuButtonAria<E>;
 
-export function aria<E extends BaseElement = HTMLElement>(role: 'menu-group', props?: MenuGroupProps): MenuGroupAria<E>;
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'menu-item-group',
+  props?: MenuItemGroupProps
+): MenuGroupAria<E>;
 
 export function aria<E extends BaseElement = HTMLButtonElement>(
   role: 'menu-item-checkbox',
@@ -724,7 +727,7 @@ export function aria(role: string, init?: unknown, options?: unknown): unknown {
       return new MenuItemAria(init as never, options as never);
     case 'menu-button':
       return new MenuButtonAria(init as never, options as never);
-    case 'menu-group':
+    case 'menu-item-group':
       return new MenuGroupAria(init as never);
     case 'menu-item-checkbox':
       return new MenuItemCheckboxAria(init as never, options as never);

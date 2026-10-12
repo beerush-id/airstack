@@ -1,25 +1,14 @@
-import { createContext } from '@airlib/core';
-import type { AriaAttributes, AriaProps, BaseElement, Orientation } from '../../types.js';
-import { MenuContainerAria } from './container.js';
+import type { BaseElement, Orientation } from '../../types.js';
+import { ToolbarAria, type ToolbarAttributes, type ToolbarProps } from '../toolbar.js';
 
 /**
- * Ambient instance context for the enclosing Menubar orchestrator.
+ * Reactive input properties for the Menubar command bar.
  */
-export const menubarCtx = createContext<MenubarAria>();
-
-/**
- * Reactive input properties for the menubar container.
- */
-export interface MenubarProps extends AriaProps {
+export interface MenubarProps extends ToolbarProps {
   /**
-   * Accessible label.
+   * Element ID providing the accessible name.
    */
-  label?: string;
-
-  /**
-   * Container axis orientation.
-   */
-  orientation?: Orientation;
+  labelledby?: string;
 }
 
 /**
@@ -27,51 +16,40 @@ export interface MenubarProps extends AriaProps {
  *
  * @template E - Target Element type
  */
-export interface MenubarAttributes<E extends BaseElement = HTMLElement> extends AriaAttributes<E> {
-  role?: 'menubar';
-  'aria-orientation'?: Orientation;
-  'aria-label'?: string;
+export interface MenubarAttributes<E extends BaseElement = HTMLElement> extends ToolbarAttributes<E> {
+  'aria-labelledby'?: string;
 }
 
 /**
- * Headless WAI-ARIA Menubar coordinator managing a horizontal command bar
- * with single-tab-stop roving focus across top-level menus.
+ * Horizontal command bar compiling `role="menubar"`.
+ * Inherits single-tab-stop roving focus from the toolbar controller;
+ * always horizontal.
  *
  * @template E - Target Element type (defaults to HTMLElement)
- * @template T - Reactive props type
- * @template A - Compiled attributes dictionary type
  */
-export class MenubarAria<
-  E extends BaseElement = HTMLElement,
-  T extends MenubarProps = MenubarProps,
-  A extends MenubarAttributes<E> = MenubarAttributes<E>,
-> extends MenuContainerAria<E, T, A> {
-  protected override readonly containerRole: 'menubar' = 'menubar';
-  protected override readonly defaultOrientation: Orientation = 'horizontal';
-
-  public constructor(props: Partial<T> = {}) {
-    super(props);
-    this.omittedAttrs.push('aria-orientation');
+export class MenubarAria<E extends BaseElement = HTMLElement> extends ToolbarAria<
+  E,
+  MenubarProps,
+  MenubarAttributes<E>
+> {
+  public constructor(props: MenubarProps = {}) {
+    super(props as ToolbarProps);
+    this.omittedAttrs.push('labelledby');
     this.update();
-    menubarCtx.set(this as unknown as MenubarAria);
   }
 
   /**
-   * Visual and keyboard navigation orientation of the bar.
+   * A menubar always navigates horizontally.
    */
-  public get orientation(): Orientation {
-    return this.properties.orientation ?? this.defaultOrientation;
+  public override get orientation(): Orientation {
+    return 'horizontal';
   }
 
-  /**
-   * Computes HTML and ARIA attributes for the menubar container.
-   *
-   * @returns Compiled menubar attributes dictionary
-   */
-  protected override createAttributes(): A {
+  protected override createAttributes() {
     return Object.assign(super.createAttributes(), {
-      'aria-orientation': this.orientation,
-      'aria-label': this.properties.label,
-    }) as A;
+      role: 'menubar',
+      'aria-orientation': 'horizontal',
+      'aria-labelledby': this.properties.labelledby,
+    });
   }
 }

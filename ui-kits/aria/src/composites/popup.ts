@@ -262,6 +262,9 @@ export function bindPanel(panel: PopupPanel, mode: OverlayTriggerMode[] = ['clic
       set open(value: boolean) {
         panel.properties.open = value;
       },
+      get delay() {
+        return panel.properties.delay;
+      },
       get onopen() {
         return panel.properties.onopen;
       },

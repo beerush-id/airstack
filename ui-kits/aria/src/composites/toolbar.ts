@@ -37,7 +37,7 @@ export interface ToolbarProps extends AriaProps {
  * @template E - Target Element type
  */
 export interface ToolbarAttributes<E extends BaseElement = HTMLElement> extends AriaAttributes<E> {
-  role?: 'toolbar';
+  role?: string;
   'aria-label'?: string;
   'aria-orientation'?: Orientation;
   'aria-disabled'?: 'true' | 'false';

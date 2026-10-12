@@ -7,8 +7,8 @@ import { ariaBoolean } from '../utils/attributes.js';
 import { handleRovingKey } from '../utils/navigation.js';
 
 const ROLE_LISTBOX = 'listbox';
-const OPTION_SELECTOR = '[role="option"]';
-const ENABLED_OPTION_SELECTOR = '[role="option"]:not([aria-disabled="true"]):not([disabled])';
+const OPTION_SELECTOR = ['[role="option"]'];
+const ENABLED_OPTION_SELECTOR = OPTION_SELECTOR.map((s) => `${s}:not([aria-disabled="true"]):not(:disabled)`).join(',');
 const ACTIVATION_KEYS = [' ', 'Enter'];
 const TYPEAHEAD_WINDOW = 500;
 
@@ -121,6 +121,9 @@ export class ListboxAria<
   private parentRover = roverCtx.get();
   private searchQuery = '';
 
+  protected selector = OPTION_SELECTOR.join(',');
+  protected enabledSelector = ENABLED_OPTION_SELECTOR;
+
   public get id() {
     return this.properties.id;
   }
@@ -209,7 +212,7 @@ export class ListboxAria<
   private readonly handleKeyDown = (event: KeyboardEvent): void => {
     if (this.disabled || event.defaultPrevented || this.parentRover) return;
 
-    if (handleRovingKey(this.element, event, { selector: ENABLED_OPTION_SELECTOR, manual: true })) return;
+    if (handleRovingKey(this.element, event, { selector: this.enabledSelector, manual: true })) return;
 
     if (ACTIVATION_KEYS.includes(event.key)) {
       const target = this.focusedOption() ?? this.enabledOptions()[0];
@@ -226,13 +229,12 @@ export class ListboxAria<
   };
 
   private enabledOptions(): HTMLElement[] {
-    return Array.from(this.element!.querySelectorAll<HTMLElement>(ENABLED_OPTION_SELECTOR));
+    return Array.from(this.element!.querySelectorAll<HTMLElement>(this.enabledSelector));
   }
 
   private focusedOption(): HTMLElement | undefined {
     const active = this.element!.ownerDocument.activeElement;
-
-    return active instanceof HTMLElement && active.matches(OPTION_SELECTOR) ? active : undefined;
+    return active instanceof HTMLElement && active.matches(this.selector) ? active : undefined;
   }
 
   private search(key: string): void {

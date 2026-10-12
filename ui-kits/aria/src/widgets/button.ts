@@ -27,7 +27,7 @@ export interface ButtonOptions extends AriaOptions {}
  * @template E - Target Element type (defaults to HTMLButtonElement)
  */
 export interface ButtonAttributes<E extends BaseElement = HTMLButtonElement> extends AriaAttributes<E> {
-  role?: 'button';
+  role?: string;
   type?: 'button' | 'submit' | 'reset';
   disabled?: boolean;
   tabindex?: number;

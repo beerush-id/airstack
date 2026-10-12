@@ -1,296 +1,197 @@
-import { Aria } from '../../core.js';
-import { SelectionAria, type SelectionAttributes, type SelectionOptions } from '../../selection.js';
-import type { AriaAttributes, AriaOptions, AriaProps, BaseElement, Primitive } from '../../types.js';
-import { ariaBoolean } from '../../utils/attributes.js';
+import type { AriaEventHandler, AriaOptions, AriaProps, BaseElement, Primitive } from '../../types.js';
+import { ButtonAria, type ButtonAttributes, type ButtonOptions } from '../../widgets/button.js';
+import {
+  CheckboxAria,
+  type CheckboxAttributes,
+  type CheckboxProps,
+  RadioAria,
+  type RadioAttributes,
+  type RadioProps,
+} from '../../widgets/index.js';
+import { MenuAria, type MenuCommandEvent, menuCtx } from './menu.js';
 
 /**
- * Reactive input properties for MenuItemAria.
- */
-export interface MenuItemProps extends AriaProps {
-  /**
-   * Optional semantic identifier or action name.
-   */
-  name?: string;
-
-  /**
-   * Whether the item is disabled from user interaction.
-   */
-  disabled?: boolean;
-}
-
-/**
- * Behavioral configuration options for menu item widgets.
+ * Configuration options for menu item controllers.
  */
 export interface MenuItemOptions extends AriaOptions {
   /**
-   * Whether bound to a native <button> (default: true).
+   * Native `<button>` hosts activate on click alone; custom hosts get Space and Enter (default: true).
    */
   native?: boolean;
 }
 
 /**
- * Compiled HTML and ARIA attributes for a menu item element.
- *
- * @template E - Target Element type (defaults to HTMLButtonElement)
+ * Reactive input properties for the Menu command item.
  */
-export interface MenuItemAttributes<E extends BaseElement = HTMLButtonElement> extends AriaAttributes<E> {
-  role?: 'menuitem';
-  type?: 'button';
+export interface MenuItemProps extends AriaProps {
+  /**
+   * Semantic identifier carried as the event detail.
+   */
+  name?: string;
+
+  /**
+   * Whether this item is disabled from user interaction.
+   */
   disabled?: boolean;
-  tabindex?: number;
-  'aria-disabled'?: 'true' | 'false';
+
+  /**
+   * Item-level command listener invoked with the item's name.
+   */
+  oncommand?: AriaEventHandler<MenuCommandEvent>;
 }
 
 /**
- * Headless WAI-ARIA MenuItem controller invoking a command action.
- * Activation behavior belongs to the consumer; the controller owns
- * role semantics, disabled lockout, and non-native keyboard polyfills.
+ * Compiled HTML and ARIA attributes for a menu command item.
+ *
+ * @template E - Target Element type
+ */
+export interface MenuItemAttributes<E extends BaseElement = HTMLButtonElement> extends ButtonAttributes<E> {}
+
+/**
+ * Command action item compiling `role="menuitem"`.
+ * Inherits action activation from the button controller; dispatches
+ * `command` carrying its name, which bubbles to the root `oncommand`.
  *
  * @template E - Target Element type (defaults to HTMLButtonElement)
- * @template T - Reactive props type
- * @template A - Attributes dictionary type
- * @template O - Options configuration type
  */
-export class MenuItemAria<
-  E extends BaseElement = HTMLButtonElement,
-  T extends MenuItemProps = MenuItemProps,
-  A extends MenuItemAttributes<E> = MenuItemAttributes<E>,
-  O extends MenuItemOptions = MenuItemOptions,
-> extends Aria<E, T, A, O> {
-  public constructor(props: Partial<T> = {}, options: O = {} as O) {
-    super(props, {
-      native: true,
-      ...options,
-    });
+export class MenuItemAria<E extends BaseElement = HTMLButtonElement> extends ButtonAria<
+  E,
+  MenuItemProps,
+  MenuItemAttributes<E>,
+  MenuItemOptions
+> {
+  protected declare host: MenuAria;
 
+  public override get disabled() {
+    return super.disabled || this.host?.disabled;
+  }
+
+  public constructor(props: MenuItemProps = {}, options: MenuItemOptions = { native: true }) {
+    super(props, options as ButtonOptions);
+
+    this.host = menuCtx.get();
+    this.omittedAttrs.push('name', 'oncommand', 'role', 'tabindex', 'aria-disabled');
+
+    this.on('click', () => this.invoke());
+    this.on('focus', () => {
+      const event = new CustomEvent('input', { bubbles: true, detail: this.properties.name, cancelable: true });
+      this.element?.dispatchEvent(event);
+      this.dispatch(event);
+    });
     this.update();
   }
 
   /**
-   * Whether the item is disabled from user interaction.
+   * Invokes the item command unless effectively disabled.
    */
-  public get disabled(): boolean {
-    return !!this.properties.disabled;
+  protected invoke(): void {
+    if (this.disabled || !this.element || !this.host) return;
+
+    const event = new CustomEvent('command', { bubbles: true, detail: this.properties.name });
+
+    this.element.dispatchEvent(event);
+    this.properties.oncommand?.(event as MenuCommandEvent);
+    this.dispatch(event);
+    this.host.open = false;
   }
 
-  /**
-   * Computes the HTML, ARIA, and event handler attributes for the menu item.
-   *
-   * @returns Menu item attributes dictionary
-   */
-  protected override createAttributes(): A {
-    if (this.isNative) {
-      return Object.assign(super.createAttributes(), {
-        role: 'menuitem',
-        type: 'button',
-        disabled: this.disabled,
-      }) as A;
-    }
-
-    const isDisabled = this.disabled;
-
+  protected override createAttributes(): MenuItemAttributes<E> {
     return Object.assign(super.createAttributes(), {
       role: 'menuitem',
-      tabindex: isDisabled ? -1 : 0,
-      'aria-disabled': ariaBoolean(isDisabled),
-      onkeydown: (e: KeyboardEvent) => {
-        if (isDisabled) return;
-
-        if (e.key === ' ') {
-          e.preventDefault();
-        } else if (e.key === 'Enter') {
-          e.preventDefault();
-          (e.currentTarget as HTMLElement)?.click?.();
-        }
-      },
-      onkeyup: (e: KeyboardEvent) => {
-        if (isDisabled) return;
-
-        if (e.key === ' ') {
-          (e.currentTarget as HTMLElement)?.click?.();
-        }
-      },
-    }) as A;
+    }) as MenuItemAttributes<E>;
   }
 }
 
 /**
- * Reactive input properties for MenuItemCheckboxAria.
+ * Reactive input properties for the Menu checkable item.
  */
-export interface MenuItemCheckboxProps extends MenuItemProps {
-  /**
-   * Whether the item is checked ('mixed' for tri-state).
-   */
-  checked?: boolean | 'mixed';
-}
+export interface MenuItemCheckboxProps extends CheckboxProps {}
 
 /**
- * Compiled HTML and ARIA attributes for a checkable menu item.
+ * Compiled HTML and ARIA attributes for a menu checkbox item.
+ *
+ * @template E - Target Element type
+ */
+export interface MenuItemCheckboxAttributes<E extends BaseElement = HTMLButtonElement> extends CheckboxAttributes<E> {}
+
+/**
+ * Checkable menu item compiling `role="menuitemcheckbox"`.
+ * Inherits checkbox state projection over its own props; `aria-checked`
+ * projects on both hosts and `change` carries the committed boolean.
  *
  * @template E - Target Element type (defaults to HTMLButtonElement)
  */
-export interface MenuItemCheckboxAttributes<E extends BaseElement = HTMLButtonElement> extends SelectionAttributes<E> {
-  role?: 'menuitemcheckbox';
-  type?: 'button';
-  'aria-checked'?: 'true' | 'false' | 'mixed';
-}
+export class MenuItemCheckboxAria<E extends BaseElement = HTMLButtonElement> extends CheckboxAria<
+  E,
+  MenuItemCheckboxProps,
+  MenuItemCheckboxAttributes<E>,
+  MenuItemOptions
+> {
+  protected declare host: MenuAria;
 
-/**
- * Headless WAI-ARIA MenuItemCheckbox controller managing a standalone
- * toggle state. Keeps `checked` on its own props and never binds to
- * a group value.
- *
- * @template E - Target Element type (defaults to HTMLButtonElement)
- * @template T - Reactive props type
- * @template A - Attributes dictionary type
- * @template O - Options configuration type
- */
-export class MenuItemCheckboxAria<
-  E extends BaseElement = HTMLButtonElement,
-  T extends MenuItemCheckboxProps = MenuItemCheckboxProps,
-  A extends MenuItemCheckboxAttributes<E> = MenuItemCheckboxAttributes<E>,
-  O extends MenuItemOptions = MenuItemOptions,
-> extends SelectionAria<E, T, A, SelectionOptions> {
-  public constructor(props: Partial<T> = {}, options: O = {} as O) {
-    super(props, {
-      native: true,
-      ...options,
-      role: 'menuitemcheckbox',
-      key: 'checked',
-      valueKey: 'value',
-    });
+  public override get disabled() {
+    return super.disabled || this.host?.disabled;
+  }
 
+  public constructor(props: MenuItemCheckboxProps = {}, options: MenuItemOptions = { native: false }) {
+    super(props, options);
+
+    this.host = menuCtx.get();
+    this.omittedAttrs.push('checked', 'name', 'value', 'onchange', 'aria-checked', 'role');
     this.update();
   }
 
-  /**
-   * Whether the item is currently checked.
-   */
-  public get checked(): boolean {
-    return this.selected;
-  }
-
-  public set checked(value: boolean) {
-    this.selected = value;
-  }
-
-  /**
-   * Toggles the item, resolving a tri-state condition
-   * into a definitive checked state.
-   */
-  public override toggle(): void {
-    if (this.disabled) return;
-
-    if (this.properties.checked === 'mixed') {
-      this.select();
-      return;
-    }
-
-    super.toggle();
-  }
-
-  /**
-   * Computes HTML and ARIA attributes for the checkable menu item.
-   *
-   * @returns Menu item checkbox attributes dictionary
-   */
-  protected override createAttributes(): A {
-    const state = this.properties.checked === 'mixed' ? 'mixed' : ariaBoolean(this.checked);
-    const attrs = Object.assign(super.createAttributes(), {
+  protected override createAttributes(): MenuItemCheckboxAttributes<E> {
+    return Object.assign(super.createAttributes(), {
       role: 'menuitemcheckbox',
-      'aria-checked': state,
-    });
-
-    if (this.isNative) {
-      attrs.type = 'button';
-    }
-
-    return attrs as A;
+    }) as MenuItemCheckboxAttributes<E>;
   }
 }
 
 /**
- * Reactive input properties for MenuItemRadioAria.
+ * Reactive input properties for the Menu radio item.
  *
- * @template T - Candidate value type
+ * @template T - Choice candidate value type
  */
-export interface MenuItemRadioProps<T extends Primitive = Primitive> extends MenuItemProps {
-  /**
-   * Choice candidate value matching enclosing subgroup value.
-   */
-  value: T;
-}
+export interface MenuItemRadioProps<T extends Primitive = Primitive> extends RadioProps<T> {}
 
 /**
- * Compiled HTML and ARIA attributes for a radio menu item.
+ * Compiled HTML and ARIA attributes for a menu radio item.
  *
- * @template E - Target Element type (defaults to HTMLButtonElement)
+ * @template E - Target Element type
  */
-export interface MenuItemRadioAttributes<E extends BaseElement = HTMLButtonElement> extends SelectionAttributes<E> {
-  role?: 'menuitemradio';
-  type?: 'button';
-  'aria-checked'?: 'true' | 'false';
-}
+export interface MenuItemRadioAttributes<E extends BaseElement = HTMLButtonElement> extends RadioAttributes<E> {}
 
 /**
- * Headless WAI-ARIA MenuItemRadio controller managing mutually exclusive
- * selection inside a `multiple: false` subgroup. Active when the subgroup
- * value equals the item value; activation assigns it. Always idempotent
- * and never deselects.
+ * Radio menu item compiling `role="menuitemradio"`.
+ * Inherits radio selection projection inside the enclosing group;
+ * active when `group.value === props.value`, select-only on activation,
+ * and `change` carries the committed group value.
  *
  * @template E - Target Element type (defaults to HTMLButtonElement)
- * @template T - Reactive props type
- * @template A - Attributes dictionary type
- * @template O - Options configuration type
+ * @template T - Choice candidate value type
  */
 export class MenuItemRadioAria<
   E extends BaseElement = HTMLButtonElement,
-  T extends MenuItemRadioProps = MenuItemRadioProps,
-  A extends MenuItemRadioAttributes<E> = MenuItemRadioAttributes<E>,
-  O extends MenuItemOptions = MenuItemOptions,
-> extends SelectionAria<E, T, A, SelectionOptions> {
-  public constructor(props: Partial<T> = {}, options: O = {} as O) {
-    super(props, {
-      native: true,
-      ...options,
-      role: 'menuitemradio',
-      idempotent: true,
-      key: 'checked',
-      valueKey: 'value',
-    });
+  T extends Primitive = Primitive,
+> extends RadioAria<E, MenuItemRadioProps<T>, MenuItemRadioAttributes<E>, MenuItemOptions> {
+  protected declare host: MenuAria;
 
+  public override get disabled() {
+    return super.disabled || this.host?.disabled;
+  }
+
+  public constructor(props: MenuItemRadioProps<T>, options: MenuItemOptions = { native: false }) {
+    super(props, options);
+
+    this.host = menuCtx.get();
+    this.omittedAttrs.push('value', 'name', 'checked', 'onchange', 'aria-checked', 'role');
     this.update();
   }
 
-  /**
-   * Whether the item is currently checked.
-   */
-  public get checked(): boolean {
-    return this.selected;
-  }
-
-  public set checked(value: boolean) {
-    this.selected = value;
-  }
-
-  /**
-   * Computes HTML and ARIA attributes for the radio menu item.
-   *
-   * @returns Menu item radio attributes dictionary
-   */
-  protected override createAttributes(): A {
-    const isChecked = this.checked;
-    const attrs = Object.assign(super.createAttributes(), {
+  protected override createAttributes(): MenuItemRadioAttributes<E> {
+    return Object.assign(super.createAttributes(), {
       role: 'menuitemradio',
-      'aria-checked': ariaBoolean(isChecked),
-    });
-
-    if (this.isNative) {
-      attrs.type = 'button';
-    } else {
-      attrs.tabindex = this.disabled ? -1 : this.group ? (isChecked ? 0 : -1) : 0;
-    }
-
-    return attrs as A;
+    }) as MenuItemRadioAttributes<E>;
   }
 }

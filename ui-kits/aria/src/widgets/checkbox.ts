@@ -78,8 +78,8 @@ export interface CheckboxOptions extends AriaOptions {}
  */
 export interface CheckboxAttributes<E extends BaseElement = HTMLButtonElement | HTMLInputElement>
   extends SelectionAttributes<E> {
-  role?: 'checkbox';
-  type?: 'checkbox';
+  role?: string;
+  type?: string;
   checked?: boolean;
   indeterminate?: boolean;
   required?: boolean;
