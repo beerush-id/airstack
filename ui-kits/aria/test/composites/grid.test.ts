@@ -53,6 +53,12 @@ function press(el: HTMLElement, key: string) {
   return event;
 }
 
+function release(el: HTMLElement, key: string) {
+  const event = new KeyboardEvent('keyup', { key, bubbles: true, cancelable: true });
+  el.dispatchEvent(event);
+  return event;
+}
+
 const focused = () => (document.activeElement as HTMLElement)?.getAttribute('data-name') ?? null;
 
 describe('Grid - Composite Specifications', () => {
@@ -109,7 +115,14 @@ describe('Grid - Composite Specifications', () => {
           expect(at('a1')?.getAttribute('aria-selected')).toBe('true');
           expect(at('a3')?.getAttribute('aria-selected')).toBe('false');
 
-          // One tab stop, travelling with focus
+          // Rows are passive in cell mode: no tab stop, no selection announcement
+          for (const row of rows) {
+            expect((row.row as unknown as { el: HTMLElement }).el.hasAttribute('tabindex')).toBe(false);
+            expect((row.row as unknown as { el: HTMLElement }).el.hasAttribute('aria-selected')).toBe(false);
+            expect((row.row as unknown as { el: HTMLElement }).el.hasAttribute('aria-disabled')).toBe(false);
+          }
+
+          // Non-editable cell mode roves a single tab stop on the selection
           const stops = rows.flatMap((row) => row.cells).filter((cell) => cell.el.getAttribute('tabindex') === '0');
           expect(stops).toHaveLength(1);
           expect(stops[0].el).toBe(at('a1'));
@@ -119,7 +132,7 @@ describe('Grid - Composite Specifications', () => {
         });
       }));
 
-    it('commits with Space and Enter through the same click path as pointer', () =>
+    it('commits with Enter through the same click path as pointer and toggles off on re-activation', () =>
       scope.run(() => {
         component().run(() => {
           const props = mutable<GridProps>({ value: 'a1', selectionMode: 'cell' });
@@ -133,13 +146,25 @@ describe('Grid - Composite Specifications', () => {
           target.addEventListener('click', () => activations.push('clicked'));
 
           target.focus();
+          // Space is inert on grid members: no click, no commit
           press(target, ' ');
           expect(activations).toEqual([]);
+          expect(props.value).toBe('a1');
 
+          // Enter is deferred: keydown commits nothing, keyup fires the click path
           const enter = press(target, 'Enter');
           expect(enter.defaultPrevented).toBe(false);
+          expect(activations).toEqual([]);
+          expect(props.value).toBe('a1');
+          release(target, 'Enter');
           expect(activations).toHaveLength(1);
           expect(props.value).toBe('b2');
+
+          // Grid is always toggle: re-activating the holder releases it
+          press(target, 'Enter');
+          release(target, 'Enter');
+          expect(activations).toHaveLength(2);
+          expect(props.value).toBeUndefined();
 
           cleanup();
         });
@@ -174,7 +199,7 @@ describe('Grid - Composite Specifications', () => {
         });
       }));
 
-    it('lifts selection to the row in row selection mode', () =>
+    it('lifts selection to the row in row selection mode and toggles off on re-activation', () =>
       scope.run(() => {
         component().run(() => {
           const props = mutable<GridProps>({ value: undefined, selectionMode: 'row' });
@@ -183,19 +208,35 @@ describe('Grid - Composite Specifications', () => {
             ['b1', 'b2'],
           ]);
 
+          // Cells are passive in row mode: no tab stop, no selection announcement
+          expect(rows[0].cells[0].el.hasAttribute('tabindex')).toBe(false);
+          expect(rows[0].cells[0].el.hasAttribute('aria-selected')).toBe(false);
+          expect(rows[0].cells[0].el.hasAttribute('aria-disabled')).toBe(false);
+          // The unselected row holds the roving tab stop
+          expect(rows[0].row.el.getAttribute('tabindex')).toBe('-1');
+
           rows[0].cells[1].el.click();
 
           expect(props.value).toBe('r0');
           expect(rows[0].row.el.getAttribute('aria-selected')).toBe('true');
+          expect(rows[0].row.el.getAttribute('tabindex')).toBe('0');
           expect(rows[1].row.el.getAttribute('aria-selected')).toBe('false');
 
           // The selected row's index is announced for off-screen rows
           expect(rows[0].row.el.getAttribute('aria-rowindex')).toBe('1');
           expect(rows[1].row.el.getAttribute('aria-rowindex')).toBe('2');
 
-          rows[1].cells[0].el.click();
+          // Enter on a row-mode cell commits through bubbling; Space stays inert
+          press(rows[1].cells[0].el, ' ');
+          expect(props.value).toBe('r0');
+          press(rows[1].cells[0].el, 'Enter');
           expect(props.value).toBe('r1');
           expect(rows[0].row.el.getAttribute('aria-selected')).toBe('false');
+
+          // Always toggle: re-activating the holder clears the value
+          rows[1].cells[0].el.click();
+          expect(props.value).toBeUndefined();
+          expect(rows[1].row.el.getAttribute('aria-selected')).toBe('false');
 
           cleanup();
         });

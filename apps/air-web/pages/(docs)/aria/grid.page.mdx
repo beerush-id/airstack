@@ -10,7 +10,7 @@ import './grid.css';
 
 # AirLib Headless Grid
 
-A grid is the table you can drive from the keyboard: rows and columns traversed with arrows, one tab stop for the whole structure, selection that follows either the cell or the row. Plain markup gets you halfway — a `<table>` announces structure but gives you no roving focus, every cell you make focusable turns the grid into a tab-stop maze, and selection stays your problem. **AirLib Headless Grid** (`aria('grid')`) is a 2D roving focus coordinator: arrows move focus across rows and columns and never select, `Enter` commits the focused cell (or its enclosing row in `row` mode) through the same click path as pointer activation, and re-activating the holder releases it — without dictating markup or styles.
+A grid is the table you can drive from the keyboard: rows and columns traversed with arrows, tab stops that follow the selection mode, selection that follows either the cell or the row. Plain markup gets you halfway — a `<table>` announces structure but gives you no roving focus, every cell you make focusable turns the grid into a tab-stop maze, and selection stays your problem. **AirLib Headless Grid** (`aria('grid')`) is a 2D roving focus coordinator: arrows move focus across rows and columns and never select, `Enter` commits the focused cell (or its enclosing row in `row` mode) through the same click path as pointer activation, and re-activating the holder releases it — without dictating markup or styles.
 
 ```tsx
 const grid = aria('grid', props);
@@ -28,6 +28,7 @@ type DemoGridProps = ComponentProps<'div'> & {
   value?: string;
   label?: string;
   selectionMode?: 'cell' | 'row';
+  editable?: boolean;
 };
 
 const DemoGrid = setup<DemoGridProps>((props) => {
@@ -56,6 +57,7 @@ const DemoRow = setup<DemoRowProps>((props) => {
 
 type DemoCellProps = ComponentProps<'div'> & {
   name: string;
+  value?: string;
   disabled?: boolean;
 };
 
@@ -86,7 +88,7 @@ const DemoColumnHeader = setup<DemoColumnHeaderProps>((props) => {
 }, 'DemoColumnHeader');
 ```
 
-<DemoGrid label="Departure cities" value="ber" editable>
+<DemoGrid label="Departure cities" value="ber">
   <DemoRow name="headers">
     <DemoColumnHeader name="h1" colindex={1} sort="ascending">First city</DemoColumnHeader>
     <DemoColumnHeader name="h2" colindex={2}>Second city</DemoColumnHeader>
@@ -116,13 +118,28 @@ const DemoColumnHeader = setup<DemoColumnHeaderProps>((props) => {
     <DemoCell name="war">Warsaw</DemoCell>
   </DemoRow>
 </DemoGrid>
+
+<DemoGrid label="Stock list" editable>
+  <DemoRow name="headers">
+    <DemoColumnHeader name="h1" colindex={1}>Item</DemoColumnHeader>
+    <DemoColumnHeader name="h2" colindex={2}>In stock</DemoColumnHeader>
+  </DemoRow>
+  <DemoRow name="fruit">
+    <DemoCell name="fruit" value="Apples">Apples</DemoCell>
+    <DemoCell name="fruit-qty" value="12">12</DemoCell>
+  </DemoRow>
+  <DemoRow name="veg">
+    <DemoCell name="veg" value="Carrots">Carrots</DemoCell>
+    <DemoCell name="veg-qty" value="30">30</DemoCell>
+  </DemoRow>
+</DemoGrid>
 :::
 
-The first grid commits cells — focus a cell, then use `ArrowRight`, `ArrowDown`, `Home`, or `PageDown`. Traversal moves focus and commits nothing; clicking or pressing `Enter` picks, pressing `Enter` again releases, and `Space` stays inert. Dublin is disabled and stepped over. The second grid commits whole rows: clicking any city in a region picks `west` or `east`.
+The first grid commits cells — focus a cell, then use `ArrowRight`, `ArrowDown`, `Home`, or `PageDown`. Traversal moves focus and commits nothing; clicking or pressing `Enter` picks (`Enter` commits on release), pressing `Enter` again releases, and `Space` stays inert. Dublin is disabled and stepped over. The second grid commits whole rows: clicking any city in a region picks `west` or `east`. The third grid is editable and starts with no pick — click a cell and rewrite it, the cell content is the value, so `Escape` or leaving the cell commits the text into the cell and clears the grid value.
 
 ## Grid
 
-When you need a table users drive from the keyboard, use `grid`. You supply the value, the selection mode, and the full extent; the grid owns the single tab stop and the arrow-key map.
+When you need a table users drive from the keyboard, use `grid`. You supply the value, the selection mode, and the full extent; the grid owns the tab stops and the arrow-key map.
 
 ```ts
 aria<E extends BaseElement = HTMLElement>(
@@ -186,6 +203,7 @@ const Grid = setup((props) => {
 - `props.label` *(string, optional)*: Accessible name compiled as `aria-label`. A grid without a name is unidentifiable to assistive technology, so pass it.
 - `props.colcount` / `props.rowcount` *(number, optional)*: Full grid extent compiled as `aria-colcount` / `aria-rowcount`, even when only part of the grid is rendered.
 - `props.disabled` *(boolean, optional)*: Cascades disablement to every member and claims no keystroke.
+- `props.editable` *(boolean, optional)*: Lets the picked cell take text — selecting it opens a `contenteditable` session that `Escape` or `blur` commits.
 - `props.id` *(string, optional)*: Explicit DOM identifier. Generated as `grid-<n>` when omitted.
 - `props.onchange` *(handler, optional)*: Called with the member's `change` event after a commit; `detail` is the whole grid value.
 
@@ -194,7 +212,8 @@ const Grid = setup((props) => {
 - Compiles `role="grid"`, `aria-label` when named, `aria-colcount` / `aria-rowcount` when declared, and an explicit `aria-disabled` baseline.
 - **Arrows move focus only and never select.** `ArrowRight` / `ArrowLeft` travel within the row, `ArrowUp` / `ArrowDown` keep the column across rows, `Home` / `End` jump to the row ends, `PageUp` / `PageDown` jump to the first / last row. Disabled cells are stepped over.
 - **Activation commits and toggles.** `Enter` on a focused cell commits through the same click path as pointer activation (cell name in `cell` mode, row name in `row` mode via bubbling); re-activating the holder clears the value. `Space` is inert on grid members.
-- **One tab stop, on the selection.** In `cell` mode the selected cell carries `tabindex="0"` and every other cell carries `-1`; in `row` mode the selected row carries `tabindex="0"`, unselected rows carry `-1`, and cells carry no tab stop at all.
+- **Tab stops follow the mode — and `editable`.** An editable `cell` grid puts every enabled cell in the tab order (`tabindex="0"`); a disabled cell is no tab stop (`tabindex="-1"`) but keeps its slot so vertical travel stays column-aligned. A plain `cell` grid roves a single stop like `row` mode does: `0` on the selection, `-1` elsewhere. When no value is held and no member owns a stop, the grid itself carries `tabindex="0"` so Tab can still enter — arrows from the focused grid enter the first (or last) enabled cell without selecting.
+- **Editable cells take text.** With `editable`, selecting a cell opens it as `contenteditable` and freezes grid arrows until the edit commits; the caret lands at the end of the cell text. `Escape` or leaving the cell stores the text on the cell and clears the grid value; clicking the cell again mid-edit is swallowed so the session survives it.
 - Yields any keystroke a consumer canceled, and surrenders traversal to an enclosing toolbar rover.
 
 ### Events
@@ -213,7 +232,7 @@ const grid = aria('grid', {
 });
 ```
 
-A programmatic write (`grid.value = 'vil'`) moves the tab stop but dispatches nothing: an external write is neither a move nor a commit, because nobody acted.
+A programmatic write (`grid.value = 'vil'`) moves selection but dispatches nothing: an external write is neither a move nor a commit, because nobody acted.
 
 ## Treegrid
 
@@ -274,7 +293,7 @@ const Treegrid = setup((props) => {
 ### How it behaves
 
 - Compiles `role="treegrid"` with the same `aria-label`, extent, and `aria-disabled` baseline as `grid`.
-- Traversal, selection modes, and the single tab stop work exactly like `grid`.
+- Traversal, selection modes, and the tab stops work exactly like `grid`.
 - Ids generate as `treegrid-<n>`; a `grid-<n>` id is never reused for a treegrid.
 
 ## Row
@@ -341,13 +360,13 @@ const Row = setup((props) => {
 ### How it behaves
 
 - Compiles `role="row"` with `aria-selected` and `aria-disabled` only in `row` mode (absent in `cell` mode), and `aria-rowindex` when declared.
-- Holds the grid's single tab stop in `row` mode (`tabindex="0"` while selected, `-1` otherwise); carries no tab stop in `cell` mode.
+- Holds the roving tab stop in `row` mode (`tabindex="0"` while selected, `-1` otherwise); carries no tab stop in `cell` mode. When no row is picked the grid itself holds the stop instead.
 - Commits only in `row` mode — pointer click or `Enter` through the bubbling click — and re-activation releases the holder; in `cell` mode row activation does nothing to the value.
 - A disabled row refuses committing and composes with grid-level disablement.
 
 ## GridCell
 
-When you need a pickable position in the table, use `grid-cell`. You supply the cell name; the grid commits it in `cell` mode and parks the tab stop on it while selected.
+When you need a pickable position in the table, use `grid-cell`. You supply the cell name; the grid commits it in `cell` mode. In an editable grid every enabled cell is a tab stop, otherwise the single stop roves with the selection.
 
 ```ts
 aria<E extends BaseElement = HTMLElement>(
@@ -411,9 +430,10 @@ const Cell = setup((props) => {
 ### How it behaves
 
 - Compiles `role="gridcell"` with `aria-selected` and `aria-disabled` only in `cell` mode (absent in `row` mode), plus `aria-colindex` and `aria-readonly="true"` when declared.
-- Holds the grid's single tab stop in `cell` mode while selected (`tabindex="0"`); every other cell carries `-1`. In `row` mode cells carry no tab stop.
+- In an editable grid every enabled cell carries `tabindex="0"`; a disabled cell parks at `tabindex="-1"` so it stays out of the tab order without shifting the column math. In a plain `cell` grid only the selected cell carries `0` and the rest carry `-1`. In `row` mode cells carry no tab stop.
 - Re-activation releases the holder — selection is always toggle, and an empty value is allowed.
-- Keyboard `Enter` commits through the same click path as pointer activation in `cell` mode; `Space` is inert. In `row` mode the cell itself is inert and the commit lifts to the enclosing row.
+- Keyboard `Enter` commits on release through the same click path as pointer activation in `cell` mode; `Space` is inert. In `row` mode the cell itself is inert and the commit lifts to the enclosing row.
+- With an editable grid, the selected cell compiles `contenteditable` and takes text until `Escape` or `blur` commits.
 
 ## ColumnHeader / RowHeader
 
@@ -493,18 +513,19 @@ const ColumnHeader = setup((props) => {
 
 | Key | Behavior |
 | :--- | :--- |
-| `Tab` | Enters the grid once, on the selected cell. |
+| `Tab` | Enters the grid — every enabled cell of an editable `cell` grid, the single roving stop otherwise, or the grid itself when nothing holds a stop. |
 | `ArrowRight` / `ArrowLeft` | Moves focus to the next / previous enabled cell in the row. Selects nothing. |
 | `ArrowUp` / `ArrowDown` | Moves focus to the same column in the previous / next row. |
 | `Home` / `End` | Moves focus to the first / last cell in the row. |
 | `PageUp` / `PageDown` | Moves focus to the same column in the first / last row. |
-| `Enter` | Commits the focused cell (or its enclosing row in `row` mode) through the same click path as pointer activation; re-activation clears the value. |
+| `Enter` | Commits on release the focused cell (or its enclosing row in `row` mode) through the same click path as pointer activation; re-activation clears the value. |
 | `Space` | Inert — commits nothing on any grid member. |
 
 ## What you get
 
 - **Two-dimensional roving with no selection on travel.** Focus and value are separate gestures, which is what editable grids and spanned layouts require.
 - **Two selection modes, one toggle value.** `cell` commits the cell name; `row` lifts to the row through bubbling — pointer and `Enter` commit the same way, re-activation releases, and `Space` stays inert.
+- **In-place editing without leaving the grid.** `editable` turns the picked cell into a text session with caret placement, frozen arrows, and `Escape` / `blur` commits.
 - **Headers that describe, cells that act.** Sort state, column and row indexes, and full-extent counts project without extra wiring.
 - **Zero markup lock-in.** Render `<table>` / `<tr>` / `<td>` / `<th>` or `<div>` structures; the controller only reads roles.
 

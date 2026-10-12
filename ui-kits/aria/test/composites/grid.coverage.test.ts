@@ -1,5 +1,5 @@
 import { createLifecycle, mutable } from '@airlib/core';
-import { afterAll, describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it, vi } from 'vitest';
 import {
   aria,
   type GridCellAria,
@@ -11,6 +11,12 @@ import { bind, component } from '../utils.js';
 
 function press(el: HTMLElement, key: string, init?: KeyboardEventInit) {
   const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...init });
+  el.dispatchEvent(event);
+  return event;
+}
+
+function release(el: HTMLElement, key: string, init?: KeyboardEventInit) {
+  const event = new KeyboardEvent('keyup', { key, bubbles: true, cancelable: true, ...init });
   el.dispatchEvent(event);
   return event;
 }
@@ -295,7 +301,10 @@ describe('Grid - Coverage & Boundary Tests', () => {
             re.appendChild(a3El);
             return { r, re, a1, a1El, a2, a2El, a3, a3El };
           });
+          // A disabled cell is no tab stop, but keeps its slot for column math;
+          // traversal steps over it instead
           expect(row.a2El.getAttribute('tabindex')).toBe('-1');
+          expect(row.a2El.getAttribute('aria-disabled')).toBe('true');
           row.a1El.focus();
           press(row.a1El, 'ArrowRight');
           expect(document.activeElement).toBe(row.a3El);
@@ -390,7 +399,7 @@ describe('Grid - Coverage & Boundary Tests', () => {
         });
       }));
 
-    it('keeps cell selection select-only and honors the disabled cascade', () =>
+    it('toggles cell selection and honors the disabled cascade', () =>
       scope.run(() => {
         component().run(() => {
           const props = mutable<GridProps>({ value: 'a1', selectionMode: 'cell' });
@@ -413,7 +422,7 @@ describe('Grid - Coverage & Boundary Tests', () => {
         });
       }));
 
-    it('ignores cell keystrokes while disabled, canceled, or non-activating', () =>
+    it('treats Space as inert while Enter commits through the click path', () =>
       scope.run(() => {
         component().run(() => {
           const grid = aria('grid', {});
@@ -457,8 +466,13 @@ describe('Grid - Coverage & Boundary Tests', () => {
           const seen: string[] = [];
           cell.el.addEventListener('click', () => seen.push('clicked'));
           press(cell.el, 'Enter');
+          expect(seen).toEqual([]);
+          release(cell.el, 'Enter');
           expect(seen).toEqual(['clicked']);
           cell.c.destroy();
+          press(cell.el, 'Enter');
+          release(cell.el, 'Enter');
+          expect(seen).toEqual(['clicked']);
           grid.destroy();
           gridEl.remove();
         });
@@ -481,6 +495,121 @@ describe('Grid - Coverage & Boundary Tests', () => {
           cell.c.destroy();
           grid.destroy();
           gridEl.remove();
+        });
+      }));
+
+    it('yields keystrokes aimed at non-cell targets in cell mode', () =>
+      scope.run(() => {
+        component().run(() => {
+          const props = mutable<GridProps>({ value: 'a1', selectionMode: 'cell' });
+          const { gridEl, rows, cleanup } = buildGrid(props, [
+            ['a1', 'a2'],
+            ['b1', 'b2'],
+          ]);
+          expect(press(gridEl, 'ArrowRight').defaultPrevented).toBe(false);
+          expect(press(gridEl, 'Enter').defaultPrevented).toBe(false);
+          expect(props.value).toBe('a1');
+          expect(document.activeElement).not.toBe(rows[0].cells[1]);
+          cleanup();
+        });
+      }));
+
+    it('roves between rows in row mode without selecting', () =>
+      scope.run(() => {
+        component().run(() => {
+          const props = mutable<GridProps>({ value: undefined, selectionMode: 'row' });
+          const { rows, cleanup } = buildGrid(props, [['a1'], ['b1'], ['c1']]);
+          const rowEls = rows.map((row) => (row as unknown as { rowEl: HTMLElement }).rowEl);
+          rowEls[0].focus();
+          press(rowEls[0], 'ArrowDown');
+          expect(document.activeElement).toBe(rowEls[1]);
+          press(rowEls[1], 'ArrowDown');
+          expect(document.activeElement).toBe(rowEls[2]);
+          press(rowEls[2], 'ArrowUp');
+          expect(document.activeElement).toBe(rowEls[1]);
+          press(rowEls[1], 'Home');
+          expect(document.activeElement).toBe(rowEls[0]);
+          press(rowEls[0], 'End');
+          expect(document.activeElement).toBe(rowEls[2]);
+          expect(props.value).toBeUndefined();
+          cleanup();
+        });
+      }));
+
+    it('holds passive members inert while active members toggle', () =>
+      scope.run(() => {
+        component().run(() => {
+          // Cell mode: rows are passive guards, cells toggle
+          const cellGrid = aria('grid', { selectionMode: 'cell', value: undefined });
+          const cellGridEl = bind(document.createElement('div'), cellGrid);
+          document.body.appendChild(cellGridEl);
+          const passiveRow = component().run(() => {
+            const r = aria('grid-row', { name: 'r0' }) as GridRowAria;
+            const re = bind(document.createElement('div'), r);
+            cellGridEl.appendChild(re);
+            return { r, re };
+          });
+          expect(passiveRow.re.hasAttribute('tabindex')).toBe(false);
+          expect(passiveRow.re.hasAttribute('aria-selected')).toBe(false);
+          expect(passiveRow.re.hasAttribute('aria-disabled')).toBe(false);
+          passiveRow.r.selected = true;
+          passiveRow.r.select();
+          passiveRow.r.deselect();
+          passiveRow.r.toggle();
+          expect(cellGrid.properties.value).toBeUndefined();
+          expect(passiveRow.r.selected).toBe(false);
+          passiveRow.r.destroy();
+          cellGrid.destroy();
+          cellGridEl.remove();
+
+          // Row mode: cells are passive guards, rows toggle through the setter
+          const rowGrid = aria('grid', { selectionMode: 'row', value: undefined });
+          const rowGridEl = bind(document.createElement('div'), rowGrid);
+          document.body.appendChild(rowGridEl);
+          const row = component().run(() => {
+            const r = aria('grid-row', { name: 'r0' }) as GridRowAria;
+            const re = bind(document.createElement('div'), r);
+            rowGridEl.appendChild(re);
+            return { r, re };
+          });
+          const passiveCell = component().run(() => {
+            const c = aria('grid-cell', { name: 'a1' }) as GridCellAria;
+            const el = bind(document.createElement('div'), c);
+            row.re.appendChild(el);
+            return { c, el };
+          });
+          expect(passiveCell.el.hasAttribute('tabindex')).toBe(false);
+          expect(passiveCell.el.hasAttribute('aria-selected')).toBe(false);
+          expect(passiveCell.el.hasAttribute('aria-disabled')).toBe(false);
+          passiveCell.c.selected = true;
+          passiveCell.c.select();
+          passiveCell.c.deselect();
+          passiveCell.c.toggle();
+          expect(rowGrid.properties.value).toBeUndefined();
+          row.r.selected = true;
+          expect(rowGrid.properties.value).toBe('r0');
+          expect(row.re.getAttribute('tabindex')).toBe('0');
+          row.r.deselect();
+          expect(rowGrid.properties.value).toBeUndefined();
+          row.r.select();
+          expect(rowGrid.properties.value).toBe('r0');
+          row.r.toggle();
+          expect(rowGrid.properties.value).toBeUndefined();
+          const lockedRow = component().run(() => {
+            const r = aria('grid-row', { name: 'r1', disabled: true }) as GridRowAria;
+            const re = bind(document.createElement('div'), r);
+            rowGridEl.appendChild(re);
+            return { r, re };
+          });
+          expect(lockedRow.re.hasAttribute('tabindex')).toBe(false);
+          expect(lockedRow.re.getAttribute('aria-disabled')).toBe('true');
+          lockedRow.r.toggle();
+          expect(rowGrid.properties.value).toBeUndefined();
+          passiveCell.c.destroy();
+          row.r.destroy();
+          lockedRow.r.destroy();
+          rowGrid.destroy();
+          rowGridEl.remove();
         });
       }));
   });
@@ -618,6 +747,269 @@ describe('Grid - Coverage & Boundary Tests', () => {
           expect(bare.el.hasAttribute('aria-readonly')).toBe(false);
           expect(bare.el.getAttribute('tabindex')).toBe('-1');
           bare.c.destroy();
+          grid.destroy();
+          gridEl.remove();
+        });
+      }));
+  });
+
+  describe('Editable Cell Invariant', () => {
+    it('locks traversal while editing and commits text on blur', () =>
+      scope.run(() => {
+        component().run(() => {
+          const props = mutable<GridProps>({ value: undefined, selectionMode: 'cell', editable: true });
+          const { grid, rows, cleanup } = buildGrid(props, [['a1', 'a2']]);
+          const [a1, a2] = rows[0].cells;
+          expect(grid.editable).toBe(true);
+
+          // Editable cell mode: every enabled cell is a tab stop
+          for (const cell of rows[0].cells) {
+            expect(cell.getAttribute('tabindex')).toBe('0');
+          }
+
+          a1.click();
+          expect(props.value).toBe('a1');
+          expect(a1.getAttribute('contenteditable')).toBe('true');
+          expect(a2.hasAttribute('contenteditable')).toBe(false);
+          expect(grid.locked).toBe(true);
+
+          // Traversal is frozen while the edit holds the grid
+          a1.focus();
+          expect(press(a1, 'ArrowRight').defaultPrevented).toBe(false);
+          expect(document.activeElement).toBe(a1);
+
+          // Committing the edit stores the text on the cell and releases the value
+          a1.textContent = 'Berlin';
+          a1.blur();
+          expect(props.value).toBeUndefined();
+          expect(grid.locked).toBe(false);
+          expect(a1.hasAttribute('contenteditable')).toBe(false);
+
+          cleanup();
+        });
+      }));
+
+    it('commits text on Escape without touching a non-editable grid', () =>
+      scope.run(() => {
+        component().run(() => {
+          const props = mutable<GridProps>({ value: undefined, selectionMode: 'cell', editable: true });
+          const { grid, gridEl, rows, cleanup } = buildGrid(props, [['a1']]);
+          const [a1] = rows[0].cells;
+
+          // Escape on a cell that holds no edit commits nothing
+          release(a1, 'Escape');
+          expect(props.value).toBeUndefined();
+
+          a1.click();
+          a1.textContent = 'Vilnius';
+          release(a1, 'Escape');
+          expect(props.value).toBeUndefined();
+
+          // A re-click on the selected editable cell is swallowed: no toggle,
+          // no bubble — the edit session survives it
+          const seen: string[] = [];
+          gridEl.addEventListener('click', () => seen.push('bubbled'));
+          a1.click();
+          expect(props.value).toBe('a1');
+          expect(seen).toEqual(['bubbled']);
+          a1.click();
+          expect(props.value).toBe('a1');
+          expect(seen).toEqual(['bubbled']);
+
+          cleanup();
+          void grid;
+        });
+      }));
+
+    it('keeps every enabled stop while editable and parks disabled cells', () =>
+      scope.run(() => {
+        component().run(() => {
+          const grid = aria('grid', { editable: true });
+          const gridEl = bind(document.createElement('div'), grid);
+          document.body.appendChild(gridEl);
+          const live = component().run(() => {
+            const c = aria('grid-cell', { name: 'live' }) as GridCellAria;
+            const el = bind(document.createElement('div'), c);
+            gridEl.appendChild(el);
+            return { c, el };
+          });
+          const locked = component().run(() => {
+            const c = aria('grid-cell', { name: 'locked', disabled: true }) as GridCellAria;
+            const el = bind(document.createElement('div'), c);
+            gridEl.appendChild(el);
+            return { c, el };
+          });
+          expect(live.el.getAttribute('tabindex')).toBe('0');
+          expect(locked.el.getAttribute('tabindex')).toBe('-1');
+          expect(locked.el.getAttribute('aria-disabled')).toBe('true');
+          expect(gridEl.hasAttribute('tabindex')).toBe(false);
+          live.c.destroy();
+          locked.c.destroy();
+          grid.destroy();
+          gridEl.remove();
+        });
+      }));
+
+    it('leaves a standalone cell uncommitted without a grid', () =>
+      scope.run(() => {
+        component().run(() => {
+          const cell = component().run(() => {
+            const c = aria('grid-cell', { name: 'solo' }) as GridCellAria;
+            const el = bind(document.createElement('div'), c);
+            document.body.appendChild(el);
+            return { c, el };
+          });
+          // No grid above: Escape and blur have nowhere to commit to
+          release(cell.el, 'Escape');
+          cell.el.blur();
+          cell.el.click();
+          expect(cell.c.selected).toBe(true);
+          cell.c.destroy();
+          cell.el.remove();
+        });
+      }));
+
+    it('places the cursor at either end without crashing', () =>
+      scope.run(() => {
+        component().run(() => {
+          const grid = aria('grid', { editable: true });
+          const gridEl = bind(document.createElement('div'), grid);
+          document.body.appendChild(gridEl);
+          const full = component().run(() => {
+            const c = aria('grid-cell', { name: 'full' }) as GridCellAria;
+            const el = bind(document.createElement('div'), c);
+            el.textContent = 'Oslo';
+            gridEl.appendChild(el);
+            return { c, el };
+          });
+          const empty = component().run(() => {
+            const c = aria('grid-cell', { name: 'empty' }) as GridCellAria;
+            const el = bind(document.createElement('div'), c);
+            gridEl.appendChild(el);
+            return { c, el };
+          });
+          const placing = (c: GridCellAria, atEnd?: boolean) =>
+            (c as unknown as { placeCursor: (atEnd?: boolean) => void }).placeCursor(atEnd);
+          placing(full.c);
+          expect(document.activeElement).toBe(full.el);
+          // No selection object: focus still lands, the caret step is skipped
+          const noSelection = vi.spyOn(window, 'getSelection').mockReturnValue(null);
+          placing(full.c);
+          expect(document.activeElement).toBe(full.el);
+          noSelection.mockRestore();
+          placing(full.c, false);
+          placing(empty.c);
+          // No element bound yet: placing is a no-op rather than a crash
+          const bare = aria('grid-cell', { name: 'bare' }) as GridCellAria;
+          placing(bare);
+          full.c.destroy();
+          empty.c.destroy();
+          bare.destroy();
+          grid.destroy();
+          gridEl.remove();
+        });
+      }));
+  });
+
+  describe('Grid Tab Stop Invariant', () => {
+    it('parks the tab stop on the grid when row mode holds no value', () =>
+      scope.run(() => {
+        component().run(() => {
+          const props = mutable<GridProps>({ value: undefined, selectionMode: 'row' });
+          const { gridEl, rows, cleanup } = buildGrid(props, [['a1'], ['b1']]);
+          const rowEls = rows.map((row) => row.rowEl);
+
+          // No row holds the stop, so the grid does — otherwise Tab can never enter
+          expect(gridEl.getAttribute('tabindex')).toBe('0');
+
+          // Tab lands on the grid; arrows rove from there without selecting
+          gridEl.focus();
+          expect(document.activeElement).toBe(gridEl);
+          press(gridEl, 'ArrowDown');
+          expect(document.activeElement).toBe(rowEls[0]);
+          expect(props.value).toBeUndefined();
+
+          // Once a row holds the value the stop travels to it and the grid steps back
+          rows[0].cells[0].click();
+          expect(props.value).toBe('r0');
+          expect(rowEls[0].getAttribute('tabindex')).toBe('0');
+          expect(gridEl.hasAttribute('tabindex')).toBe(false);
+
+          // Releasing the holder parks the stop back on the grid
+          rows[0].cells[0].click();
+          expect(props.value).toBeUndefined();
+          expect(gridEl.getAttribute('tabindex')).toBe('0');
+
+          cleanup();
+        });
+      }));
+
+    it('leaves the grid itself out of the tab order while members hold stops', () =>
+      scope.run(() => {
+        component().run(() => {
+          const props = mutable<GridProps>({ value: 'a1', selectionMode: 'cell' });
+          const { gridEl, cleanup } = buildGrid(props, [['a1']]);
+          expect(gridEl.hasAttribute('tabindex')).toBe(false);
+          cleanup();
+        });
+      }));
+
+    it('parks the tab stop on the grid when a plain cell grid holds no value', () =>
+      scope.run(() => {
+        component().run(() => {
+          const props = mutable<GridProps>({ value: undefined, selectionMode: 'cell' });
+          const { gridEl, rows, cleanup } = buildGrid(props, [
+            ['a1', 'a2'],
+            ['b1', 'b2'],
+          ]);
+          const cells = rows.flatMap((row) => row.cells);
+          for (const cell of cells) {
+            expect(cell.getAttribute('tabindex')).toBe('-1');
+          }
+          expect(gridEl.getAttribute('tabindex')).toBe('0');
+
+          // Arrows enter the grid from the container itself without selecting
+          gridEl.focus();
+          press(gridEl, 'ArrowDown');
+          expect(document.activeElement).toBe(cells[0]);
+          expect(props.value).toBeUndefined();
+
+          gridEl.focus();
+          press(gridEl, 'ArrowUp');
+          expect(document.activeElement).toBe(cells[cells.length - 1]);
+
+          // Non-travel keys on the grid container commit nothing
+          gridEl.focus();
+          expect(press(gridEl, 'Enter').defaultPrevented).toBe(false);
+          expect(document.activeElement).toBe(gridEl);
+
+          // Selecting parks the single stop on the holder and steps the grid back
+          cells[2].click();
+          expect(props.value).toBe('b1');
+          expect(cells[2].getAttribute('tabindex')).toBe('0');
+          expect(gridEl.hasAttribute('tabindex')).toBe(false);
+
+          cleanup();
+        });
+      }));
+
+    it('refuses grid entry when no enabled cell exists', () =>
+      scope.run(() => {
+        component().run(() => {
+          const grid = aria('grid', {});
+          const gridEl = bind(document.createElement('div'), grid);
+          document.body.appendChild(gridEl);
+          const cell = component().run(() => {
+            const c = aria('grid-cell', { name: 'a1', disabled: true }) as GridCellAria;
+            const el = bind(document.createElement('div'), c);
+            gridEl.appendChild(el);
+            return { c, el };
+          });
+          expect(gridEl.getAttribute('tabindex')).toBe('0');
+          gridEl.focus();
+          expect(press(gridEl, 'ArrowDown').defaultPrevented).toBe(false);
+          expect(document.activeElement).toBe(gridEl);
+          cell.c.destroy();
           grid.destroy();
           gridEl.remove();
         });

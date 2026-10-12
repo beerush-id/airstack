@@ -6,11 +6,20 @@
   border: 1px solid #e4e4e7;
   border-radius: 0.75rem;
   background: #fff;
+
+  &:focus-visible {
+    outline: 2px solid #18181b;
+    outline-offset: 2px;
+  }
 }
 .demo-grid-row {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 0.25rem;
+
+  &[aria-selected] {
+    border-radius: 0.35rem;
+  }
 
   &[aria-selected='true'] {
     background: #18181b;
@@ -29,6 +38,7 @@
   text-align: center;
 
   &[aria-selected] {
+    border-radius: 0.35rem;
     border: 1px solid #f4f4f5;
   }
 }

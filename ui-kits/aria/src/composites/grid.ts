@@ -1,7 +1,7 @@
 import { $static, $symbol, createContext, effect, uIndex } from '@airlib/core';
 import { roverCtx } from '../context.js';
 import { Aria } from '../core.js';
-import { SelectionAria, type SelectionAttributes, selectionGroup, type SelectionOptions } from '../selection.js';
+import { SelectionAria, type SelectionAttributes, type SelectionOptions, selectionGroup } from '../selection.js';
 import type { AriaAttributes, AriaProps, BaseElement } from '../types.js';
 import { ariaBoolean } from '../utils/attributes.js';
 import { handleRovingKey } from '../utils/navigation.js';
@@ -146,6 +146,7 @@ export class GridAria<
     const attrs: Record<string, unknown> = {
       id: this.properties.id,
       role: this.gridRole,
+      tabindex: (!this.editable || this.isRowMode) && this.value == null && !disabled ? 0 : undefined,
       'aria-disabled': ariaBoolean(disabled),
       onkeydown: this.handleKeyDown,
     };
@@ -182,7 +183,8 @@ export class GridAria<
   };
 
   private move(current: HTMLElement, key: string): boolean {
-    const root = this.element!;
+    const root = this.element! as unknown as HTMLElement;
+    if (current === root) return this.enterFromGrid(key);
     const rows = Array.from(root.querySelectorAll<HTMLElement>(ROW_SELECTOR));
     const currentRow = current.closest(ROW_SELECTOR) as HTMLElement | null;
     const inRow = (row: HTMLElement | null) =>
@@ -253,6 +255,20 @@ export class GridAria<
       return false;
     }
 
+    return false;
+  }
+
+  private enterFromGrid(key: string): boolean {
+    const cells = Array.from(this.element!.querySelectorAll<HTMLElement>(ENABLED_ROVE_SELECTOR));
+    if (cells.length === 0) return false;
+    if (key === 'ArrowRight' || key === 'ArrowDown' || key === 'PageDown' || key === 'Home') {
+      cells[0].focus();
+      return true;
+    }
+    if (key === 'ArrowLeft' || key === 'ArrowUp' || key === 'PageUp' || key === 'End') {
+      cells[cells.length - 1].focus();
+      return true;
+    }
     return false;
   }
 }
@@ -458,7 +474,7 @@ export class GridCellAria<
 
     return Object.assign(attrs, {
       role: 'gridcell',
-      tabindex: isPassive ? undefined : 0,
+      tabindex: isPassive ? undefined : this.editable ? (isDisabled ? -1 : 0) : isSelected ? 0 : -1,
       contenteditable: isSelected && this.editable ? 'true' : undefined,
       'aria-disabled': isPassive ? undefined : isDisabled ? 'true' : 'false',
       'aria-selected': isPassive ? undefined : isSelected ? 'true' : 'false',

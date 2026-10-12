@@ -46,6 +46,8 @@ export interface GridProps {
   /** Total number of rows in the grid (aria-rowcount) */
   rowcount?: number;
   disabled?: boolean;
+  /** When true, selecting a cell opens it as an editable field */
+  editable?: boolean;
 }
 ```
 
@@ -124,13 +126,13 @@ export function aria<E extends BaseElement = HTMLElement>(
 export function aria<E extends BaseElement = HTMLElement>(
   role: 'treegrid',
   props?: TreegridProps
-): TreegridAria<E>;
+): TreeGridAria<E>;
 
 // Row: Row container and selection coordinator
 export function aria<E extends BaseElement = HTMLElement>(
   role: 'grid-row',
   props?: RowProps
-): RowAria<E>;
+): GridRowAria<E>;
 
 // GridCell: Interactive target receiving 2D roving focus
 export function aria<E extends BaseElement = HTMLElement>(
@@ -142,13 +144,13 @@ export function aria<E extends BaseElement = HTMLElement>(
 export function aria<E extends BaseElement = HTMLElement>(
   role: 'grid-columnheader',
   props?: ColumnHeaderProps
-): ColumnHeaderAria<E>;
+): GridColumnHeaderAria<E>;
 
 // RowHeader: Row header labeling row contents
 export function aria<E extends BaseElement = HTMLElement>(
   role: 'grid-rowheader',
   props?: RowHeaderProps
-): RowHeaderAria<E>;
+): GridRowHeaderAria<E>;
 ```
 
 ---
@@ -160,6 +162,13 @@ export function aria<E extends BaseElement = HTMLElement>(
   - `ArrowLeft` / `ArrowRight`: Moves focus horizontally between cells in the same row.
   - `Home` / `End`: Moves focus to the first / last cell in the row.
   - `PageUp` / `PageDown`: Scrolls rows and moves focus vertically.
-  - Grid declares no `manual` prop: arrows move focus only and never select; `Space`/`Enter` commits the focused cell in `cell` mode, or its enclosing row in `row` mode, through the same click path as pointer activation.
+  - Grid declares no `manual` prop: arrows move focus only and never select; `Enter` commits the focused cell in `cell` mode, or its enclosing row in `row` mode, through the same click path as pointer activation. `Space` is inert on grid members.
+  - Cell `Enter` is deferred to `keyup` (via `deferredKey`): `keydown` commits nothing, so the key release fires the click.
+  - Selection is always toggle: re-activating the holder releases it and clears `value` (empty selection is allowed). There is no required or select-only mode.
+  - Only the active mode projects selection: in `cell` mode rows are passive (no `tabindex`, no `aria-selected`, no `aria-disabled`); in `row` mode cells are passive (no `tabindex`, no `aria-selected`, no `aria-disabled`) and commits lift to the enclosing row through bubbling.
+  - Tab stops in `cell` mode depend on `editable`: an editable grid puts every enabled cell in the tab order (`tabindex="0"`, disabled `-1`); a plain grid roves a single stop — `0` on the selected cell, `-1` elsewhere — exactly like `row` mode, where the selected row carries `0` and unselected rows `-1`.
+  - A disabled cell is never a tab stop (`tabindex="-1"`) but keeps its slot so vertical travel stays column-aligned.
+  - When no value is held and no member owns a stop (`row` mode, or `cell` mode without `editable`), the grid itself carries `tabindex="0"`, so Tab can still enter. Arrows from the focused grid container enter the first enabled cell (`ArrowRight` / `ArrowDown` / `PageDown` / `Home`) or the last one (`ArrowLeft` / `ArrowUp` / `PageUp` / `End`) without selecting.
+  - Editable grids (`editable: true`): selecting a cell makes it `contenteditable`, locks grid traversal (`locked`), and places the caret at the end of the cell text. `Escape` or `blur` commits: the cell text is stored on the cell's own `value` and the grid `value` clears. Re-clicking the selected editable cell is swallowed (no toggle, no bubble), so the edit session survives it.
 
 2. **State Projection**: `value` reads and writes props directly. Props is the single source of state.
