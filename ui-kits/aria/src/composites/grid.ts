@@ -1,4 +1,4 @@
-import { $static, $symbol, createContext, uIndex } from '@airlib/core';
+import { $static, $symbol, createContext, effect, uIndex } from '@airlib/core';
 import { roverCtx } from '../context.js';
 import { Aria } from '../core.js';
 import { SelectionAria, type SelectionAttributes, selectionGroup, type SelectionOptions } from '../selection.js';
@@ -17,6 +17,7 @@ export interface GridProps extends AriaProps {
   colcount?: number;
   rowcount?: number;
   disabled?: boolean;
+  editable?: boolean;
 }
 
 export type TreegridProps = GridProps;
@@ -30,6 +31,7 @@ export interface RowProps extends AriaProps {
 
 export interface GridCellProps extends AriaProps {
   name?: string;
+  value?: string;
   colindex?: number;
   readonly?: boolean;
   selected?: boolean;
@@ -121,6 +123,12 @@ export class GridAria<
     return this.selectionMode === 'row';
   }
 
+  public get editable(): boolean {
+    return !!this.properties.editable;
+  }
+
+  public locked = false;
+
   public constructor(props: Partial<T> = {}) {
     super(props);
     $static(() => {
@@ -129,7 +137,7 @@ export class GridAria<
     gridCtx.set(this as unknown as GridAria);
     roverCtx.set(this as unknown as Aria<BaseElement>);
     selectionGroup.set(this.properties as Record<string, unknown>);
-    this.omittedAttrs.push('id', 'label', 'value', 'selectionMode', 'colcount', 'rowcount', 'disabled');
+    this.omittedAttrs.push('id', 'label', 'value', 'editable', 'selectionMode', 'colcount', 'rowcount', 'disabled');
     this.update();
   }
 
@@ -154,7 +162,7 @@ export class GridAria<
   }
 
   private readonly handleKeyDown = (event: KeyboardEvent): void => {
-    if (this.disabled || event.defaultPrevented || this.parentRover) return;
+    if (this.disabled || event.defaultPrevented || this.parentRover || this.locked) return;
 
     if (this.isRowMode) {
       handleRovingKey(this.element, event, {
@@ -352,8 +360,18 @@ export class GridCellAria<
     super.selected = value;
   }
 
+  public get editable() {
+    return !!this.grid?.properties.editable;
+  }
+
   public constructor(props: Partial<T> = {}) {
-    super(props, { role: 'grid-cell', valueKey: 'name', allowKeys: ['Enter'] } as SelectionOptions);
+    super(props, {
+      role: 'grid-cell',
+      valueKey: 'name',
+      allowKeys: ['Enter'],
+      deferredKey: true,
+    } as SelectionOptions);
+
     this.omittedAttrs.push(
       'name',
       'colindex',
@@ -365,7 +383,32 @@ export class GridCellAria<
     );
 
     $static(() => {
-      if (this.isRowMode) this.group = undefined;
+      if (this.isRowMode) {
+        this.group = undefined;
+        this.options.allowKeys = [];
+      }
+    });
+
+    this.on('keyup', (e) => {
+      if (e.key !== 'Escape') return;
+      this.commit();
+    });
+    this.on('blur', () => {
+      this.commit();
+    });
+    this.on('click', (e) => {
+      if (!this.grid || !this.editable || !this.selected) return;
+      e.stopPropagation();
+      e.preventDefault();
+    });
+
+    effect.client(() => {
+      if (!this.editable || !this.grid) return;
+
+      const selected = this.selected;
+      this.grid.locked = selected;
+
+      if (selected) this.placeCursor();
     });
 
     this.update();
@@ -386,6 +429,27 @@ export class GridCellAria<
     super.toggle();
   }
 
+  protected commit() {
+    if (!this.grid || !this.editable || !this.selected) return;
+    this.properties.value = this.element?.textContent;
+    this.grid.value = undefined;
+  }
+
+  protected placeCursor(atEnd = true) {
+    const element = this.element as unknown as HTMLInputElement;
+    if (!element) return;
+
+    element.focus();
+
+    const selection = window.getSelection();
+    if (!selection) return;
+
+    const targetNode = element.lastChild ?? element;
+    const offset = atEnd ? (targetNode.nodeValue?.length ?? targetNode.childNodes.length) : 0;
+
+    selection.collapse(targetNode, offset);
+  }
+
   protected override createAttributes(): A {
     const attrs = super.createAttributes() as Record<string, unknown>;
     const isSelected = this.selected;
@@ -394,7 +458,8 @@ export class GridCellAria<
 
     return Object.assign(attrs, {
       role: 'gridcell',
-      tabindex: isPassive ? undefined : isDisabled ? -1 : isSelected ? 0 : -1,
+      tabindex: isPassive ? undefined : 0,
+      contenteditable: isSelected && this.editable ? 'true' : undefined,
       'aria-disabled': isPassive ? undefined : isDisabled ? 'true' : 'false',
       'aria-selected': isPassive ? undefined : isSelected ? 'true' : 'false',
       'aria-colindex': this.properties.colindex,

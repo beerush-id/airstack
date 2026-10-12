@@ -47,6 +47,7 @@ const checkboxGroupRoute = route.route('/checkbox-group');
 const listboxRoute = route.route('/listbox');
 const comboboxRoute = route.route('/combobox');
 const fieldRoute = route.route('/field');
+const gridRoute = route.route('/grid');
 /** AirLib managed */
 
 export const ariaRoute = route;
@@ -95,5 +96,6 @@ export const ariaCheckboxGroupRoute = checkboxGroupRoute;
 export const ariaListboxRoute = listboxRoute;
 export const ariaComboboxRoute = comboboxRoute;
 export const ariaFieldRoute = fieldRoute;
+export const ariaGridRoute = gridRoute;
 
 export default ariaRoute;

@@ -124,6 +124,12 @@ export interface SelectionOptions extends AriaOptions {
   allowKeys?: string[];
 
   /**
+   * Whether the selection change should be deferred to keyup event.
+   * @default false
+   */
+  deferredKey?: boolean;
+
+  /**
    * Whether the item is enforced to be required to be selected.
    */
   required?: boolean;
@@ -411,7 +417,7 @@ export abstract class SelectionAria<
     if (event.key === ' ') {
       event.preventDefault();
       this.spaceArmed = true;
-    } else if (event.key === 'Enter') {
+    } else if (!this.options.deferredKey && event.key === 'Enter') {
       (event.currentTarget as HTMLElement)?.click?.();
     }
   };
@@ -423,6 +429,8 @@ export abstract class SelectionAria<
     if (this.disabled || event.defaultPrevented || !allowKeys.includes(event.key)) return;
 
     if (event.key === ' ' && armed) {
+      (event.currentTarget as HTMLElement)?.click?.();
+    } else if (this.options.deferredKey && event.key === 'Enter') {
       (event.currentTarget as HTMLElement)?.click?.();
     }
   };
