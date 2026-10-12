@@ -32,6 +32,9 @@ export class MenubarAria<E extends BaseElement = HTMLElement> extends ToolbarAri
   MenubarProps,
   MenubarAttributes<E>
 > {
+  /**
+   * @param props - User-provided menubar properties.
+   */
   public constructor(props: MenubarProps = {}) {
     super(props as ToolbarProps);
     this.omittedAttrs.push('labelledby');
@@ -45,6 +48,9 @@ export class MenubarAria<E extends BaseElement = HTMLElement> extends ToolbarAri
     return 'horizontal';
   }
 
+  /**
+   * Compiles the container attributes with the menubar role.
+   */
   protected override createAttributes() {
     return Object.assign(super.createAttributes(), {
       role: 'menubar',

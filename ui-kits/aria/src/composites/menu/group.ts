@@ -5,8 +5,6 @@ import { type MenuAria, menuCtx } from './menu.js';
 
 /**
  * Reactive input properties for the Menu item group section.
- *
- * @template T - Scoped radio value type
  */
 export interface MenuItemGroupProps extends SelectionGroupProps {
   /**
@@ -44,8 +42,14 @@ export class MenuGroupAria<E extends BaseElement = HTMLElement> extends Aria<
   MenuItemGroupProps,
   MenuItemGroupAttributes<E>
 > {
+  /**
+   * Enclosing menu orchestrator discovered from ambient context.
+   */
   protected declare host: MenuAria;
 
+  /**
+   * @param props - User-provided group properties.
+   */
   public constructor(props: MenuItemGroupProps = {}) {
     super(props);
 
@@ -56,6 +60,9 @@ export class MenuGroupAria<E extends BaseElement = HTMLElement> extends Aria<
     this.update();
   }
 
+  /**
+   * Compiles the section attributes and its accessible name.
+   */
   protected override createAttributes(): MenuItemGroupAttributes<E> {
     return Object.assign(super.createAttributes(), {
       role: 'group',

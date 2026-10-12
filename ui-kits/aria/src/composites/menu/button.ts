@@ -51,6 +51,9 @@ export class MenuButtonAria<E extends BaseElement = HTMLButtonElement> extends P
     this.update();
   }
 
+  /**
+   * Compiles the trigger attributes; the menu role lives on the panel, so none is emitted here.
+   */
   protected override createAttributes(): MenuButtonAttributes<E> {
     return Object.assign(super.createAttributes(), {
       role: undefined,

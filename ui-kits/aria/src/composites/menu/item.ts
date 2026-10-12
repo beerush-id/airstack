@@ -60,12 +60,22 @@ export class MenuItemAria<E extends BaseElement = HTMLButtonElement> extends But
   MenuItemAttributes<E>,
   MenuItemOptions
 > {
+  /**
+   * Enclosing menu orchestrator discovered from ambient context.
+   */
   protected declare host: MenuAria;
 
+  /**
+   * Whether this item is disabled, factoring in menu-level disablement.
+   */
   public override get disabled() {
     return super.disabled || this.host?.disabled;
   }
 
+  /**
+   * @param props - User-provided item properties.
+   * @param options - User-provided item options.
+   */
   public constructor(props: MenuItemProps = {}, options: MenuItemOptions = { native: true }) {
     super(props, options as ButtonOptions);
 
@@ -95,6 +105,9 @@ export class MenuItemAria<E extends BaseElement = HTMLButtonElement> extends But
     this.host.open = false;
   }
 
+  /**
+   * Compiles the item attributes with the command-item role.
+   */
   protected override createAttributes(): MenuItemAttributes<E> {
     return Object.assign(super.createAttributes(), {
       role: 'menuitem',
@@ -127,12 +140,22 @@ export class MenuItemCheckboxAria<E extends BaseElement = HTMLButtonElement> ext
   MenuItemCheckboxAttributes<E>,
   MenuItemOptions
 > {
+  /**
+   * Enclosing menu orchestrator discovered from ambient context.
+   */
   protected declare host: MenuAria;
 
+  /**
+   * Whether this item is disabled, factoring in menu-level disablement.
+   */
   public override get disabled() {
     return super.disabled || this.host?.disabled;
   }
 
+  /**
+   * @param props - User-provided checkbox item properties.
+   * @param options - User-provided item options.
+   */
   public constructor(props: MenuItemCheckboxProps = {}, options: MenuItemOptions = { native: false }) {
     super(props, options);
 
@@ -141,6 +164,9 @@ export class MenuItemCheckboxAria<E extends BaseElement = HTMLButtonElement> ext
     this.update();
   }
 
+  /**
+   * Compiles the item attributes with the checkable-item role.
+   */
   protected override createAttributes(): MenuItemCheckboxAttributes<E> {
     return Object.assign(super.createAttributes(), {
       role: 'menuitemcheckbox',
@@ -175,12 +201,22 @@ export class MenuItemRadioAria<
   E extends BaseElement = HTMLButtonElement,
   T extends Primitive = Primitive,
 > extends RadioAria<E, MenuItemRadioProps<T>, MenuItemRadioAttributes<E>, MenuItemOptions> {
+  /**
+   * Enclosing menu orchestrator discovered from ambient context.
+   */
   protected declare host: MenuAria;
 
+  /**
+   * Whether this item is disabled, factoring in menu-level disablement.
+   */
   public override get disabled() {
     return super.disabled || this.host?.disabled;
   }
 
+  /**
+   * @param props - User-provided radio item properties.
+   * @param options - User-provided item options.
+   */
   public constructor(props: MenuItemRadioProps<T>, options: MenuItemOptions = { native: false }) {
     super(props, options);
 
@@ -189,6 +225,9 @@ export class MenuItemRadioAria<
     this.update();
   }
 
+  /**
+   * Compiles the item attributes with the radio-item role.
+   */
   protected override createAttributes(): MenuItemRadioAttributes<E> {
     return Object.assign(super.createAttributes(), {
       role: 'menuitemradio',

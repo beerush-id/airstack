@@ -42,6 +42,10 @@ export class MenuPanelAria<E extends BaseElement = HTMLElement> extends ListboxA
    * Enclosing menu orchestrator discovered from ambient context.
    */
   public host?: MenuAria;
+
+  /**
+   * Internal popover proxying overlay dismissal, positioning, and focus management.
+   */
   public popup!: PopoverAria;
 
   protected override selector = ITEM_SELECTOR.join(',');
@@ -72,6 +76,9 @@ export class MenuPanelAria<E extends BaseElement = HTMLElement> extends ListboxA
     this.popup.current = element as unknown as HTMLElement;
   }
 
+  /**
+   * Compiles the panel attributes with the menu role and vertical orientation.
+   */
   protected override createAttributes(): ListboxAttributes<E> {
     return Object.assign((this.popup as unknown as this).attrs, super.createAttributes(), {
       role: ROLE_PANEL,

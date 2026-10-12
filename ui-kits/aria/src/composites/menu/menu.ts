@@ -1,4 +1,4 @@
-import { $symbol, type ContextReader } from '@airlib/core';
+import { $static, $symbol, type ContextReader } from '@airlib/core';
 import type { AriaEvent, AriaEventHandler, BaseElement } from '../../types.js';
 import { listboxCtx, type ListboxProps } from '../listbox.js';
 import { PopupAria, type PopupCloseEvent, popupCtx, type PopupOpenEvent, type PopupProps } from '../popup.js';
@@ -7,12 +7,23 @@ import type { MenuItemOptions } from './item.js';
 import { MenuPanelAria, type MenuPanelProps } from './panel.js';
 
 /**
- * Controller-dispatched menu event carrying the acting item's name or committed state.
+ * Controller-dispatched event announced after the menu popup opens.
  */
 export type MenuOpenEvent = PopupOpenEvent;
+
+/**
+ * Controller-dispatched event announced after the menu popup closes.
+ */
 export type MenuCloseEvent = PopupCloseEvent;
+
+/**
+ * Controller-dispatched command event carrying the acting item's name.
+ */
 export type MenuCommandEvent = AriaEvent<string>;
 
+/**
+ * Ambient context reader resolving the enclosing menu orchestrator for descendants.
+ */
 export const menuCtx = popupCtx as ContextReader<MenuAria>;
 
 /**
@@ -49,6 +60,8 @@ const MENU_SYMBOL = $symbol('menu');
  * @template E - Target Element type (defaults to HTMLElement)
  */
 export class MenuAria<E extends BaseElement = HTMLElement> extends PopupAria<E, MenuProps> {
+  protected declare host?: MenuAria;
+
   /**
    * Deterministic panel identifier shared with the trigger's aria-controls.
    */
@@ -56,18 +69,45 @@ export class MenuAria<E extends BaseElement = HTMLElement> extends PopupAria<E, 
     return `${this.properties.id}-menu`;
   }
 
+  /**
+   * Whether the menu popup is currently open.
+   */
   public get open() {
     return !!this.properties.open;
   }
 
+  /**
+   * Sets whether the menu popup is currently open.
+   *
+   * @param open - Visibility flag to apply.
+   */
   public set open(open: boolean) {
     this.properties.open = open;
   }
 
+  /**
+   * Whether this menu is nested as a submenu of an enclosing menu.
+   *
+   * @returns True when an enclosing menu orchestrator was discovered.
+   */
+  public isSubmenu() {
+    return !!this.host;
+  }
+
+  /**
+   * @param props - User-provided root properties.
+   */
   public constructor(props: MenuProps = {}) {
     super(props, { name: 'menu', symbol: MENU_SYMBOL, panelRole: 'menu' });
 
+    this.host = menuCtx.get();
     this.omittedAttrs.push('delay', 'oncommand');
+
+    $static(() => {
+      if (this.host) {
+        this.properties.id = `${this.host}-${this.properties.id}`;
+      }
+    });
 
     menuCtx.set(this as never);
     listboxCtx.set(this.properties as ListboxProps);
@@ -96,6 +136,11 @@ export class MenuAria<E extends BaseElement = HTMLElement> extends PopupAria<E, 
     return new MenuPanelAria(props);
   }
 
+  /**
+   * Routes bubbled item `command` events to the root-level `oncommand` callback.
+   *
+   * @param event - The AriaEvent to capture.
+   */
   protected capture(event: AriaEvent): void {
     super.capture(event);
     if (event.type === 'command') {
