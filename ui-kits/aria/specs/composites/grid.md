@@ -35,6 +35,8 @@ dimensions using keyboard arrow keys.
 export interface GridProps {
   /** Optional DOM element identifier */
   id?: string;
+  /** Accessible name compiled as aria-label */
+  label?: string;
   /** Active cell or row identifier */
   value?: string;
   /** Row vs cell selection mode */
@@ -126,25 +128,25 @@ export function aria<E extends BaseElement = HTMLElement>(
 
 // Row: Row container and selection coordinator
 export function aria<E extends BaseElement = HTMLElement>(
-  role: 'row',
+  role: 'grid-row',
   props?: RowProps
 ): RowAria<E>;
 
 // GridCell: Interactive target receiving 2D roving focus
 export function aria<E extends BaseElement = HTMLElement>(
-  role: 'gridcell',
+  role: 'grid-cell',
   props: GridCellProps
 ): GridCellAria<E>;
 
 // ColumnHeader: Interactive column header
 export function aria<E extends BaseElement = HTMLElement>(
-  role: 'columnheader',
+  role: 'grid-columnheader',
   props?: ColumnHeaderProps
 ): ColumnHeaderAria<E>;
 
 // RowHeader: Row header labeling row contents
 export function aria<E extends BaseElement = HTMLElement>(
-  role: 'rowheader',
+  role: 'grid-rowheader',
   props?: RowHeaderProps
 ): RowHeaderAria<E>;
 ```
@@ -158,6 +160,6 @@ export function aria<E extends BaseElement = HTMLElement>(
   - `ArrowLeft` / `ArrowRight`: Moves focus horizontally between cells in the same row.
   - `Home` / `End`: Moves focus to the first / last cell in the row.
   - `PageUp` / `PageDown`: Scrolls rows and moves focus vertically.
-  - Grid declares no `manual` prop: arrows move focus only and never select; `Space`/`Enter` activates.
+  - Grid declares no `manual` prop: arrows move focus only and never select; `Space`/`Enter` commits the focused cell in `cell` mode, or its enclosing row in `row` mode, through the same click path as pointer activation.
 
 2. **State Projection**: `value` reads and writes props directly. Props is the single source of state.

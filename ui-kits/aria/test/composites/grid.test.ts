@@ -15,7 +15,7 @@ function buildGrid(props: Partial<GridProps>, rows: string[][], host: 'grid' | '
 
   rows.forEach((names, rowIndex) => {
     const slot = component().run(() => {
-      const row = aria('row', { name: `r${rowIndex}`, rowindex: rowIndex + 1 });
+      const row = aria('grid-row', { name: `r${rowIndex}`, rowindex: rowIndex + 1 });
       const rowEl = bind(document.createElement('div'), row);
       gridEl.appendChild(rowEl);
       controllers.push(row);
@@ -23,7 +23,7 @@ function buildGrid(props: Partial<GridProps>, rows: string[][], host: 'grid' | '
       const cells: CellRef[] = [];
 
       names.forEach((name, columnIndex) => {
-        const cell = aria('gridcell', { name, colindex: columnIndex + 1 });
+        const cell = aria('grid-cell', { name, colindex: columnIndex + 1 });
         const el = bind(document.createElement('div'), cell);
         rowEl.appendChild(el);
         controllers.push(cell);
@@ -78,7 +78,7 @@ describe('Grid - Composite Specifications', () => {
               cell.el.dataset.name = cell.name;
               expect(cell.el.getAttribute('aria-colindex')).toBe(String(columnIndex + 1));
             });
-            row.el.dataset.name = `r${rowIndex}`;
+            (row.row as unknown as { el: HTMLElement }).el.dataset.name = `r${rowIndex}`;
           });
 
           const at = (name: string) => rows.flatMap((row) => row.cells).find((cell) => cell.name === name)?.el;
@@ -119,7 +119,7 @@ describe('Grid - Composite Specifications', () => {
         });
       }));
 
-    it('activates with Space and Enter without letting the grid decide selection', () =>
+    it('commits with Space and Enter through the same click path as pointer', () =>
       scope.run(() => {
         component().run(() => {
           const props = mutable<GridProps>({ value: 'a1', selectionMode: 'cell' });
@@ -133,15 +133,13 @@ describe('Grid - Composite Specifications', () => {
           target.addEventListener('click', () => activations.push('clicked'));
 
           target.focus();
-          const space = press(target, ' ');
-          expect(space.defaultPrevented).toBe(true);
-          expect(activations).toEqual(['clicked']);
-          expect(props.value).toBe('a1');
+          press(target, ' ');
+          expect(activations).toEqual([]);
 
           const enter = press(target, 'Enter');
-          expect(enter.defaultPrevented).toBe(true);
-          expect(activations).toHaveLength(2);
-          expect(props.value).toBe('a1');
+          expect(enter.defaultPrevented).toBe(false);
+          expect(activations).toHaveLength(1);
+          expect(props.value).toBe('b2');
 
           cleanup();
         });
@@ -211,14 +209,14 @@ describe('Grid - Composite Specifications', () => {
           document.body.appendChild(gridEl);
 
           const locked = component().run(() => {
-            const cell = aria('gridcell', { name: 'formula', readonly: true });
+            const cell = aria('grid-cell', { name: 'formula', readonly: true });
             const el = bind(document.createElement('div'), cell);
             gridEl.appendChild(el);
             return { cell, el };
           });
 
           const gone = component().run(() => {
-            const cell = aria('gridcell', { name: 'removed', disabled: true });
+            const cell = aria('grid-cell', { name: 'removed', disabled: true });
             const el = bind(document.createElement('div'), cell);
             gridEl.appendChild(el);
             return { cell, el };
@@ -270,15 +268,15 @@ describe('Grid - Composite Specifications', () => {
           document.body.appendChild(gridEl);
 
           const headerRow = component().run(() => {
-            const row = aria('row', { rowindex: 1 });
+            const row = aria('grid-row', { rowindex: 1 });
             const rowEl = bind(document.createElement('div'), row);
             gridEl.appendChild(rowEl);
 
-            const nameHeader = aria('columnheader', { name: 'name', colindex: 1 });
+            const nameHeader = aria('grid-columnheader', { name: 'name', colindex: 1 });
             const nameEl = bind(document.createElement('div'), nameHeader);
             rowEl.appendChild(nameEl);
 
-            const totalHeader = aria('columnheader', { name: 'total', colindex: 2, sort: 'none' });
+            const totalHeader = aria('grid-columnheader', { name: 'total', colindex: 2, sort: 'none' });
             const totalEl = bind(document.createElement('div'), totalHeader);
             rowEl.appendChild(totalEl);
 
@@ -286,15 +284,15 @@ describe('Grid - Composite Specifications', () => {
           });
 
           const bodyRow = component().run(() => {
-            const row = aria('row', { name: 'inv-1', rowindex: 2 });
+            const row = aria('grid-row', { name: 'inv-1', rowindex: 2 });
             const rowEl = bind(document.createElement('div'), row);
             gridEl.appendChild(rowEl);
 
-            const rowHeader = aria('rowheader', { rowindex: 2 });
+            const rowHeader = aria('grid-rowheader', { rowindex: 2 });
             const rowHeaderEl = bind(document.createElement('div'), rowHeader);
             rowEl.appendChild(rowHeaderEl);
 
-            const cell = aria('gridcell', { name: 'amount', colindex: 1 });
+            const cell = aria('grid-cell', { name: 'amount', colindex: 1 });
             const cellEl = bind(document.createElement('div'), cell);
             rowEl.appendChild(cellEl);
 
@@ -337,7 +335,7 @@ describe('Grid - Composite Specifications', () => {
           expect(treeEl.getAttribute('aria-label')).toBe('File tree');
 
           const row = component().run(() => {
-            const part = aria('row', { name: 'dir-1' });
+            const part = aria('grid-row', { name: 'dir-1' });
             const el = bind(document.createElement('div'), part);
             treeEl.appendChild(el);
             return { part, el };

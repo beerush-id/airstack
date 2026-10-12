@@ -9,6 +9,7 @@ import {
   type AccordionProps,
   CheckboxGroupAria,
   type CheckboxGroupProps,
+  type ColumnHeaderProps,
   ComboboxAria,
   ComboboxInputAria,
   type ComboboxInputProps,
@@ -36,6 +37,13 @@ import {
   FieldErrorAria,
   FieldLabelAria,
   type FieldProps,
+  GridAria,
+  GridCellAria,
+  type GridCellProps,
+  GridColumnHeaderAria,
+  type GridProps,
+  GridRowAria,
+  GridRowHeaderAria,
   ListboxAria,
   type ListboxProps,
   MenuAria,
@@ -57,6 +65,8 @@ import {
   type MenuProps,
   RadioGroupAria,
   type RadioGroupProps,
+  type RowHeaderProps,
+  type RowProps,
   SelectAria,
   SelectPanelAria,
   type SelectPanelProps,
@@ -84,6 +94,8 @@ import {
   type ToggleGroupProps,
   ToolbarAria,
   type ToolbarProps,
+  TreeGridAria,
+  type TreegridProps,
 } from './composites/index.js';
 import {
   FooterAria,
@@ -249,6 +261,24 @@ export function aria<E extends BaseElement = HTMLElement>(
 ): CheckboxGroupAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement>(role: 'listbox', props?: ListboxProps): ListboxAria<E>;
+
+export function aria<E extends BaseElement = HTMLElement>(role: 'grid', props?: GridProps): GridAria<E>;
+
+export function aria<E extends BaseElement = HTMLElement>(role: 'treegrid', props?: TreegridProps): TreeGridAria<E>;
+
+export function aria<E extends BaseElement = HTMLElement>(role: 'grid-row', props?: RowProps): GridRowAria<E>;
+
+export function aria<E extends BaseElement = HTMLElement>(role: 'grid-cell', props?: GridCellProps): GridCellAria<E>;
+
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'grid-columnheader',
+  props?: ColumnHeaderProps
+): GridColumnHeaderAria<E>;
+
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'grid-rowheader',
+  props?: RowHeaderProps
+): GridRowHeaderAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement>(
   role: 'field',
@@ -677,6 +707,18 @@ export function aria(role: string, init?: unknown, options?: unknown): unknown {
       return new CheckboxGroupAria(init as never);
     case 'listbox':
       return new ListboxAria(init as never);
+    case 'grid':
+      return new GridAria(init as never);
+    case 'treegrid':
+      return new TreeGridAria(init as never);
+    case 'grid-row':
+      return new GridRowAria(init as never);
+    case 'grid-cell':
+      return new GridCellAria(init as never);
+    case 'grid-columnheader':
+      return new GridColumnHeaderAria(init as never);
+    case 'grid-rowheader':
+      return new GridRowHeaderAria(init as never);
     case 'field':
       return new FieldAria(init as never, options as never);
     case 'field-label':
