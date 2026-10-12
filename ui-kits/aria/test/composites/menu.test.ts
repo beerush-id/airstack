@@ -905,6 +905,36 @@ describe('Menu - Composite Specifications', () => {
       }));
   });
 
+  describe('Submenu Invariant', () => {
+    it('treats a nested menu root as a submenu with independent open state', () =>
+      scope.run(() => {
+        component().run(() => {
+          const parentProps = mutable<MenuProps>({ open: true });
+          const parent = aria<HTMLElement>('menu', parentProps);
+          const parentEl = bind(document.createElement('div'), parent);
+          document.body.appendChild(parentEl);
+
+          const childProps = mutable<MenuProps>({ open: false });
+          const child = aria<HTMLElement>('menu', childProps) as unknown as AnyType;
+          const childEl = bind(document.createElement('div'), child);
+          parentEl.appendChild(childEl);
+
+          expect((parent as unknown as AnyType).isSubmenu()).toBe(false);
+          expect(child.isSubmenu()).toBe(true);
+          expect(childProps.open).toBe(false);
+
+          childProps.open = true;
+          expect(childProps.open).toBe(true);
+          expect(parentProps.open).toBe(true);
+
+          child.destroy();
+          (parent as unknown as { destroy: () => void }).destroy();
+          childEl.remove();
+          parentEl.remove();
+        });
+      }));
+  });
+
   describe('Teardown Invariant', () => {
     it('detaches the menu tree without leaving it connected', () =>
       scope.run(() => {
