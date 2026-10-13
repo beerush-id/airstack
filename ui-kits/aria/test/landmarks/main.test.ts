@@ -14,7 +14,7 @@ describe('Main - Landmark Specifications', () => {
     it('marks the primary content region on a generic host and stays silent on <main>', () =>
       scope.run(() => {
         component().run(() => {
-          const native = aria('main');
+          const native = aria('main', {}, { native: true });
           const nativeEl = bind(document.createElement('main'), native);
           document.body.appendChild(nativeEl);
 
@@ -26,7 +26,6 @@ describe('Main - Landmark Specifications', () => {
           expect(customEl.getAttribute('role')).toBe('main');
           expect(custom.attributes.role).toBe('main');
 
-          // A second main is compiled unchanged: uniqueness is not this controller's job
           const second = aria('main', {}, { native: false });
           const secondEl = bind(document.createElement('div'), second);
           document.body.appendChild(secondEl);
@@ -45,7 +44,7 @@ describe('Main - Landmark Specifications', () => {
       scope.run(() => {
         component().run(() => {
           const props = mutable<MainProps>({});
-          const main = aria('main', props);
+          const main = aria('main', props, { native: true });
           const el = bind(document.createElement('main'), main);
           document.body.appendChild(el);
 
@@ -70,7 +69,7 @@ describe('Main - Landmark Specifications', () => {
     it('takes no focus, no live semantics and no interaction on either host', () =>
       scope.run(() => {
         component().run(() => {
-          const native = aria('main');
+          const native = aria('main', {}, { native: true });
           const nativeEl = bind(document.createElement('main'), native);
 
           const custom = aria('main', { label: 'Content' }, { native: false });
@@ -93,7 +92,6 @@ describe('Main - Landmark Specifications', () => {
             expect(event.defaultPrevented).toBe(false);
           }
 
-          // The content inside keeps its own semantics through the landmark
           const heading = document.createElement('h1');
           heading.textContent = 'Chapter one';
           customEl.appendChild(heading);

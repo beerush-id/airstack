@@ -32,11 +32,9 @@ describe('Landmarks - Registry & Boundary Specifications', () => {
             const customEl = bind(document.createElement('div'), custom);
             document.body.appendChild(customEl);
 
-            // The native element carries the landmark implicitly, so nothing is written
             expect(native.attributes.role).toBeUndefined();
             expect(nativeEl.hasAttribute('role')).toBe(false);
 
-            // The generic host needs the declared role to become a landmark at all
             expect(custom.attributes.role).toBe(landmark);
             expect(customEl.getAttribute('role')).toBe(landmark);
 
@@ -99,7 +97,6 @@ describe('Landmarks - Registry & Boundary Specifications', () => {
 
           document.body.append(firstEl, secondEl);
 
-          // Nothing tracks the cardinality the specs require, so both announce as main
           expect(firstEl.getAttribute('role')).toBe('main');
           expect(secondEl.getAttribute('role')).toBe('main');
 
@@ -135,7 +132,6 @@ describe('Landmarks - Registry & Boundary Specifications', () => {
           expect(primaryEl.hasAttribute('aria-label')).toBe(false);
           expect(asideEl.hasAttribute('aria-label')).toBe(false);
 
-          // Naming is what separates repeated landmarks of the same kind
           primary.assign({ label: 'Primary' });
           aside.assign({ label: 'Related links' });
           expect(primaryEl.getAttribute('aria-label')).toBe('Primary');
@@ -154,7 +150,7 @@ describe('Landmarks - Registry & Boundary Specifications', () => {
           const article = document.createElement('article');
           document.body.appendChild(article);
 
-          const nestedNative = aria('sidebar');
+          const nestedNative = aria('sidebar', {}, { native: true });
           const nestedNativeEl = bind(document.createElement('aside'), nestedNative);
           article.appendChild(nestedNativeEl);
 
@@ -162,15 +158,57 @@ describe('Landmarks - Registry & Boundary Specifications', () => {
           const nestedCustomEl = bind(document.createElement('div'), nestedCustom);
           article.appendChild(nestedCustomEl);
 
-          // HTML scopes an <aside> inside an article out of the landmark list
           expect(nestedNativeEl.hasAttribute('role')).toBe(false);
 
-          // and a compiled role cannot be scoped the same way
           expect(nestedCustomEl.getAttribute('role')).toBe('complementary');
 
           nestedNative.destroy();
           nestedCustom.destroy();
           article.remove();
+        });
+      }));
+  });
+
+  describe('Consumed Input Ownership Invariant', () => {
+    it('owns the naming inputs so a wrapper omits only the keys it consumes itself', () =>
+      scope.run(() => {
+        component().run(() => {
+          const header = aria('header', {
+            label: 'Site header',
+            labelledby: 'site-title',
+            className: 'site-header',
+          });
+
+          expect(header.ownKeys).toContain('label');
+          expect(header.ownKeys).toContain('labelledby');
+          expect(header.ownKeys).toContain('aria-label');
+          expect(header.ownKeys).toContain('aria-labelledby');
+
+          const rest = header.restProps(['children']);
+          expect(rest.label).toBeUndefined();
+          expect(rest.labelledby).toBeUndefined();
+          expect(rest.className).toBe('site-header');
+
+          header.destroy();
+        });
+      }));
+
+    it('owns the naming inputs on the conditional landmarks too', () =>
+      scope.run(() => {
+        component().run(() => {
+          const form = aria('form', { label: 'Checkout' });
+          const section = aria('section', { labelledby: 'pricing-heading' });
+
+          expect(form.ownKeys).toContain('label');
+          expect(form.ownKeys).toContain('labelledby');
+          expect(section.ownKeys).toContain('label');
+          expect(section.ownKeys).toContain('labelledby');
+
+          expect(form.restProps(['children']).label).toBeUndefined();
+          expect(section.restProps(['children']).labelledby).toBeUndefined();
+
+          form.destroy();
+          section.destroy();
         });
       }));
   });

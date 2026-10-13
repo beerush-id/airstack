@@ -23,7 +23,7 @@ search.
 
 ```ts
 export interface SearchLandmarkOptions {
-  /** Whether bound to native <search> (default: true) */
+  /** Whether bound to native <search> (default: false) */
   native?: boolean;
 }
 

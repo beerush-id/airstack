@@ -15,14 +15,13 @@ describe('Header - Landmark Specifications', () => {
       scope.run(() => {
         component().run(() => {
           const props = mutable<HeaderProps>({});
-          const header = aria('header', props);
+          const header = aria('header', props, { native: true });
           const el = bind(document.createElement('header'), header);
           document.body.appendChild(el);
 
           expect(header.attributes.role).toBeUndefined();
           expect(el.hasAttribute('role')).toBe(false);
 
-          // The banner role stays implicit only because this header is scoped to the document
           expect(el.parentElement).toBe(document.body);
 
           props.label = 'Site identity';
@@ -34,13 +33,13 @@ describe('Header - Landmark Specifications', () => {
         });
       }));
 
-    it('keeps the banner announcement identical when the header sits inside another section', () =>
+    it('compiles the banner on a custom host nested in a section while the native header stays unroled', () =>
       scope.run(() => {
         component().run(() => {
           const article = document.createElement('article');
           document.body.appendChild(article);
 
-          const nativeScoped = aria('header');
+          const nativeScoped = aria('header', {}, { native: true });
           const nativeEl = bind(document.createElement('header'), nativeScoped);
           article.appendChild(nativeEl);
 
@@ -48,10 +47,8 @@ describe('Header - Landmark Specifications', () => {
           const customEl = bind(document.createElement('div'), customScoped);
           article.appendChild(customEl);
 
-          // HTML demotes a nested <header> to no landmark at all
           expect(nativeEl.hasAttribute('role')).toBe(false);
 
-          // while a compiled role stays on the element wherever it is placed
           expect(customEl.getAttribute('role')).toBe('banner');
           expect(customScoped.attributes.role).toBe('banner');
 
@@ -66,7 +63,7 @@ describe('Header - Landmark Specifications', () => {
     it('names the landmark the same way on both hosts and adds no interaction', () =>
       scope.run(() => {
         component().run(() => {
-          const native = aria('header', { label: 'Primary' });
+          const native = aria('header', { label: 'Primary' }, { native: true });
           const nativeEl = bind(document.createElement('header'), native);
 
           const custom = aria('header', { label: 'Primary' }, { native: false });

@@ -19,7 +19,6 @@ describe('Form Landmark - Landmark Specifications', () => {
           const el = bind(document.createElement('form'), form);
           document.body.appendChild(el);
 
-          // An unnamed form is a structural container, not a landmark
           expect(form.attributes.role).toBeUndefined();
           expect(el.hasAttribute('role')).toBe(false);
           expect(el.hasAttribute('aria-label')).toBe(false);
@@ -56,7 +55,6 @@ describe('Form Landmark - Landmark Specifications', () => {
           expect(el.getAttribute('aria-labelledby')).toBe('checkout-heading');
           expect(el.hasAttribute('aria-label')).toBe(false);
 
-          // Losing the reference demotes the landmark again
           props.labelledby = undefined;
           expect(el.hasAttribute('role')).toBe(false);
           expect(el.hasAttribute('aria-labelledby')).toBe(false);
@@ -76,14 +74,12 @@ describe('Form Landmark - Landmark Specifications', () => {
           const el = bind(document.createElement('form'), form);
           document.body.appendChild(el);
 
-          // The landmark controller compiles no form attributes of its own
           expect(el.hasAttribute('action')).toBe(false);
           expect(el.hasAttribute('method')).toBe(false);
           expect(el.hasAttribute('name')).toBe(false);
           expect(form.attributes.enctype).toBeUndefined();
           expect(form.attributes.novalidate).toBeUndefined();
 
-          // A control placed inside the landmark keeps its own identity
           const search = aria('text-input', { kind: 'search', value: '' });
           const searchEl = bind(document.createElement('input'), search);
           searchEl.name = 'q';
@@ -94,7 +90,6 @@ describe('Form Landmark - Landmark Specifications', () => {
           expect(search.value).toBe('anchors');
           expect(new FormData(el).get('q')).toBe('anchors');
 
-          // The landmark never intercepts the form's own submission
           const submit = new Event('submit', { bubbles: true, cancelable: true });
           el.dispatchEvent(submit);
           expect(submit.defaultPrevented).toBe(false);
@@ -114,9 +109,8 @@ describe('Form Landmark - Landmark Specifications', () => {
 
           expect(el.getAttribute('aria-label')).toBe('Preferences');
           expect(el.hasAttribute('title')).toBe(false);
-          expect(el.getAttribute('name')).toBe('');
+          expect(el.hasAttribute('name')).toBe(false);
 
-          // Naming the landmark does not make it focusable or operable
           expect(el.hasAttribute('tabindex')).toBe(false);
 
           const click = new MouseEvent('click', { bubbles: true, cancelable: true });

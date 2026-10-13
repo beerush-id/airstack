@@ -22,7 +22,7 @@ A sidebar is the supporting section an author holds beside the main content (e.g
 
 ```ts
 export interface SidebarOptions {
-  /** Whether bound to native <aside> (default: true) */
+  /** Whether bound to native <aside> (default: false) */
   native?: boolean;
 }
 

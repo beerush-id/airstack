@@ -21,7 +21,7 @@ A form is the significant form area an author holds when that form requires iden
 
 ```ts
 export interface FormLandmarkOptions {
-  /** Whether bound to native <form> (default: true) */
+  /** Whether bound to native <form> (default: false) */
   native?: boolean;
 }
 

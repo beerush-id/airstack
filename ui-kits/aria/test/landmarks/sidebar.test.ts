@@ -15,7 +15,7 @@ describe('Sidebar - Landmark Specifications', () => {
       scope.run(() => {
         component().run(() => {
           const props = mutable<SidebarProps>({ label: 'Related articles' });
-          const native = aria('sidebar', props);
+          const native = aria('sidebar', props, { native: true });
           const nativeEl = bind(document.createElement('aside'), native);
           document.body.appendChild(nativeEl);
 
@@ -71,10 +71,10 @@ describe('Sidebar - Landmark Specifications', () => {
     it('associates with the main content without owning or hiding it', () =>
       scope.run(() => {
         component().run(() => {
-          const main = aria('main');
+          const main = aria('main', {}, { native: true });
           const mainEl = bind(document.createElement('main'), main);
 
-          const sidebar = aria('sidebar', { label: 'Context' });
+          const sidebar = aria('sidebar', { label: 'Context' }, { native: true });
           const sidebarEl = bind(document.createElement('aside'), sidebar);
 
           document.body.append(mainEl, sidebarEl);
@@ -87,12 +87,10 @@ describe('Sidebar - Landmark Specifications', () => {
           note.textContent = 'A supporting note';
           sidebarEl.appendChild(note);
 
-          // The sidebar points nowhere: association is by role, not by reference
           expect(sidebarEl.hasAttribute('aria-controls')).toBe(false);
           expect(sidebarEl.hasAttribute('aria-labelledby')).toBe(false);
           expect(sidebarEl.getAttribute('aria-label')).toBe('Context');
 
-          // Content in main is untouched by the complementary region
           expect(mainEl.contains(article)).toBe(true);
           expect(sidebarEl.contains(article)).toBe(false);
           expect(mainEl.hasAttribute('aria-hidden')).toBe(false);

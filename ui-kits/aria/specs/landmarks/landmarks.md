@@ -29,7 +29,7 @@ to key landmarks.
 
 ```ts
 export interface LandmarkOptions {
-  /** Whether bound to matching native HTML5 tag (default: true) */
+  /** Whether bound to matching native HTML5 tag (default: false) */
   native?: boolean;
 }
 ```
@@ -55,6 +55,8 @@ export interface LandmarkProps {
 2. **Native Optimization**:
   - When `native: true`, matching HTML5 elements (`<main>`, `<nav>`, `<aside>`, etc.) omit explicit `role` attributes.
   - For non-native tags (`<div>`), `role` is compiled into `.attributes`.
+  - `native` defaults to `false`: a static landmark is authored for a custom host, since a native tag needs no controller.
+  - The role compiles from `native` alone — never from the host tag or its ancestry — so a custom host keeps its role wherever it is placed. Holding one `banner` / `contentinfo` / `main` per page is the author's responsibility.
 
 3. **Mandatory Labeling Rules**:
   - `region` and `form` only become landmarks if an accessible name is provided via `label` or `labelledby`.

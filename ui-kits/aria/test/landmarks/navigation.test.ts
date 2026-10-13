@@ -15,7 +15,7 @@ describe('Navigation - Landmark Specifications', () => {
       scope.run(() => {
         component().run(() => {
           const props = mutable<NavigationProps>({ label: 'Primary' });
-          const native = aria('navigation', props);
+          const native = aria('navigation', props, { native: true });
           const nativeEl = bind(document.createElement('nav'), native);
           document.body.appendChild(nativeEl);
 
@@ -43,16 +43,14 @@ describe('Navigation - Landmark Specifications', () => {
     it('does not name a second navigation on its own behalf', () =>
       scope.run(() => {
         component().run(() => {
-          const primary = aria('navigation');
+          const primary = aria('navigation', {}, { native: true });
           const primaryEl = bind(document.createElement('nav'), primary);
 
-          const secondary = aria('navigation');
+          const secondary = aria('navigation', {}, { native: true });
           const secondaryEl = bind(document.createElement('nav'), secondary);
 
           document.body.append(primaryEl, secondaryEl);
 
-          // Two unnamed navigations are indistinguishable to a screen reader, and the
-          // controller leaves that to the author rather than inventing a fallback name
           expect(primaryEl.hasAttribute('aria-label')).toBe(false);
           expect(secondaryEl.hasAttribute('aria-label')).toBe(false);
           expect(primaryEl.hasAttribute('role')).toBe(false);
@@ -75,7 +73,7 @@ describe('Navigation - Landmark Specifications', () => {
     it('labels the landmark without touching the links it contains', () =>
       scope.run(() => {
         component().run(() => {
-          const nav = aria('navigation', { labelledby: 'site-map-heading' });
+          const nav = aria('navigation', { labelledby: 'site-map-heading' }, { native: true });
           const navEl = bind(document.createElement('nav'), nav);
           document.body.appendChild(navEl);
 
@@ -95,14 +93,12 @@ describe('Navigation - Landmark Specifications', () => {
           expect(navEl.getAttribute('aria-labelledby')).toBe('site-map-heading');
           expect(navEl.hasAttribute('aria-label')).toBe(false);
 
-          // The landmark label never leaks onto the links themselves
           for (const el of [firstEl, secondEl]) {
             expect(el.hasAttribute('aria-label')).toBe(false);
             expect(el.hasAttribute('aria-labelledby')).toBe(false);
             expect(el.hasAttribute('role')).toBe(false);
           }
 
-          // The links keep their own navigation contract
           const click = new MouseEvent('click', { bubbles: true, cancelable: true });
           firstEl.dispatchEvent(click);
           expect(click.defaultPrevented).toBe(false);

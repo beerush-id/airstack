@@ -48,7 +48,8 @@ export interface LandmarkAttributes<E extends BaseElement = HTMLElement> extends
 /**
  * Headless WAI-ARIA landmark base compiling an accessible name and the role the host
  * element does not already imply. Landmarks are structural: they take no focus, own no
- * keyboard behavior, and hold no state beyond their name.
+ * keyboard behavior, and hold no state beyond their name. A landmark defaults to a custom
+ * host and so compiles its role; pass `native: true` when binding the matching HTML5 tag.
  *
  * @template E - Target Element type (defaults to HTMLElement)
  * @template T - Reactive props type
@@ -69,15 +70,17 @@ export abstract class LandmarkAria<
   /**
    * Whether the landmark is exposed as a landmark only when it carries an accessible name.
    */
-  protected readonly requiresName: boolean = false;
+  protected get requiresName(): boolean {
+    return false;
+  }
 
   public constructor(props: Partial<T> = {}, options: O = {} as O) {
     super(props, {
-      native: true,
+      native: false,
       ...options,
     });
 
-    this.omittedAttrs.push('aria-label', 'aria-labelledby');
+    this.omittedAttrs.push('label', 'labelledby', 'aria-label', 'aria-labelledby');
     this.update();
   }
 
@@ -134,8 +137,8 @@ export interface HeaderProps extends LandmarkProps {}
 export interface HeaderOptions extends LandmarkOptions {}
 
 /**
- * Headless header landmark marking the prime header area of a document,
- * bound to a native `<header>` by default. Compiles the banner role output.
+ * Headless header landmark marking the prime header area of a document. Compiles the
+ * banner role output.
  *
  * @template E - Target Element type (defaults to HTMLElement)
  */
@@ -144,7 +147,9 @@ export class HeaderAria<
   T extends HeaderProps = HeaderProps,
   A extends LandmarkAttributes<E> = LandmarkAttributes<E>,
 > extends LandmarkAria<E, T, A> {
-  protected override readonly landmarkRole: LandmarkRole = 'banner';
+  protected override get landmarkRole(): LandmarkRole {
+    return 'banner';
+  }
 }
 
 /**
@@ -158,8 +163,7 @@ export interface MainProps extends LandmarkProps {}
 export interface MainOptions extends LandmarkOptions {}
 
 /**
- * Headless WAI-ARIA main landmark marking the primary unique content of a document,
- * bound to a native `<main>` by default.
+ * Headless WAI-ARIA main landmark marking the primary unique content of a document.
  *
  * @template E - Target Element type (defaults to HTMLElement)
  */
@@ -168,7 +172,9 @@ export class MainAria<
   T extends MainProps = MainProps,
   A extends LandmarkAttributes<E> = LandmarkAttributes<E>,
 > extends LandmarkAria<E, T, A> {
-  protected override readonly landmarkRole: LandmarkRole = 'main';
+  protected override get landmarkRole(): LandmarkRole {
+    return 'main';
+  }
 }
 
 /**
@@ -183,8 +189,7 @@ export interface NavigationOptions extends LandmarkOptions {}
 
 /**
  * Headless WAI-ARIA navigation landmark marking a major collection of navigational
- * links, bound to a native `<nav>` by default. A page holding more than one requires
- * a label on each so they can be told apart.
+ * links. A page holding more than one requires a label on each so they can be told apart.
  *
  * @template E - Target Element type (defaults to HTMLElement)
  */
@@ -193,7 +198,9 @@ export class NavigationAria<
   T extends NavigationProps = NavigationProps,
   A extends LandmarkAttributes<E> = LandmarkAttributes<E>,
 > extends LandmarkAria<E, T, A> {
-  protected override readonly landmarkRole: LandmarkRole = 'navigation';
+  protected override get landmarkRole(): LandmarkRole {
+    return 'navigation';
+  }
 }
 
 /**
@@ -207,9 +214,8 @@ export interface SidebarProps extends LandmarkProps {}
 export interface SidebarOptions extends LandmarkOptions {}
 
 /**
- * Headless sidebar landmark marking supporting content beside the main
- * content, bound to a native `<aside>` by default. Compiles the complementary
- * role output.
+ * Headless sidebar landmark marking supporting content beside the main content.
+ * Compiles the complementary role output.
  *
  * @template E - Target Element type (defaults to HTMLElement)
  */
@@ -218,7 +224,9 @@ export class SidebarAria<
   T extends SidebarProps = SidebarProps,
   A extends LandmarkAttributes<E> = LandmarkAttributes<E>,
 > extends LandmarkAria<E, T, A> {
-  protected override readonly landmarkRole: LandmarkRole = 'complementary';
+  protected override get landmarkRole(): LandmarkRole {
+    return 'complementary';
+  }
 }
 
 /**
@@ -232,8 +240,8 @@ export interface FooterProps extends LandmarkProps {}
 export interface FooterOptions extends LandmarkOptions {}
 
 /**
- * Headless footer landmark marking the prime footer area of a document,
- * bound to a native `<footer>` by default. Compiles the contentinfo role output.
+ * Headless footer landmark marking the prime footer area of a document. Compiles the
+ * contentinfo role output.
  *
  * @template E - Target Element type (defaults to HTMLElement)
  */
@@ -242,7 +250,9 @@ export class FooterAria<
   T extends FooterProps = FooterProps,
   A extends LandmarkAttributes<E> = LandmarkAttributes<E>,
 > extends LandmarkAria<E, T, A> {
-  protected override readonly landmarkRole: LandmarkRole = 'contentinfo';
+  protected override get landmarkRole(): LandmarkRole {
+    return 'contentinfo';
+  }
 }
 
 /**
@@ -256,8 +266,7 @@ export interface SearchLandmarkProps extends LandmarkProps {}
 export interface SearchLandmarkOptions extends LandmarkOptions {}
 
 /**
- * Headless WAI-ARIA search landmark marking the site search facility, bound to a
- * native `<search>` element by default.
+ * Headless WAI-ARIA search landmark marking the site search facility.
  *
  * @template E - Target Element type (defaults to HTMLElement)
  */
@@ -266,7 +275,9 @@ export class SearchAria<
   T extends SearchLandmarkProps = SearchLandmarkProps,
   A extends LandmarkAttributes<E> = LandmarkAttributes<E>,
 > extends LandmarkAria<E, T, A> {
-  protected override readonly landmarkRole: LandmarkRole = 'search';
+  protected override get landmarkRole(): LandmarkRole {
+    return 'search';
+  }
 }
 
 /**
@@ -291,8 +302,13 @@ export class FormAria<
   T extends FormLandmarkProps = FormLandmarkProps,
   A extends LandmarkAttributes<E> = LandmarkAttributes<E>,
 > extends LandmarkAria<E, T, A> {
-  protected override readonly landmarkRole: LandmarkRole = 'form';
-  protected override readonly requiresName = true;
+  protected override get landmarkRole(): LandmarkRole {
+    return 'form';
+  }
+
+  protected override get requiresName(): boolean {
+    return true;
+  }
 }
 
 /**
@@ -317,6 +333,11 @@ export class SectionAria<
   T extends SectionProps = SectionProps,
   A extends LandmarkAttributes<E> = LandmarkAttributes<E>,
 > extends LandmarkAria<E, T, A> {
-  protected override readonly landmarkRole: LandmarkRole = 'region';
-  protected override readonly requiresName = true;
+  protected override get landmarkRole(): LandmarkRole {
+    return 'region';
+  }
+
+  protected override get requiresName(): boolean {
+    return true;
+  }
 }

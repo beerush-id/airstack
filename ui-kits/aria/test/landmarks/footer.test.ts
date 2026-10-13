@@ -15,11 +15,10 @@ describe('Footer - Landmark Specifications', () => {
       scope.run(() => {
         component().run(() => {
           const props = mutable<FooterProps>({});
-          const footer = aria('footer', props);
+          const footer = aria('footer', props, { native: true });
           const el = bind(document.createElement('footer'), footer);
           document.body.appendChild(el);
 
-          // A native <footer> at document scope already is contentinfo
           expect(footer.attributes.role).toBeUndefined();
           expect(el.hasAttribute('role')).toBe(false);
           expect(el.hasAttribute('aria-label')).toBe(false);
@@ -43,7 +42,7 @@ describe('Footer - Landmark Specifications', () => {
           heading.textContent = 'Contact and legal';
           document.body.appendChild(heading);
 
-          const footer = aria('footer', { labelledby: 'footer-heading' });
+          const footer = aria('footer', { labelledby: 'footer-heading' }, { native: true });
           const el = bind(document.createElement('footer'), footer);
           document.body.appendChild(el);
 
@@ -63,7 +62,7 @@ describe('Footer - Landmark Specifications', () => {
     it('compiles the role only where the element cannot carry it', () =>
       scope.run(() => {
         component().run(() => {
-          const native = aria('footer');
+          const native = aria('footer', {}, { native: true });
           const nativeEl = bind(document.createElement('footer'), native);
           document.body.appendChild(nativeEl);
 
@@ -75,7 +74,6 @@ describe('Footer - Landmark Specifications', () => {
           expect(customEl.getAttribute('role')).toBe('contentinfo');
           expect(nativeEl.hasAttribute('role')).toBe(false);
 
-          // Neither host gains interaction the landmark does not have
           for (const el of [nativeEl, customEl]) {
             expect(el.hasAttribute('tabindex')).toBe(false);
             expect(el.hasAttribute('aria-live')).toBe(false);

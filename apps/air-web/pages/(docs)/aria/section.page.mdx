@@ -1,29 +1,59 @@
 ---
 title: 'Section'
-description: 'Headless accessible section landmark exposing a significant named section as a navigable destination.'
+description: 'Headless section landmark that compiles role="region" only when the section carries an accessible name, turning significant sections into jump destinations.'
 nav: 'Section'
 nav-priority: 580
 ---
 
-# Section
+# AirLib Headless Section
 
-Long documents are hard to navigate by listening. A `region` landmark turns a significant, self-contained section into a destination in the assistive technology's landmark list — a table of contents for the page. The catch is that a section only becomes a landmark when it is named; an unnamed `<section>` is a generic container that appears in no list at all.
+Long documents are hard to navigate by listening. A `region` landmark turns a significant, self-contained section into a destination in the assistive technology's landmark list — a table of contents for the page. The catch is that a section only becomes a landmark when it is named; an unnamed `<section>` is a generic container that appears in no list at all. **AirLib Headless Section** (`aria('section')`) enforces that rule by compilation: with `label` or `labelledby` it emits `role="region"` plus the name, and without either it emits no role, so an anonymous section never pollutes the landmark list.
 
-`@airlib/aria` compiles the section landmark onto the element you already render and enforces the naming rule: with `label` or `labelledby` it compiles `role="region"` plus the name, and without either it compiles no role, so an unnamed section is never announced as a landmark it does not qualify as.
+```tsx
+const section = aria('section', props);
 
-You compose a section using this piece:
+<section ref={section.ref} {...section.restProps(['children'])} />
+```
 
-- **Section**: The named generic landmark that compiles `role="region"` only when it carries an accessible name.
+<style>{`.demo-section-stack{display:flex;flex-direction:column;gap:.75rem;padding:1rem;max-width:24rem;border:1px solid #e4e4e7;border-radius:.75rem;background:#fafafa;font-size:.875rem}.demo-section{padding:1rem;border:1px solid #e4e4e7;border-radius:.5rem;background:#fff}.demo-section-title{margin:0 0 .25rem;font-size:.875rem;font-weight:500;color:#3f3f46}.demo-section-body{margin:0;color:#71717a}.demo-section-unnamed{padding:1rem;border:1px dashed #d4d4d8;border-radius:.5rem;color:#a1a1aa}`}</style>
 
-## What you get
+:::interactive[Named And Unnamed Sections]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps, ReactNode } from 'react';
 
-- **Naming enforced by compilation.** No accessible name means no `role="region"`, keeping the landmark list free of anonymous entries.
-- **A `named` projection.** `section.named` tells your wrapper whether the section was actually exposed.
-- **Native and custom hosts.** `<section>` and `<div>` both work, with the role compiled explicitly in either case when named.
+type DemoSectionProps = ComponentProps<'section'> & {
+  label?: string;
+  labelledby?: string;
+  children: ReactNode;
+};
+
+const DemoSection = setup<DemoSectionProps>((props) => {
+  const section = aria('section', props);
+
+  return () => (
+    <section ref={section.ref} {...section.restProps(['children'])}>
+      {props.children}
+    </section>
+  );
+}, 'DemoSection');
+```
+
+<div className="demo-section-stack">
+  <DemoSection labelledby="pricing-heading" className="demo-section">
+    <h2 id="pricing-heading" className="demo-section-title">Pricing</h2>
+    <p className="demo-section-body">Named, so it appears in the landmark list.</p>
+  </DemoSection>
+  <DemoSection className="demo-section-unnamed">
+    Unnamed section — no role compiled, so it stays a generic container
+  </DemoSection>
+</div>
+:::
 
 ## Section
 
-In Aria, Section is the named section landmark created with `aria('section')` that compiles the role only when the section carries an accessible name.
+The named generic landmark. It compiles the role only when the section carries an accessible name, and exposes `section.named` so a wrapper can tell whether the landmark was actually published.
 
 ```ts
 aria<E extends BaseElement = HTMLElement>(
@@ -33,46 +63,30 @@ aria<E extends BaseElement = HTMLElement>(
 ): SectionAria<E>
 ```
 
-### Parameters
-
-- `props.label` *(string, optional)*: Accessible label compiled to `aria-label`. Required for the landmark to be exposed.
-- `props.labelledby` *(string, optional)*: Element ID providing the accessible name, compiled to `aria-labelledby`. Point it at the section's own heading rather than duplicating the text.
-- `options.native` *(boolean, optional, default `true`)*: Pass `false` when binding to a custom `<div>` host.
-
-### How it behaves
-
-When `label` or `labelledby` is present the controller compiles `role="region"` with the accessible name — explicitly, on native and custom hosts alike, because the HTML mapping only exposes a named `<section>` as a landmark. When neither is present no role is compiled and the element stays a generic container.
-
-:::tip[Prefer labelledby over label]
-A section almost always has a visible heading. Point `labelledby` at that heading's `id` instead of repeating its text in `label`: the name stays in sync when the heading changes, and the visible text and the announced name cannot drift apart.
-:::
-
 ### Usage
-
-To use Section, create the landmark with `aria('section', props)`, then pass `section.ref` and spread `section.attributes` onto your section element:
 
 :::code-group
 
-```tsx [React] executable
+```tsx [React]
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
-import type { ComponentProps } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 
 type SectionProps = ComponentProps<'section'> & {
   label?: string;
   labelledby?: string;
+  children: ReactNode;
 };
 
 const Section = setup<SectionProps>((props) => {
   const section = aria('section', props);
-  const restProps = props.$omit([...section.ownKeys, 'label', 'labelledby', 'children']);
 
   return () => (
-    <section ref={section.ref} {...restProps} {...section.attributes}>
+    <section ref={section.ref} {...section.restProps(['children'])}>
       {props.children}
     </section>
   );
-}, 'Section');
+});
 ```
 
 ```tsx [SolidJS]
@@ -87,10 +101,9 @@ type SectionProps = ComponentProps<'section'> & {
 
 const Section = setup<SectionProps>((props) => {
   const section = aria('section', props);
-  const restProps = props.$omit([...section.ownKeys, 'label', 'labelledby', 'children']);
 
   return (
-    <section ref={section.ref} {...restProps} {...section.attributes}>
+    <section ref={section.ref} {...section.restProps(['children'])}>
       {props.children}
     </section>
   );
@@ -99,38 +112,36 @@ const Section = setup<SectionProps>((props) => {
 
 :::
 
-## Putting It Together
+### Parameters
 
-Once your component is wired with `aria('section')`, name the sections worth jumping to and leave the rest unnamed:
+- `props.label` *(string, optional)*: Accessible label compiled to `aria-label`. Required for the landmark to be exposed.
+- `props.labelledby` *(string, optional)*: Element ID providing the accessible name, compiled to `aria-labelledby`. Point it at the section's own heading rather than duplicating the text.
+- `options.native` *(boolean, optional, default `false`)*: Inert for this role. The `region` role is compiled from the accessible name rather than from the host, so a named section gets `role="region"` either way.
 
-```tsx
-<Section labelledby="pricing-heading">
-  <h2 id="pricing-heading">Pricing</h2>
-  <p>Plans and billing.</p>
-</Section>
-<section>
-  <p>An ordinary section, deliberately not a landmark.</p>
-</section>
-```
+### How it behaves
 
-:::interactive[Section Interactive Demo]
-<div className="flex flex-col gap-3 p-4 max-w-sm border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 text-sm">
-  <Section
-    labelledby="pricing-heading"
-    className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4"
-  >
-    <h2 id="pricing-heading" className="font-medium text-zinc-800 dark:text-zinc-200">Pricing</h2>
-    <p className="text-zinc-500 dark:text-zinc-400">Named, so it appears in the landmark list.</p>
-  </Section>
-  <Section className="rounded-lg border border-dashed border-zinc-300 dark:border-zinc-700 p-4 text-zinc-400 dark:text-zinc-600">
-    Unnamed section — no role compiled, so it stays a generic container
-  </Section>
-</div>
+- With `label` or `labelledby` present, compiles `role="region"` together with the accessible name — explicitly, on native and custom hosts alike, because the HTML mapping only exposes a named `<section>` as a landmark.
+- With neither present, compiles no role at all and the element stays a generic container. Clearing the name withdraws the role again, reactively.
+- `section.named` reports whether the landmark is currently exposed, so a wrapper can branch on it.
+- The role never depends on `native` or on the host tag: naming is the only gate.
+- Structure only: no `tabindex`, no key handling, and no state. The content inside keeps its own semantics and controllers.
+- `label` and `labelledby` are consumed by the controller and carried in `ownKeys`, so `restProps(['children'])` is the whole omission list — neither leaks to the DOM as a stray attribute.
+
+:::tip[Prefer labelledby over label]
+A section almost always has a visible heading. Point `labelledby` at that heading's `id` instead of repeating its text in `label`: the name stays in sync when the heading changes, and the visible text and the announced name cannot drift apart.
 :::
 
 ## Keyboard Navigation
 
 - **None.** The landmark takes no tab stop and claims no keys; the content inside it keeps its own keyboard behavior.
+
+## What you get
+
+- **Naming enforced by compilation.** No accessible name means no `role="region"`, keeping the landmark list free of anonymous entries.
+- **A `named` projection.** `section.named` tells your wrapper whether the section was actually exposed.
+- **Reactive promotion and demotion.** Adding or clearing the name adds or withdraws the role.
+- **Native and custom hosts.** `<section>` and `<div>` both work, with the role compiled explicitly in either case when named.
+- **Placement-stable output.** The compiled attributes are identical in SSR and after hydration, because nothing is read from the DOM.
 
 ## Next Steps
 

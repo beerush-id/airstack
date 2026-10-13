@@ -23,7 +23,7 @@ quickly skip repetitive site navigation.
 
 ```ts
 export interface MainOptions {
-  /** Whether bound to native <main> (default: true) */
+  /** Whether bound to native <main> (default: false) */
   native?: boolean;
 }
 

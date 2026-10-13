@@ -15,7 +15,7 @@ describe('Search - Landmark Specifications', () => {
       scope.run(() => {
         component().run(() => {
           const props = mutable<SearchProps>({ label: 'Site search' });
-          const native = aria('search', props);
+          const native = aria('search', props, { native: true });
           const nativeEl = bind(document.createElement('search'), native);
           document.body.appendChild(nativeEl);
 
@@ -42,7 +42,6 @@ describe('Search - Landmark Specifications', () => {
           expect(customEl.getAttribute('role')).toBe('search');
           expect(customEl.getAttribute('aria-label')).toBe('Products');
 
-          // The search landmark stays out of the query mechanics
           expect(customEl.hasAttribute('action')).toBe(false);
           expect(customEl.hasAttribute('method')).toBe(false);
           expect(customEl.hasAttribute('tabindex')).toBe(false);
@@ -81,7 +80,6 @@ describe('Search - Landmark Specifications', () => {
           buttonEl.textContent = 'Search';
           searchEl.appendChild(buttonEl);
 
-          // The landmark borrows nothing from the control inside it
           expect(buttonEl.getAttribute('type')).toBe('button');
           expect(buttonEl.hasAttribute('aria-label')).toBe(false);
           expect(searchEl.contains(buttonEl)).toBe(true);

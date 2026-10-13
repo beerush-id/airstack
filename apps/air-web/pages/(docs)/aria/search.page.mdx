@@ -1,29 +1,61 @@
 ---
 title: 'Search'
-description: 'Headless accessible search landmark identifying the site search facility on a page.'
+description: 'Headless search landmark that compiles role="search" onto a generic or legacy form host, marking the site search facility as a jump destination.'
 nav: 'Search'
 nav-priority: 560
 ---
 
-# Search
+# AirLib Headless Search
 
-Searching is one of the few tasks users want to jump to directly, and it is usually buried inside the header next to the navigation. Identifying the search facility as its own landmark is what lets assistive technologies offer it as a destination instead of making users tab through the header to find the field.
+Searching is one of the few tasks users want to jump to directly, and it is usually buried inside the header next to the navigation. Identifying the search facility as its own landmark is what lets assistive technologies offer it as a destination instead of making users tab through the header to find the field. **AirLib Headless Search** (`aria('search')`) compiles `role="search"` onto the generic or legacy `<form>` host you already render, names it when a page holds more than one search facility, and stays out of the query mechanics entirely.
 
-`@airlib/aria` compiles the search landmark onto the element you already render. Bound to a native `<search>` element it emits no redundant role; bound to a `<div>` or a legacy `<form>` host it supplies `role="search"`, and it compiles an accessible name when a page holds more than one search facility.
+```tsx
+const search = aria('search', props);
 
-You compose a search landmark using this piece:
+<div ref={search.ref} {...search.restProps(['children'])} />
+```
 
-- **Search**: The search facility landmark that compiles `role="search"` only when the host does not already imply it.
+<style>{`.demo-search{display:flex;align-items:center;gap:.5rem;padding:.5rem;max-width:24rem;border:1px solid #e4e4e7;border-radius:.75rem;background:#fafafa}.demo-search-input{flex:1;padding:.375rem .75rem;border:1px solid #d4d4d8;border-radius:.5rem;background:#fff;font-size:.875rem;color:#3f3f46;outline:none}.demo-search-input:focus{border-color:#18181b}.demo-search-input::placeholder{color:#a1a1aa}.demo-search-button{padding:.375rem .75rem;border:0;border-radius:.5rem;background:#18181b;color:#fff;font-size:.875rem;font-weight:500;cursor:pointer}.demo-search-button:hover{opacity:.9}`}</style>
 
-## What you get
+:::interactive[Documentation Search]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps, ReactNode } from 'react';
 
-- **Native-first projection.** A `<search>` element keeps its implicit role; a custom host gets an explicit `role="search"`.
-- **Legacy host support.** A `<form>` host compiles the role explicitly, because a form implies `form`, not `search`.
-- **Optional naming.** `label` and `labelledby` compile to `aria-label` and `aria-labelledby` when a page holds both a site search and a filtered-table search.
+type DemoSearchProps = ComponentProps<'div'> & {
+  label?: string;
+  labelledby?: string;
+  children: ReactNode;
+};
+
+const DemoSearch = setup<DemoSearchProps>((props) => {
+  const search = aria('search', props);
+
+  return () => (
+    <div ref={search.ref} {...search.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+}, 'DemoSearch');
+```
+
+<DemoSearch label="Documentation" className="demo-search">
+  <input
+    type="search"
+    aria-label="Search documentation"
+    placeholder="Search documentation"
+    className="demo-search-input"
+  />
+  <button type="button" className="demo-search-button">
+    Search
+  </button>
+</DemoSearch>
+:::
 
 ## Search
 
-In Aria, Search is the search facility landmark created with `aria('search')` that projects search semantics onto a native or custom host.
+The search facility landmark. It projects search semantics onto a host that does not already imply them, which is the common case: a `<div>` wrapper or the legacy `<form role="search">` pattern.
 
 ```ts
 aria<E extends BaseElement = HTMLElement>(
@@ -33,46 +65,30 @@ aria<E extends BaseElement = HTMLElement>(
 ): SearchAria<E>
 ```
 
-### Parameters
-
-- `props.label` *(string, optional)*: Accessible label compiled to `aria-label`.
-- `props.labelledby` *(string, optional)*: Element ID providing the accessible name, compiled to `aria-labelledby`.
-- `options.native` *(boolean, optional, default `true`)*: Pass `false` when binding to a `<div>` or `<form>` host that does not imply `search`.
-
-### How it behaves
-
-With `native: true` the controller compiles only the accessible name and leaves the role to the host element. With `native: false` it adds `role="search"`, which is what a `<form>` or `<div>` host needs. The name is compiled when provided and omitted otherwise.
-
-:::tip[The host decides the native flag]
-`<search>` is the modern host and implies the role, so the default `native: true` is correct. The legacy `<form role="search">` pattern needs `native: false`, because a `<form>` on its own implies a form landmark — leaving the flag at its default would render a search facility announced as a form.
-:::
-
 ### Usage
-
-To use Search, create the landmark with `aria('search', props)`, then pass `search.ref` and spread `search.attributes` onto your search container:
 
 :::code-group
 
-```tsx [React] executable
+```tsx [React]
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
-import type { ComponentProps } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 
-type SearchProps = ComponentProps<'search'> & {
+type SearchProps = ComponentProps<'div'> & {
   label?: string;
   labelledby?: string;
+  children: ReactNode;
 };
 
 const Search = setup<SearchProps>((props) => {
   const search = aria('search', props);
-  const restProps = props.$omit([...search.ownKeys, 'label', 'labelledby', 'children']);
 
   return () => (
-    <search ref={search.ref} {...restProps} {...search.attributes}>
+    <div ref={search.ref} {...search.restProps(['children'])}>
       {props.children}
-    </search>
+    </div>
   );
-}, 'Search');
+});
 ```
 
 ```tsx [SolidJS]
@@ -80,61 +96,53 @@ import { aria } from '@airlib/aria';
 import { setup } from '@airlib/solid';
 import type { ComponentProps } from 'solid-js';
 
-type SearchProps = ComponentProps<'search'> & {
+type SearchProps = ComponentProps<'div'> & {
   label?: string;
   labelledby?: string;
 };
 
 const Search = setup<SearchProps>((props) => {
   const search = aria('search', props);
-  const restProps = props.$omit([...search.ownKeys, 'label', 'labelledby', 'children']);
 
   return (
-    <search ref={search.ref} {...restProps} {...search.attributes}>
+    <div ref={search.ref} {...search.restProps(['children'])}>
       {props.children}
-    </search>
+    </div>
   );
 });
 ```
 
 :::
 
-The variable and the JSX tag share the name `search` here, which shadows nothing but reads poorly — rename either one in your own codebase.
+### Parameters
 
-## Putting It Together
+- `props.label` *(string, optional)*: Accessible label compiled to `aria-label`.
+- `props.labelledby` *(string, optional)*: Element ID providing the accessible name, compiled to `aria-labelledby`.
+- `options.native` *(boolean, optional, default `false`)*: Pass `true` only when the host is a real `<search>` element, which already implies the role. Leave the default for a `<div>` or `<form>` host.
 
-Once your component is wired with `aria('search')`, wrap the field and its submit control:
+### How it behaves
 
-```tsx
-<Search label="Documentation">
-  <input type="search" aria-label="Search documentation" />
-  <button type="submit">Search</button>
-</Search>
-```
+- Compiles `role="search"` on a generic host. With `native: true` the role is left to the `<search>` element and only the accessible name is emitted.
+- The role comes from `native` alone — never from the host tag and never from where the element sits in the tree.
+- `label` compiles to `aria-label` and `labelledby` to `aria-labelledby`, both reactively, and both are omitted when absent.
+- It stays out of the query mechanics: no `action`, no `method`, no `tabindex`, and nothing borrowed from the field or the submit control inside it. Typing and submitting remain entirely yours.
+- `label` and `labelledby` are consumed by the controller and carried in `ownKeys`, so `restProps(['children'])` is the whole omission list — neither leaks to the DOM as a stray attribute.
 
-:::interactive[Search Interactive Demo]
-<Search
-  label="Documentation"
-  className="flex items-center gap-2 p-2 max-w-sm border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50"
->
-  <input
-    type="search"
-    aria-label="Search documentation"
-    placeholder="Search documentation"
-    className="flex-1 px-3 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm text-zinc-800 dark:text-zinc-200 outline-none focus:border-primary placeholder:text-zinc-400 dark:placeholder:text-zinc-600"
-  />
-  <button
-    type="button"
-    className="px-3 py-1.5 rounded-lg bg-primary text-white text-sm font-medium hover:opacity-90"
-  >
-    Search
-  </button>
-</Search>
+:::tip[The host decides the native flag]
+A `<form>` implies a form landmark, not a search one, so the legacy `<form role="search">` pattern needs the compiled role — leave `native` at its default. Only a real `<search>` element already implies `search`, and that is the one case for `native: true`. Getting this backwards announces a search facility as a form.
 :::
 
 ## Keyboard Navigation
 
 - **None.** The landmark takes no tab stop of its own. Keyboard users interact with the field and submit control inside it.
+
+## What you get
+
+- **Search on a generic host.** A `<div>` or `<form>` becomes a jump destination.
+- **Legacy host support.** A `<form>` host compiles the role explicitly, because a form implies `form`, not `search`.
+- **Optional naming.** `label` and `labelledby` cover a page holding both a site search and a filtered-table search.
+- **Out of the query.** No form attributes, no field state, no submission handling.
+- **Placement-stable output.** The compiled attributes are identical in SSR and after hydration, because nothing is read from the DOM.
 
 ## Next Steps
 

@@ -23,7 +23,7 @@ global navigation controls.
 
 ```ts
 export interface HeaderOptions {
-  /** Whether bound to native <header> (default: true) */
+  /** Whether bound to native <header> (default: false) */
   native?: boolean;
 }
 

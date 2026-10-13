@@ -23,7 +23,7 @@ contents.
 
 ```ts
 export interface SectionOptions {
-  /** Whether bound to native <section> (default: true) */
+  /** Whether bound to native <section> (default: false) */
   native?: boolean;
 }
 

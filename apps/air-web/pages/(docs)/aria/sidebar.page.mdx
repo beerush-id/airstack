@@ -1,29 +1,62 @@
 ---
 title: 'Sidebar'
-description: 'Headless accessible sidebar landmark marking supporting content that sits beside the main content.'
+description: 'Headless complementary landmark that compiles role="complementary" onto a generic host, marking supporting content as separate from main.'
 nav: 'Sidebar'
 nav-priority: 540
 ---
 
-# Sidebar
+# AirLib Headless Sidebar
 
-Sidebars hold content that supports the main document without being part of it: related links, filters, notes, a table of contents. Users who need the main content should be able to skip that supporting material, and users who want it should be able to jump straight to it — which only works if it is identified as separate from `main`.
+Sidebars hold content that supports the main document without being part of it: related links, filters, notes, a table of contents. Users who need the main content should be able to skip that supporting material, and users who want it should be able to jump straight to it — which only works if it is identified as separate from `main`. **AirLib Headless Sidebar** (`aria('sidebar')`) compiles `role="complementary"` onto the generic host you already render and names it when a page holds more than one.
 
-`@airlib/aria` compiles the sidebar landmark onto the element you already render. Bound to a native `<aside>` it emits no redundant role; bound to a `<div>` it supplies `role="complementary"`, and it compiles an accessible name when a page holds more than one sidebar.
+```tsx
+const sidebar = aria('sidebar', props);
 
-You compose a sidebar landmark using this piece:
+<div ref={sidebar.ref} {...sidebar.restProps(['children'])} />
+```
 
-- **Sidebar**: The supporting content landmark that compiles `role="complementary"` only when the host does not already imply it.
+<style>{`.demo-sidebar-layout{display:flex;gap:.75rem;padding:.75rem;border:1px solid #e4e4e7;border-radius:.75rem;background:#fafafa;font-size:.875rem}.demo-sidebar-main{flex:1;padding:1rem;border:1px solid #e4e4e7;border-radius:.5rem;background:#fff;color:#52525b}.demo-sidebar{width:10rem;flex-shrink:0;padding:1rem;border:1px solid #e4e4e7;border-radius:.5rem;background:#fff;color:#71717a}.demo-sidebar-title{font-weight:500;color:#18181b}.demo-sidebar-layout p,.demo-sidebar p{margin:0 0 .25rem}.demo-sidebar-layout p:last-child,.demo-sidebar p:last-child{margin-bottom:0}`}</style>
 
-## What you get
+:::interactive[Beside The Main Content]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps, ReactNode } from 'react';
 
-- **Native-first projection.** An `<aside>` keeps its implicit role; a custom host gets an explicit `role="complementary"`.
-- **Nameable sidebars.** `label` and `labelledby` compile to `aria-label` and `aria-labelledby` when a page holds several.
-- **Structure only.** No focus, no keyboard handling, and no state.
+type DemoSidebarProps = ComponentProps<'div'> & {
+  label?: string;
+  labelledby?: string;
+  children: ReactNode;
+};
+
+const DemoSidebar = setup<DemoSidebarProps>((props) => {
+  const sidebar = aria('sidebar', props);
+
+  return () => (
+    <div ref={sidebar.ref} {...sidebar.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+}, 'DemoSidebar');
+```
+
+<div className="demo-sidebar-layout">
+  <div className="demo-sidebar-main">
+    <p className="demo-sidebar-title">main</p>
+    <p>The document the sidebar supports.</p>
+  </div>
+  <DemoSidebar label="On this page" className="demo-sidebar">
+    <p className="demo-sidebar-title">On this page</p>
+    <p>Parameters</p>
+    <p>Usage</p>
+    <p>Next steps</p>
+  </DemoSidebar>
+</div>
+:::
 
 ## Sidebar
 
-In Aria, Sidebar is the supporting content landmark created with `aria('sidebar')` that projects complementary semantics onto a native or custom host.
+The supporting content landmark. It projects complementary semantics onto a generic host so assistive technology can tell the aside from the document it sits beside.
 
 ```ts
 aria<E extends BaseElement = HTMLElement>(
@@ -33,52 +66,30 @@ aria<E extends BaseElement = HTMLElement>(
 ): SidebarAria<E>
 ```
 
-### Parameters
-
-- `props.label` *(string, optional)*: Accessible label compiled to `aria-label`.
-- `props.labelledby` *(string, optional)*: Element ID providing the accessible name, compiled to `aria-labelledby`.
-- `options.native` *(boolean, optional, default `true`)*: Pass `false` when binding to a custom `<div>` host.
-
-### How it behaves
-
-With `native: true` the controller compiles only the accessible name and leaves the role to the host. With `native: false` it adds `role="complementary"`. The name is compiled when provided and omitted otherwise.
-
-:::tip[Keep it a sibling of main]
-An `<aside>` nested inside `<main>`, `<article>`, `<section>`, `<nav>`, or another `<aside>` is not a complementary landmark — the HTML mapping demotes it to a generic container. Render the sidebar as a sibling of `<main>` so the supporting content stays separate from the content it supports.
-:::
-
 ### Usage
-
-To use Sidebar, create the landmark with `aria('sidebar', props)`, then pass `sidebar.ref` and spread `sidebar.attributes` onto your aside element:
 
 :::code-group
 
-```tsx [React] executable
+```tsx [React]
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
-import type { ComponentProps } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 
-type SidebarProps = ComponentProps<'aside'> & {
+type SidebarProps = ComponentProps<'div'> & {
   label?: string;
   labelledby?: string;
+  children: ReactNode;
 };
 
 const Sidebar = setup<SidebarProps>((props) => {
   const sidebar = aria('sidebar', props);
-  const restProps = props.$omit([
-    ...sidebar.ownKeys,
-    'label',
-    'labelledby',
-    'children',
-    'className',
-  ]);
 
   return () => (
-    <aside ref={sidebar.ref} {...restProps} {...sidebar.attributes}>
+    <div ref={sidebar.ref} {...sidebar.restProps(['children'])}>
       {props.children}
-    </aside>
+    </div>
   );
-}, 'Sidebar');
+});
 ```
 
 ```tsx [SolidJS]
@@ -86,63 +97,55 @@ import { aria } from '@airlib/aria';
 import { setup } from '@airlib/solid';
 import type { ComponentProps } from 'solid-js';
 
-type SidebarProps = ComponentProps<'aside'> & {
+type SidebarProps = ComponentProps<'div'> & {
   label?: string;
   labelledby?: string;
 };
 
 const Sidebar = setup<SidebarProps>((props) => {
   const sidebar = aria('sidebar', props);
-  const restProps = props.$omit([
-    ...sidebar.ownKeys,
-    'label',
-    'labelledby',
-    'children',
-    'className',
-  ]);
 
   return (
-    <aside ref={sidebar.ref} {...restProps} {...sidebar.attributes}>
+    <div ref={sidebar.ref} {...sidebar.restProps(['children'])}>
       {props.children}
-    </aside>
+    </div>
   );
 });
 ```
 
 :::
 
-## Putting It Together
+### Parameters
 
-Once your component is wired with `aria('sidebar')`, place it beside the main content rather than inside it:
+- `props.label` *(string, optional)*: Accessible label compiled to `aria-label`, distinguishing this sidebar from others on the page.
+- `props.labelledby` *(string, optional)*: Element ID providing the accessible name, compiled to `aria-labelledby`.
+- `options.native` *(boolean, optional, default `false`)*: Pass `true` when the host is a real `<aside>`, which already implies the role — the redundant `role="complementary"` is dropped and only the name is compiled.
 
-```tsx
-<div className="layout">
-  <Main id="content">Article body</Main>
-  <Sidebar label="Related links">Related documentation</Sidebar>
-</div>
-```
+### How it behaves
 
-:::interactive[Sidebar Interactive Demo]
-<div className="flex gap-3 p-3 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 text-sm">
-  <div className="flex-1 rounded-lg bg-white dark:bg-zinc-900 p-4 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-800">
-    <p className="font-medium">main</p>
-    <p className="text-zinc-500 dark:text-zinc-400">The document the sidebar supports.</p>
-  </div>
-  <Sidebar
-    label="On this page"
-    className="w-40 shrink-0 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 text-zinc-500 dark:text-zinc-400"
-  >
-    <p className="font-medium text-zinc-800 dark:text-zinc-200">On this page</p>
-    <p>Parameters</p>
-    <p>Usage</p>
-    <p>Next steps</p>
-  </Sidebar>
-</div>
+- Compiles `role="complementary"` on a generic host. With `native: true` the role is left to the `<aside>` element and only the accessible name is emitted.
+- The role comes from `native` alone — never from the host tag and never from where the element sits in the tree.
+- `label` compiles to `aria-label` and `labelledby` to `aria-labelledby`, both reactively, and both are omitted when absent.
+- Two sidebars are distinguished by name, not by position: the controller invents no fallback label and tracks no order.
+- It points nowhere — no `aria-controls`, no `aria-labelledby` borrowed from the content it supports, and nothing inside `main` is hidden or claimed.
+- Structure only: no `tabindex`, no `aria-live`, no `aria-expanded`, no `aria-orientation`, and no state. Arrow keys and clicks pass through untouched.
+- `label` and `labelledby` are consumed by the controller and carried in `ownKeys`, so `restProps(['children'])` is the whole omission list — neither leaks to the DOM as a stray attribute.
+
+:::tip[Keep it a sibling of main]
+An `<aside>` nested inside `<main>`, `<article>`, `<section>`, `<nav>`, or another `<aside>` is not a complementary landmark — the HTML mapping demotes it to a generic container and exposes no role for it at all. Render the sidebar as a sibling of `<main>` so the supporting content stays separate from the content it supports. A custom host compiles `role="complementary"` wherever it is placed, so nesting one inside a section still publishes the landmark.
 :::
 
 ## Keyboard Navigation
 
 - **None.** The landmark takes no tab stop and claims no keys; the controls inside it keep their own keyboard behavior.
+
+## What you get
+
+- **Complementary on a generic host.** A `<div>` becomes supporting content that can be skipped or jumped to.
+- **Nameable sidebars.** `label` and `labelledby` separate several asides on one page.
+- **No redundant role.** `native: true` on a real `<aside>` leaves the implicit role alone.
+- **No ownership of the content.** The sidebar references nothing and hides nothing.
+- **Placement-stable output.** The compiled attributes are identical in SSR and after hydration, because nothing is read from the DOM.
 
 ## Next Steps
 

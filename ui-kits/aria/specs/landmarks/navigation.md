@@ -22,7 +22,7 @@ A navigation is the major collection of navigational links or menus an author ho
 
 ```ts
 export interface NavigationOptions {
-  /** Whether bound to native <nav> (default: true) */
+  /** Whether bound to native <nav> (default: false) */
   native?: boolean;
 }
 

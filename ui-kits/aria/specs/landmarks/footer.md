@@ -23,7 +23,7 @@ policies, contact information, and disclaimer links.
 
 ```ts
 export interface FooterOptions {
-  /** Whether bound to native <footer> (default: true) */
+  /** Whether bound to native <footer> (default: false) */
   native?: boolean;
 }
 
