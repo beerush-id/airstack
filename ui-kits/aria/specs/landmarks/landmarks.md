@@ -1,8 +1,9 @@
 # Landmarks Overview
 
-Landmarks divide a page layout into perceptible, navigable sections (`banner`, `main`, `navigation`, `complementary`,
-`contentinfo`, `search`, `form`, `region`), enabling assistive technologies to skip repetitive content and jump directly
-to key landmarks.
+Landmarks divide a page layout into perceptible, navigable sections (`banner`, `main`, `complementary`, `contentinfo`,
+`search`, `form`, `region`), enabling assistive technologies to skip repetitive content and jump directly to key
+landmarks. `navigation` is a landmark role in WAI-ARIA but not a member of this family: the package's navigation is a
+roving composite owning arrow-key travel, specified at [`../composites/navigation.md`](../composites/navigation.md).
 
 ---
 
@@ -12,7 +13,6 @@ to key landmarks.
 |:--------------------|:---------------------------------------------------------|:------------------------------------------------------|:------------------------------------------------------------------------------------------|
 | **`banner`**        | Primary document header (`<header>` scoped to `<body>`). | `role="banner"` (omitted if native `<header>`).       | Static structural landmark. Max 1 per page.                                               |
 | **`main`**          | Primary unique content (`<main>`).                       | `role="main"` (omitted if native `<main>`).           | Primary landmark. Skips repeated navigation directly to main content. Exactly 1 per page. |
-| **`navigation`**    | Navigation menu/links collection (`<nav>`).              | `role="navigation"` (omitted if native `<nav>`).      | Navigation landmark. Requires accessible name if multiple exist on the same page.         |
 | **`complementary`** | Supporting sidebar / aside (`<aside>`).                  | `role="complementary"` (omitted if native `<aside>`). | Supporting landmark.                                                                      |
 | **`contentinfo`**   | Primary document footer (`<footer>` scoped to `<body>`). | `role="contentinfo"` (omitted if native `<footer>`).  | Footer landmark. Max 1 per page.                                                          |
 | **`search`**        | Search area (`<search>` or `<form role="search">`).      | `role="search"`.                                      | Identifies site search feature.                                                           |
@@ -38,7 +38,7 @@ export interface LandmarkOptions {
 
 ```ts
 export interface LandmarkProps {
-  /** Accessible label (required for multiple navs, form, and region) */
+  /** Accessible label (required for form and region) */
   label?: string;
   /** Element ID providing accessible label */
   labelledby?: string;
@@ -53,7 +53,7 @@ export interface LandmarkProps {
   - `label` compiles to `aria-label`; `labelledby` compiles to `aria-labelledby`.
 
 2. **Native Optimization**:
-  - When `native: true`, matching HTML5 elements (`<main>`, `<nav>`, `<aside>`, etc.) omit explicit `role` attributes.
+  - When `native: true`, matching HTML5 elements (`<main>`, `<aside>`, etc.) omit explicit `role` attributes.
   - For non-native tags (`<div>`), `role` is compiled into `.attributes`.
   - `native` defaults to `false`: a static landmark is authored for a custom host, since a native tag needs no controller.
   - The role compiles from `native` alone — never from the host tag or its ancestry — so a custom host keeps its role wherever it is placed. Holding one `banner` / `contentinfo` / `main` per page is the author's responsibility.

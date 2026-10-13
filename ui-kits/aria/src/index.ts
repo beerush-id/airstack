@@ -66,6 +66,8 @@ import {
   MenuPanelAria,
   type MenuPanelProps,
   type MenuProps,
+  NavigationAria,
+  type NavigationProps,
   PaginationAria,
   type PaginationProps,
   RadioGroupAria,
@@ -118,9 +120,6 @@ import {
   MainAria,
   type MainOptions,
   type MainProps,
-  NavigationAria,
-  type NavigationOptions,
-  type NavigationProps,
   SearchAria,
   type SearchLandmarkOptions,
   type SearchLandmarkProps,
@@ -608,7 +607,7 @@ export function aria<E extends BaseElement = HTMLElement>(
 export function aria<E extends BaseElement = HTMLElement>(
   role: 'navigation',
   props?: NavigationProps,
-  options?: NavigationOptions
+  options?: AriaOptions
 ): NavigationAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement>(

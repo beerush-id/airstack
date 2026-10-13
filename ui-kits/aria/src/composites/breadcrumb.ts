@@ -1,7 +1,6 @@
-import { createContext } from '@airlib/core';
 import { Aria } from '../core.js';
 import type { AriaAttributes, AriaOptions, AriaProps, BaseElement } from '../types.js';
-import { handleRovingKey } from '../utils/navigation.js';
+import { NavigationBase } from './navigation.js';
 
 /**
  * Reactive input properties for BreadcrumbAria.
@@ -24,11 +23,6 @@ export interface BreadcrumbAttributes<E extends BaseElement = HTMLElement> exten
 }
 
 /**
- * Ambient instance context for the enclosing Breadcrumb coordinator.
- */
-export const breadcrumbCtx = createContext<BreadcrumbAria>();
-
-/**
  * Headless trail navigation coordinator: labels the landmark and moves
  * DOM focus across enabled crumb links, wrapping at both ends.
  * The trail roves a single tab stop on the current crumb, like pagination.
@@ -41,39 +35,14 @@ export class BreadcrumbAria<
   E extends BaseElement = HTMLElement,
   T extends BreadcrumbProps = BreadcrumbProps,
   A extends BreadcrumbAttributes<E> = BreadcrumbAttributes<E>,
-> extends Aria<E, T, A> {
+> extends NavigationBase<E, T, A> {
   public constructor(props: Partial<T> = {}, options: AriaOptions = { native: true }) {
     super(props, options);
-
-    breadcrumbCtx.set(this as unknown as BreadcrumbAria);
-    this.omittedAttrs.push('label');
-
-    this.on('keydown', (event) => {
-      handleRovingKey(this.element, event, {
-        manual: true,
-        selector: BREADCRUMB_SELECTORS,
-        orientation: 'horizontal',
-      });
-    });
-
     this.update();
   }
 
-  /**
-   * Accessible name for the navigation landmark.
-   */
-  public get label(): string {
-    return this.properties.label ?? 'Breadcrumbs';
-  }
-
-  /**
-   * Computes HTML and ARIA attributes for the breadcrumb container.
-   */
-  protected override createAttributes(): A {
-    return {
-      role: this.isNative ? undefined : 'navigation',
-      'aria-label': this.label,
-    } as A;
+  protected override get defaultLabel(): string {
+    return 'Breadcrumbs';
   }
 }
 
@@ -111,5 +80,3 @@ export class BreadcrumbSeparatorAria<
     } as A;
   }
 }
-
-const BREADCRUMB_SELECTORS = ['a[href]', '[role="link"]'].map((s) => `${s}:not([aria-disabled="true"])`).join(',');

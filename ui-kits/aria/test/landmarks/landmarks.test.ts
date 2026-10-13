@@ -119,7 +119,7 @@ describe('Landmarks - Registry & Boundary Specifications', () => {
     it('treats navigation and complementary as distinct roles that both need names when repeated', () =>
       scope.run(() => {
         component().run(() => {
-          const primary = aria('navigation');
+          const primary = aria('navigation', {}, { native: false });
           const primaryEl = bind(document.createElement('div'), primary);
 
           const aside = aria('sidebar');

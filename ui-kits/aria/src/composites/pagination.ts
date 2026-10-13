@@ -1,12 +1,5 @@
-import { createContext } from '@airlib/core';
-import { Aria } from '../core.js';
 import type { AriaAttributes, AriaOptions, AriaProps, BaseElement } from '../types.js';
-import { handleRovingKey } from '../utils/navigation.js';
-
-/**
- * Ambient instance context for the enclosing Pagination coordinator.
- */
-export const paginationCtx = createContext<PaginationAria>();
+import { NavigationBase } from './navigation.js';
 
 /**
  * Reactive input properties for PaginationAria.
@@ -16,6 +9,16 @@ export interface PaginationProps extends AriaProps {
    * Accessible name for the navigation landmark (default: 'Pagination').
    */
   label?: string;
+
+  /**
+   * Current page position (default: 1).
+   */
+  page?: number;
+
+  /**
+   * Last page position. Absent means the forward bound is unknown.
+   */
+  total?: number;
 }
 
 /**
@@ -40,40 +43,61 @@ export class PaginationAria<
   E extends BaseElement = HTMLElement,
   T extends PaginationProps = PaginationProps,
   A extends PaginationAttributes<E> = PaginationAttributes<E>,
-> extends Aria<E, T, A> {
+> extends NavigationBase<E, T, A> {
   public constructor(props: Partial<T> = {}, options: AriaOptions = { native: true }) {
     super(props, options);
 
-    paginationCtx.set(this as unknown as PaginationAria);
-    this.omittedAttrs.push('label');
-
-    this.on('keydown', (event) => {
-      handleRovingKey(this.element, event, {
-        manual: true,
-        selector: PAGINATION_SELECTORS,
-        orientation: 'horizontal',
-      });
-    });
-
+    this.omittedAttrs.push('page', 'total');
     this.update();
   }
 
   /**
-   * Accessible name for the navigation landmark.
+   * Current page position.
    */
-  public get label(): string {
-    return this.properties.label ?? 'Pagination';
+  public get page(): number {
+    return this.properties.page ?? 1;
+  }
+
+  public set page(page: number) {
+    this.properties.page = page;
   }
 
   /**
-   * Computes HTML and ARIA attributes for the pagination container.
+   * Last page position, or undefined when the forward bound is unknown.
    */
-  protected override createAttributes(): A {
-    return {
-      role: this.isNative ? undefined : 'navigation',
-      'aria-label': this.label,
-    } as A;
+  public get total(): number | undefined {
+    return this.properties.total;
+  }
+
+  /**
+   * Whether a page exists before the current one.
+   */
+  public get canBackward(): boolean {
+    return this.page > 1;
+  }
+
+  /**
+   * Whether a page exists after the current one.
+   */
+  public get canForward(): boolean {
+    return this.total !== undefined && this.page < this.total;
+  }
+
+  /**
+   * Steps to the previous page where one exists.
+   */
+  public prev(): void {
+    if (this.canBackward) this.page -= 1;
+  }
+
+  /**
+   * Steps to the next page where one exists.
+   */
+  public next(): void {
+    if (this.canForward) this.page += 1;
+  }
+
+  protected override get defaultLabel(): string {
+    return 'Pagination';
   }
 }
-
-const PAGINATION_SELECTORS = ['a[href]', '[role="link"]'].map((s) => `${s}:not([aria-disabled="true"])`).join(',');

@@ -1,18 +1,18 @@
 ---
 title: 'Pagination'
-description: 'Headless page-list navigation that names the landmark and carries arrow-key travel across page links, wrapping at both ends.'
+description: 'Headless page-list navigation that names the landmark, carries arrow-key travel across page links, and holds the page position that drives prev and next.'
 nav: 'Pagination'
 nav-priority: 340
 ---
 
 # AirLib Headless Pagination
 
-Search results split across ten pages leave keyboard users tabbing through every page link one stop at a time, while assistive technology announces the pile with no name and no relationship. **AirLib Headless Pagination** (`aria('pagination')`) names the landmark for assistive technology and carries `Left` / `Right` / `Home` / `End` travel across the page links — wrapping at both ends, passing over disabled entries, and leaving vertical arrows and activation to the browser and the links themselves.
+Search results split across ten pages leave keyboard users tabbing through every page link one stop at a time, while assistive technology announces the pile with no name and no relationship. The prev and next controls around it are usually wired by hand, each one re-deriving whether there is a page to step to. **AirLib Headless Pagination** (`aria('pagination')`) names the landmark, carries `Left` / `Right` / `Home` / `End` travel across the page links — wrapping at both ends and passing over disabled entries — and holds the page position that `prev()`, `next()`, `canBackward`, and `canForward` all read from.
 
 ```tsx
 const nav = aria('pagination', props);
 
-<nav ref={nav.ref} {...nav.props} />
+<nav ref={nav.ref} {...nav.restProps(['children'])} />
 ```
 
 <style>{`.demo-pagination{display:flex;align-items:center;gap:.375rem;padding:.625rem .75rem;border:1px solid #e4e4e7;border-radius:.75rem;background:#fafafa}.demo-page{display:inline-flex;align-items:center;justify-content:center;min-width:2.25rem;padding:.375rem .625rem;border:1px solid transparent;border-radius:.5rem;background:transparent;font-size:.875rem;font-weight:500;color:#3f3f46;text-decoration:none;cursor:pointer;transition:background-color .15s,border-color .15s,color .15s}.demo-page:hover{background:#e4e4e7}.demo-page:focus-visible{outline:2px solid #18181b;outline-offset:2px}.demo-page[aria-current="page"]{border-color:#18181b;background:#18181b;color:#fff}.demo-page[aria-disabled="true"]{opacity:.5;cursor:not-allowed}`}</style>
@@ -29,7 +29,7 @@ type DemoPaginationProps = ComponentProps<'nav'> & {
 };
 
 const DemoPagination = setup<DemoPaginationProps>((props) => {
-  const nav = aria('pagination', props, { native:false });
+  const nav = aria('pagination', props, { native: false });
 
   return () => (
     <div ref={nav.ref} {...nav.restProps(['children'])} className="demo-pagination">
@@ -64,7 +64,7 @@ const DemoPageLink = setup<DemoPageLinkProps>((props) => {
 
 ## Pagination
 
-Page-list navigation coordinator. The container holds the accessible label and the arrow-key travel; the page controls themselves are ordinary links.
+Page-list navigation coordinator. The container holds the accessible label, the page position, and the arrow-key travel; the page controls themselves are ordinary links.
 
 ```ts
 aria<E extends BaseElement = HTMLElement>(
@@ -84,6 +84,8 @@ import type { ComponentProps, ReactNode } from 'react';
 
 type PaginationProps = ComponentProps<'nav'> & {
   label?: string;
+  page?: number;
+  total?: number;
   children: ReactNode;
 };
 
@@ -92,7 +94,13 @@ const Pagination = setup<PaginationProps>((props) => {
 
   return () => (
     <nav ref={nav.ref} {...nav.restProps(['children'])}>
+      <button type="button" disabled={!nav.canBackward} onClick={() => nav.prev()}>
+        Previous
+      </button>
       {props.children}
+      <button type="button" disabled={!nav.canForward} onClick={() => nav.next()}>
+        Next
+      </button>
     </nav>
   );
 });
@@ -105,6 +113,8 @@ import type { ComponentProps } from 'solid-js';
 
 type PaginationProps = ComponentProps<'nav'> & {
   label?: string;
+  page?: number;
+  total?: number;
 };
 
 const Pagination = setup<PaginationProps>((props) => {
@@ -112,7 +122,13 @@ const Pagination = setup<PaginationProps>((props) => {
 
   return (
     <nav ref={nav.ref} {...nav.restProps(['children'])}>
+      <button type="button" disabled={!nav.canBackward} onClick={() => nav.prev()}>
+        Previous
+      </button>
       {props.children}
+      <button type="button" disabled={!nav.canForward} onClick={() => nav.next()}>
+        Next
+      </button>
     </nav>
   );
 });
@@ -123,6 +139,16 @@ const Pagination = setup<PaginationProps>((props) => {
 ### Parameters
 
 - `props.label` *(string, optional, default `'Pagination'`)*: Accessible name for the navigation landmark, applied via `aria-label`.
+- `props.page` *(number, optional, default `1`)*: Current page position, read and written through `nav.page`.
+- `props.total` *(number, optional)*: Last page position. Absent means the forward bound is unknown, so `canForward` stays `false` and `next()` does nothing.
+
+### Projections & Methods
+
+- `nav.page` *(number)*: Current page position. Writable — assigning it moves the run.
+- `nav.total` *(number | undefined)*: Last page position, or `undefined` when unknown.
+- `nav.canBackward` *(boolean)*: `page > 1`.
+- `nav.canForward` *(boolean)*: `total` is known and `page < total`.
+- `nav.prev()` / `nav.next()`: Step one page in that direction, and only where one exists. They stop at both ends rather than wrapping, so binding them to a control's `disabled` is the whole guard.
 
 ### How it behaves
 
@@ -132,34 +158,35 @@ const Pagination = setup<PaginationProps>((props) => {
 - Disabled page links are passed over in every direction.
 - One tab stop for the whole run: only the current page link sits at `tabindex="0"` — every other page link parks at `-1` and is reached with the arrow keys. Mark the active page with `current` so the stop lands where readers expect it.
 - Up and Down arrows keep native scroll; `Enter`, `Space`, and any other key are never swallowed.
-- Activation stays with the link: clicking navigates through the browser, never through the container.
-- The container invents no page position — no `aria-current`, no value — and marks no link current on your behalf.
+- A page link carrying `page` writes that position into the pagination when it activates, so clicking page 4 moves the run. A middle-click or a `Ctrl` / `Cmd` / `Shift` gesture opens a tab and commits nothing.
+- The page position is state, not markup: `page` and `total` are owned by the controller, compile to no attribute, and never reach the DOM.
 
 :::tip[No Page Item Role]
-WAI-ARIA defines no pagination item role, so there is no `Pagination.Item` to reach for. Page controls are ordinary [`aria('link')`](/docs/aria/link) instances — with `href` for destinations and `current` for the active page — and participate in travel by being there.
+WAI-ARIA defines no pagination item role, so there is no `Pagination.Item` to reach for. Page controls are ordinary [`aria('link')`](/docs/aria/link) instances — with `href` for destinations, `page` for the position they commit, and `current` for the active page — and participate in travel by being there.
 :::
 
 ## Page Links
 
-Pagination members are ordinary link controllers: [`aria('link')`](/docs/aria/link) with `href`, optional `disabled`, and `current` for the active page (`aria-current="page"`). Each keeps its own props, projections, and native navigation.
+Pagination members are ordinary link controllers: [`aria('link')`](/docs/aria/link) with `href`, optional `disabled`, `page` for the position the link commits on activation, and `current` for the active page (`aria-current="page"`). Each keeps its own props, projections, and native navigation.
 
 ## Keyboard Navigation
 
 - **ArrowRight / ArrowLeft**: Moves focus to the next / previous enabled page link, wrapping at both ends.
 - **Home / End**: Moves focus to the first / last enabled page link.
 - **ArrowUp / ArrowDown**: Left to the browser for native scroll.
-- **Enter / Space**: Left to the focused link, which navigates itself.
+- **Enter / Space**: Left to the focused link, which navigates itself and commits its `page`.
 - **Tab**: Left to the browser, moving focus to the next interactive element on the page. From inside the run, `Tab` leaves from the current page link — the run's only tab stop.
 
 ## What you get
 
 - **Named landmark.** One `label` gives the whole page run an accessible name.
+- **A page position you can drive.** `page` and `total` feed `canBackward` / `canForward`, and `prev()` / `next()` step inside those bounds.
 - **Wrapped travel.** Arrows wrap from the last page back to the first (and from the first back to the last).
 - **Links stay links.** Native navigation, `aria-current`, and disabled lockout all keep working as themselves.
-- **Nothing to configure.** No value, no page index, no list of members.
-- **Zero markup lock-in.** Native `<nav>` or a custom host; the container only labels and moves focus.
+- **Zero markup lock-in.** Native `<nav>` or a custom host; the container only labels, holds the position, and moves focus.
 
 ## Next Steps
 
-- **[Link](/docs/aria/link)**: Destinations, disabled lockout, and the current-page marker behind each page control.
+- **[Link](/docs/aria/link)**: Destinations, disabled lockout, the committed `page`, and the current-page marker behind each page control.
+- **[Navigation](/docs/aria/navigation)**: The roving link group pagination extends.
 - **[Toolbar](/docs/aria/toolbar)**: Arrow-key roving across mixed controls with the same wrapping travel.

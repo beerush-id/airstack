@@ -54,7 +54,6 @@ describe('Pagination - Composite Specifications', () => {
         component().run(() => {
           const native = buildNav({}, [{ page: '1', href: '?p=1' }]);
 
-          // <nav> is the landmark, so only the label is added
           expect(native.navEl.getAttribute('role')).toBeNull();
           expect(native.nav.attributes.role).toBeUndefined();
           expect(native.navEl.getAttribute('aria-label')).toBe('Pagination');
@@ -93,7 +92,6 @@ describe('Pagination - Composite Specifications', () => {
           press(links[2].el, 'ArrowRight');
           expect(focusedPage()).toBe('1');
 
-          // Home and End jump to the ends of the run
           press(links[1].el, 'End');
           expect(focusedPage()).toBe('3');
 
@@ -122,7 +120,6 @@ describe('Pagination - Composite Specifications', () => {
           expect(press(links[0].el, 'ArrowUp').defaultPrevented).toBe(false);
           expect(focusedPage()).toBe('1');
 
-          // A key with no meaning here is not swallowed either
           expect(press(links[0].el, 'Enter').defaultPrevented).toBe(false);
           expect(press(links[0].el, ' ').defaultPrevented).toBe(false);
 
@@ -187,7 +184,7 @@ describe('Pagination - Composite Specifications', () => {
   });
 
   describe('Current Landmark Association Invariant', () => {
-    it('exposes the landmark without inventing a page position', () =>
+    it('exposes the landmark without projecting a page position into the tree', () =>
       scope.run(() => {
         component().run(() => {
           const { nav, navEl, links, cleanup } = buildNav({ label: 'Results' }, [
@@ -197,15 +194,82 @@ describe('Pagination - Composite Specifications', () => {
 
           expect(navEl.getAttribute('aria-label')).toBe('Results');
 
-          // The container holds no page index of its own
           expect(navEl.hasAttribute('aria-current')).toBe(false);
           expect(navEl.hasAttribute('aria-valuenow')).toBe(false);
           expect(nav.attributes.value).toBeUndefined();
 
-          // And no link is announced as the current page
           for (const { el } of links) {
             expect(el.hasAttribute('aria-current')).toBe(false);
           }
+
+          cleanup();
+        });
+      }));
+  });
+
+  describe('Page Position & Dispatch Invariant', () => {
+    it('reads the page position and its bounds from page and total', () =>
+      scope.run(() => {
+        component().run(() => {
+          const { nav, navEl, cleanup } = buildNav({ total: 3 }, [{ page: '1', href: '?p=1' }]);
+
+          expect(nav.page).toBe(1);
+          expect(nav.total).toBe(3);
+          expect(nav.canBackward).toBe(false);
+          expect(nav.canForward).toBe(true);
+
+          expect(navEl.hasAttribute('page')).toBe(false);
+          expect(navEl.hasAttribute('total')).toBe(false);
+          expect(nav.attributes.value).toBeUndefined();
+
+          cleanup();
+        });
+      }));
+
+    it('steps the page position only where there is a page to step to', () =>
+      scope.run(() => {
+        component().run(() => {
+          const { nav, cleanup } = buildNav({ total: 3 }, [{ page: '1', href: '?p=1' }]);
+
+          nav.prev();
+          expect(nav.page).toBe(1);
+
+          nav.next();
+          expect(nav.page).toBe(2);
+          expect(nav.canBackward).toBe(true);
+          expect(nav.canForward).toBe(true);
+
+          nav.next();
+          expect(nav.page).toBe(3);
+          expect(nav.canForward).toBe(false);
+
+          nav.next();
+          expect(nav.page).toBe(3);
+
+          nav.prev();
+          expect(nav.page).toBe(2);
+
+          cleanup();
+        });
+      }));
+
+    it('holds no forward bound while total is unknown and takes a written position', () =>
+      scope.run(() => {
+        component().run(() => {
+          const { nav, cleanup } = buildNav({}, [{ page: '1', href: '?p=1' }]);
+
+          expect(nav.total).toBeUndefined();
+          expect(nav.canForward).toBe(false);
+
+          nav.next();
+          expect(nav.page).toBe(1);
+
+          nav.page = 4;
+          expect(nav.page).toBe(4);
+          expect(nav.canBackward).toBe(true);
+
+          nav.prev();
+          expect(nav.page).toBe(3);
 
           cleanup();
         });

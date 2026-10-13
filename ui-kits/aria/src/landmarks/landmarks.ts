@@ -4,15 +4,7 @@ import type { AriaAttributes, AriaOptions, AriaProps, BaseElement } from '../typ
 /**
  * WAI-ARIA landmark roles compiled by this family.
  */
-export type LandmarkRole =
-  | 'banner'
-  | 'main'
-  | 'navigation'
-  | 'complementary'
-  | 'contentinfo'
-  | 'search'
-  | 'form'
-  | 'region';
+export type LandmarkRole = 'banner' | 'main' | 'complementary' | 'contentinfo' | 'search' | 'form' | 'region';
 
 /**
  * Reactive input properties shared by every landmark.
@@ -174,32 +166,6 @@ export class MainAria<
 > extends LandmarkAria<E, T, A> {
   protected override get landmarkRole(): LandmarkRole {
     return 'main';
-  }
-}
-
-/**
- * Reactive input properties for NavigationAria.
- */
-export interface NavigationProps extends LandmarkProps {}
-
-/**
- * Behavioral configuration options for NavigationAria.
- */
-export interface NavigationOptions extends LandmarkOptions {}
-
-/**
- * Headless WAI-ARIA navigation landmark marking a major collection of navigational
- * links. A page holding more than one requires a label on each so they can be told apart.
- *
- * @template E - Target Element type (defaults to HTMLElement)
- */
-export class NavigationAria<
-  E extends BaseElement = HTMLElement,
-  T extends NavigationProps = NavigationProps,
-  A extends LandmarkAttributes<E> = LandmarkAttributes<E>,
-> extends LandmarkAria<E, T, A> {
-  protected override get landmarkRole(): LandmarkRole {
-    return 'navigation';
   }
 }
 

@@ -1,23 +1,23 @@
 ---
 title: 'Navigation'
-description: 'Headless navigation landmark that compiles role="navigation" onto a generic host and names each collection so repeated navigations stay distinguishable.'
+description: 'Headless roving link group that compiles role="navigation", names the landmark, and carries vertical arrow-key travel across its links under a single tab stop.'
 nav: 'Navigation'
 nav-priority: 530
 ---
 
 # AirLib Headless Navigation
 
-Most pages carry more than one set of links: a primary menu, breadcrumbs, a sidebar of related pages, a footer sitemap. Unnamed, they are all announced as "navigation", so jumping between them means listening to each one to find out which is which. **AirLib Headless Navigation** (`aria('navigation')`) compiles `role="navigation"` onto the generic host you already render and turns `label` / `labelledby` into the accessible name that tells two collections apart — while leaving every link inside it to its own controller.
+A sidebar nav with twenty links is twenty tab stops a keyboard user has to step through to get past, and to assistive technology the pile is an unnamed group of links with no way to jump to it. **AirLib Headless Navigation** (`aria('navigation')`) compiles `role="navigation"` onto the host you render, names it so it can be jumped to, and carries `Up` / `Down` / `Home` / `End` travel across its links under a single tab stop — wrapping at both ends and passing over disabled links. It travels vertically by default, because a horizontal bar of menus is a [`menubar`](/docs/aria/menu), and a horizontal trail of ancestors is a [`breadcrumb`](/docs/aria/breadcrumb).
 
 ```tsx
-const navigation = aria('navigation', props);
+const nav = aria('navigation', props);
 
-<div ref={navigation.ref} {...navigation.restProps(['children'])} />
+<nav ref={nav.ref} {...nav.restProps(['children'])} />
 ```
 
-<style>{`.demo-nav-stack{display:flex;flex-direction:column;gap:.75rem;padding:1rem;max-width:24rem;border:1px solid #e4e4e7;border-radius:.75rem;background:#fafafa;font-size:.875rem}.demo-nav{display:flex;align-items:center;gap:.75rem;color:#3f3f46}.demo-nav-current{font-weight:600;color:#18181b}.demo-nav-trail{gap:.5rem;color:#71717a}.demo-nav-sep{color:#a1a1aa;user-select:none}`}</style>
+<style>{`.demo-nav{display:flex;flex-direction:column;gap:.25rem;padding:.75rem;max-width:14rem;border:1px solid #e4e4e7;border-radius:.75rem;background:#fafafa}.demo-nav-heading{padding:.25rem .5rem;font-size:.75rem;font-weight:600;letter-spacing:.02em;text-transform:uppercase;color:#a1a1aa}.demo-nav-link{padding:.375rem .5rem;border-radius:.5rem;font-size:.875rem;font-weight:500;color:#3f3f46;text-decoration:none;cursor:pointer}.demo-nav-link:hover{background:#e4e4e7}.demo-nav-link:focus-visible{outline:2px solid #18181b;outline-offset:-2px}.demo-nav-link[aria-current="page"]{background:#18181b;color:#fff}.demo-nav-link[aria-disabled="true"]{opacity:.5;cursor:not-allowed}`}</style>
 
-:::interactive[Two Named Navigations]
+:::interactive[Section Navigation]
 ```tsx
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
@@ -30,41 +30,48 @@ type DemoNavigationProps = ComponentProps<'div'> & {
 };
 
 const DemoNavigation = setup<DemoNavigationProps>((props) => {
-  const navigation = aria('navigation', props);
+  const nav = aria('navigation', props, { native: false });
 
   return () => (
-    <div ref={navigation.ref} {...navigation.restProps(['children'])}>
+    <div ref={nav.ref} {...nav.restProps(['children'])} className="demo-nav">
       {props.children}
     </div>
   );
 }, 'DemoNavigation');
+
+type DemoNavLinkProps = ComponentProps<'a'> & {
+  current?: boolean;
+};
+
+const DemoNavLink = setup<DemoNavLinkProps>((props) => {
+  const link = aria('link', props);
+
+  return () => (
+    <a ref={link.ref} {...link.restProps(['children'])} className="demo-nav-link">
+      {props.children}
+    </a>
+  );
+}, 'DemoNavLink');
 ```
 
-<div className="demo-nav-stack">
-  <DemoNavigation label="Primary" className="demo-nav">
-    <span className="demo-nav-current">Docs</span>
-    <span>Blog</span>
-    <span>Support</span>
-  </DemoNavigation>
-  <DemoNavigation label="Breadcrumb" className="demo-nav demo-nav-trail">
-    <span>Docs</span>
-    <span className="demo-nav-sep" aria-hidden="true">/</span>
-    <span>Aria</span>
-    <span className="demo-nav-sep" aria-hidden="true">/</span>
-    <span className="demo-nav-current">Navigation</span>
-  </DemoNavigation>
-</div>
+<DemoNavigation label="Documentation sections">
+  <span className="demo-nav-heading">Aria</span>
+  <DemoNavLink href="#overview" current>Overview</DemoNavLink>
+  <DemoNavLink href="#widgets">Widgets</DemoNavLink>
+  <DemoNavLink href="#composites">Composites</DemoNavLink>
+  <DemoNavLink href="#landmarks">Landmarks</DemoNavLink>
+</DemoNavigation>
 :::
 
 ## Navigation
 
-The link collection landmark. It projects navigation semantics onto a generic host and carries the name that separates one collection from another.
+Roving link group and navigation landmark. The container holds the accessible name and the arrow-key travel; the links themselves are ordinary [`aria('link')`](/docs/aria/link) controllers.
 
 ```ts
 aria<E extends BaseElement = HTMLElement>(
   role: 'navigation',
   props?: NavigationProps,
-  options?: NavigationOptions
+  options?: AriaOptions
 ): NavigationAria<E>
 ```
 
@@ -77,19 +84,19 @@ import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
 import type { ComponentProps, ReactNode } from 'react';
 
-type NavigationProps = ComponentProps<'div'> & {
+type NavigationProps = ComponentProps<'nav'> & {
   label?: string;
   labelledby?: string;
   children: ReactNode;
 };
 
 const Navigation = setup<NavigationProps>((props) => {
-  const navigation = aria('navigation', props);
+  const nav = aria('navigation', props);
 
   return () => (
-    <div ref={navigation.ref} {...navigation.restProps(['children'])}>
+    <nav ref={nav.ref} {...nav.restProps(['children'])}>
       {props.children}
-    </div>
+    </nav>
   );
 });
 ```
@@ -99,18 +106,18 @@ import { aria } from '@airlib/aria';
 import { setup } from '@airlib/solid';
 import type { ComponentProps } from 'solid-js';
 
-type NavigationProps = ComponentProps<'div'> & {
+type NavigationProps = ComponentProps<'nav'> & {
   label?: string;
   labelledby?: string;
 };
 
 const Navigation = setup<NavigationProps>((props) => {
-  const navigation = aria('navigation', props);
+  const nav = aria('navigation', props);
 
   return (
-    <div ref={navigation.ref} {...navigation.restProps(['children'])}>
+    <nav ref={nav.ref} {...nav.restProps(['children'])}>
       {props.children}
-    </div>
+    </nav>
   );
 });
 ```
@@ -119,38 +126,45 @@ const Navigation = setup<NavigationProps>((props) => {
 
 ### Parameters
 
-- `props.label` *(string, optional)*: Accessible label compiled to `aria-label`, distinguishing this navigation from others on the page.
+- `props.label` *(string, optional)*: Accessible label compiled to `aria-label`. There is no default — an unnamed navigation carries no name, because two unnamed navigations on a page are indistinguishable and only you know which is which.
 - `props.labelledby` *(string, optional)*: Element ID providing the accessible name, compiled to `aria-labelledby`.
-- `options.native` *(boolean, optional, default `false`)*: Pass `true` when the host is a real `<nav>`, which already implies the role — the redundant `role="navigation"` is dropped and only the name is compiled.
+- `options.native` *(boolean, optional, default `true`)*: Leave it for a real `<nav>`, which already implies the role. Pass `false` for a generic host so `role="navigation"` is compiled.
 
 ### How it behaves
 
-- Compiles `role="navigation"` on a generic host. With `native: true` the role is left to the `<nav>` element and only the accessible name is emitted.
-- The role comes from `native` alone — never from the host tag and never from where the element sits in the tree.
-- The name is compiled whenever `label` or `labelledby` is present and omitted otherwise, so a page with a single navigation carries no redundant `aria-label`.
-- Two unnamed navigations stay unnamed: the controller invents no fallback name and counts no instances. Naming repeated collections is yours.
-- Structure only: no `tabindex`, no `aria-orientation`, no `aria-activedescendant`, and no roving focus. Arrow keys keep native scroll and clicks are never swallowed.
-- The landmark label never leaks onto the links inside it, and those links keep their own navigation contract.
-- `label` and `labelledby` are consumed by the controller and carried in `ownKeys`, so `restProps(['children'])` is the whole omission list — neither leaks to the DOM as a stray attribute.
+- Compiles `role="navigation"` on a generic host; on a native `<nav>` the role is omitted and only the name is added.
+- `Up` / `Down` move DOM focus to the previous / next enabled link, wrapping at both ends.
+- `Home` / `End` move focus to the first / last enabled link.
+- Disabled links are passed over in every direction.
+- One tab stop for the whole group: the current link sits at `tabindex="0"` and every other link parks at `-1`, reached with the arrow keys.
+- `Left` / `Right` are left alone — the group travels vertically, so the horizontal arrows keep their browser behavior.
+- No selection state of any kind: no `value`, no `aria-activedescendant`, no `aria-current` invented on your behalf. Activation stays with the link.
+- `label` and `labelledby` are consumed by the controller and carried in `ownKeys`, so `restProps(['children'])` is the whole omission list.
+- This is the baseline the other link groups extend: [`breadcrumb`](/docs/aria/breadcrumb) and [`pagination`](/docs/aria/pagination) are the same roving group locked to the horizontal axis, each adding its own member semantics.
 
-:::tip[Reserve it for major collections]
-`navigation` is for major link collections, not every group of links on a page. Marking a footer's three legal links as a navigation landmark adds noise to the landmark list without helping anyone jump anywhere.
+:::tip[Mark the active link current]
+The single tab stop lands on whichever link is `current`, so mark the active one — that is where a keyboard user arrives and where `Tab` leaves from. A horizontal top bar of menus is not this role: use [`menubar`](/docs/aria/menu), whose members are menu items rather than links.
 :::
 
 ## Keyboard Navigation
 
-- **None.** The landmark takes no tab stop of its own. Keyboard users traverse the links inside it, and assistive technologies jump to it by name.
+- **ArrowDown / ArrowUp**: Moves focus to the next / previous enabled link, wrapping at both ends.
+- **Home / End**: Moves focus to the first / last enabled link.
+- **ArrowLeft / ArrowRight**: Left to the browser — this group travels vertically.
+- **Enter / Space**: Left to the focused link, which navigates itself.
+- **Tab**: Left to the browser. From inside the group, `Tab` leaves from the current link — the group's only tab stop.
 
 ## What you get
 
-- **Navigation on a generic host.** A `<div>` becomes a jump target with no markup lock-in.
-- **Distinguishable collections.** `label` and `labelledby` give each navigation its own announced name.
-- **No redundant role.** `native: true` on a real `<nav>` leaves the implicit role alone.
-- **Links stay links.** The controls inside keep their own controllers, focus, and activation.
-- **Placement-stable output.** The compiled attributes are identical in SSR and after hydration, because nothing is read from the DOM.
+- **One tab stop, not twenty.** Arrow travel across the whole group from a single stop.
+- **Named landmark.** `label` or `labelledby` makes the group a jump destination.
+- **Wrapped travel.** Arrows wrap from the last link back to the first, and past disabled links.
+- **Links stay links.** Native navigation, `aria-current`, and disabled lockout all keep working as themselves.
+- **Zero markup lock-in.** Native `<nav>` or a custom host; the container only names the group and moves focus.
 
 ## Next Steps
 
-- **[Link](/docs/aria/link)**: The navigation triggers that live inside this landmark.
-- **[Menu](/docs/aria/menu)**: A popup action collection, which is not a navigation landmark.
-- **[Sidebar](/docs/aria/sidebar)**: The sidebar a secondary navigation often sits in.
+- **[Link](/docs/aria/link)**: The navigation triggers that live inside this group.
+- **[Breadcrumb](/docs/aria/breadcrumb)**: The same rover locked horizontal, over an ordered trail with a terminal page.
+- **[Pagination](/docs/aria/pagination)**: The same rover over a page list, holding the page position.
+- **[Menu](/docs/aria/menu)**: `menubar` for a horizontal bar of menu items rather than links.

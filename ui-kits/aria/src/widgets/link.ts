@@ -1,4 +1,4 @@
-import { breadcrumbCtx, paginationCtx } from '../composites/index.js';
+import { navCtx, type PaginationAria } from '../composites/index.js';
 import { linkCtx } from '../context.js';
 import { Aria } from '../core.js';
 import type { AriaAttributes, AriaOptions, AriaProps, BaseElement } from '../types.js';
@@ -27,6 +27,11 @@ export interface LinkProps extends AriaProps {
    * Current-page override. When undefined, matches href against ambient linkCtx.
    */
   current?: boolean;
+
+  /**
+   * Page position committed to an enclosing pagination when this link activates.
+   */
+  page?: number;
 }
 
 /**
@@ -65,8 +70,7 @@ export class LinkAria<
   A extends LinkAttributes<E> = LinkAttributes<E>,
   O extends LinkOptions = LinkOptions,
 > extends Aria<E, T, A, O> {
-  protected nav = paginationCtx.get();
-  protected crumb = breadcrumbCtx.get();
+  protected nav = navCtx.get() as unknown as PaginationAria | undefined;
 
   public constructor(props: Partial<T> = {}, options: O = {} as O) {
     super(props, {
@@ -75,7 +79,7 @@ export class LinkAria<
     });
 
     this.markActionable();
-    this.omittedAttrs.push('href', 'target', 'current', 'aria-disabled', 'aria-current');
+    this.omittedAttrs.push('href', 'target', 'current', 'page', 'aria-disabled', 'aria-current');
     this.update();
   }
 
@@ -111,7 +115,7 @@ export class LinkAria<
    */
   protected override createAttributes(): A {
     const isDisabled = this.disabled;
-    const grouped = !!(this.nav || this.crumb);
+    const grouped = !!this.nav;
 
     const attrs = Object.assign(super.createAttributes(), {
       href: this.href,
@@ -120,7 +124,7 @@ export class LinkAria<
       'aria-current': this.isCurrent ? 'page' : undefined,
       tabindex: isDisabled || (grouped && !this.isCurrent) ? -1 : grouped && this.isCurrent ? 0 : undefined,
       onclick: this.handleClick,
-      onauxclick: this.handleClick,
+      onauxclick: this.handleAuxClick,
     });
 
     if (this.isNative) {
@@ -137,8 +141,16 @@ export class LinkAria<
   }
 
   private readonly handleClick = (event: MouseEvent): void => {
-    if (!this.disabled) return;
-    event.preventDefault();
+    if (this.disabled) {
+      event.preventDefault();
+      return;
+    }
+
+    this.commitPage();
+  };
+
+  private readonly handleAuxClick = (event: MouseEvent): void => {
+    if (this.disabled) event.preventDefault();
   };
 
   private readonly handleCustomAuxClick = (event: MouseEvent): void => {
@@ -163,6 +175,9 @@ export class LinkAria<
       event.preventDefault();
       return;
     }
+
+    this.commitPage();
+
     const href = this.properties.href;
     if (!href) return;
 
@@ -182,4 +197,11 @@ export class LinkAria<
     event.preventDefault();
     (event.currentTarget as HTMLElement)?.click?.();
   };
+
+  private commitPage(): void {
+    const page = this.properties.page;
+    if (!page || !this.nav) return;
+
+    this.nav.page = page;
+  }
 }

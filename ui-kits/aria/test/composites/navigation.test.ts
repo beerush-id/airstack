@@ -111,26 +111,66 @@ describe('Navigation - Landmark Specifications', () => {
         });
       }));
 
-    it('stays a structural landmark for grouping and takes no roving focus', () =>
+    it('roves the links it contains and keeps the container out of the tab order', () =>
       scope.run(() => {
         component().run(() => {
-          const nav = aria('navigation', { label: 'Sections' });
+          const nav = aria('navigation', { label: 'Sections' }, { native: false });
           const navEl = bind(document.createElement('div'), nav);
           document.body.appendChild(navEl);
 
           expect(navEl.getAttribute('role')).toBe('navigation');
           expect(navEl.hasAttribute('tabindex')).toBe(false);
-          expect(navEl.hasAttribute('aria-orientation')).toBe(false);
-          expect(navEl.hasAttribute('aria-activedescendant')).toBe(false);
-          expect(nav.attributes['aria-multiselectable']).toBeUndefined();
 
-          const event = new KeyboardEvent('keydown', {
+          const first = document.createElement('a');
+          first.href = '#one';
+          const second = document.createElement('a');
+          second.href = '#two';
+          navEl.append(first, second);
+
+          first.focus();
+
+          const down = new KeyboardEvent('keydown', {
             key: 'ArrowDown',
             bubbles: true,
             cancelable: true,
           });
-          navEl.dispatchEvent(event);
-          expect(event.defaultPrevented).toBe(false);
+          navEl.dispatchEvent(down);
+          expect(down.defaultPrevented).toBe(true);
+          expect(document.activeElement).toBe(second);
+
+          const up = new KeyboardEvent('keydown', {
+            key: 'ArrowUp',
+            bubbles: true,
+            cancelable: true,
+          });
+          navEl.dispatchEvent(up);
+          expect(document.activeElement).toBe(first);
+
+          const end = new KeyboardEvent('keydown', {
+            key: 'End',
+            bubbles: true,
+            cancelable: true,
+          });
+          navEl.dispatchEvent(end);
+          expect(document.activeElement).toBe(second);
+
+          nav.destroy();
+          navEl.remove();
+        });
+      }));
+
+    it('compiles a bare navigation with the native default and invents no name', () =>
+      scope.run(() => {
+        component().run(() => {
+          const nav = aria('navigation');
+          const navEl = bind(document.createElement('nav'), nav);
+          document.body.appendChild(navEl);
+
+          expect(nav.label).toBeUndefined();
+          expect(nav.attributes.role).toBeUndefined();
+          expect(navEl.hasAttribute('role')).toBe(false);
+          expect(navEl.hasAttribute('aria-label')).toBe(false);
+          expect(navEl.hasAttribute('aria-labelledby')).toBe(false);
 
           nav.destroy();
           navEl.remove();

@@ -1,6 +1,6 @@
 import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it, vi } from 'vitest';
-import { aria, LinkAria, linkCtx, type LinkProps, paginationCtx } from '../../src/index.js';
+import { aria, type LinkAria, type LinkProps, linkCtx } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 describe('Link - Contract Specifications', () => {
@@ -448,8 +448,6 @@ describe('Link - Contract Specifications', () => {
           let lnk!: LinkAria;
 
           childTree.run(() => {
-            // Coverage addition.
-            paginationCtx.set({} as never);
             linkCtx.set({ url: '/test' });
 
             lnk = aria('link', { href: '/test' });
@@ -460,6 +458,136 @@ describe('Link - Contract Specifications', () => {
 
           lnk.destroy();
           expect(parent.actionable).toBeUndefined();
+        });
+      }));
+
+    it('cedes the tab stop to the current link when grouped inside a pagination', () =>
+      scope.run(() => {
+        component().run(() => {
+          linkCtx.set({ url: '/two' });
+
+          const page = aria('pagination');
+          const pageEl = bind(document.createElement('nav'), page);
+          document.body.appendChild(pageEl);
+
+          const first = aria('link', { href: '/one' });
+          const firstEl = bind(document.createElement('a'), first);
+          const second = aria('link', { href: '/two' });
+          const secondEl = bind(document.createElement('a'), second);
+          pageEl.append(firstEl, secondEl);
+
+          expect(firstEl.getAttribute('tabindex')).toBe('-1');
+          expect(secondEl.getAttribute('tabindex')).toBe('0');
+
+          first.destroy();
+          second.destroy();
+          page.destroy();
+          pageEl.remove();
+        });
+      }));
+  });
+
+  describe('Pagination Page Commit Invariant', () => {
+    it('writes its page into the enclosing pagination when activated', () =>
+      scope.run(() => {
+        component().run(() => {
+          const pager = aria('pagination', { total: 5 });
+          const pagerEl = bind(document.createElement('nav'), pager);
+          document.body.appendChild(pagerEl);
+
+          const link = aria('link', { href: '?p=3', page: 3 });
+          const el = bind(document.createElement('a'), link);
+          pagerEl.appendChild(el);
+
+          expect(link.ownKeys).toContain('page');
+          expect(pager.page).toBe(1);
+
+          el.click();
+          expect(pager.page).toBe(3);
+
+          link.destroy();
+          pager.destroy();
+          pagerEl.remove();
+        });
+      }));
+
+    it('commits nothing when disabled or when it carries no page', () =>
+      scope.run(() => {
+        component().run(() => {
+          const pager = aria('pagination', { total: 5 });
+          const pagerEl = bind(document.createElement('nav'), pager);
+          document.body.appendChild(pagerEl);
+
+          const disabled = aria('link', { href: '?p=2', page: 2, disabled: true });
+          const disabledEl = bind(document.createElement('a'), disabled);
+          pagerEl.appendChild(disabledEl);
+
+          const plain = aria('link', { href: '?p=4' });
+          const plainEl = bind(document.createElement('a'), plain);
+          pagerEl.appendChild(plainEl);
+
+          const blocked = new MouseEvent('click', { bubbles: true, cancelable: true });
+          disabledEl.dispatchEvent(blocked);
+          expect(blocked.defaultPrevented).toBe(true);
+          expect(pager.page).toBe(1);
+
+          pager.page = 3;
+
+          disabledEl.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+          expect(pager.page).toBe(3);
+
+          plainEl.click();
+          expect(pager.page).toBe(3);
+
+          disabled.destroy();
+          plain.destroy();
+          pager.destroy();
+          pagerEl.remove();
+        });
+      }));
+
+    it('commits its page from a custom host as well', () =>
+      scope.run(() => {
+        component().run(() => {
+          const pager = aria('pagination', { total: 5 });
+          const pagerEl = bind(document.createElement('div'), pager);
+          document.body.appendChild(pagerEl);
+
+          const link = aria('link', { href: '?p=2', page: 2 }, { native: false });
+          const el = bind(document.createElement('span'), link);
+          pagerEl.appendChild(el);
+
+          expect(el.getAttribute('role')).toBe('link');
+
+          el.click();
+          expect(pager.page).toBe(2);
+
+          link.destroy();
+          pager.destroy();
+          pagerEl.remove();
+        });
+      }));
+
+    it('leaves a middle-click gesture alone and commits no page for it', () =>
+      scope.run(() => {
+        component().run(() => {
+          const pager = aria('pagination', { total: 5 });
+          const pagerEl = bind(document.createElement('nav'), pager);
+          document.body.appendChild(pagerEl);
+
+          const link = aria('link', { href: '?p=3', page: 3 });
+          const el = bind(document.createElement('a'), link);
+          pagerEl.appendChild(el);
+
+          const aux = new MouseEvent('auxclick', { cancelable: true, bubbles: true, button: 1 });
+          el.dispatchEvent(aux);
+
+          expect(aux.defaultPrevented).toBe(false);
+          expect(pager.page).toBe(1);
+
+          link.destroy();
+          pager.destroy();
+          pagerEl.remove();
         });
       }));
   });
