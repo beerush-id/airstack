@@ -90,6 +90,9 @@ import {
   TabPanelAria,
   type TabPanelProps,
   type TabProps,
+  ToastAria,
+  ToastCloseAria,
+  type ToastProps,
   ToggleGroupAria,
   type ToggleGroupProps,
   ToolbarAria,
@@ -526,6 +529,13 @@ export function aria<E extends BaseElement = HTMLButtonElement>(
 
 export function aria<E extends BaseElement = HTMLElement>(role: 'toolbar', props?: ToolbarProps): ToolbarAria<E>;
 
+export function aria<E extends BaseElement = HTMLElement>(role: 'toast', props?: ToastProps): ToastAria<E>;
+export function aria<E extends BaseElement = HTMLButtonElement>(
+  role: 'toast-close',
+  props?: AriaProps,
+  options?: AriaOptions
+): ToastCloseAria<E>;
+
 export function aria<E extends BaseElement = HTMLElement>(role: 'menu', props?: MenuProps): MenuAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement>(role: 'menu-bar', props?: MenubarProps): MenubarAria<E>;
@@ -759,6 +769,10 @@ export function aria(role: string, init?: unknown, options?: unknown): unknown {
       return new TabPanelAria(init as never);
     case 'toolbar':
       return new ToolbarAria(init as never);
+    case 'toast':
+      return new ToastAria(init as never);
+    case 'toast-close':
+      return new ToastCloseAria(init as never, options as never);
     case 'menu':
       return new MenuAria(init as never);
     case 'menu-bar':

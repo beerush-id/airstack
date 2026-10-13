@@ -550,7 +550,7 @@ Role-specific architectural options, props contracts, state projections, and key
 - [Breadcrumb](specs/composites/breadcrumb.md) (`breadcrumb` + `breadcrumb-separator` + crumb links)
 - [Carousel](specs/composites/carousel.md) (`carousel` + `carousel-viewport` + `carousel-slide` + controls)
 - [Reorder](specs/composites/reorder.md) (`reorder` + `reorder-item` + `reorder-handle` + `reorder-status`)
-- [Toast](specs/composites/toast.md) (`toast-region` + `toast` + `toast-title` + `toast-description` + `toast-close`)
+- [Toast](specs/composites/toast.md) (`toast` + `toast-close`)
 - [Feed](specs/composites/feed.md) (`feed` + `feed-article`)
 
 ### Widgets ([`specs/widgets/`](specs/widgets/))
