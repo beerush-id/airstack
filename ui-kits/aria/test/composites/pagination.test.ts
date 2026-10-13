@@ -8,14 +8,14 @@ function buildNav(
   pages: Array<{ page: string; href: string; disabled?: boolean }>,
   host: 'native' | 'custom' = 'native'
 ) {
-  const nav = aria('pagination', props as PaginationProps);
+  const nav = aria('pagination', props as PaginationProps, { native: host !== 'custom' });
   const navEl = bind(document.createElement(host === 'native' ? 'nav' : 'div'), nav);
   document.body.appendChild(navEl);
 
   const links = pages.map(({ page, href, disabled }) => {
-    const link = aria('link', { href, disabled });
+    const link = aria('link', { href: disabled ? undefined : href, disabled });
     const el = bind(document.createElement('a'), link);
-    el.href = href;
+    if (!disabled) el.href = href;
     el.dataset.page = page;
     navEl.appendChild(el);
     return { page, link, el };
@@ -48,7 +48,7 @@ describe('Pagination - Composite Specifications', () => {
     scope.destroy();
   });
 
-  describe('Page Index Clamping & Boundary Invariant', () => {
+  describe('Page Index Wrapping & Boundary Invariant', () => {
     it('names the landmark and stays unnamed by the engine where the element already is one', () =>
       scope.run(() => {
         component().run(() => {
@@ -70,7 +70,7 @@ describe('Pagination - Composite Specifications', () => {
         });
       }));
 
-    it('moves focus between page links and clamps at both ends without wrapping', () =>
+    it('moves focus between page links and wraps at both ends', () =>
       scope.run(() => {
         component().run(() => {
           const { navEl, links, cleanup } = buildNav({}, [
@@ -87,12 +87,11 @@ describe('Pagination - Composite Specifications', () => {
           press(links[1].el, 'ArrowLeft');
           expect(focusedPage()).toBe('1');
 
-          // Before the first page there is nowhere to go, and no wrap to the last
           press(links[0].el, 'ArrowLeft');
-          expect(focusedPage()).toBe('1');
+          expect(focusedPage()).toBe('3');
 
           press(links[2].el, 'ArrowRight');
-          expect(focusedPage()).toBe('3');
+          expect(focusedPage()).toBe('1');
 
           // Home and End jump to the ends of the run
           press(links[1].el, 'End');

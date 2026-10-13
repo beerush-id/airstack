@@ -63,6 +63,8 @@ import {
   MenuPanelAria,
   type MenuPanelProps,
   type MenuProps,
+  PaginationAria,
+  type PaginationProps,
   RadioGroupAria,
   type RadioGroupProps,
   type RowHeaderProps,
@@ -527,6 +529,12 @@ export function aria<E extends BaseElement = HTMLButtonElement>(
   options?: StepperButtonOptions
 ): StepperButtonAria<E>;
 
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'pagination',
+  props?: PaginationProps,
+  options?: AriaOptions
+): PaginationAria<E>;
+
 export function aria<E extends BaseElement = HTMLElement>(role: 'toolbar', props?: ToolbarProps): ToolbarAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement>(role: 'toast', props?: ToastProps): ToastAria<E>;
@@ -767,6 +775,8 @@ export function aria(role: string, init?: unknown, options?: unknown): unknown {
       return new TabButtonAria(init as never, options as never);
     case 'tab-panel':
       return new TabPanelAria(init as never);
+    case 'pagination':
+      return new PaginationAria(init as never, options as never);
     case 'toolbar':
       return new ToolbarAria(init as never);
     case 'toast':

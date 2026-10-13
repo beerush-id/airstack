@@ -7,6 +7,7 @@ export * from './field.js';
 export * from './grid.js';
 export * from './listbox.js';
 export * from './menu/index.js';
+export * from './pagination.js';
 export * from './radio-group.js';
 export * from './select.js';
 export * from './stepper.js';

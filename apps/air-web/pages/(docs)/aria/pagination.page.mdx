@@ -1,0 +1,165 @@
+---
+title: 'Pagination'
+description: 'Headless page-list navigation that names the landmark and carries arrow-key travel across page links, wrapping at both ends.'
+nav: 'Pagination'
+nav-priority: 340
+---
+
+# AirLib Headless Pagination
+
+Search results split across ten pages leave keyboard users tabbing through every page link one stop at a time, while assistive technology announces the pile with no name and no relationship. **AirLib Headless Pagination** (`aria('pagination')`) names the landmark for assistive technology and carries `Left` / `Right` / `Home` / `End` travel across the page links — wrapping at both ends, passing over disabled entries, and leaving vertical arrows and activation to the browser and the links themselves.
+
+```tsx
+const nav = aria('pagination', props);
+
+<nav ref={nav.ref} {...nav.props} />
+```
+
+<style>{`.demo-pagination{display:flex;align-items:center;gap:.375rem;padding:.625rem .75rem;border:1px solid #e4e4e7;border-radius:.75rem;background:#fafafa}.demo-page{display:inline-flex;align-items:center;justify-content:center;min-width:2.25rem;padding:.375rem .625rem;border:1px solid transparent;border-radius:.5rem;background:transparent;font-size:.875rem;font-weight:500;color:#3f3f46;text-decoration:none;cursor:pointer;transition:background-color .15s,border-color .15s,color .15s}.demo-page:hover{background:#e4e4e7}.demo-page:focus-visible{outline:2px solid #18181b;outline-offset:2px}.demo-page[aria-current="page"]{border-color:#18181b;background:#18181b;color:#fff}.demo-page[aria-disabled="true"]{opacity:.5;cursor:not-allowed}`}</style>
+
+:::interactive[Results Pages]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps, ReactNode } from 'react';
+
+type DemoPaginationProps = ComponentProps<'nav'> & {
+  label?: string;
+  children: ReactNode;
+};
+
+const DemoPagination = setup<DemoPaginationProps>((props) => {
+  const nav = aria('pagination', props, { native:false });
+
+  return () => (
+    <div ref={nav.ref} {...nav.restProps(['children'])} className="demo-pagination">
+      {props.children}
+    </div>
+  );
+}, 'DemoPagination');
+
+type DemoPageLinkProps = ComponentProps<'a'> & {
+  current?: boolean;
+};
+
+const DemoPageLink = setup<DemoPageLinkProps>((props) => {
+  const link = aria('link', props);
+
+  return () => (
+    <a ref={link.ref} {...link.restProps(['children'])} className="demo-page">
+      {props.children}
+    </a>
+  );
+}, 'DemoPageLink');
+```
+
+<DemoPagination label="Search results pages">
+  <DemoPageLink href="#page-1" current>1</DemoPageLink>
+  <DemoPageLink href="#page-2">2</DemoPageLink>
+  <DemoPageLink href="#page-3">3</DemoPageLink>
+  <DemoPageLink href="#page-4">4</DemoPageLink>
+  <DemoPageLink href="#page-5">5</DemoPageLink>
+</DemoPagination>
+:::
+
+## Pagination
+
+Page-list navigation coordinator. The container holds the accessible label and the arrow-key travel; the page controls themselves are ordinary links.
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'pagination',
+  props?: PaginationProps
+): PaginationAria<E>
+```
+
+### Usage
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps, ReactNode } from 'react';
+
+type PaginationProps = ComponentProps<'nav'> & {
+  label?: string;
+  children: ReactNode;
+};
+
+const Pagination = setup<PaginationProps>((props) => {
+  const nav = aria('pagination', props);
+
+  return () => (
+    <nav ref={nav.ref} {...nav.restProps(['children'])}>
+      {props.children}
+    </nav>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type PaginationProps = ComponentProps<'nav'> & {
+  label?: string;
+};
+
+const Pagination = setup<PaginationProps>((props) => {
+  const nav = aria('pagination', props);
+
+  return (
+    <nav ref={nav.ref} {...nav.restProps(['children'])}>
+      {props.children}
+    </nav>
+  );
+});
+```
+
+:::
+
+### Parameters
+
+- `props.label` *(string, optional, default `'Pagination'`)*: Accessible name for the navigation landmark, applied via `aria-label`.
+
+### How it behaves
+
+- Compiles `role="navigation"` plus `aria-label` on a generic host; on a native `<nav>` the role is omitted and only the label is added.
+- `Left` / `Right` move DOM focus to the previous / next enabled page link, wrapping at both ends.
+- `Home` / `End` move focus to the first / last enabled page link.
+- Disabled page links are passed over in every direction.
+- One tab stop for the whole run: only the current page link sits at `tabindex="0"` — every other page link parks at `-1` and is reached with the arrow keys. Mark the active page with `current` so the stop lands where readers expect it.
+- Up and Down arrows keep native scroll; `Enter`, `Space`, and any other key are never swallowed.
+- Activation stays with the link: clicking navigates through the browser, never through the container.
+- The container invents no page position — no `aria-current`, no value — and marks no link current on your behalf.
+
+:::tip[No Page Item Role]
+WAI-ARIA defines no pagination item role, so there is no `Pagination.Item` to reach for. Page controls are ordinary [`aria('link')`](/docs/aria/link) instances — with `href` for destinations and `current` for the active page — and participate in travel by being there.
+:::
+
+## Page Links
+
+Pagination members are ordinary link controllers: [`aria('link')`](/docs/aria/link) with `href`, optional `disabled`, and `current` for the active page (`aria-current="page"`). Each keeps its own props, projections, and native navigation.
+
+## Keyboard Navigation
+
+- **ArrowRight / ArrowLeft**: Moves focus to the next / previous enabled page link, wrapping at both ends.
+- **Home / End**: Moves focus to the first / last enabled page link.
+- **ArrowUp / ArrowDown**: Left to the browser for native scroll.
+- **Enter / Space**: Left to the focused link, which navigates itself.
+- **Tab**: Left to the browser, moving focus to the next interactive element on the page. From inside the run, `Tab` leaves from the current page link — the run's only tab stop.
+
+## What you get
+
+- **Named landmark.** One `label` gives the whole page run an accessible name.
+- **Wrapped travel.** Arrows wrap from the last page back to the first (and from the first back to the last).
+- **Links stay links.** Native navigation, `aria-current`, and disabled lockout all keep working as themselves.
+- **Nothing to configure.** No value, no page index, no list of members.
+- **Zero markup lock-in.** Native `<nav>` or a custom host; the container only labels and moves focus.
+
+## Next Steps
+
+- **[Link](/docs/aria/link)**: Destinations, disabled lockout, and the current-page marker behind each page control.
+- **[Toolbar](/docs/aria/toolbar)**: Arrow-key roving across mixed controls with the same wrapping travel.

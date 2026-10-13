@@ -1,6 +1,6 @@
 import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it, vi } from 'vitest';
-import { aria, type LinkProps } from '../../src/index.js';
+import { aria, LinkAria, linkCtx, type LinkProps, paginationCtx } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 describe('Link - Contract Specifications', () => {
@@ -445,8 +445,13 @@ describe('Link - Contract Specifications', () => {
           expect(parent.actionable).toBeUndefined();
 
           const childTree = component();
-          let lnk!: ReturnType<typeof aria<'link'>>;
+          let lnk!: LinkAria;
+
           childTree.run(() => {
+            // Coverage addition.
+            paginationCtx.set({} as never);
+            linkCtx.set({ url: '/test' });
+
             lnk = aria('link', { href: '/test' });
             expect(lnk.isActionable).toBe(true);
             expect(lnk.actionable).toBe(lnk);
