@@ -48,6 +48,8 @@ const listboxRoute = route.route('/listbox');
 const comboboxRoute = route.route('/combobox');
 const fieldRoute = route.route('/field');
 const gridRoute = route.route('/grid');
+const toastRoute = route.route('/toast');
+const paginationRoute = route.route('/pagination');
 /** AirLib managed */
 
 export const ariaRoute = route;
@@ -97,5 +99,7 @@ export const ariaListboxRoute = listboxRoute;
 export const ariaComboboxRoute = comboboxRoute;
 export const ariaFieldRoute = fieldRoute;
 export const ariaGridRoute = gridRoute;
+export const ariaToastRoute = toastRoute;
+export const ariaPaginationRoute = paginationRoute;
 
 export default ariaRoute;

@@ -1,0 +1,227 @@
+---
+title: 'Toast'
+description: 'One-shot live-region announcement with a timed lifetime, pause on interaction, and single-removal dismissal.'
+nav: 'Toast'
+nav-priority: 365
+---
+
+# AirLib Headless Toast
+
+A toast is the feedback that must not steal your place: saved, uploaded, sent — announced once, visible for a few seconds, then gone. Plain markup gets you halfway — a `<div>` with `role="status"` announces, but it never leaves on its own, re-renders re-announce, and hover gives the reader no extra time. **AirLib Headless Toast** (`aria('toast')`) is a one-shot live region that owns its lifetime: it announces once on mount, stays visible for `duration` when given, pauses while the pointer hovers or focus sits inside, then commits a single removal announced as `dismiss` — without dictating markup or styles.
+
+```tsx
+const toast = aria('toast', props);
+
+<div ref={toast.ref} {...toast.props} />
+```
+
+<style>{`.demo-toast-hub{display:flex;flex-direction:column;gap:.75rem;min-height:4.5rem}.demo-toast-actions{display:flex;flex-wrap:wrap;gap:.5rem}.demo-toast{position:relative;display:flex;align-items:center;gap:.75rem;max-width:26rem;padding:.75rem .875rem .9rem;border-radius:.875rem;background:#18181b;color:#fafafa;font-size:.9375rem;box-shadow:0 12px 32px -8px rgb(0 0 0/.35),0 2px 8px rgb(0 0 0/.2);overflow:hidden;animation:demo-toast-in .25s ease-out}.demo-toast>span{flex:1;display:flex;align-items:center;gap:.75rem;min-width:0}.demo-toast::before{content:"";flex:none;width:.625rem;height:.625rem;border-radius:9999px;background:#4ade80}.demo-toast[role="alert"]::before{background:#f87171}.demo-toast::after{content:"";position:absolute;inset-inline:0;bottom:0;height:2px;background:color-mix(in oklab,#fafafa 65%,transparent);transform-origin:left center;animation:demo-toast-life 6s linear forwards}/* life bar matches duration={6000} in the demo */.demo-toast:hover::after,.demo-toast:focus-within::after{animation-play-state:paused}.demo-toast-close{flex:none;margin-inline-start:auto;padding:.3rem .7rem;border:1px solid color-mix(in oklab,#fafafa 25%,transparent);border-radius:.55rem;background:transparent;color:inherit;font-size:.8125rem;cursor:pointer;transition:background .15s ease}.demo-toast-close:hover{background:color-mix(in oklab,#fafafa 12%,transparent)}.demo-toast-close:focus-visible{outline:2px solid #fafafa;outline-offset:2px}.demo-toast-show{padding:.375rem .875rem;border:0;border-radius:.5rem;background:#18181b;color:#fff;font-size:.875rem;cursor:pointer}.demo-toast-show:hover{background:#3f3f46}.demo-toast-show:focus-visible{outline:2px solid #18181b;outline-offset:2px}@keyframes demo-toast-in{from{opacity:0;transform:translateY(.5rem) scale(.98)}}@keyframes demo-toast-life{from{transform:scaleX(1)}to{transform:scaleX(0)}}@media (prefers-reduced-motion:reduce){.demo-toast{animation:none}}`}</style>
+
+:::interactive[Dismissible Toast]
+```tsx
+import { aria, type ToastAria, type ToastCloseAria } from '@airlib/aria';
+import { For, mutable, setup, template } from '@airlib/react';
+
+interface HubToast {
+  text: string;
+  toast: ToastAria;
+  close: ToastCloseAria;
+}
+
+const toaster = {
+  toasts: mutable(new Set<HubToast>(), { recursive: false }),
+  add(text: string, critical = false) {
+    const toast = aria('toast', {
+      duration: 6000,
+      critical,
+      ondismiss: () => {
+        this.toasts.delete(entry);
+      },
+    });
+
+    const entry = { text, toast, close: aria('toast-close') };
+
+    this.toasts.add(entry);
+  }
+}
+
+const ToastItem = template(({ entry }) => (
+  <div ref={entry.toast.ref} {...entry.toast.props} className="demo-toast">
+    {entry.text}
+    <button ref={entry.close.ref} {...entry.close.props} className="demo-toast-close">
+      Dismiss
+    </button>
+  </div>
+), 'ToastItem');
+
+const ToastHost = template(() => (
+  <For each={() => Array.from(toaster.toasts)}>
+    {(entry) => (
+      <ToastItem entry={entry} />
+    )}
+  </For>
+), 'ToastHost');
+
+const ToastDemo = setup(() => {
+  const show = (text: string, critical = false) => {
+    toaster.add(text, critical);
+  };
+
+  return () => (
+    <div className="demo-toast-hub">
+      <ToastHost />
+      <div className="demo-toast-actions">
+        <button type="button" className="demo-toast-show" onClick={() => show('File saved')}>
+          Show saved toast
+        </button>
+        <button type="button" className="demo-toast-show" onClick={() => show('Upload failed', true)}>
+          Show error toast
+        </button>
+      </div>
+    </div>
+  );
+}, 'ToastDemo');
+```
+
+<ToastDemo />
+:::
+
+Hover the toast and the six-second clock — and its progress bar — holds; move away and the remainder resumes. Dismiss it early, or wait — either way the hub hears one `dismiss` and withdraws the toast. The error variant shows the `critical` face: an `alert` region with a red marker.
+
+## Toast
+
+One-shot live-region item. The toast itself is the region — there is no region container, no title or description parts; content structure is yours.
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'toast',
+  props?: ToastProps
+): ToastAria<E>
+```
+
+### Usage
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps, ReactNode } from 'react';
+
+type ToastProps = ComponentProps<'div'> & {
+  critical?: boolean;
+  duration?: number;
+  children: ReactNode;
+};
+
+const Toast = setup<ToastProps>((props) => {
+  const toast = aria('toast', props);
+
+  return () => (
+    <div ref={toast.ref} {...toast.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type ToastProps = ComponentProps<'div'> & {
+  critical?: boolean;
+  duration?: number;
+};
+
+const Toast = setup<ToastProps>((props) => {
+  const toast = aria('toast', props);
+
+  return (
+    <div ref={toast.ref} {...toast.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
+
+Removal from the rendered tree is your reaction to `dismiss` — the controller announces the removal but never detaches the node:
+
+```tsx
+import { mutable } from '@airlib/core';
+
+const Hub = setup(() => {
+  const items = mutable([{ text: 'File saved' }, { text: 'Upload complete' }]);
+
+  const watch = (el: HTMLDivElement | null) => {
+    el?.addEventListener('dismiss', (event) => {
+      const at = [...el.children].indexOf(event.target as HTMLElement);
+      if (at >= 0) items.splice(at, 1);
+    });
+  };
+
+  return () => (
+    <div ref={watch}>
+      {items.map((item) => (
+        <Toast key={item.text} duration={6000}>{item.text}</Toast>
+      ))}
+    </div>
+  );
+});
+```
+
+### Parameters
+
+- `props.critical` *(boolean, optional, default `false`)*: Announcement urgency. `false` waits its turn (`role="status"`, `aria-live="polite"`); `true` interrupts (`role="alert"`, `aria-live="assertive"`).
+- `props.duration` *(number, optional)*: Visible lifetime in milliseconds, counted from creation. No timer arms unless given; without it the toast lives until dismissed.
+- `toast.dismissed` *(boolean state)*: Removal state owned by the controller; reading reports lifecycle state.
+- `toast.dismiss()` *(method)*: Commits removal early through the same exactly-once path, then invokes `props.ondismiss`.
+- `props.ondismiss` *(callback, optional)*: Runs after removal commits, with the `dismiss` event.
+
+### How it behaves
+
+- Compiles `role="status"` + `aria-live="polite"` by default, `role="alert"` + `aria-live="assertive"` when `critical`, and `aria-atomic="false"` always, so partial updates announce.
+- Announces once on mount and never re-announces. When `duration` is given, the visibility timer starts at creation and is cancelled on cleanup; without it, the toast stays until dismissed.
+- Pauses while the pointer hovers over the toast or focus resides inside it, resuming the remainder on leave or blur. Moving focus within the toast keeps the pause; only leaving resumes.
+- Removal fires exactly once — expiry, close, and `dismiss()` can never double-commit, and a dismissed toast never re-arms.
+
+### Events
+
+| Event | Trigger | `detail` |
+| :--- | :--- | :--- |
+| `dismiss` | The `duration` lifetime expired, or `ToastClose` was activated, or `dismiss()` was called | none — the element itself (`event.target`) identifies the dismissed instance |
+
+```tsx
+hub.addEventListener('dismiss', (event) => {
+  remove(event.target as HTMLElement);
+});
+```
+
+## ToastClose
+
+Removal button following the Button contract. It commits toast removal through the enclosing toast discovered from ambient context.
+
+```ts
+aria<E extends BaseElement = HTMLButtonElement>(
+  role: 'toast-close',
+  props?: AriaProps,
+  options?: AriaOptions
+): ToastCloseAria<E>
+```
+
+On a native `<button>` it compiles `type="button"` (plus `disabled` while disabled) and carries no role. Pass `{ native: false }` for a custom host to get the `button` role, tab stop, and `aria-disabled` polyfill instead.
+
+## What you get
+
+- **One announcement, one lifetime, one removal.** The timer, the pause, and the exactly-once commit live in the controller, so every toast behaves the same no matter who renders it.
+- **Interruption on your terms.** One `critical` flag chooses between waiting its turn and interrupting — no politeness vocabulary to memorize.
+- **Removal you react to.** The controller emits `dismiss` with the instance as `event.target` and leaves the tree to you, so toasts compose with any list, store, or animation.
+- **Zero markup lock-in.** Render a plain line of text, an icon with a message, or an action row — the region semantics stay the same.
+
+## Next Steps
+
+- **[Announcer](/docs/aria/announcer)**: Polite and assertive announcements without a visible lifetime.
+- **[Dialog](/docs/aria/dialog)**: Modal confirmation where the user must decide before continuing.

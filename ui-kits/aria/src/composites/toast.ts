@@ -221,7 +221,7 @@ export class ToastCloseAria<E extends BaseElement = HTMLButtonElement> extends A
 
   public constructor(props: Partial<AriaProps> = {}, options: AriaOptions = { native: true }) {
     super(props, options);
-    this.omittedAttrs.push('id', 'role', 'type', 'disabled', 'tabindex', 'aria-disabled');
+    this.omittedAttrs.push('id', 'role', 'type', 'disabled', 'tabindex', 'aria-disabled', 'ondismiss');
     this.update();
   }
 
