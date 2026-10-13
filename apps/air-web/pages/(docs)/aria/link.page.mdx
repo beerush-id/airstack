@@ -116,7 +116,7 @@ const Link = setup<LinkProps>((props) => {
 
 ### How it behaves
 
-On a native `<a>`, no `role` is emitted. Disabling keeps `href` on the element and cancels the click instead, so the destination stays discoverable while nothing navigates; `tabindex` parks at `-1`. On a custom host (`native: false`), it compiles `role="link"` (when `href` is declared), `tabindex` (`0` enabled, `-1` disabled), and synthesizes a cancelable click on `Enter` unless the keystroke was already canceled. `Space` commits nothing. An enabled custom click navigates to `href` (`target` honored, `_self` default) after the event bubble settles, so any consumer cancellation still wins; a detached host never navigates. `Ctrl`/`Cmd`/`Shift`-click and real middle-click (`auxclick`, button 1) open `href` in a new tab (`_blank`) unless an explicit `target` says otherwise — matching what a native anchor does. Matching the ambient `linkCtx` URL (or `current: true`) emits `aria-current="page"`. Inside an `aria('pagination')`, a native page link is a tab stop only while it is the current page — the other page links sit at `tabindex="-1"` and are reached with the arrow keys. Custom hosts keep their own `0` / `-1` stop and don't join the rove.
+On a native `<a>`, no `role` is emitted. Disabling keeps `href` on the element and cancels the click instead, so the destination stays discoverable while nothing navigates; `tabindex` parks at `-1`. On a custom host (`native: false`), it compiles `role="link"` (when `href` is declared), `tabindex` (`0` enabled, `-1` disabled), and synthesizes a cancelable click on `Enter` unless the keystroke was already canceled. `Space` commits nothing. An enabled custom click navigates to `href` (`target` honored, `_self` default) after the event bubble settles, so any consumer cancellation still wins; a detached host never navigates. `Ctrl`/`Cmd`/`Shift`-click and real middle-click (`auxclick`, button 1) open `href` in a new tab (`_blank`) unless an explicit `target` says otherwise — matching what a native anchor does. Matching the ambient `linkCtx` URL (or `current: true`) emits `aria-current="page"`. Inside an `aria('pagination')`, a native page link is a tab stop only while it is the current page — the other page links sit at `tabindex="-1"` and are reached with the arrow keys. Custom hosts keep their own `0` / `-1` stop and don't join the rove. The same single-stop rule applies inside an `aria('breadcrumb')` — mark the terminal page `current`.
 
 :::tip[Disabled links]
 Keep the element in the DOM and pass `disabled` rather than swapping `<a>` for a `<span>`. The destination stays discoverable, navigation is blocked, and assistive technologies report the link as unavailable instead of reporting nothing at all.
@@ -165,7 +165,7 @@ Once your component is wired with `aria('link')`, compose it to build navigation
 
 ## Keyboard Navigation
 
-- **Tab**: Focuses the link. Disabled links on either host sit at `tabindex="-1"` and are skipped. Inside a pagination, only the current page link takes a tab stop.
+- **Tab**: Focuses the link. Disabled links on either host sit at `tabindex="-1"` and are skipped. Inside a pagination or a breadcrumb, only the current link takes a tab stop.
 - **Enter**: Activates the link. Native anchors handle this in the browser; custom hosts receive the polyfill.
 - **Space**: Intentionally does nothing — `Space` activates buttons, not links.
 

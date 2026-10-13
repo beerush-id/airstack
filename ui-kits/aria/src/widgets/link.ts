@@ -1,4 +1,4 @@
-import { paginationCtx } from '../composites/index.js';
+import { breadcrumbCtx, paginationCtx } from '../composites/index.js';
 import { linkCtx } from '../context.js';
 import { Aria } from '../core.js';
 import type { AriaAttributes, AriaOptions, AriaProps, BaseElement } from '../types.js';
@@ -66,6 +66,7 @@ export class LinkAria<
   O extends LinkOptions = LinkOptions,
 > extends Aria<E, T, A, O> {
   protected nav = paginationCtx.get();
+  protected crumb = breadcrumbCtx.get();
 
   public constructor(props: Partial<T> = {}, options: O = {} as O) {
     super(props, {
@@ -110,14 +111,14 @@ export class LinkAria<
    */
   protected override createAttributes(): A {
     const isDisabled = this.disabled;
-    const isFocusable = this.nav && this.isCurrent;
+    const grouped = !!(this.nav || this.crumb);
 
     const attrs = Object.assign(super.createAttributes(), {
       href: this.href,
       target: this.properties.target,
       'aria-disabled': ariaBoolean(isDisabled),
       'aria-current': this.isCurrent ? 'page' : undefined,
-      tabindex: isDisabled || (this.nav && !this.isCurrent) ? -1 : isFocusable ? 0 : undefined,
+      tabindex: isDisabled || (grouped && !this.isCurrent) ? -1 : grouped && this.isCurrent ? 0 : undefined,
       onclick: this.handleClick,
       onauxclick: this.handleClick,
     });

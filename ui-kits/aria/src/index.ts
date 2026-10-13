@@ -7,6 +7,9 @@ import {
   AccordionPanelAria,
   type AccordionPanelProps,
   type AccordionProps,
+  BreadcrumbAria,
+  type BreadcrumbProps,
+  BreadcrumbSeparatorAria,
   CheckboxGroupAria,
   type CheckboxGroupProps,
   type ColumnHeaderProps,
@@ -47,10 +50,10 @@ import {
   ListboxAria,
   type ListboxProps,
   MenuAria,
-  MenubarAria,
-  type MenubarProps,
   MenuButtonAria,
   type MenuButtonProps,
+  MenubarAria,
+  type MenubarProps,
   MenuGroupAria,
   MenuItemAria,
   MenuItemCheckboxAria,
@@ -530,6 +533,17 @@ export function aria<E extends BaseElement = HTMLButtonElement>(
 ): StepperButtonAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement>(
+  role: 'breadcrumb',
+  props?: BreadcrumbProps,
+  options?: AriaOptions
+): BreadcrumbAria<E>;
+
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'breadcrumb-separator',
+  props?: AriaProps
+): BreadcrumbSeparatorAria<E>;
+
+export function aria<E extends BaseElement = HTMLElement>(
   role: 'pagination',
   props?: PaginationProps,
   options?: AriaOptions
@@ -775,6 +789,10 @@ export function aria(role: string, init?: unknown, options?: unknown): unknown {
       return new TabButtonAria(init as never, options as never);
     case 'tab-panel':
       return new TabPanelAria(init as never);
+    case 'breadcrumb':
+      return new BreadcrumbAria(init as never, options as never);
+    case 'breadcrumb-separator':
+      return new BreadcrumbSeparatorAria(init as never);
     case 'pagination':
       return new PaginationAria(init as never, options as never);
     case 'toolbar':

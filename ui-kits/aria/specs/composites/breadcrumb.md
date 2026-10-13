@@ -1,6 +1,6 @@
 # Breadcrumb Specification
 
-The trail navigation coordinator unit. Delivers horizontal keyboard traversal across trail links, boundary clamping, and
+The trail navigation coordinator unit. Delivers horizontal keyboard traversal across trail links, wrapping at both ends, and
 visual separator isolation.
 
 - **Entity**: `breadcrumb`
@@ -57,11 +57,12 @@ export function aria<E extends BaseElement = HTMLElement>(
 ## State & Lifecycle Rules
 
 1. **Traversal** (`docs/breadcrumb.md:15-21`): `Left`/`Right` move focus to the previous/next crumb link, `Home`/`End`
-   to first/last, clamping at boundaries and skipping disabled links. `Up`/`Down` preserve native scroll.
+   to first/last, wrapping at both ends and skipping disabled links. `Up`/`Down` preserve native scroll.
 
-2. **Crumb links follow the Link contract** (`docs/breadcrumb.md:34`): each crumb is a `link`-controlled anchor and
-   therefore a sequential tab stop; there is **no** single-tab-stop roving model (the source names none). The terminal
-   crumb's current-page announcement comes from the Link unit's `current` / `linkCtx` → `aria-current="page"` rule
-   ([link.md](../widgets/link.md)), not a breadcrumb-specific prop.
+2. **Crumb links follow the Link contract** (`docs/breadcrumb.md:34`): each crumb is a `link`-controlled anchor.
+   The trail roves a single tab stop like pagination: the current crumb holds it (`tabindex="0"`), the rest
+   park at `-1` and are reached with the arrows — so mark the terminal page `current` (user ruling 2026-10-13).
+   The terminal crumb's current-page announcement comes from the Link unit's `current` / `linkCtx` →
+   `aria-current="page"` rule ([link.md](../widgets/link.md)), not a breadcrumb-specific prop.
 
 3. **Separators** (`docs/breadcrumb.md:36`): `aria-hidden="true"` so decorative delimiters are not announced.

@@ -65,10 +65,10 @@ export class DividerAria<
    */
   protected override createAttributes(): A {
     const attrs = Object.assign(super.createAttributes(), {
+      role: 'separator',
       'aria-orientation': this.orientation === 'vertical' ? 'vertical' : undefined,
     });
 
-    attrs.role = 'separator';
     return attrs as A;
   }
 }

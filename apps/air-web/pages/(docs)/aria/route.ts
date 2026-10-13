@@ -50,6 +50,7 @@ const fieldRoute = route.route('/field');
 const gridRoute = route.route('/grid');
 const toastRoute = route.route('/toast');
 const paginationRoute = route.route('/pagination');
+const breadcrumbRoute = route.route('/breadcrumb');
 /** AirLib managed */
 
 export const ariaRoute = route;
@@ -101,5 +102,6 @@ export const ariaFieldRoute = fieldRoute;
 export const ariaGridRoute = gridRoute;
 export const ariaToastRoute = toastRoute;
 export const ariaPaginationRoute = paginationRoute;
+export const ariaBreadcrumbRoute = breadcrumbRoute;
 
 export default ariaRoute;

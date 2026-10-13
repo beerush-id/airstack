@@ -1,7 +1,7 @@
 # Pagination Specification
 
 The page-list navigation coordinator unit. Delivers enhanced keyboard traversal (`Left`, `Right`, `Home`, `End`) across
-page controls and boundary clamping.
+page controls, wrapping at both ends.
 
 - **Entity**: `pagination`
 - **WAI-ARIA Role**: `navigation` (omitted when bound to native `<nav>`)
@@ -49,7 +49,7 @@ export function aria<E extends BaseElement = HTMLElement>(
 ## State & Lifecycle Rules
 
 1. **Keyboard Traversal**:
-  - `Left` / `Right` move DOM focus to previous / next enabled control, clamping at boundaries without wrapping.
+  - `Left` / `Right` move DOM focus to previous / next enabled control, wrapping at both ends.
   - `Home` / `End` move focus to first / last enabled control.
   - Skips disabled controls.
   - Up and Down arrows preserve native scroll.

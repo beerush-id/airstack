@@ -1,0 +1,185 @@
+---
+title: 'Breadcrumb'
+description: 'Headless trail navigation that names the landmark, hides separators, and carries arrow-key travel across crumb links, wrapping at both ends.'
+nav: 'Breadcrumb'
+nav-priority: 335
+---
+
+# AirLib Headless Breadcrumb
+
+Deep hierarchies leave keyboard users tabbing through every crumb one stop at a time, while decorative separators get announced as content and assistive technology hears the pile with no name and no relationship. **AirLib Headless Breadcrumb** (`aria('breadcrumb')`) names the landmark for assistive technology, hides the separators, and carries `Left` / `Right` / `Home` / `End` travel across the crumb links — wrapping at both ends, passing over disabled crumbs and separators, and leaving vertical arrows and activation to the browser and the links themselves.
+
+```tsx
+const crumb = aria('breadcrumb', props);
+
+<nav ref={crumb.ref} {...crumb.props} />
+```
+
+<style>{`.demo-breadcrumb{display:flex;align-items:center;gap:.375rem;padding:.625rem .75rem;border:1px solid #e4e4e7;border-radius:.75rem;background:#fafafa}.demo-crumb{display:inline-flex;align-items:center;font-size:.875rem;font-weight:500;color:#3f3f46;text-decoration:none;cursor:pointer}.demo-crumb:hover{text-decoration:underline}.demo-crumb:focus-visible{outline:2px solid #18181b;outline-offset:2px}.demo-crumb[aria-current="page"]{color:#18181b;font-weight:700}.demo-crumb-sep{color:#a1a1aa;user-select:none}`}</style>
+
+:::interactive[Documentation Trail]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps, ReactNode } from 'react';
+
+type DemoBreadcrumbProps = ComponentProps<'nav'> & {
+  label?: string;
+  children: ReactNode;
+};
+
+const DemoBreadcrumb = setup<DemoBreadcrumbProps>((props) => {
+  const crumb = aria('breadcrumb', props, { native:false });
+
+  return () => (
+    <div ref={crumb.ref} {...crumb.restProps(['children'])} className="demo-breadcrumb">
+      {props.children}
+    </div>
+  );
+}, 'DemoBreadcrumb');
+
+type DemoCrumbProps = ComponentProps<'a'> & {
+  current?: boolean;
+};
+
+const DemoCrumb = setup<DemoCrumbProps>((props) => {
+  const link = aria('link', props);
+
+  return () => (
+    <a ref={link.ref} {...link.restProps(['children'])} className="demo-crumb">
+      {props.children}
+    </a>
+  );
+}, 'DemoCrumb');
+
+const DemoSeparator = setup((props) => {
+  const separator = aria('breadcrumb-separator', props);
+
+  return () => (
+    <span ref={separator.ref} {...separator.restProps(['children'])} className="demo-crumb-sep">
+      /
+    </span>
+  );
+}, 'DemoSeparator');
+```
+
+<DemoBreadcrumb label="Documentation trail">
+  <DemoCrumb href="#docs">Docs</DemoCrumb>
+  <DemoSeparator />
+  <DemoCrumb href="#docs-aria">Aria</DemoCrumb>
+  <DemoSeparator />
+  <DemoCrumb href="#docs-aria-breadcrumb" current>Breadcrumb</DemoCrumb>
+</DemoBreadcrumb>
+:::
+
+## Breadcrumb
+
+Trail navigation coordinator. The container holds the accessible label and the arrow-key travel; the crumb controls themselves are ordinary links and the separators are hidden delimiters.
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'breadcrumb',
+  props?: BreadcrumbProps
+): BreadcrumbAria<E>
+```
+
+### Usage
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps, ReactNode } from 'react';
+
+type BreadcrumbProps = ComponentProps<'nav'> & {
+  label?: string;
+  children: ReactNode;
+};
+
+const Breadcrumb = setup<BreadcrumbProps>((props) => {
+  const crumb = aria('breadcrumb', props);
+
+  return () => (
+    <nav ref={crumb.ref} {...crumb.restProps(['children'])}>
+      {props.children}
+    </nav>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type BreadcrumbProps = ComponentProps<'nav'> & {
+  label?: string;
+};
+
+const Breadcrumb = setup<BreadcrumbProps>((props) => {
+  const crumb = aria('breadcrumb', props);
+
+  return (
+    <nav ref={crumb.ref} {...crumb.restProps(['children'])}>
+      {props.children}
+    </nav>
+  );
+});
+```
+
+:::
+
+### Parameters
+
+- `props.label` *(string, optional, default `'Breadcrumbs'`)*: Accessible name for the navigation landmark, applied via `aria-label`.
+
+### How it behaves
+
+- Compiles `role="navigation"` plus `aria-label` on a generic host; on a native `<nav>` the role is omitted and only the label is added.
+- `Left` / `Right` move DOM focus to the previous / next enabled crumb link, wrapping at both ends.
+- `Home` / `End` move focus to the first / last enabled crumb link.
+- Disabled crumb links and separators are passed over in every direction.
+- One tab stop for the whole trail: only the current crumb sits at `tabindex="0"` — every other crumb parks at `-1` and is reached with the arrow keys. Mark the terminal page with `current` so the stop lands where readers expect it.
+- Up and Down arrows keep native scroll; `Enter`, `Space`, and any other key are never swallowed.
+- Activation stays with the link: clicking navigates through the browser, never through the container.
+- The container invents no trail position — no `aria-current`, no value, no `aria-activedescendant` — and marks no crumb current on your behalf.
+
+## Breadcrumb Separator
+
+Decorative trail delimiter.
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'breadcrumb-separator',
+  props?: AriaProps
+): BreadcrumbSeparatorAria<E>
+```
+
+Compiles `role="separator"` abd `aria-hidden="true"`, no key behavior.
+
+## Page Links
+
+Breadcrumb members are ordinary link controllers: [`aria('link')`](/docs/aria/link) with `href`, optional `disabled`, and `current` for the terminal page (`aria-current="page"`). Each keeps its own props, projections, and native navigation.
+
+## Keyboard Navigation
+
+- **ArrowRight / ArrowLeft**: Moves focus to the next / previous enabled crumb link, wrapping at both ends.
+- **Home / End**: Moves focus to the first / last enabled crumb link.
+- **ArrowUp / ArrowDown**: Left to the browser for native scroll.
+- **Enter / Space**: Left to the focused link, which navigates itself.
+- **Tab**: Left to the browser, moving focus to the next interactive element on the page. From inside the trail, `Tab` leaves from the current crumb — the trail's only tab stop.
+
+## What you get
+
+- **Named landmark.** One `label` gives the whole trail an accessible name.
+- **Wrapped travel.** Arrows wrap from the last crumb back to the first (and from the first back to the last).
+- **Silent separators.** Delimiters are hidden with no semantics and take no part in traversal.
+- **Links stay links.** Native navigation, `aria-current`, and disabled lockout all keep working as themselves.
+- **Nothing to configure.** No value, no crumb index, no list of members.
+- **Zero markup lock-in.** Native `<nav>` or a custom host; the container only labels and moves focus.
+
+## Next Steps
+
+- **[Link](/docs/aria/link)**: Destinations, disabled lockout, and the current-page marker behind each crumb.
+- **[Pagination](/docs/aria/pagination)**: Page-list travel with the same wrapping rover and the same single-tab-stop model.
