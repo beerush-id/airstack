@@ -411,6 +411,15 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
       }
     }
 
+    if (!toFocus) {
+      for (const candidate of Array.from(entries)) {
+        if (candidate.matches('[aria-current]')) {
+          toFocus = candidate;
+          break;
+        }
+      }
+    }
+
     toFocus ??= entries[0];
 
     if (toFocus) {

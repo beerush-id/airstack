@@ -241,17 +241,26 @@ export abstract class PopupPanel extends Aria {
   abstract popup: PopoverAria;
 }
 
-export function bindPanel(panel: PopupPanel, mode: OverlayTriggerMode[] = ['click', 'rove']) {
+export type PopupBindOptions = {
+  mode?: OverlayTriggerMode[];
+  xDir?: string;
+  yDir?: string;
+};
+
+export function bindPanel(
+  panel: PopupPanel,
+  { mode, xDir, yDir }: PopupBindOptions = { mode: ['click', 'rove'], xDir: 'left', yDir: 'below' }
+) {
   panel.actionable = panel.scope?.actionable;
 
   panel.popup = new PopoverAria(
     {
       mode,
       get xDir() {
-        return panel.properties.xDir ?? 'left';
+        return panel.properties.xDir ?? xDir;
       },
       get yDir() {
-        return panel.properties.yDir ?? 'below';
+        return panel.properties.yDir ?? yDir;
       },
       get id() {
         return panel.id;
