@@ -465,7 +465,7 @@ export class ComboboxPanelAria<E extends BaseElement = HTMLElement> extends List
 
     this.host = popupCtx.get() as ComboboxAria;
     this.omittedAttrs.push('value', 'query', 'multiple', 'required', 'text', 'valueMap');
-    bindPanel(this as unknown as PopupPanel, ['combo']);
+    bindPanel(this as unknown as PopupPanel, { mode: ['combo'] });
 
     this.update();
   }
