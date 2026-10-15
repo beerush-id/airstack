@@ -8,8 +8,8 @@ The calendar date unit. Coordinates ISO date text editing, popup calendar toggli
 - **Day Grid WAI-ARIA Role**: `grid`
 
 ### Composite Parts (Entity Tree)
-- **`DatePicker`**: Root container coordinator (hosts `value`, `open`, `min`, `max`, `disabled`, `required`).
-- **`DatePickerInput`**: Text input for direct ISO date entry.
+- **`DatePicker`**: Root container coordinator (hosts `value`, `month`, `open`, `min`, `max`, `disabled`, `required`).
+- **`DatePickerInput`**: Text input for direct ISO date entry. Always shows the committed `value`; typed text stays put until a day commits.
 - **`DatePickerTrigger`**: Button opening the calendar popup (`aria-haspopup="dialog"`, `aria-expanded`, `aria-controls`).
 - **`DatePickerCalendar`**: Calendar dialog popup (`role="dialog"`, `aria-label="Calendar"`).
 - **`DatePickerPrevMonth` / `DatePickerNextMonth`**: Month navigation buttons.
@@ -38,6 +38,8 @@ The calendar date unit. Coordinates ISO date text editing, popup calendar toggli
 export interface DatePickerProps {
   /** Committed date formatted as YYYY-MM-DD */
   value?: string;
+  /** Shown month formatted as YYYY-MM; seeds from `value`, otherwise today */
+  month?: string;
   /** Calendar visibility flag */
   open?: boolean;
   min?: string;
@@ -112,3 +114,7 @@ export function aria<E extends BaseElement = HTMLButtonElement>(
 2. **Events**:
    - `input`: Dispatched on text edit with `detail: text`.
    - `change`: Dispatched on container after date commits with `detail: value`.
+
+3. **Field synchronization**: the input shows the committed `value` on bind and after every commit. Typing announces `input` without committing and never gets clobbered — typed text survives opening, travel, and dismissal, and is replaced only by the next commit (or a `value` set from code).
+
+4. **Shown month**: `month` seeds from the committed `value`, otherwise today; an invalid `value` falls back to today. `DatePickerPrevMonth` / `DatePickerNextMonth` click steps `month` back/forward without committing; an invalid or cleared `month` holds still. `PageUp` / `PageDown` in the grid steps `month` and moves focus into the stepped month.

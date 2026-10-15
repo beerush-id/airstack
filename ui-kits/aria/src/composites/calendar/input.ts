@@ -96,7 +96,12 @@ export class DatePickerInputAria<E extends BaseElement = HTMLElement> extends Po
     const date = new Date(value);
 
     if (Number.isNaN(date.getTime())) {
-      (this.element as unknown as HTMLInputElement).value = this.host!.start.iso ?? '';
+      if (this.isRangeInput) {
+        const current = this.slot === 'start' ? this.host!.start.iso : this.host!.end.iso;
+        (this.element as unknown as HTMLInputElement).value = current ?? '';
+      } else {
+        (this.element as unknown as HTMLInputElement).value = this.host!.start.iso ?? '';
+      }
     } else if (this.isRangeInput) {
       const store = (this.host.value || [undefined, undefined]) as never as [string, string];
       store[this.index as number] = date.toISOString();

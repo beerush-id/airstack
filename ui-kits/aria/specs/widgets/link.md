@@ -41,6 +41,8 @@ export interface LinkProps {
   disabled?: boolean;
   /** Current-page override; defaults to matching href against ambient linkCtx */
   current?: boolean;
+  /** Page position committed into the ambient pagination on activation */
+  page?: number;
 }
 ```
 
@@ -73,3 +75,17 @@ export function aria<E extends BaseElement = HTMLAnchorElement>(
   - `Enter`: synthesizes a bubbling, cancelable `click` when `!event.defaultPrevented`; canceled trigger commits no
     navigation.
   - `Space`: commits nothing and preserves native viewport scrolling.
+
+4. **Pagination Page Commit**:
+  - A link carrying `page` writes it into the ambient navigation group (`navCtx`) on activation, on either host, so a
+    page link moves the pagination it sits in. `page` is a consumed input owned through `omittedAttrs` and never
+    reaches the DOM.
+  - `onclick` and `onauxclick` are separate handlers: a middle-click or `Ctrl` / `Cmd` / `Shift` gesture opens a tab and
+    commits no page, because the reader has not left the current one.
+  - A link with no `page` commits nothing. That guard is load-bearing, not defensive — `properties.page` is `any` under
+    the `AriaProps` index signature, and `PaginationAria.page` falls back to `1`, so an unguarded write silently resets
+    the run to its first page.
+
+5. **Grouped Tab Stop**:
+  - Inside any `navCtx` group, a link holds `tabindex="0"` only while current; every other grouped link parks at `-1`
+    and is reached with the group's arrow keys. Custom hosts keep their own `0` / `-1` stop and do not join the rove.

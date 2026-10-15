@@ -33,6 +33,8 @@ visual separator isolation.
 export interface BreadcrumbProps {
   /** Accessible name for the landmark (default: 'Breadcrumbs') */
   label?: string;
+  /** Element ID providing the accessible name */
+  labelledby?: string;
 }
 ```
 
@@ -42,7 +44,8 @@ export interface BreadcrumbProps {
 // Breadcrumb: Navigation container
 export function aria<E extends BaseElement = HTMLElement>(
   role: 'breadcrumb',
-  props?: BreadcrumbProps
+  props?: BreadcrumbProps,
+  options?: AriaOptions
 ): BreadcrumbAria<E>;
 
 // BreadcrumbSeparator
@@ -66,3 +69,6 @@ export function aria<E extends BaseElement = HTMLElement>(
    `aria-current="page"` rule ([link.md](../widgets/link.md)), not a breadcrumb-specific prop.
 
 3. **Separators** (`docs/breadcrumb.md:36`): `aria-hidden="true"` so decorative delimiters are not announced.
+
+4. **Baseline**: extends `NavigationBase` ([navigation.md](navigation.md)) and inherits traversal, naming, role
+   compilation, and `navCtx` publication. Breadcrumb adds only `defaultLabel: 'Breadcrumbs'`.
