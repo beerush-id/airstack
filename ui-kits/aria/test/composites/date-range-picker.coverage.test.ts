@@ -1,6 +1,13 @@
 import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
-import { aria, DatePickerNav, type DateRangePickerProps } from '../../src/index.js';
+import { DatePickerBase } from '../../src/composites/calendar/picker.js';
+import {
+  aria,
+  DatePickerAria,
+  DatePickerNav,
+  DatePickerYearInput,
+  type DateRangePickerProps,
+} from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 function buildRange(props: DateRangePickerProps, days: string[]) {
@@ -506,6 +513,307 @@ describe('DateRangePicker - Coverage', () => {
           expect(picker.value).toEqual(['2026-10-14', '2026-10-20']);
 
           cleanup();
+        });
+      }));
+  });
+
+  describe('Residual Branch Coverage', () => {
+    it('reports a day unselected without a picker group', () =>
+      scope.run(() => {
+        component().run(() => {
+          const day = aria<HTMLElement>('date-picker-day', { date: '2026-10-14' });
+          const el = bind(document.createElement('div'), day);
+          document.body.appendChild(el);
+
+          expect(day.selected).toBe(false);
+
+          day.destroy();
+          el.remove();
+        });
+      }));
+
+    it('marks the end endpoint selected through the right-hand match', () =>
+      scope.run(() => {
+        component().run(() => {
+          const props = mutable<DateRangePickerProps>({ value: ['2026-10-14', '2026-10-20'], open: true });
+          const { cells, cleanup } = buildRange(props, ['2026-10-14', '2026-10-17', '2026-10-20']);
+
+          expect(cells[0].day.selected).toBe(true);
+          expect(cells[1].day.selected).toBe(false);
+          expect(cells[2].day.selected).toBe(true);
+
+          cleanup();
+        });
+      }));
+
+    it('clears only the end slot through deselect(1)', () =>
+      scope.run(() => {
+        component().run(() => {
+          const props = mutable<DateRangePickerProps>({ value: ['2026-10-14', '2026-10-20'], open: true });
+          const { picker, startEl, endEl, cleanup } = buildRange(props, []);
+
+          picker.deselect(1);
+
+          expect(picker.value?.[0]).toBe('2026-10-14');
+          expect(picker.value?.[1]).toBeUndefined();
+          expect(startEl.value).toBe('2026-10-14');
+          expect(endEl.value).toBe('');
+
+          cleanup();
+        });
+      }));
+
+    it('writes a valid end date typed into the end slot on blur', () =>
+      scope.run(() => {
+        component().run(() => {
+          const props = mutable<DateRangePickerProps>({ value: ['2026-10-14', '2026-10-20'], open: true });
+          const { picker, startEl, endEl, cleanup } = buildRange(props, []);
+
+          type(endEl, '2026-10-25');
+          endEl.dispatchEvent(new FocusEvent('blur', { relatedTarget: startEl }));
+
+          expect(picker.value).toEqual(['2026-10-14', iso('2026-10-25')]);
+          expect(props.open).toBe(false);
+
+          cleanup();
+        });
+      }));
+
+    it('clears only the end slot when the end field is emptied', () =>
+      scope.run(() => {
+        component().run(() => {
+          const props = mutable<DateRangePickerProps>({ value: ['2026-10-14', '2026-10-20'], open: true });
+          const { picker, startEl, endEl, cleanup } = buildRange(props, []);
+
+          type(endEl, '');
+          endEl.dispatchEvent(new FocusEvent('blur', { relatedTarget: startEl }));
+
+          expect(picker.value?.[0]).toBe('2026-10-14');
+          expect(picker.value?.[1]).toBeUndefined();
+          expect(endEl.value).toBe('');
+
+          cleanup();
+        });
+      }));
+
+    it('reverts the end field on invalid text', () =>
+      scope.run(() => {
+        component().run(() => {
+          const props = mutable<DateRangePickerProps>({ value: ['2026-10-14', '2026-10-20'], open: true });
+          const { picker, startEl, endEl, cleanup } = buildRange(props, []);
+
+          type(endEl, 'nope');
+          endEl.dispatchEvent(new FocusEvent('blur', { relatedTarget: startEl }));
+
+          expect(endEl.value).toBe('2026-10-20');
+          expect(picker.value).toEqual(['2026-10-14', '2026-10-20']);
+
+          cleanup();
+        });
+      }));
+
+    it('sets the year from a four-digit year-input entry', () =>
+      scope.run(() => {
+        component().run(() => {
+          const props = mutable<DateRangePickerProps>({ value: ['2026-10-14', '2026-10-20'], open: true });
+          const { picker, calendarEl, cleanup } = buildRange(props, []);
+
+          const year = aria<HTMLInputElement>('date-picker-year-input', {});
+          const yearEl = bind(document.createElement('input'), year);
+          calendarEl.appendChild(yearEl);
+
+          expect(yearEl.getAttribute('type')).toBe('number');
+
+          yearEl.value = '2027';
+          yearEl.dispatchEvent(new InputEvent('input', { bubbles: true }));
+          expect(picker.year).toBe(2027);
+
+          year.destroy();
+          yearEl.remove();
+          cleanup();
+        });
+      }));
+
+    it('ignores short, non-numeric, prevented, and disabled year-input entries', () =>
+      scope.run(() => {
+        component().run(() => {
+          const props = mutable<DateRangePickerProps>({ value: ['2026-10-14', '2026-10-20'], open: true });
+          const { picker, calendarEl, cleanup } = buildRange(props, []);
+
+          const year = aria<HTMLInputElement>('date-picker-year-input', {});
+          const yearEl = bind(document.createElement('input'), year);
+          calendarEl.appendChild(yearEl);
+
+          yearEl.value = '';
+          yearEl.dispatchEvent(new InputEvent('input', { bubbles: true }));
+          expect(picker.year).toBe(2026);
+
+          yearEl.value = '20';
+          yearEl.dispatchEvent(new InputEvent('input', { bubbles: true }));
+          expect(picker.year).toBe(2026);
+
+          yearEl.value = 'abcd';
+          yearEl.dispatchEvent(new InputEvent('input', { bubbles: true }));
+          expect(picker.year).toBe(2026);
+
+          yearEl.value = '2029';
+          const prevented = new InputEvent('input', { bubbles: true, cancelable: true });
+          prevented.preventDefault();
+          yearEl.dispatchEvent(prevented);
+          expect(picker.year).toBe(2026);
+
+          year.destroy();
+          yearEl.remove();
+          cleanup();
+        });
+      }));
+
+    it('ignores a year-input entry while the picker is disabled', () =>
+      scope.run(() => {
+        component().run(() => {
+          const props = mutable<DateRangePickerProps>({
+            value: ['2026-10-14', '2026-10-20'],
+            open: true,
+            disabled: true,
+          });
+          const { picker, calendarEl, cleanup } = buildRange(props, []);
+
+          const year = aria<HTMLInputElement>('date-picker-year-input', {});
+          const yearEl = bind(document.createElement('input'), year);
+          calendarEl.appendChild(yearEl);
+
+          yearEl.value = '2027';
+          yearEl.dispatchEvent(new InputEvent('input', { bubbles: true }));
+          expect(picker.year).toBe(2026);
+
+          year.destroy();
+          yearEl.remove();
+          cleanup();
+        });
+      }));
+
+    it('ignores year input without a picker group', () =>
+      scope.run(() => {
+        component().run(() => {
+          const year = new DatePickerYearInput();
+          const yearEl = bind(document.createElement('input'), year);
+          document.body.appendChild(yearEl);
+
+          expect(yearEl.getAttribute('type')).toBe('number');
+
+          yearEl.value = '2027';
+          yearEl.dispatchEvent(new InputEvent('input', { bubbles: true }));
+          expect(yearEl.value).toBe('2027');
+
+          year.destroy();
+          yearEl.remove();
+        });
+      }));
+
+    it('honours explicit year and month props over the value seed', () =>
+      scope.run(() => {
+        component().run(() => {
+          const props = mutable<DateRangePickerProps>({
+            value: ['2026-10-14', '2026-10-20'],
+            year: 2027,
+            month: 5,
+            open: true,
+          });
+          const { picker, cleanup } = buildRange(props, []);
+
+          expect(picker.year).toBe(2027);
+          expect(picker.month).toBe(5);
+          expect(picker.value).toEqual(['2026-10-14', '2026-10-20']);
+
+          cleanup();
+        });
+      }));
+
+    it('accepts a locales list', () =>
+      scope.run(() => {
+        component().run(() => {
+          const props = mutable<DateRangePickerProps>({
+            value: ['2026-10-14', '2026-10-20'],
+            locales: ['de-DE'],
+            open: true,
+          });
+          const { picker, cleanup } = buildRange(props, []);
+
+          expect(props.locales).toEqual(['de-DE']);
+          expect(picker.value).toEqual(['2026-10-14', '2026-10-20']);
+          expect(picker.month).toBe(10);
+
+          cleanup();
+        });
+      }));
+
+    it('steps the year from a year-type nav', () =>
+      scope.run(() => {
+        component().run(() => {
+          const props = mutable<DateRangePickerProps>({ value: ['2026-10-14', '2026-10-20'], open: true });
+          const { picker, pickerEl, calendarEl, cleanup } = buildRange(props, []);
+
+          const changes: unknown[] = [];
+          pickerEl.addEventListener('change', (event) => changes.push((event as CustomEvent).detail));
+
+          const nav = aria<HTMLButtonElement>('date-picker-nav', { type: 'year', direction: 1 });
+          const el = bind(document.createElement('button'), nav);
+          calendarEl.appendChild(el);
+
+          el.click();
+          expect(picker.year).toBe(2027);
+          expect(picker.value).toEqual(['2026-10-14', '2026-10-20']);
+          expect(props.open).toBe(true);
+          expect(changes).toEqual([]);
+
+          nav.destroy();
+          el.remove();
+          cleanup();
+        });
+      }));
+
+    it('starts from an empty store when blurring an empty end field without a value', () =>
+      scope.run(() => {
+        component().run(() => {
+          const props = mutable<DateRangePickerProps>({ open: true });
+          const { picker, startEl, endEl, cleanup } = buildRange(props, []);
+
+          endEl.dispatchEvent(new FocusEvent('blur', { relatedTarget: startEl }));
+
+          expect(picker.value?.[0]).toBeUndefined();
+          expect(picker.value?.[1]).toBeUndefined();
+          expect(startEl.value).toBe('');
+          expect(endEl.value).toBe('');
+          expect(props.open).toBe(false);
+
+          cleanup();
+        });
+      }));
+
+    it('constructs the base and single pickers without arguments', () =>
+      scope.run(() => {
+        component().run(() => {
+          const base = new DatePickerBase();
+          base.destroy();
+
+          const single = new DatePickerAria();
+          expect(single.value).toBeUndefined();
+          single.destroy();
+        });
+      }));
+
+    it('ignores input and blur on a hostless field', () =>
+      scope.run(() => {
+        component().run(() => {
+          const input = aria<HTMLInputElement>('date-picker-input', {});
+          const el = bind(document.createElement('input'), input);
+          document.body.appendChild(el);
+
+          type(el, '2026-10-14');
+          el.dispatchEvent(new FocusEvent('blur'));
+
+          input.destroy();
+          el.remove();
         });
       }));
   });

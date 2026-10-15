@@ -31,11 +31,11 @@ export class DatePickerCalendarAria<E extends BaseElement = HTMLElement> extends
   }
 
   public get weeks() {
-    return this.grid.weeks ?? [];
+    return this.grid.weeks ?? /* istanbul ignore next: grid always initializes weeks; the fallback is defensive */ [];
   }
 
   public get dates() {
-    return this.grid.dates ?? [];
+    return this.grid.dates ?? /* istanbul ignore next: grid always initializes dates; the fallback is defensive */ [];
   }
 
   /* istanbul ignore next: no flow assigns calendar.current; popup tracks the element through its own ref */

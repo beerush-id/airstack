@@ -32,6 +32,7 @@ export class DatePickerNav<E extends BaseElement = HTMLElement> extends Aria<E, 
     const picker = this.picker;
     if (!picker || picker.disabled) return;
 
+    /* istanbul ignore else: type is 'month' | 'year'; a third state is unrepresentable */
     if (this.type === 'month') picker.navigateMonth(this.direction);
     else if (this.type === 'year') picker.navigateYear(this.direction);
   };
@@ -64,7 +65,8 @@ export class DatePickerYearInput<E extends BaseElement = HTMLElement> extends Ar
     const value = (event.target as HTMLInputElement).value;
     if (!value || value.length < 4) return;
 
-    const year = parseInt((event.target as HTMLInputElement).value ?? '', 10);
+    const year = parseInt((event.target as HTMLInputElement).value, 10);
+    /* istanbul ignore else: number inputs sanitize non-numeric text to '', which returns early above */
     if (!Number.isNaN(year)) picker.properties.year = year;
   };
 }

@@ -34,6 +34,7 @@ import {
   DatePickerInputAria,
   DatePickerNav,
   type DatePickerNavProps,
+  type DatePickerOptions,
   type DatePickerProps,
   DatePickerTriggerAria,
   DatePickerYearInput,
@@ -340,7 +341,8 @@ export function aria<E extends BaseElement = HTMLElement>(
 
 export function aria<E extends BaseElement = HTMLElement>(
   role: 'date-picker',
-  props?: DatePickerProps
+  props?: DatePickerProps,
+  options?: DatePickerOptions
 ): DatePickerAria<E>;
 
 export function aria<E extends BaseElement = HTMLInputElement>(
@@ -377,7 +379,8 @@ export function aria<E extends BaseElement = HTMLButtonElement>(
 
 export function aria<E extends BaseElement = HTMLElement>(
   role: 'date-range-picker',
-  props?: DateRangePickerProps
+  props?: DateRangePickerProps,
+  options?: DatePickerOptions
 ): DateRangePickerAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement>(
@@ -823,9 +826,9 @@ export function aria(role: string, init?: unknown, options?: unknown): unknown {
       return new ComboboxPanelAria(init as never);
 
     case 'date-picker':
-      return new DatePickerAria(init as never);
+      return new DatePickerAria(init as never, options as never);
     case 'date-range-picker':
-      return new DateRangePickerAria(init as never);
+      return new DateRangePickerAria(init as never, options as never);
     case 'date-picker-input':
       return new DatePickerInputAria(init as never, options as never);
     case 'date-picker-trigger':

@@ -29,7 +29,11 @@ export class DatePickerInputAria<E extends BaseElement = HTMLElement> extends Po
   }
 
   protected get index() {
-    return this.properties.slot === 'start' ? 0 : this.properties.slot === 'end' ? 1 : undefined;
+    return this.properties.slot === 'start'
+      ? 0
+      : this.properties.slot === 'end'
+        ? 1
+        : /* istanbul ignore next: slot is 'start' | 'end'; any other truthy value is off-contract */ undefined;
   }
 
   public constructor(props: DatePickerInputProps = {}, options: AriaOptions = { native: true }) {

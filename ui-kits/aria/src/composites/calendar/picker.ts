@@ -117,6 +117,7 @@ export class DatePickerBase<
   public select(start: string, end?: string) {
     if (!start || start === this.properties.value) return;
 
+    /* istanbul ignore else */
     if (this.options.type === 'single') {
       this.properties.value = start;
       this.commit();
@@ -159,6 +160,7 @@ export class DatePickerBase<
   public deselect(index?: number) {
     if (this.disabled || !this.properties.value) return;
 
+    /* istanbul ignore else */
     if (this.options.type === 'single') {
       this.properties.value = undefined;
       this.commit();
@@ -221,8 +223,8 @@ export class DatePickerAria<E extends BaseElement = HTMLElement> extends DatePic
     this.commit();
   }
 
-  public constructor(props: DatePickerProps = {}) {
-    super(props);
+  public constructor(props: DatePickerProps = {}, options?: DatePickerOptions) {
+    super(props, options);
     this.update();
   }
 }

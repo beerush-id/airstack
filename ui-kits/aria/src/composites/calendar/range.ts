@@ -1,5 +1,5 @@
 import type { AriaEvent, AriaEventHandler, BaseElement } from '../../types.js';
-import { DatePickerBase, type DatePickerBaseProps } from './picker.js';
+import { DatePickerBase, type DatePickerBaseProps, type DatePickerOptions } from './picker.js';
 
 export type DateRangePickerChangeEvent = AriaEvent<[string, string] | undefined>;
 
@@ -18,8 +18,8 @@ export class DateRangePickerAria<E extends BaseElement = HTMLElement> extends Da
     this.commit(true);
   }
 
-  public constructor(props: DateRangePickerProps = {}) {
-    super(props as never, { type: 'range' });
+  public constructor(props: DateRangePickerProps = {}, options?: DatePickerOptions) {
+    super(props as never, { ...options, type: 'range' });
     this.update();
   }
 }

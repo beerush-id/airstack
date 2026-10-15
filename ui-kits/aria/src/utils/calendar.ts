@@ -85,9 +85,7 @@ export function dateGrids({ locales, year, month, weekStart = 0, trimWeeks = fal
 
   const firstTime = Date.UTC(year, month - 1, 1);
   const gridStart = firstTime - ((new Date(firstTime).getUTCDay() - (((weekStart % 7) + 7) % 7) + 7) % 7) * MS_PER_DAY;
-  const cells = trimWeeks
-    ? Math.ceil(((firstTime - gridStart) / MS_PER_DAY + daysInMonth(year, month - 1)) / 7) * 7
-    : 42;
+  const cells = trimWeeks ? Math.ceil(((firstTime - gridStart) / MS_PER_DAY + daysInMonth(year, month)) / 7) * 7 : 42;
 
   const cursor = new Date(gridStart);
   for (let column = 0; column < 7; column++) {

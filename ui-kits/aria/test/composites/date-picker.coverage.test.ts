@@ -1,10 +1,10 @@
 import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
-import { aria, DatePickerNav, type DatePickerProps } from '../../src/index.js';
+import { aria, DatePickerNav, type DatePickerOptions, type DatePickerProps } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
-function buildPicker(props: DatePickerProps, days: string[]) {
-  const picker = aria<HTMLElement>('date-picker', props);
+function buildPicker(props: DatePickerProps, days: string[], options?: DatePickerOptions) {
+  const picker = aria<HTMLElement>('date-picker', props, options);
   const pickerEl = bind(document.createElement('div'), picker);
   document.body.appendChild(pickerEl);
 
@@ -570,6 +570,38 @@ describe('DatePicker - Coverage', () => {
           next.destroy();
           nav.destroy();
           el.remove();
+        });
+      }));
+  });
+
+  describe('Dynamic Grid', () => {
+    it('trims empty weeks when constructed with grid dynamic', () =>
+      scope.run(() => {
+        component().run(() => {
+          const props = mutable<DatePickerProps>({ value: '2026-02-14', open: true });
+          const { calendar, cleanup } = buildPicker(props, [], { grid: 'dynamic' });
+
+          expect(calendar.grid.year).toBe(2026);
+          expect(calendar.grid.month).toBe(2);
+          expect(calendar.weeks).toHaveLength(7);
+          expect(calendar.dates).toHaveLength(28);
+          expect(calendar.dates[0]?.iso).toBe('2026-02-01');
+          expect(calendar.dates[27]?.iso).toBe('2026-02-28');
+
+          cleanup();
+        });
+      }));
+
+    it('keeps six fixed weeks without the grid option', () =>
+      scope.run(() => {
+        component().run(() => {
+          const props = mutable<DatePickerProps>({ value: '2026-02-14', open: true });
+          const { calendar, cleanup } = buildPicker(props, []);
+
+          expect(calendar.weeks).toHaveLength(7);
+          expect(calendar.dates).toHaveLength(42);
+
+          cleanup();
         });
       }));
   });
