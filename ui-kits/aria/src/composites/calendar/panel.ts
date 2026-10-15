@@ -1,9 +1,9 @@
 import { anchor, effect, mutable, sleep } from '@airlib/core';
 import { Aria } from '../../core.js';
 import type { AriaAttributes, AriaProps, BaseElement } from '../../types.js';
-import { type DateGrid, dateGrids, endOfWeekISO, startOfWeekISO } from '../../utils/calendar.js';
+import { type DateGrid, dateGrids } from '../../utils/calendar.js';
 import type { PopoverAria } from '../../widgets/index.js';
-import { bindPanel, popupCtx, type PopupPanel } from '../popup.js';
+import { bindPanel, type PopupPanel, popupCtx } from '../popup.js';
 import { type DatePickerBase, dateSelectionCtx } from './picker.js';
 
 export interface DatePickerCalendarAttributes<E extends BaseElement = HTMLElement> extends AriaAttributes<E> {
@@ -128,10 +128,8 @@ export class DatePickerCalendarAria<E extends BaseElement = HTMLElement> extends
     }
 
     if (key === 'Home' || key === 'End') {
-      event.preventDefault();
-
-      const edge = key === 'Home' ? startOfWeekISO(date) : endOfWeekISO(date);
-      this.focusDate(edge);
+      const nextIndex = key === 'Home' ? index - (index % 7) : index + (6 - (index % 7));
+      this.focusDate(this.dates[nextIndex]?.iso, event);
       return;
     }
 
@@ -141,7 +139,7 @@ export class DatePickerCalendarAria<E extends BaseElement = HTMLElement> extends
     }
   };
 
-  private focusDate(iso?: string | null, event?: Event, recover?: boolean): void {
+  private focusDate(iso?: string | null, event?: Event): void {
     const root = this.element as unknown as HTMLElement | null;
 
     let day = root?.querySelector(`[data-date="${iso}"]`) as HTMLElement;
