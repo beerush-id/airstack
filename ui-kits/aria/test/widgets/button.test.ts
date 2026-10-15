@@ -450,9 +450,11 @@ describe('Button - Contract Specifications', () => {
           el.dispatchEvent(spaceUp);
 
           expect(hostClicks).toHaveLength(0);
-          expect(enterDown.defaultPrevented).toBe(false);
-          expect(spaceDown.defaultPrevented).toBe(false);
-          expect(spaceUp.defaultPrevented).toBe(false);
+
+          // 4. Event dispatch contract: no activation.
+          expect(enterDown.defaultPrevented).toBe(true);
+          expect(spaceDown.defaultPrevented).toBe(true);
+          expect(spaceUp.defaultPrevented).toBe(true);
 
           // 6. Teardown
           btn.destroy();
