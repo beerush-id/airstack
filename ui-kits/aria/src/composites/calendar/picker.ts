@@ -159,10 +159,10 @@ export class DatePickerBase<
   public deselect(index?: number) {
     if (this.disabled || !this.properties.value) return;
 
-    if (this.properties.type === 'single' || !index) {
+    if (this.options.type === 'single') {
       this.properties.value = undefined;
       this.commit();
-    } else if (this.properties.type === 'range') {
+    } else if (this.options.type === 'range') {
       if (index) {
         (this.properties.value as string[])[index] = undefined as never;
       } else {
