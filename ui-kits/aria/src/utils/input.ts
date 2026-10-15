@@ -12,36 +12,27 @@ export const VALID_NUMBER = /^-?\d+(?:\.\d+)?$/;
  * @param value - Raw input value to validate and parse.
  * @returns The parsed numeric value, the original `null`/`undefined`, or `undefined` if malformed.
  */
-export function readFloat(value: string | null | undefined): number | undefined | null {
+export function readFloat(value: string | number | null | undefined): number | undefined | null {
   if (typeof value !== 'string') return value;
   const [float] = value.match(VALID_NUMBER) ?? [];
   return float ? Number(float) : undefined;
 }
 
 /**
- * Select all text within the focused element or an explicitly provided target.
+ * Select all text within the given element.
  *
- * For native inputs (`<input>` and `<textarea>`), invokes native `.select()`.
- * For custom hosts and `contenteditable` elements, constructs a Range enclosing
- * the element's node contents and assigns it to the active Selection.
+ * Constructs a Range enclosing the element's node contents and assigns it to the
+ * active Selection.
  *
- * @param element - Optional target element. Defaults to `document.activeElement`.
+ * @param target - The element whose contents become the selection.
  */
-export function focusSelect(element?: Element | null): void {
+export function focusSelect(target: Element): void {
+  /* istanbul ignore next: server renders never hold a selection */
   if (typeof document === 'undefined' || typeof window === 'undefined') {
     return;
   }
 
-  const target = element ?? document.activeElement;
-  if (!target) return;
-
-  if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) {
-    target.select();
-    return;
-  }
-
-  const selection = window.getSelection();
-  if (!selection) return;
+  const selection = window.getSelection()!;
 
   const range = document.createRange();
   range.selectNodeContents(target);
@@ -52,37 +43,23 @@ export function focusSelect(element?: Element | null): void {
 /**
  * Execute a mutation callback while maintaining text cursor and selection position.
  *
- * In both native inputs and contenteditable elements, programmatically mutating text or
- * replacing DOM children resets or discards the active selection. This utility captures
- * the user's cursor offset before the mutation and restores it inside a finally block.
+ * In contenteditable elements, programmatically mutating text or replacing DOM children
+ * resets or discards the active selection. This utility captures the user's cursor offset
+ * before the mutation and restores it inside a finally block.
  *
  * @param fn - Callback that mutates the active element's text content or value.
  * @returns The value returned by the callback.
  */
 export function maintainCursor<T = void>(fn: () => T): T {
+  /* istanbul ignore next: server renders never hold a selection */
   if (typeof document === 'undefined' || typeof window === 'undefined') {
     return fn();
   }
 
   const active = document.activeElement;
 
-  if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement) {
-    const start = active.selectionStart;
-    const end = active.selectionEnd;
-    const direction = active.selectionDirection;
-
-    try {
-      return fn();
-    } finally {
-      if (start !== null && end !== null) {
-        active.setSelectionRange(start, end, direction ?? undefined);
-      }
-    }
-  }
-
-  const selection = window.getSelection();
+  const selection = window.getSelection()!;
   if (
-    !selection ||
     selection.rangeCount === 0 ||
     !active ||
     !active.contains(selection.anchorNode) ||
@@ -116,31 +93,20 @@ export function maintainCursor<T = void>(fn: () => T): T {
 }
 
 /**
- * Locate a text node and character offset corresponding to an absolute character position in a container.
+ * Locate the text node and character offset for a caret position inside a container
+ * whose text the controller owns as a single write.
  *
- * @param container - Root DOM element containing text nodes.
- * @param offset - Total character offset from the start of the container.
- * @returns Pair of target DOM node and character offset within that node.
+ * @param container - Root DOM element containing the written text.
+ * @param offset - Character offset from the start of the container.
+ * @returns Pair of target DOM node and clamped character offset within that node.
  */
 function resolvePosition(container: Node, offset: number): [Node, number] {
   const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
-  let node = walker.nextNode();
-  let currentOffset = 0;
-  let lastTextNode: Node | null = null;
+  const node = walker.nextNode();
 
-  while (node) {
-    lastTextNode = node;
-    const len = node.textContent?.length ?? 0;
-    if (currentOffset + len >= offset) {
-      return [node, Math.max(0, offset - currentOffset)];
-    }
-    currentOffset += len;
-    node = walker.nextNode();
-  }
+  /* istanbul ignore next: a host without text nodes cannot hold a selection */
+  if (!node) return [container, 0];
 
-  if (lastTextNode) {
-    return [lastTextNode, lastTextNode.textContent?.length ?? 0];
-  }
-
-  return [container, 0];
+  const length = (node as Text).data.length;
+  return [node, Math.min(length, Math.max(0, offset))];
 }

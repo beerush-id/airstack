@@ -1,27 +1,26 @@
 # Stepper Specification
 
-The stepped numeric entry unit. Delivers coordinated numeric adjustment via step buttons, keyboard arrow/page keys, and
-direct digit input.
+The stepped numeric entry unit: one shared number adjusted by step buttons, stepping keys, and free typing.
 
 - **Entity**: `stepper` (container; the numeric field part is sheeted as `number-stepper` / `stepper-input`)
-- **Input WAI-ARIA Role**: `spinbutton` (on custom host; omitted on native `<input type="number">`)
+- **Input WAI-ARIA Role**: `spinbutton` on a custom host; a native host is a text input the controller parses
 - **Container WAI-ARIA Role**: `group`
 
 ### Parts (Entity Tree)
 
-- **`Stepper`**: Container coordinator (compiles `role="group"`).
-- **`StepperInput`**: Numeric input element (`min`, `max`, `step`, `value`, `readOnly`, `disabled`).
-- **`StepperIncrement` / `StepperDecrement`**: Step buttons (Button contract, automatically disabled at bounds).
+- **`Stepper`**: Container coordinator (`role="group"`); owns value, bounds, increments, stepping keys, and events.
+- **`StepperInput`**: The value's field; `type="text"` on a native host, plaintext `contenteditable` on a custom host.
+- **`StepperIncrement` / `StepperDecrement`**: Step buttons; Button contract; disarmed at their bound.
 
 ---
 
 ## The Three Semantic Layers
 
-| Part / Role                                 | HTML Semantic                                  | WAI-ARIA Semantic                                                                                        | Aria Package Semantic Contract                                   |
-|:--------------------------------------------|:-----------------------------------------------|:---------------------------------------------------------------------------------------------------------|:-----------------------------------------------------------------|
-| **`Stepper`**                               | Container (`<div>`).                           | `role="group"`.                                                                                          | Coordinates value, stepping, bounds, and button disabled states. |
-| **`StepperInput`**                          | Native `<input type="number">` or custom host. | `role="spinbutton"` on custom host, `aria-valuemin`, `aria-valuemax`, `aria-valuenow`, `aria-valuetext`. | Value entry and display.                                         |
-| **`StepperIncrement` / `StepperDecrement`** | Native `<button type="button">`.               | Follows Button contract.                                                                                 | Step buttons with automatic disabled clamping.                   |
+| Part / Role                                 | HTML Semantic                                     | WAI-ARIA Semantic                                                                             | Aria Package Semantic Contract                        |
+|:--------------------------------------------|:--------------------------------------------------|:----------------------------------------------------------------------------------------------|:------------------------------------------------------|
+| **`Stepper`**                               | Container (`<div>`).                              | `role="group"`.                                                                               | Value, bounds, increments, keys, events.              |
+| **`StepperInput`**                          | Native text input or custom host.                 | `role="spinbutton"`, `aria-valuemin`, `aria-valuemax`, `aria-valuenow`, `aria-valuetext`.     | Value entry and display as real, selectable text.     |
+| **`StepperIncrement` / `StepperDecrement`** | Native `<button type="button">`, `tabindex="-1"`. | Button contract.                                                                              | Auxiliary step triggers with automatic disarming.     |
 
 ---
 
@@ -49,7 +48,7 @@ export interface StepperProps {
 
 ```ts
 export interface StepperInputOptions {
-  /** Whether bound to native <input type="number"> (default: true) */
+  /** Whether bound to a native input element (default: false) */
   native?: boolean;
 }
 ```
@@ -66,7 +65,7 @@ export function aria<E extends BaseElement = HTMLElement>(
 // StepperInput
 export function aria<E extends BaseElement = HTMLInputElement>(
   role: 'stepper-input' | 'number-stepper',
-  props?: AriaProps,
+  props?: StepperInputProps,
   options?: StepperInputOptions
 ): StepperInputAria<E>;
 
@@ -82,9 +81,27 @@ export function aria<E extends BaseElement = HTMLButtonElement>(
 ## State & Lifecycle Rules
 
 1. **Stepping & Bounds**:
-  - Step buttons automatically disable when value hits `min` or `max`.
-  - Keyboard: `Up` / `Right` increments; `Down` / `Left` decrements; `PageUp` / `PageDown` steps by `page`; `Home` /
-    `End` clamps to `min` / `max`.
-2. **Events**:
-  - `input` — Dispatched during interaction with `detail: value`.
-  - `change` — Dispatched on blur following value commit with `detail: value`.
+   - Step buttons disarm at their own bound, on container `disabled`, and on container `readonly`.
+   - Step buttons carry `tabindex="-1"`; the field is the tab stop.
+   - Writes clamp to declared bounds; an undeclared bound clamps nothing in its direction.
+2. **Keyboard** (owned by the container; keys reach it from any part):
+   - `ArrowUp` / `ArrowDown`: step by `step`, consumed.
+   - `PageUp` / `PageDown`: step by `page`, consumed.
+   - `Home` / `End`: jump to `min` / `max`, consumed; left to the user when that bound is undeclared.
+   - Every other key, `ArrowLeft` and `ArrowRight` included: left to the user, unconsumed, no step.
+   - `Enter` and `Space` on the field: prevented, no step.
+3. **Typing**:
+   - Both hosts accept free text; each `input` reading parses as a strict decimal.
+   - A valid reading commits through the bounds; an invalid reading keeps the current value.
+   - `blur` commits a valid reading, else restores the last committed value to the field; `blur` emits no event.
+   - Custom host: keyboard focus selects the contents; programmatic text writes preserve the selection.
+4. **Events** (emitted on the stepper: container DOM `CustomEvent` and its `on*` props; a typed keystroke emits
+   `input` on the field part's `oninput`, handler-only):
+   - `input`: per active interaction — key step, button step, typed keystroke; `detail` is the value at that moment.
+   - `change`: per actual value change from any path; `detail` is the committed number.
+5. **Readonly**: steps and typing refused; stepping keys unconsumed; field carries `tabindex="-1"` and stays
+   focusable; step buttons disarm.
+6. **Disabled**: no activation and no stepping; field carries `tabindex="-1"` and `aria-disabled="true"`; an
+   activation click on a disarmed part is cancelled and stopped from bubbling.
+7. **Required**: native host sets its own `required` property; custom host sets `aria-required`; no cross-host
+   mirror.

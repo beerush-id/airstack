@@ -4,7 +4,7 @@ import {
   aria,
   type NumberStepperProps,
   StepperButtonAria,
-  type StepperEvent,
+  type StepperInputEvent,
   type StepperProps,
 } from '../../src/index.js';
 import { bind, component } from '../utils.js';
@@ -130,6 +130,26 @@ describe('Stepper - Coverage', () => {
       });
     }));
 
+  it('projects the disarmed state through aria on a non-native button host', () =>
+    scope.run(() => {
+      const tree = component();
+      tree.run(() => {
+        const parts = buildTree({ value: 0, min: 0, max: 2 });
+        const custom = aria('stepper-dec', {}, { native: false, direction: -1 });
+        const customEl = bind(document.createElement('div'), custom);
+        parts.containerEl.appendChild(customEl);
+
+        expect(customEl.hasAttribute('disabled')).toBe(false);
+        expect(customEl.getAttribute('aria-disabled')).toBe('true');
+
+        parts.container.commit(1);
+        expect(customEl.getAttribute('aria-disabled')).toBe('false');
+
+        custom.destroy();
+        teardown(parts);
+      });
+    }));
+
   it('projects the shared range onto a native input and commits typed values', () =>
     scope.run(() => {
       const tree = component();
@@ -138,12 +158,11 @@ describe('Stepper - Coverage', () => {
         const parts = buildTree(props, { native: true });
 
         const inputEl = parts.inputEl as unknown as HTMLInputElement;
-        expect(parts.input.attributes.type).toBe('number');
+        expect(parts.input.attributes.type).toBe('text');
         expect(parts.input.attributes.value).toBe(4);
-        expect(parts.input.attributes.defaultValue).toBeUndefined();
-        expect(parts.input.attributes.min).toBe(0);
-        expect(parts.input.attributes.max).toBe(10);
-        expect(parts.input.attributes.step).toBe(2);
+        expect(parts.input.attributes.min).toBeUndefined();
+        expect(parts.input.attributes.max).toBeUndefined();
+        expect(parts.input.attributes.step).toBeUndefined();
 
         inputEl.value = '6';
         inputEl.dispatchEvent(new Event('input', { bubbles: true }));
@@ -152,6 +171,10 @@ describe('Stepper - Coverage', () => {
         inputEl.value = '   ';
         inputEl.dispatchEvent(new Event('input', { bubbles: true }));
         expect(props.value).toBe(6);
+
+        props.disabled = true;
+        expect(parts.input.attributes.tabindex).toBe(-1);
+        expect(parts.input.attributes.disabled).toBe(true);
 
         teardown(parts);
       });
@@ -164,7 +187,7 @@ describe('Stepper - Coverage', () => {
         const frozen = buildTree({ value: 5, min: 0, max: 10, readonly: true });
         expect(key(frozen.inputEl, 'keydown', 'ArrowUp').defaultPrevented).toBe(false);
         expect(frozen.container.value).toBe(5);
-        expect(frozen.inputEl.getAttribute('aria-readonly')).toBe('true');
+        expect(frozen.inputEl.hasAttribute('aria-readonly')).toBe(true);
         teardown(frozen);
 
         const live = buildTree({ value: 5, min: 0, max: 10 });
@@ -184,32 +207,37 @@ describe('Stepper - Coverage', () => {
         expect(key(parts.inputEl, 'keydown', 'Home').defaultPrevented).toBe(false);
         expect(key(parts.inputEl, 'keydown', 'End').defaultPrevented).toBe(false);
         expect(parts.container.value).toBe(5);
-        expect(key(parts.inputEl, 'keydown', 'Enter').defaultPrevented).toBe(false);
+        expect(key(parts.inputEl, 'keydown', 'Enter').defaultPrevented).toBe(true);
+        expect(parts.container.value).toBe(5);
         teardown(parts);
       });
     }));
 
-  it('emits no input event when stepping cannot move the value', () =>
+  it('announces the interaction even when the bound stops the move', () =>
     scope.run(() => {
       const tree = component();
       tree.run(() => {
         const parts = buildTree({ value: 10, min: 0, max: 10 });
         const live: unknown[] = [];
-        parts.inputEl.addEventListener('input', (event) => live.push((event as StepperEvent).detail));
+        const changed: unknown[] = [];
+        parts.containerEl.addEventListener('input', (event) => live.push((event as StepperInputEvent).detail));
+        parts.containerEl.addEventListener('change', (event) => changed.push((event as StepperInputEvent).detail));
+
         expect(key(parts.inputEl, 'keydown', 'ArrowUp').defaultPrevented).toBe(true);
-        expect(live).toEqual([]);
+        expect(live).toEqual([10]);
+        expect(changed).toEqual([]);
         expect(parts.container.value).toBe(10);
         teardown(parts);
       });
     }));
 
-  it('commits stepped values on key release and ignores unrelated keys', () =>
+  it('fires change on the value edge, not on key release or blur', () =>
     scope.run(() => {
       const tree = component();
       tree.run(() => {
         const parts = buildTree({ value: 5, min: 0, max: 10 });
         const committed: unknown[] = [];
-        parts.inputEl.addEventListener('change', (event) => committed.push((event as StepperEvent).detail));
+        parts.containerEl.addEventListener('change', (event) => committed.push((event as StepperInputEvent).detail));
 
         key(parts.inputEl, 'keyup', 'Tab');
         expect(committed).toEqual([]);
@@ -218,11 +246,174 @@ describe('Stepper - Coverage', () => {
         expect(committed).toEqual([]);
 
         key(parts.inputEl, 'keydown', 'ArrowUp');
-        key(parts.inputEl, 'keyup', 'ArrowUp');
         expect(committed).toEqual([6]);
 
+        key(parts.inputEl, 'keyup', 'ArrowUp');
         parts.inputEl.dispatchEvent(new FocusEvent('blur', { bubbles: true }));
         expect(committed).toEqual([6]);
+        teardown(parts);
+      });
+    }));
+
+  it('restores the last committed value to a custom host on blur', () =>
+    scope.run(() => {
+      const tree = component();
+      tree.run(() => {
+        const parts = buildTree({ value: 5, min: 0, max: 10 });
+
+        parts.inputEl.textContent = '7';
+        parts.inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+        expect(parts.container.value).toBe(7);
+
+        parts.inputEl.textContent = 'abc';
+        parts.inputEl.dispatchEvent(new FocusEvent('blur', { bubbles: true }));
+        expect(parts.inputEl.textContent).toBe('7');
+        expect(parts.container.value).toBe(7);
+
+        teardown(parts);
+      });
+    }));
+
+  it('lets blur pass untouched while readonly', () =>
+    scope.run(() => {
+      const tree = component();
+      tree.run(() => {
+        const parts = buildTree({ value: 5, min: 0, max: 10, readonly: true });
+        parts.inputEl.dispatchEvent(new FocusEvent('blur', { bubbles: true }));
+        expect(parts.container.value).toBe(5);
+        teardown(parts);
+      });
+    }));
+
+  it('reads and writes the shared number through stepper.value', () =>
+    scope.run(() => {
+      const tree = component();
+      tree.run(() => {
+        const changed: unknown[] = [];
+        const stepper = aria(
+          'stepper',
+          mutable<StepperProps & { onchange?: (event: StepperInputEvent) => void }>({
+            value: 2,
+            min: 0,
+            max: 10,
+            onchange: (event) => changed.push(event.detail),
+          })
+        );
+        bind(document.createElement('div'), stepper);
+
+        expect(stepper.value).toBe(2);
+
+        stepper.value = 7;
+        expect(stepper.value).toBe(7);
+
+        stepper.value = '9';
+        expect(stepper.value).toBe(9);
+
+        stepper.value = 'abc';
+        expect(stepper.value).toBe(0);
+
+        stepper.value = undefined;
+        expect(stepper.value).toBe(0);
+
+        stepper.value = 500;
+        expect(stepper.value).toBe(10);
+
+        expect(changed).toEqual([7, 9, 0, 10]);
+
+        stepper.destroy();
+      });
+    }));
+
+  it('selects the whole number when a custom host takes focus from the keyboard', () =>
+    scope.run(() => {
+      const tree = component();
+      tree.run(() => {
+        const parts = buildTree({ value: 5, min: 0, max: 10 });
+        parts.inputEl.focus();
+        expect(parts.inputEl.textContent).toBe('5');
+        expect(parts.container.value).toBe(5);
+        teardown(parts);
+      });
+    }));
+
+  it('preserves a caret inside split custom-host text across a value write', () =>
+    scope.run(() => {
+      const tree = component();
+      tree.run(() => {
+        const parts = buildTree({ value: 12, min: 0, max: 99 });
+        parts.inputEl.focus();
+
+        const first = parts.inputEl.firstChild as Text;
+        first.textContent = '1';
+        const second = document.createTextNode('2');
+        parts.inputEl.appendChild(second);
+
+        const selection = window.getSelection()!;
+        const caret = document.createRange();
+        caret.setStart(second, 1);
+        caret.setEnd(second, 1);
+        selection.removeAllRanges();
+        selection.addRange(caret);
+
+        parts.container.value = 34;
+
+        expect(parts.inputEl.textContent).toBe('34');
+        const restored = selection.getRangeAt(0);
+        expect(restored.startOffset).toBe(2);
+
+        teardown(parts);
+      });
+    }));
+
+  it('clamps the caret to the new text when the value loses a digit', () =>
+    scope.run(() => {
+      const tree = component();
+      tree.run(() => {
+        const parts = buildTree({ value: 120, min: 0, max: 999 });
+        parts.inputEl.focus();
+
+        const selection = window.getSelection()!;
+        const caret = document.createRange();
+        const text = parts.inputEl.firstChild as Text;
+        caret.setStart(text, 3);
+        caret.setEnd(text, 3);
+        selection.removeAllRanges();
+        selection.addRange(caret);
+
+        parts.container.value = 34;
+
+        expect(parts.inputEl.textContent).toBe('34');
+        expect(selection.getRangeAt(0).startOffset).toBe(2);
+
+        teardown(parts);
+      });
+    }));
+
+  it('keeps a coordinator-less field safe to type into and to submit from', () =>
+    scope.run(() => {
+      const tree = component();
+      tree.run(() => {
+        const input = aria('stepper-input');
+        const inputEl = bind(document.createElement('div'), input);
+
+        inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+        expect(input.value).toBe(0);
+
+        expect(key(inputEl, 'keydown', 'Enter').defaultPrevented).toBe(true);
+
+        input.destroy();
+      });
+    }));
+
+  it('skips the whole-number selection when focus follows the pointer', () =>
+    scope.run(() => {
+      const tree = component();
+      tree.run(() => {
+        const parts = buildTree({ value: 5, min: 0, max: 10 });
+        parts.inputEl.dispatchEvent(new PointerEvent('pointerenter'));
+        parts.inputEl.focus();
+        expect(parts.container.value).toBe(5);
+        expect(parts.inputEl.textContent).toBe('5');
         teardown(parts);
       });
     }));

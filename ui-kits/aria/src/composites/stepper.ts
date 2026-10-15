@@ -164,10 +164,20 @@ export class StepperAria<
   A extends StepperAttributes<E> = StepperAttributes<E>,
 > extends Aria<E, T, A> {
   /**
-   * Current numeric value with bounds applied.
+   * Retrieves the current numeric value with bounds applied.
    */
   public get value(): number {
     return clampRange(this.properties.value ?? this.min ?? 0, this.min, this.max);
+  }
+
+  /**
+   * Sets the current numeric value with bounds applied.
+   * @param step - Incremental step value
+   * @returns The clamped value
+   */
+  public set value(step: string | number | undefined) {
+    const value = readFloat(step) ?? 0;
+    this.commit(value);
   }
 
   /**
@@ -299,7 +309,7 @@ export class StepperAria<
    *
    * @param type - Event type
    */
-  protected notify(type = 'input'): void {
+  protected notify(type: string): void {
     const event = new CustomEvent(type, { bubbles: true, detail: this.value, cancelable: true });
     this.element?.dispatchEvent(event);
     this.dispatch(event);
@@ -357,7 +367,7 @@ export class StepperInputAria<
 
       this.on('focus', () => {
         if (!fromPointer) {
-          focusSelect(this.element);
+          focusSelect(this.element!);
         }
 
         fromPointer = false;
@@ -463,9 +473,9 @@ export class StepperInputAria<
       const element = this.element as never as HTMLInputElement;
 
       if (this.isNative) {
-        element.value = (this.stepper.value ?? '0').toString();
+        element.value = this.stepper.value.toString();
       } else {
-        element.textContent = (this.stepper.value ?? '0').toString();
+        element.textContent = this.stepper.value.toString();
       }
     }
   };

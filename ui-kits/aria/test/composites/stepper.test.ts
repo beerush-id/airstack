@@ -1,7 +1,12 @@
 import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
-import { aria, type StepperEvent, type StepperProps } from '../../src/index.js';
+import { aria, type StepperChangeEvent, type StepperInputEvent, type StepperProps } from '../../src/index.js';
 import { bind, component } from '../utils.js';
+
+type StepperEventProps = {
+  oninput?: (event: StepperInputEvent) => void;
+  onchange?: (event: StepperChangeEvent) => void;
+};
 
 function press(el: HTMLElement, key: string): KeyboardEvent {
   const event = new KeyboardEvent('keydown', { key, cancelable: true, bubbles: true });
@@ -11,7 +16,7 @@ function press(el: HTMLElement, key: string): KeyboardEvent {
 
 // 'number-stepper' is claimed by specs/widgets/number-stepper.md as a single-element role with a
 // different key table; this suite addresses the multi-part entity through 'stepper'.
-function buildTree(props: StepperProps) {
+function buildTree(props: StepperProps & StepperEventProps) {
   const container = aria('stepper', props);
   const input = aria('stepper-input');
   const increment = aria('stepper-inc');
@@ -35,6 +40,14 @@ function buildTree(props: StepperProps) {
   return { container, input, increment, decrement, containerEl, inputEl, incrementEl, decrementEl };
 }
 
+function teardown(parts: ReturnType<typeof buildTree>) {
+  parts.container.destroy();
+  parts.input.destroy();
+  parts.increment.destroy();
+  parts.decrement.destroy();
+  document.body.removeChild(parts.containerEl);
+}
+
 describe('Stepper - Contract Specifications', () => {
   const scope = createLifecycle();
 
@@ -50,14 +63,16 @@ describe('Stepper - Contract Specifications', () => {
           const props = mutable<StepperProps>({ value: 3, min: 0, max: 5, step: 1 });
           const parts = buildTree(props);
 
-          // 1/2. The container groups the parts and the input carries the range
           expect(parts.containerEl.getAttribute('role')).toBe('group');
           expect(parts.inputEl.getAttribute('role')).toBe('spinbutton');
           expect(parts.inputEl.getAttribute('aria-valuenow')).toBe('3');
           expect(parts.inputEl.getAttribute('aria-valuemin')).toBe('0');
           expect(parts.inputEl.getAttribute('aria-valuemax')).toBe('5');
 
+          // The buttons are auxiliary: outside the tab order, plain button contract
           expect(parts.incrementEl.type).toBe('button');
+          expect(parts.incrementEl.tabIndex).toBe(-1);
+          expect(parts.decrementEl.tabIndex).toBe(-1);
 
           parts.incrementEl.click();
           expect(props.value).toBe(4);
@@ -70,19 +85,14 @@ describe('Stepper - Contract Specifications', () => {
           expect(props.value).toBe(4);
           expect(parts.inputEl.getAttribute('aria-valuenow')).toBe('4');
 
-          // Both buttons and the display read the same single value
           expect(parts.container.value).toBe(4);
           expect(parts.input.value).toBe(4);
 
-          parts.container.destroy();
-          parts.input.destroy();
-          parts.increment.destroy();
-          parts.decrement.destroy();
-          document.body.removeChild(parts.containerEl);
+          teardown(parts);
         });
       }));
 
-    it('maps every stepping key onto the shared value from the input', () =>
+    it('steps on the vertical and page keys and leaves the horizontal keys to the caret', () =>
       scope.run(() => {
         const tree = component();
         tree.run(() => {
@@ -94,13 +104,7 @@ describe('Stepper - Contract Specifications', () => {
           expect(press(parts.inputEl, 'ArrowUp').defaultPrevented).toBe(true);
           expect(props.value).toBe(55);
 
-          expect(press(parts.inputEl, 'ArrowRight').defaultPrevented).toBe(true);
-          expect(props.value).toBe(60);
-
           expect(press(parts.inputEl, 'ArrowDown').defaultPrevented).toBe(true);
-          expect(props.value).toBe(55);
-
-          expect(press(parts.inputEl, 'ArrowLeft').defaultPrevented).toBe(true);
           expect(props.value).toBe(50);
 
           expect(press(parts.inputEl, 'PageUp').defaultPrevented).toBe(true);
@@ -116,29 +120,42 @@ describe('Stepper - Contract Specifications', () => {
           expect(press(parts.inputEl, 'Home').defaultPrevented).toBe(true);
           expect(props.value).toBe(0);
 
-          // Keys outside the table stay with the page
+          // The caret keys stay the user's: unconsumed, and the number does not move
+          expect(press(parts.inputEl, 'ArrowRight').defaultPrevented).toBe(false);
+          expect(props.value).toBe(0);
+          expect(press(parts.inputEl, 'ArrowLeft').defaultPrevented).toBe(false);
+          expect(props.value).toBe(0);
           expect(press(parts.inputEl, 'Tab').defaultPrevented).toBe(false);
-          expect(press(parts.inputEl, 'Enter').defaultPrevented).toBe(false);
 
-          parts.container.destroy();
-          parts.input.destroy();
-          parts.increment.destroy();
-          parts.decrement.destroy();
-          document.body.removeChild(parts.containerEl);
+          // Enter is bypassed on the field so it cannot submit a form, and does not step
+          expect(press(parts.inputEl, 'Enter').defaultPrevented).toBe(true);
+          expect(props.value).toBe(0);
+
+          teardown(parts);
         });
       }));
 
-    it('announces stepping as it happens and commits it on blur', () =>
+    it('promises the live step and the value edge on the stepper itself', () =>
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const props = mutable<StepperProps>({ value: 10, min: 0, max: 20, step: 2 });
+          const live: unknown[] = [];
+          const changed: unknown[] = [];
+          const domLive: unknown[] = [];
+          const domChanged: unknown[] = [];
+
+          const props = mutable<StepperProps & StepperEventProps>({
+            value: 10,
+            min: 0,
+            max: 20,
+            step: 2,
+            oninput: (event) => live.push(event.detail),
+            onchange: (event) => changed.push(event.detail),
+          });
           const parts = buildTree(props);
 
-          const live: unknown[] = [];
-          const committed: unknown[] = [];
-          parts.inputEl.addEventListener('input', (event) => live.push((event as StepperEvent).detail));
-          parts.inputEl.addEventListener('change', (event) => committed.push((event as StepperEvent).detail));
+          parts.containerEl.addEventListener('input', (event) => domLive.push((event as StepperInputEvent).detail));
+          parts.containerEl.addEventListener('change', (event) => domChanged.push((event as StepperChangeEvent).detail));
 
           parts.inputEl.focus();
           press(parts.inputEl, 'ArrowUp');
@@ -146,70 +163,81 @@ describe('Stepper - Contract Specifications', () => {
 
           expect(props.value).toBe(14);
           expect(live).toEqual([12, 14]);
-          expect(committed).toEqual([]);
+          expect(changed).toEqual([12, 14]);
+          expect(domLive).toEqual([12, 14]);
+          expect(domChanged).toEqual([12, 14]);
 
+          // Blur announces nothing of its own
           parts.inputEl.dispatchEvent(new FocusEvent('blur', { bubbles: true }));
-          expect(committed).toEqual([14]);
+          expect(live).toEqual([12, 14]);
+          expect(changed).toEqual([12, 14]);
 
-          // A blur with nothing left to commit announces nothing
-          parts.inputEl.dispatchEvent(new FocusEvent('blur', { bubbles: true }));
-          expect(committed).toEqual([14]);
-
-          parts.container.destroy();
-          parts.input.destroy();
-          parts.increment.destroy();
-          parts.decrement.destroy();
-          document.body.removeChild(parts.containerEl);
+          teardown(parts);
         });
       }));
   });
 
   describe('Boundary Clamping & Auto-Inert Invariant', () => {
-    it('disables the button that has nowhere left to go and keeps the other live', () =>
+    it('disarms the button that has nowhere left to go and keeps the other live', () =>
       scope.run(() => {
         const tree = component();
         tree.run(() => {
           const props = mutable<StepperProps>({ value: 1, min: 1, max: 3, step: 1 });
           const parts = buildTree(props);
 
-          // At the floor: decrement is inert, increment still operates
-          expect(parts.decrementEl.getAttribute('aria-disabled')).toBe('true');
-          expect(parts.incrementEl.getAttribute('aria-disabled')).toBe('false');
+          expect(parts.decrementEl.disabled).toBe(true);
+          expect(parts.incrementEl.disabled).toBe(false);
 
           parts.decrementEl.click();
           expect(props.value).toBe(1);
 
           parts.incrementEl.click();
           expect(props.value).toBe(2);
-          expect(parts.decrementEl.getAttribute('aria-disabled')).toBe('false');
-
-          // At the ceiling: the roles reverse without any rebinding
-          parts.incrementEl.click();
-          expect(props.value).toBe(3);
-          expect(parts.incrementEl.getAttribute('aria-disabled')).toBe('true');
-          expect(parts.decrementEl.getAttribute('aria-disabled')).toBe('false');
+          expect(parts.decrementEl.disabled).toBe(false);
 
           parts.incrementEl.click();
           expect(props.value).toBe(3);
+          expect(parts.incrementEl.disabled).toBe(true);
+          expect(parts.decrementEl.disabled).toBe(false);
 
-          // A parent write past the bound clamps and re-derives both buttons
+          parts.incrementEl.click();
+          expect(props.value).toBe(3);
+
           props.value = 500;
           expect(parts.container.value).toBe(3);
-          expect(parts.incrementEl.getAttribute('aria-disabled')).toBe('true');
+          expect(parts.incrementEl.disabled).toBe(true);
 
           props.value = -500;
           expect(parts.container.value).toBe(1);
-          expect(parts.decrementEl.getAttribute('aria-disabled')).toBe('true');
+          expect(parts.decrementEl.disabled).toBe(true);
 
-          parts.container.destroy();
-          parts.input.destroy();
-          parts.increment.destroy();
-          parts.decrement.destroy();
-          document.body.removeChild(parts.containerEl);
+          teardown(parts);
         });
       }));
 
-    it('takes the whole stepper out of the tab order when the container is disabled', () =>
+    it('refuses steps and typing while readonly and disarms the buttons', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const props = mutable<StepperProps>({ value: 5, min: 0, max: 10, readonly: true });
+          const parts = buildTree(props);
+
+          expect(parts.inputEl.getAttribute('tabindex')).toBe('-1');
+          expect(parts.incrementEl.disabled).toBe(true);
+          expect(parts.decrementEl.disabled).toBe(true);
+
+          parts.inputEl.focus();
+          expect(press(parts.inputEl, 'ArrowUp').defaultPrevented).toBe(false);
+          expect(props.value).toBe(5);
+
+          // A readonly custom host is not editable at all
+          expect(parts.inputEl.hasAttribute('contenteditable')).toBe(false);
+
+          teardown(parts);
+        });
+      }));
+
+    it('takes the whole stepper out of reach when the container is disabled', () =>
       scope.run(() => {
         const tree = component();
         tree.run(() => {
@@ -229,7 +257,6 @@ describe('Stepper - Contract Specifications', () => {
           expect(press(parts.inputEl, 'ArrowUp').defaultPrevented).toBe(false);
           expect(props.value).toBe(5);
 
-          // Re-enabling restores traversal and stepping on the same nodes
           props.disabled = false;
           expect(parts.inputEl.getAttribute('tabindex')).toBe('0');
           expect(parts.incrementEl.disabled).toBe(false);
@@ -238,11 +265,33 @@ describe('Stepper - Contract Specifications', () => {
           expect(press(parts.inputEl, 'ArrowUp').defaultPrevented).toBe(true);
           expect(props.value).toBe(6);
 
-          parts.container.destroy();
-          parts.input.destroy();
-          parts.increment.destroy();
-          parts.decrement.destroy();
-          document.body.removeChild(parts.containerEl);
+          teardown(parts);
+        });
+      }));
+
+    it('cancels and contains an activation click on the step button that has nowhere left to go', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const props = mutable<StepperProps>({ value: 10, min: 0, max: 10 });
+          const parts = buildTree(props);
+
+          expect(parts.increment.disabled).toBe(true);
+          expect(parts.incrementEl.disabled).toBe(true);
+
+          const reached: string[] = [];
+          const onBubble = () => reached.push('click');
+          parts.containerEl.addEventListener('click', onBubble);
+
+          const click = new MouseEvent('click', { cancelable: true, bubbles: true });
+          parts.incrementEl.dispatchEvent(click);
+
+          expect(click.defaultPrevented).toBe(true);
+          expect(reached).toEqual([]);
+          expect(props.value).toBe(10);
+
+          parts.containerEl.removeEventListener('click', onBubble);
+          teardown(parts);
         });
       }));
   });
@@ -260,44 +309,32 @@ describe('Stepper - Contract Specifications', () => {
             valuetext: '2 of 4 nights',
           });
 
-          // The input is the value-bearing control
           expect(parts.inputEl.getAttribute('role')).toBe('spinbutton');
           expect(parts.inputEl.getAttribute('aria-valuetext')).toBe('2 of 4 nights');
           expect(parts.inputEl.getAttribute('tabindex')).toBe('0');
 
-          // The container groups without taking the value role itself
           expect(parts.containerEl.getAttribute('role')).toBe('group');
           expect(parts.containerEl.hasAttribute('aria-valuenow')).toBe(false);
 
-          // Step buttons stay plain buttons: not toggles, not spinbuttons, not linked by state
           for (const buttonEl of [parts.incrementEl, parts.decrementEl]) {
             expect(buttonEl.hasAttribute('role')).toBe(false);
             expect(buttonEl.hasAttribute('aria-pressed')).toBe(false);
             expect(buttonEl.hasAttribute('aria-valuenow')).toBe(false);
             expect(buttonEl.type).toBe('button');
+            expect(buttonEl.tabIndex).toBe(-1);
           }
 
-          parts.container.destroy();
-          parts.input.destroy();
-          parts.increment.destroy();
-          parts.decrement.destroy();
-          document.body.removeChild(parts.containerEl);
+          teardown(parts);
         });
       }));
 
     it('keeps two steppers in the same page coordinating only themselves', () =>
       scope.run(() => {
         const firstTree = component();
-        const first = firstTree.run(() => {
-          const parts = buildTree({ value: 1, min: 0, max: 9, step: 1 });
-          return parts;
-        });
+        const first = firstTree.run(() => buildTree({ value: 1, min: 0, max: 9, step: 1 }));
 
         const secondTree = component();
-        const second = secondTree.run(() => {
-          const parts = buildTree({ value: 5, min: 0, max: 9, step: 1 });
-          return parts;
-        });
+        const second = secondTree.run(() => buildTree({ value: 5, min: 0, max: 9, step: 1 }));
 
         expect(first.inputEl.getAttribute('aria-valuenow')).toBe('1');
         expect(second.inputEl.getAttribute('aria-valuenow')).toBe('5');
@@ -305,19 +342,95 @@ describe('Stepper - Contract Specifications', () => {
         first.increment.click();
         expect(first.container.value).toBe(2);
         expect(second.container.value).toBe(5);
-        expect(second.inputEl.getAttribute('aria-valuenow')).toBe('5');
 
         second.decrement.click();
         expect(second.container.value).toBe(4);
         expect(first.container.value).toBe(2);
 
-        for (const parts of [first, second]) {
-          parts.container.destroy();
-          parts.input.destroy();
-          parts.increment.destroy();
-          parts.decrement.destroy();
-          document.body.removeChild(parts.containerEl);
-        }
+        teardown(first);
+        teardown(second);
+      }));
+  });
+
+  describe('Typed Reading Invariant', () => {
+    it('parses free typing on a native text host and announces it without replaying the browser event', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const changed: unknown[] = [];
+          const props = mutable<StepperProps & StepperEventProps>({
+            value: 2,
+            min: 0,
+            max: 10,
+            onchange: (event) => changed.push(event.detail),
+          });
+          const container = aria('stepper', props);
+
+          const seen: unknown[] = [];
+          const input = aria<HTMLInputElement>('stepper-input', {
+            oninput: (event) => seen.push(event.detail),
+          }, { native: true });
+
+          const containerEl = document.createElement('div');
+          const inputEl = bind(document.createElement('input'), input);
+          containerEl.appendChild(inputEl);
+          document.body.appendChild(containerEl);
+          bind(containerEl, container);
+
+          expect(inputEl.getAttribute('type')).toBe('text');
+
+          const replayed: string[] = [];
+          inputEl.addEventListener('input', () => replayed.push('input'));
+          inputEl.addEventListener('change', () => replayed.push('change'));
+
+          inputEl.value = '4';
+          inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+
+          expect(props.value).toBe(4);
+          expect(seen).toEqual([4]);
+          expect(changed).toEqual([4]);
+          expect(replayed).toEqual(['input']);
+
+          // An unusable reading leaves the value untouched and reports the value at that moment
+          inputEl.value = 'abc';
+          inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+          expect(props.value).toBe(4);
+          expect(seen).toEqual([4, 4]);
+
+          // Blur restores the last committed value instead of zeroing the field
+          inputEl.dispatchEvent(new FocusEvent('blur'));
+          expect(inputEl.value).toBe('4');
+          expect(changed).toEqual([4]);
+
+          container.destroy();
+          input.destroy();
+          document.body.removeChild(containerEl);
+        });
+      }));
+  });
+
+  describe('Required Constraint Projection', () => {
+    it('states the required constraint on the spinbutton in the form its host understands', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const props = mutable<StepperProps>({ value: 2, min: 0, max: 6, required: true });
+          const parts = buildTree(props);
+
+          expect(parts.inputEl.hasAttribute('aria-required')).toBe(true);
+          expect(parts.inputEl.hasAttribute('required')).toBe(false);
+
+          const native = aria('stepper-input', {}, { native: true });
+          const nativeEl = bind(document.createElement('input'), native);
+          expect(nativeEl.required).toBe(true);
+          expect(nativeEl.hasAttribute('aria-required')).toBe(false);
+
+          props.required = false;
+          expect(parts.inputEl.hasAttribute('aria-required')).toBe(false);
+          expect(nativeEl.required).toBe(false);
+
+          teardown(parts);
+        });
       }));
   });
 });
