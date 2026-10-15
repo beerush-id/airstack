@@ -391,6 +391,41 @@ describe('Switch - Contract Specifications', () => {
         });
       }));
 
+    it('cancels and contains every activation event on a custom host declared disabled', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const sw = aria<HTMLDivElement>('switch', { checked: false, disabled: true }, { native: false });
+
+          const reached: string[] = [];
+          const wrapper = document.createElement('div');
+          wrapper.addEventListener('click', () => reached.push('click'));
+          wrapper.addEventListener('keydown', () => reached.push('keydown'));
+          wrapper.addEventListener('keyup', () => reached.push('keyup'));
+          const el = bind(document.createElement('div'), sw);
+          wrapper.append(el);
+
+          const click = new MouseEvent('click', { cancelable: true, bubbles: true });
+          const spaceDown = new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true });
+          const spaceUp = new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true });
+          const enterDown = new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true });
+
+          el.dispatchEvent(click);
+          el.dispatchEvent(spaceDown);
+          el.dispatchEvent(spaceUp);
+          el.dispatchEvent(enterDown);
+
+          expect(click.defaultPrevented).toBe(true);
+          expect(spaceDown.defaultPrevented).toBe(true);
+          expect(spaceUp.defaultPrevented).toBe(true);
+          expect(enterDown.defaultPrevented).toBe(true);
+          expect(reached).toEqual([]);
+          expect(sw.checked).toBe(false);
+
+          sw.destroy();
+        });
+      }));
+
     it('inherits a live group lockout and hands the widget back when it lifts', () =>
       scope.run(() => {
         const tree = component();

@@ -106,6 +106,7 @@ export class NumberStepperAria<
     super(props, {
       native: false,
       ...options,
+      clickable: true,
     });
 
     this.omittedAttrs.push(

@@ -222,6 +222,37 @@ describe('TextInput - Contract Specifications', () => {
         });
       }));
 
+    it('hands the committed text to the declared onchange handler on a native host without dispatching it', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const commits: Array<{ detail: unknown; kind: string }> = [];
+          const input = aria('text-input', {
+            value: 'hi',
+            onchange: (event) => commits.push({ detail: event.detail, kind: event.constructor.name }),
+          });
+          const el = bind(document.createElement('input'), input);
+
+          const observed: string[] = [];
+          el.addEventListener('change', () => observed.push('dom'));
+
+          el.value = 'hello';
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+          el.dispatchEvent(new Event('change', { bubbles: true }));
+
+          expect(commits).toEqual([{ detail: 'hello', kind: 'CustomEvent' }]);
+          expect(observed).toEqual(['dom']);
+
+          // One diff, one announcement: a repeat of the committed text says nothing
+          el.dispatchEvent(new Event('change', { bubbles: true }));
+          expect(commits).toHaveLength(1);
+          expect(observed).toEqual(['dom', 'dom']);
+
+          input.destroy();
+          expect(input.current).toBeNull();
+        });
+      }));
+
     it('announces a bubbling change CustomEvent carrying the committed value on a custom host', () =>
       scope.run(() => {
         const tree = component();

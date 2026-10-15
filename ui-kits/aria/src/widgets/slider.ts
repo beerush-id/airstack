@@ -148,6 +148,7 @@ export class SliderAria<
     super(props, {
       native: false,
       ...options,
+      clickable: true,
     });
     sliderCtx.set(this as unknown as SliderAria);
 
@@ -434,9 +435,16 @@ export class SliderThumbAria<E extends BaseElement = HTMLElement> extends Aria<
   private dirty = false;
 
   public constructor(props: Partial<AriaProps> = {}) {
-    super(props, { native: false });
+    super(props, { native: false, clickable: true });
     this.index = this.slider ? this.slider.claimThumb() : 0;
     this.update();
+  }
+
+  /**
+   * Whether the enclosing slider has locked this thumb out of interaction.
+   */
+  public get disabled(): boolean {
+    return !!this.slider?.disabled;
   }
 
   /**

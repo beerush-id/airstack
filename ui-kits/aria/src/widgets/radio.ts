@@ -79,6 +79,7 @@ export class RadioAria<
       idempotent: true,
       key: 'checked',
       allowKeys: [' '],
+      clickable: true,
     });
 
     this.omittedAttrs.push('value', 'name', 'onchange', 'aria-checked');

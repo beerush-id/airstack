@@ -233,21 +233,24 @@ export class TextInputAria<
   }
 
   protected override attach(): DetachFn | void {
-    if (this.isNative) return;
     const host = this.element;
     /* istanbul ignore next: attach only runs post-assignment with a live element */
     if (!host) return;
-    const onBlur = (): void => {
+
+    const commit = (): void => {
       const current = this.value;
       if (current === this.lastCommitted) return;
       this.lastCommitted = current;
       if (this.disabled) return;
       const event: TextInputEvent = new CustomEvent('change', { bubbles: true, detail: current });
-      host.dispatchEvent(event);
+      if (!this.isNative) host.dispatchEvent(event);
       this.properties.onchange?.(event);
     };
-    host.addEventListener('blur', onBlur);
-    return () => host.removeEventListener('blur', onBlur);
+
+    const signal = this.isNative ? 'change' : 'blur';
+    host.addEventListener(signal, commit);
+
+    return () => host.removeEventListener(signal, commit);
   }
 
   private readonly handleInput = (e: Event): void => {

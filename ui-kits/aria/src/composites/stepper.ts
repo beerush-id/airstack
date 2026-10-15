@@ -1,7 +1,17 @@
-import { createContext } from '@airlib/core';
+import { type AnyType, createContext, effect } from '@airlib/core';
+import type { KeyboardEvent } from 'react';
 import { Aria } from '../core.js';
-import type { AriaAttributes, AriaEvent, AriaEventHandler, AriaOptions, AriaProps, BaseElement } from '../types.js';
+import type {
+  AriaAttributes,
+  AriaEvent,
+  AriaEventHandler,
+  AriaOptions,
+  AriaProps,
+  BaseElement,
+  DetachFn,
+} from '../types.js';
 import { ariaBoolean } from '../utils/attributes.js';
+import { focusSelect, maintainCursor, readFloat } from '../utils/input.js';
 import { clampRange } from '../utils/range.js';
 
 /**
@@ -12,7 +22,8 @@ export const stepperCtx = createContext<StepperAria>();
 /**
  * Controller-dispatched stepper event carrying the committed value in `detail`.
  */
-export type StepperEvent = AriaEvent<number>;
+export type StepperInputEvent = AriaEvent<string | number | undefined | null>;
+export type StepperChangeEvent = AriaEvent<number | undefined>;
 
 /**
  * Reactive input properties for StepperAria.
@@ -74,12 +85,12 @@ export interface StepperInputProps extends AriaProps {
   /**
    * Called with the committed value after each step or typed commit.
    */
-  oninput?: AriaEventHandler<StepperEvent>;
+  oninput?: AriaEventHandler<StepperInputEvent>;
 
   /**
    * Called with the committed value when the interaction ends.
    */
-  onchange?: AriaEventHandler<StepperEvent>;
+  onchange?: AriaEventHandler<StepperChangeEvent>;
 }
 
 export interface StepperInputOptions extends AriaOptions {}
@@ -109,14 +120,15 @@ export interface StepperAttributes<E extends BaseElement = HTMLElement> extends 
  * @template E - Target Element type (defaults to HTMLInputElement)
  */
 export interface StepperInputAttributes<E extends BaseElement = HTMLElement> extends AriaAttributes<E> {
-  role?: 'spinbutton';
-  type?: 'number';
-  value?: number;
   min?: number;
   max?: number;
+  type?: 'number';
+  role?: 'spinbutton';
   step?: number;
+  value?: number;
   readonly?: boolean;
   disabled?: boolean;
+  required?: boolean;
   tabindex?: number;
   'aria-valuenow'?: number;
   'aria-valuemin'?: number;
@@ -124,6 +136,7 @@ export interface StepperInputAttributes<E extends BaseElement = HTMLElement> ext
   'aria-valuetext'?: string;
   'aria-readonly'?: 'true' | 'false';
   'aria-disabled'?: 'true' | 'false';
+  'aria-required'?: 'true' | 'false';
 }
 
 /**
@@ -150,14 +163,6 @@ export class StepperAria<
   T extends StepperProps = StepperProps,
   A extends StepperAttributes<E> = StepperAttributes<E>,
 > extends Aria<E, T, A> {
-  public constructor(props: Partial<T> = {}) {
-    super(props);
-    stepperCtx.set(this as unknown as StepperAria);
-
-    this.omittedAttrs.push('value', 'min', 'max', 'step', 'page', 'valuetext', 'readonly', 'required');
-    this.update();
-  }
-
   /**
    * Current numeric value with bounds applied.
    */
@@ -208,15 +213,37 @@ export class StepperAria<
   }
 
   /**
-   * Commits a raw value through bounds.
+   * @param props - Reactive properties
+   */
+  public constructor(props: Partial<T> = {}) {
+    super(props);
+
+    this.omittedAttrs.push('value', 'min', 'max', 'step', 'page', 'valuetext', 'readonly', 'required');
+
+    this.on('keydown', this.handleStepping as AnyType);
+
+    effect.client((e) => {
+      void this.value;
+      if (e.type === 'init') return;
+      this.notify('change');
+    });
+
+    stepperCtx.set(this as unknown as StepperAria);
+    this.update();
+  }
+
+  /**
+   * Commit a value to the stepper by clamping it to bounds and notifying listeners if the value changed.
    *
    * @param raw - Uncommitted value reading
+   * @param notify - Whether to notify listeners of the commit
    * @returns Whether the commit changed the value
    */
-  public commit(raw: number): boolean {
+  public commit(raw: number, notify?: 'input' | 'change'): boolean {
     const next = clampRange(raw, this.min, this.max);
     if (next === this.value) return false;
     this.properties.value = next;
+    if (notify) this.notify(notify);
     return true;
   }
 
@@ -229,6 +256,53 @@ export class StepperAria<
     return Object.assign(super.createAttributes(), {
       role: 'group' as const,
     }) as A;
+  }
+
+  /**
+   * Handles keydown events on the stepper element.
+   *
+   * @param e - Keydown event
+   */
+  protected handleStepping = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (this.disabled || this.readonly || e.defaultPrevented) return;
+
+    let value: number | undefined;
+    let shouldPrevent = true;
+
+    if (e.key === 'ArrowUp') {
+      value = this.value + this.step;
+    } else if (e.key === 'ArrowDown') {
+      value = this.value - this.step;
+    } else if (e.key === 'PageUp') {
+      value = this.value + this.page;
+    } else if (e.key === 'PageDown') {
+      value = this.value - this.page;
+    } else if (e.key === 'Home') {
+      if (this.min === undefined) return;
+      value = this.min;
+    } else if (e.key === 'End') {
+      if (this.max === undefined) return;
+      value = this.max;
+    } else {
+      shouldPrevent = false;
+    }
+
+    if (shouldPrevent) e.preventDefault();
+    if (value != null) {
+      this.commit(value);
+      this.notify('input');
+    }
+  };
+
+  /**
+   * Notifies listeners of the given event type with the current value.
+   *
+   * @param type - Event type
+   */
+  protected notify(type = 'input'): void {
+    const event = new CustomEvent(type, { bubbles: true, detail: this.value, cancelable: true });
+    this.element?.dispatchEvent(event);
+    this.dispatch(event);
   }
 }
 
@@ -250,22 +324,59 @@ export class StepperInputAria<
 > extends Aria<E, T, A, O> {
   private readonly stepper: StepperAria | null = stepperCtx.get() ?? null;
 
-  private dirty = false;
+  /**
+   * Current numeric value with bounds applied.
+   */
+  public get value(): number {
+    return (this.stepper?.value ?? 0) as number;
+  }
 
+  /**
+   * @param props - Reactive properties
+   * @param options - Controller options
+   */
   public constructor(props: Partial<T> = {}, options: O = {} as O) {
     super(props, {
       native: false,
       ...options,
+      clickable: true,
     });
+
     this.omittedAttrs.push('oninput', 'onchange');
+
+    this.on('blur', this.parseChanges as AnyType);
+    this.on('input', this.parseInputs as AnyType);
+    this.on('keydown', this.bypassKeys as AnyType);
+
+    if (!this.isNative) {
+      let fromPointer = false;
+
+      this.on('pointerenter', () => {
+        fromPointer = true;
+      });
+
+      this.on('focus', () => {
+        if (!fromPointer) {
+          focusSelect(this.element);
+        }
+
+        fromPointer = false;
+      });
+    }
+
     this.update();
   }
 
   /**
-   * Current value read from the coordinator.
+   * Applies value changes to the host element.
+   *
+   * @returns Detach function
    */
-  public get value(): number {
-    return this.stepper ? this.stepper.value : 0;
+  protected override attach(): DetachFn | void {
+    if (this.isNative) return;
+    return effect(() => {
+      maintainCursor(() => (this.element!.textContent = (this.stepper?.value ?? '0').toString()));
+    });
   }
 
   /**
@@ -274,97 +385,90 @@ export class StepperInputAria<
    * @returns Input attributes dictionary
    */
   protected override createAttributes(): A {
+    const attrs = super.createAttributes();
     const stepper = this.stepper;
-    if (!stepper) {
-      return Object.assign(super.createAttributes(), {
-        role: 'spinbutton',
-        tabindex: 0,
-        'aria-disabled': 'false',
-      }) as A;
-    }
+    const isDisabled = stepper?.disabled || stepper?.readonly;
 
-    const isDisabled = stepper.disabled;
     if (this.isNative) {
-      return Object.assign(super.createAttributes(), {
-        type: 'number',
-        value: stepper.value,
-        min: stepper.min,
-        max: stepper.max,
-        step: stepper.step,
-        readonly: stepper.readonly,
+      Object.assign(attrs, {
+        type: 'text',
+        value: stepper?.value,
+        tabindex: isDisabled ? -1 : undefined,
+        readonly: stepper?.readonly,
         disabled: isDisabled,
-        oninput: this.handleNativeInput,
-      }) as A;
+        required: stepper?.properties.required === true,
+      });
+    } else {
+      Object.assign(attrs, {
+        tabindex: isDisabled ? -1 : 0,
+        contenteditable: !isDisabled ? 'true' : undefined,
+        'plaintext-only': 'true',
+        'aria-readonly': stepper?.readonly,
+        'aria-disabled': ariaBoolean(isDisabled),
+        'aria-required': stepper?.properties.required,
+      });
     }
 
-    return Object.assign(super.createAttributes(), {
+    return Object.assign(attrs, {
       role: 'spinbutton',
-      tabindex: isDisabled ? -1 : 0,
-      'aria-valuenow': stepper.value,
-      'aria-valuemin': stepper.min,
-      'aria-valuemax': stepper.max,
-      'aria-valuetext': stepper.properties.valuetext,
-      'aria-readonly': stepper.properties.readonly === undefined ? undefined : ariaBoolean(stepper.readonly),
-      'aria-disabled': ariaBoolean(isDisabled),
-      onkeydown: this.handleKeyDown,
-      onkeyup: this.handleKeyUp,
-      onblur: this.handleBlur,
+      'aria-valuenow': stepper?.value,
+      'aria-valuemin': stepper?.min,
+      'aria-valuemax': stepper?.max,
+      'aria-valuetext': stepper?.properties.valuetext,
     }) as A;
   }
 
-  private readonly handleKeyDown = (e: KeyboardEvent): void => {
-    const stepper = this.stepper;
-    if (!stepper || stepper.disabled || stepper.readonly || e.defaultPrevented) return;
+  /**
+   * Bypass Enter and space to prevent default form submission and invalid number input.
+   *
+   * @param e - Keydown event
+   */
+  private readonly bypassKeys = (e: KeyboardEvent<HTMLInputElement>): void => {
+    const { disabled, readonly } = this.stepper ?? {};
+    if (disabled || readonly || e.defaultPrevented) return;
+    if (['Enter', ' '].includes(e.key)) e.preventDefault();
+  };
 
-    let raw: number | undefined;
-    if (e.key === 'ArrowRight' || e.key === 'ArrowUp') raw = stepper.value + stepper.step;
-    else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') raw = stepper.value - stepper.step;
-    else if (e.key === 'PageUp') raw = stepper.value + stepper.page;
-    else if (e.key === 'PageDown') raw = stepper.value - stepper.page;
-    else if (e.key === 'Home') {
-      if (stepper.min === undefined) return;
-      raw = stepper.min;
-    } else if (e.key === 'End') {
-      if (stepper.max === undefined) return;
-      raw = stepper.max;
+  /**
+   * Validates and commits the input value on every keystroke.
+   *
+   * @param e - Input event
+   */
+  private readonly parseInputs = (e: KeyboardEvent<HTMLInputElement>): void => {
+    if (!this.stepper || this.stepper.disabled || this.stepper.readonly) return;
+
+    const raw = this.isNative ? e.currentTarget.value : e.currentTarget.textContent;
+    const value = readFloat(raw);
+
+    if (value != null) this.stepper?.commit(value);
+
+    const event = new CustomEvent('input', { bubbles: true, detail: this.stepper!.value });
+    this.dispatch(event);
+  };
+
+  /**
+   * Validate and commit the input value on blur.
+   *
+   * @param e - Input event
+   */
+  private readonly parseChanges = (e: KeyboardEvent<HTMLInputElement>): void => {
+    if (!this.stepper || this.stepper.disabled || this.stepper.readonly) return;
+
+    const raw = this.isNative ? e.currentTarget.value : e.currentTarget.textContent;
+    const value = readFloat(raw);
+
+    if (value != null) {
+      this.stepper?.commit(value);
+    } else {
+      const element = this.element as never as HTMLInputElement;
+
+      if (this.isNative) {
+        element.value = (this.stepper.value ?? '0').toString();
+      } else {
+        element.textContent = (this.stepper.value ?? '0').toString();
+      }
     }
-    if (raw === undefined) return;
-
-    e.preventDefault();
-    if (stepper.commit(raw)) {
-      this.dirty = true;
-      this.notifyInput();
-    }
   };
-
-  private readonly handleKeyUp = (e: KeyboardEvent): void => {
-    if (!HANDLED_KEYS.includes(e.key)) return;
-    this.commitChange();
-  };
-
-  private readonly handleBlur = (): void => {
-    this.commitChange();
-  };
-
-  private readonly handleNativeInput = (e: Event): void => {
-    const raw = (e.currentTarget as HTMLInputElement).value;
-    if (raw.trim() === '') return;
-    this.stepper!.commit(Number(raw));
-  };
-
-  private commitChange(): void {
-    if (!this.dirty) return;
-    this.dirty = false;
-    const event: StepperEvent = new CustomEvent('change', { bubbles: true, detail: this.stepper!.value });
-    this.element!.dispatchEvent(event);
-    this.properties.onchange?.(event);
-  }
-
-  private notifyInput(): void {
-    const event: StepperEvent = new CustomEvent('input', { bubbles: true, detail: this.stepper!.value });
-    this.element!.dispatchEvent(event);
-    this.properties.oninput?.(event);
-  }
 }
 
 /**
@@ -384,11 +488,6 @@ export class StepperButtonAria<
   O extends StepperButtonOptions = StepperButtonOptions,
 > extends Aria<E, T, A, O> {
   private readonly stepper: StepperAria | null = stepperCtx.get() ?? null;
-
-  public constructor(props: Partial<T> = {}, options: O = {} as O) {
-    super(props, options);
-    this.update();
-  }
 
   /**
    * Whether the button is disabled from user interaction: coordinator-less,
@@ -411,10 +510,25 @@ export class StepperButtonAria<
   }
 
   /**
+   * @param props - Reactive properties
+   * @param options - Controller options
+   */
+  public constructor(props: Partial<T> = {}, options: O = {} as O) {
+    super(props, {
+      native: true,
+      ...options,
+      clickable: true,
+    });
+
+    this.on('click', () => this.handleStepping());
+    this.update();
+  }
+
+  /**
    * Activates the step button programmatically.
    */
   public click(): void {
-    this.handleClick();
+    this.handleStepping();
   }
 
   /**
@@ -423,20 +537,22 @@ export class StepperButtonAria<
    * @returns Button attributes dictionary
    */
   protected override createAttributes(): A {
-    const isDisabled = this.disabled;
+    const isDisabled = this.disabled || this.stepper?.disabled || this.stepper?.readonly;
+
     return Object.assign(super.createAttributes(), {
       type: 'button',
-      disabled: isDisabled,
-      'aria-disabled': ariaBoolean(isDisabled),
-      onclick: this.handleClick,
+      tabindex: -1,
+      disabled: this.isNative ? isDisabled : undefined,
+      'aria-disabled': this.isNative ? undefined : ariaBoolean(isDisabled),
     }) as A;
   }
 
-  private readonly handleClick = (): void => {
+  /**
+   * Handles the click event, stepping the stepper in the appropriate direction.
+   */
+  protected readonly handleStepping = (): void => {
     const stepper = this.stepper;
     if (!stepper || stepper.disabled) return;
-    stepper.commit(stepper.value + this.direction * stepper.step);
+    stepper.commit(stepper.value + this.direction * stepper.step, 'input');
   };
 }
-
-const HANDLED_KEYS = ['ArrowRight', 'ArrowUp', 'ArrowLeft', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End'];

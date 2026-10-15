@@ -110,6 +110,7 @@ export class CheckboxAria<
       role: 'checkbox',
       key: 'checked',
       allowKeys: [' '],
+      clickable: true,
     });
 
     this.omittedAttrs.push(

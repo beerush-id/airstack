@@ -85,10 +85,13 @@ export function aria<E extends BaseElement = HTMLInputElement>(
   - `multiline: true` compiles `aria-multiline="true"` on custom hosts; the native multiline host is a `<textarea>`
     (implicit, so no `aria-multiline` mirror).
 3. **Events**:
-  - Native elements: browser `input` and `change` pass through (not re-dispatched).
+  - Native elements: browser `input` and `change` pass through (not re-dispatched). The declared `onchange` is
+    invoked with a handler-only `CustomEvent<string>` carrying the committed text in `detail` — the event is built
+    for the handler and never dispatched on the element, so direct listeners still see exactly one browser `change`.
   - Custom hosts: dispatches `CustomEvent<string>('change', { bubbles: true, detail: value })` on blur following
     committed edits. Blurs with no diff stay silent; blurs while disabled track the value but withhold the event
     until an enabled blur observes it. Teardown removes the blur listener.
+  - Both hosts share one rule: one diff, one announcement, and a disabled host commits nothing.
 
 4. **Value plane** (`spec.md`): `aria-*` states are explicit strings; `readonly` / `disabled` / `required` are
   logical booleans; `defaultValue` carries the SSR snapshot while `value` never enters the compiled dictionary.

@@ -576,5 +576,40 @@ describe('NumberStepper - Contract Specifications', () => {
           expect(customSpin.current).toBeNull();
         });
       }));
+
+    it('cancels and contains every activation event on a custom host declared disabled', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const spin = aria<HTMLDivElement>('number-stepper', { value: 5, min: 0, max: 10, disabled: true });
+
+          const reached: string[] = [];
+          const wrapper = document.createElement('div');
+          wrapper.addEventListener('click', () => reached.push('click'));
+          wrapper.addEventListener('keydown', () => reached.push('keydown'));
+          wrapper.addEventListener('keyup', () => reached.push('keyup'));
+          const el = bind(document.createElement('div'), spin);
+          wrapper.append(el);
+
+          const click = new MouseEvent('click', { cancelable: true, bubbles: true });
+          const enterDown = new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true });
+          const spaceDown = new KeyboardEvent('keydown', { key: ' ', cancelable: true, bubbles: true });
+          const spaceUp = new KeyboardEvent('keyup', { key: ' ', cancelable: true, bubbles: true });
+
+          el.dispatchEvent(click);
+          el.dispatchEvent(enterDown);
+          el.dispatchEvent(spaceDown);
+          el.dispatchEvent(spaceUp);
+
+          expect(click.defaultPrevented).toBe(true);
+          expect(enterDown.defaultPrevented).toBe(true);
+          expect(spaceDown.defaultPrevented).toBe(true);
+          expect(spaceUp.defaultPrevented).toBe(true);
+          expect(reached).toEqual([]);
+          expect(spin.value).toBe(5);
+
+          spin.destroy();
+        });
+      }));
   });
 });

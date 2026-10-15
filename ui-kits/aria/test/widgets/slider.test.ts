@@ -342,5 +342,49 @@ describe('Slider - Contract Specifications', () => {
           thumb.destroy();
         });
       }));
+
+    it('reports the coordinator disablement on the thumb and contains its activation events', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const props = mutable<SliderProps>({ value: 40, min: 0, max: 100, disabled: true });
+          const slider = aria('slider', props);
+          const thumb = aria('slider-thumb');
+
+          const trackEl = bind(document.createElement('div'), slider);
+          const thumbEl = bind(document.createElement('div'), thumb);
+          trackEl.appendChild(thumbEl);
+
+          expect(slider.disabled).toBe(true);
+          expect(thumb.disabled).toBe(true);
+          expect(thumbEl.getAttribute('aria-disabled')).toBe('true');
+          expect(trackEl.getAttribute('tabindex')).toBe('-1');
+
+          const reached: string[] = [];
+          trackEl.addEventListener('click', () => reached.push('click'));
+
+          const click = new MouseEvent('click', { cancelable: true, bubbles: true });
+          const enter = new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true });
+          thumbEl.dispatchEvent(click);
+          thumbEl.dispatchEvent(enter);
+
+          expect(click.defaultPrevented).toBe(true);
+          expect(enter.defaultPrevented).toBe(true);
+          expect(reached).toEqual([]);
+          expect(props.value).toBe(40);
+
+          // Releasing the lockout hands both parts back without rebinding
+          props.disabled = false;
+          expect(thumb.disabled).toBe(false);
+
+          const live = new MouseEvent('click', { cancelable: true, bubbles: true });
+          thumbEl.dispatchEvent(live);
+          expect(live.defaultPrevented).toBe(false);
+          expect(reached).toEqual(['click']);
+
+          slider.destroy();
+          thumb.destroy();
+        });
+      }));
   });
 });

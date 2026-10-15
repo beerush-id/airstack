@@ -585,5 +585,28 @@ describe('Option - Contract Specifications', () => {
           expect(optA.current).toBeNull();
         });
       }));
+
+    it('cancels and contains the activation event on a member declared disabled', () =>
+      scope.run(() => {
+        const tree = component();
+        tree.run(() => {
+          const opt = aria<HTMLLIElement>('option', { value: 'a', disabled: true });
+
+          const reached: string[] = [];
+          const wrapper = document.createElement('ul');
+          wrapper.addEventListener('click', () => reached.push('click'));
+          const el = bind(document.createElement('li'), opt);
+          wrapper.append(el);
+
+          const click = new MouseEvent('click', { cancelable: true, bubbles: true });
+          el.dispatchEvent(click);
+
+          expect(click.defaultPrevented).toBe(true);
+          expect(reached).toEqual([]);
+          expect(opt.selected).toBe(false);
+
+          opt.destroy();
+        });
+      }));
   });
 });

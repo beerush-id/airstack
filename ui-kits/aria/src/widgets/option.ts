@@ -80,7 +80,7 @@ export class OptionAria<
   private readonly standaloneToggle: boolean;
 
   public constructor(props: Partial<T> = {}, options: Partial<O> = {}) {
-    super(props, { native: false, ...options, role: ROLE_OPTION, allowKeys: [] });
+    super(props, { native: false, ...options, role: ROLE_OPTION, allowKeys: [], clickable: true });
     this.standaloneToggle = !!options.toggle;
     this.omittedAttrs.push('value', 'onchange', 'aria-selected');
     this.update();

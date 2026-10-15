@@ -95,6 +95,7 @@ export class FilePickerAria<
     super(props, {
       native: true,
       ...options,
+      clickable: true,
     });
 
     this.omittedAttrs.push('accept', 'multiple', 'capture', 'onchange', 'oncancel');
