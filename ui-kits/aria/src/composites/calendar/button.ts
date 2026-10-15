@@ -2,7 +2,7 @@ import { effect } from '@airlib/core';
 import { Aria } from '../../core.js';
 import type { AriaAttributes, AriaProps, BaseElement } from '../../types.js';
 import { ariaBoolean } from '../../utils/attributes.js';
-import { type ParsedDate, parseDate } from '../../utils/calendar.js';
+import { parseDate, type ParsedDate } from '../../utils/calendar.js';
 import { type DatePickerBase, datePickerCtx } from './picker.js';
 
 export interface DatePickerDayProps extends AriaProps {
@@ -40,8 +40,14 @@ export class DatePickerDayAria<E extends BaseElement = HTMLElement> extends Aria
     return !!(this.picker?.limit.max && this.date.time > this.picker.limit.max.getTime());
   }
 
+  public get inRange() {
+    if (!this.date.time || !this.picker?.start.time || !this.picker?.end.time) return false;
+    return this.date.time >= this.picker.start.time && this.date.time <= this.picker.end.time;
+  }
+
   public constructor(props: DatePickerDayProps) {
-    super(props);
+    super(props, { clickable: true, native: false });
+
     this.picker = datePickerCtx.get();
     this.omittedAttrs.push('date', 'role', 'tabindex', 'aria-selected', 'aria-disabled', 'aria-current');
 
@@ -49,7 +55,6 @@ export class DatePickerDayAria<E extends BaseElement = HTMLElement> extends Aria
       if (!this.picker) return;
 
       const { date } = this.properties;
-
       if (typeof date === 'string') {
         this.properties.date = parseDate(this.picker.properties.locales!, date);
       }
@@ -77,6 +82,7 @@ export class DatePickerDayAria<E extends BaseElement = HTMLElement> extends Aria
       role: 'gridcell',
       tabindex: selected || isToday ? 0 : -1,
       'data-date': date.iso,
+      'data-in-range': this.inRange ? 'true' : undefined,
       'data-offside': date.month !== picker?.range.month ? ('true' as const) : undefined,
       'aria-selected': ariaBoolean(selected),
       'aria-disabled': ariaBoolean(disabled),

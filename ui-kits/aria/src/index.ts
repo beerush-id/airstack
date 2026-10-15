@@ -27,6 +27,18 @@ import {
   type ConfirmProps,
   ConfirmTitleAria,
   ConfirmTriggerAria,
+  DatePickerAria,
+  DatePickerCalendarAria,
+  DatePickerDayAria,
+  type DatePickerDayProps,
+  DatePickerInputAria,
+  DatePickerNav,
+  type DatePickerNavProps,
+  type DatePickerProps,
+  DatePickerTriggerAria,
+  DatePickerYearInput,
+  DateRangePickerAria,
+  type DateRangePickerProps,
   DialogAria,
   DialogCloseAria,
   DialogDescriptionAria,
@@ -208,6 +220,7 @@ export * from './selection.js';
 export * from './translators/jsx.js';
 export * from './types.js';
 export * from './utils/attributes.js';
+export * from './utils/calendar.js';
 export * from './utils/label.js';
 export * from './utils/navigation.js';
 export * from './utils/overlay.js';
@@ -324,6 +337,48 @@ export function aria<E extends BaseElement = HTMLElement>(
   role: 'combobox-panel',
   props?: ComboboxPanelProps
 ): ComboboxPanelAria<E>;
+
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'date-picker',
+  props?: DatePickerProps
+): DatePickerAria<E>;
+
+export function aria<E extends BaseElement = HTMLInputElement>(
+  role: 'date-picker-input',
+  props?: AriaProps,
+  options?: AriaOptions
+): DatePickerInputAria<E>;
+
+export function aria<E extends BaseElement = HTMLButtonElement>(
+  role: 'date-picker-trigger',
+  props?: AriaProps,
+  options?: AriaOptions
+): DatePickerTriggerAria<E>;
+
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'date-picker-calendar',
+  props?: AriaProps
+): DatePickerCalendarAria<E>;
+
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'date-picker-day',
+  props: DatePickerDayProps
+): DatePickerDayAria<E>;
+
+export function aria<E extends BaseElement = HTMLButtonElement>(
+  role: 'date-picker-nav',
+  props?: DatePickerNavProps
+): DatePickerNav<E>;
+
+export function aria<E extends BaseElement = HTMLButtonElement>(
+  role: 'date-picker-year-input',
+  props?: AriaProps
+): DatePickerNav<E>;
+
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'date-range-picker',
+  props?: DateRangePickerProps
+): DateRangePickerAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement>(
   role: 'select',
@@ -766,6 +821,24 @@ export function aria(role: string, init?: unknown, options?: unknown): unknown {
       return new ComboboxInputAria(init as never, options as never);
     case 'combobox-panel':
       return new ComboboxPanelAria(init as never);
+
+    case 'date-picker':
+      return new DatePickerAria(init as never);
+    case 'date-range-picker':
+      return new DateRangePickerAria(init as never);
+    case 'date-picker-input':
+      return new DatePickerInputAria(init as never, options as never);
+    case 'date-picker-trigger':
+      return new DatePickerTriggerAria(init as never, options as never);
+    case 'date-picker-calendar':
+      return new DatePickerCalendarAria(init as never);
+    case 'date-picker-day':
+      return new DatePickerDayAria(init as never);
+    case 'date-picker-nav':
+      return new DatePickerNav(init as never);
+    case 'date-picker-year-input':
+      return new DatePickerYearInput(init as never);
+
     case 'select':
       return new SelectAria(init as never, options as never);
     case 'select-trigger':

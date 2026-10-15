@@ -1,7 +1,7 @@
-import { $static, $symbol, createContext, derived } from '@airlib/core';
+import { $static, $symbol, createContext, derived, mutable } from '@airlib/core';
 import type { AriaAttributes, AriaEvent, AriaEventHandler, AriaOptions, AriaProps, BaseElement } from '../../types.js';
-import { type ParsedDate, parseDate } from '../../utils/calendar.js';
-import { PopupAria, type PopupProps, popupCtx } from '../popup.js';
+import { parseDate, type ParsedDate } from '../../utils/calendar.js';
+import { PopupAria, popupCtx, type PopupProps } from '../popup.js';
 
 export type DatePickerInputEvent = AriaEvent<string>;
 
@@ -40,6 +40,7 @@ export class DatePickerBase<
   public readonly start: ParsedDate;
   public readonly end: ParsedDate;
   public readonly limit: { min?: Date; max?: Date };
+  public readonly draft = mutable<(string | undefined)[]>([undefined, undefined]);
 
   public get month() {
     return this.properties.month;
@@ -76,14 +77,14 @@ export class DatePickerBase<
       const value =
         this.options.type === 'single'
           ? (this.properties.value as string)
-          : (this.properties.value as unknown as [string])?.[0];
+          : (this.properties.value as unknown as [string, string])?.[0];
       if (!value) return {};
       return parseDate(this.properties.locales!, value);
     });
 
     this.end = derived.as(() => {
       if (this.options.type !== 'range') return {};
-      const value = (this.properties.value as unknown as [Date, Date])?.[1];
+      const value = (this.properties.value as unknown as [string, string])?.[1];
       if (!value) return {};
       return parseDate(this.properties.locales!, value);
     });
@@ -126,37 +127,48 @@ export class DatePickerBase<
         return;
       }
 
-      const current = ((this.properties.value as unknown) ?? []) as [string, string];
-      if (current.includes(start)) return;
+      const draft = this.draft;
+      const store = (this.properties.value as [string | undefined, string | undefined]) ?? [undefined, undefined];
+      if (draft.includes(start)) return;
 
       const date = new Date(start);
-      const [cStart] = current;
+      const [cStart] = draft;
 
       if (cStart) {
         const startDate = new Date(cStart);
 
         if (date < startDate) {
-          current[0] = start;
-          current[1] = cStart;
+          draft[0] = start;
+          draft[1] = cStart;
         } else {
-          current[1] = start;
+          draft[1] = start;
         }
       } else {
-        current[0] = start;
+        draft[0] = start;
       }
 
-      this.commit(current.every(Boolean));
+      Object.assign(store, { 0: draft[0], 1: draft[1] });
+      this.properties.value = store as [string, string];
+
+      if (draft.every(Boolean)) {
+        this.commit(true);
+      }
     }
   }
 
   public deselect(index?: number) {
     if (this.disabled || !this.properties.value) return;
 
-    if (this.properties.type === 'range' || !index) {
+    if (this.properties.type === 'single' || !index) {
       this.properties.value = undefined;
       this.commit();
-    } else {
-      (this.properties.value as string[])[index] = undefined as never;
+    } else if (this.properties.type === 'range') {
+      if (index) {
+        (this.properties.value as string[])[index] = undefined as never;
+      } else {
+        this.properties.value = [undefined, undefined] as never;
+      }
+
       this.commit((this.properties.value as [string, string]).every(Boolean));
     }
   }
@@ -181,6 +193,10 @@ export class DatePickerBase<
 
   protected commit(close?: boolean) {
     if (close || this.options.type === 'single') this.open = false;
+
+    this.draft[0] = undefined;
+    this.draft[1] = undefined;
+
     this.emitChange();
   }
 
@@ -202,6 +218,7 @@ export class DatePickerAria<E extends BaseElement = HTMLElement> extends DatePic
 
   public set value(value: string | undefined) {
     this.properties.value = value;
+    this.commit();
   }
 
   public constructor(props: DatePickerProps = {}) {

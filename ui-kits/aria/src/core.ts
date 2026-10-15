@@ -250,6 +250,10 @@ export class Aria<
     onCleanup(() => {
       this.destroy();
     });
+
+    if (options.clickable) {
+      this.protectClickable();
+    }
   }
 
   /**
@@ -351,6 +355,30 @@ export class Aria<
    * @param value - The value to capture
    */
   public captureChange?(target: BaseElement, value?: unknown): void;
+
+  /**
+   * Protects the element from interaction when disabled.
+   */
+  protected protectClickable() {
+    this.on('click', (e) => {
+      if ((this as AnyType).disabled) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    });
+    this.on('keydown', (e) => {
+      if ((e.key === 'Enter' || e.key === ' ') && (this as AnyType).disabled) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    });
+    this.on('keyup', (e) => {
+      if ((e.key === 'Enter' || e.key === ' ') && (this as AnyType).disabled) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    });
+  }
 
   /**
    * Requests the capture of options from the current role or its parent scope.

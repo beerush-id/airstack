@@ -70,6 +70,11 @@ export interface AriaOptions {
    * Whether the target element is a native HTML element for this role.
    */
   native?: boolean;
+
+  /**
+   * Whether the target element is clickable.
+   */
+  clickable?: boolean;
 }
 
 /**

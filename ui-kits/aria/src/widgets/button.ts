@@ -53,6 +53,7 @@ export class ButtonAria<
     super(props, {
       native: true,
       ...options,
+      clickable: true,
     });
 
     this.markActionable();

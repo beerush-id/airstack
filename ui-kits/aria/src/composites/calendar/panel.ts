@@ -1,16 +1,9 @@
-import { anchor, effect, mutable } from '@airlib/core';
+import { anchor, effect, mutable, sleep } from '@airlib/core';
 import { Aria } from '../../core.js';
 import type { AriaAttributes, AriaProps, BaseElement } from '../../types.js';
-import {
-  addDaysISO,
-  addMonthsISO,
-  type DateGrid,
-  dateGrids,
-  endOfWeekISO,
-  startOfWeekISO,
-} from '../../utils/calendar.js';
+import { type DateGrid, dateGrids, endOfWeekISO, startOfWeekISO } from '../../utils/calendar.js';
 import type { PopoverAria } from '../../widgets/index.js';
-import { bindPanel, type PopupPanel, popupCtx } from '../popup.js';
+import { bindPanel, popupCtx, type PopupPanel } from '../popup.js';
 import { type DatePickerBase, dateSelectionCtx } from './picker.js';
 
 export interface DatePickerCalendarAttributes<E extends BaseElement = HTMLElement> extends AriaAttributes<E> {
@@ -35,6 +28,14 @@ export class DatePickerCalendarAria<E extends BaseElement = HTMLElement> extends
 
   public get open(): boolean {
     return this.popup.open;
+  }
+
+  public get weeks() {
+    return this.grid.weeks ?? [];
+  }
+
+  public get dates() {
+    return this.grid.dates ?? [];
   }
 
   /* istanbul ignore next: no flow assigns calendar.current; popup tracks the element through its own ref */
@@ -81,43 +82,56 @@ export class DatePickerCalendarAria<E extends BaseElement = HTMLElement> extends
     const overrides: DatePickerCalendarAttributes<E> = {
       id: this.id,
       role: 'dialog',
-      'aria-label': this.host?.properties.label,
       hidden: !this.properties.open,
+      tabindex: 0,
+      'aria-label': this.host?.properties.label,
     };
 
     return Object.assign((this.popup as unknown as this).attrs, overrides);
   }
 
-  private readonly handleGridKey = (event: KeyboardEvent): void => {
+  private readonly handleGridKey = async (event: KeyboardEvent): Promise<void> => {
     const host = this.host;
     if (!host || host.disabled || event.defaultPrevented) return;
 
     const target = event.target as HTMLElement | null;
     const date = target?.getAttribute?.('data-date') ?? undefined;
-    if (!date) return;
 
     const key = event.key;
+    let index = this.dates.findIndex((d) => d.iso === date);
+    if (index === -1) index = 0;
+
+    if (key === 'PageUp' || key === 'PageDown') {
+      event.preventDefault();
+
+      const direction = key === 'PageUp' ? -1 : 1;
+      host.navigateMonth(direction);
+
+      await sleep(0);
+
+      this.focusDate(this.grid.dates?.[index].iso);
+      return;
+    }
+
+    if (!date) return;
 
     if (key === 'ArrowLeft' || key === 'ArrowRight') {
-      this.focusDate(addDaysISO(date, key === 'ArrowRight' ? 1 : -1) ?? date, event);
+      const nextIndex = index + (key === 'ArrowRight' ? 1 : -1);
+      this.focusDate(this.dates[nextIndex]?.iso, event);
       return;
     }
 
     if (key === 'ArrowUp' || key === 'ArrowDown') {
-      this.focusDate(addDaysISO(date, key === 'ArrowDown' ? 7 : -7) ?? date, event);
+      const nextIndex = index + (key === 'ArrowDown' ? 7 : -7);
+      this.focusDate(this.dates[nextIndex]?.iso, event);
       return;
     }
 
     if (key === 'Home' || key === 'End') {
-      const edge = key === 'Home' ? startOfWeekISO(date) : endOfWeekISO(date);
-      this.focusDate(edge ?? date, event);
-      return;
-    }
+      event.preventDefault();
 
-    if (key === 'PageUp' || key === 'PageDown') {
-      const direction = key === 'PageUp' ? -1 : 1;
-      host.navigateMonth(direction);
-      this.focusDate(addMonthsISO(date, direction) ?? date, event);
+      const edge = key === 'Home' ? startOfWeekISO(date) : endOfWeekISO(date);
+      this.focusDate(edge);
       return;
     }
 
@@ -127,16 +141,18 @@ export class DatePickerCalendarAria<E extends BaseElement = HTMLElement> extends
     }
   };
 
-  private focusDate(iso: string, event: KeyboardEvent): void {
-    const day = this.dayElement(iso);
-    if (!day) return;
-    event.preventDefault();
-
-    day.focus();
-  }
-
-  private dayElement(iso: string): HTMLElement | null {
+  private focusDate(iso?: string | null, event?: Event, recover?: boolean): void {
     const root = this.element as unknown as HTMLElement | null;
-    return root?.querySelector(`[data-date="${iso}"]`) ?? null;
+
+    let day = root?.querySelector(`[data-date="${iso}"]`) as HTMLElement;
+
+    if (!day) day = root?.querySelector('[data-selected="true"]') as HTMLElement;
+    if (!day) day = root?.querySelector('[data-current="date"]') as HTMLElement;
+    if (!day) day = root?.querySelector('[data-data]:not(:disabled, [aria-disabled="true"])') as HTMLElement;
+
+    if (day) {
+      event?.preventDefault();
+      day.focus();
+    }
   }
 }

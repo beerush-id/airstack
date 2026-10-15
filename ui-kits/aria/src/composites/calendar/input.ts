@@ -1,6 +1,7 @@
 import type { AriaOptions, AriaProps, BaseElement } from '../../types.js';
 import { PopupTriggerAria, type PopupTriggerAttributes } from '../popup.js';
 import type { DatePickerAria } from './picker.js';
+import type { DateRangePickerAria } from './range.js';
 
 export interface DatePickerInputProps extends AriaProps {
   id?: string;
@@ -17,10 +18,14 @@ export class DatePickerInputAria<E extends BaseElement = HTMLElement> extends Po
   DatePickerInputProps,
   DatePickerInputAttributes<E>
 > {
-  protected declare host: DatePickerAria;
+  protected declare host: DatePickerAria | DateRangePickerAria;
 
   public get slot() {
     return this.properties.slot;
+  }
+
+  public get isRangeInput() {
+    return !!(this.host?.options.type === 'range' && this.slot);
   }
 
   protected get index() {
@@ -32,26 +37,11 @@ export class DatePickerInputAria<E extends BaseElement = HTMLElement> extends Po
     this.omittedAttrs.push('value');
 
     this.on('blur', (e) => {
-      const value = (e.target as HTMLInputElement).value;
-      if (!value) this.host?.deselect(this.index);
-
-      const date = new Date(value);
-
-      if (Number.isNaN(date.getTime())) {
-        (this.element as unknown as HTMLInputElement).value = this.host!.start.iso ?? '';
-      } else {
-        this.host.select(date.toISOString());
-      }
+      this.handleBlur(e);
     });
 
     this.on('input', (e) => {
-      const event = new CustomEvent('input', {
-        detail: (e.target as HTMLInputElement).value,
-        bubbles: true,
-        cancelable: true,
-      });
-
-      this.dispatch(event);
+      this.handleInput(e);
     });
 
     this.update();
@@ -63,13 +53,56 @@ export class DatePickerInputAria<E extends BaseElement = HTMLElement> extends Po
       'aria-haspopup': 'dialog',
     });
 
+    let value = this.host?.start.iso;
+    if (this.isRangeInput && this.slot === 'end') value = this.host?.end.iso;
+
     if (this.isNative) {
       Object.assign(attrs, {
         type: 'text',
-        value: this.host?.start.iso,
+        value,
       });
     }
 
     return attrs;
+  }
+
+  protected handleInput(e: Event) {
+    if (!this.host) return;
+
+    const event = new CustomEvent('input', {
+      detail: (e.target as HTMLInputElement).value,
+      bubbles: true,
+      cancelable: true,
+    });
+
+    this.dispatch(event);
+  }
+
+  protected handleBlur(e: FocusEvent) {
+    if (!this.host) return;
+
+    const value = (e.target as HTMLInputElement).value;
+
+    if (!value) {
+      if (this.isRangeInput) {
+        const store = (this.host.value ?? [undefined, undefined]) as [string | undefined, string | undefined];
+        store[this.index as number] = undefined;
+        this.host.value = store as [string, string] | undefined;
+      } else {
+        this.host.value = undefined;
+      }
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      (this.element as unknown as HTMLInputElement).value = this.host!.start.iso ?? '';
+    } else if (this.isRangeInput) {
+      const store = (this.host.value || [undefined, undefined]) as never as [string, string];
+      store[this.index as number] = date.toISOString();
+      this.host.value = store;
+    } else {
+      this.host.value = date.toISOString();
+    }
   }
 }
