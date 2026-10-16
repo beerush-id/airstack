@@ -10,6 +10,15 @@ import {
   BreadcrumbAria,
   type BreadcrumbProps,
   BreadcrumbSeparatorAria,
+  CarouselAria,
+  CarouselNavAria,
+  CarouselPickerAria,
+  type CarouselPickerProps,
+  CarouselPlayerAria,
+  type CarouselProps,
+  CarouselSlideAria,
+  type CarouselSlideProps,
+  CarouselViewportAria,
   CheckboxGroupAria,
   type CheckboxGroupProps,
   type ColumnHeaderProps,
@@ -63,10 +72,10 @@ import {
   ListboxAria,
   type ListboxProps,
   MenuAria,
-  MenubarAria,
-  type MenubarProps,
   MenuButtonAria,
   type MenuButtonProps,
+  MenubarAria,
+  type MenubarProps,
   MenuGroupAria,
   MenuItemAria,
   MenuItemCheckboxAria,
@@ -425,6 +434,27 @@ export function aria<E extends BaseElement = HTMLButtonElement>(
   options?: TabButtonOptions
 ): TabButtonAria<E>;
 export function aria<E extends BaseElement = HTMLElement>(role: 'tab-panel', props: TabPanelProps): TabPanelAria<E>;
+export function aria<E extends BaseElement = HTMLElement>(role: 'carousel', props: CarouselProps): CarouselAria<E>;
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'carousel-viewport',
+  props?: AriaProps
+): CarouselViewportAria<E>;
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'carousel-slide',
+  props: CarouselSlideProps
+): CarouselSlideAria<E>;
+export function aria<E extends BaseElement = HTMLButtonElement>(
+  role: 'carousel-prev' | 'carousel-next',
+  props?: AriaProps
+): CarouselNavAria<E>;
+export function aria<E extends BaseElement = HTMLButtonElement>(
+  role: 'carousel-picker',
+  props: CarouselPickerProps
+): CarouselPickerAria<E>;
+export function aria<E extends BaseElement = HTMLButtonElement>(
+  role: 'carousel-player',
+  props?: AriaProps
+): CarouselPlayerAria<E>;
 
 export function aria<E extends BaseElement = HTMLInputElement>(
   role: 'text-input',
@@ -864,6 +894,20 @@ export function aria(role: string, init?: unknown, options?: unknown): unknown {
       return new TabButtonAria(init as never, options as never);
     case 'tab-panel':
       return new TabPanelAria(init as never);
+    case 'carousel':
+      return new CarouselAria(init as never);
+    case 'carousel-viewport':
+      return new CarouselViewportAria(init as never);
+    case 'carousel-slide':
+      return new CarouselSlideAria(init as never);
+    case 'carousel-prev':
+      return new CarouselNavAria(init as never, { ...(options as object), direction: -1 } as never);
+    case 'carousel-next':
+      return new CarouselNavAria(init as never, { ...(options as object), direction: 1 } as never);
+    case 'carousel-picker':
+      return new CarouselPickerAria(init as never);
+    case 'carousel-player':
+      return new CarouselPlayerAria(init as never, options as never);
     case 'breadcrumb':
       return new BreadcrumbAria(init as never, options as never);
     case 'breadcrumb-separator':

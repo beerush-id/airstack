@@ -1,6 +1,7 @@
 export * from './accordion/index.js';
 export * from './breadcrumb.js';
 export * from './calendar/index.js';
+export * from './carousel/index.js';
 export * from './checkbox-group.js';
 export * from './combobox.js';
 export * from './confirm.js';

@@ -211,7 +211,7 @@ export class CheckboxAria<
       return Object.assign(super.createAttributes(), {
         type: 'checkbox',
         checked: isChecked,
-        indeterminate: isIndeterminate,
+        indeterminate: isIndeterminate ? 'true' : undefined,
         required: isRequired,
         'aria-invalid': invalidAttr,
       }) as A;

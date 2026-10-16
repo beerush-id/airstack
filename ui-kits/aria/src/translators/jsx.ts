@@ -8,6 +8,7 @@ const REACT_PROP_MAP: Record<string, string> = {
   for: 'htmlFor',
   class: 'className',
   value: 'defaultValue',
+  checked: 'defaultChecked',
   tabindex: 'tabIndex',
   readonly: 'readOnly',
   autocomplete: 'autoComplete',
