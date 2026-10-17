@@ -1,6 +1,6 @@
 import { SelectionAria, type SelectionOptions, type SelectionProps } from '../../selection.js';
 import type { AriaProps, BaseElement } from '../../types.js';
-import { ariaBoolean } from '../../utils/attributes.js';
+import { ariaBoolean, ariaPresent } from '../../utils/attributes.js';
 import type { ButtonAttributes } from '../../widgets/button.js';
 import { CAROUSEL_PICKER, CAROUSEL_SLIDE, carouselCtx } from './shared.js';
 
@@ -115,7 +115,7 @@ export class CarouselPickerAria<
       disabled: this.isNative ? this.disabled : undefined,
       tabindex: isSelected && !this.disabled ? 0 : -1,
       'aria-label': this.properties.label,
-      'aria-current': ariaBoolean(isSelected),
+      'aria-current': ariaPresent(isSelected),
       'aria-disabled': this.isNative ? undefined : ariaBoolean(this.disabled),
       'aria-controls': panelId,
       'aria-roledescription': 'indicator',

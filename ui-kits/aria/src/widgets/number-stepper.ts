@@ -1,7 +1,7 @@
 import { $static } from '@airlib/core';
 import { Aria } from '../core.js';
 import type { AriaAttributes, AriaOptions, AriaProps, BaseElement, RefineFn } from '../types.js';
-import { ariaBoolean, ariaRequired } from '../utils/attributes.js';
+import { ariaBoolean, ariaPresent } from '../utils/attributes.js';
 import { clampRange } from '../utils/range.js';
 
 /**
@@ -222,7 +222,7 @@ export class NumberStepperAria<
       'aria-valuemin': this.min,
       'aria-valuemax': this.max,
       'aria-readonly': this.properties.readonly === undefined ? undefined : ariaBoolean(this.readonly),
-      'aria-required': ariaRequired(this.required),
+      'aria-required': ariaPresent(this.required),
       'aria-disabled': ariaBoolean(isDisabled),
       onkeydown: this.handleKey,
     }) as A;

@@ -198,6 +198,7 @@ export class CarouselAria<
     this.on('keydown', (e) => {
       handleRovingKey(this.element!, e, {
         selector: CAROUSEL_BTN_SELECTOR,
+        activeSelector: '[aria-current="true"]',
         orientation: 'horizontal',
       });
     });

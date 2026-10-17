@@ -3,7 +3,7 @@ import { roverCtx } from '../context.js';
 import { Aria } from '../core.js';
 import { selectionGroup } from '../selection.js';
 import type { AriaAttributes, AriaInvalid, AriaProps, BaseElement, Orientation, Primitive } from '../types.js';
-import { ariaBoolean, ariaInvalid, ariaRequired } from '../utils/attributes.js';
+import { ariaBoolean, ariaInvalid, ariaPresent } from '../utils/attributes.js';
 import { handleRovingKey } from '../utils/navigation.js';
 import { RadioAria, type RadioAttributes, type RadioOptions, type RadioProps } from '../widgets/radio.js';
 
@@ -143,7 +143,7 @@ export class RadioGroupAria<
       id: this.properties.id,
       role: ROLE_RADIOGROUP,
       'aria-orientation': orientation,
-      'aria-required': ariaRequired(this.properties.required),
+      'aria-required': ariaPresent(this.properties.required),
       'aria-disabled': ariaBoolean(disabled),
       'aria-invalid': ariaInvalid(this.properties.invalid),
       onkeydown: (e: KeyboardEvent) => {

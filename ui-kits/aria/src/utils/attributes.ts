@@ -12,14 +12,14 @@ export function ariaBoolean(value?: boolean): 'true' | 'false' {
 }
 
 /**
- * Compiles a required state into aria-required ('true' | undefined).
+ * Compiles a truthy state flag into aria-* ('true' | undefined).
  * Per WAI-ARIA, false is the default and should be omitted.
  *
- * @param required - Whether input or selection is required
+ * @param present - Whether input or selection is required
  * @returns 'true' if required, or undefined if optional
  */
-export function ariaRequired(required?: boolean): 'true' | undefined {
-  return required ? 'true' : undefined;
+export function ariaPresent(present?: boolean): 'true' | undefined {
+  return present ? 'true' : undefined;
 }
 
 /**

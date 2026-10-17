@@ -26,6 +26,11 @@ export interface RovingNavigationOptions {
   selector: string;
 
   /**
+   * CSS selector matching active target items within the container.
+   */
+  activeSelector?: string;
+
+  /**
    * Layout orientation determining which arrow keys navigate forward and backward.
    * Defaults to 'vertical'.
    */
@@ -78,7 +83,10 @@ export function handleRovingKey<E extends BaseElement = BaseElement>(
   if (items.length === 0) return false;
 
   const root = (container.getRootNode?.() as Document | ShadowRoot) ?? document;
-  const currentIndex = root.activeElement ? items.indexOf(root.activeElement as HTMLElement) : -1;
+  const activeElement = options.activeSelector
+    ? items.find((el) => el.matches(options.activeSelector!))
+    : root.activeElement;
+  const currentIndex = activeElement ? items.indexOf(activeElement as HTMLElement) : -1;
 
   let targetIndex: number;
 

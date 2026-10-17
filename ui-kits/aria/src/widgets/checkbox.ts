@@ -8,7 +8,7 @@ import type {
   BaseElement,
   Primitive,
 } from '../types.js';
-import { ariaInvalid, ariaRequired } from '../utils/attributes.js';
+import { ariaInvalid, ariaPresent } from '../utils/attributes.js';
 
 /**
  * Controller-dispatched checkbox event carrying the committed state in `detail`.
@@ -220,7 +220,7 @@ export class CheckboxAria<
     return Object.assign(super.createAttributes(), {
       role: 'checkbox',
       'aria-checked': isIndeterminate ? 'mixed' : isChecked ? 'true' : 'false',
-      'aria-required': ariaRequired(this.properties.required) ?? 'false',
+      'aria-required': ariaPresent(this.properties.required) ?? 'false',
       'aria-invalid': invalidAttr,
     }) as A;
   }

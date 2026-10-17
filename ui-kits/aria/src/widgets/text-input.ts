@@ -10,7 +10,7 @@ import type {
   BaseElement,
   DetachFn,
 } from '../types.js';
-import { ariaBoolean, ariaInvalid, ariaRequired } from '../utils/attributes.js';
+import { ariaBoolean, ariaInvalid, ariaPresent } from '../utils/attributes.js';
 
 /**
  * Controller-dispatched text-input event carrying the committed text in `detail`.
@@ -217,7 +217,7 @@ export class TextInputAria<
         attrs.type = type;
       }
       if (this.options.role === 'search-input') {
-        attrs['aria-required'] = ariaRequired(required) ?? 'false';
+        attrs['aria-required'] = ariaPresent(required) ?? 'false';
       }
       return Object.assign(super.createAttributes(), attrs) as A;
     }
@@ -228,7 +228,7 @@ export class TextInputAria<
       ...(this.properties.multiline ? { 'aria-multiline': 'true' as const } : {}),
       'aria-readonly': ariaBoolean(readonly),
       'aria-disabled': ariaBoolean(disabled),
-      'aria-required': ariaRequired(required) ?? 'false',
+      'aria-required': ariaPresent(required) ?? 'false',
     }) as A;
   }
 
