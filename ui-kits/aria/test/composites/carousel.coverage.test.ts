@@ -1,4 +1,4 @@
-import { createLifecycle } from '@airlib/core';
+import { type AnyType, createLifecycle } from '@airlib/core';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 import {
   aria,
@@ -115,10 +115,10 @@ describe('Carousel - Coverage & Edge Cases', () => {
         const carousel = aria('carousel', { label: 'Gallery', keys: ['a', 'b'], value: 'a' } as CarouselProps);
         const carouselEl = bind(document.createElement('div'), carousel);
         document.body.appendChild(carouselEl);
-        const customPrev = aria('carousel-nav', { label: 'Previous slide', direction: -1 }, { native: false });
+        const customPrev = aria('carousel-nav' as never, { label: 'Previous slide', direction: -1 }, { native: false });
         expect(customPrev.attributes['aria-disabled']).toBe('true');
         expect(customPrev.attributes.role).toBe('button');
-        const customNext = aria('carousel-nav', { label: 'Next slide', direction: 1 }, { native: false });
+        const customNext = aria('carousel-nav' as never, { label: 'Next slide', direction: 1 }, { native: false });
         expect(customNext.attributes['aria-disabled']).toBe('false');
         const prevEl = bind(document.createElement('div'), customPrev);
         prevEl.click();
@@ -161,7 +161,7 @@ describe('Carousel - Coverage & Edge Cases', () => {
         vi.useFakeTimers();
         const parts = buildFull({ value: 'one', autoplay: true }, ['one', 'two']);
         const toggles: unknown[] = [];
-        parts.carouselEl.addEventListener('toggle', (e) => toggles.push((e as CustomEvent).detail));
+        parts.carouselEl.addEventListener('toggle', (e) => toggles.push((e as AnyType).detail));
         parts.viewportEl.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
         expect(parts.carousel.autoplay).toBe(false);
         parts.viewportEl.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
@@ -182,7 +182,7 @@ describe('Carousel - Coverage & Edge Cases', () => {
         vi.useFakeTimers();
         const parts = buildFull({ value: 'one', autoplay: false }, ['one', 'two']);
         const toggles: unknown[] = [];
-        parts.carouselEl.addEventListener('toggle', (e) => toggles.push((e as CustomEvent).detail));
+        parts.carouselEl.addEventListener('toggle', (e) => toggles.push((e as AnyType).detail));
         parts.viewportEl.dispatchEvent(new Event('pointerenter'));
         parts.viewportEl.dispatchEvent(new Event('pointerleave'));
         expect(parts.carousel.autoplay).toBe(false);
@@ -196,10 +196,9 @@ describe('Carousel - Coverage & Edge Cases', () => {
     scope.run(() => {
       component().run(() => {
         const seen: unknown[] = [];
-        const parts = buildFull(
-          { value: 'solo', autoplay: false, ontoggle: (e) => seen.push((e as CustomEvent).detail) },
-          ['solo']
-        );
+        const parts = buildFull({ value: 'solo', autoplay: false, ontoggle: (e) => seen.push((e as AnyType).detail) }, [
+          'solo',
+        ]);
         expect(parts.player.disabled).toBe(true);
         parts.playerEl.click();
         expect(seen).toEqual([]);
@@ -226,7 +225,7 @@ describe('Carousel - Coverage & Edge Cases', () => {
         expect(named.viewportId).toBe('featured-viewport');
         const namedEl = bind(document.createElement('div'), named);
         document.body.appendChild(namedEl);
-        const defaultDir = aria('carousel-nav', { label: 'Previous slide' });
+        const defaultDir = aria('carousel-nav' as never, { label: 'Previous slide' });
         const defaultEl = bind(document.createElement('button'), defaultDir);
         namedEl.appendChild(defaultEl);
         defaultEl.click();
