@@ -1,0 +1,52 @@
+.demo-toggle-stack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--demo-gap);
+  width: 100%;
+}
+
+.demo-toggle {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--demo-border);
+  border-radius: var(--demo-radius-sm);
+  background: var(--demo-bg);
+  color: var(--demo-fg);
+  font-size: var(--demo-font);
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+}
+
+.demo-toggle:hover {
+  background: var(--demo-hover);
+}
+
+.demo-toggle:active {
+  border-color: var(--demo-fg);
+}
+
+.demo-toggle:focus-visible {
+  outline: var(--demo-outline);
+  outline-offset: var(--demo-outline-offset);
+}
+
+.demo-toggle[aria-pressed='true'] {
+  border-color: transparent;
+  background: var(--demo-fg);
+  color: var(--demo-bg);
+}
+
+.demo-toggle[aria-pressed='true']:hover {
+  background: var(--demo-fg-hover);
+}
+
+.demo-toggle[aria-pressed='true']:active {
+  background: var(--demo-fg-active);
+}
+
+.demo-toggle:disabled,
+.demo-toggle[aria-disabled='true'] {
+  background: var(--demo-hover);
+  color: var(--demo-muted);
+  pointer-events: none;
+}

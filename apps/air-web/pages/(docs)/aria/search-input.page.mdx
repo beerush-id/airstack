@@ -1,53 +1,111 @@
 ---
-title: 'Search Input'
-description: 'Specialized search query controller compiling type="search" semantics with live query synchronization.'
+title: 'Headless Search Input'
+description: 'Headless search fields for React and SolidJS. The locked search face of the text controller: type=search on a native host, searchbox on a custom one, live query sync and a commit signal — no markup or styles imposed.'
 nav: 'Search Input'
 nav-priority: 261
 ---
 
-# AirLib Headless Search Input
+import './aria.css';
+import './search-input.css';
 
-A search field looks like a text field until the platform gets involved: native `type="search"` brings its own clear button and submission semantics, while a custom searchbox needs the right role, live query sync, and validation projection without fighting the browser. **AirLib Headless Search Input** (`aria('search-input')`) is the search face of the text controller — it locks `type="search"` on native hosts and `role="searchbox"` on custom ones, without dictating markup or styles.
+# Headless Search Input
+
+A search field is a text field the platform has opinions about. Getting it right means **asking for `type="search"` so the browser brings its own clear button**, **still carrying `role="searchbox"` when the host is not an input**, **keeping the query live while it is typed**, and **telling your code when the query has settled**.
+
+**Headless Search Input** does all of that for you, and leaves the markup and the styling entirely yours.
 
 ```tsx
 const search = aria('search-input', props);
 
-<input ref={search.ref} {...search.props} />
+<input ref={search.ref} {...search.restProps()} />
 ```
 
-<style>{`.demo-searchinput{padding:.5rem .75rem;border-radius:.5rem;border:1px solid #d4d4d8;background:#fff;font-size:.875rem;color:#18181b;outline:none;transition:border-color .15s}.demo-searchinput::placeholder{color:#a1a1aa}.demo-searchinput:focus{border-color:#18181b}.demo-searchinput[aria-invalid="true"]{border-color:#f87171}.demo-searchinput:disabled{background:#f4f4f5;cursor:not-allowed;opacity:.6}`}</style>
-
-:::interactive[Native Search Input]
+:::interactive[Widget Search]
 ```tsx
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
 import type { ComponentProps } from 'react';
 
-type DemoSearchInputProps = ComponentProps<'input'> & {
-  value?: string;
+const ENTRIES = [
+  { name: 'Tabs', tier: 'Composite' },
+  { name: 'Accordion', tier: 'Composite' },
+  { name: 'Toolbar', tier: 'Composite' },
+  { name: 'Combobox', tier: 'Composite' },
+  { name: 'Listbox', tier: 'Composite' },
+  { name: 'Switch', tier: 'Widget' },
+  { name: 'Slider', tier: 'Widget' },
+];
+
+type DemoSearchProps = ComponentProps<'input'> & {
   label?: string;
-  placeholder?: string;
+  value?: string;
   disabled?: boolean;
 };
 
-const DemoSearchInput = setup<DemoSearchInputProps>((props) => {
+const DemoWidgetSearch = setup<DemoSearchProps>((props) => {
+  const search = aria('search-input', props);
+
+  return () => {
+    const term = (props.value ?? '').trim().toLowerCase();
+    const hits = ENTRIES.filter((entry) => entry.name.toLowerCase().includes(term));
+
+    return (
+      <div className="demo-search">
+        <label className="demo-field">
+          <span className="demo-field-label">{props.label}</span>
+          <input ref={search.ref} {...search.restProps(['children', 'label'])} className="demo-field-input" />
+          <span className="demo-field-hint">
+            {hits.length} of {ENTRIES.length} parts match.
+          </span>
+        </label>
+
+        <ul className="demo-search-results">
+          {hits.map((entry) => (
+            <li key={entry.name} className="demo-search-hit">
+              <span>{entry.name}</span>
+              <span className="demo-search-tier">{entry.tier}</span>
+            </li>
+          ))}
+          {hits.length === 0 ? <li className="demo-search-empty">Nothing matches “{props.value}”.</li> : null}
+        </ul>
+      </div>
+    );
+  };
+}, 'DemoWidgetSearch');
+
+const DemoArchiveSearch = setup<DemoSearchProps>((props) => {
   const search = aria('search-input', props);
 
   return () => (
-    <input ref={search.ref} {...search.props} className="demo-searchinput" />
+    <label className="demo-field">
+      <span className="demo-field-label">{props.label}</span>
+      <input ref={search.ref} {...search.restProps(['children', 'label'])} className="demo-field-input" />
+    </label>
   );
-}, 'DemoSearchInput');
+}, 'DemoArchiveSearch');
+```
+```html
+<div className="demo-field-card">
+  <DemoWidgetSearch label="Search the widget list" value="" placeholder="Try “tab”" />
+  <DemoArchiveSearch label="Archive search" value="" placeholder="Unavailable while the index rebuilds" disabled={true} />
+</div>
 ```
 
-<div className="flex mx-auto gap-3 max-w-md">
-  <DemoSearchInput label="Search docs" placeholder="Type to search" />
-  <DemoSearchInput label="Disabled search" disabled={true} placeholder="Unavailable" />
+<div className="demo-field-card">
+  <DemoWidgetSearch label="Search the widget list" value="" placeholder="Try “tab”" />
+  <DemoArchiveSearch label="Archive search" value="" placeholder="Unavailable while the index rebuilds" disabled={true} />
 </div>
+:::
+
+:::tip
+This is the **search face of one controller**, not a second text field: `aria('search-input')` is `aria('text-input')` with the search semantics locked. Reach for it when the field is a query, and for [Headless Text Input](/docs/aria/text-input) for everything else.
 :::
 
 ## Search Input
 
-Search query synchronization on the locked search face.
+**The query field.** One live string, announced as a search box on any host.
+
+### Usage
 
 ```ts
 aria<E extends BaseElement = HTMLInputElement>(
@@ -57,27 +115,26 @@ aria<E extends BaseElement = HTMLInputElement>(
 ): SearchInputAria<E>
 ```
 
-### Usage
-
 :::code-group
 
-```tsx [React] executable
+```tsx [React]
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
 import type { ComponentProps } from 'react';
 
-type SearchInputProps = ComponentProps<'input'> & {
-  value?: string;
+type SearchBoxProps = ComponentProps<'input'> & {
   label?: string;
-  placeholder?: string;
-  disabled?: boolean;
+  value?: string;
 };
 
-const SearchInput = setup<SearchInputProps>((props) => {
+const SearchBox = setup<SearchBoxProps>((props) => {
   const search = aria('search-input', props);
 
   return () => (
-    <input ref={search.ref} {...search.restProps(['children'])} />
+    <label>
+      <span>{props.label}</span>
+      <input ref={search.ref} {...search.restProps(['label'])} />
+    </label>
   );
 });
 ```
@@ -87,89 +144,150 @@ import { aria } from '@airlib/aria';
 import { setup } from '@airlib/solid';
 import type { ComponentProps } from 'solid-js';
 
-type SearchInputProps = ComponentProps<'input'> & {
-  value?: string;
+type SearchBoxProps = ComponentProps<'input'> & {
   label?: string;
-  placeholder?: string;
-  disabled?: boolean;
+  value?: string;
 };
 
-const SearchInput = setup<SearchInputProps>((props) => {
+const SearchBox = setup<SearchBoxProps>((props) => {
   const search = aria('search-input', props);
 
   return (
-    <input ref={search.ref} {...search.restProps(['children'])} />
+    <label>
+      <span>{props.label}</span>
+      <input ref={search.ref} {...search.restProps(['label'])} />
+    </label>
   );
 });
 ```
 
 :::
 
-The compiled dictionary carries `type="search"` and `defaultValue`, never `value` — the element stays uncontrolled while props remain the source of truth. Bind `name` yourself; the projection never emits it.
-
 ### Parameters
 
-- `props.value` *(string, optional, default `""`)*: Live search query, read and write.
-- `props.label` *(string, optional)*: Accessible label compiled to `aria-label`.
-- `props.placeholder` *(string, optional)*: Placeholder hint.
-- `props.readonly` *(boolean, optional)*: Blocks edits while keeping focusability.
-- `props.disabled` *(boolean, optional)*: Blocks edits and commits.
-- `props.required` *(boolean, optional)*: Required indicator, always compiled explicitly on this face.
-- `props.invalid` *(boolean | 'grammar' | 'spelling', optional)*: Invalid indicator, always compiled explicitly (default `"false"`).
-- `props.onchange` *(function, optional)*: Called with the committed query when the value commits.
+_What you pass in. The props object stays live — typing moves it, and writing it moves the field._
+
+- **value** _string, optional, default `''`_: The live query. **Typing writes into it** and writing it pushes text into the field.
+- **placeholder** _string, optional_: The hint shown while the query is empty.
+- **label** _string, optional_: The name the field is announced by, for the times a visible `<label>` is not on screen.
+- **required** _boolean, optional_: Asks for a non-empty query before the form is accepted. **This face always states it**, as `required` on a native host and `aria-required` on both.
+- **readonly** _boolean, optional_: Refuses edits **while staying focusable and selectable**.
+- **disabled** _boolean, optional_: Refuses edits and commits, and takes the field out of the tab order on a custom host.
+- **invalid** _boolean | 'grammar' | 'spelling', optional, default `false`_: Says the query is wrong, and which kind of wrong it is.
+- **multiline** _boolean, optional_: Declared as `aria-multiline` on a custom host. A query is single-line, so this is inherited rather than useful.
+- **kind** _'text' | 'password' | 'search' | 'email' | 'tel' | 'url', optional_: Inert on this face — the face is already search.
+- **onchange** _(event: CustomEvent&lt;string&gt;) =&gt; void, optional_: Called with the settled query once the text really moves.
+
+### Options
+
+_What you fix when you create it. Read once, never reactive._
+
+- **native** _boolean, optional, default `true`_: Pass `false` when the host is not an `<input>`, and the field gets `role="searchbox"`, a tab stop, and an ARIA mirror for every state.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **value** _string_: The query. Writing it replaces what the user sees.
+- **disabled** _boolean_: Whether the field is locked.
 
 ### How it behaves
 
-- The face locks search semantics: `type="search"` on native hosts (so the platform owns the clear button and `Enter` submission), `role="searchbox"` on custom hosts.
-- Every keystroke syncs into reactive `value` unless blocked by `disabled` or `readonly`. Clearing the field reads back as an empty query through the standard input sequence — no `search`, `cancel`, or `clear` events are invented.
-- Unlike the text face, `aria-required` is always stated explicitly on native hosts, and every keystroke stays platform-owned: `Enter`, `Escape`, and arrows are never prevented or claimed.
-- The search face is an alias over the text controller: validation projection, blur commits on custom hosts, form-attribute isolation, and teardown behave identically. See [Text Input](/docs/aria/text-input) for the shared contract.
+- **The face is locked.** `type="search"` on a native host and `role="searchbox"` on a custom one, with no way to ask this face for plain text — that is `aria('text-input')`.
+- **`aria-required` is always stated.** This face names the required state on both hosts, so assistive tech is never left guessing whether a query is mandatory.
+- **The platform keeps its keys and its chrome.** `Enter` submits, `Escape` and the browser's own clear button belong to the platform, and nothing here prevents or claims any of them.
+- **Clearing is not a special event.** Emptying the field reads back as an empty query through the ordinary `input` sequence — no `search`, `cancel`, or `clear` event is invented.
+- **Live while typing, settled on commit.** Every keystroke moves `value` unless the field is disabled or readonly, and `onchange` only runs when the text really changed.
+- **Everything else is the text controller.** Validation projection, the `defaultValue` spread, readonly staying focusable, and disabled meaning inert are the same rules — see [Headless Text Input](/docs/aria/text-input).
 
-## Putting It Together
+### Events
 
-Once your components are wired with `aria(...)`, compose them to build query fields with honest state:
+_What it tells you._
+
+- **`input`** — the browser's own text event on a native host, which the controller reads to keep the query live. Never replayed.
+- **`change`** — the commit signal, carrying the settled query in `detail`. On a native host the browser's own `change` (leaving the field after an edit, or `Enter`) is handed to `onchange` as a fresh event and **is never put back on the element**, so a listener of your own still sees exactly one. On a custom host the controller dispatches a bubbling `change` of its own. A blur with no diff and any commit under `disabled` stay silent.
 
 ```tsx
-<div className="flex flex-col gap-3 max-w-sm">
-  <label className="flex flex-col gap-1.5 text-sm">
-    <span className="font-medium">Documentation</span>
-    <DemoSearchInput label="Search docs" placeholder="Type to search" />
-  </label>
-  <label className="flex flex-col gap-1.5 text-sm">
-    <span className="font-medium">Disabled</span>
-    <DemoSearchInput label="Disabled search" disabled={true} placeholder="Unavailable" />
-  </label>
-</div>
+const search = aria('search-input', {
+  value: '',
+  onchange: (event) => runQuery(event.detail),
+});
 ```
-
-:::interactive[Search Input Interactive Demo]
-<div className="flex flex-col gap-3 p-4 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 max-w-sm text-sm text-zinc-800 dark:text-zinc-200">
-  <label className="flex flex-col gap-1.5">
-    <span className="font-medium">Documentation</span>
-    <DemoSearchInput label="Search docs" placeholder="Type to search" />
-  </label>
-  <label className="flex flex-col gap-1.5 cursor-not-allowed opacity-60">
-    <span className="font-medium">Disabled</span>
-    <DemoSearchInput label="Disabled search" disabled={true} placeholder="Unavailable" />
-  </label>
-</div>
-:::
-
-## Keyboard Navigation
-
-- **Tab**: Focuses the field. Disabled hosts are skipped.
-- **Typing / Backspace / arrows**: Native search editing — the platform owns the caret, the clear button, and `Enter` submission.
-- **Escape**: Left to the platform; the controller claims no search-specific keystroke.
-
-## What you get
-
-- **Locked search semantics.** `type="search"` natively, `searchbox` on custom hosts, no role or tab stop invented on native.
-- **Live query sync.** Keystrokes flow into props both directions, programmatic writes reach the node immediately.
-- **Explicit validation.** `aria-required` and `aria-invalid` stated, never dropped.
-- **Zero invented events.** Clearing reads back as empty input; the platform keeps its keys.
 
 ## Next Steps
 
-- **[Text Input](/docs/aria/text-input)**: The shared face contract with custom hosts and blur commits.
-- **[Option](/docs/aria/option)**: Selectable list and menu items.
-- **[Button](/docs/aria/button)**: Command and toggle button behavioral bridges.
+- **[Text Input](/docs/aria/text-input)**: The shared face contract — hosts, states, commits, and the uncontrolled spread.
+- **[Search](/docs/aria/search)**: The landmark that groups a query field with its results.
+- **[Combobox](/docs/aria/combobox)**: A query field driving a popup of options.
+- **[Field](/docs/aria/field)**: Label, description, and error wired to the control.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Search Input
+
+```ts
+interface SearchInputProps {
+  value?: string;
+  kind?: 'text' | 'password' | 'search' | 'email' | 'tel' | 'url';
+  multiline?: boolean;
+  readonly?: boolean;
+  disabled?: boolean;
+  required?: boolean;
+  invalid?: boolean | 'grammar' | 'spelling';
+  placeholder?: string;
+  label?: string;
+  onchange?: (event: CustomEvent<string>) => void;
+}
+
+interface SearchInputOptions {
+  native?: boolean;
+}
+
+interface SearchInputAttributes {
+  defaultValue?: string;
+  type?: 'search';
+  readonly?: boolean;
+  disabled?: boolean;
+  required?: boolean;
+  placeholder?: string;
+  role?: 'searchbox';
+  tabindex?: number;
+  'aria-label'?: string;
+  'aria-multiline'?: 'true';
+  'aria-readonly'?: 'true' | 'false';
+  'aria-disabled'?: 'true' | 'false';
+  'aria-required'?: 'true' | 'false';
+  'aria-invalid'?: 'true' | 'false' | 'grammar' | 'spelling';
+}
+
+declare class SearchInputAria {
+  get value(): string;
+  set value(next: string);
+  get disabled(): boolean;
+}
+```
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`attributes`** is the dictionary you spread; **`ref`** is what you bind the element with; **`props`** is the full props dictionary for spreading onto the host; **`restProps(omit)`** hands back your props with the keys you name left out.
+- **`assign()`** changes several parameters at once, **`refine()`** adds attributes of your own, **`on()`** listens for anything the part fires, **`destroy()`** tears it down.

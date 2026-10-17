@@ -1,0 +1,4 @@
+textarea.demo-field-input {
+  min-height: 4.5rem;
+  resize: vertical;
+}

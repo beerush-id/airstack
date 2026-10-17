@@ -1,0 +1,115 @@
+.demo-group-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.demo-group-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--demo-gap-sm);
+}
+
+.demo-group-caption {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--demo-muted);
+}
+
+.demo-group-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: var(--demo-gap);
+  width: 100%;
+  padding: 1rem;
+  border: 1px solid var(--demo-border);
+  border-radius: var(--demo-radius);
+  background: var(--demo-bg);
+}
+
+.demo-group-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--demo-gap-sm);
+  padding: 0.875rem;
+  border: 1px solid var(--demo-border);
+  border-radius: var(--demo-radius-sm);
+  background: var(--demo-bg);
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.demo-group-card:hover:not([aria-disabled='true']) {
+  border-color: var(--demo-muted);
+}
+
+.demo-group-card:active:not([aria-disabled='true']) {
+  background: var(--demo-hover);
+}
+
+.demo-group-card:focus-visible {
+  outline: var(--demo-outline);
+  outline-offset: var(--demo-outline-offset);
+}
+
+.demo-group-card[aria-checked='true'] {
+  border-color: var(--demo-fg);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--demo-fg) 40%, transparent);
+}
+
+.demo-group-card[aria-disabled='true'] {
+  opacity: var(--demo-disabled);
+  pointer-events: none;
+}
+
+.demo-group-card-title {
+  font-size: var(--demo-font);
+  font-weight: 600;
+  color: var(--demo-fg);
+}
+
+.demo-group-card-note {
+  font-size: 0.8125rem;
+  color: var(--demo-muted);
+}
+
+.demo-group-line {
+  display: flex;
+  align-items: center;
+  gap: var(--demo-gap);
+  padding: 0.5rem 0.625rem;
+  border-radius: var(--demo-radius-sm);
+  font-size: var(--demo-font);
+  color: var(--demo-fg);
+  cursor: pointer;
+  user-select: none;
+}
+
+.demo-group-line:hover:not(:has(:disabled)) {
+  background: var(--demo-hover);
+}
+
+.demo-group-line:has(:disabled) {
+  color: var(--demo-muted);
+  cursor: default;
+}
+
+.demo-group-input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--demo-fg);
+  cursor: pointer;
+}
+
+.demo-group-input:focus-visible {
+  outline: var(--demo-outline);
+  outline-offset: var(--demo-outline-offset);
+}
+
+.demo-group-input:disabled {
+  opacity: var(--demo-disabled);
+  pointer-events: none;
+}

@@ -1,13 +1,18 @@
 ---
-title: 'Accordion'
-description: 'Headless accessible accordion composite supporting single and multi-expand disclosure panels.'
+title: 'Headless Accordion'
+description: 'Headless accordions for React and SolidJS. Pairs every header with its panel, keeps one or many sections open, travels the headers with the arrow keys, and fires a change event — with no markup or styles imposed.'
 nav: 'Accordion'
 nav-priority: 320
 ---
 
-# AirLib Headless Accordion
+import './aria.css';
+import './accordion.css';
 
-Stacked disclosure sections look simple until every header needs its own `aria-expanded`, every panel needs a reciprocal `aria-controls` / `aria-labelledby` pair that survives renames, arrow keys need to travel the headers without expanding them, and each commit needs to announce itself. **AirLib Headless Accordion** (`aria('accordion')`) is a role-less root coordinating header triggers and region panels: deterministic pair IDs derived from matching `name` values, single or multi-expansion, vetoable activation, and committed values announced on the root — without dictating markup or styles.
+# Headless Accordion
+
+An accordion stacks sections that open and close behind their headers. Getting it right means **pairing every header with its panel**, **announcing which sections are open**, **letting the arrow keys travel the headers**, and **telling your code when the expansion changes**.
+
+**Headless Accordion** does all of that for you, and leaves the markup and the styling entirely yours.
 
 ```tsx
 const accordion = aria('accordion', props);
@@ -15,88 +20,18 @@ const accordion = aria('accordion', props);
 <div ref={accordion.ref} {...accordion.restProps(['children'])} />
 ```
 
-<style>{`
-.demo-accordion {
-  display: flex;
-  flex-direction: column;
-  gap: .5rem;
-  max-width: 32rem;
-  border: 1px solid #e4e4e7;
-  border-radius: .75rem;
-  padding: 1rem;
-  background: #fff;
-}
-
-.demo-accordion-item {
-  border: 1px solid #e4e4e7;
-  border-radius: .5rem;
-  overflow: hidden;
-  background: #fff;
-}
-
-.demo-accordion-button {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: .75rem;
-  padding: .625rem .875rem;
-  border: none;
-  background: transparent;
-  font-size: .875rem;
-  font-weight: 500;
-  color: #3f3f46;
-  cursor: pointer;
-  text-align: left;
-}
-
-.demo-accordion-button:hover {
-  background: #f4f4f5;
-}
-
-.demo-accordion-button::after {
-  content: "+";
-  font-size: 1rem;
-  opacity: .6;
-}
-
-.demo-accordion-button[aria-expanded="true"]::after {
-  content: "–";
-}
-
-.demo-accordion-button[aria-disabled="true"] {
-  opacity: .4;
-  cursor: not-allowed;
-}
-
-.demo-accordion-button:focus-visible {
-  outline: 2px solid #18181b;
-  outline-offset: -2px;
-}
-
-.demo-accordion-panel {
-  font-size: .875rem;
-  color: #52525b;
-  padding: .25rem .875rem .875rem;
-  border-top: 1px solid #f4f4f5;
-}
-
-.demo-accordion-panel[hidden] {
-  display: none;
-}
-`}</style>
-
-:::interactive[Shipping FAQ Accordion]
+:::interactive[Shipping FAQ]
 ```tsx
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
-import type { ComponentProps, ReactNode } from 'react';
+import type { ComponentProps } from 'react';
 
 type DemoAccordionProps = ComponentProps<'div'> & {
   value?: string | string[];
   multiple?: boolean;
   required?: boolean;
   disabled?: boolean;
+  manual?: boolean;
 };
 
 const DemoAccordion = setup<DemoAccordionProps>((props) => {
@@ -138,45 +73,171 @@ const DemoAccordionPanel = setup<DemoAccordionPanelProps>((props) => {
   );
 }, 'DemoAccordionPanel');
 
-const Demo = (props) => (
+const Demo = (props: DemoAccordionProps) => (
   <DemoAccordion {...props}>
     <div className="demo-accordion-item">
-      <DemoAccordionButton name="shipping">Shipping Information</DemoAccordionButton>
+      <DemoAccordionButton name="shipping">Shipping</DemoAccordionButton>
       <DemoAccordionPanel name="shipping">
-        Orders ship within 1-2 business days with end-to-end tracking provided via email.
+        Orders leave the warehouse within two business days and every parcel carries a tracking link.
       </DemoAccordionPanel>
     </div>
     <div className="demo-accordion-item">
-      <DemoAccordionButton name="returns">Return &amp; Refund Policy</DemoAccordionButton>
+      <DemoAccordionButton name="returns">Returns</DemoAccordionButton>
       <DemoAccordionPanel name="returns">
-        Returns are accepted within 30 days of delivery. Items must be in original packaging.
+        Send anything back within 30 days of delivery in its original packaging for a full refund.
       </DemoAccordionPanel>
     </div>
     <div className="demo-accordion-item">
-      <DemoAccordionButton name="support">Customer Support</DemoAccordionButton>
+      <DemoAccordionButton name="support">Support</DemoAccordionButton>
       <DemoAccordionPanel name="support">
-        Our support team is available 24/7 via live chat or email at support@example.com.
+        The support team answers live chat around the clock and email within one business day.
       </DemoAccordionPanel>
     </div>
   </DemoAccordion>
 );
 ```
 ```html
-  <Demo value="shipping" />
-  <Demo multiple value={['shipping', 'support']} />
+<div className="demo-accordion-stack">
+  <div className="demo-accordion-row">
+    <span className="demo-accordion-caption">One section open at a time, click it again to close</span>
+    <Demo value="shipping" />
+  </div>
+  <div className="demo-accordion-row">
+    <span className="demo-accordion-caption">One section must stay open</span>
+    <Demo required />
+  </div>
+  <div className="demo-accordion-row">
+    <span className="demo-accordion-caption">Locked: nothing activates and the arrow keys stay put</span>
+    <Demo value="shipping" disabled />
+  </div>
+</div>
 ```
 
-<div className="flex flex-col gap-6 mx-auto">
-  <Demo value="shipping" />
-  <Demo multiple value={['shipping', 'support']} />
+<div className="demo-accordion-stack">
+  <div className="demo-accordion-row">
+    <span className="demo-accordion-caption">One section open at a time, click it again to close</span>
+    <Demo value="shipping" />
+  </div>
+  <div className="demo-accordion-row">
+    <span className="demo-accordion-caption">One section must stay open</span>
+    <Demo required />
+  </div>
+  <div className="demo-accordion-row">
+    <span className="demo-accordion-caption">Locked: nothing activates and the arrow keys stay put</span>
+    <Demo value="shipping" disabled />
+  </div>
 </div>
 :::
 
-Click a header — or focus it and press `Enter` or `Space`. Arrow keys travel the headers without expanding; each commit dispatches `change` on the root.
+:::interactive[Trip Policies]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type DemoTripProps = ComponentProps<'div'> & {
+  value?: string | string[];
+  multiple?: boolean;
+  required?: boolean;
+  disabled?: boolean;
+  manual?: boolean;
+};
+
+const DemoTrip = setup<DemoTripProps>((props) => {
+  const accordion = aria('accordion', props);
+
+  return () => (
+    <div ref={accordion.ref} {...accordion.restProps(['children'])} className="demo-accordion">
+      {props.children}
+    </div>
+  );
+}, 'DemoTrip');
+
+type DemoTripButtonProps = ComponentProps<'button'> & {
+  name: string;
+};
+
+const DemoTripButton = setup<DemoTripButtonProps>((props) => {
+  const button = aria('accordion-button', props);
+
+  return () => (
+    <button ref={button.ref} {...button.restProps(['children'])} className="demo-accordion-button">
+      {props.children}
+    </button>
+  );
+}, 'DemoTripButton');
+
+type DemoTripPanelProps = ComponentProps<'div'> & {
+  name: string;
+};
+
+const DemoTripPanel = setup<DemoTripPanelProps>((props) => {
+  const panel = aria('accordion-panel', props);
+
+  return () => (
+    <div ref={panel.ref} {...panel.restProps(['children'])} className="demo-accordion-panel">
+      {props.children}
+    </div>
+  );
+}, 'DemoTripPanel');
+
+const DemoTripSections = (props: DemoTripProps) => (
+  <DemoTrip {...props}>
+    <div className="demo-accordion-item">
+      <DemoTripButton name="payment">Payment</DemoTripButton>
+      <DemoTripPanel name="payment">
+        Cards, bank transfer, and split payments all settle 14 days before departure.
+      </DemoTripPanel>
+    </div>
+    <div className="demo-accordion-item">
+      <DemoTripButton name="cancellation">Cancellation</DemoTripButton>
+      <DemoTripPanel name="cancellation">
+        Cancel up to 48 hours before departure and the deposit returns to the original payment method.
+      </DemoTripPanel>
+    </div>
+    <div className="demo-accordion-item">
+      <DemoTripButton name="insurance">Insurance</DemoTripButton>
+      <DemoTripPanel name="insurance">
+        Coverage is optional and can be added or removed any time before the final payment.
+      </DemoTripPanel>
+    </div>
+  </DemoTrip>
+);
+```
+```html
+<div className="demo-accordion-stack">
+  <div className="demo-accordion-row">
+    <span className="demo-accordion-caption">Each section opens and closes on its own</span>
+    <DemoTripSections multiple value={['payment', 'insurance']} />
+  </div>
+  <div className="demo-accordion-row">
+    <span className="demo-accordion-caption">Arrow keys expand each header as focus reaches it</span>
+    <DemoTripSections value="payment" manual={false} />
+  </div>
+</div>
+```
+
+<div className="demo-accordion-stack">
+  <div className="demo-accordion-row">
+    <span className="demo-accordion-caption">Each section opens and closes on its own</span>
+    <DemoTripSections multiple value={['payment', 'insurance']} />
+  </div>
+  <div className="demo-accordion-row">
+    <span className="demo-accordion-caption">Arrow keys expand each header as focus reaches it</span>
+    <DemoTripSections value="payment" manual={false} />
+  </div>
+</div>
+:::
+
+:::tip
+**The `name` is the pairing.** Give a header and a panel the same `name` and both sides of `aria-controls` and `aria-labelledby` are derived from it — no identifiers to keep in step, and no mount order to respect.
+:::
 
 ## Accordion
 
-Role-less root orchestrator holding the expanded value and publishing ambient context for the triggers and panels.
+**The group as a whole.** It holds which sections are open, and the headers and the panels all follow it.
+
+### Usage
 
 ```ts
 aria<E extends BaseElement = HTMLElement>(
@@ -184,8 +245,6 @@ aria<E extends BaseElement = HTMLElement>(
   props?: AccordionProps
 ): AccordionAria<E>
 ```
-
-### Usage
 
 :::code-group
 
@@ -196,11 +255,12 @@ import type { ComponentProps } from 'react';
 
 type AccordionProps = ComponentProps<'div'> & {
   id?: string;
-  value?: string | string[] | null;
-  multiple?: boolean;
+  value?: string;
   required?: boolean;
   disabled?: boolean;
-  onchange?: (event: CustomEvent<string | null | string[]>) => void;
+  orientation?: 'horizontal' | 'vertical';
+  manual?: boolean;
+  onchange?: (event: CustomEvent<string | null>) => void;
 };
 
 const Accordion = setup<AccordionProps>((props) => {
@@ -221,11 +281,12 @@ import type { ComponentProps } from 'solid-js';
 
 type AccordionProps = ComponentProps<'div'> & {
   id?: string;
-  value?: string | string[] | null;
-  multiple?: boolean;
+  value?: string;
   required?: boolean;
   disabled?: boolean;
-  onchange?: (event: CustomEvent<string | null | string[]>) => void;
+  orientation?: 'horizontal' | 'vertical';
+  manual?: boolean;
+  onchange?: (event: CustomEvent<string | null>) => void;
 };
 
 const Accordion = setup<AccordionProps>((props) => {
@@ -241,28 +302,72 @@ const Accordion = setup<AccordionProps>((props) => {
 
 :::
 
-For multiple expansion declare the array archetype: `{ multiple: true, value: ['shipping'] }`. `multiple` and `value` narrow together, so `onchange` receives `string[]` instead of `string | null`.
+For several sections open at once, declare the array archetype: `{ multiple: true, value: ['payment'] }`. `multiple` and `value` narrow together, so `onchange` is typed to `string[]` instead of `string | null`.
 
 ### Parameters
 
-- `props.id` *(string, optional)*: Namespace the pair IDs derive from. Generated as `accordion-<n>` when omitted; triggers derive `{id}-accordion-{name}`, panels `{id}-region-{name}`.
-- `props.value` *(string | string[] | null, optional)*: Expanded item key in single mode (`undefined` is the collapsed token in code); an array of keys in multiple mode (`[]` when none).
-- `props.multiple` *(boolean, optional, default `false`)*: Declares the multi-expansion archetype, where `value` is an array of keys.
-- `props.required` *(boolean, optional, default `false`)*: When `true`, single mode keeps one section expanded — activating the open section refuses to collapse it.
-- `props.disabled` *(boolean, optional)*: Locks out activation and roving across the whole accordion.
-- `props.onchange` *(handler, optional)*: Called with the `change` event after each commit; `detail` is the new value without a cast.
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **id** _string, optional_: The prefix both sides of the pairing are built from. Generated as `accordion-<n>` when you leave it out, so headers end up as `{id}-accordion-{name}` and panels as `{id}-region-{name}`.
+- **value** _string, optional_: The `name` of the open section, or `undefined` when everything is closed. Leave it out and the group keeps its own expansion; set it and the group follows your state.
+- **value** _string[], optional, with `multiple: true`_: The names of the open sections. `[]` means none.
+- **multiple** _boolean, optional, default `false`_: Declares the array archetype, where `value` is a list of names and each section toggles on its own.
+- **required** _boolean, optional, default `false`, single expansion only_: Keeps one section open. Activating the open header changes nothing, and with no `value` of your own the first header to mount takes it.
+- **disabled** _boolean, optional_: Locks activation and the arrow keys across the **whole group**.
+- **orientation** _'horizontal' | 'vertical', optional, default `'vertical'`_: Which arrow keys travel the headers. The root compiles no `role` and no `aria-orientation`, so this reaches the keys and nothing else.
+- **manual** _boolean, optional, default `true`_: Whether moving focus leaves the sections alone. Pass `false` and each header opens as focus reaches it.
+- **onchange** _(event: CustomEvent&lt;string | null&gt;) =&gt; void, optional_: Called after each commit with the whole value in `detail`. With `multiple: true` it is `(event: CustomEvent<string[]>) => void`.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **id** _string_: The prefix in use, generated when you left it out.
+
+### Methods
+
+_What you call on the instance._
+
+- **`button(props?, options?)`** → `AccordionButtonAria`: Creates a header belonging to this group.
+- **`panel(props?)`** → `AccordionPanelAria`: Creates a panel belonging to this group.
 
 ### How it behaves
 
-- Compiles no `role` — the root is a non-semantic container.
-- Single mode is free by default: activating the open section collapses everything (`undefined` in code, `null` on the DOM event wire). `required: true` refuses the collapse instead.
-- Multiple mode toggles keys in the array independently; `[]` means none expanded.
-- A consumer that cancels the activation (`preventDefault`, captured) stops both the commit and the event.
-- An uncontrolled group starts fully collapsed and claims nothing; a trigger with a `selected` hint claims the initial value instead.
+- **The root is a plain container.** It compiles no `role` of its own, so your layout stays yours and the panels don't have to live inside it.
+- **The pairing is derived, not tracked.** Matching `name` values produce both sides of `aria-controls` and `aria-labelledby`, so a panel may mount before its header and the two still meet.
+- **Single expansion collapses freely.** Activating the open section closes it and the value reads `undefined`; `required` refuses that collapse instead.
+- **Multiple expansion toggles each name on its own.** Opening one section leaves the others as they are.
+- **Activation is cancellable.** Calling `preventDefault` on the click stops both the commit and the event.
+- **One flag disables everything.** `disabled` on the group leaves every header visible but inert — no activation, no arrow travel.
+
+### Events
+
+_What it tells you._
+
+- **`change`** — fires once per commit, with the whole value in `detail`: `string | null` in single expansion, `null` when everything is closed, `string[]` in multiple. Switching from one section to another is a single commit, not a collapse plus an expand. A vetoed activation fires nothing.
+
+```tsx
+const accordion = aria('accordion', {
+  value: 'shipping',
+  onchange: (event) => submit(event.detail),
+});
+```
+
+### Navigation
+
+_What the keys do._
+
+- **`ArrowDown` / `ArrowUp`** — focus the **next / previous** enabled header, wrapping at the ends.
+- **`ArrowRight` / `ArrowLeft`** — the same travel with `orientation: 'horizontal'`.
+- **`Home` / `End`** — focus the **first / last** enabled header.
+- **`Tab`** — walks every enabled header in turn, then into the content of the open panel. The accordion is not a single tab stop.
+- With `manual: false`, each of these keys also activates the header focus lands on.
 
 ## Accordion Button
 
-Interactive header trigger compiling `aria-expanded` and pairing with its panel through a matching `name`.
+**One header.** Give it the same `name` as a panel and the two are linked.
+
+### Usage
 
 ```ts
 aria<E extends BaseElement = HTMLButtonElement>(
@@ -272,8 +377,6 @@ aria<E extends BaseElement = HTMLButtonElement>(
 ): AccordionButtonAria<E>
 ```
 
-### Usage
-
 :::code-group
 
 ```tsx [React]
@@ -282,9 +385,9 @@ import { setup } from '@airlib/react';
 import type { ComponentProps } from 'react';
 
 type AccordionButtonProps = ComponentProps<'button'> & {
-  name?: string;
+  name: string;
   id?: string;
-  expanded?: boolean;
+  selected?: boolean;
   disabled?: boolean;
 };
 
@@ -305,9 +408,9 @@ import { setup } from '@airlib/solid';
 import type { ComponentProps } from 'solid-js';
 
 type AccordionButtonProps = ComponentProps<'button'> & {
-  name?: string;
+  name: string;
   id?: string;
-  expanded?: boolean;
+  selected?: boolean;
   disabled?: boolean;
 };
 
@@ -326,21 +429,61 @@ const AccordionButton = setup<AccordionButtonProps>((props) => {
 
 ### Parameters
 
-- `props.name` *(string, optional)*: Semantic identity matching the paired panel.
-- `props.id` *(string, optional)*: Explicit DOM identifier overriding automatic pair derivation.
-- `props.expanded` *(boolean, optional)*: Initial expansion hint when the root is uncontrolled.
-- `props.disabled` *(boolean, optional)*: Prevents interaction with this trigger. Group-level disablement applies too.
-- `options.native` *(boolean, optional, default `true`)*: Pass `false` on non-button hosts to attach `Space` / `Enter` synthesis and an explicit `tabindex`.
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **name** _string, optional_: The identity this header shares with its panel. Both derived identifiers are built from it, so a header without one has nothing to pair on.
+- **id** _string, optional_: Replaces this header's generated identifier in the DOM. The panel still names the derived `{id}-accordion-{name}`, so an `id` here is not what the panel points at.
+- **selected** _boolean, optional_: Takes the expansion when the group has no `value` of its own. With `required` on the group and no `value`, the first header to mount takes it instead.
+- **disabled** _boolean, optional_: This header alone refuses activation and is skipped by the arrow keys. A group disabled at the top applies on top of it.
+
+### Options
+
+_What you fix when you create it. Read once, never reactive._
+
+- **native** _boolean, optional, default `true`_: Pass `false` when the host isn't a `<button>` and you get `role="button"`, `Enter` and `Space` activation, and an explicit place in the tab order.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **expanded** _boolean, read and write_: Whether this section is open. Writing `true` opens it and `false` closes it — unless the header is disabled or the group is `required`.
+- **value** _string_: This header's `name`.
+- **disabled** _boolean_: Whether this header is locked, **including by the group**.
+- **id** _string_: This header's identifier in the DOM.
+
+### Methods
+
+_What you call on the instance._
+
+- **`select()`**: Opens this section. _Does nothing while disabled._
+- **`deselect()`**: Closes it. _Does nothing while disabled, or while the group is `required`._
+- **`toggle()`**: Opens or closes it, whichever applies.
 
 ### How it behaves
 
-- Compiles `aria-expanded="true" | "false"` and `aria-controls` pointing at the paired panel ID. Native hosts omit the redundant `role`; custom hosts publish `role="button"`.
-- Every enabled trigger stays in the tab order — the accordion is not a single tab stop. Disabled triggers are skipped by arrow travel and refuse activation on both hosts.
-- Standalone triggers (no root above them) toggle their own local state.
+- **Announced as a header that opens something.** `aria-expanded` plus `aria-controls` pointing at the paired panel. A native `<button>` keeps its own role; a custom host is given `role="button"`.
+- **Every enabled header stays in the tab order.** No roving tabindex — `Tab` reaches each one in turn.
+- **It works with no accordion above it.** A standalone header toggles its own section and its own panel.
+- **Disabled means inert.** It stays visible and announced as disabled, and refuses clicks and keys on either host.
+
+### Events
+
+_What it tells you._
+
+- **`change`** — on a header with no accordion above it, fires when it toggles with `true` or `false` in `detail`. Inside a group the accordion is the surface that promises the event.
+
+### Navigation
+
+_What the keys do._
+
+- **`Enter` / `Space`** — toggles the focused section. A native `<button>` does this itself; a custom host gets the activation synthesized.
+- **`Click`** — toggles the clicked section.
 
 ## Accordion Panel
 
-Content section compiling `role="region"`, visible only while its `name` is expanded.
+**The content under one header.** On screen only while its `name` is open.
+
+### Usage
 
 ```ts
 aria<E extends BaseElement = HTMLElement>(
@@ -349,8 +492,6 @@ aria<E extends BaseElement = HTMLElement>(
 ): AccordionPanelAria<E>
 ```
 
-### Usage
-
 :::code-group
 
 ```tsx [React]
@@ -359,7 +500,7 @@ import { setup } from '@airlib/react';
 import type { ComponentProps } from 'react';
 
 type AccordionPanelProps = ComponentProps<'div'> & {
-  name?: string;
+  name: string;
   id?: string;
 };
 
@@ -380,7 +521,7 @@ import { setup } from '@airlib/solid';
 import type { ComponentProps } from 'solid-js';
 
 type AccordionPanelProps = ComponentProps<'div'> & {
-  name?: string;
+  name: string;
   id?: string;
 };
 
@@ -399,49 +540,162 @@ const AccordionPanel = setup<AccordionPanelProps>((props) => {
 
 ### Parameters
 
-- `props.name` *(string, optional)*: Semantic identity matching the paired trigger.
-- `props.id` *(string, optional)*: Explicit DOM identifier overriding automatic pair derivation.
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **name** _string, optional_: The identity this panel shares with its header. Falls back to `id`, then to its own generated one.
+- **id** _string, optional_: Replaces this panel's generated identifier in the DOM. The header still points at the derived `{id}-region-{name}`.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **expanded** _boolean_: Whether this panel is **on screen**.
+- **key** _string_: What this panel pairs on — its `name`, or its `id` when it has no name.
+- **id** _string_: This panel's identifier in the DOM.
 
 ### How it behaves
 
-- Compiles `role="region"` with `aria-labelledby` pointing at the paired trigger ID.
-- Collapsed panels receive `hidden` from the engine; `panel.expanded` mirrors the root value for conditional rendering.
+- **Hidden until its section opens.** A closed panel carries `hidden`, so it is off screen and out of reach for screen readers.
+- **Named by its header.** Announced as a region labelled by the header that opens it.
+- **Mount it only when you need it.** `panel.expanded` lets you keep heavy content out of the tree until its section opens.
 
-## Events
+### Navigation
 
-| Event | Authored by | Trigger | `detail` |
-| :--- | :--- | :--- | :--- |
-| `change` | The accordion root | Activation committed the expansion | The whole updated value (`string \| null` single, `string[]` multiple) |
+_What the keys do._
 
-```tsx
-const accordion = aria('accordion', {
-  value: 'shipping',
-  onchange: (event) => submit(event.detail),
-});
-```
-
-A vetoed activation dispatches nothing. In code the single-mode empty token is `undefined`; on the DOM event wire it reads `null` (platform `CustomEvent` coercion).
-
-## Keyboard Navigation
-
-| Key | Behavior |
-| :--- | :--- |
-| `ArrowDown` / `ArrowUp` | Moves focus across headers, wrapping at the ends, skipping disabled ones. |
-| `Home` / `End` | Moves focus to the first / last enabled header. |
-| `Enter` / `Space` on a header | Toggles its section. |
-| `Click` on a header | Toggles its section. |
-| `Tab` | Moves through every enabled header, then into the expanded panel content. |
-
-## What you get
-
-- **Pairing without bookkeeping.** Matching `name` values derive both sides of `aria-controls` / `aria-labelledby`, order-independent — panels may mount before their triggers.
-- **Expansion that never surprises.** Free collapse by default, `required` pinning when one section must stay open, independent array toggling in multiple mode.
-- **Commits you can hear.** Every activation dispatches one bubbled `change` and calls `onchange` with the whole value — vetoable, typed to the archetype without a cast.
-- **Lockout that composes.** Member and group `disabled` combine; disabled headers are skipped in travel and refuse activation on both hosts.
-- **Zero markup lock-in.** Native `<button>` headers or custom hosts, panels wherever the layout needs them.
+- **`Tab`** — continues from the header into the content of the open panel.
 
 ## Next Steps
 
-- **[Tabs](/docs/aria/tabs)**: Exactly-one-selected panels behind a tab strip.
-- **[Toolbar](/docs/aria/toolbar)**: Roving across independent actions with no selection at all.
+- **[Tabs](/docs/aria/tabs)**: Exactly one panel open behind a strip at a single tab stop.
 - **[Disclosure](/docs/aria/disclosure)**: A single standalone show-hide unit.
+- **[Toolbar](/docs/aria/toolbar)**: Arrow keys across independent actions with no expansion at all.
+- **[Selection](/docs/aria/selection)**: The shared selection contract the accordion header is built on.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Accordion
+
+```ts
+type AccordionProps = SingleAccordionProps | MultipleAccordionProps;
+
+interface SingleAccordionProps {
+  id?: string;
+  multiple?: false;
+  value?: string;
+  required?: boolean;
+  disabled?: boolean;
+  orientation?: 'horizontal' | 'vertical';
+  manual?: boolean;
+  onchange?: (event: CustomEvent<string | null>) => void;
+}
+
+interface MultipleAccordionProps {
+  id?: string;
+  multiple: true;
+  value?: string[];
+  disabled?: boolean;
+  orientation?: 'horizontal' | 'vertical';
+  manual?: boolean;
+  onchange?: (event: CustomEvent<string[]>) => void;
+}
+
+interface AccordionAttributes {
+  id: string;
+  onkeydown?: (event: KeyboardEvent) => void;
+}
+
+declare class AccordionAria {
+  id: string;
+
+  button(props?: AccordionButtonProps, options?: Partial<AccordionButtonOptions>): AccordionButtonAria;
+  panel(props?: AccordionPanelProps): AccordionPanelAria;
+}
+```
+
+### Accordion Button
+
+```ts
+interface AccordionButtonProps {
+  id?: string;
+  name?: string;
+  selected?: boolean;
+  disabled?: boolean;
+  onchange?: (event: CustomEvent<boolean>) => void;
+}
+
+interface AccordionButtonOptions {
+  native?: boolean;
+}
+
+interface AccordionButtonAttributes {
+  id: string;
+  type?: 'button';
+  role?: 'button';
+  disabled?: boolean;
+  tabindex?: number;
+  'aria-expanded': 'true' | 'false';
+  'aria-disabled'?: 'true' | 'false';
+  'aria-controls': string;
+  onclick?: (event: MouseEvent) => void;
+}
+
+declare class AccordionButtonAria {
+  id: string;
+  get expanded(): boolean;
+  set expanded(value: boolean);
+  get value(): string;
+  get disabled(): boolean;
+
+  select(): void;
+  deselect(): void;
+  toggle(): void;
+}
+```
+
+### Accordion Panel
+
+```ts
+interface AccordionPanelProps {
+  name?: string;
+  id?: string;
+}
+
+interface AccordionPanelAttributes {
+  id: string;
+  role: 'region';
+  'aria-labelledby': string;
+  hidden?: boolean;
+}
+
+declare class AccordionPanelAria {
+  id: string;
+  get key(): string;
+  get expanded(): boolean;
+}
+```
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`attributes`** is the dictionary you spread; **`ref`** is what you bind the element with; **`props`** is the full props dictionary for spreading onto the host; **`restProps(omit)`** hands back your props with the keys you name left out.
+- **`assign()`** changes several parameters at once, **`refine()`** adds attributes of your own, **`on()`** listens for anything the part fires, **`destroy()`** tears it down.

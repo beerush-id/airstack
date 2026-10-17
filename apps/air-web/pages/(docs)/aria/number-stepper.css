@@ -1,0 +1,59 @@
+.demo-spin-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--demo-gap-sm);
+  width: 100%;
+  padding: 1rem;
+  border: 1px solid var(--demo-border);
+  border-radius: var(--demo-radius);
+  background: var(--demo-bg);
+}
+
+.demo-spin {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--demo-gap);
+  padding: 0.5rem 0.625rem;
+  border: 1px solid var(--demo-border);
+  border-radius: var(--demo-radius-sm);
+  background: var(--demo-bg);
+  font-size: var(--demo-font);
+  color: var(--demo-fg);
+  user-select: none;
+  transition: border-color 0.15s;
+}
+
+.demo-spin:hover {
+  border-color: var(--demo-muted);
+}
+
+.demo-spin[aria-readonly='true'],
+.demo-spin[readonly] {
+  background: var(--demo-hover);
+  color: var(--demo-muted);
+}
+
+.demo-spin[aria-disabled='true'] {
+  background: var(--demo-hover);
+  opacity: var(--demo-disabled);
+  pointer-events: none;
+}
+
+.demo-spin:focus-visible {
+  outline: var(--demo-outline);
+  outline-offset: var(--demo-outline-offset);
+}
+
+.demo-spin-label {
+  font-weight: 600;
+}
+
+.demo-spin-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.demo-spin-unit {
+  font-size: 0.8125rem;
+  color: var(--demo-muted);
+}

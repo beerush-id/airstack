@@ -1,0 +1,102 @@
+.demo-file-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--demo-gap);
+  width: 100%;
+  padding: 1rem;
+  border: 1px solid var(--demo-border);
+  border-radius: var(--demo-radius);
+  background: var(--demo-bg);
+}
+
+.demo-file-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--demo-gap-sm);
+  font-size: var(--demo-font);
+  color: var(--demo-fg);
+}
+
+.demo-file-caption {
+  font-weight: 600;
+}
+
+.demo-file-sub {
+  font-size: 0.8125rem;
+  color: var(--demo-muted);
+}
+
+.demo-file-trigger {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.875rem;
+  border: 1px solid var(--demo-border);
+  border-radius: var(--demo-radius-sm);
+  background: var(--demo-bg);
+  font-size: var(--demo-font);
+  font-weight: 500;
+  color: var(--demo-fg);
+  cursor: pointer;
+  user-select: none;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s;
+}
+
+.demo-file-trigger:hover {
+  border-color: var(--demo-muted);
+  background: var(--demo-hover);
+}
+
+.demo-file-trigger:active {
+  background: var(--demo-border);
+}
+
+.demo-file-trigger:focus-visible {
+  outline: var(--demo-outline);
+  outline-offset: var(--demo-outline-offset);
+}
+
+.demo-file-trigger:disabled,
+.demo-file-trigger[aria-disabled='true'] {
+  background: var(--demo-hover);
+  color: var(--demo-muted);
+  opacity: var(--demo-disabled);
+  pointer-events: none;
+}
+
+.demo-file-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--demo-gap-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.demo-file-item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--demo-gap);
+  padding: 0.375rem 0.625rem;
+  border-radius: var(--demo-radius-xs);
+  background: var(--demo-hover);
+  font-size: var(--demo-font);
+  color: var(--demo-fg);
+}
+
+.demo-file-size {
+  font-size: 0.8125rem;
+  color: var(--demo-muted);
+}
+
+.demo-file-empty {
+  padding: 0.375rem 0.625rem;
+  border: 1px dashed var(--demo-border);
+  border-radius: var(--demo-radius-xs);
+  font-size: var(--demo-font);
+  color: var(--demo-muted);
+}

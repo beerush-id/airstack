@@ -51,6 +51,9 @@ const gridRoute = route.route('/grid');
 const toastRoute = route.route('/toast');
 const paginationRoute = route.route('/pagination');
 const breadcrumbRoute = route.route('/breadcrumb');
+const datePickerRoute = route.route('/date-picker');
+const dateRangePickerRoute = route.route('/date-range-picker');
+const carouselRoute = route.route('/carousel');
 /** AirLib managed */
 
 export const ariaRoute = route;
@@ -103,5 +106,8 @@ export const ariaGridRoute = gridRoute;
 export const ariaToastRoute = toastRoute;
 export const ariaPaginationRoute = paginationRoute;
 export const ariaBreadcrumbRoute = breadcrumbRoute;
+export const ariaDatePickerRoute = datePickerRoute;
+export const ariaDateRangePickerRoute = dateRangePickerRoute;
+export const ariaCarouselRoute = carouselRoute;
 
 export default ariaRoute;

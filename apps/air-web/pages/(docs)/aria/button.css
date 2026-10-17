@@ -1,0 +1,81 @@
+.demo-button-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--demo-gap);
+  width: 100%;
+}
+
+.demo-button-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--demo-gap-sm);
+  padding: var(--demo-gap);
+  border: 1px solid var(--demo-border);
+  border-radius: var(--demo-radius);
+  background: var(--demo-bg);
+}
+
+.demo-button-card-title {
+  font-size: var(--demo-font);
+  font-weight: 600;
+  color: var(--demo-fg);
+}
+
+.demo-button-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--demo-gap);
+}
+
+.demo-button-count {
+  font-size: var(--demo-font);
+  color: var(--demo-muted);
+}
+
+.demo-button {
+  padding: 0.5rem 1rem;
+  border: 1px solid transparent;
+  border-radius: var(--demo-radius-sm);
+  background: var(--demo-fg);
+  color: var(--demo-bg);
+  font-size: var(--demo-font);
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+}
+
+.demo-button:hover {
+  background: var(--demo-fg-hover);
+}
+
+.demo-button:active {
+  background: var(--demo-fg-active);
+}
+
+.demo-button:focus-visible {
+  outline: var(--demo-outline);
+  outline-offset: var(--demo-outline-offset);
+}
+
+.demo-button:disabled,
+.demo-button[aria-disabled='true'] {
+  background: var(--demo-hover);
+  color: var(--demo-muted);
+  pointer-events: none;
+}
+
+.demo-button--custom {
+  border-color: var(--demo-border);
+  background: var(--demo-bg);
+  color: var(--demo-fg);
+}
+
+.demo-button--custom:hover {
+  background: var(--demo-hover);
+}
+
+.demo-button--custom:active {
+  border-color: var(--demo-fg);
+  background: var(--demo-hover);
+}

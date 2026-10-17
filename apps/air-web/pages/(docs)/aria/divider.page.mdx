@@ -1,44 +1,91 @@
 ---
-title: 'Divider'
-description: 'Headless accessible divider compiling static divider semantics with correct role projection.'
+title: 'Headless Divider'
+description: 'Headless divider for React and SolidJS. Marks any element as a structural boundary — announced as a separator, skipped by the tab key, carrying no value — with no markup or styles imposed.'
 nav: 'Divider'
 nav-priority: 290
 ---
 
-# AirLib Headless Divider
+import './aria.css';
+import './divider.css';
 
-A static rule only structures content, but most of you have struggled keeping it quiet: a bare `<div>` line announces nothing to assistive technology, and wiring `role`, orientation, and focus exclusion by hand is easy to get wrong. **AirLib Headless Divider** (`aria('divider')`) turns any element into a structural boundary — always `role="separator"`, never a tab stop, never a value, `aria-orientation` only when vertical. For resizable pane boundaries, see [Splitter](/docs/aria/splitter).
+# Headless Divider
+
+A rule across a layout says *these are separate things*, but a bare line says nothing to a screen reader, and hand-wiring the separator role, its axis, and its exclusion from the tab order is easy to get wrong.
+
+**Headless Divider** marks any element as a structural boundary — announced as a separator, skipped by the tab key, carrying no value. For a boundary the user moves, see [Splitter](/docs/aria/splitter).
 
 ```tsx
 const divider = aria('divider', props);
 
-<div ref={divider.ref} {...divider.props} />
+<div ref={divider.ref} {...divider.restProps(['children'])} />
 ```
 
-:::interactive[Static Divider]
+:::interactive[Dividers]
 ```tsx
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
 
-const DemoDivider = setup((props) => {
+type DemoDividerProps = ComponentProps<'div'> & {
+  orientation?: 'horizontal' | 'vertical';
+};
+
+const DemoDivider = setup<DemoDividerProps>((props) => {
   const divider = aria('divider', props);
 
-  return () => (
-    <div ref={divider.ref} {...divider.props} />
-  );
+  return () => <div ref={divider.ref} {...divider.restProps(['children'])} className="demo-divider" />;
 }, 'DemoDivider');
 ```
-
-<div className="flex items-center gap-3 p-3 text-sm border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50">
-  <span>Sidebar</span>
-  <DemoDivider className="flex-1 border-t border-zinc-300 dark:border-zinc-700" />
-  <span>Content</span>
+```html
+<div className="demo-divider-stack">
+  <div className="demo-divider-card">
+    <span className="demo-divider-card-title">Horizontal</span>
+    <div className="demo-divider-row">
+      <span>Sidebar</span>
+      <DemoDivider />
+      <span>Content</span>
+    </div>
+  </div>
+  <div className="demo-divider-card">
+    <span className="demo-divider-card-title">Vertical</span>
+    <div className="demo-divider-row">
+      <span>Copy</span>
+      <DemoDivider orientation="vertical" />
+      <span>Paste</span>
+    </div>
+  </div>
 </div>
+```
+
+<div className="demo-divider-stack">
+  <div className="demo-divider-card">
+    <span className="demo-divider-card-title">Horizontal</span>
+    <div className="demo-divider-row">
+      <span>Sidebar</span>
+      <DemoDivider />
+      <span>Content</span>
+    </div>
+  </div>
+  <div className="demo-divider-card">
+    <span className="demo-divider-card-title">Vertical</span>
+    <div className="demo-divider-row">
+      <span>Copy</span>
+      <DemoDivider orientation="vertical" />
+      <span>Paste</span>
+    </div>
+  </div>
+</div>
+:::
+
+:::tip
+Divider or splitter is an authoring decision, made by picking the entity — `aria('divider')` or `aria('splitter')` — so a consumer of your component can never flip a static rule into a control.
 :::
 
 ## Divider
 
-Static structural boundary with no focus, no value, and no keyboard behavior.
+**One structural boundary.** No focus, no value, no keys — only an axis.
+
+### Usage
 
 ```ts
 aria<E extends BaseElement = HTMLElement>(
@@ -47,11 +94,9 @@ aria<E extends BaseElement = HTMLElement>(
 ): DividerAria<E>
 ```
 
-### Usage
-
 :::code-group
 
-```tsx [React] executable
+```tsx [React]
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
 import type { ComponentProps } from 'react';
@@ -63,9 +108,7 @@ type DividerProps = ComponentProps<'div'> & {
 const Divider = setup<DividerProps>((props) => {
   const divider = aria('divider', props);
 
-  return () => (
-    <div ref={divider.ref} {...divider.props} />
-  );
+  return () => <div ref={divider.ref} {...divider.restProps(['children'])} />;
 }, 'Divider');
 ```
 
@@ -81,7 +124,7 @@ type DividerProps = ComponentProps<'div'> & {
 const Divider = setup<DividerProps>((props) => {
   const divider = aria('divider', props);
 
-  return <div ref={divider.ref} {...divider.props} />;
+  return <div ref={divider.ref} {...divider.restProps(['children'])} />;
 });
 ```
 
@@ -89,66 +132,71 @@ const Divider = setup<DividerProps>((props) => {
 
 ### Parameters
 
-- `props.orientation` *('horizontal' | 'vertical', optional, default `'horizontal'`)*: Divider axis, announced as `aria-orientation` only when vertical.
+_What you pass in. The props object stays live — change a value on it and the part follows._
 
-The controller compiles no accessible name of its own.
+- **orientation** _'horizontal' | 'vertical', optional, default `'horizontal'`_: The axis the rule runs along. Only the vertical one is announced, because horizontal is what a separator is assumed to be.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **orientation** _'horizontal' | 'vertical'_: The axis in force.
 
 ### How it behaves
 
-A static divider is projection only: always `role="separator"`, while `tabindex` and every `aria-value*` attribute stay off the element. There is no `native` option and no `<hr>` binding — the host element is always the author's.
-
-:::tip[Divider or splitter is an authoring decision]
-The structural-or-interactive choice is made by picking the entity — `aria('divider')` versus `aria('splitter')` — so a template consumer never flips a static rule into a control.
-:::
-
-## Putting It Together
-
-Once your component is wired with `aria('divider')`, compose it into structured layouts:
-
-```tsx
-<div className="flex flex-col gap-4">
-  <div className="flex items-center gap-3">
-    <span>Sidebar</span>
-    <Divider className="flex-1" />
-    <span>Content</span>
-  </div>
-</div>
-```
-
-:::interactive[Divider Interactive Demo]
-<div className="flex flex-col gap-6 p-4 max-w-sm border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 text-sm">
-  <div className="flex flex-col gap-2">
-    <span className="font-medium text-zinc-800 dark:text-zinc-200">Static divider</span>
-    <div className="flex items-center gap-3 text-zinc-500 dark:text-zinc-400">
-      <span>Sidebar</span>
-      <Divider className="flex-1 border-zinc-300 dark:border-zinc-700" />
-      <span>Content</span>
-    </div>
-  </div>
-  <div className="flex flex-col gap-2">
-    <span className="font-medium text-zinc-800 dark:text-zinc-200">Vertical divider</span>
-    <div className="flex items-center gap-3 text-zinc-500 dark:text-zinc-400">
-      <span>Copy</span>
-      <Divider orientation="vertical" className="h-6 border-l border-zinc-300 dark:border-zinc-700" />
-      <span>Paste</span>
-    </div>
-  </div>
-</div>
-:::
-
-## Keyboard Navigation
-
-- **Tab**: Static dividers take no tab stop and are skipped entirely.
-- **Every other key**: Left unclaimed for the browser and surrounding widgets.
-
-## What you get
-
-- **Quiet static dividers.** No `tabindex`, no value attributes, always `role="separator"`.
-- **Vertical on departure only.** `aria-orientation` is emitted solely for the vertical axis.
+- **Announced as a boundary.** Screen readers hear a separator, so the split in your layout is a split in the document too.
+- **Always your element.** There is no native divider to opt into; the host you render carries the separator role.
+- **Never a tab stop.** The tab key passes straight over it, in both directions.
+- **Never a value.** No `aria-value*` attributes, so it can't be mistaken for a range control.
+- **Vertical says so, horizontal doesn't.** The axis is announced only when it departs from the default.
 
 ## Next Steps
 
-- **[Splitter](/docs/aria/splitter)**: The movable partition control with a tab stop, clamped `aria-valuenow`, and arrow-key adjustment.
-- **[Menu](/docs/aria/menu)**: Group menu items with dividers that stay structural inside a roving focus collection.
-- **[Toolbar](/docs/aria/toolbar)**: Divide toolbar control groups without adding tab stops.
-- **[Progress](/docs/aria/progress)**: The read-only face of the same `aria-value*` range vocabulary.
+- **[Splitter](/docs/aria/splitter)**: The movable partition with a tab stop, a clamped value, and arrow-key adjustment.
+- **[Menu](/docs/aria/menu)**: Group menu items with dividers that stay structural inside a roving collection.
+- **[Toolbar](/docs/aria/toolbar)**: Divide control groups without adding tab stops.
+- **[Progress](/docs/aria/progress)**: The read-only face of the same value vocabulary a splitter uses.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Divider
+
+```ts
+interface DividerProps {
+  orientation?: 'horizontal' | 'vertical';
+}
+
+interface DividerAttributes {
+  role: 'separator';
+  'aria-orientation'?: 'vertical';
+}
+
+declare class DividerAria {
+  get orientation(): 'horizontal' | 'vertical';
+}
+```
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`attributes`** is the dictionary you spread; **`ref`** is what you bind the element with; **`props`** is the full props dictionary for spreading onto the host; **`restProps(omit)`** hands back your props with the keys you name left out.
+- **`assign()`** changes several parameters at once, **`refine()`** adds attributes of your own, **`on()`** listens for anything the part fires, **`destroy()`** tears it down.

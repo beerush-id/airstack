@@ -1,122 +1,275 @@
 ---
-title: 'Stepper'
-description: 'Coordinated numeric stepping with a group container, spinbutton input, and auto-disabling increment and decrement buttons.'
+title: 'Headless Stepper'
+description: 'Headless steppers for React and SolidJS. One clamped number shared by a spinbutton and two step buttons that go inert at the bound they have nowhere left to go — the horizontal arrows stay with the caret — with no markup or styles imposed.'
 nav: 'Stepper'
 nav-priority: 264
 ---
 
-# AirLib Headless Stepper
+import './aria.css';
+import './stepper.css';
 
-A quantity field looks like two buttons around a number until the platform gets involved: both buttons and the typed value must move one shared value, arrow and page keys must step it without stealing the rest, every write must clamp to bounds, each button must go inert at the bound it has nowhere left to go, and stepping announcements must fire while the interaction is live with the commit landing on blur. **AirLib Headless Stepper** (`aria('stepper')` + `aria('stepper-input')` + `aria('stepper-inc')` / `aria('stepper-dec')`) owns that coordination — a group container plus an input and two buttons that read from it, without dictating markup or styles.
+# Headless Stepper
+
+A stepper is a number you nudge. Getting it right means **keeping one value shared by the field, the two buttons, and your own writes**, **clamping every path into it to the same bounds**, **stepping on the vertical and page keys while the horizontal keys stay with the caret**, and **taking a button out of reach the moment it has nowhere left to go**.
+
+**Headless Stepper** does all of that for you, and leaves the markup and the styling entirely yours.
 
 ```tsx
 const stepper = aria('stepper', props);
-const input = aria('stepper-input', {}, { native: true });
-const increment = aria('stepper-inc');
-const decrement = aria('stepper-dec');
 
-<div ref={stepper.ref} {...stepper.props}>
-  <button ref={decrement.ref} {...decrement.props}>−</button>
-  <input ref={input.ref} {...input.props} />
-  <button ref={increment.ref} {...increment.props}>+</button>
+<div ref={stepper.ref} {...stepper.restProps(['children'])}>
+  {props.children}
 </div>
 ```
 
-<style>{`.demo-stepper{display:inline-flex;align-items:stretch;border:1px solid #d4d4d8;border-radius:.75rem;overflow:hidden;background:#fff}.demo-stepperbtn{display:flex;width:2.5rem;align-items:center;justify-content:center;background:#fff;color:#52525b;border:0;cursor:pointer;font-size:1.125rem;line-height:1}.demo-stepperbtn:hover{background:#f4f4f5}.demo-stepperbtn[disabled]{opacity:.4;cursor:not-allowed}.demo-stepperfield{width:4rem;border:0;border-left:1px solid #d4d4d8;border-right:1px solid #d4d4d8;text-align:center;font-variant-numeric:tabular-nums;outline:none;padding:.5rem 0}.demo-stepperfield:focus-visible{box-shadow:inset 0 0 0 2px #18181b}`}</style>
-
-:::interactive[Stepper With Auto-Disabling Buttons]
+:::interactive[Native Input: Stepping, Readonly, Disabled]
 ```tsx
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
 import type { ComponentProps } from 'react';
 
 type DemoStepperProps = ComponentProps<'div'> & {
+  label: string;
   value?: number;
   min?: number;
   max?: number;
   step?: number;
-  page?: number;
   disabled?: boolean;
-  label?: string;
 };
 
 const DemoStepper = setup<DemoStepperProps>((props) => {
   const stepper = aria('stepper', props);
-  const input = aria('stepper-input', {}, { native: true });
-  const increment = aria('stepper-inc');
-  const decrement = aria('stepper-dec');
 
   return () => (
-    <div ref={stepper.ref} {...stepper.props} className="demo-stepper">
-      <button ref={decrement.ref} {...decrement.props} aria-label="Decrease" className="demo-stepperbtn">−</button>
-      <input ref={input.ref} {...input.props} aria-label={props.label} className="demo-stepperfield" />
-      <button ref={increment.ref} {...increment.props} aria-label="Increase" className="demo-stepperbtn">+</button>
+    <div ref={stepper.ref} {...stepper.restProps(['children', 'label'])} className="demo-stepper">
+      {props.children}
     </div>
   );
 }, 'DemoStepper');
+
+type DemoStepperFieldProps = ComponentProps<'input'>;
+
+const DemoStepperField = setup<DemoStepperFieldProps>((props) => {
+  const input = aria('stepper-input', props, { native: true });
+
+  return () => <input ref={input.ref} {...input.restProps()} className="demo-stepper-field" />;
+}, 'DemoStepperField');
+
+type DemoStepButtonProps = ComponentProps<'button'>;
+
+const DemoDecrement = setup<DemoStepButtonProps>((props) => {
+  const button = aria('stepper-dec', props);
+
+  return () => (
+    <button ref={button.ref} {...button.restProps(['children'])} className="demo-stepper-btn">
+      {props.children}
+    </button>
+  );
+}, 'DemoDecrement');
+
+const DemoIncrement = setup<DemoStepButtonProps>((props) => {
+  const button = aria('stepper-inc', props);
+
+  return () => (
+    <button ref={button.ref} {...button.restProps(['children'])} className="demo-stepper-btn">
+      {props.children}
+    </button>
+  );
+}, 'DemoIncrement');
+
+const Demo = (props: DemoStepperProps) => (
+  <div className="demo-stepper-row">
+    <span className="demo-stepper-caption">{props.label}</span>
+    <DemoStepper {...props}>
+      <DemoDecrement aria-label={`Decrease ${props.label}`}>−</DemoDecrement>
+      <DemoStepperField aria-label={props.label} />
+      <DemoIncrement aria-label={`Increase ${props.label}`}>+</DemoIncrement>
+    </DemoStepper>
+  </div>
+);
+```
+```html
+<div className="demo-stepper-card">
+  <Demo label="Steps by one" value={2} min={1} max={8} />
+  <Demo label="Steps by five" value={10} min={0} max={60} step={5} />
+  <div className="demo-stepper-row">
+    <span className="demo-stepper-caption">Readonly: buttons disarmed</span>
+    <DemoStepper label="Readonly: buttons disarmed" value={150} min={0} max={500} step={50} readonly={true}>
+      <DemoDecrement aria-label="Decrease the readonly field">−</DemoDecrement>
+      <DemoStepperField aria-label="Readonly field" />
+      <DemoIncrement aria-label="Increase the readonly field">+</DemoIncrement>
+    </DemoStepper>
+  </div>
+  <Demo label="Disabled: out of reach" value={5} min={0} max={10} disabled={true} />
+</div>
 ```
 
-<div className="inline-flex flex-col mx-auto gap-6">
-  <DemoStepper label="Guests" value={2} min={1} max={8} />
-  <DemoStepper label="Nights" value={10} min={0} max={60} step={5} />
-  <DemoStepper label="Seats" value={5} min={0} max={10} disabled={true} />
+<div className="demo-stepper-card">
+  <Demo label="Steps by one" value={2} min={1} max={8} />
+  <Demo label="Steps by five" value={10} min={0} max={60} step={5} />
+  <div className="demo-stepper-row">
+    <span className="demo-stepper-caption">Readonly: buttons disarmed</span>
+    <DemoStepper label="Readonly: buttons disarmed" value={150} min={0} max={500} step={50} readonly={true}>
+      <DemoDecrement aria-label="Decrease the readonly field">−</DemoDecrement>
+      <DemoStepperField aria-label="Readonly field" />
+      <DemoIncrement aria-label="Increase the readonly field">+</DemoIncrement>
+    </DemoStepper>
+  </div>
+  <Demo label="Disabled: out of reach" value={5} min={0} max={10} disabled={true} />
 </div>
+:::
+
+:::interactive[Custom Host: Stepping, Readonly, Disabled]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type DemoSpinboxProps = ComponentProps<'div'> & {
+  caption: string;
+  value?: number;
+  min?: number;
+  max?: number;
+  step?: number;
+  valuetext?: string;
+  readonly?: boolean;
+  disabled?: boolean;
+};
+
+const DemoSpinbox = setup<DemoSpinboxProps>((props) => {
+  const stepper = aria('stepper', props);
+
+  return () => (
+    <div className="demo-stepper-row">
+      <span className="demo-stepper-caption">{props.caption}</span>
+      <div ref={stepper.ref} {...stepper.restProps(['children', 'caption'])} className="demo-stepper">
+        {props.children}
+      </div>
+    </div>
+  );
+}, 'DemoSpinbox');
+
+type DemoSpinboxFieldProps = ComponentProps<'div'>;
+
+const DemoSpinboxField = setup<DemoSpinboxFieldProps>((props) => {
+  const input = aria('stepper-input', props);
+
+  return () => <div ref={input.ref} {...input.restProps()} className="demo-spinbox-field" />;
+}, 'DemoSpinboxField');
+
+type DemoSpinboxButtonProps = ComponentProps<'button'>;
+
+const DemoSpinboxDecrement = setup<DemoSpinboxButtonProps>((props) => {
+  const button = aria('stepper-dec', props);
+
+  return () => (
+    <button ref={button.ref} {...button.restProps(['children'])} className="demo-stepper-btn">
+      {props.children}
+    </button>
+  );
+}, 'DemoSpinboxDecrement');
+
+const DemoSpinboxIncrement = setup<DemoSpinboxButtonProps>((props) => {
+  const button = aria('stepper-inc', props);
+
+  return () => (
+    <button ref={button.ref} {...button.restProps(['children'])} className="demo-stepper-btn">
+      {props.children}
+    </button>
+  );
+}, 'DemoSpinboxIncrement');
+```
+```html
+<div className="demo-stepper-card">
+  <DemoSpinbox caption="Steps by one on a custom host" value={2} min={1} max={8}>
+    <DemoSpinboxDecrement aria-label="Decrease the steps-by-one field">−</DemoSpinboxDecrement>
+    <DemoSpinboxField aria-label="Steps-by-one field" />
+    <DemoSpinboxIncrement aria-label="Increase the steps-by-one field">+</DemoSpinboxIncrement>
+  </DemoSpinbox>
+  <DemoSpinbox
+    caption="Readonly: called out in words"
+    value={150}
+    min={0}
+    max={500}
+    step={50}
+    valuetext="150 US dollars, held"
+    readonly={true}
+  >
+    <DemoSpinboxDecrement aria-label="Decrease the readonly field">−</DemoSpinboxDecrement>
+    <DemoSpinboxField aria-label="Readonly field" />
+    <DemoSpinboxIncrement aria-label="Increase the readonly field">+</DemoSpinboxIncrement>
+  </DemoSpinbox>
+  <DemoSpinbox caption="Disabled: out of reach" value={5} min={0} max={20} disabled={true}>
+    <DemoSpinboxDecrement aria-label="Decrease the disabled field">−</DemoSpinboxDecrement>
+    <DemoSpinboxField aria-label="Disabled field" />
+    <DemoSpinboxIncrement aria-label="Increase the disabled field">+</DemoSpinboxIncrement>
+  </DemoSpinbox>
+</div>
+```
+
+<div className="demo-stepper-card">
+  <DemoSpinbox caption="Steps by one on a custom host" value={2} min={1} max={8}>
+    <DemoSpinboxDecrement aria-label="Decrease the steps-by-one field">−</DemoSpinboxDecrement>
+    <DemoSpinboxField aria-label="Steps-by-one field" />
+    <DemoSpinboxIncrement aria-label="Increase the steps-by-one field">+</DemoSpinboxIncrement>
+  </DemoSpinbox>
+  <DemoSpinbox
+    caption="Readonly: called out in words"
+    value={150}
+    min={0}
+    max={500}
+    step={50}
+    valuetext="150 US dollars, held"
+    readonly={true}
+  >
+    <DemoSpinboxDecrement aria-label="Decrease the readonly field">−</DemoSpinboxDecrement>
+    <DemoSpinboxField aria-label="Readonly field" />
+    <DemoSpinboxIncrement aria-label="Increase the readonly field">+</DemoSpinboxIncrement>
+  </DemoSpinbox>
+  <DemoSpinbox caption="Disabled: out of reach" value={5} min={0} max={20} disabled={true}>
+    <DemoSpinboxDecrement aria-label="Decrease the disabled field">−</DemoSpinboxDecrement>
+    <DemoSpinboxField aria-label="Disabled field" />
+    <DemoSpinboxIncrement aria-label="Increase the disabled field">+</DemoSpinboxIncrement>
+  </DemoSpinbox>
+</div>
+:::
+
+:::tip
+**The group is the wiring.** Render the field and the buttons inside it and they share its value — no ids, no props between parts. From your code, `stepper.value` reads and writes the number; writes clamp to the bounds.
 :::
 
 ## Stepper
 
-Coordinated numeric stepping over a group container, a spinbutton input, and increment/decrement buttons.
+**The group and the number.** Bounds, step size, and the current value live here, and every part reads them.
+
+### Usage
 
 ```ts
 aria<E extends BaseElement = HTMLElement>(
   role: 'stepper',
   props?: StepperProps
 ): StepperAria<E>
-
-aria<E extends BaseElement = HTMLInputElement>(
-  role: 'stepper-input',
-  props?: AriaProps,
-  options?: StepperInputOptions
-): StepperInputAria<E>
-
-aria<E extends BaseElement = HTMLButtonElement>(
-  role: 'stepper-inc' | 'stepper-dec',
-  props?: AriaProps,
-  options?: StepperButtonOptions
-): StepperButtonAria<E>
 ```
-
-### Usage
 
 :::code-group
 
-```tsx [React] executable
+```tsx [React]
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
 import type { ComponentProps } from 'react';
 
-type StepperProps = ComponentProps<'div'> & {
+type QtyProps = ComponentProps<'div'> & {
   value?: number;
   min?: number;
   max?: number;
   step?: number;
-  page?: number;
-  disabled?: boolean;
-  readonly?: boolean;
-  label?: string;
 };
 
-const Stepper = setup<StepperProps>((props) => {
+const Qty = setup<QtyProps>((props) => {
   const stepper = aria('stepper', props);
-  const input = aria('stepper-input', {}, { native: true });
-  const increment = aria('stepper-inc');
-  const decrement = aria('stepper-dec');
 
   return () => (
     <div ref={stepper.ref} {...stepper.restProps(['children'])}>
-      <button ref={decrement.ref} {...decrement.props} aria-label="Decrease">−</button>
-      <input ref={input.ref} {...input.props} aria-label={props.label} />
-      <button ref={increment.ref} {...increment.props} aria-label="Increase">+</button>
       {props.children}
     </div>
   );
@@ -128,28 +281,18 @@ import { aria } from '@airlib/aria';
 import { setup } from '@airlib/solid';
 import type { ComponentProps } from 'solid-js';
 
-type StepperProps = ComponentProps<'div'> & {
+type QtyProps = ComponentProps<'div'> & {
   value?: number;
   min?: number;
   max?: number;
   step?: number;
-  page?: number;
-  disabled?: boolean;
-  readonly?: boolean;
-  label?: string;
 };
 
-const Stepper = setup<StepperProps>((props) => {
+const Qty = setup<QtyProps>((props) => {
   const stepper = aria('stepper', props);
-  const input = aria('stepper-input', {}, { native: true });
-  const increment = aria('stepper-inc');
-  const decrement = aria('stepper-dec');
 
   return (
     <div ref={stepper.ref} {...stepper.restProps(['children'])}>
-      <button ref={decrement.ref} {...decrement.props} aria-label="Decrease">−</button>
-      <input ref={input.ref} {...input.props} aria-label={props.label} />
-      <button ref={increment.ref} {...increment.props} aria-label="Increase">+</button>
       {props.children}
     </div>
   );
@@ -158,78 +301,347 @@ const Stepper = setup<StepperProps>((props) => {
 
 :::
 
-The container compiles `role="group"` and never takes the value role itself. Parts discover their coordinator from ambient scope in creation order: the input reads the shared value, the buttons step it. On a custom host (omit `native: true`) the input compiles `role="spinbutton"` with the full range vocabulary and owns the key table; render its `value` as the element text.
+The field and the two buttons are components of their own, composed inside this one — see **[Stepper Input](#stepper-input)** and **[Step Button](#step-button)**.
 
 ### Parameters
 
-- `props.value` *(number, optional)*: Current value, read and written through clamping. Falls back to `min`, then to `0`.
-- `props.min` *(number, optional)*: Inclusive lower bound. Omitted leaves the stepper unbounded below.
-- `props.max` *(number, optional)*: Inclusive upper bound. Omitted leaves the stepper unbounded above.
-- `props.step` *(number, optional, default `1`)*: Increment applied per button activation or arrow keystroke.
-- `props.page` *(number, optional, default `10`)*: Large increment applied per page key, in value units.
-- `props.disabled` *(boolean, optional)*: Takes the whole stepper out of the tab order and blocks stepping.
-- `props.readonly` *(boolean, optional)*: Keeps the input focusable and announced while refusing every change.
-- `props.required` *(boolean, optional)*: Required validation indicator.
-- `props.valuetext` *(string, optional)*: Human-readable value compiled to `aria-valuetext` on the input.
-- `props.oninput` *(function, optional, on `stepper-input`)*: Called with the committed value after each step.
-- `props.onchange` *(function, optional, on `stepper-input`)*: Called with the committed value when the interaction ends.
-- `options.native` *(boolean, optional, default `false`)*: Bind the input to a native `<input type="number">`; the browser owns keys and stepping, the controller syncs typed values.
+_What you pass in. The props object stays live — change a bound and the parts re-derive without rebinding._
 
-### Events
+- **value** _number, optional_: The current number. It is read back **with the bounds already applied**, and falls back to `min`, then to `0`.
+- **min** _number, optional_: The inclusive lower bound. Left out, the stepper is unbounded below and decrement never gives up.
+- **max** _number, optional_: The inclusive upper bound. Left out, the stepper is unbounded above and increment never gives up.
+- **step** _number, optional, default `1`_: How far a button press or a stepping key moves.
+- **page** _number, optional, default `10`_: How far `PageUp` and `PageDown` travel.
+- **disabled** _boolean, optional_: Locks the whole stepper: both buttons go inert and the field leaves the tab order.
+- **readonly** _boolean, optional_: Refuses steps and typing. The field leaves the tab order yet stays focusable, and the step buttons disarm.
+- **required** _boolean, optional_: Says a value must be given. The constraint is carried by the field, not the group.
+- **valuetext** _string, optional_: What the number is called out as, so a field showing `150` can be announced as “150 US dollars”.
 
-Both events dispatch on the input element carrying the shared value (`number`):
+### Properties
 
-```ts
-const input = aria('stepper-input', {
-  oninput: (event) => {
-    const value = event.detail;
-  },
-  onchange: (event) => {
-    const committed = event.detail;
-  },
-});
-```
+_What you read on the instance afterwards._
 
-Attaching to the input element still works, but there the DOM library types the listener as `Event`, so reading `detail` needs `event as StepperEvent`.
+- **value** _number_: The number with the bounds applied, on read and on write. This is the read/write surface for your code.
+- **min** _number | undefined_: The lower bound, or nothing when it is unbounded below.
+- **max** _number | undefined_: The upper bound, or nothing when it is unbounded above.
+- **step** _number_: The step increment in use.
+- **page** _number_: The page distance in use.
+- **disabled** _boolean_: Whether the whole stepper is locked.
+- **readonly** _boolean_: Whether the value is closed to the user while staying readable.
 
-- `input`: `CustomEvent` with `bubbles: true`, after each committed step.
-- `change`: `CustomEvent` with `bubbles: true`, when the interaction ends (key release or blur) with a committed value. Steps that commit nothing stay silent.
+### Methods
+
+_What you call on the instance._
+
+- **`commit(raw, notify?)`** → `boolean`: Runs an untrusted reading through the bounds and reports whether it changed anything. Every button press, keystroke, and typed value goes through this door — call it yourself only when you are writing another part.
 
 ### How it behaves
 
-- One value drives everything: button activations and keystrokes commit through the container's bounds, and the input announces the clamped result. Writes from a parent clamp the same way, and both buttons re-derive without rebinding.
-- Each button disables itself at the bound it has nowhere left to go — decrement at `min`, increment at `max` — while the other stays live. Without a bound in its direction a button never disables itself. A disabled container disables both buttons and drops the input to `tabindex="-1"` with `aria-disabled="true"`.
-- Only the stepper's keys are claimed: arrows step by `step`, `PageUp`/`PageDown` move by `page`, `Home`/`End` jump to `min`/`max`. `Tab`, `Enter`, and letters pass through. `Home`/`End` stay unclaimed when their bound is undefined, and while `disabled` or `readonly` nothing is consumed.
-- Native inputs compile `type="number"` with `min`/`max`/`step` and synchronize typed values back into the shared value, ignoring empty fields rather than zeroing them.
+- **Every path commits through the same bounds.** Button presses, stepping keys, typed values, and your own writes all go through one commit, so the field can never disagree with the buttons.
+- **The container owns the stepping keys.** `ArrowUp`, `ArrowDown`, `PageUp`, `PageDown`, `Home`, and `End` are consumed wherever focus sits inside the group. `ArrowLeft`, `ArrowRight`, and every other key stay with the user — the caret travels, the number does not.
+- **A commit is announced by the stepper.** `input` fires per active interaction and `change` fires the moment the value actually moves, both on the container's DOM and its `on*` props; a typed keystroke also reports to the field's `oninput`.
+- **The group is only a group.** The container compiles `role="group"` and never takes the value role itself, which is what lets the parts sit inside it in any order you like.
+- **Parts bind by containment.** An `aria('stepper-input')`, `aria('stepper-inc')`, or `aria('stepper-dec')` inside this group reads from it — no ids, no prop drilling, and two steppers on one page never reach into each other.
+- **Bounds are inclusive.** A write past `max` lands on `max`; an undeclared bound means no clamp in that direction, and `Home`/`End` leave the key to the browser when the bound they would jump to does not exist.
+- **Disabled locks the whole group.** The field leaves the tab order and both buttons go inert at once — and a click on a disarmed part is cancelled and stopped from bubbling, so nothing above it reacts either.
 
-## Putting It Together
+## Stepper Input
 
-Once your components are wired with `aria(...)`, compose steppers with honest bounds:
+**The field.** It shows the number, takes a typed one, and lets the stepping keys pass through to the group.
 
-```tsx
-<div className="flex flex-col gap-4 max-w-sm">
-  <Stepper label="Guests" value={2} min={1} max={8} />
-  <Stepper label="Nights" value={10} min={0} max={60} step={5} />
-  <Stepper label="Seats" value={5} min={0} max={10} disabled={true} />
-</div>
+### Usage
+
+```ts
+aria<E extends BaseElement = HTMLInputElement>(
+  role: 'stepper-input',
+  props?: StepperInputProps,
+  options?: StepperInputOptions
+): StepperInputAria<E>
 ```
 
-## Keyboard Navigation
+:::code-group
 
-- **Tab**: Focuses the input (`tabindex="0"`, resolving to `tabindex="-1"` while disabled). Buttons stay plain buttons in the tab order.
-- **Arrow keys**: Step by `step` in both orientations (`Up`/`Right` increment, `Down`/`Left` decrement).
-- **PageUp / PageDown**: Move by `page` value units.
-- **Home / End**: Jump to `min` / `max`, left to the browser when that bound is undeclared.
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
 
-## What you get
+type QtyFieldProps = ComponentProps<'input'> & {
+  oninput?: (event: CustomEvent<number>) => void;
+  onchange?: (event: CustomEvent<number>) => void;
+};
 
-- **One coordinated value.** Buttons, keys, typed input, and parent writes all land on the same clamped value.
-- **Self-disabling buttons.** Each button goes inert exactly at its own bound and re-arms on the same nodes.
-- **Claim-only keyboard.** The eight stepping keys are consumed; everything else passes through, even at bounds, never while locked.
-- **Native parity.** Number inputs keep browser stepping while the controller syncs typed values both directions.
+const QtyField = setup<QtyFieldProps>((props) => {
+  const input = aria('stepper-input', props, { native: true });
+
+  return () => <input ref={input.ref} {...input.restProps()} />;
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type QtyFieldProps = ComponentProps<'input'> & {
+  oninput?: (event: CustomEvent<number>) => void;
+  onchange?: (event: CustomEvent<number>) => void;
+};
+
+const QtyField = setup<QtyFieldProps>((props) => {
+  const input = aria('stepper-input', props, { native: true });
+
+  return <input ref={input.ref} {...input.restProps()} />;
+});
+```
+
+:::
+
+### Parameters
+
+_What you pass in._
+
+- **oninput** _(event: CustomEvent&lt;string | number | undefined | null&gt;) =&gt; void, optional_: Called with the value at each typed keystroke.
+- **onchange** _(event: CustomEvent&lt;number | undefined&gt;) =&gt; void, optional_: Called with the committed value when the value actually moves.
+
+### Options
+
+_What you fix when you create it. Read once, never reactive._
+
+- **native** _boolean, optional, default `false`_: Set `true` on a real `<input>`. The controller compiles it as a plain text input and parses every reading itself, so no browser spinner ever fights the stepping keys. On a custom host the element is compiled as a `spinbutton` with plaintext `contenteditable`, and the controller writes the number as its text — render no children of your own.
+
+### Properties
+
+_What you read on the instance afterwards._
+
+- **value** _number_: The number coming from the group — `0` when the field is on its own with no stepper around it.
+
+### How it behaves
+
+- **Typing commits only valid decimals.** Every keystroke parses as a strict decimal: a valid reading commits through the bounds, an invalid one keeps the current value and is never silently zeroed. Blur commits a valid reading or restores the last committed value to the field.
+- **Enter and Space are bypassed.** On the field they are prevented so they cannot submit the form around it; they never step.
+- **Readonly removes editability.** A custom host drops `contenteditable` entirely, the field leaves the tab order, and the stepping keys pass through unconsumed so the caret still travels.
+- **The spinbutton vocabulary comes from the group.** `aria-valuenow`, `aria-valuemin`, `aria-valuemax`, and your `valuetext` are compiled from the group, so the number a screen reader hears is the number the buttons are working on.
+- **A native host stays a plain input.** `type="text"`, `value`, `readonly`, `disabled`, and `required` are set on the element itself and no ARIA mirror is emitted beside them.
+- **A custom host keeps the caret.** Keyboard focus selects the whole number, and the controller's own text writes preserve the selection the user had.
+
+### Events
+
+_What it tells you._
+
+- **`input`** — fires per active interaction: a stepping key, a button step, or a typed keystroke. Stepping paths announce on the stepper; a typed keystroke announces on this part's `oninput`, handler-only.
+- **`change`** — fires the moment the value actually changes, whoever changed it, with the committed number in `detail`. It is announced on the stepper, not on the field.
+
+On the container both are dispatched as `CustomEvent`s, so a listener of your own hears them. On a native `<input>` the browser's own `input` passes through untouched and the announcement goes to your props only — never replayed onto the element.
+
+```tsx
+const stepper = aria('stepper', {
+  oninput: (event) => previewPrice(event.detail),
+  onchange: (event) => save(event.detail),
+});
+```
+
+### Navigation
+
+_What the keys do._
+
+- **`ArrowUp` / `ArrowDown`** — step by `step`, consumed by the group.
+- **`PageUp` / `PageDown`** — travel by `page`, consumed by the group.
+- **`Home` / `End`** — jump to `min` / `max`, and stay the browser's own keys when that bound was never declared.
+- **`ArrowLeft` / `ArrowRight`** — stay with the user: caret travel, never stepping.
+- **`Enter` / `Space`** — bypassed on the field so the surrounding form is safe.
+- **Typing** — reaches the shared value through the bounds as strict decimals. `Tab` is never taken.
+
+Nothing is consumed while the group is disabled or readonly.
+
+## Step Button
+
+**`+` and `−`.** The same part pointed two ways, each giving up at its own bound.
+
+### Usage
+
+```ts
+aria<E extends BaseElement = HTMLButtonElement>(
+  role: 'stepper-inc' | 'stepper-dec',
+  props?: AriaProps
+): StepperButtonAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type StepUpProps = ComponentProps<'button'>;
+
+const StepUp = setup<StepUpProps>((props) => {
+  const button = aria('stepper-inc', props);
+
+  return () => (
+    <button ref={button.ref} {...button.restProps(['children'])}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type StepUpProps = ComponentProps<'button'>;
+
+const StepUp = setup<StepUpProps>((props) => {
+  const button = aria('stepper-inc', props);
+
+  return (
+    <button ref={button.ref} {...button.restProps(['children'])}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+:::
+
+### Properties
+
+_What you read on the instance afterwards._
+
+- **disabled** _boolean_: Whether this button has work left to do — `true` when there is no group around it, when the group is disabled or readonly, or when the value is already at the bound it would step toward.
+
+### Methods
+
+_What you call on the instance._
+
+- **`click()`**: Runs one step. _Does nothing when the button is out of reach._
+
+### How it behaves
+
+- **It disables at its own bound.** Decrement goes inert at `min`, increment at `max`, and the other stays live — with no bound declared in its direction, a button never disarms.
+- **It re-enables on the same element.** Moving the value back from the bound, or lifting the group's `disabled`, brings the button back without rebinding anything.
+- **One press, one step.** Activation commits `value + direction * step` through the bounds, the stepper announces it live, and a press at a bound changes nothing.
+- **It sits outside the tab order.** `tabindex="-1"` keeps the field the single tab stop; the buttons are auxiliary and reach by pointer or by their own `click()`.
+- **It is written for a `<button>`.** `type="button"` and `disabled` are compiled so the trigger can never submit the form around it, and the browser's own click, `Enter`, and `Space` are what activate it.
 
 ## Next Steps
 
-- **[Number Stepper](/docs/aria/number-stepper)**: Standalone numeric entry without the button group.
-- **[Button](/docs/aria/button)**: Command and toggle button behavioral bridges.
-- **[Slider](/docs/aria/slider)**: Bounded numeric entry with pointer drag and dual-thumb ranges.
+- **[Number Stepper](/docs/aria/number-stepper)**: The same bounded number in one element, with no button group.
+- **[Slider](/docs/aria/slider)**: The same bounds, entered by pointing instead of stepping.
+- **[Field](/docs/aria/field)**: Label, description, and error wired to the control.
+- **[Form](/docs/aria/form)**: The landmark that gathers the stepper into a submission.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Stepper
+
+```ts
+interface StepperProps {
+  value?: number;
+  min?: number;
+  max?: number;
+  step?: number;
+  page?: number;
+  disabled?: boolean;
+  readonly?: boolean;
+  required?: boolean;
+  valuetext?: string;
+}
+
+interface StepperAttributes {
+  role?: 'group';
+}
+
+class StepperAria {
+  get value(): number;
+  get min(): number | undefined;
+  get max(): number | undefined;
+  get step(): number;
+  get page(): number;
+  get disabled(): boolean;
+  get readonly(): boolean;
+  commit(raw: number, notify?: 'input' | 'change'): boolean;
+}
+```
+
+### Stepper Input
+
+```ts
+interface StepperInputProps {
+  oninput?: (event: CustomEvent<string | number | undefined | null>) => void;
+  onchange?: (event: CustomEvent<number | undefined>) => void;
+}
+
+interface StepperInputOptions {
+  native?: boolean;
+}
+
+interface StepperInputAttributes {
+  type?: 'text';
+  value?: number;
+  role?: 'spinbutton';
+  readonly?: boolean;
+  disabled?: boolean;
+  required?: boolean;
+  tabindex?: number;
+  contenteditable?: 'true';
+  'aria-valuenow'?: number;
+  'aria-valuemin'?: number;
+  'aria-valuemax'?: number;
+  'aria-valuetext'?: string;
+  'aria-readonly'?: boolean;
+  'aria-disabled'?: 'true' | 'false';
+  'aria-required'?: boolean;
+}
+
+class StepperInputAria {
+  get value(): number;
+}
+```
+
+### Step Button
+
+```ts
+interface StepperButtonOptions {
+  direction: 1 | -1;
+}
+
+interface StepperButtonAttributes {
+  type?: 'button';
+  tabindex?: number;
+  disabled?: boolean;
+  'aria-disabled'?: 'true' | 'false';
+}
+
+class StepperButtonAria {
+  get disabled(): boolean;
+  click(): void;
+}
+```
+
+### On every one of them
+
+```ts
+interface AriaProps {
+  class?: string;
+  style?: string | Record<string, string | number>;
+  ref?: (element: Element | null) => void;
+  [key: string]: unknown;
+}
+
+class Aria {
+  get attributes(): Readonly<Record<string, unknown>>;
+  get current(): Element | null;
+  get isNative(): boolean;
+  restProps(omit?: string[]): Record<string, unknown>;
+  assign(attributes: Record<string, unknown>): void;
+  refine(attributes: Record<string, unknown>): void;
+  on(type: string, handler: (event: never) => void): () => void;
+  destroy(): void;
+}
+```

@@ -1,0 +1,118 @@
+.demo-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--demo-gap-sm);
+  width: 100%;
+  padding: 1rem;
+  border: 1px solid var(--demo-border);
+  border-radius: var(--demo-radius);
+  background: var(--demo-bg);
+}
+
+.demo-radio-card {
+  display: flex;
+  align-items: center;
+  gap: var(--demo-gap);
+  padding: 0.5rem 0.625rem;
+  border: 1px solid var(--demo-border);
+  border-radius: var(--demo-radius-sm);
+  font-size: var(--demo-font);
+  color: var(--demo-fg);
+  cursor: pointer;
+  user-select: none;
+}
+
+.demo-radio-card:hover:not(:has(.demo-radio[aria-disabled='true'])) {
+  background: var(--demo-hover);
+}
+
+.demo-radio-card:active:not(:has(.demo-radio[aria-disabled='true'])) {
+  background: var(--demo-border);
+}
+
+.demo-radio-card:has(.demo-radio[aria-checked='true']) {
+  border-color: var(--demo-fg);
+}
+
+.demo-radio-card:has(.demo-radio[aria-disabled='true']) {
+  color: var(--demo-muted);
+  cursor: not-allowed;
+}
+
+.demo-radio {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.125rem;
+  height: 1.125rem;
+  border: 1px solid var(--demo-border);
+  border-radius: 9999px;
+  background: var(--demo-bg);
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.15s;
+}
+
+.demo-radio::after {
+  content: '';
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: transparent;
+  transform: scale(0);
+  transition:
+    transform 0.12s,
+    background-color 0.12s;
+}
+
+.demo-radio:hover {
+  border-color: var(--demo-muted);
+}
+
+.demo-radio[aria-checked='true'] {
+  border-color: var(--demo-fg);
+}
+
+.demo-radio[aria-checked='true']::after {
+  background: var(--demo-fg);
+  transform: scale(1);
+}
+
+.demo-radio:active {
+  background: var(--demo-hover);
+}
+
+.demo-radio[aria-checked='true']:active {
+  border-color: var(--demo-fg-active);
+}
+
+.demo-radio[aria-checked='true']:active::after {
+  background: var(--demo-fg-active);
+}
+
+.demo-radio[aria-disabled='true'] {
+  background: var(--demo-hover);
+  opacity: var(--demo-disabled);
+  pointer-events: none;
+}
+
+.demo-radio:focus-visible {
+  outline: var(--demo-outline);
+  outline-offset: var(--demo-outline-offset);
+}
+
+.demo-radio-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.demo-radio-title {
+  font-weight: 600;
+}
+
+.demo-radio-hint {
+  font-size: 0.8125rem;
+  color: var(--demo-muted);
+}

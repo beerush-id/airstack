@@ -1,0 +1,130 @@
+.demo-dialog-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.demo-dialog-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--demo-gap-sm);
+}
+
+.demo-dialog-caption {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--demo-muted);
+}
+
+.demo-dialog-trigger {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--demo-border);
+  border-radius: var(--demo-radius-sm);
+  background: var(--demo-bg);
+  font-size: var(--demo-font);
+  font-weight: 500;
+  color: var(--demo-fg);
+  cursor: pointer;
+}
+
+.demo-dialog-trigger:hover:not(:disabled) {
+  background: var(--demo-hover);
+}
+
+.demo-dialog-trigger:active:not(:disabled) {
+  background: var(--demo-border);
+}
+
+.demo-dialog-trigger:focus-visible {
+  outline: var(--demo-outline);
+  outline-offset: var(--demo-outline-offset);
+}
+
+.demo-dialog-trigger:disabled {
+  opacity: var(--demo-disabled);
+  pointer-events: none;
+}
+
+.demo-dialog-panel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  gap: var(--demo-gap);
+  width: min(90vw, 26rem);
+  padding: 1.5rem;
+  border: 1px solid var(--demo-border);
+  border-radius: var(--demo-radius);
+  background: var(--demo-bg);
+  box-shadow: 0 25px 50px -12px color-mix(in srgb, var(--demo-fg) 35%, transparent);
+  z-index: 50;
+}
+
+.demo-dialog-panel[hidden] {
+  display: none;
+}
+
+.demo-dialog-floating {
+  top: auto;
+  left: auto;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  transform: none;
+  width: 20rem;
+  padding: 1rem;
+}
+
+.demo-dialog-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--demo-fg);
+}
+
+.demo-dialog-floating .demo-dialog-title {
+  font-size: var(--demo-font);
+}
+
+.demo-dialog-note {
+  font-size: var(--demo-font);
+  line-height: 1.5;
+  color: var(--demo-muted);
+}
+
+.demo-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--demo-gap-sm);
+}
+
+.demo-dialog-close {
+  padding: 0.375rem 0.75rem;
+  border: 1px solid var(--demo-border);
+  border-radius: var(--demo-radius-xs);
+  background: var(--demo-bg);
+  font-size: var(--demo-font);
+  font-weight: 500;
+  color: var(--demo-fg);
+  cursor: pointer;
+}
+
+.demo-dialog-close:hover:not(:disabled) {
+  background: var(--demo-hover);
+}
+
+.demo-dialog-close:active:not(:disabled) {
+  background: var(--demo-border);
+}
+
+.demo-dialog-close:focus-visible {
+  outline: var(--demo-outline);
+  outline-offset: var(--demo-outline-offset);
+}
+
+.demo-dialog-close:disabled {
+  opacity: var(--demo-disabled);
+  pointer-events: none;
+}

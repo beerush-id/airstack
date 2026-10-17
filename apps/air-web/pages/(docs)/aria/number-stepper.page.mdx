@@ -1,85 +1,81 @@
 ---
-title: 'Number Stepper'
-description: 'Standalone numeric stepper compiling bounded range announcements with arrow, page, and boundary keyboard stepping.'
+title: 'Headless Number Stepper'
+description: 'Headless number steppers for React and SolidJS. A discrete value that clamps every write, announces its bounds and units as a spinbutton, and answers the arrow, page, and boundary keys on any host — no markup or styles imposed.'
 nav: 'Number Stepper'
 nav-priority: 265
 ---
 
-# AirLib Headless Number Stepper
+import './aria.css';
+import './number-stepper.css';
 
-Quantities such as guest counts, nights, and tax rates are picked from a range of discrete values, not typed freely — yet a plain text input accepts anything and announces nothing about bounds, a native `<input type="number">` cannot be styled and cannot announce a human-readable value, and hand-rolled steppers walk arrow keys past their own bounds because nobody clamps every write path. **AirLib Headless Number Stepper** (`aria('number-stepper')`) owns that discipline — a single element carrying the clamped value, its bounds, and the keys that move it, without dictating markup or styles. (For the coordinated unit with step buttons and a group container, see [Stepper](/docs/aria/stepper).)
+# Headless Number Stepper
+
+A number you step rather than type. Getting it right means **clamping every write to the bounds — keys, typing, your own assignment, a parent narrowing the range**, **announcing the value, its limits, and its units**, **keeping a readonly field reachable while it refuses to change**, and **leaving the caret keys to the browser**.
+
+**Headless Number Stepper** does all of that for you, and leaves the markup and the styling entirely yours. For the coordinated unit with step buttons and a group container, see **[Stepper](/docs/aria/stepper)**.
 
 ```tsx
-const stepper = aria('number-stepper', props);
+const spin = aria('number-stepper', props);
 
-<div ref={stepper.ref} {...stepper.props}>
-  {stepper.value}
-</div>
+<div ref={spin.ref} {...spin.restProps(['children'])}>{spin.value}</div>
 ```
 
-<style>{`.demo-numberstepper{display:inline-flex;align-items:stretch;border:1px solid #d4d4d8;border-radius:.75rem;overflow:hidden;background:#fff}.demo-numberstepperbtn{display:flex;width:2.5rem;align-items:center;justify-content:center;background:#fff;color:#52525b;border:0;cursor:pointer;font-size:1.125rem;line-height:1}.demo-numberstepperbtn:hover{background:#f4f4f5}.demo-numberstepperbtn[disabled]{opacity:.4;cursor:not-allowed}.demo-numberstepperfield{width:4rem;border:0;border-left:1px solid #d4d4d8;border-right:1px solid #d4d4d8;text-align:center;font-variant-numeric:tabular-nums;outline:none;padding:.5rem 0}.demo-numberstepperfield:focus-visible{box-shadow:inset 0 0 0 2px #18181b}`}</style>
-
-:::interactive[Number Stepper With Step Buttons]
+:::interactive[Booking Quantities]
 ```tsx
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
 import type { ComponentProps } from 'react';
 
-type DemoNumberStepperProps = ComponentProps<'div'> & {
+type DemoSpinProps = ComponentProps<'div'> & {
+  label: string;
+  unit?: string;
   value?: number;
   min?: number;
   max?: number;
   step?: number;
-  disabled?: boolean;
+  valuetext?: string;
   readonly?: boolean;
-  label?: string;
+  disabled?: boolean;
 };
 
-const DemoNumberStepper = setup<DemoNumberStepperProps>((props) => {
-  const stepper = aria('number-stepper', props, { native: true });
+const DemoSpin = setup<DemoSpinProps>((props) => {
+  const spin = aria('number-stepper', props);
 
   return () => (
-    <div className="demo-numberstepper">
-      <button
-        type="button"
-        aria-label="Decrease"
-        tabIndex={-1}
-        disabled={stepper.disabled || stepper.readonly}
-        onClick={() => {
-          stepper.value -= stepper.step;
-        }}
-        className="demo-numberstepperbtn"
-      >
-        −
-      </button>
-      <input ref={stepper.ref} {...stepper.props} aria-label={props.label} className="demo-numberstepperfield" />
-      <button
-        type="button"
-        aria-label="Increase"
-        tabIndex={-1}
-        disabled={stepper.disabled || stepper.readonly}
-        onClick={() => {
-          stepper.value += stepper.step;
-        }}
-        className="demo-numberstepperbtn"
-      >
-        +
-      </button>
+    <div ref={spin.ref} {...spin.restProps(['children', 'label', 'unit'])} className="demo-spin">
+      <span className="demo-spin-label">{props.label}</span>
+      <span className="demo-spin-value">{spin.value}</span>
+      <span className="demo-spin-unit">{props.unit}</span>
     </div>
   );
-}, 'DemoNumberStepper');
+}, 'DemoSpin');
+```
+```html
+<div className="demo-spin-stack">
+  <DemoSpin label="Guests" unit="of 8" value={2} min={1} max={8} valuetext="two guests" />
+  <DemoSpin label="Nights" unit="0 – 60" value={10} min={0} max={60} step={5} valuetext="10 nights" />
+  <DemoSpin label="Tax rate" unit="locked" value={11} readonly={true} />
+  <DemoSpin label="Archive quota" unit="unavailable" value={3} min={0} max={10} disabled={true} />
+</div>
 ```
 
-<div className="inline-flex flex-col mx-auto gap-6">
-  <DemoNumberStepper label="Guests" value={2} min={1} max={8} />
-  <DemoNumberStepper label="Nights" value={10} min={0} max={60} step={5} />
-  <DemoNumberStepper label="Tax rate" value={11} readonly={true} />
+<div className="demo-spin-stack">
+  <DemoSpin label="Guests" unit="of 8" value={2} min={1} max={8} valuetext="two guests" />
+  <DemoSpin label="Nights" unit="0 – 60" value={10} min={0} max={60} step={5} valuetext="10 nights" />
+  <DemoSpin label="Tax rate" unit="locked" value={11} readonly={true} />
+  <DemoSpin label="Archive quota" unit="unavailable" value={3} min={0} max={10} disabled={true} />
 </div>
+:::
+
+:::tip
+**Click a box, then press the arrow keys.** Those boxes are plain `<div>`s — the role, the value vocabulary, and the key table are compiled onto them. `PageUp` and `PageDown` travel ten steps, and `Home`/`End` go to the bounds you declared.
 :::
 
 ## Number Stepper
 
-A standalone discrete numeric stepper owning a clamped value within an optional range.
+**One bounded number in one element.** It owns the value, the bounds, and the keys that move it.
+
+### Usage
 
 ```ts
 aria<E extends BaseElement = HTMLInputElement>(
@@ -89,34 +85,28 @@ aria<E extends BaseElement = HTMLInputElement>(
 ): NumberStepperAria<E>
 ```
 
-### Usage
-
 :::code-group
 
-```tsx [React] executable
+```tsx [React]
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
 import type { ComponentProps } from 'react';
 
-type NumberStepperProps = ComponentProps<'div'> & {
+type QuantityProps = ComponentProps<'div'> & {
+  label?: string;
   value?: number;
   min?: number;
   max?: number;
   step?: number;
   valuetext?: string;
-  readonly?: boolean;
-  disabled?: boolean;
-  required?: boolean;
-  label?: string;
 };
 
-const NumberStepper = setup<NumberStepperProps>((props) => {
-  const stepper = aria('number-stepper', props);
+const Quantity = setup<QuantityProps>((props) => {
+  const spin = aria('number-stepper', props);
 
   return () => (
-    <div ref={stepper.ref} {...stepper.restProps(['children'])} aria-label={props.label}>
-      {stepper.value}
-      {props.children}
+    <div ref={spin.ref} {...spin.restProps(['children', 'label'])} aria-label={props.label}>
+      {spin.value}
     </div>
   );
 });
@@ -127,7 +117,99 @@ import { aria } from '@airlib/aria';
 import { setup } from '@airlib/solid';
 import type { ComponentProps } from 'solid-js';
 
-type NumberStepperProps = ComponentProps<'div'> & {
+type QuantityProps = ComponentProps<'div'> & {
+  label?: string;
+  value?: number;
+  min?: number;
+  max?: number;
+  step?: number;
+  valuetext?: string;
+};
+
+const Quantity = setup<QuantityProps>((props) => {
+  const spin = aria('number-stepper', props);
+
+  return (
+    <div ref={spin.ref} {...spin.restProps(['children', 'label'])} aria-label={props.label}>
+      {spin.value}
+    </div>
+  );
+});
+```
+
+:::
+
+### Parameters
+
+_What you pass in. The props object stays live — change a bound and the value is re-clamped to it._
+
+- **value** _number, optional_: The current number, clamped on **every** write. With none declared the field falls back to `min`, then to `0`.
+- **min** _number, optional_: The inclusive lower bound. Left out, the field is unbounded below and `Home` stays the browser's key.
+- **max** _number, optional_: The inclusive upper bound. Left out, the field is unbounded above and `End` stays the browser's key.
+- **step** _number, optional, default `1`_: How far one arrow key moves the number.
+- **valuetext** _string, optional_: What the number is called out as, so a field showing `3` can be announced as “3 nights”.
+- **readonly** _boolean, optional_: Refuses every key **while keeping the field focusable and announced**, and still accepts a write from your code.
+- **disabled** _boolean, optional_: Refuses keys and typing, and takes the field out of the tab order.
+- **required** _boolean, optional_: Says a value is mandatory, announced as `aria-required`.
+
+The controller compiles no accessible name of its own — bind `aria-label` or `aria-labelledby` on the element so the quantity being stepped is announced.
+
+### Options
+
+_What you fix when you create it. Read once, never reactive._
+
+- **native** _boolean, optional, default `false`_: The default host is your own element, compiled into a `spinbutton` with the key table. Set `true` to bind an `<input type="number">` instead: the element already implies the role, the browser keeps its arrows, spinner, and typing, and the controller only pulls the resulting number back in.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **value** _number_: The number with the bounds applied. Writing it clamps the same way a key does.
+- **min** _number | undefined_: The lower bound, or nothing when the field is unbounded below.
+- **max** _number | undefined_: The upper bound, or nothing when the field is unbounded above.
+- **step** _number_: The arrow increment in use.
+- **readonly** _boolean_: Whether the field refuses the user but stays reachable.
+- **disabled** _boolean_: Whether the field is locked out.
+- **required** _boolean_: Whether a value is mandatory.
+
+### How it behaves
+
+- **Every write is clamped.** Arrow keys, page keys, typed digits, your own assignment, and a parent narrowing the range all land inside the bounds — and widening the range again never resurrects the value that was discarded. Holding a key at a bound keeps announcing the bound.
+- **No bounds, no clamp.** Omit `min` or `max` and the matching `aria-valuemin`/`aria-valuemax` is left out entirely, stepping runs free in that direction, and the boundary key for it is handed back to the browser.
+- **Readonly stays reachable.** The field keeps its tab stop and its announcement, refuses every key, and still takes a programmatic write.
+- **Disabled means inert.** The field leaves the tab order, announces `aria-disabled`, refuses keys and typed input, and a click on it is cancelled and stopped from bubbling — so nothing above it reacts either.
+- **A custom host is the spinbutton.** `role="spinbutton"`, `aria-valuenow`/`aria-valuemin`/`aria-valuemax`, your `aria-valuetext`, a `tabindex`, and the whole key table are compiled onto whatever element you bind — which is why the value is text you render rather than an input you fill.
+- **A native host stays native.** The value is projected as `defaultValue`, so the element is never fought over while props stay the source of truth, and `min`/`max`/`step` ride as element attributes. Typing synchronizes back clamped, a cleared field **withdraws** the value instead of claiming zero, and a non-numeric edit is rejected.
+- **Page travel is a class decision.** `PageUp`/`PageDown` move ten times `step`, fixed at class level rather than exposed as a prop, so an app cannot turn a quantity field into a jump-anywhere control; subclass the controller to rescale it for a coarse range.
+- **This face announces nothing.** There is no `input`, no `change`, and no handler prop — the value is a reactive read on `props.value`. For events and step buttons, use the coordinated **[Stepper](/docs/aria/stepper)** composite.
+
+### Navigation
+
+_What the keys do._
+
+- **`ArrowUp` / `ArrowDown`** — step **up / down** by `step`, holding at the bound.
+- **`ArrowLeft` / `ArrowRight`** — **not** the value: they move the caret and stay the browser's.
+- **`PageUp` / `PageDown`** — travel ten times `step`.
+- **`Home` / `End`** — jump to `min` / `max`, when that bound was declared.
+- **`Tab`** — reaches the field. A disabled field is skipped; a readonly one is not.
+
+On a native `<input type="number">` every key above belongs to the browser, and the controller only keeps the number in step.
+
+## Next Steps
+
+- **[Stepper](/docs/aria/stepper)**: The coordinated unit — step buttons, a group container, and `input`/`change` announcements.
+- **[Slider](/docs/aria/slider)**: The same bounds, entered by pointing instead of stepping.
+- **[Text Input](/docs/aria/text-input)**: Free text with live value synchronization and validation state.
+- **[Field](/docs/aria/field)**: Label, description, and error wired to the control.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Number Stepper
+
+```ts
+interface NumberStepperProps {
   value?: number;
   min?: number;
   max?: number;
@@ -136,91 +218,64 @@ type NumberStepperProps = ComponentProps<'div'> & {
   readonly?: boolean;
   disabled?: boolean;
   required?: boolean;
-  label?: string;
-};
+}
 
-const NumberStepper = setup<NumberStepperProps>((props) => {
-  const stepper = aria('number-stepper', props);
+interface NumberStepperOptions {
+  native?: boolean;
+}
 
-  return (
-    <div ref={stepper.ref} {...stepper.restProps(['children'])} aria-label={props.label}>
-      {stepper.value}
-      {props.children}
-    </div>
-  );
-});
+interface NumberStepperAttributes {
+  role?: 'spinbutton';
+  type?: 'number';
+  value?: number;
+  defaultValue?: number;
+  min?: number;
+  max?: number;
+  step?: number;
+  readonly?: boolean;
+  disabled?: boolean;
+  required?: boolean;
+  tabindex?: number;
+  'aria-valuenow'?: number;
+  'aria-valuemin'?: number;
+  'aria-valuemax'?: number;
+  'aria-valuetext'?: string;
+  'aria-readonly'?: 'true' | 'false';
+  'aria-required'?: 'true' | 'false';
+  'aria-disabled'?: 'true' | 'false';
+}
+
+declare class NumberStepperAria {
+  get value(): number;
+  set value(next: number);
+  get min(): number | undefined;
+  get max(): number | undefined;
+  get step(): number;
+  get readonly(): boolean;
+  get disabled(): boolean;
+  get required(): boolean;
+}
 ```
 
-:::
-
-On a custom host the controller compiles `role="spinbutton"` with the full range vocabulary and owns the key table; render its `value` as the element text. With `native: true` bind to an `<input type="number">` instead — no role is emitted because the element implies it, the browser keeps its own keys and spinner, and the controller synchronizes typed input back into the value.
-
-### Parameters
-
-- `props.value` *(number, optional)*: Current numeric value, clamped to the bounds on every write. Falls back to `min`, then to `0`.
-- `props.min` *(number, optional)*: Lower bound compiled to `aria-valuemin`. Omitted leaves the field unbounded below.
-- `props.max` *(number, optional)*: Upper bound compiled to `aria-valuemax`. Omitted leaves the field unbounded above.
-- `props.step` *(number, optional, default `1`)*: Increment applied per arrow keystroke and per programmatic step.
-- `props.valuetext` *(string, optional)*: Human-readable value compiled to `aria-valuetext` — announced units ("3 nights") where a bare number would not.
-- `props.readonly` *(boolean, optional)*: Keeps the field focusable and announced while refusing every key; programmatic writes still land.
-- `props.disabled` *(boolean, optional)*: Removes the field from the tab order (`tabindex="-1"`) and announces `aria-disabled`.
-- `props.required` *(boolean, optional)*: Required validation indicator, compiled to `aria-required` only when true.
-- `options.native` *(boolean, optional, default `false`)*: Set to `true` when bound to a native `<input type="number">`.
-
-The controller compiles no accessible name of its own. Bind `aria-label` or `aria-labelledby` on the element so the quantity being stepped is announced.
-
-:::tip[Page step is a class decision]
-Page keys move by ten times `step`, fixed at class-definition level rather than exposed as a prop, so a template consumer cannot turn a quantity stepper into something that jumps by arbitrary amounts. Subclass the controller to rescale it for coarse ranges.
-:::
-
-### Events
-
-This face dispatches no events of its own. It owns value, bounds, and spinbutton semantics; every commit is a state write you observe reactively through `props.value`, or on a native host through the browser's own `input`/`change` — which carry no `detail`, so read the element:
+### On every one of them
 
 ```ts
-const oninput = (event: Event): void => {
-  const value = Number((event.currentTarget as HTMLInputElement).value);
-};
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
 ```
 
-For a face that emits `input`/`change` `CustomEvent`s carrying the committed number, use the `stepper` composite (its `stepper-input` part dispatches them and takes `oninput`/`onchange`), or the `slider`, which carries its own value events.
-
-### How it behaves
-
-- Every write is clamped — arrow keys, page keys, boundary jumps, typed input, direct assignment, and writes from a parent. Narrowing the range re-clamps a live value that ends up past a bound, and widening back never resurrects the discarded value. Holding a key at a boundary keeps announcing the boundary value.
-- Unbounded fields omit `aria-valuemin`/`aria-valuemax`, step without clamping, and leave `Home`/`End` to the browser when their bound is undeclared.
-- Readonly stays focusable with `aria-readonly="true"` and refuses every key; disabled leaves the tab order with `aria-disabled="true"` and refuses keys and typed input alike.
-- Native hosts project the live value as `defaultValue` — the element stays uncontrolled while props remain the source of truth — with `min`/`max`/`step` carried as native attributes. Typing synchronizes back clamped on the way in; clearing the field withdraws the value instead of claiming zero; non-numeric edits are rejected.
-
-## Putting It Together
-
-Once your component is wired with `aria('number-stepper')`, compose it into bounded quantity fields:
-
-```tsx
-<div className="flex flex-col gap-4 max-w-sm">
-  <NumberStepper label="Guests" value={2} min={1} max={8} />
-  <NumberStepper label="Nights" value={10} min={0} max={60} step={5} />
-  <NumberStepper label="Tax rate" value={11} readonly={true} />
-</div>
-```
-
-## Keyboard Navigation
-
-- **Tab**: Focuses the stepper. A disabled field is skipped entirely (`tabindex="-1"`); a readonly field stays focusable.
-- **ArrowUp / ArrowDown**: Step by `step`, holding at `max` / `min`. `ArrowLeft`/`ArrowRight` move the text caret, not the value, and stay with the browser.
-- **PageUp / PageDown**: Step by ten times `step`.
-- **Home / End**: Jump to `min` / `max` when that bound is declared, left to the browser when it is not.
-- **Native hosts**: The browser owns every key above; the controller only synchronizes the resulting value.
-
-## What you get
-
-- **Bounded range announcements.** `aria-valuenow` against `aria-valuemin`/`aria-valuemax`, both omitted when you declare no limits.
-- **Clamping on every write.** Keys, typing, assignment, and parent range revisions all land inside the declared range.
-- **Readable value text.** `valuetext` announces meaningful units where a bare number would not.
-- **Native equivalence.** `native: true` projects onto `<input type="number">` with no redundant role, keeping the browser's own stepper and validation.
-
-## Next Steps
-
-- **[Stepper](/docs/aria/stepper)**: The coordinated unit with step buttons and a group container.
-- **[Text Input](/docs/aria/text-input)**: Free-text inputs with live value synchronization and validation state.
-- **[Slider](/docs/aria/slider)**: Bounded numeric entry with pointer drag and dual-thumb ranges.
+- **`attributes`** is the dictionary you spread; **`ref`** is what you bind the element with; **`props`** is the full props dictionary for spreading onto the host; **`restProps(omit)`** hands back your props with the keys you name left out.
+- **`assign()`** changes several parameters at once, **`refine()`** adds attributes of your own, **`on()`** listens for anything the part fires, **`destroy()`** tears it down.

@@ -1,0 +1,905 @@
+---
+title: 'Headless Carousel'
+description: 'Headless carousel for React and SolidJS. Shows one slide at a time, travels with buttons, dots and arrow keys, rotates on a timer that respects hover and focus, and fires change and toggle events — with no markup or styles imposed.'
+nav: 'Carousel'
+nav-priority: 370
+---
+
+import './aria.css';
+import './carousel.css';
+
+# Headless Carousel
+
+A carousel shows one slide at a time behind a set of travelers. Getting it right means **showing exactly one slide**, **moving with buttons, dots, and arrow keys**, **rotating on a timer that pauses for hover and stops for focus**, and **telling your code when the slide or the rotation changes**.
+
+**Headless Carousel** does all of that for you, and leaves the markup and the styling entirely yours.
+
+```tsx
+const carousel = aria('carousel', props);
+
+<div ref={carousel.ref} {...carousel.restProps(['children'])} />
+```
+
+:::interactive[Featured Slides Carousel]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type DemoCarouselProps = ComponentProps<'div'> & {
+  label: string;
+  value?: string;
+  keys?: string[];
+  loop?: boolean;
+  autoplay?: boolean;
+  interval?: number;
+};
+
+const DemoCarousel = setup<DemoCarouselProps>((props) => {
+  const carousel = aria('carousel', props);
+
+  return () => (
+    <div ref={carousel.ref} {...carousel.restProps(['children'])} className="demo-carousel">
+      {props.children}
+    </div>
+  );
+}, 'DemoCarousel');
+
+const DemoViewport = setup<ComponentProps<'div'>>((props) => {
+  const viewport = aria('carousel-viewport');
+
+  return () => (
+    <div ref={viewport.ref} {...viewport.restProps(['children'])} className="demo-carousel-viewport">
+      {props.children}
+    </div>
+  );
+}, 'DemoViewport');
+
+type DemoSlideProps = ComponentProps<'div'> & {
+  name: string;
+  id?: string;
+};
+
+const DemoSlide = setup<DemoSlideProps>((props) => {
+  const slide = aria('carousel-slide', props);
+
+  return () => (
+    <div ref={slide.ref} {...slide.restProps(['children'])} className="demo-carousel-slide">
+      {props.children}
+    </div>
+  );
+}, 'DemoSlide');
+
+type DemoNavProps = ComponentProps<'button'> & {
+  label?: string;
+  direction: 1 | -1;
+};
+
+const DemoNav = setup<DemoNavProps>((props) => {
+  const prev = aria('carousel-nav', props);
+
+  return () => (
+    <button ref={prev.ref} {...prev.restProps(['children'])} className="demo-carousel-prev">
+      {props.label ?? 'Step'}
+    </button>
+  );
+}, 'DemoNav');
+
+type DemoPickerProps = ComponentProps<'button'> & {
+  name: string;
+  label: string;
+};
+
+const DemoPicker = setup<DemoPickerProps>((props) => {
+  const picker = aria('carousel-picker', props);
+
+  return () => <button ref={picker.ref} {...picker.restProps(['children'])} className="demo-carousel-picker" />;
+}, 'DemoPicker');
+
+const DemoPlayer = setup<ComponentProps<'button'>>((props) => {
+  const player = aria('carousel-player', props);
+
+  return () => (
+    <button ref={player.ref} {...player.restProps(['children'])} className="demo-carousel-player">
+      {player.autoplay ? 'Pause' : 'Play'}
+    </button>
+  );
+}, 'DemoPlayer');
+
+const Demo = (props: DemoCarouselProps) => (
+  <DemoCarousel {...props} keys={['mountains', 'ocean', 'desert']}>
+    <DemoViewport>
+      <DemoSlide name="mountains">
+        Above the treeline, weather makes the schedule.
+      </DemoSlide>
+      <DemoSlide name="ocean">
+        Swell arrives on its own time, every time.
+      </DemoSlide>
+      <DemoSlide name="desert">
+        Nights go cold enough to remind you it is still winter.
+      </DemoSlide>
+    </DemoViewport>
+    <div className="demo-carousel-controls">
+      <DemoNav label="Previous" direction={-1} />
+      <DemoPicker name="mountains" label="Mountains slide" />
+      <DemoPicker name="ocean" label="Ocean slide" />
+      <DemoPicker name="desert" label="Desert slide" />
+      <DemoNav label="Next" direction={1} />
+      <DemoPlayer />
+    </div>
+  </DemoCarousel>
+);
+```
+```html
+<div className="demo-carousel-stack">
+  <div>
+    <p className="demo-label">Looped, autoplay</p>
+    <Demo label="Featured slides" value="mountains" autoplay interval={3000} loop />
+  </div>
+  <div>
+    <p className="demo-label">No loop, autoplay off</p>
+    <Demo label="Field notes" value="mountains" interval={3000} />
+  </div>
+</div>
+```
+
+<div className="demo-carousel-stack">
+  <div>
+    <p className="demo-label">Looped autoplay with player</p>
+    <Demo label="Featured slides" value="mountains" autoplay interval={3000} loop />
+  </div>
+  <div>
+    <p className="demo-label">No loop, autoplay off</p>
+    <Demo label="Field notes" value="mountains" interval={3000} />
+  </div>
+</div>
+:::
+
+:::tip
+Focus the slide area and use the arrow keys — unlike tabs, **the arrows switch the slide**, they don't just move focus. Hovering pauses the timer, focusing it stops rotation outright with a `toggle` event either way, and the player button toggles it back on.
+:::
+
+## Carousel
+
+**The group as a whole.** It holds which slide is current, whether rotation runs, and the timer — the viewport, slides, buttons, dots, and player all follow it.
+
+### Usage
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'carousel',
+  props: CarouselProps
+): CarouselAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type CarouselProps = ComponentProps<'div'> & {
+  id?: string;
+  keys?: string[];
+  value?: string;
+  loop?: boolean;
+  playing?: boolean;
+  autoplay?: boolean;
+  interval?: number;
+  arrowNav?: boolean;
+  disabled?: boolean;
+  label: string;
+  onchange?: (event: CustomEvent<string | undefined>) => void;
+  ontoggle?: (event: CustomEvent<boolean>) => void;
+};
+
+const Carousel = setup<CarouselProps>((props) => {
+  const carousel = aria('carousel', props);
+
+  return () => (
+    <div ref={carousel.ref} {...carousel.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type CarouselProps = ComponentProps<'div'> & {
+  id?: string;
+  keys?: string[];
+  value?: string;
+  loop?: boolean;
+  playing?: boolean;
+  autoplay?: boolean;
+  interval?: number;
+  arrowNav?: boolean;
+  disabled?: boolean;
+  label: string;
+  onchange?: (event: CustomEvent<string | undefined>) => void;
+  ontoggle?: (event: CustomEvent<boolean>) => void;
+};
+
+const Carousel = setup<CarouselProps>((props) => {
+  const carousel = aria('carousel', props);
+
+  return (
+    <div ref={carousel.ref} {...carousel.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
+
+### Parameters
+
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **id** _string, optional_: The namespace the viewport identity is derived from. Generated as `carousel-<n>` when you leave it out, so the viewport ends up as `{id}-viewport` and nav and player point at it.
+- **keys** _string[], optional_: The ordered slide keys driving total, last, and current. Defaults to `[]`.
+- **value** _string, optional_: The `name` of the current slide. Left out, the first mounted indicator claims it, so you land on the first slide; an empty carousel holds `undefined`.
+- **loop** _boolean, optional_: Wraps the previous button from the first slide to the last. The timer wraps unless you set this to `false`, in which case reaching the last slide by timer stops rotation.
+- **playing** _boolean, optional_: Whether rotation is currently playing. Driven by the timer coordinator — set `autoplay` to drive it, read this to render.
+- **autoplay** _boolean, optional_: Runs the timer. Pointer hover and focus pause it through the same toggle path as the player, and the player flips it.
+- **interval** _number, optional, default `5000`_: Milliseconds between advances.
+- **arrowNav** _boolean, optional_: Set to `false` to disable arrow-key traversal from the container.
+- **disabled** _boolean, optional_: Locks nav and player across the **whole group**.
+- **label** _string, **required**_: The name screen readers give the whole region.
+- **onchange** _(event: CustomEvent&lt;string | undefined&gt;) =&gt; void, optional_: Called whenever the slide advances, with the new slide's `name` in `detail`.
+- **ontoggle** _(event: CustomEvent&lt;boolean&gt;) =&gt; void, optional_: Called whenever rotation state changes, with the new `autoplay` in `detail` — including hover and focus pauses.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **id** _string_: The namespace in use, generated when you left it out.
+- **viewportId** _string_: The viewport identity every control points at — `{id}-viewport`.
+- **value** _string | undefined_: The current slide key. Write it to jump.
+- **autoplay** _boolean_: Whether the timer is currently running.
+- **playing** _boolean_: Whether rotation is currently playing. Write it to hold or resume the countdown without touching `autoplay`.
+- **disabled** _boolean_: Whether the group is locked, including by `disabled`.
+- **pickers** _HTMLElement[]_: The mounted indicator elements, `[]` before mount.
+
+### Methods
+
+_What you call on the instance._
+
+- **`step(direction?)`**: Steps one slide in `direction` (`1` forward, `-1` back), wrapping only with `loop`. _Called by nav buttons, dots, arrow keys, and the timer — call it directly to drive from your own controls._
+- **`play()`**: Starts the countdown when `autoplay` is on. _Parking at the last slide without `loop` stops rotation instead._
+- **`pause()`**: Holds the countdown and marks `playing` false.
+- **`destroy()`**: Holds the countdown and tears the coordinator down.
+
+### How it behaves
+
+- **Exactly one indicator is current.** Leaving `value` out lets the first mounted dot claim it, so you land on the first slide; an empty carousel holds `undefined` with rotation stopped.
+- **You drive it or it drives itself.** Leave `value` out and the carousel keeps its own place; set it and the carousel follows your state.
+- **Hovering pauses, focusing stops — out loud.** A pointer over the viewport holds the timer and emits `toggle` with `false`; leaving restores the prior `autoplay` and emits it back. Focus landing inside stops rotation the same way.
+- **Reaching the end by timer parks the carousel.** With `loop` off, the advance that lands on the last slide stops rotation and emits `toggle` with `false`.
+- **Manual moves restart the countdown.** Buttons, dots, and arrow keys hold and restart the timer, so the next automatic advance is a full `interval` away.
+
+### Events
+
+_What it tells you._
+
+- **`change`** — fires when the slide advances, with the new slide's `name` in `detail`.
+- **`toggle`** — fires when rotation state changes, with the new `autoplay` in `detail`. Pointer and focus pauses emit through this path, and resuming emits the restored value.
+
+```tsx
+const carousel = aria('carousel', {
+  label: 'Featured slides',
+  onchange: (event) => track(event.detail),
+  ontoggle: (event) => setPlaying(event.detail),
+});
+```
+
+## Carousel Viewport
+
+**The single focus stop.** It owns the arrow keys, the live-region politeness, and the stable identity every control points at.
+
+### Usage
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'carousel-viewport',
+  props?: AriaProps
+): CarouselViewportAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+const Viewport = setup<ComponentProps<'div'>>((props) => {
+  const viewport = aria('carousel-viewport');
+
+  return () => (
+    <div ref={viewport.ref} {...viewport.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+const Viewport = setup<ComponentProps<'div'>>((props) => {
+  const viewport = aria('carousel-viewport');
+
+  return (
+    <div ref={viewport.ref} {...viewport.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **playing** _boolean_: Whether the carousel is currently playing.
+- **autoplay** _boolean_: Whether automatic advancement is active.
+
+### How it behaves
+
+- **One tab stop for the whole slide area.** Tabbing in lands here; the arrows reach every slide from it.
+- **Timed movement stays quiet.** While rotation runs the viewport holds `aria-live="off"`; idle it switches to `polite`, always with `aria-atomic="false"`.
+- **The controls need it.** Previous, next, and player all address this identity — without a viewport they point at nothing. Dots address their own slides instead.
+
+### Navigation
+
+_What the keys do._
+
+- **`ArrowLeft` / `ArrowRight`** — go to the **previous / next** slide, honoring `loop` at the ends.
+- **`Home` / `End`** — go to the **first / last** slide.
+
+## Carousel Slide
+
+**One slide.** Visible only while its `name` is current, named for screen readers by its dot.
+
+### Usage
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'carousel-slide',
+  props: CarouselSlideProps
+): CarouselSlideAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type SlideProps = ComponentProps<'div'> & {
+  name: string;
+  id?: string;
+};
+
+const Slide = setup<SlideProps>((props) => {
+  const slide = aria('carousel-slide', props);
+
+  return () => (
+    <div ref={slide.ref} {...slide.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type SlideProps = ComponentProps<'div'> & {
+  name: string;
+  id?: string;
+};
+
+const Slide = setup<SlideProps>((props) => {
+  const slide = aria('carousel-slide', props);
+
+  return (
+    <div ref={slide.ref} {...slide.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
+
+### Parameters
+
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **name** _string, **required**_: This slide's identity — what `value` and dots point at.
+- **id** _string, optional_: An explicit DOM identifier, if you would rather not use the generated one.
+
+### How it behaves
+
+- **Hidden until current.** An inactive slide carries `hidden` and stays out of the reading and focus order — without ever gaining `inert`.
+- **Screen readers get a group called a slide.** Announced as `carousel-slide` under its dot's label, through `aria-labelledby`.
+
+## Carousel Nav
+
+**The step buttons.** One component used twice — one slides back, one slides forward, each refusing at the bound it has nowhere left to go.
+
+### Usage
+
+```ts
+aria<E extends BaseElement = HTMLButtonElement>(
+  role: 'carousel-nav',
+  props: CarouselNavProps
+): CarouselNavAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type NavProps = ComponentProps<'button'> & {
+  label?: string;
+  direction: 1 | -1;
+};
+
+const Prev = setup<NavProps>((props) => {
+  const prev = aria('carousel-nav', props);
+
+  return () => (
+    <button ref={prev.ref} {...prev.restProps(['children'])}>
+      {props.children}
+    </button>
+  );
+});
+
+const Next = setup<NavProps>((props) => {
+  const next = aria('carousel-nav', props);
+
+  return () => (
+    <button ref={next.ref} {...next.restProps(['children'])}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+const Prev = setup<NavProps>((props) => {
+  const prev = aria('carousel-nav', props);
+
+  return (
+    <button ref={prev.ref} {...prev.restProps(['children'])}>
+      {props.children}
+    </button>
+  );
+});
+
+const Next = setup<NavProps>((props) => {
+  const next = aria('carousel-nav', props);
+
+  return (
+    <button ref={next.ref} {...next.restProps(['children'])}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+:::
+
+### Parameters
+
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **label** _string, optional_: The name screen readers announce — "Previous slide" / "Next slide".
+- **direction** _1 | -1, **required**_: Which way this button steps — `-1` back, `1` forward.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **disabled** _boolean_: Locked at the first slide going back, at the last going forward, or with fewer than two slides — including by group `disabled`.
+- **playing** _boolean_: Whether the carousel is currently playing.
+- **autoplay** _boolean_: Whether automatic advancement is active.
+
+### How it behaves
+
+- **Labeled and addressed.** Announced as "Previous slide" / "Next slide" and pointed at the viewport, so the relationship survives any layout.
+- **Disabled means inert.** A locked button stays visible but refuses clicks, `Enter`, and `Space` — and fires no event.
+- **Wrapping is opt-in.** Backwards wraps only with `loop`; forwards wraps unless `loop` is `false`.
+
+### Navigation
+
+_What the keys do._
+
+- **`Enter` / `Space`** — steps the slide, unless disabled.
+- **`Click`** — steps the slide, unless disabled.
+
+## Carousel Picker
+
+**One dot.** Jumps straight to its slide and marks itself current while that slide is up.
+
+### Usage
+
+```ts
+aria<E extends BaseElement = HTMLButtonElement>(
+  role: 'carousel-picker',
+  props: CarouselPickerProps
+): CarouselPickerAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type PickerProps = ComponentProps<'button'> & {
+  name: string;
+  label: string;
+  id?: string;
+  selected?: boolean;
+  disabled?: boolean;
+};
+
+const Picker = setup<PickerProps>((props) => {
+  const picker = aria('carousel-picker', props);
+
+  return () => (
+    <button ref={picker.ref} {...picker.restProps(['children'])}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type PickerProps = ComponentProps<'button'> & {
+  name: string;
+  label: string;
+  id?: string;
+  selected?: boolean;
+  disabled?: boolean;
+};
+
+const Picker = setup<PickerProps>((props) => {
+  const picker = aria('carousel-picker', props);
+
+  return (
+    <button ref={picker.ref} {...picker.restProps(['children'])}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+:::
+
+### Parameters
+
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **name** _string, **required**_: The slide this dot jumps to.
+- **label** _string, **required**_: This dot's accessible name, naming its target slide.
+- **id** _string, optional_: An explicit DOM identifier, if you would rather not use the generated one.
+- **selected** _boolean, optional_: Takes the selection when the group has no `value` of its own.
+- **disabled** _boolean, optional_: This dot alone refuses to jump.
+
+### How it behaves
+
+- **Named after its slide.** Its accessible name is the target slide's label, so dots stay meaningful without visible text.
+- **Only the current dot claims it.** `aria-current="true"` sits on exactly one dot; the rest carry no claim.
+- **Clicking home changes nothing.** Activating the dot of the slide already up fires no event.
+
+### Navigation
+
+_What the keys do._
+
+- **`Enter` / `Space`** — jumps to this dot's slide.
+- **`Click`** — jumps to this dot's slide.
+
+## Carousel Player
+
+**The play/pause button.** Toggles rotation and says which way it went through its label.
+
+### Usage
+
+```ts
+aria<E extends BaseElement = HTMLButtonElement>(
+  role: 'carousel-player',
+  props?: CarouselPlayerProps
+): CarouselPlayerAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type PlayerProps = ComponentProps<'button'> & {
+  label?: string;
+  playingLabel?: string;
+};
+
+const Player = setup<PlayerProps>((props) => {
+  const player = aria('carousel-player', props);
+
+  return () => (
+    <button ref={player.ref} {...player.restProps(['children'])}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type PlayerProps = ComponentProps<'button'> & {
+  label?: string;
+  playingLabel?: string;
+};
+
+const Player = setup<PlayerProps>((props) => {
+  const player = aria('carousel-player', props);
+
+  return (
+    <button ref={player.ref} {...player.restProps(['children'])}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+:::
+
+### Parameters
+
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **label** _string, optional_: The name while stopped — "Start slide rotation".
+- **playingLabel** _string, optional_: The name while running — "Stop slide rotation".
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **disabled** _boolean_: Locked with fewer than two slides — there is nothing to rotate through — including by group `disabled`.
+- **playing** _boolean_: Whether the carousel is currently playing.
+- **autoplay** _boolean_: Whether automatic advancement is active.
+
+### How it behaves
+
+- **Its state travels by label.** Running it reads "Stop slide rotation", stopped "Start slide rotation" — never `aria-pressed`.
+- **Pointed at the viewport** like every other control.
+- **Disabled means inert.** With fewer than two slides it stays visible but refuses clicks, `Enter`, and `Space`.
+
+### Navigation
+
+_What the keys do._
+
+- **`Enter` / `Space`** — toggles rotation, unless disabled.
+- **`Click`** — toggles rotation, unless disabled.
+
+## Next Steps
+
+- **[Tabs](/docs/aria/tabs)**: Single selection with hidden panels and focus-only arrow keys — the closest kin.
+- **[Toast](/docs/aria/toast)**: Timed behavior that pauses for hover and stops for focus.
+- **[Accordion](/docs/aria/accordion)**: Multi-part composite with per-part controls.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Carousel
+
+```ts
+interface CarouselProps {
+  id?: string;
+  keys?: string[];
+  value?: string;
+  label: string;
+  loop?: boolean;
+  playing?: boolean;
+  autoplay?: boolean;
+  interval?: number;
+  arrowNav?: boolean;
+  disabled?: boolean;
+  onchange?: (event: CustomEvent<string | undefined>) => void;
+  ontoggle?: (event: CustomEvent<boolean>) => void;
+}
+
+interface CarouselAttributes {
+  role: 'region';
+  'aria-roledescription': 'carousel';
+  'aria-label': string;
+}
+
+declare class CarouselAria {
+  get id(): string;
+  get viewportId(): string;
+  get value(): string | undefined;
+  set value(value: string | undefined);
+  get autoplay(): boolean;
+  set autoplay(value: boolean);
+  get playing(): boolean;
+  set playing(value: boolean);
+  get disabled(): boolean;
+  get pickers(): Array<HTMLElement>;
+
+  step(direction?: number, e?: KeyboardEvent): void;
+  play(): void;
+  pause(): void;
+  destroy(): void;
+}
+```
+
+### Carousel Viewport
+
+```ts
+interface CarouselViewportAttributes {
+  id: string;
+  role: 'group';
+  tabindex: number;
+  'aria-live': 'off' | 'polite';
+  'aria-atomic': 'false';
+  'aria-roledescription': 'slides';
+}
+
+declare class CarouselViewportAria {
+  get playing(): boolean;
+  get autoplay(): boolean;
+}
+```
+
+### Carousel Slide
+
+```ts
+interface CarouselSlideProps {
+  name: string;
+  id?: string;
+}
+
+interface CarouselSlideAttributes {
+  id: string;
+  role: 'group';
+  hidden: boolean;
+  tabindex: number;
+  'aria-current': string;
+  'aria-labelledby': string;
+  'aria-roledescription': 'slide';
+}
+
+declare class CarouselSlideAria {
+  id: string;
+  get key(): string;
+  get active(): boolean;
+  get selected(): boolean;
+  get playing(): boolean;
+  get autoplay(): boolean;
+}
+```
+
+### Carousel Nav
+
+```ts
+interface CarouselNavProps {
+  label?: string;
+  direction: 1 | -1;
+}
+
+interface CarouselNavAttributes {
+  type?: 'button';
+  'aria-label': string;
+}
+
+declare class CarouselNavAria {
+  get playing(): boolean;
+  get autoplay(): boolean;
+  get disabled(): boolean;
+}
+```
+
+### Carousel Picker
+
+```ts
+interface CarouselPickerProps {
+  id?: string;
+  name: string;
+  label: string;
+  selected?: boolean;
+  disabled?: boolean;
+}
+
+interface CarouselPickerAttributes {
+  id: string;
+  'aria-label': string;
+  'aria-controls': string;
+  'aria-roledescription': 'indicator';
+}
+
+declare class CarouselPickerAria {
+  get active(): boolean;
+  get playing(): boolean;
+  get autoplay(): boolean;
+}
+```
+
+### Carousel Player
+
+```ts
+interface CarouselPlayerProps {
+  label?: string;
+  playingLabel?: string;
+}
+
+interface CarouselPlayerAttributes {
+  type?: 'button';
+  'aria-label': string;
+  'aria-controls': string;
+}
+
+declare class CarouselPlayerAria {
+  get playing(): boolean;
+  get autoplay(): boolean;
+  get disabled(): boolean;
+}
+```
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`attributes`** is the dictionary you spread; **`ref`** is what you bind the element with; **`props`** is the full props dictionary for spreading onto the host; **`restProps(omit)`** hands back your props with the keys you name left out.
+- **`assign()`** changes several parameters at once, **`refine()`** adds attributes of your own, **`on()`** listens for anything the part fires, **`destroy()`** tears it down.

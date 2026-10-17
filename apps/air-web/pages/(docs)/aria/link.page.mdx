@@ -1,52 +1,86 @@
 ---
-title: 'Link'
-description: 'Headless accessible link widget projecting navigation semantics onto native anchors and polyfilling them on custom elements.'
+title: 'Headless Link'
+description: 'Headless link for React and SolidJS. A real disabled state on anchors, the current-page mark, and the role, tab stop, and keys on any other element — with no markup or styles imposed.'
 nav: 'Link'
 nav-priority: 270
 ---
 
-# AirLib Headless Link
+import './aria.css';
+import './link.css';
 
-Navigation triggers must announce themselves as links, expose their destination, and deactivate cleanly when that destination is unavailable. HTML `<a>` covers most of this natively, but it has no disabled state: an unavailable link either stays navigable or gets its `href` ripped out, which silently drops it from assistive technology. Custom link elements built from `<span>` or `<div>` must add `role="link"`, a tab stop, and `Enter` activation by hand. **AirLib Headless Link** (`aria('link')`) turns any element into a navigation trigger — `href` and `target` projection on any host, a real disabled state that keeps the destination discoverable while blocking navigation, current-page announcement, and `Enter` polyfills for custom hosts.
+# Headless Link
+
+A link has to announce itself, expose its destination, and step aside cleanly when that destination is unavailable. A real `<a>` does the first two and has no disabled state at all — an unavailable link either still navigates, or loses its `href` and vanishes from assistive technology. A `<span>` standing in for a link has to be given its role, its tab stop, and its `Enter` key by hand.
+
+**Headless Link** makes any element a navigation trigger: the destination on any host, a real disabled state that blocks navigation while keeping the destination discoverable, the current-page mark, and the keyboard on custom hosts.
 
 ```tsx
 const link = aria('link', props);
 
-<span ref={link.ref} {...link.props}>Documentation</a>
+<a ref={link.ref} {...link.restProps(['children'])} />
 ```
 
-:::interactive[Disabled Link]
+:::interactive[Links]
 ```tsx
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
 
-const DemoLink = setup((props) => {
+type DemoLinkProps = ComponentProps<'a'> & {
+  disabled?: boolean;
+  current?: boolean;
+};
+
+const DemoLink = setup<DemoLinkProps>((props) => {
+  const link = aria('link', props);
+
+  return () => (
+    <a ref={link.ref} {...link.restProps(['children'])} className="demo-link">
+      {props.children}
+    </a>
+  );
+}, 'DemoLink');
+
+type DemoSpanLinkProps = ComponentProps<'span'> & {
+  disabled?: boolean;
+};
+
+const DemoSpanLink = setup<DemoSpanLinkProps>((props) => {
   const link = aria('link', props, { native: false });
 
   return () => (
-    <span ref={link.ref} {...link.restProps(['children'])}>
+    <span ref={link.ref} {...link.restProps(['children'])} className="demo-link">
       {props.children}
     </span>
   );
-}, 'DemoLink');
+}, 'DemoSpanLink');
+```
+```html
+<div className="demo-link-stack">
+  <DemoLink href="/docs/aria/button">Button documentation</DemoLink>
+  <DemoLink href="/docs/aria/link" current>Link documentation (marked current)</DemoLink>
+  <DemoLink href="/admin" disabled>Restricted destination</DemoLink>
+  <DemoSpanLink href="/docs/aria/divider">Custom host (a span)</DemoSpanLink>
+</div>
 ```
 
-<div className="flex flex-col gap-3 p-4 max-w-sm border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 text-sm">
-  <DemoLink
-    href="/docs/aria/button"
-    className="text-primary underline underline-offset-4 hover:opacity-80 cursor-pointer"
-  >
-    Button documentation (span, fully keyboard-active)
-  </DemoLink>
-  <DemoLink href="/admin" disabled={true} className="text-zinc-400 dark:text-zinc-600 underline decoration-dashed underline-offset-4 cursor-not-allowed">
-    Restricted destination (href kept, navigation blocked)
-  </DemoLink>
+<div className="demo-link-stack">
+  <DemoLink href="/docs/aria/button">Button documentation</DemoLink>
+  <DemoLink href="/docs/aria/link" current>Link documentation (marked current)</DemoLink>
+  <DemoLink href="/admin" disabled>Restricted destination</DemoLink>
+  <DemoSpanLink href="/docs/aria/divider">Custom host (a span)</DemoSpanLink>
 </div>
+:::
+
+:::tip
+Keep a disabled link in the DOM and pass `disabled` rather than swapping the `<a>` for a `<span>`. The destination stays discoverable, navigation is blocked, and assistive technology reports the link as unavailable instead of reporting nothing at all.
 :::
 
 ## Link
 
-Navigation trigger with destination projection, real disabled lockout, and current-page announcement.
+**One navigation trigger.** It behaves like an anchor whether the host is one or not.
+
+### Usage
 
 ```ts
 aria<E extends BaseElement = HTMLAnchorElement>(
@@ -56,18 +90,19 @@ aria<E extends BaseElement = HTMLAnchorElement>(
 ): LinkAria<E>
 ```
 
-### Usage
-
 :::code-group
 
-```tsx [React] executable
+```tsx [React]
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
 import type { ComponentProps } from 'react';
 
 type LinkProps = ComponentProps<'a'> & {
+  href?: string;
+  target?: string;
   disabled?: boolean;
   current?: boolean;
+  page?: number;
 };
 
 const Link = setup<LinkProps>((props) => {
@@ -87,8 +122,11 @@ import { setup } from '@airlib/solid';
 import type { ComponentProps } from 'solid-js';
 
 type LinkProps = ComponentProps<'a'> & {
+  href?: string;
+  target?: string;
   disabled?: boolean;
   current?: boolean;
+  page?: number;
 };
 
 const Link = setup<LinkProps>((props) => {
@@ -104,83 +142,109 @@ const Link = setup<LinkProps>((props) => {
 
 :::
 
-`disabled` is omitted explicitly: it is a controller input, not an anchor attribute, so forwarding it would leak an invalid `disabled` attribute onto the DOM.
-
 ### Parameters
 
-- `props.href` *(string, optional)*: Target resource URL. Kept while disabled so the link stays discoverable.
-- `props.target` *(string, optional)*: Target browsing context, such as `_blank`.
-- `props.disabled` *(boolean, optional)*: Blocks navigation via `preventDefault`, announces `aria-disabled`, and parks `tabindex` at `-1`.
-- `props.current` *(boolean, optional)*: Current-page override. When unset, `href` is matched against the ambient `linkCtx` URL. Inside an `aria('pagination')`, the current link is the run's only tab stop (`tabindex="0"`); the other page links park at `-1`.
-- `props.page` *(number, optional)*: Page position this link commits into an enclosing `aria('pagination')` when it activates. Owned by the controller, so it never reaches the DOM as an attribute.
-- `options.native` *(boolean, optional, default `true`)*: Pass `false` when binding to a custom `<span>` or `<div>` host.
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **href** _string, optional_: The destination. **Kept while disabled**, so the link stays discoverable.
+- **target** _string, optional_: The browsing context, such as `_blank`.
+- **disabled** _boolean, optional_: Blocks navigation, announces the link as unavailable, and parks it outside the tab order.
+- **current** _boolean, optional_: Forces the current-page mark. Left unset, the destination is matched against the page you are on.
+- **page** _number, optional_: The position this link commits into an enclosing [pagination](/docs/aria/pagination) when it activates.
+
+### Options
+
+_What you fix when you create it. Read once, never reactive._
+
+- **native** _boolean, optional, default `true`_: Pass `false` for a `<span>` or `<div>` host and the role, the tab stop, and `Enter` come with it.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **href** _string_: The destination in force, kept while disabled.
+- **isCurrent** _boolean_: Whether this is the page you are on, by override or by match.
+- **disabled** _boolean_: Whether navigation is blocked.
 
 ### How it behaves
 
-On a native `<a>`, no `role` is emitted. Disabling keeps `href` on the element and cancels the click instead, so the destination stays discoverable while nothing navigates; `tabindex` parks at `-1`. On a custom host (`native: false`), it compiles `role="link"` (when `href` is declared), `tabindex` (`0` enabled, `-1` disabled), and synthesizes a cancelable click on `Enter` unless the keystroke was already canceled. `Space` commits nothing. An enabled custom click navigates to `href` (`target` honored, `_self` default) after the event bubble settles, so any consumer cancellation still wins; a detached host never navigates. `Ctrl`/`Cmd`/`Shift`-click and real middle-click (`auxclick`, button 1) open `href` in a new tab (`_blank`) unless an explicit `target` says otherwise — matching what a native anchor does. Matching the ambient `linkCtx` URL (or `current: true`) emits `aria-current="page"`. Inside an `aria('pagination')`, a native page link is a tab stop only while it is the current page — the other page links sit at `tabindex="-1"` and are reached with the arrow keys. Custom hosts keep their own `0` / `-1` stop and don't join the rove. The same single-stop rule applies inside an `aria('breadcrumb')` — mark the terminal page `current`. A link carrying `page` writes that position into the enclosing `aria('pagination')` when it activates, on either host, so clicking page 4 moves the run; a link with no `page` commits nothing and never disturbs the position. Middle-click and `Ctrl` / `Cmd` / `Shift` gestures open a tab and deliberately commit no page, since the reader has not left the current one.
+- **Native first.** On a real `<a>` nothing redundant is added and the browser keeps handling activation.
+- **A disabled state HTML doesn't have.** The destination stays on the element, the click is cancelled instead, and the link is announced as unavailable rather than gone.
+- **Custom hosts become links.** With `native: false`, a `<span>` or `<div>` gets the link role, a tab stop, and `Enter` activation. `Space` stays out of it — that is a button's key.
+- **New-tab gestures behave like the browser's.** `Ctrl` / `Cmd` / `Shift`-click and middle-click open the destination in a new tab unless `target` says otherwise.
+- **The current page says so.** Matching the page you are on — or `current: true` — marks the link as it.
+- **It can drive a pagination.** A link carrying `page` writes that position into the enclosing pagination when it activates; new-tab gestures open a tab and commit nothing, because you never left the page.
+- **Inside a pagination or a breadcrumb, one tab stop.** Only the current link takes it; the rest are reached with the arrow keys.
 
-:::tip[Disabled links]
-Keep the element in the DOM and pass `disabled` rather than swapping `<a>` for a `<span>`. The destination stays discoverable, navigation is blocked, and assistive technologies report the link as unavailable instead of reporting nothing at all.
-:::
+### Navigation
 
-## Putting It Together
+_What the keys do._
 
-Once your component is wired with `aria('link')`, compose it to build navigation that degrades honestly:
-
-```tsx
-<div className="flex flex-col gap-3">
-  <Link href="/docs/aria/button">Button documentation</Link>
-  <Link href="https://www.w3.org/WAI/ARIA/apg/patterns/" target="_blank">
-    WAI-ARIA Authoring Practices
-  </Link>
-  <Link href="/docs/aria/button" disabled={true}>
-    Restricted destination
-  </Link>
-</div>
-```
-
-:::interactive[Link Interactive Demo]
-<div className="flex flex-col gap-3 p-4 max-w-sm border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 text-sm">
-  <Link
-    href="/docs/aria/button"
-    className="text-zinc-800 dark:text-zinc-200 underline decoration-zinc-300 dark:decoration-zinc-700 underline-offset-4 hover:decoration-primary"
-  >
-    Button documentation
-  </Link>
-  <Link
-    href="https://www.w3.org/WAI/ARIA/apg/patterns/"
-    target="_blank"
-    className="text-primary underline underline-offset-4 hover:opacity-80"
-  >
-    WAI-ARIA Authoring Practices
-  </Link>
-  <Link
-    href="/docs/aria/button"
-    disabled={true}
-    className="text-zinc-400 dark:text-zinc-600 underline decoration-dashed underline-offset-4 cursor-not-allowed"
-  >
-    Restricted destination
-  </Link>
-</div>
-:::
-
-## Keyboard Navigation
-
-- **Tab**: Focuses the link. Disabled links on either host sit at `tabindex="-1"` and are skipped. Inside a pagination or a breadcrumb, only the current link takes a tab stop.
-- **Enter**: Activates the link. Native anchors handle this in the browser; custom hosts receive the polyfill.
-- **Space**: Intentionally does nothing — `Space` activates buttons, not links.
-
-## What you get
-
-- **Native-first semantics.** Binds to `<a>` by default, so no redundant `role` is emitted and the browser keeps handling activation.
-- **A real disabled state.** Keeps `href`, announces `aria-disabled="true"`, and blocks navigation — the state HTML anchors lack.
-- **Current-page announcement.** Matches `href` against the ambient URL, emitting `aria-current="page"`, with a `current` override.
-- **Pagination-aware.** A `page` prop commits its position into the enclosing pagination on activation, so prev / next controls and page links share one source of truth.
-- **Custom element support.** Compiles `role="link"`, manages `tabindex`, and activates on `Enter` for `<span>` and `<div>` hosts.
-- **Browser-accurate keys.** `Enter` activates a link; `Space` deliberately does not.
+- **`Tab`** — focuses the link. A disabled link is parked outside the tab order on either host; inside a pagination or a breadcrumb only the current link takes the stop.
+- **`Enter`** — activates the link. A native anchor does this in the browser; a custom host gets it from the link.
+- **`Space`** — does nothing on purpose. `Space` activates buttons, not links, and the page keeps scrolling.
 
 ## Next Steps
 
-- **[Button](/docs/aria/button)**: Command triggers and two-state toggle buttons.
-- **[Toolbar](/docs/aria/toolbar)**: Group navigation and action controls under a single tab stop.
-- **[Overview](/docs/aria)**: The attribute and ref contract every controller shares.
+- **[Button](/docs/aria/button)**: Command triggers with safe form defaults.
+- **[Navigation](/docs/aria/navigation)**: The roving group these links live in.
+- **[Pagination](/docs/aria/pagination)**: The page run a link carrying `page` commits into.
+- **[Breadcrumb](/docs/aria/breadcrumb)**: The same roving group over a trail of ancestors.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Link
+
+```ts
+interface LinkProps {
+  href?: string;
+  target?: string;
+  disabled?: boolean;
+  current?: boolean;
+  page?: number;
+}
+
+interface LinkOptions {
+  native?: boolean;
+}
+
+interface LinkAttributes {
+  role?: 'link';
+  href?: string;
+  target?: string;
+  tabindex?: number;
+  'aria-disabled'?: 'true' | 'false';
+  'aria-current'?: 'page';
+}
+
+declare class LinkAria {
+  get href(): string | undefined;
+  get isCurrent(): boolean;
+  get disabled(): boolean;
+}
+```
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`attributes`** is the dictionary you spread; **`ref`** is what you bind the element with; **`props`** is the full props dictionary for spreading onto the host; **`restProps(omit)`** hands back your props with the keys you name left out.
+- **`assign()`** changes several parameters at once, **`refine()`** adds attributes of your own, **`on()`** listens for anything the part fires, **`destroy()`** tears it down.

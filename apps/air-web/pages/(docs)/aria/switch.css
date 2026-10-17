@@ -1,0 +1,96 @@
+.demo-switch-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--demo-gap-sm);
+  width: 100%;
+  padding: 1rem;
+  border: 1px solid var(--demo-border);
+  border-radius: var(--demo-radius);
+  background: var(--demo-bg);
+}
+
+.demo-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--demo-gap);
+  padding: 0.5rem 0.625rem;
+  border-radius: var(--demo-radius-sm);
+  font-size: var(--demo-font);
+  color: var(--demo-fg);
+  cursor: pointer;
+  user-select: none;
+}
+
+.demo-switch-row:hover:not(:has(.demo-switch[aria-disabled='true'])) {
+  background: var(--demo-hover);
+}
+
+.demo-switch-row:active:not(:has(.demo-switch[aria-disabled='true'])) {
+  background: var(--demo-border);
+}
+
+.demo-switch-row:has(.demo-switch[aria-disabled='true']) {
+  color: var(--demo-muted);
+  cursor: not-allowed;
+}
+
+.demo-switch {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  width: 2.5rem;
+  height: 1.375rem;
+  border-radius: 9999px;
+  background: var(--demo-border);
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.15s;
+}
+
+.demo-switch::after {
+  content: '';
+  position: absolute;
+  top: 0.125rem;
+  left: 0.125rem;
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: 9999px;
+  background: var(--demo-bg);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
+  transition: transform 0.15s;
+}
+
+.demo-switch:hover {
+  background: color-mix(in oklab, var(--demo-border), var(--demo-muted) 18%);
+}
+
+.demo-switch[aria-checked='true'] {
+  background: var(--demo-fg);
+}
+
+.demo-switch[aria-checked='true']::after {
+  transform: translateX(1.125rem);
+}
+
+.demo-switch[aria-checked='true']:hover {
+  background: var(--demo-fg-hover);
+}
+
+.demo-switch:active {
+  background: var(--demo-muted);
+}
+
+.demo-switch[aria-checked='true']:active {
+  background: var(--demo-fg-active);
+}
+
+.demo-switch[aria-disabled='true'] {
+  opacity: var(--demo-disabled);
+  pointer-events: none;
+}
+
+.demo-switch:focus-visible {
+  outline: var(--demo-outline);
+  outline-offset: var(--demo-outline-offset);
+}

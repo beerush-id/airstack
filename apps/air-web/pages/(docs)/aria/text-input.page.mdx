@@ -1,56 +1,91 @@
 ---
-title: 'Text Input'
-description: 'Live value synchronization with native and custom hosts, validation projection, and blur commits.'
+title: 'Headless Text Input'
+description: 'Headless text fields for React and SolidJS. One live value in both directions without fighting the caret, native and custom hosts, validation projected as the browser states it, and a commit signal you can trust — no markup or styles imposed.'
 nav: 'Text Input'
 nav-priority: 260
 ---
 
-# AirLib Headless Text Input
+import './aria.css';
+import './text-input.css';
 
-A text field looks native until you need it headless: syncing live `value` both ways, projecting `label`/`invalid` to ARIA, honoring `readonly` without losing focus, parking disabled tab stops, and — on custom hosts — compiling `textbox`/`searchbox` roles with blur commits, all without fighting the browser's caret, autocomplete, or form submission. **AirLib Headless Text Input** (`aria('text-input')`) turns any element into a field that behaves — native IDL on real inputs, full ARIA polyfills on custom hosts, without dictating markup or styles.
+# Headless Text Input
+
+A text field is the one control you mostly should not redraw. Getting it right means **keeping `value` live in both directions without yanking the caret**, **projecting required, invalid, and readonly onto whichever host you chose**, **leaving typing, selection, autocomplete, and IME to the browser**, and **telling your code when the text actually commits**.
+
+**Headless Text Input** does all of that for you, and leaves the markup and the styling entirely yours.
 
 ```tsx
 const input = aria('text-input', props);
 
-<input ref={input.ref} {...input.props} />
+<input ref={input.ref} {...input.restProps()} />
 ```
 
-<style>{`.demo-textinput{padding:.5rem .75rem;border-radius:.5rem;border:1px solid #d4d4d8;background:#fff;font-size:.875rem;color:#18181b;outline:none;transition:border-color .15s}.demo-textinput::placeholder{color:#a1a1aa}.demo-textinput:focus{border-color:#18181b}.demo-textinput[aria-invalid="true"]{border-color:#f87171}.demo-textinput[aria-invalid="true"]:focus{border-color:#ef4444}.demo-textinput:disabled{background:#f4f4f5;cursor:not-allowed;opacity:.6}`}</style>
-
-:::interactive[Native Text Input]
+:::interactive[Profile Details]
 ```tsx
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
 import type { ComponentProps } from 'react';
 
-type DemoTextInputProps = ComponentProps<'input'> & {
+type DemoFieldProps = ComponentProps<'input'> & {
+  caption: string;
+  hint?: string;
+  error?: string;
   value?: string;
-  label?: string;
-  placeholder?: string;
   required?: boolean;
   invalid?: boolean | 'grammar' | 'spelling';
   disabled?: boolean;
 };
 
-const DemoTextInput = setup<DemoTextInputProps>((props) => {
+const DemoField = setup<DemoFieldProps>((props) => {
   const input = aria('text-input', props);
 
   return () => (
-    <input ref={input.ref} {...input.props} className="demo-textinput" />
+    <label className="demo-field">
+      <span className="demo-field-label">{props.caption}</span>
+      <input ref={input.ref} {...input.restProps(['children', 'caption', 'hint', 'error'])} className="demo-field-input" />
+      {props.error ? <span className="demo-field-error">{props.error}</span> : <span className="demo-field-hint">{props.hint}</span>}
+    </label>
   );
-}, 'DemoTextInput');
+}, 'DemoField');
+
+const DemoArea = setup<DemoFieldProps>((props) => {
+  const input = aria('text-input', props);
+
+  return () => (
+    <label className="demo-field">
+      <span className="demo-field-label">{props.caption}</span>
+      <textarea ref={input.ref} {...input.restProps(['children', 'caption', 'hint', 'error'])} className="demo-field-input" rows={3} />
+      {props.error ? <span className="demo-field-error">{props.error}</span> : <span className="demo-field-hint">{props.hint}</span>}
+    </label>
+  );
+}, 'DemoArea');
+```
+```html
+<div className="demo-field-card">
+  <DemoField caption="Display name" value="Ada Lovelace" hint="Shown beside your reviews." />
+  <DemoField caption="Work email" placeholder="you@example.com" required={true} invalid={true} error="Enter a valid email address." />
+  <DemoArea caption="About you" placeholder="Anything else we should know?" hint="Optional, up to 500 characters." />
+  <DemoField caption="Legacy ID" value="AX-1843" disabled={true} hint="Locked by your workspace admin." />
+</div>
 ```
 
-<div className="flex mx-auto gap-3">
-  <DemoTextInput label="Full name" placeholder="Ada Lovelace" />
-  <DemoTextInput label="Email" required={true} invalid={true} placeholder="you@example.com" />
-  <DemoTextInput label="Disabled field" disabled={true} placeholder="Unavailable" />
+<div className="demo-field-card">
+  <DemoField caption="Display name" value="Ada Lovelace" hint="Shown beside your reviews." />
+  <DemoField caption="Work email" placeholder="you@example.com" required={true} invalid={true} error="Enter a valid email address." />
+  <DemoArea caption="About you" placeholder="Anything else we should know?" hint="Optional, up to 500 characters." />
+  <DemoField caption="Legacy ID" value="AX-1843" disabled={true} hint="Locked by your workspace admin." />
 </div>
+:::
+
+:::tip
+The spread carries `defaultValue`, never `value`: the element is seeded once and stays uncontrolled while `props.value` remains the live source of truth. That is what keeps the caret where the user put it — each keystroke is copied into props instead of the element being written back on every render.
 :::
 
 ## Text Input
 
-Live value synchronization with native and custom hosts.
+**The field itself.** One live string, on whichever host you choose.
+
+### Usage
 
 ```ts
 aria<E extends BaseElement = HTMLInputElement>(
@@ -60,29 +95,26 @@ aria<E extends BaseElement = HTMLInputElement>(
 ): TextInputAria<E>
 ```
 
-### Usage
-
 :::code-group
 
-```tsx [React] executable
+```tsx [React]
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
 import type { ComponentProps } from 'react';
 
-type TextInputProps = ComponentProps<'input'> & {
-  value?: string;
+type TextFieldProps = ComponentProps<'input'> & {
   label?: string;
-  placeholder?: string;
-  required?: boolean;
-  invalid?: boolean | 'grammar' | 'spelling';
-  disabled?: boolean;
+  value?: string;
 };
 
-const TextInput = setup<TextInputProps>((props) => {
+const TextField = setup<TextFieldProps>((props) => {
   const input = aria('text-input', props);
 
   return () => (
-    <input ref={input.ref} {...input.restProps(['children'])} />
+    <label>
+      <span>{props.label}</span>
+      <input ref={input.ref} {...input.restProps(['label'])} />
+    </label>
   );
 });
 ```
@@ -92,106 +124,152 @@ import { aria } from '@airlib/aria';
 import { setup } from '@airlib/solid';
 import type { ComponentProps } from 'solid-js';
 
-type TextInputProps = ComponentProps<'input'> & {
-  value?: string;
+type TextFieldProps = ComponentProps<'input'> & {
   label?: string;
-  placeholder?: string;
-  required?: boolean;
-  invalid?: boolean | 'grammar' | 'spelling';
-  disabled?: boolean;
+  value?: string;
 };
 
-const TextInput = setup<TextInputProps>((props) => {
+const TextField = setup<TextFieldProps>((props) => {
   const input = aria('text-input', props);
 
   return (
-    <input ref={input.ref} {...input.restProps(['children'])} />
+    <label>
+      <span>{props.label}</span>
+      <input ref={input.ref} {...input.restProps(['label'])} />
+    </label>
   );
 });
 ```
 
 :::
 
-The compiled dictionary carries `defaultValue`, never `value` — the element stays uncontrolled while props remain the source of truth. Bind `name` yourself; the projection never emits it.
-
 ### Parameters
 
-- `props.value` *(string, optional, default `""`)*: Live text value, read and write.
-- `props.kind` *(optional, default `'text'`)*: `'search'` selects the `searchbox` role on custom hosts; every other kind carries `textbox`.
-- `props.multiline` *(boolean, optional)*: Compiles `aria-multiline="true"` on custom hosts; the native multiline host is a `<textarea>`.
-- `props.label` *(string, optional)*: Accessible label compiled to `aria-label`.
-- `props.readonly` *(boolean, optional)*: Blocks edits while keeping focusability.
-- `props.disabled` *(boolean, optional)*: Blocks edits and commits; custom hosts park at `tabindex="-1"`.
-- `props.required` *(boolean, optional)*: Required validation indicator.
-- `props.invalid` *(boolean | 'grammar' | 'spelling', optional)*: Invalid indicator, always compiled explicitly (default `"false"`).
-- `props.placeholder` *(string, optional)*: Placeholder hint.
-- `props.onchange` *(function, optional)*: Called with the committed text when the value commits.
-- `options.native` *(boolean, optional, default `true`)*: Pass `false` for custom non-input elements.
+_What you pass in. The props object stays live — typing moves it, and writing it moves the field._
+
+- **value** _string, optional, default `''`_: The text. **Typing writes into it** and writing it pushes text into the field.
+- **kind** _'text' | 'password' | 'search' | 'email' | 'tel' | 'url', optional, default `'text'`_: Only `'search'` changes anything: a custom host becomes a `searchbox` and a native one is typed `search`. Every other kind is carried as plain text.
+- **multiline** _boolean, optional_: Says the field takes several lines — compiled as `aria-multiline` on a custom host, where a `<textarea>` already announces it on its own.
+- **readonly** _boolean, optional_: Refuses edits **while staying focusable and selectable**, so the text can still be read out and copied.
+- **disabled** _boolean, optional_: Refuses edits and commits, and takes the field out of the tab order on a custom host.
+- **required** _boolean, optional_: Asks for a non-empty value before the form is accepted.
+- **invalid** _boolean | 'grammar' | 'spelling', optional, default `false`_: Says the value is wrong, and which kind of wrong it is.
+- **placeholder** _string, optional_: The hint shown while the field is empty.
+- **label** _string, optional_: The name the field is announced by, for the times a visible `<label>` is not on screen.
+- **onchange** _(event: CustomEvent&lt;string&gt;) =&gt; void, optional_: Called with the committed text once the value really moves.
+
+### Options
+
+_What you fix when you create it. Read once, never reactive._
+
+- **native** _boolean, optional, default `true`_: Pass `false` when the host is not an `<input>` or `<textarea>`, and the field gets `role="textbox"` (or `searchbox`), a tab stop, and an ARIA mirror for every state.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **value** _string_: The text in the field. Writing it replaces what the user sees.
+- **disabled** _boolean_: Whether the field is locked.
 
 ### How it behaves
 
-- Native `<input>`/`<textarea>` hosts emit no `role` and sync `readonly`, `disabled`, `required` IDL properties; browser `input`/`change` pass through and are never re-dispatched. `type` compiles only for the search face — an explicit `undefined` is never emitted, since getter-only hosts throw on assignment.
-- Custom hosts compile `role="textbox"` (`searchbox` for `kind: 'search'`), `aria-multiline` only when multiline, always-explicit `aria-readonly`/`aria-disabled`/`aria-required`/`aria-invalid`, and `tabindex` (`0` enabled, `-1` disabled).
-- Typing commits to reactive `value` unless blocked by `disabled` or `readonly`. Custom hosts dispatch a bubbling `change` CustomEvent on blur following edits; blurs with no diff stay silent, and blurs while disabled track the value but withhold the event.
-- The compiled dictionary carries no form attributes — what the field submits is what the author binds, not the snapshot.
+- **The browser keeps the keyboard.** Nothing here intercepts typing, the caret, selection, autocomplete, or input methods — the controller listens for `input` and copies the text into props.
+- **One diff, one commit.** `onchange` runs only when the text really moved, and a disabled field commits nothing.
+- **Native hosts stay native.** An `<input>` or `<textarea>` gets no `role` and no `aria-required`, `aria-readonly`, or `aria-disabled` mirror: `readonly`, `disabled`, and `required` are set as the element's own properties, and `type` is compiled only for the search face — an explicit `undefined` is never written, because a `<textarea>` would throw on it. `aria-invalid` is the exception, because no element has an invalid property to set.
+- **Custom hosts get the whole projection.** `role`, a `tabindex` (`0`, or `-1` when disabled), and explicit `aria-readonly`, `aria-disabled`, `aria-required`, and `aria-invalid`.
+- **Readonly is not disabled.** A readonly field still takes focus and its text is still selectable; only edits and commits stop.
+- **The spread carries `defaultValue`, not `value`.** The element is seeded once and stays uncontrolled while props stay live, so the caret is never fought over.
+- **Nothing is submitted for you.** The projection carries no `name` — bind it on the element yourself.
+- **Owned keys stay owned.** `value`, `type`, `role`, `tabindex`, `readonly`, `required`, and the `aria-*` states can't be overwritten by a refiner of your own.
 
-:::tip[Search Queries]
-For search fields use the [Search Input](/docs/aria/search-input) face, which locks `type="search"` on native hosts and the `searchbox` role on custom ones.
-:::
+### Events
 
-## Putting It Together
+_What it tells you._
 
-Once your components are wired with `aria(...)`, compose them to build fields with honest state:
+- **`input`** — the browser's own text event on a native host, which the controller reads to keep `value` live. It is never replayed.
+- **`change`** — the commit signal, carrying the committed text in `detail`. On a native host the browser's own `change` (leaving the field after an edit, or `Enter`) is handed to `onchange` as a fresh event with the text in `detail`, and **is never put back on the element**, so a listener of your own still sees exactly one. On a custom host the controller dispatches a bubbling `change` of its own. A blur with no diff and any commit under `disabled` stay silent.
 
 ```tsx
-<div className="flex flex-col gap-3 max-w-sm">
-  <label className="flex flex-col gap-1.5 text-sm">
-    <span className="font-medium">Name</span>
-    <DemoTextInput label="Full name" placeholder="Ada Lovelace" />
-  </label>
-  <label className="flex flex-col gap-1.5 text-sm">
-    <span className="font-medium">Required + invalid</span>
-    <DemoTextInput label="Email" required={true} invalid={true} placeholder="you@example.com" />
-  </label>
-  <label className="flex flex-col gap-1.5 text-sm">
-    <span className="font-medium">Disabled</span>
-    <DemoTextInput label="Disabled field" disabled={true} placeholder="Unavailable" />
-  </label>
-</div>
+const input = aria('text-input', {
+  value: '',
+  onchange: (event) => search(event.detail),
+});
 ```
-
-:::interactive[Text Input Interactive Demo]
-<div className="flex flex-col gap-3 p-4 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 max-w-sm text-sm text-zinc-800 dark:text-zinc-200">
-  <label className="flex flex-col gap-1.5">
-    <span className="font-medium">Name</span>
-    <DemoTextInput label="Full name" placeholder="Ada Lovelace" />
-  </label>
-  <label className="flex flex-col gap-1.5">
-    <span className="font-medium">Required + invalid</span>
-    <DemoTextInput label="Email" required={true} invalid={true} placeholder="you@example.com" />
-  </label>
-  <label className="flex flex-col gap-1.5 cursor-not-allowed opacity-60">
-    <span className="font-medium">Disabled</span>
-    <DemoTextInput label="Disabled field" disabled={true} placeholder="Unavailable" />
-  </label>
-</div>
-:::
-
-## Keyboard Navigation
-
-- **Tab**: Focuses the field. Disabled custom hosts sit at `tabindex="-1"` and are skipped.
-- **Typing / Backspace / arrows**: Native text editing — caret, selection, and deletion belong to the browser (or the custom host's own editor); the controller only gates and observes.
-- **Blur**: Commits the value on custom hosts when it moved.
-
-## What you get
-
-- **Two-way live value.** Typing flows into props, writes flow onto the node, uncontrolled by default.
-- **Honest hosts.** Native IDL with zero mirrors; custom ARIA with explicit states and a real tab stop.
-- **Validation projection.** Direct `label`/`invalid` inputs with an always-explicit baseline.
-- **Observable commits.** Bubbling `change` on custom blur-after-edit, browser passthrough on native.
 
 ## Next Steps
 
-- **[Search Input](/docs/aria/search-input)**: The specialized search query controller.
-- **[Option](/docs/aria/option)**: Selectable list and menu items.
-- **[Button](/docs/aria/button)**: Command and toggle button behavioral bridges.
+- **[Search Input](/docs/aria/search-input)**: The same field locked to the search face.
+- **[Field](/docs/aria/field)**: Label, description, and error wired to the control.
+- **[Form](/docs/aria/form)**: The landmark that groups fields for submission.
+- **[File Picker](/docs/aria/file-picker)**: The other way to take user input.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Text Input
+
+```ts
+interface TextInputProps {
+  value?: string;
+  kind?: 'text' | 'password' | 'search' | 'email' | 'tel' | 'url';
+  multiline?: boolean;
+  readonly?: boolean;
+  disabled?: boolean;
+  required?: boolean;
+  invalid?: boolean | 'grammar' | 'spelling';
+  placeholder?: string;
+  label?: string;
+  onchange?: (event: CustomEvent<string>) => void;
+}
+
+interface TextInputOptions {
+  native?: boolean;
+}
+
+interface TextInputAttributes {
+  defaultValue?: string;
+  type?: 'text' | 'search';
+  readonly?: boolean;
+  disabled?: boolean;
+  required?: boolean;
+  placeholder?: string;
+  role?: 'textbox' | 'searchbox';
+  tabindex?: number;
+  'aria-label'?: string;
+  'aria-multiline'?: 'true';
+  'aria-readonly'?: 'true' | 'false';
+  'aria-disabled'?: 'true' | 'false';
+  'aria-required'?: 'true' | 'false';
+  'aria-invalid'?: 'true' | 'false' | 'grammar' | 'spelling';
+}
+
+declare class TextInputAria {
+  get value(): string;
+  set value(next: string);
+  get disabled(): boolean;
+}
+```
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`attributes`** is the dictionary you spread; **`ref`** is what you bind the element with; **`props`** is the full props dictionary for spreading onto the host; **`restProps(omit)`** hands back your props with the keys you name left out.
+- **`assign()`** changes several parameters at once, **`refine()`** adds attributes of your own, **`on()`** listens for anything the part fires, **`destroy()`** tears it down.

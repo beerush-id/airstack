@@ -1,0 +1,915 @@
+---
+title: 'Headless Date Picker'
+description: 'Headless date picker for React and SolidJS. Types a date or picks it from a popup calendar, travels days with the arrow keys, and hands focus back on close — with no markup or styles imposed.'
+nav: 'Date Picker'
+nav-priority: 357
+---
+
+import './aria.css';
+import './date-picker.css';
+
+# Headless Date Picker
+
+A date picker takes one date two ways: typed in, or picked from a calendar. Getting it right means **accepting typed text without choosing anything yet**, **landing focus on the current day when the calendar opens**, **letting the arrow keys travel days without choosing**, and **handing focus back to whatever opened the calendar**.
+
+**Headless Date Picker** does all of that for you, and leaves the markup and the styling entirely yours.
+
+```tsx
+const picker = aria('date-picker', props);
+
+<div ref={picker.ref} {...picker.restProps(['children'])} />
+```
+
+:::interactive[Pick a Day]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup, derived, For, shadowPortal, Snippet } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+const dayLabel = (iso: string) => String(Number(iso.slice(8, 10)));
+
+type DemoPickerProps = ComponentProps<'div'> & {
+  value?: string;
+  min?: string;
+  max?: string;
+  disabled?: boolean;
+};
+
+const DemoPicker = setup<DemoPickerProps>((props) => {
+  const picker = aria('date-picker', props);
+
+  return () => (
+    <div ref={picker.ref} {...picker.restProps(['children'])} className="demo-date-picker">
+      <div className="demo-date-picker-row">
+        <DemoPickerInput />
+        <DemoPickerTrigger />
+      </div>
+      <DemoPickerCalendar>
+        <div className="demo-date-picker-nav">
+          <DemoPrevMonth />
+          <Snippet>
+            {() => <span className="demo-date-picker-month">{picker.range.monthStr}</span>}
+          </Snippet>
+          <DemoYearInput />
+          <DemoNextMonth />
+        </div>
+      </DemoPickerCalendar>
+    </div>
+  );
+}, 'DemoPicker');
+
+type DemoPickerInputProps = ComponentProps<'input'> & {
+  id?: string;
+  disabled?: boolean;
+};
+
+const DemoPickerInput = setup<DemoPickerInputProps>((props) => {
+  const input = aria<HTMLInputElement>('date-picker-input', props);
+
+  return () => (
+    <input ref={input.ref} {...input.props} placeholder="YYYY-MM-DD" className="demo-date-picker-input" />
+  );
+}, 'DemoPickerInput');
+
+type DemoPickerTriggerProps = ComponentProps<'button'>;
+
+const DemoPickerTrigger = setup<DemoPickerTriggerProps>((props) => {
+  const trigger = aria<HTMLButtonElement>('date-picker-trigger', props);
+
+  return () => (
+    <button ref={trigger.ref} {...trigger.restProps(['children'])} className="demo-date-picker-trigger">
+      📅
+    </button>
+  );
+}, 'DemoPickerTrigger');
+
+type DemoMonthNavProps = ComponentProps<'button'>;
+
+const DemoPrevMonth = setup<DemoMonthNavProps>((props) => {
+  const nav = aria<HTMLButtonElement>('date-picker-nav', { type: 'month', direction: -1 });
+
+  return () => (
+    <button ref={nav.ref} {...nav.restProps(['children'])} className="demo-date-picker-navbtn" aria-label="Previous month">
+      ‹
+    </button>
+  );
+}, 'DemoPrevMonth');
+
+const DemoNextMonth = setup<DemoMonthNavProps>((props) => {
+  const nav = aria<HTMLButtonElement>('date-picker-nav', { type: 'month', direction: 1 });
+
+  return () => (
+    <button ref={nav.ref} {...nav.restProps(['children'])} className="demo-date-picker-navbtn" aria-label="Next month">
+      ›
+    </button>
+  );
+}, 'DemoNextMonth');
+
+const DemoYearInput = setup((props) => {
+  const input = aria<HTMLInputElement>('date-picker-year-input', props);
+
+  return () => (
+    <input ref={input.ref} {...input.props} className="demo-date-picker-year" />
+  );
+}, 'DemoYearInput');
+
+type DemoPickerCalendarProps = ComponentProps<'div'>;
+
+const DemoPickerCalendar = setup<DemoPickerCalendarProps>((props) => {
+  const calendar = aria<HTMLElement>('date-picker-calendar', props);
+  const shadow = shadowPortal(() => calendar.open);
+
+  return () => shadow(
+    <div ref={calendar.ref} {...calendar.restProps(['children'])} className="demo-date-picker-calendar">
+      {props.children}
+      <div className="demo-date-picker-grid">
+        <For each={() => calendar.grid.weeks}>
+          {(day) => <div className="demo-date-picker-day demo-date-picker-head">{day}</div>}
+        </For>
+        <For each={() => calendar.grid.dates}>
+          {(date) => <DemoDay date={date} />}
+        </For>
+      </div>
+    </div>
+  );
+}, 'DemoPickerCalendar');
+
+type DemoDayProps = ComponentProps<'div'> & {
+  date: string;
+};
+
+const DemoDay = setup<DemoDayProps>((props) => {
+  const day = aria<HTMLElement>('date-picker-day', props);
+
+  return () => (
+    <div ref={day.ref} {...day.restProps(['children'])} className="demo-date-picker-day">
+      {day.date.date}
+    </div>
+  );
+}, 'DemoDay');
+```
+```html
+<DemoPicker />
+<DemoPicker value="2026-10-14" />
+<DemoPicker value="2026-10-14" min="2026-10-01" max="2026-10-31" />
+```
+
+<div className="flex flex-col items-center justify-center gap-4">
+  <div className='flex flex-col gap-1'>
+    <span className='font-semibold text-xs'>Empty picker</span>
+    <DemoPicker />
+  </div>
+  <div className='flex flex-col gap-1'>
+    <span className='font-semibold text-xs'>Has initial value</span>
+    <DemoPicker value="2026-10-14" />
+  </div>
+  <div className='flex flex-col gap-1'>
+    <span className='font-semibold text-xs'>Has min and max date</span>
+    <DemoPicker value="2026-10-14" min="2026-10-01" max="2026-10-31" />
+  </div>
+</div>
+:::
+
+:::tip
+Open the popup and focus lands on the chosen day. **The arrows move focus only** — `Enter`, `Space`, or a click is what saves the day, and the field shows the saved date. `‹` `›` flip the shown month without choosing. The bounded demo greys out everything outside October.
+:::
+
+## Date Picker
+
+**The group as a whole.** It holds the chosen date and whether the calendar is open, and the field, the button, and the calendar all follow it.
+
+### Usage
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'date-picker',
+  props?: DatePickerProps
+): DatePickerAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps, ReactNode } from 'react';
+
+type PickerProps = ComponentProps<'div'> & {
+  id?: string;
+  value?: string;
+  open?: boolean;
+  min?: string;
+  max?: string;
+  disabled?: boolean;
+  required?: boolean;
+  activeDate?: string;
+  oninput?: (event: CustomEvent<string>) => void;
+  onchange?: (event: CustomEvent<string>) => void;
+  onopen?: (event: CustomEvent<true>) => void;
+  onclose?: (event: CustomEvent<false>) => void;
+  children: ReactNode;
+};
+
+const Picker = setup<PickerProps>((props) => {
+  const picker = aria('date-picker', props);
+
+  return () => (
+    <div ref={picker.ref} {...picker.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+
+const Picker = setup((props) => {
+  const picker = aria('date-picker', props);
+
+  return (
+    <div ref={picker.ref} {...picker.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
+
+### Parameters
+
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **id** _string, optional_: The prefix the field, the button, and the calendar are linked through. Generated when you leave it out.
+- **value** _string, optional_: The chosen date as `YYYY-MM-DD`. Leave it out and nothing is chosen yet.
+- **month** _string, optional_: The shown month as `YYYY-MM`. Starts as the chosen date's month, otherwise the current month; travel updates it without choosing anything.
+- **open** _boolean, optional_: Whether the calendar shows. Flip it to open or close from code.
+- **min** _string, optional_: The earliest date that can be chosen. Earlier days show disabled and refuse clicks.
+- **max** _string, optional_: The latest date that can be chosen. Later days show disabled and refuse clicks.
+- **disabled** _boolean, optional_: Locks typing, toggling, and choosing across the **whole group**.
+- **required** _boolean, optional_: Marks date entry as required.
+- **activeDate** _string, optional_: The day holding the tab stop. Starts as `value`, otherwise today; moving focus across days keeps it fresh.
+- **oninput** _(event: CustomEvent&lt;string&gt;) =&gt; void, optional_: Called whenever the field text is edited, with the typed text in `detail`.
+- **onchange** _(event: CustomEvent&lt;string&gt;) =&gt; void, optional_: Called whenever a day is chosen, with the chosen date in `detail`.
+- **onopen** _(event: CustomEvent&lt;true&gt;) =&gt; void, optional_: Called after the calendar opens, however it was opened.
+- **onclose** _(event: CustomEvent&lt;false&gt;) =&gt; void, optional_: Called after the calendar closes, through every dismissal path.
+
+### Options
+
+_The date picker doesn't take any options._
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **value** _string | undefined_: The chosen date. Writing sets it directly.
+- **activeDate** _string_: The day holding the tab stop, `""` when cleared.
+- **month** _string | undefined_: The shown month id. Writing sets it directly.
+- **open** _boolean_: Whether the calendar shows. Closing from code keeps the saved date.
+- **calendarLabel** _string_: The popup name, `"Calendar"`.
+
+### Methods
+
+_What you call on the instance._
+
+- **`isSelected(date)`**: Whether `date` is the chosen one.
+- **`isDisabledDate(date)`**: Whether `date` refuses interaction — the group locked, or outside `min` / `max`.
+- **`activate(date)`**: Chooses `date`, unless it refuses interaction.
+- **`commit(date)`**: Saves `date`, announces it, and closes the popup.
+- **`navigateMonth(direction)`**: Steps the shown `month` back (`-1`) or forward (`1`) without choosing anything. An invalid or cleared month holds still.
+- **`emitInput(detail)`**: Announces edited text as if the field was typed in.
+- **`emitChange(detail)`**: Announces a chosen date as if a day was picked.
+
+### How it behaves
+
+- **Typing announces, never chooses.** Every keystroke sends `input` with the raw text; `value` stays put until a day is picked.
+- **Travel never saves.** Arrow, `Home` / `End`, and `PageUp` / `PageDown` move focus only — `value` changes solely through choosing.
+- **One tab stop for the whole grid.** The active day carries it; the rest stay out of the tab order.
+- **Out-of-range days refuse everything.** They show disabled and ignore clicks, `Enter`, and `Space`.
+- **Focus comes home.** Choosing or dismissing returns focus to the field or button that opened the popup.
+- **Screen readers get a combobox, a button, and a dialog.** The field announces its popup state, the button announces the same, and the calendar announces itself as `"Calendar"`.
+
+### Events
+
+_What it tells you._
+
+- **`input`** — fires when the field text is edited, with the typed text in `detail`.
+- **`change`** — fires when a day is chosen, with the chosen date in `detail`.
+
+```tsx
+const picker = aria('date-picker', {
+  value: '2026-10-14',
+  onchange: (event) => save(event.detail),
+});
+```
+
+### Navigation
+
+_The group handles no keys itself._ Text goes to the **field**, grid travel to the **calendar**, choosing to the **days**.
+
+## Date Picker Input
+
+**The text field.** Type a date when you know it instead of opening the calendar.
+
+### Usage
+
+```ts
+aria<E extends BaseElement = HTMLInputElement>(
+  role: 'date-picker-input',
+  props?: AriaProps,
+  options?: AriaOptions
+): DatePickerInputAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+
+type PickerInputProps = ComponentProps<'input'> & {
+  id?: string;
+  disabled?: boolean;
+};
+
+const PickerInput = setup<PickerInputProps>((props) => {
+  const input = aria<HTMLInputElement>('date-picker-input', props);
+
+  return () => (
+    <input ref={input.ref} {...input.props} placeholder="YYYY-MM-DD" />
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type PickerInputProps = ComponentProps<'input'> & {
+  id?: string;
+  disabled?: boolean;
+};
+
+const PickerInput = setup<PickerInputProps>((props) => {
+  const input = aria<HTMLInputElement>('date-picker-input', props);
+
+  return (
+    <input ref={input.ref} {...input.props} placeholder="YYYY-MM-DD" />
+  );
+});
+```
+
+:::
+
+### Parameters
+
+_What you pass in. This part takes no date props — it reads everything from the group it belongs to._
+
+### Options
+
+_What you fix when you create it. Read once, never reactive._
+
+- **native** _boolean, optional, default `true`_: Pass `false` when the host isn't an `<input>` and you get the `combobox` face with popup wiring instead of native field behavior.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **disabled** _boolean_: Whether the field refuses typing, **including by the group**.
+
+### Methods
+
+_The field exposes no methods of its own._
+
+### How it behaves
+
+- **Every keystroke announces.** Typing sends `input` with the raw text and stops there.
+- **Shows the chosen date.** The field carries the committed `value` — picking a day rewrites it, typing never does. Your half-typed text stays put until the next pick.
+- **Locked means locked.** While the group is disabled, typing goes nowhere.
+- **Always linked.** The field carries the popup's open state and points at the calendar, so the linkage is visible on the field itself.
+
+### Events
+
+_The field dispatches no events of its own._ Editing arrives as `input` on the **group**.
+
+### Navigation
+
+_What the keys do._
+
+- **Printable keys** — edit the text like any field.
+
+## Date Picker Trigger
+
+**The calendar button.** Opens the popup for everyone who would rather browse than type.
+
+### Usage
+
+```ts
+aria<E extends BaseElement = HTMLButtonElement>(
+  role: 'date-picker-trigger',
+  props?: AriaProps,
+  options?: AriaOptions
+): DatePickerTriggerAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps, ReactNode } from 'react';
+
+type PickerTriggerProps = ComponentProps<'button'>;
+
+const PickerTrigger = setup<PickerTriggerProps>((props) => {
+  const trigger = aria<HTMLButtonElement>('date-picker-trigger', props);
+
+  return () => (
+    <button ref={trigger.ref} {...trigger.restProps(['children'])}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type PickerTriggerProps = ComponentProps<'button'>;
+
+const PickerTrigger = setup<PickerTriggerProps>((props) => {
+  const trigger = aria<HTMLButtonElement>('date-picker-trigger', props);
+
+  return (
+    <button ref={trigger.ref} {...trigger.restProps(['children'])}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+:::
+
+### Parameters
+
+_What you pass in. This part takes no date props — it reads everything from the group it belongs to._
+
+### Options
+
+_What you fix when you create it. Read once, never reactive._
+
+- **native** _boolean, optional, default `true`_: Pass `false` when the host isn't a `<button>`.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **disabled** _boolean_: Whether the button refuses to open, **including by the group**.
+
+### Methods
+
+_The trigger exposes no methods of its own._
+
+### How it behaves
+
+- **Opening lands in the grid.** Focus moves to the chosen day, otherwise today, otherwise the first enabled day.
+- **Always linked.** The button carries the popup's open state and points at the calendar.
+- **Closing hands focus back.** When this button opened the popup, dismissing returns focus to it.
+
+### Events
+
+_The trigger dispatches no events of its own._
+
+### Navigation
+
+_What the keys do._
+
+- **`Enter` / `Space`** — opens the calendar on a native button through the browser itself.
+- **`Click`** — opens the calendar.
+
+## Date Picker Calendar
+
+**The popup.** Render the month grid inside it — one day per visible date.
+
+### Usage
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'date-picker-calendar',
+  props?: AriaProps
+): DatePickerCalendarAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps, ReactNode } from 'react';
+
+type PickerCalendarProps = ComponentProps<'div'>;
+
+const PickerCalendar = setup<PickerCalendarProps>((props) => {
+  const calendar = aria<HTMLElement>('date-picker-calendar', props);
+
+  return () => (
+    <div ref={calendar.ref} {...calendar.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type PickerCalendarProps = ComponentProps<'div'>;
+
+const PickerCalendar = setup<PickerCalendarProps>((props) => {
+  const calendar = aria<HTMLElement>('date-picker-calendar', props);
+
+  return (
+    <div ref={calendar.ref} {...calendar.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
+
+### Parameters
+
+_What you pass in. This part takes no date props — it reads everything from the group it belongs to._
+
+### Options
+
+_The calendar doesn't take any options._
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **id** _string_: The panel identifier the field and the button point at.
+- **open** _boolean_: Whether the popup shows.
+
+### Methods
+
+_The calendar exposes no methods of its own._
+
+### How it behaves
+
+- **Hidden until open.** A closed calendar is off screen and out of reach.
+- **Days need no key wiring.** The popup handles every grid key from the focused day, so cells stay plain.
+- **Unreadable days hold still.** A day with a broken date keeps focus instead of throwing.
+- **Screen readers get a named dialog.** Announced as `"Calendar"`.
+
+### Events
+
+_The calendar dispatches no events of its own._ Choosing arrives as `change` on the **group**.
+
+### Navigation
+
+_What the keys do._
+
+- **`ArrowLeft` / `ArrowRight`** — focus the **previous / next** day.
+- **`ArrowUp` / `ArrowDown`** — focus the day a **week back / forward**.
+- **`Home` / `End`** — focus the **first / last** day of the week.
+- **`PageUp` / `PageDown`** — flip the shown month back / forward.
+- **`Enter` / `Space`** — save the focused day and close.
+- **`Escape`** — close without saving.
+- **`Tab`** — leave the grid from the current day.
+
+## Date Picker Day
+
+**One day.** Give it the date it stands for and it behaves like the rest of the grid.
+
+### Usage
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'date-picker-day',
+  props: DatePickerDayProps
+): DatePickerDayAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type DayProps = ComponentProps<'div'> & {
+  date: string;
+};
+
+const Day = setup<DayProps>((props) => {
+  const day = aria<HTMLElement>('date-picker-day', props);
+
+  return () => (
+    <div ref={day.ref} {...day.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type DayProps = ComponentProps<'div'> & {
+  date: string;
+};
+
+const Day = setup<DayProps>((props) => {
+  const day = aria<HTMLElement>('date-picker-day', props);
+
+  return (
+    <div ref={day.ref} {...day.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
+
+### Parameters
+
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **date** _string, **required**_: The day this cell stands for, as `YYYY-MM-DD`.
+
+### Options
+
+_The day doesn't take any options._
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **date** _string_: The day this cell stands for.
+
+### Methods
+
+_The day exposes no methods of its own._
+
+### How it behaves
+
+- **The chosen day reads selected.** Everything else reads unselected.
+- **Out-of-range days read disabled.** They stay visible but refuse every choosing path.
+- **Focusing moves the tab stop.** Landing on an enabled day makes it the holder; a disabled day changes nothing.
+- **Choosing goes through the group.** A click saves through the same path as `Enter`; a cancelled click saves nothing.
+
+### Events
+
+_The day dispatches no events of its own._ Choosing arrives as `change` on the **group**.
+
+### Navigation
+
+_What the keys do._
+
+- **The day handles no keys itself.** Everything runs through the **calendar**.
+
+## Date Picker Prev Month / Next Month
+
+**Month travel buttons.** Flip the shown month without choosing anything.
+
+```ts
+aria<E extends BaseElement = HTMLButtonElement>(
+  role: 'date-picker-prev-month' | 'date-picker-next-month',
+  props?: AriaProps
+): DatePickerMonthNavAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type MonthNavProps = ComponentProps<'button'>;
+
+const PrevMonth = setup<MonthNavProps>((props) => {
+  const nav = aria<HTMLButtonElement>('date-picker-prev-month', props);
+
+  return () => (
+    <button ref={nav.ref} {...nav.restProps(['children'])}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type MonthNavProps = ComponentProps<'button'>;
+
+const PrevMonth = setup<MonthNavProps>((props) => {
+  const nav = aria<HTMLButtonElement>('date-picker-prev-month', props);
+
+  return (
+    <button ref={nav.ref} {...nav.restProps(['children'])}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+:::
+
+### Parameters
+
+_What you pass in. These parts take no date props._
+
+### Options
+
+_These parts take no options._
+
+### Methods
+
+_These parts expose no methods of their own._
+
+### How it behaves
+
+- **Plain buttons.** No popup wiring and no date state of their own — they borrow the group they sit in.
+- **Each click flips the shown month.** Back (`prev-month`) or forward (`next-month`), without touching the draft, the saved date, or the popup.
+- **Travel never saves.** Clicking leaves `value` exactly as it was.
+- **A cancelled click travels nothing.** Calling `preventDefault` on the click holds the month still.
+
+### Events
+
+_These parts dispatch no events of their own._
+
+### Navigation
+
+_What the keys do._
+
+- **`Enter` / `Space`** — travel one month on a native button through the browser itself.
+- **`Click`** — travel one month.
+
+## Next Steps
+
+- **[Date Range Picker](/docs/aria/date-range-picker)**: Two endpoints sharing one calendar, with an unfinished draft kept apart from the saved range.
+- **[Dialog](/docs/aria/dialog)**: A popup that must be answered before continuing.
+- **[Grid](/docs/aria/grid)**: Two-dimensional travel with cell and row selection for data tables.
+
+## API Reference
+
+What you can actually use, with every alias resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Date Picker
+
+```ts
+interface DatePickerProps {
+  id?: string;
+  value?: string;
+  month?: string;
+  open?: boolean;
+  min?: string;
+  max?: string;
+  disabled?: boolean;
+  required?: boolean;
+  activeDate?: string;
+  oninput?: (event: CustomEvent<string>) => void;
+  onchange?: (event: CustomEvent<string>) => void;
+  onopen?: (event: CustomEvent<true>) => void;
+  onclose?: (event: CustomEvent<false>) => void;
+}
+
+interface DatePickerAttributes {
+  id: string;
+}
+
+declare class DatePickerAria {
+  readonly calendarLabel: string;
+  get value(): string | undefined;
+  set value(value: string | undefined);
+  get activeDate(): string;
+  set activeDate(date: string);
+  get month(): string | undefined;
+  set month(month: string | undefined);
+
+  isSelected(date: string): boolean;
+  isDisabledDate(date: string): boolean;
+  activate(date: string): void;
+  commit(date: string): void;
+  navigateMonth(direction: -1 | 1): void;
+  emitInput(detail: string): void;
+  emitChange(detail: string): void;
+}
+```
+
+### Date Picker Input
+
+```ts
+interface DatePickerInputAttributes {
+  role?: 'combobox';
+  type?: string;
+  'aria-haspopup'?: 'dialog';
+  'aria-expanded'?: 'true' | 'false';
+  'aria-controls'?: string;
+  disabled?: boolean;
+}
+```
+
+### Date Picker Trigger
+
+```ts
+interface DatePickerTriggerAttributes {
+  id?: string;
+  role?: string;
+  type?: 'button';
+  'aria-haspopup'?: 'dialog';
+  'aria-expanded'?: 'true' | 'false';
+  'aria-controls'?: string;
+  disabled?: boolean;
+}
+```
+
+### Date Picker Calendar
+
+```ts
+interface DatePickerCalendarAttributes {
+  id?: string;
+  role?: 'dialog';
+  'aria-label'?: string;
+  hidden?: boolean;
+}
+
+declare class DatePickerCalendarAria {
+  get id(): string;
+  get open(): boolean;
+}
+```
+
+### Date Picker Day
+
+```ts
+interface DatePickerDayProps {
+  date: string;
+}
+
+interface DatePickerDayAttributes {
+  role?: 'gridcell';
+  tabindex?: number;
+  'aria-selected'?: 'true' | 'false';
+  'aria-disabled'?: 'true' | 'false';
+  'data-date'?: string;
+}
+
+declare class DatePickerDayAria {
+  get date(): string;
+}
+```
+
+### Date Picker Prev Month / Next Month
+
+```ts
+interface DatePickerMonthNavProps {
+  direction?: -1 | 1;
+}
+
+declare class DatePickerMonthNavAria {
+  get direction(): -1 | 1;
+}
+```
+
+_The `direction` follows the role you called — `prev-month` steps back, `next-month` steps forward — so you never pass it yourself._
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`attributes`** is the dictionary you spread; **`ref`** is what you bind the element with; **`props`** is the full props dictionary for spreading onto the host; **`restProps(omit)`** hands back your props with the keys you name left out.
+- **`assign()`** changes several parameters at once, **`refine()`** adds attributes of your own, **`on()`** listens for anything the part fires, **`destroy()`** tears it down.

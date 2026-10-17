@@ -1,0 +1,132 @@
+.demo-stepper-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--demo-gap);
+  width: 100%;
+  padding: 1rem;
+  border: 1px solid var(--demo-border);
+  border-radius: var(--demo-radius);
+  background: var(--demo-bg);
+}
+
+.demo-stepper-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--demo-gap);
+  font-size: var(--demo-font);
+  color: var(--demo-fg);
+}
+
+.demo-stepper-caption {
+  font-weight: 600;
+}
+
+.demo-stepper {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--demo-border);
+  border-radius: var(--demo-radius-sm);
+  background: var(--demo-bg);
+}
+
+.demo-stepper:has(:focus-visible) {
+  outline: var(--demo-outline);
+  outline-offset: var(--demo-outline-offset);
+}
+
+.demo-stepper-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  border: 0;
+  background: transparent;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--demo-muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+.demo-stepper-btn:hover:not(:disabled) {
+  background: var(--demo-hover);
+  color: var(--demo-fg);
+}
+
+.demo-stepper-btn:active:not(:disabled) {
+  background: var(--demo-border);
+  color: var(--demo-fg-active);
+}
+
+.demo-stepper-btn:focus-visible {
+  outline: none;
+}
+
+.demo-stepper-btn:disabled {
+  opacity: var(--demo-disabled);
+  pointer-events: none;
+}
+
+.demo-stepper-field {
+  width: 4rem;
+  margin: 0;
+  padding: 0.4rem 0;
+  border: 0;
+  background: transparent;
+  font-size: var(--demo-font);
+  font-family: inherit;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  color: var(--demo-fg);
+}
+
+.demo-stepper-field:not(:only-child) {
+  border-inline: 1px solid var(--demo-border);
+}
+
+.demo-stepper-field:focus-visible {
+  outline: none;
+}
+
+.demo-stepper-field:disabled,
+.demo-stepper-field[aria-disabled='true'] {
+  background: var(--demo-hover);
+  color: var(--demo-muted);
+  pointer-events: none;
+}
+
+.demo-stepper-field[readonly],
+.demo-stepper-field[aria-readonly='true'] {
+  background: var(--demo-hover);
+  color: var(--demo-muted);
+}
+
+.demo-spinbox-field {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 4rem;
+  padding: 0.4rem 0;
+  font-size: var(--demo-font);
+  font-variant-numeric: tabular-nums;
+  color: var(--demo-fg);
+}
+
+.demo-spinbox-field:not(:only-child) {
+  border-inline: 1px solid var(--demo-border);
+}
+
+.demo-spinbox-field:focus-visible {
+  outline: none;
+}
+
+.demo-spinbox-field[aria-readonly='true'],
+.demo-spinbox-field[aria-disabled='true'] {
+  background: var(--demo-hover);
+  color: var(--demo-muted);
+}
+
+.demo-spinbox-field[aria-disabled='true'] {
+  pointer-events: none;
+}

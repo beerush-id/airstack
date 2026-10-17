@@ -1,29 +1,32 @@
 ---
-title: 'Switch'
-description: 'Instant-activation binary on/off toggles with Enter support and group-disablement inheritance.'
+title: 'Headless Switch'
+description: 'Headless switches for React and SolidJS. An immediate on-off on any element, with click, Space, and Enter each flipping once, the semantics kept honest on a button host, and group lockout inherited — no markup or styles imposed.'
 nav: 'Switch'
 nav-priority: 230
 ---
 
-# AirLib Headless Switch
+import './aria.css';
+import './switch.css';
 
-A switch looks simple until you build a custom one: HTML has no `<switch>` element, so a `<div>` or `<button>` needs hand-rolled `role`, `tabindex`, `aria-checked`, instant click/Space/Enter toggling, and group lockout sync. **AirLib Headless Switch** (`aria('switch')`) turns any element into a switch that behaves — ARIA mirrors kept even on native button hosts, select-style coordination for valued members, immediate inversion included, without dictating markup or styles.
+# Headless Switch
+
+A switch is an on-off that takes effect the moment you flip it. HTML has no switch element, so the semantics are always yours to carry, and getting it right means **flipping on a click, `Space`, or `Enter` exactly once**, **announcing on and off on a host that has no native switch**, **staying inert when the setting is locked out**, and **telling your code the new state**.
+
+**Headless Switch** does all of that for you, and leaves the markup and the styling entirely yours.
 
 ```tsx
-const sw = aria('switch', props, { native: true });
+const sw = aria('switch', props, { native: false });
 
-<button ref={sw.ref} {...sw.props} />
+<div ref={sw.ref} {...sw.restProps(['children'])} />
 ```
 
-<style>{`.demo-switch{position:relative;display:inline-flex;flex:none;height:1.5rem;width:2.75rem;border-radius:9999px;border:2px solid transparent;background:#d4d4d8;transition:background-color .15s;cursor:pointer}.demo-switch::after{content:'';display:inline-block;height:1.25rem;width:1.25rem;border-radius:9999px;background:#fff;box-shadow:0 1px 2px rgb(0 0 0/.2);transform:translateX(0);transition:transform .15s}.demo-switch[aria-checked="true"]{background:#18181b}.demo-switch[aria-checked="true"]::after{transform:translateX(1.25rem)}.demo-switch[aria-disabled="true"]{opacity:.4;cursor:not-allowed}`}</style>
-
-:::interactive[Custom Switch]
+:::interactive[Settings Switches]
 ```tsx
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
 import type { ComponentProps } from 'react';
 
-type DemoSwitchProps = ComponentProps<'div'> & {
+type DemoSwitchProps = ComponentProps<'label'> & {
   checked?: boolean;
   disabled?: boolean;
 };
@@ -32,51 +35,66 @@ const DemoSwitch = setup<DemoSwitchProps>((props) => {
   const sw = aria('switch', props, { native: false });
 
   return () => (
-    <div ref={sw.ref} {...sw.props} className="demo-switch" />
+    <label className="demo-switch-row">
+      <span>{props.children}</span>
+      <div ref={sw.ref} {...sw.restProps(['children'])} className="demo-switch" />
+    </label>
   );
 }, 'DemoSwitch');
 ```
-
-<div className="inline-flex mx-auto gap-3">
-  <DemoSwitch checked={true} />
-  <DemoSwitch checked={false} />
-  <DemoSwitch disabled={true} />
+```html
+<div className="demo-switch-stack">
+  <DemoSwitch checked={true}>Push notifications</DemoSwitch>
+  <DemoSwitch>Dark mode</DemoSwitch>
+  <DemoSwitch disabled={true}>Offline sync</DemoSwitch>
 </div>
+```
+
+<div className="demo-switch-stack">
+  <DemoSwitch checked={true}>Push notifications</DemoSwitch>
+  <DemoSwitch>Dark mode</DemoSwitch>
+  <DemoSwitch disabled={true}>Offline sync</DemoSwitch>
+</div>
+:::
+
+:::tip
+Use a **checkbox** for a choice that takes effect when the form is submitted, and a **switch** for one that takes effect immediately. A switch answers to `Enter` as well as `Space` and a click; a checkbox does not.
 :::
 
 ## Switch
 
-Instant-activation binary toggle with native button backing and group membership.
-
-```ts
-aria<E extends BaseElement = HTMLElement, T extends Primitive = Primitive>(
-  role: 'switch',
-  props?: SwitchProps<T>,
-  options?: SwitchOptions
-): SwitchAria<E, SwitchProps<T>>
-```
+**The setting itself.** One flip, and the state is committed.
 
 ### Usage
 
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'switch',
+  props?: SwitchProps,
+  options?: SwitchOptions
+): SwitchAria<E>
+```
+
 :::code-group
 
-```tsx [React] executable
+```tsx [React]
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
 import type { ComponentProps } from 'react';
 
-type SwitchProps = ComponentProps<'button'> & {
+type SettingProps = ComponentProps<'label'> & {
   checked?: boolean;
   disabled?: boolean;
 };
 
-const Switch = setup<SwitchProps>((props) => {
-  const sw = aria('switch', props, { native: true });
+const Setting = setup<SettingProps>((props) => {
+  const sw = aria('switch', props, { native: false });
 
   return () => (
-    <button ref={sw.ref} {...sw.restProps(['children'])}>
-      {props.children}
-    </button>
+    <label>
+      <span>{props.children}</span>
+      <div ref={sw.ref} {...sw.restProps(['children'])} />
+    </label>
   );
 });
 ```
@@ -86,102 +104,159 @@ import { aria } from '@airlib/aria';
 import { setup } from '@airlib/solid';
 import type { ComponentProps } from 'solid-js';
 
-type SwitchProps = ComponentProps<'button'> & {
+type SettingProps = ComponentProps<'label'> & {
   checked?: boolean;
   disabled?: boolean;
 };
 
-const Switch = setup<SwitchProps>((props) => {
-  const sw = aria('switch', props, { native: true });
+const Setting = setup<SettingProps>((props) => {
+  const sw = aria('switch', props, { native: false });
 
   return (
-    <button ref={sw.ref} {...sw.restProps(['children'])}>
-      {props.children}
-    </button>
+    <label>
+      <span>{props.children}</span>
+      <div ref={sw.ref} {...sw.restProps(['children'])} />
+    </label>
   );
 });
 ```
 
 :::
 
-The track and thumb come from CSS keyed on `aria-checked` (see the style block above), never from controller state in JSX — the controller owns semantics, the stylesheet owns the visuals.
-
 ### Parameters
 
-- `props.checked` *(boolean, optional, default `false`)*: Binary on/off state, compiled to `aria-checked`.
-- `props.value` *(Primitive, optional)*: Choice candidate value when nested inside a selection group.
-- `props.name` *(string, optional)*: Semantic identity key or field name on the parent settings group.
-- `props.disabled` *(boolean, optional)*: Blocks activation and state commits.
-- `props.oninput` *(function, optional)*: Called with the committed state after each activation.
-- `props.onchange` *(function, optional)*: Called with the committed state when the selection changes.
-- `options.native` *(boolean, optional, default `false`)*: Pass `true` when wrapping a native `<button>` host where the browser handles focus and key events.
+_What you pass in. The props object stays live — change a value on it and the switch follows._
+
+- **checked** _boolean, optional, default `false`_: Whether the switch is on.
+- **value** _Primitive, optional_: The token this switch contributes to a group's shared selection. Give one and the switch is a member; leave it out and it keeps its own state.
+- **name** _string, optional_: The identity this setting reports under.
+- **disabled** _boolean, optional_: Locks the switch. A group's own `disabled` reaches it the same way.
+- **oninput** _(event: CustomEvent&lt;boolean&gt;) =&gt; void, optional_: Called after each activation with the new state in `detail`.
+- **onchange** _(event: CustomEvent&lt;boolean&gt;) =&gt; void, optional_: Called when the state changes. _Inside a group, `detail` carries the group's shared value instead._
+
+### Options
+
+_What you fix when you create it. Read once, never reactive._
+
+- **native** _boolean, optional, default `false`_: Set `true` when the host is a real `<button>`, so the browser keeps the focus and the keys and nothing is polyfilled on top of it. There is no native switch either way, so `role="switch"` and `aria-checked` stay compiled.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **checked** _boolean_: Whether the switch is on. **Writing it turns the setting on or off** — a switch is not select-only like a radio — and a write is refused while disabled.
+- **disabled** _boolean_: Whether the switch is locked, **including by the group**.
+- **value** _Primitive_: The token this switch contributes to a group.
+- **id** _string_: The switch's own identifier — `switch-<n>`, which is also the DOM id unless a group namespaces it.
+
+### Methods
+
+_What you call on the instance._
+
+- **`select()`**: Turns the switch on. _Does nothing while disabled._
+- **`deselect()`**: Turns the switch off. _Does nothing while disabled, or while the group requires a non-empty selection._
+- **`toggle()`**: Flips it. _This is the path every activation arrives on._
 
 ### How it behaves
 
-- There is no HTML switch element, so `role="switch"` and `aria-checked` are emitted on both hosts and `checked` is never emitted as an attribute key. Custom hosts add a synthesized tab stop (`0` enabled, `-1` disabled, numbers); button hosts use their native tab stop.
-- Every activation flips `checked` exactly once: pointer `click`, `Space` keyup (repeat-safe: many keydowns, one keyup, one inversion), and `Enter` immediately on keydown. `Space` keydown prevents scrolling; canceled triggers verify `!event.defaultPrevented` and commit nothing.
-- Native button hosts add no key polyfills and never `preventDefault` — raw key events belong to the browser and activation arrives as the click the browser generates.
-- Valued members coordinate through `group.value`; valueless members stay local and can never claim or clear the shared slot. Effective disabled is group `disabled` OR member `disabled`, and lifting a registry lockout hands the widget back on the same node.
-- Every real commit on a custom host fires bubbling `change` and `input` events carrying the new state; canceled triggers, disabled hosts, and no-op mutations stay silent.
-- The compiled dictionary carries no form attributes — a button-backed switch never becomes a form field by accident.
+- **No native switch exists, so the semantics are always carried.** `role="switch"` and `aria-checked` are compiled on every host including a `<button>`, and `checked` is never written as an attribute or a DOM property.
+- **One flip per activation.** A click, `Space`, and `Enter` each invert exactly once: `Space` suppresses the page scroll on keydown and commits on keyup, `Enter` commits on keydown, and keydown repeats without a keyup still commit once.
+- **A `<button>` host is left to the browser.** With `native: true` no key handling is added and nothing is canceled — activation arrives as the click the browser generates, and the ARIA mirror rides on top of it.
+- **Disabled means inert.** Click, `Space`, `Enter`, and writes to `checked` are refused, and the activation events themselves are cancelled and stopped from bubbling — so nothing above the switch reacts to a locked flip either.
+- **Group membership on a token.** Inside a selection group with a `value`, the switch reads and writes the shared value rather than its own state; a value-less switch stays local and can never claim or clear the slot. **Lifting a group lock hands the widget back on the same node** — no remount.
+- **Nothing submits for you.** `name` and `value` are consumed by the controller, so the compiled dictionary carries no form attributes, and a button-backed switch never becomes a form field by accident.
 
-:::tip[Checkbox vs Switch]
-Use a **Checkbox** when the option sits inside a form and takes effect upon submit ("agree to terms", "remember me"). Use a **Switch** when toggling takes effect immediately ("dark mode", "airplane mode"). Unlike checkbox, `Enter` flips a switch.
-:::
+### Events
 
-## Putting It Together
+_What it tells you._
 
-Once your components are wired with `aria(...)`, compose them to build switches with honest state:
+- **`change`** — fires when the state really flips, with the new state in `detail`. A group member carries the group's shared value there instead.
+- **`input`** — fires on the same commit **on a custom host**; a `<button>`-backed switch announces through `change` alone. Canceled triggers, disabled switches, and writes that change nothing stay silent.
 
 ```tsx
-<div className="flex flex-col gap-4">
-  <label className="flex items-center justify-between">
-    <span>Push Notifications</span>
-    <Switch checked={true} className="demo-switch" />
-  </label>
-  <label className="flex items-center justify-between">
-    <span>Dark Mode</span>
-    <Switch checked={false} className="demo-switch" />
-  </label>
-  <label className="flex items-center justify-between">
-    <span>Offline Sync (Disabled)</span>
-    <Switch disabled={true} className="demo-switch" />
-  </label>
-</div>
+const sw = aria('switch', {
+  checked: false,
+  onchange: (event) => setDarkMode(event.detail),
+});
 ```
 
-:::interactive[Switch Interactive Demo]
-<div className="flex flex-col gap-4 p-4 max-w-sm border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 text-sm text-zinc-800 dark:text-zinc-200">
-  <label className="flex items-center justify-between cursor-pointer">
-    <span>Push Notifications</span>
-    <DemoSwitch checked={true} />
-  </label>
-  <label className="flex items-center justify-between cursor-pointer">
-    <span>Dark Mode</span>
-    <DemoSwitch checked={false} />
-  </label>
-  <label className="flex items-center justify-between cursor-not-allowed opacity-60">
-    <span>Offline Sync (Disabled)</span>
-    <DemoSwitch disabled={true} />
-  </label>
-</div>
-:::
+### Navigation
 
-## Keyboard Navigation
+_What the keys do._
 
-- **Tab**: Focuses the switch. Disabled custom switches sit at `tabindex="-1"` and are skipped.
-- **Space**: Prevents viewport scroll on keydown, flips on keyup. A canceled keyup commits nothing.
-- **Enter**: Flips immediately on keydown — unlike checkbox, Enter is a switch affordance on custom hosts.
-
-## What you get
-
-- **Immediate inversion.** Click, Space, and Enter each flip exactly once with fresh-state observer ordering.
-- **Honest hosts.** Button backing keeps ARIA mirrors with zero polyfills; custom hosts get role, tab stop, and keyboard support.
-- **Group-safe membership.** Valued members coordinate through one registry; valueless members stay local; group lockout cascades and releases cleanly.
-- **Observable commits.** Bubbling `change` and `input` events per real commit, silence otherwise.
+- **`Space`** — flips the switch. The keydown suppresses the page scroll and arms the press; the commit lands on keyup, and a canceled keydown never commits.
+- **`Enter`** — flips the switch on keydown. **This is what sets a switch apart from a checkbox.**
+- **`Click`** — flips the switch, including through its label.
+- **`Tab`** — reaches the switch. On a custom host, a disabled switch leaves the tab order.
 
 ## Next Steps
 
-- **[Checkbox](/docs/aria/checkbox)**: Build binary and tri-state form checkboxes.
-- **[Radio](/docs/aria/radio)**: The single-selection counterpart for exclusive choices.
-- **[Button](/docs/aria/button)**: Explore command triggers and two-state toggle buttons.
+- **[Checkbox](/docs/aria/checkbox)**: A mark inside a form, and the undecided state between on and off.
+- **[Toggle](/docs/aria/toggle)**: A two-state button that reads as pressed rather than on.
+- **[Radio](/docs/aria/radio)**: The exclusive counterpart, which never turns itself off.
+- **[Button](/docs/aria/button)**: A command trigger with no state at all.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Switch
+
+```ts
+interface SwitchProps {
+  checked?: boolean;
+  value?: Primitive;
+  name?: string;
+  disabled?: boolean;
+  oninput?: (event: CustomEvent<boolean>) => void;
+  onchange?: (event: CustomEvent<boolean>) => void;
+}
+
+interface SwitchOptions {
+  native?: boolean;
+}
+
+interface SwitchAttributes {
+  id?: string;
+  role?: 'switch';
+  disabled?: boolean;
+  tabindex?: number;
+  'aria-checked'?: 'true' | 'false';
+  'aria-disabled'?: 'true' | 'false';
+}
+
+declare class SwitchAria {
+  id: string;
+  get checked(): boolean;
+  set checked(value: boolean);
+  get disabled(): boolean;
+  get value(): Primitive;
+
+  select(): void;
+  deselect(): void;
+  toggle(): void;
+}
+```
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`attributes`** is the dictionary you spread; **`ref`** is what you bind the element with; **`props`** is the full props dictionary for spreading onto the host; **`restProps(omit)`** hands back your props with the keys you name left out.
+- **`assign()`** changes several parameters at once, **`refine()`** adds attributes of your own, **`on()`** listens for anything the part fires, **`destroy()`** tears it down.

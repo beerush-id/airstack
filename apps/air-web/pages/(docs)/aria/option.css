@@ -1,0 +1,80 @@
+.demo-option-pair {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--demo-gap);
+  width: 100%;
+}
+
+.demo-option-pair .demo-option-list {
+  flex: 1 1 16rem;
+}
+
+.demo-option-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--demo-gap-sm);
+  width: 100%;
+  margin: 0;
+  padding: 0.5rem;
+  border: 1px solid var(--demo-border);
+  border-radius: var(--demo-radius);
+  background: var(--demo-bg);
+  list-style: none;
+}
+
+.demo-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--demo-gap);
+  padding: 0.5rem 0.625rem;
+  border-radius: var(--demo-radius-sm);
+  background: transparent;
+  font-size: var(--demo-font);
+  color: var(--demo-fg-hover);
+  cursor: pointer;
+  user-select: none;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
+}
+
+.demo-option:hover {
+  background: var(--demo-hover);
+  color: var(--demo-fg);
+}
+
+.demo-option:active {
+  background: var(--demo-border);
+}
+
+.demo-option[aria-selected='true'] {
+  background: color-mix(in oklab, var(--demo-fg) 6%, var(--demo-bg));
+  color: var(--demo-fg);
+  font-weight: 500;
+}
+
+.demo-option[aria-selected='true']:hover {
+  background: color-mix(in oklab, var(--demo-fg) 10%, var(--demo-bg));
+}
+
+.demo-option[aria-selected='true']:active {
+  background: color-mix(in oklab, var(--demo-fg) 14%, var(--demo-bg));
+}
+
+.demo-option[aria-disabled='true'] {
+  color: var(--demo-muted);
+  opacity: var(--demo-disabled);
+  pointer-events: none;
+}
+
+.demo-option:focus-visible {
+  outline: var(--demo-outline);
+  outline-offset: var(--demo-outline-offset);
+}
+
+.demo-option-hint {
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--demo-muted);
+}

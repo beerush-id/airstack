@@ -1,29 +1,32 @@
 ---
-title: 'Checkbox'
-description: 'Two-state and tri-state checkable input behavioral bridges with indeterminate support.'
+title: 'Headless Checkbox'
+description: 'Headless checkboxes for React and SolidJS. Marks, unmarks, and holds the undecided state, works on any element or a real input, coordinates with a group, and fires change and input events — with no markup or styles imposed.'
 nav: 'Checkbox'
 nav-priority: 220
 ---
 
-# AirLib Headless Checkbox
+import './aria.css';
+import './checkbox.css';
 
-A checkbox looks trivial until you build a custom one: a native `<input type="checkbox">` resists cross-browser styling of its check mark, while a custom `<div>` needs hand-rolled `role`, `tabindex`, `aria-checked`, Space toggling, tri-state mixed announcements, and group membership sync. **AirLib Headless Checkbox** (`aria('checkbox')`) turns any element into a checkbox that behaves — native IDL sync on real inputs, full ARIA polyfills on custom hosts, mixed-state resolution and group coordination included, without dictating markup or styles.
+# Headless Checkbox
+
+A checkbox is a yes-no you can also leave undecided. Getting it right means **marking and unmarking on a click or `Space`**, **showing the undecided state without pretending it is either answer**, **letting the label text toggle the box**, and **telling your code which ones are on**.
+
+**Headless Checkbox** does all of that for you, and leaves the markup and the styling entirely yours.
 
 ```tsx
 const checkbox = aria('checkbox', props, { native: false });
 
-<div ref={checkbox.ref} {...checkbox.props} />
+<div ref={checkbox.ref} {...checkbox.restProps(['children'])} />
 ```
 
-<style>{`.demo-checkbox{display:inline-flex;align-items:center;justify-content:center;width:1.25rem;height:1.25rem;border-radius:.375rem;border:1px solid #d4d4d8;background:#fff;font-size:.75rem;font-weight:700;line-height:1;cursor:pointer;transition:background-color .15s,border-color .15s}.demo-checkbox::after{content:'';color:#fff}.demo-checkbox[aria-checked="true"]{background:#18181b;border-color:transparent}.demo-checkbox[aria-checked="true"]::after{content:'✓'}.demo-checkbox[aria-checked="mixed"]{background:#18181b;border-color:transparent}.demo-checkbox[aria-checked="mixed"]::after{content:'−'}.demo-checkbox[aria-disabled="true"]{opacity:.5;cursor:not-allowed}`}</style>
-
-:::interactive[Custom Checkbox]
+:::interactive[Notification Preferences]
 ```tsx
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
 import type { ComponentProps } from 'react';
 
-type DemoCheckboxProps = ComponentProps<'div'> & {
+type DemoCheckboxProps = ComponentProps<'label'> & {
   checked?: boolean;
   indeterminate?: boolean;
   disabled?: boolean;
@@ -33,40 +36,56 @@ const DemoCheckbox = setup<DemoCheckboxProps>((props) => {
   const checkbox = aria('checkbox', props, { native: false });
 
   return () => (
-    <div ref={checkbox.ref} {...checkbox.props} className="demo-checkbox" />
+    <label className="demo-checkbox-row">
+      <div ref={checkbox.ref} {...checkbox.restProps(['children'])} className="demo-checkbox" />
+      <span>{props.children}</span>
+    </label>
   );
 }, 'DemoCheckbox');
 ```
-
-<div className="inline-flex mx-auto gap-3">
-  <DemoCheckbox checked={true} />
-  <DemoCheckbox indeterminate={true} />
-  <DemoCheckbox checked={false} />
+```html
+<div className="demo-checkbox-stack">
+  <DemoCheckbox checked={true}>Email me a weekly digest</DemoCheckbox>
+  <DemoCheckbox indeterminate={true}>Select all topics</DemoCheckbox>
+  <DemoCheckbox>Push notifications</DemoCheckbox>
+  <DemoCheckbox disabled={true}>Legacy SMS alerts</DemoCheckbox>
 </div>
+```
+
+<div className="demo-checkbox-stack">
+  <DemoCheckbox checked={true}>Email me a weekly digest</DemoCheckbox>
+  <DemoCheckbox indeterminate={true}>Select all topics</DemoCheckbox>
+  <DemoCheckbox>Push notifications</DemoCheckbox>
+  <DemoCheckbox disabled={true}>Legacy SMS alerts</DemoCheckbox>
+</div>
+:::
+
+:::tip
+The mark is a stylesheet decision. Key the glyph off `aria-checked` — `true`, `false`, and `mixed` — and the box always tells you which of the three it is, so no state read is needed where you render it.
 :::
 
 ## Checkbox
 
-Binary and tri-state toggle with native IDL sync and group membership.
-
-```ts
-aria<E extends BaseElement = HTMLInputElement, T extends AnyType = AnyType>(
-  role: 'checkbox',
-  props?: CheckboxProps<T>,
-  options?: CheckboxOptions
-): CheckboxAria<E, CheckboxProps<T>>
-```
+**The box itself.** It marks, it unmarks, and it can sit undecided between the two.
 
 ### Usage
 
+```ts
+aria<E extends BaseElement = HTMLInputElement | HTMLButtonElement>(
+  role: 'checkbox',
+  props?: CheckboxProps,
+  options?: CheckboxOptions
+): CheckboxAria<E>
+```
+
 :::code-group
 
-```tsx [React] executable
+```tsx [React]
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
 import type { ComponentProps } from 'react';
 
-type CheckboxProps = ComponentProps<'div'> & {
+type CheckboxProps = ComponentProps<'label'> & {
   checked?: boolean;
   indeterminate?: boolean;
   disabled?: boolean;
@@ -77,7 +96,7 @@ const Checkbox = setup<CheckboxProps>((props) => {
 
   return () => (
     <label>
-      <div ref={checkbox.ref} {...checkbox.restProps(['children'])} className="demo-checkbox" />
+      <div ref={checkbox.ref} {...checkbox.restProps(['children'])} />
       <span>{props.children}</span>
     </label>
   );
@@ -89,7 +108,7 @@ import { aria } from '@airlib/aria';
 import { setup } from '@airlib/solid';
 import type { ComponentProps } from 'solid-js';
 
-type CheckboxProps = ComponentProps<'div'> & {
+type CheckboxProps = ComponentProps<'label'> & {
   checked?: boolean;
   indeterminate?: boolean;
   disabled?: boolean;
@@ -100,7 +119,7 @@ const Checkbox = setup<CheckboxProps>((props) => {
 
   return (
     <label>
-      <div ref={checkbox.ref} {...checkbox.restProps(['children'])} className="demo-checkbox" />
+      <div ref={checkbox.ref} {...checkbox.restProps(['children'])} />
       <span>{props.children}</span>
     </label>
   );
@@ -109,85 +128,154 @@ const Checkbox = setup<CheckboxProps>((props) => {
 
 :::
 
-The check glyph comes from CSS keyed on `aria-checked` (see the style block above), never from controller state in JSX — the controller owns semantics, the stylesheet owns the mark.
-
 ### Parameters
 
-- `props.checked` *(boolean, optional, default `false`)*: Whether the checkbox is in a checked state.
-- `props.indeterminate` *(boolean, optional, default `false`)*: Mixed-state flag that outranks `checked` for announcement. Compiles `aria-checked="mixed"` (custom) or sets the native `.indeterminate` property. Any activation clears it while resolving toward checked.
-- `props.disabled` *(boolean, optional)*: Blocks activation and state commits.
-- `props.required` *(boolean, optional)*: Whether a checked state is required for form validation, compiling native `required` or `aria-required`.
-- `props.invalid` *(boolean | 'grammar' | 'spelling', optional)*: Field validity, compiling to `aria-invalid`.
-- `props.name` *(string, optional)*: Semantic identity key or field name on the parent group or form.
-- `props.value` *(AnyType, optional)*: Choice candidate value when nested inside a multi-selection group.
-- `props.oninput` *(function, optional)*: Called with the committed state after each activation.
-- `props.onchange` *(function, optional)*: Called with the committed state when the selection changes.
-- `options.native` *(boolean, optional, default `true`)*: Pass `false` when wrapping custom non-input elements (such as `<div>` or `<span>`).
+_What you pass in. The props object stays live — change a value on it and the box follows._
+
+- **checked** _boolean, optional, default `false`_: Whether the box is marked.
+- **indeterminate** _boolean, optional, default `false`_: The undecided state — some of what this box covers is on. **It outranks `checked`** for the announcement, and the next activation resolves it into a marked box.
+- **disabled** _boolean, optional_: Locks the box. A click, `Space`, or a write to `checked` commits nothing.
+- **required** _boolean, optional_: Asks for this box to be marked before the form is accepted.
+- **invalid** _boolean | 'grammar' | 'spelling', optional_: Marks the field invalid, and says what kind of wrong it is.
+- **name** _string, optional_: The field name the box reports under when it submits with a form.
+- **value** _Primitive, optional_: The token this box contributes to a group's shared selection. Give one and the box is a member; leave it out and the box keeps its own state.
+- **oninput** _(event: CustomEvent&lt;boolean&gt;) =&gt; void, optional_: Called after each activation with the new state in `detail`.
+- **onchange** _(event: CustomEvent&lt;boolean&gt;) =&gt; void, optional_: Called when the state changes. _Inside a group, `detail` carries the group's shared value instead._
+
+### Options
+
+_What you fix when you create it. Read once, never reactive._
+
+- **native** _boolean, optional, default `true`_: Pass `false` when the host isn't an `<input type="checkbox">` and you want `role`, a tab stop, `aria-checked`, and `Space` handling on it.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **checked** _boolean_: Whether the box is marked. **Writing it marks or unmarks the box**, and does nothing while disabled.
+- **indeterminate** _boolean_: Whether the box is sitting undecided. Read it; set it through `props.indeterminate`.
+- **disabled** _boolean_: Whether the box is locked, **including by the group it belongs to**.
+- **value** _Primitive_: The token this box contributes to a group.
+- **id** _string_: The box's own identifier — `checkbox-<n>`, which is also the DOM id unless a group namespaces it.
+
+### Methods
+
+_What you call on the instance._
+
+- **`select()`**: Marks the box; an undecided box lands on marked. _Does nothing while disabled._
+- **`deselect()`**: Unmarks the box, settling an undecided one on the way. _Does nothing while disabled._
+- **`toggle()`**: Marks or unmarks. _An undecided box marks rather than emptying, and a disabled one does nothing._
 
 ### How it behaves
 
-- Native `<input type="checkbox">` hosts omit `role` and sync the `.checked`, `.indeterminate`, `.disabled`, and `.required` IDL properties; no ARIA state mirror is emitted and browser `click`/`input`/`change` are never re-dispatched.
-- Custom hosts compile `role="checkbox"`, `aria-checked` (`true`/`false`/`mixed`), always-explicit `aria-required`, `tabindex` (`0` enabled, `-1` disabled), and Space key toggling with scroll suppression.
-- Activation from mixed resolves toward checked and clears the flag; from `true` it commits `false`. Inside a multi-selection group, activation adds or removes the candidate `value` without duplicating or disturbing siblings.
-- Every real commit on a custom host fires bubbling `change` and `input` events carrying the new checked state; canceled triggers, disabled hosts, and no-op mutations stay silent.
-- The compiled dictionary carries no form attributes — bind `name` and `value` on the element yourself for submission.
+- **Two hosts, one state.** On a real `<input type="checkbox">` it drives the `.checked`, `.indeterminate`, `.disabled`, and `.required` properties and adds no ARIA mirror or `role`; on any other element it compiles `role="checkbox"`, `aria-checked` as `true`, `false`, or `mixed`, and a place in the tab order.
+- **Undecided outranks marked.** `indeterminate` wins the announcement, and the next activation settles it into a definitive marked box instead of emptying it.
+- **Disabled means inert.** Click, `Space`, and every state write are refused, and the activation events themselves are cancelled and stopped from bubbling — so nothing above the box reacts to a disabled click either.
+- **The label works on any host.** Clicking the `<label>` text marks the box, the way the browser does it for a real input.
+- **Group membership on a token.** Inside a checkbox group with a `value`, the box reads and writes the shared selection rather than its own state, and the group's `disabled` reaches it.
+- **Nothing submits for you.** `name` and `value` are consumed by the controller, so the compiled dictionary carries no form attributes — put them on the element yourself when the box goes with a form.
+- **A canceled trigger commits nothing.** `preventDefault` on the click or on the `Space` keydown leaves the box exactly where it was.
 
-:::tip[Tri-State Selection]
-Pass `indeterminate={true}` for "select all" rows or tree views. Screen readers announce the mixed state, the glyph renders from `aria-checked="mixed"`, and the next activation resolves into a definitive checked state.
-:::
+### Events
 
-## Putting It Together
+_What it tells you._
 
-Once your components are wired with `aria(...)`, compose them to build checkbox controls with honest state:
+- **`change`** — fires when the state really flips, with the new state in `detail`. A group member carries the group's shared value there instead.
+- **`input`** — fires on the same commit **on a custom host**; a real input leaves `input` to the browser. Repeats of a commit, disabled boxes, and canceled triggers stay silent.
 
 ```tsx
-<div className="flex flex-col gap-3">
-  <Checkbox checked={true}>Accept Terms & Conditions</Checkbox>
-  <Checkbox indeterminate={true}>Select All (Mixed State)</Checkbox>
-  <Checkbox checked={false}>Subscribe to Newsletter</Checkbox>
-  <Checkbox disabled={true}>Disabled Option</Checkbox>
-</div>
+const checkbox = aria('checkbox', {
+  checked: false,
+  onchange: (event) => saveTopic(event.detail),
+});
 ```
 
-:::interactive[Checkbox Interactive Demo]
-<div className="flex flex-col gap-3 p-4 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 text-sm text-zinc-800 dark:text-zinc-200">
-  <label className="flex items-center gap-2.5 cursor-pointer">
-    <DemoCheckbox checked={true} />
-    <span>Accept Terms & Conditions</span>
-  </label>
-  <label className="flex items-center gap-2.5 cursor-pointer">
-    <DemoCheckbox indeterminate={true} />
-    <span>Select All (Mixed State)</span>
-  </label>
-  <label className="flex items-center gap-2.5 cursor-pointer">
-    <DemoCheckbox checked={false} />
-    <span>Subscribe to Newsletter</span>
-  </label>
-  <label className="flex items-center gap-2.5 cursor-not-allowed opacity-60">
-    <DemoCheckbox disabled={true} />
-    <span>Disabled Option</span>
-  </label>
-</div>
-:::
+### Navigation
 
-## Keyboard Navigation
+_What the keys do._
 
-- **Tab**: Focuses the checkbox. Disabled custom checkboxes sit at `tabindex="-1"` and are skipped.
-- **Space**: Prevents viewport scroll on keydown, toggles on keyup. A canceled keyup commits nothing.
-- **Enter**: Commits nothing — Enter is not a checkbox affordance on custom hosts.
-
-## What you get
-
-- **Native IDL sync.** `.checked`, `.indeterminate`, `.disabled`, and `.required` follow props on real inputs with no ARIA mirror and no re-dispatched events.
-- **Custom element polyfills.** Role, tab stop, `aria-checked`/`aria-required`, and Space toggling with `native: false`.
-- **Honest tri-state.** Mixed outranks unchecked for announcement and resolves toward checked on activation.
-- **Group membership.** Members add or remove their candidate value without duplicates; standalone members read `checked` directly.
-- **Observable commits.** Bubbling `change` and `input` events per real commit, silence otherwise.
+- **`Space`** — marks or unmarks the box. The keydown suppresses the page scroll and the commit lands on keyup; a canceled keydown never commits.
+- **`Click`** — marks or unmarks the box, including through its label.
+- **`Tab`** — reaches the box. A disabled box is taken out of the tab order.
 
 ## Next Steps
 
-- **[Checkbox Group](/docs/aria/checkbox-group)**: Coordinate multi-select checkbox collections with ambient state.
-- **[Switch](/docs/aria/switch)**: Build instant-activation toggle switches with `role="switch"`.
-- **[Radio](/docs/aria/radio)**: The single-selection counterpart for exclusive choices.
-- **[Radio Group](/docs/aria/radio-group)**: Coordinate mutually exclusive single-choice options.
-- **[Toggle Group](/docs/aria/toggle-group)**: Build multi-select button strips with pressed state coordination.
+- **[Checkbox Group](/docs/aria/checkbox-group)**: Several boxes over one shared value.
+- **[Switch](/docs/aria/switch)**: The same two states announcing as an on-off setting.
+- **[Radio](/docs/aria/radio)**: The exclusive counterpart, where marking one unmarks the rest.
+- **[Toggle](/docs/aria/toggle)**: A two-state button, pressed rather than checked.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Checkbox
+
+```ts
+interface CheckboxProps {
+  checked?: boolean;
+  indeterminate?: boolean;
+  disabled?: boolean;
+  required?: boolean;
+  invalid?: boolean | 'grammar' | 'spelling';
+  name?: string;
+  value?: Primitive;
+  oninput?: (event: CustomEvent<boolean>) => void;
+  onchange?: (event: CustomEvent<boolean>) => void;
+}
+
+interface CheckboxOptions {
+  native?: boolean;
+}
+
+interface CheckboxAttributes {
+  id?: string;
+  role?: string;
+  type?: string;
+  checked?: boolean;
+  indeterminate?: boolean;
+  required?: boolean;
+  disabled?: boolean;
+  tabindex?: number;
+  'aria-checked'?: 'true' | 'false' | 'mixed';
+  'aria-required'?: 'true' | 'false';
+  'aria-invalid'?: 'true' | 'false' | 'grammar' | 'spelling';
+  'aria-disabled'?: 'true' | 'false';
+}
+
+declare class CheckboxAria {
+  id: string;
+  get checked(): boolean;
+  set checked(value: boolean);
+  get indeterminate(): boolean;
+  get disabled(): boolean;
+  get value(): Primitive;
+
+  select(): void;
+  deselect(): void;
+  toggle(): void;
+}
+```
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`attributes`** is the dictionary you spread; **`ref`** is what you bind the element with; **`props`** is the full props dictionary for spreading onto the host; **`restProps(omit)`** hands back your props with the keys you name left out.
+- **`assign()`** changes several parameters at once, **`refine()`** adds attributes of your own, **`on()`** listens for anything the part fires, **`destroy()`** tears it down.

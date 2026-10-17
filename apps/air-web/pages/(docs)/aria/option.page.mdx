@@ -1,69 +1,116 @@
 ---
-title: 'Option'
-description: 'Single- and multi-selection choice members with optional deselect, keyless activation, and native sync.'
+title: 'Headless Option'
+description: 'Headless options for React and SolidJS. One choice in a list: selection derived from the group, a roving tab stop, no keystrokes of its own, and native option sync — with no markup or styles imposed.'
 nav: 'Option'
 nav-priority: 250
 ---
 
-# AirLib Headless Option
+import './aria.css';
+import './option.css';
 
-An option looks simple until you build a custom one: a native `<select>` resists cross-browser styling of its list, while custom `<li>` elements need hand-rolled `role`, roving tab stops, `aria-selected`, optional deselect, group membership sync, and — critically — no keyboard of their own, since traversal belongs to the popup. **AirLib Headless Option** (`aria('option')`) turns any element into an option that behaves — native `selected` sync on real options, full ARIA polyfills on custom hosts, single/multi derivation included, without dictating markup or styles.
+# Headless Option
+
+An option is one choice in a list somebody else drives. Getting it right means **deriving selected from the group instead of holding a private copy**, **staying out of the keyboard because the popup owns the arrows and the typeahead**, **moving the single tab stop to whichever option is on**, and **announcing the value sitting under the cursor**.
+
+**Headless Option** does all of that for you, and leaves the markup and the styling entirely yours.
 
 ```tsx
 const option = aria('option', props);
 
-<li ref={option.ref} {...option.props} />
+<li ref={option.ref} {...option.restProps(['children'])} />
 ```
 
-<style>{`.demo-option{display:flex;align-items:center;justify-content:space-between;padding:.5rem .875rem;border-radius:.5rem;font-size:.875rem;cursor:pointer;user-select:none;transition:background-color .15s;color:#3f3f46;background:transparent}.demo-option:hover{background:#f4f4f5}.demo-option[aria-selected="true"]{background:rgb(24 24 27/.06);color:#18181b;font-weight:500}.demo-option[aria-disabled="true"]{opacity:.4;cursor:not-allowed}`}</style>
-
-:::interactive[Custom Option]
+:::interactive[Currency Options]
 ```tsx
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
 import type { ComponentProps } from 'react';
 
+type DemoListboxProps = ComponentProps<'ul'> & {
+  label?: string;
+  value?: string | string[];
+  multiple?: boolean;
+  disabled?: boolean;
+};
+
+const DemoListbox = setup<DemoListboxProps>((props) => {
+  const box = aria('listbox', props);
+
+  return () => (
+    <ul ref={box.ref} {...box.restProps(['label', 'value', 'multiple', 'disabled', 'children'])} className="demo-option-list">
+      {props.children}
+    </ul>
+  );
+}, 'DemoListbox');
+
 type DemoOptionProps = ComponentProps<'li'> & {
   value: string;
   selected?: boolean;
   disabled?: boolean;
+  hint?: string;
 };
 
 const DemoOption = setup<DemoOptionProps>((props) => {
   const option = aria('option', props);
 
   return () => (
-    <li ref={option.ref} {...option.props} className="demo-option">
-      {props.children}
+    <li ref={option.ref} {...option.restProps(['children', 'hint'])} className="demo-option">
+      <span>{props.children}</span>
+      <span className="demo-option-hint">{props.hint}</span>
     </li>
   );
 }, 'DemoOption');
 ```
-
-<div className="inline-flex mx-auto gap-3">
-  <DemoOption value="a" selected={true}>Selected</DemoOption>
-  <DemoOption value="b" selected={false}>Unselected</DemoOption>
-  <DemoOption value="c" disabled={true}>Disabled</DemoOption>
+```html
+<div className="demo-option-pair">
+  <DemoListbox label="Single currency" value="usd">
+    <DemoOption value="usd" hint="US Dollar">United States</DemoOption>
+    <DemoOption value="eur" hint="Shared">Germany</DemoOption>
+    <DemoOption value="jpy" hint="Unavailable" disabled={true}>Japan</DemoOption>
+  </DemoListbox>
+  <DemoListbox label="Currencies to watch" multiple={true} value={['usd', 'eur']}>
+    <DemoOption value="usd" hint="US Dollar">United States</DemoOption>
+    <DemoOption value="eur" hint="Shared">Germany</DemoOption>
+    <DemoOption value="jpy" hint="Unavailable" disabled={true}>Japan</DemoOption>
+  </DemoListbox>
 </div>
+```
+
+<div className="demo-option-pair">
+  <DemoListbox label="Single currency" value="usd">
+    <DemoOption value="usd" hint="US Dollar">United States</DemoOption>
+    <DemoOption value="eur" hint="Shared">Germany</DemoOption>
+    <DemoOption value="jpy" hint="Unavailable" disabled={true}>Japan</DemoOption>
+  </DemoListbox>
+  <DemoListbox label="Currencies to watch" multiple={true} value={['usd', 'eur']}>
+    <DemoOption value="usd" hint="US Dollar">United States</DemoOption>
+    <DemoOption value="eur" hint="Shared">Germany</DemoOption>
+    <DemoOption value="jpy" hint="Unavailable" disabled={true}>Japan</DemoOption>
+  </DemoListbox>
+</div>
+:::
+
+:::tip
+An option is a **member**, not a widget you drop on a page. Put them inside a [listbox](/docs/aria/listbox), a [select](/docs/aria/select), or a [combobox](/docs/aria/combobox): the container is what owns the arrows, the typeahead, and the one value every option is measured against.
 :::
 
 ## Option
 
-Selectable choice member with native sync and group membership.
-
-```ts
-aria<E extends BaseElement = HTMLElement, T extends Primitive = Primitive>(
-  role: 'option',
-  props: OptionProps<T>,
-  options?: OptionOptions
-): OptionAria<E, OptionProps<T>>
-```
+**One row in the list.** It marks itself by matching the group's value against its own token.
 
 ### Usage
 
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'option',
+  props: OptionProps,
+  options?: OptionOptions
+): OptionAria<E>
+```
+
 :::code-group
 
-```tsx [React] executable
+```tsx [React]
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
 import type { ComponentProps } from 'react';
@@ -109,97 +156,132 @@ const Option = setup<OptionProps>((props) => {
 
 :::
 
-The selected row comes from CSS keyed on `aria-selected` (see the style block above), never from controller state in JSX — the controller owns semantics, the stylesheet owns the highlight.
-
 ### Parameters
 
-- `props.value` *(Primitive, required)*: Choice candidate value matching the active selection of the enclosing group.
-- `props.selected` *(boolean, optional)*: Local selected hint in standalone mode; grouped options always derive from the ambient group value. A hint claims an empty registry.
-- `props.disabled` *(boolean, optional)*: Blocks activation and state commits.
-- `props.onchange` *(function, optional)*: Called with the selected state when the selection changes.
-- `options.native` *(boolean, optional, default `false`)*: Pass `true` when binding native `<option>` elements inside a `<select>`.
-- `options.toggle` *(boolean, optional, default `false`)*: Opt in to inverting a standalone selection on activation; without it standalone activation is select-only.
+_What you pass in. The props object stays live — change a value on it and the option follows._
+
+- **value** _Primitive, **required**_: The token this option stands for. **The group measures itself against it** — a single-select compares equality, a multi-select looks for it in the array.
+- **selected** _boolean, optional_: A hint that this option is the one. Standalone it is the state; inside a group it only decides who claims a still-empty selection.
+- **disabled** _boolean, optional_: Locks this option. The container's own `disabled` reaches every option the same way.
+- **onchange** _(event: CustomEvent&lt;boolean&gt;) =&gt; void, optional_: Called when the selection changes. _Inside a group, `detail` carries the group's whole value instead._
+
+### Options
+
+_What you fix when you create it. Read once, never reactive._
+
+- **native** _boolean, optional, default `false`_: Set `true` on a real `<option>` inside a `<select>`, where the `selected` property is synced and no `role`, `tabindex`, or `aria-selected` is added.
+- **toggle** _boolean, optional, default `false`_: Lets a click on a **standalone** option invert its selection. Grouped options ignore it — the group's rules decide whether the slot can be emptied.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **selected** _boolean_: Whether this option is the one. **Read and write** — writing runs through the group's rules, so a required group can refuse the write.
+- **value** _Primitive_: The token this option stands for.
+- **disabled** _boolean_: Whether this option is locked, **including by the container**.
+- **id** _string_: The option's own identifier — `option-<n>`, which is also the DOM id unless a group namespaces it.
+
+### Methods
+
+_What you call on the instance._
+
+- **`select()`**: Takes the selection — the group's value becomes this token, or the array gains it. _Does nothing while disabled._
+- **`deselect()`**: Gives the selection up. _Does nothing while disabled, or while the group requires a non-empty selection._
+- **`toggle()`**: Selects or deselects. _A standalone option that isn't opted into `toggle` stays selected; a grouped option always follows the group._
 
 ### How it behaves
 
-- Single-selection derives `group.value === props.value`; multi-selection derives array membership; standalone derives `Boolean(props.selected)`. A `selected` hint claims an empty registry, and a `required` registry is claimed by the first member that mounts — idempotency alone never claims.
-- Re-activating the holder of an optional single registry deselects (the slot clears); a `required` registry refuses. Multi registries toggle the token without duplicates. Standalone activation selects unless `toggle` opts into inversion.
-- The member owns no keystroke: `Enter`, arrows, `Home`/`End`, letters, and full `Space` presses are all inert — traversal and typeahead belong to the enclosing popup.
-- Native `<option>` hosts omit `role`, `tabindex`, and `aria-selected` and sync the `selected` IDL property instead; browser events are never re-dispatched. Custom hosts compile `role="option"`, `aria-selected`, roving `tabindex` (`0` active, `-1` otherwise), and always-explicit `aria-disabled`.
-- `id`, `aria-selected`, and `aria-disabled` are shielded from consumer refiners, so container linkage addresses stay stable across activation. `value` joins `ownKeys` and never leaks to the DOM.
-- Every real commit on a custom host fires a bubbling `change` event; canceled triggers, disabled hosts, and no-op mutations stay silent.
-- The compiled dictionary carries no form attributes — selection state, not submission, is the contract.
+- **Selection is derived, not stored.** A single-select group marks this option when its value equals the token, a multi-select marks it when the array contains the token, and standalone it is `props.selected`. **One write to the group's value re-derives every option at once.**
+- **The member owns no keystroke.** Nothing an option binds for itself reacts to `Space`, `Enter`, the arrows, `Home`/`End`, or typeahead — the popup is what reads the keyboard, and then activates the option under the cursor.
+- **Re-activating the option on gives the slot back.** In an optional single-select group, activating the option that already holds it **empties the group**; a `required` group refuses and stays put. A multi-select group drops that token from the array and leaves the others alone. Standalone, activation only selects unless you opt into `toggle`.
+- **The tab stop follows the choice.** `aria-selected="true"` comes with `tabindex="0"` and every other option gets `-1`, so focus comes back to the option that is on. A disabled option leaves the order entirely.
+- **The cursor is announced.** Taking focus dispatches a `input` carrying this option's own token, which is how a popup echoes the highlighted value before anything is committed.
+- **Disabled means inert.** A click is refused and the event itself is cancelled and stopped from bubbling — so nothing above the option reacts to a click on a locked row either.
+- **A native `<option>` stays native.** `selected` is synced as a DOM property, `role`, `tabindex`, and `aria-selected` are left off, and the browser's own events are never replayed.
+- **Linkage is shielded.** `id`, `aria-selected`, and `aria-disabled` can't be overwritten by a refiner of your own, and `value` is consumed, so it never lands on the element.
 
-:::tip[Popup Owns the Keyboard]
-Options never bind arrow keys or typeahead themselves. Place them inside a [Select](/docs/aria/select) composite, which provides roving focus, circular arrow navigation, and centralized selection state across all options.
-:::
+### Events
 
-## Putting It Together
+_What it tells you._
 
-Once your components are wired with `aria(...)`, compose them to build option lists with honest state:
+- **`change`** — fires when a commit by this option really moves the selection, with the group's whole value in `detail` when it is a member. A disabled option, a canceled click, and a write that changes nothing stay silent — emptying an optional slot counts as a real move, and fires.
+- **`input`** — fires when this option **takes focus**, with its own token in `detail`.
 
 ```tsx
-<DemoSelect value="us">
-  <DemoOption value="us">United States</DemoOption>
-  <DemoOption value="de">Germany</DemoOption>
-  <DemoOption value="jp" disabled={true}>Japan</DemoOption>
-</DemoSelect>
+const option = aria('option', {
+  value: 'eur',
+  onchange: (event) => echoSelection(event.detail),
+});
 ```
-
-:::interactive[Option Interactive Demo]
-```tsx
-import { aria } from '@airlib/aria';
-import { setup } from '@airlib/react';
-import type { ComponentProps } from 'react';
-
-type DemoSelectProps = ComponentProps<'ul'> & {
-  value?: string;
-  disabled?: boolean;
-};
-
-const DemoSelect = setup<DemoSelectProps>((props) => {
-  const select = aria('select', props);
-
-  return () => (
-    <ul ref={select.ref} {...select.restProps(['value', 'disabled', 'children'])}>
-      {props.children}
-    </ul>
-  );
-}, 'DemoSelect');
-```
-
-<DemoSelect value="us" className="flex flex-col gap-1 max-w-xs p-2 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50">
-  <DemoOption value="us">
-    <span>United States</span>
-    <span>USD</span>
-  </DemoOption>
-  <DemoOption value="de">
-    <span>Germany</span>
-    <span>EUR</span>
-  </DemoOption>
-  <DemoOption value="jp" disabled={true}>
-    <span>Japan</span>
-    <span>Unavailable</span>
-  </DemoOption>
-</DemoSelect>
-:::
-
-## Keyboard Navigation
-
-- **Tab**: Enters the list at the single tab stop (the active member). Members carry no tab stops of their own beyond the roving one.
-- **Arrows / Home / End / typeahead**: Belong to the enclosing popup — members are inert to every keystroke by design.
-- **Pointer**: Clicking a member selects (or deselects the holder of an optional registry, or toggles the token in multi registries).
-
-## What you get
-
-- **Native sync.** The `selected` property follows the registry on real options with no ARIA mirror and no re-dispatched events.
-- **Custom element polyfills.** Role, roving tab stop, `aria-selected`, and pointer selection.
-- **Honest registries.** Optional deselect, required refusal, duplicate-free multi-toggle, hint and required claiming.
-- **Keyless members.** Zero keyboard ownership conflicts with popup traversal and typeahead.
-- **Stable linkage.** Shielded addresses and announcements across activation and refiners.
 
 ## Next Steps
 
-- **[Select](/docs/aria/select)**: Group options into a single- or multi-select list with roving focus.
-- **[Checkbox](/docs/aria/checkbox)**: Build binary and tri-state toggle checkboxes.
-- **[Radio](/docs/aria/radio)**: The single-selection counterpart for exclusive choices.
+- **[Listbox](/docs/aria/listbox)**: The container that owns the arrows, the typeahead, and the value every option is measured against.
+- **[Select](/docs/aria/select)**: A closed control whose popup is a list of options.
+- **[Combobox](/docs/aria/combobox)**: An editable field driving the same options.
+- **[Selection](/docs/aria/selection)**: The shared selection contract the option is built on.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Option
+
+```ts
+interface OptionProps {
+  value: Primitive;
+  selected?: boolean;
+  disabled?: boolean;
+  onchange?: (event: CustomEvent<boolean>) => void;
+}
+
+interface OptionOptions {
+  native?: boolean;
+  toggle?: boolean;
+}
+
+interface OptionAttributes {
+  id?: string;
+  role?: 'option';
+  selected?: boolean;
+  disabled?: boolean;
+  tabindex?: number;
+  'aria-selected'?: 'true' | 'false';
+  'aria-disabled'?: 'true' | 'false';
+}
+
+declare class OptionAria {
+  id: string;
+  get selected(): boolean;
+  set selected(value: boolean);
+  get disabled(): boolean;
+  get value(): Primitive;
+
+  select(): void;
+  deselect(): void;
+  toggle(): void;
+}
+```
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`attributes`** is the dictionary you spread; **`ref`** is what you bind the element with; **`props`** is the full props dictionary for spreading onto the host; **`restProps(omit)`** hands back your props with the keys you name left out.
+- **`assign()`** changes several parameters at once, **`refine()`** adds attributes of your own, **`on()`** listens for anything the part fires, **`destroy()`** tears it down.

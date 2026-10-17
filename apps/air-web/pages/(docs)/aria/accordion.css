@@ -1,0 +1,99 @@
+.demo-accordion-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.demo-accordion-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--demo-gap-sm);
+}
+
+.demo-accordion-caption {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--demo-muted);
+}
+
+.demo-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--demo-gap-sm);
+  width: 100%;
+  padding: 1rem;
+  border: 1px solid var(--demo-border);
+  border-radius: var(--demo-radius);
+  background: var(--demo-bg);
+}
+
+.demo-accordion-item {
+  border: 1px solid var(--demo-border);
+  border-radius: var(--demo-radius-sm);
+  background: var(--demo-bg);
+}
+
+.demo-accordion-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--demo-gap);
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  border: 0;
+  border-radius: calc(var(--demo-radius-sm) - 1px);
+  background: transparent;
+  font-family: inherit;
+  font-size: var(--demo-font);
+  font-weight: 500;
+  color: var(--demo-fg);
+  text-align: left;
+  cursor: pointer;
+}
+
+.demo-accordion-button::after {
+  content: '';
+  flex: none;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+  opacity: 0.5;
+}
+
+.demo-accordion-button[aria-expanded='true']::after {
+  transform: rotate(-135deg);
+}
+
+.demo-accordion-button:hover:not(:disabled):not([aria-disabled='true']) {
+  background: var(--demo-hover);
+}
+
+.demo-accordion-button:active:not(:disabled):not([aria-disabled='true']) {
+  background: var(--demo-border);
+  color: var(--demo-fg-active);
+}
+
+.demo-accordion-button:focus-visible {
+  outline: var(--demo-outline);
+  outline-offset: var(--demo-outline-offset);
+}
+
+.demo-accordion-button:disabled,
+.demo-accordion-button[aria-disabled='true'] {
+  opacity: var(--demo-disabled);
+  pointer-events: none;
+}
+
+.demo-accordion-panel {
+  padding: 0.625rem 0.875rem 0.75rem;
+  border-top: 1px solid var(--demo-border);
+  font-size: var(--demo-font);
+  color: var(--demo-muted);
+}
+
+.demo-accordion-panel[hidden] {
+  display: none;
+}

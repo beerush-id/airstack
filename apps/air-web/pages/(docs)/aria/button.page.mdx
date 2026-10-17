@@ -1,60 +1,134 @@
 ---
-title: 'Button'
-description: 'Command and toggle button behavioral bridges with safe form defaults and custom element polyfills.'
+title: 'Headless Button'
+description: 'Headless button for React and SolidJS. Safe form defaults on a real button, and the role, tab order, and keys on any other element — with no markup or styles imposed.'
 nav: 'Button'
 nav-priority: 210
 ---
 
-# AirLib Headless Button
+import './aria.css';
+import './button.css';
 
-Button is a simple action element, but most of you have struggled dealing with it: a button inside `<form>` submits by accident unless you remember `type="button"`, and a custom `<div>` button needs hand-rolled `role`, `tabindex`, and `Space`/`Enter` listeners to stay accessible. **AirLib Headless Button** (`aria('button')`) turns any element into a button that behaves — safe `type="button"` defaults on native hosts, `role`/`tabindex`/keyboard polyfills on custom hosts (`native: false`), without dictating markup or styles.
+# Headless Button
+
+A button is the simplest thing on a page until it sits inside a form: forget `type="button"` and every click submits it, and a `<div>` standing in for a button needs its role, its place in the tab order, and its keys handed to it by hand.
+
+**Headless Button** gives you a button that behaves on any element — the safe form default on a real `<button>`, and the role, the tab order, and the keys on anything else.
 
 ```tsx
-const btn = aria('button', props, { native: false });
+const button = aria('button', props, { native: false });
 
-<div ref={btn.ref} {...btn.props}>
-  Click Me
-</div>
+<div ref={button.ref} {...button.restProps(['children'])} />
 ```
 
-:::interactive[Custom Button]
+:::interactive[Buttons]
 ```tsx
 import { aria } from '@airlib/aria';
-import { setup } from '@airlib/react';
-import type { ComponentProps } from 'react';
+import { mutable, setup } from '@airlib/react';
+import type { ComponentProps, FormEvent } from 'react';
 
-const CustomButton = setup((props) => {
-  const btn = aria('button', props, { native: false });
+const DemoFormCard = setup(() => {
+  const state = mutable({ submissions: 0 });
+  const save = aria('button', { type: 'button' });
+  const submit = aria('button', { type: 'submit' });
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    state.submissions += 1;
+  };
 
   return () => (
-    <div ref={btn.ref} {...btn.props}>
+    <form className="demo-button-card" onSubmit={handleSubmit}>
+      <span className="demo-button-card-title">Inside a form</span>
+      <div className="demo-button-row">
+        <button ref={save.ref} {...save.restProps(['children'])} className="demo-button">
+          Save
+        </button>
+        <button
+          ref={submit.ref}
+          {...submit.restProps(['children'])}
+          className="demo-button demo-button--custom"
+        >
+          Submit
+        </button>
+        <span className="demo-button-count">submissions: {state.submissions}</span>
+      </div>
+    </form>
+  );
+}, 'DemoFormCard');
+
+type DemoCustomButtonProps = ComponentProps<'div'> & {
+  disabled?: boolean;
+};
+
+const DemoCustomButton = setup<DemoCustomButtonProps>((props) => {
+  const button = aria('button', props, { native: false });
+
+  return () => (
+    <div
+      ref={button.ref}
+      {...button.restProps(['children'])}
+      className="demo-button demo-button--custom"
+    >
       {props.children}
     </div>
   );
-}, 'CustomButton');
+}, 'DemoCustomButton');
+
+const DemoCustomCard = setup(() => {
+  const state = mutable({ activations: 0 });
+
+  return () => (
+    <div className="demo-button-card">
+      <span className="demo-button-card-title">On a non-button host</span>
+      <div className="demo-button-row">
+        <DemoCustomButton onClick={() => (state.activations += 1)}>Custom host</DemoCustomButton>
+        <span className="demo-button-count">activations: {state.activations}</span>
+        <DemoCustomButton disabled>Disabled custom host</DemoCustomButton>
+      </div>
+    </div>
+  );
+}, 'DemoCustomCard');
+```
+```html
+<div className="demo-button-stack">
+  <DemoFormCard />
+  <DemoCustomCard />
+</div>
 ```
 
-<CustomButton className="air-mdx-btn" onClick={() => console.log('Clicked!')}>Click Me</CustomButton>
+<div className="demo-button-stack">
+  <DemoFormCard />
+  <DemoCustomCard />
+</div>
+:::
+
+:::tip
+A `<div>` with `native: false` is a real button to the keyboard and to screen readers — but it still looks like a `<div>`, so the hover and pressed visuals stay yours.
 :::
 
 ## Button
 
-Command trigger with safe form defaults and event forwarding.
-
-```ts
-aria(role: 'button', props?: ButtonProps, options?: ButtonOptions): ButtonAria<E>
-```
+**One action trigger.** It behaves like a native button whether the host is one or not.
 
 ### Usage
 
+```ts
+aria<E extends BaseElement = HTMLButtonElement>(
+  role: 'button',
+  props?: ButtonProps,
+  options?: ButtonOptions
+): ButtonAria<E>
+```
+
 :::code-group
 
-```tsx [React] executable
+```tsx [React]
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
 import type { ComponentProps } from 'react';
 
 type ButtonProps = ComponentProps<'button'> & {
+  type?: 'button' | 'submit' | 'reset';
   disabled?: boolean;
 };
 
@@ -75,6 +149,7 @@ import { setup } from '@airlib/solid';
 import type { ComponentProps } from 'solid-js';
 
 type ButtonProps = ComponentProps<'button'> & {
+  type?: 'button' | 'submit' | 'reset';
   disabled?: boolean;
 };
 
@@ -93,66 +168,97 @@ const Button = setup<ButtonProps>((props) => {
 
 ### Parameters
 
-- `props.type` *('button' | 'submit' | 'reset', optional, default `'button'`)*: Compiles `type="button"` by default on native buttons to prevent implicit form submission.
-- `props.disabled` *(boolean, optional)*: Disables the button, preventing interaction and removing it from the tab order.
-- `options.native` *(boolean, optional, default `true`)*: Pass `false` when wrapping custom non-button elements (such as `<div>` or `<span>`).
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **type** _'button' | 'submit' | 'reset', optional, default `'button'`_: The form behavior. Leave it and a click never submits; set `submit` or `reset` when that is the point of the button.
+- **disabled** _boolean, optional_: Locks the button out of pointer, keyboard, and form mechanics.
+
+### Options
+
+_What you fix when you create it. Read once, never reactive._
+
+- **native** _boolean, optional, default `true`_: Pass `false` when the host isn't a `<button>`, and the role, the tab order, and the keys come with it.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **type** _'button' | 'submit' | 'reset'_: The form behavior in force.
+- **disabled** _boolean_: Whether the button is locked.
 
 ### How it behaves
 
-Native `<button>` hosts omit explicit `role="button"`. Custom hosts (`native: false`) compile `role="button"`, `tabindex` (`0` enabled, `-1` disabled), and keyboard polyfills: click on `Enter` keydown and `Space` keyup. `Enter` never calls `preventDefault`; only `Space` keydown is prevented to suppress scroll. A canceled (synthesized) click aborts form submission and reset. Disabled hosts ignore pointer clicks, keyboard activation, and form mechanics alike.
+- **No surprise submits.** A native button defaults to `type="button"`, so nesting it in a form doesn't submit on click.
+- **Any element can be the button.** With `native: false`, a `<div>` or `<span>` gets the button role, a place in the tab order, and `Enter` / `Space` activation.
+- **Disabled means inert.** Click, `Enter`, and `Space` are bypassed on either host — nothing activates and no activation handler runs. A native host leaves the tab order; a custom host is parked outside it.
+- **Only the activation events are owned.** A handler you attach for something else — hover, focus, your own keys — is your code on your element, and the browser has no disabled concept for a `<div>`, so those stay live unless you gate them.
+- **Cancellation is honored.** A click you cancel also cancels the submit or reset it would have caused.
+- **Screen readers are told.** A locked button is announced as disabled rather than going silently dead.
 
-:::tip[Custom Elements]
-When wrapping non-button elements (like `<div>` or `<span>`), pass `{ native: false }` to the engine options inside your component to attach keyboard polyfills and focus attributes.
-:::
+### Navigation
 
-## Toggle Buttons
+_What the keys do._
 
-Two-state toggles live on their own page: **[Toggle](/docs/aria/toggle)**.
-
-## Putting It Together
-
-Once your components are wired with `aria(...)`, compose them to build accessible buttons:
-
-```tsx
-<div className="flex items-center gap-2">
-  <Button onClick={() => console.log('Saved!')}>Save Changes</Button>
-  <Button disabled={true}>Disabled</Button>
-</div>
-```
-
-:::interactive[Button Interactive Demo]
-<div className="flex items-center gap-2 p-3 border border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50">
-  <Button
-    className="px-4 py-2 rounded-lg text-sm font-medium bg-primary text-white shadow-sm hover:opacity-90 transition-opacity"
-    onClick={() => console.log('Saved!')}
-  >
-    Save Changes
-  </Button>
-  <Button
-    disabled={true}
-    className="px-4 py-2 rounded-lg text-sm font-medium bg-zinc-200 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 cursor-not-allowed opacity-60"
-  >
-    Disabled
-  </Button>
-</div>
-:::
-
-## Keyboard Navigation
-
-- **Tab**: Focuses into the button or moves to the next focusable page element. Disabled custom buttons sit at `tabindex="-1"` and are skipped.
-- **Space**: Prevents viewport scroll on keydown, activates on keyup.
-- **Enter**: Activates on keydown without preventing the event default.
-
-## What you get
-
-- **Safe form defaults.** Compiles `type="button"` by default, preventing unintended form submission when nested inside `<form>`.
-- **Custom element polyfills.** Polyfills `role="button"`, `tabindex="0"`, and Space/Enter key events when wrapping custom elements with `native: false`.
-- **Accessible state reporting.** Reflects `aria-disabled` to screen readers and assistive devices.
-- **Clean disabled semantics.** Disabled buttons ignore clicks, suppress keyboard activation, and exit the tab order.
+- **`Tab`** — focuses the button. A disabled custom host is parked outside the tab order and skipped.
+- **`Space`** — stops the page scrolling on keydown and activates on keyup.
+- **`Enter`** — activates on keydown and leaves the event default alone.
 
 ## Next Steps
 
-- **[Toggle](/docs/aria/toggle)**: Two-state toggle buttons with press inversion and group coordination.
-- **[Toolbar](/docs/aria/toolbar)**: Group buttons, toggles, and controls into a single tab stop with circular roving focus.
-- **[Toggle Group](/docs/aria/toggle-group)**: Coordinate single or multiple pressed toggle buttons under a shared selection model.
-- **[Switch](/docs/aria/switch)**: Build instant-activation toggle switches with `role="switch"`.
+- **[Toggle](/docs/aria/toggle)**: Two-state buttons with press inversion and group coordination.
+- **[Toolbar](/docs/aria/toolbar)**: Arrow keys across a row of actions under a single tab stop.
+- **[Toggle Group](/docs/aria/toggle-group)**: Coordinate several pressed toggles under one selection model.
+- **[Switch](/docs/aria/switch)**: Instant-activation on/off controls.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Button
+
+```ts
+interface ButtonProps {
+  type?: 'button' | 'submit' | 'reset';
+  disabled?: boolean;
+}
+
+interface ButtonOptions {
+  native?: boolean;
+}
+
+interface ButtonAttributes {
+  role?: string;
+  type?: 'button' | 'submit' | 'reset';
+  disabled?: boolean;
+  tabindex?: number;
+  'aria-disabled'?: 'true' | 'false';
+}
+
+declare class ButtonAria {
+  get type(): 'button' | 'submit' | 'reset';
+  get disabled(): boolean;
+}
+```
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`attributes`** is the dictionary you spread; **`ref`** is what you bind the element with; **`props`** is the full props dictionary for spreading onto the host; **`restProps(omit)`** hands back your props with the keys you name left out.
+- **`assign()`** changes several parameters at once, **`refine()`** adds attributes of your own, **`on()`** listens for anything the part fires, **`destroy()`** tears it down.
