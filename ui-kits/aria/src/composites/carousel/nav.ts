@@ -97,18 +97,20 @@ export class CarouselNavAria<
       });
     }
 
-    return Object.assign(attrs, {
+    Object.assign(attrs, {
       'aria-label': this.properties.label,
       'aria-controls': this.carousel?.viewportId,
-      'aria-roledescription': isNext ? 'next' : 'prev',
-    }) as A;
+      'aria-roledescription': isNext ? 'carousel-next' : 'carousel-prev',
+    });
+
+    return attrs;
   }
 
   /**
    * Activates the navigation direction on the shared value.
    */
   protected activate = (): void => {
-    if (!this.carousel || this.disabled || this.carousel.disabled) return;
+    if (this.disabled) return;
     this.carousel?.step(this.direction);
   };
 }

@@ -62,6 +62,7 @@ export class CarouselPlayerAria<
   protected override createAttributes(): A {
     return Object.assign(super.createAttributes(), {
       'aria-label': this.properties.label,
+      'aria-controls': this.carousel?.viewportId,
       'data-playing': ariaBoolean(this.playing),
     }) as A;
   }

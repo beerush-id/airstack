@@ -69,7 +69,7 @@ export class CarouselViewportAria<
       'aria-live': carousel?.autoplay ? 'off' : 'polite',
       'aria-label': this.properties.label,
       'aria-atomic': 'false',
-      'aria-roledescription': 'slides',
+      'aria-roledescription': 'carousel-slides',
     }) as A;
   }
 }

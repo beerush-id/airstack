@@ -47,13 +47,25 @@ export interface RovingNavigationOptions {
    * When true, only focus shifts; when false (default), click() is invoked.
    */
   manual?: boolean;
+
+  /**
+   * Whether navigation wraps from last to first and vice versa.
+   * Defaults to true.
+   */
+  loop?: boolean;
+
+  /**
+   * Whether to focus to the target element on navigation.
+   * Defaults to true.
+   */
+  focus?: boolean;
 }
 
 /**
  * Handles roving tabindex keyboard navigation across child items within a composite container.
  *
  * Inspects live DOM elements at invocation time to support dynamic items, conforms
- * navigation to the specified orientation, and wraps across boundaries.
+ * navigation to the specified orientation, and optionally wraps across boundaries.
  *
  * @param container - The composite container element
  * @param event - The incoming keyboard event
@@ -87,13 +99,20 @@ export function handleRovingKey<E extends BaseElement = BaseElement>(
     ? items.find((el) => el.matches(options.activeSelector!))
     : root.activeElement;
   const currentIndex = activeElement ? items.indexOf(activeElement as HTMLElement) : -1;
+  const loop = options.loop ?? true;
 
   let targetIndex: number;
 
   if (isNext) {
-    targetIndex = currentIndex >= 0 ? (currentIndex + 1) % items.length : 0;
+    targetIndex =
+      currentIndex >= 0 ? (loop ? (currentIndex + 1) % items.length : Math.min(currentIndex + 1, items.length - 1)) : 0;
   } else if (isPrev) {
-    targetIndex = currentIndex >= 0 ? (currentIndex - 1 + items.length) % items.length : items.length - 1;
+    targetIndex =
+      currentIndex >= 0
+        ? loop
+          ? (currentIndex - 1 + items.length) % items.length
+          : Math.max(currentIndex - 1, 0)
+        : items.length - 1;
   } else if (isHome) {
     targetIndex = 0;
   } else {
@@ -102,9 +121,9 @@ export function handleRovingKey<E extends BaseElement = BaseElement>(
 
   event.preventDefault();
   const target = items[targetIndex];
-  target.focus();
 
-  if (!options.manual) {
+  if (options.focus !== false) target.focus();
+  if (!options.manual && targetIndex !== currentIndex) {
     target.click();
   }
 

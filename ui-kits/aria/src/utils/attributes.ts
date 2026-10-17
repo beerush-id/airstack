@@ -1,6 +1,9 @@
 import { type AnyType, type ClassInput, classx, type StyleInput, stylex } from '@airlib/core';
 import type { AriaInvalid, BaseElement, NormalizedAttrs } from '../types.js';
 
+export const ENABLED_QUERY = ':not(:disabled, [aria-disabled="true"])';
+export const CURRENT_QUERY = '[aria-current="true"]';
+
 /**
  * Normalizes a boolean state flag into an explicit WAI-ARIA state token ('true' | 'false').
  *

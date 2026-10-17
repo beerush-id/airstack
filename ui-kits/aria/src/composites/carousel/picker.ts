@@ -113,12 +113,12 @@ export class CarouselPickerAria<
       role: this.isNative ? undefined : 'button',
       type: this.isNative ? 'button' : undefined,
       disabled: this.isNative ? this.disabled : undefined,
-      tabindex: isSelected && !this.disabled ? 0 : -1,
+      tabindex: -1,
       'aria-label': this.properties.label,
       'aria-current': ariaPresent(isSelected),
       'aria-disabled': this.isNative ? undefined : ariaBoolean(this.disabled),
       'aria-controls': panelId,
-      'aria-roledescription': 'indicator',
+      'aria-roledescription': 'carousel-indicator',
     }) as A;
   }
 }

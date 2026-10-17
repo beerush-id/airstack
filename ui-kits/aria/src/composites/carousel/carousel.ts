@@ -2,8 +2,9 @@ import { $static, $symbol, derived, effect, isBrowser, mutable, uIndex, untrack 
 import { Aria } from '../../core.js';
 import { selectionGroup, type SelectionGroupProps } from '../../selection.js';
 import type { AriaAttributes, AriaEvent, AriaEventHandler, BaseElement, DetachFn } from '../../types.js';
+import { CURRENT_QUERY } from '../../utils/attributes.js';
 import { handleRovingKey } from '../../utils/navigation.js';
-import { CAROUSEL_BTN_SELECTOR, CAROUSEL_INTERVAL, CAROUSEL_NAME, CAROUSEL_VIEWPORT, carouselCtx } from './shared.js';
+import { CAROUSEL_INDICATOR, CAROUSEL_INTERVAL, CAROUSEL_NAME, CAROUSEL_VIEWPORT, carouselCtx } from './shared.js';
 
 /**
  * Controller-dispatched carousel event carrying the committed slide value in `detail`.
@@ -52,6 +53,11 @@ export interface CarouselProps extends SelectionGroupProps {
    * Delay in milliseconds between advances (default: 5000).
    */
   interval?: number;
+
+  /**
+   * Enable arrow key navigation.
+   */
+  arrowNav?: boolean;
 
   /**
    * Called with the committed slide value after the slide advances.
@@ -155,7 +161,7 @@ export class CarouselAria<
    */
   public get pickers(): Array<HTMLElement> {
     if (!this.element) return [];
-    return Array.from(this.element.querySelectorAll(CAROUSEL_BTN_SELECTOR));
+    return Array.from(this.element.querySelectorAll(CAROUSEL_INDICATOR));
   }
 
   /**
@@ -175,11 +181,12 @@ export class CarouselAria<
 
     this.omittedAttrs.push(
       'id',
-      'value',
+      'keys',
       'loop',
+      'label',
+      'value',
       'autoplay',
       'interval',
-      'label',
       'onchange',
       'ontoggle',
       'slideCount'
@@ -196,11 +203,8 @@ export class CarouselAria<
     this.on('pointerleave', () => this.play());
 
     this.on('keydown', (e) => {
-      handleRovingKey(this.element!, e, {
-        selector: CAROUSEL_BTN_SELECTOR,
-        activeSelector: '[aria-current="true"]',
-        orientation: 'horizontal',
-      });
+      if (this.properties.arrowNav === false) return;
+      this.step(1, e);
     });
 
     this.update();
@@ -208,22 +212,20 @@ export class CarouselAria<
 
   /**
    * Step to the next or previous slide.
-   * @param {number} direction
+   * @param {number} direction - The direction to step
+   * @param {KeyboardEvent} e - The keyboard event
    */
-  public step(direction = 1) {
+  public step(direction = 1, e?: KeyboardEvent) {
     if (!isBrowser()) return;
-    const pickers = this.pickers;
-    const current = pickers.findIndex((picker) => picker.getAttribute('aria-current') === 'true');
 
-    if (direction === 1) {
-      const last = this.state.loop ? 0 : pickers.length - 1;
-      const next = current === pickers.length - 1 ? last : current + 1;
-      pickers[next]?.click();
-    } else {
-      const first = this.state.loop ? pickers.length - 1 : 0;
-      const prev = current === 0 ? first : current - 1;
-      pickers[prev]?.click();
-    }
+    const event = e ?? new KeyboardEvent('keydown', { key: direction === 1 ? 'ArrowRight' : 'ArrowLeft' });
+    handleRovingKey(this.element!, event, {
+      loop: this.state.loop,
+      focus: false,
+      selector: CAROUSEL_INDICATOR,
+      activeSelector: CURRENT_QUERY,
+      orientation: 'horizontal',
+    });
   }
 
   /**
@@ -256,6 +258,7 @@ export class CarouselAria<
    */
   public pause() {
     if (!isBrowser()) return;
+
     untrack(() => {
       clearTimeout(this.timer.value);
       this.timer.value = undefined;

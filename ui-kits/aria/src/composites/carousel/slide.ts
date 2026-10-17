@@ -121,7 +121,7 @@ export class CarouselSlideAria<
       'data-playing': ariaBoolean(this.playing),
       'aria-current': ariaBoolean(this.selected),
       'aria-labelledby': buttonId,
-      'aria-roledescription': 'slide',
+      'aria-roledescription': 'carousel-slide',
     }) as A;
   }
 }
