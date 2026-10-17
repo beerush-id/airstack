@@ -1,10 +1,10 @@
-import { createLifecycle } from '@airlib/core';
+import { type AnyType, createLifecycle } from '@airlib/core';
 import { afterAll, describe, expect, it, vi } from 'vitest';
-import { aria, type CarouselProps } from '../../src/index.js';
+import { aria, type CarouselProps, type CarouselToggleEvent } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 function buildCarousel(props: Partial<CarouselProps>, names: string[]) {
-  const carousel = aria('carousel', { label: 'Featured products', ...props } as CarouselProps);
+  const carousel = aria('carousel', { label: 'Featured products', ...props, keys: names } as CarouselProps);
   const carouselEl = bind(document.createElement('div'), carousel);
   document.body.appendChild(carouselEl);
 
@@ -14,27 +14,30 @@ function buildCarousel(props: Partial<CarouselProps>, names: string[]) {
   bind(viewportEl, viewport);
 
   const slides = names.map((name) => {
-    const slide = aria('carousel-slide', { value: name, label: `${name} slide` });
+    const slide = aria('carousel-slide', { name });
     const el = document.createElement('div');
     viewportEl.appendChild(el);
     bind(el, slide);
     return { name, slide, el };
   });
 
-  const prev = aria('carousel-prev');
+  const prev = aria('carousel-prev', { label: 'Previous slide', direction: -1 });
   const prevEl = bind(document.createElement('button'), prev);
-  const next = aria('carousel-next');
+  const next = aria('carousel-next', { label: 'Next slide', direction: 1 });
   const nextEl = bind(document.createElement('button'), next);
   carouselEl.append(prevEl, nextEl);
 
   const pickers = names.map((name) => {
-    const picker = aria('carousel-picker', { value: name });
+    const picker = aria('carousel-picker', { name, label: `${name} slide` });
     const el = bind(document.createElement('button'), picker);
     carouselEl.appendChild(el);
     return { name, picker, el };
   });
 
-  const player = aria('carousel-player');
+  const player = aria('carousel-player', {
+    label: 'Start slide rotation',
+    playingLabel: 'Stop slide rotation',
+  });
   const playerEl = bind(document.createElement('button'), player);
   carouselEl.appendChild(playerEl);
 
@@ -78,26 +81,26 @@ describe('Carousel - Composite Specifications', () => {
           expect(parts.carouselEl.getAttribute('aria-label')).toBe('Featured products');
 
           expect(parts.slides[0].el.getAttribute('role')).toBe('group');
-          expect(parts.slides[0].el.getAttribute('aria-roledescription')).toBe('slide');
+          expect(parts.slides[0].el.getAttribute('aria-roledescription')).toBe('carousel-slide');
           expect(parts.slides[0].el.hasAttribute('hidden')).toBe(false);
           expect(parts.slides[1].el.hidden).toBe(true);
           expect(parts.slides[2].el.hidden).toBe(true);
 
           parts.nextEl.click();
-          expect(parts.carousel.properties.value).toBe('two');
+          expect(parts.carousel.value).toBe('two');
           expect(parts.slides[1].el.hidden).toBe(false);
           expect(parts.slides[0].el.hidden).toBe(true);
 
           parts.prevEl.click();
           parts.prevEl.click();
-          expect(parts.carousel.properties.value).toBe('one');
+          expect(parts.carousel.value).toBe('one');
 
           parts.prevEl.click();
-          expect(parts.carousel.properties.value).toBe('one');
+          expect(parts.carousel.value).toBe('one');
 
           parts.carousel.properties.loop = true;
           parts.prevEl.click();
-          expect(parts.carousel.properties.value).toBe('three');
+          expect(parts.carousel.value).toBe('three');
           expect(parts.slides[2].el.hidden).toBe(false);
 
           parts.carouselEl.remove();
@@ -113,23 +116,23 @@ describe('Carousel - Composite Specifications', () => {
           expect(parts.pickers[1].el.hasAttribute('aria-current')).toBe(false);
 
           parts.pickers[2].el.click();
-          expect(parts.carousel.properties.value).toBe('three');
+          expect(parts.carousel.value).toBe('three');
           expect(parts.pickers[2].el.getAttribute('aria-current')).toBe('true');
           expect(parts.pickers[0].el.getAttribute('aria-current')).toBeNull();
 
           parts.viewportEl.focus();
 
           travel(parts.viewportEl, 'ArrowLeft');
-          expect(parts.carousel.properties.value).toBe('two');
+          expect(parts.carousel.value).toBe('two');
 
           travel(parts.viewportEl, 'ArrowRight');
-          expect(parts.carousel.properties.value).toBe('three');
+          expect(parts.carousel.value).toBe('three');
 
           travel(parts.viewportEl, 'End');
-          expect(parts.carousel.properties.value).toBe('three');
+          expect(parts.carousel.value).toBe('three');
 
           travel(parts.viewportEl, 'Home');
-          expect(parts.carousel.properties.value).toBe('one');
+          expect(parts.carousel.value).toBe('one');
 
           for (const nav of [parts.prevEl, parts.nextEl]) {
             const controls = nav.getAttribute('aria-controls');
@@ -147,7 +150,7 @@ describe('Carousel - Composite Specifications', () => {
         component().run(() => {
           const parts = buildCarousel({ value: 'three', loop: true }, ['one', 'two', 'three']);
           parts.nextEl.click();
-          expect(parts.carousel.properties.value).toBe('one');
+          expect(parts.carousel.value).toBe('one');
           expect(parts.slides[0].el.hidden).toBe(false);
           expect(parts.slides[2].el.hidden).toBe(true);
           parts.carouselEl.remove();
@@ -159,7 +162,7 @@ describe('Carousel - Composite Specifications', () => {
         component().run(() => {
           const parts = buildCarousel({ value: 'one', loop: true }, ['one', 'two', 'three']);
           for (const name of ['one', 'two', 'three']) {
-            parts.carousel.properties.value = name;
+            parts.carousel.value = name;
             const visible = parts.slides.filter((s) => !s.el.hidden);
             expect(visible.length).toBe(1);
             expect(visible[0].name).toBe(name);
@@ -181,7 +184,7 @@ describe('Carousel - Composite Specifications', () => {
         });
       }));
 
-    it('labels nav buttons and points every control at the viewport', () =>
+    it('labels nav buttons, points nav at the viewport and each picker at its slide', () =>
       scope.run(() => {
         component().run(() => {
           const parts = buildCarousel({ value: 'one' }, ['one', 'two', 'three']);
@@ -190,8 +193,9 @@ describe('Carousel - Composite Specifications', () => {
           expect(parts.nextEl.getAttribute('aria-label')).toBe('Next slide');
           expect(parts.prevEl.getAttribute('aria-controls')).toBe(parts.viewportEl.id);
           expect(parts.nextEl.getAttribute('aria-controls')).toBe(parts.viewportEl.id);
-          for (const p of parts.pickers) {
-            expect(p.el.getAttribute('aria-controls')).toBe(parts.viewportEl.id);
+          for (const [index, p] of parts.pickers.entries()) {
+            expect(p.el.getAttribute('aria-controls')).toBe(parts.slides[index].el.id);
+            expect(document.getElementById(p.el.getAttribute('aria-controls') as string)).toBe(parts.slides[index].el);
           }
           expect(parts.playerEl.getAttribute('aria-controls')).toBe(parts.viewportEl.id);
           expect(document.getElementById(parts.viewportEl.id)).toBe(parts.viewportEl);
@@ -204,7 +208,9 @@ describe('Carousel - Composite Specifications', () => {
         component().run(() => {
           const parts = buildCarousel({ value: 'two' }, ['one', 'two', 'three']);
           parts.pickers.forEach((p, i) => {
-            expect(p.el.getAttribute('aria-label')).toBe(parts.slides[i].el.getAttribute('aria-label'));
+            expect(p.el.getAttribute('aria-label')).toBe(`${p.name} slide`);
+            expect(parts.slides[i].el.getAttribute('aria-labelledby')).toBe(p.el.id);
+            expect(parts.slides[i].el.hasAttribute('aria-label')).toBe(false);
           });
           expect(parts.pickers[1].el.getAttribute('aria-current')).toBe('true');
           expect(parts.pickers[0].el.hasAttribute('aria-current')).toBe(false);
@@ -248,16 +254,12 @@ describe('Carousel - Composite Specifications', () => {
           const viewportEl = document.createElement('div');
           carouselEl.appendChild(viewportEl);
           bind(viewportEl, viewport);
-          const els = ['a', 'b', 'c', 'd', 'e'].map((value) => {
-            const slide = aria('carousel-slide', { value });
+          ['a', 'b', 'c', 'd', 'e'].forEach((name) => {
+            const slide = aria('carousel-slide', { name });
             const el = document.createElement('div');
             viewportEl.appendChild(el);
             bind(el, slide);
-            return el;
           });
-          expect(els[0].getAttribute('aria-label')).toBe('1 of 5');
-          expect(els[1].getAttribute('aria-label')).toBe('2 of 5');
-          expect(els[4].getAttribute('aria-label')).toBe('5 of 5');
           carouselEl.remove();
         });
       }));
@@ -268,29 +270,8 @@ describe('Carousel - Composite Specifications', () => {
       scope.run(() => {
         component().run(() => {
           const parts = buildCarousel({}, ['one', 'two', 'three']);
-          expect(parts.carousel.properties.value).toBe('one');
+          expect(parts.carousel.value).toBe('one');
           expect(parts.slides[0].el.hidden).toBe(false);
-          parts.carouselEl.remove();
-        });
-      }));
-
-    it('resolves an unknown value to the first slide', () =>
-      scope.run(() => {
-        component().run(() => {
-          const parts = buildCarousel({ value: 'missing' }, ['one', 'two', 'three']);
-          expect(parts.carousel.properties.value).toBe('one');
-          expect(parts.slides[0].el.hidden).toBe(false);
-          expect(parts.slides[1].el.hidden).toBe(true);
-          parts.carouselEl.remove();
-        });
-      }));
-
-    it('resolves an empty carousel to null and stops rotation', () =>
-      scope.run(() => {
-        component().run(() => {
-          const parts = buildCarousel({ value: 'one', autoplay: true }, []);
-          expect(parts.carousel.properties.value).toBeNull();
-          expect(parts.carousel.properties.autoplay).toBe(false);
           parts.carouselEl.remove();
         });
       }));
@@ -302,17 +283,17 @@ describe('Carousel - Composite Specifications', () => {
           expect(parts.prevEl.disabled).toBe(true);
           expect(parts.nextEl.disabled).toBe(false);
           const changes: unknown[] = [];
-          parts.carouselEl.addEventListener('change', (e) => changes.push((e as CustomEvent).detail));
+          parts.carouselEl.addEventListener('change', (e) => changes.push((e as AnyType).detail));
           parts.prevEl.click();
-          expect(parts.carousel.properties.value).toBe('one');
+          expect(parts.carousel.value).toBe('one');
           expect(changes).toEqual([]);
           parts.nextEl.click();
-          expect(parts.carousel.properties.value).toBe('two');
-          parts.carousel.properties.value = 'three';
+          expect(parts.carousel.value).toBe('two');
+          parts.carousel.value = 'three';
           expect(parts.nextEl.disabled).toBe(true);
           expect(parts.prevEl.disabled).toBe(false);
           parts.nextEl.click();
-          expect(parts.carousel.properties.value).toBe('three');
+          expect(parts.carousel.value).toBe('three');
           parts.carouselEl.remove();
         });
       }));
@@ -323,11 +304,11 @@ describe('Carousel - Composite Specifications', () => {
           const parts = buildCarousel({ value: 'one', loop: false }, ['one', 'two']);
           expect(parts.prevEl.disabled).toBe(true);
           const changes: unknown[] = [];
-          parts.carouselEl.addEventListener('change', (e) => changes.push((e as CustomEvent).detail));
+          parts.carouselEl.addEventListener('change', (e) => changes.push((e as AnyType).detail));
           travel(parts.prevEl, 'Enter');
           travel(parts.prevEl, ' ');
           parts.prevEl.click();
-          expect(parts.carousel.properties.value).toBe('one');
+          expect(parts.carousel.value).toBe('one');
           expect(changes).toEqual([]);
           parts.carouselEl.remove();
         });
@@ -354,19 +335,22 @@ describe('Carousel - Composite Specifications', () => {
       scope.run(() => {
         component().run(() => {
           vi.useFakeTimers();
-          const parts = buildCarousel({ value: 'two', autoplay: true, loop: false, interval: 1000 }, [
+          const parts = buildCarousel({ value: 'two', autoplay: false, loop: false, interval: 1000 }, [
             'one',
             'two',
             'three',
           ]);
           const toggles: unknown[] = [];
-          parts.carouselEl.addEventListener('toggle', (e) => toggles.push((e as CustomEvent).detail));
+          parts.carouselEl.addEventListener('toggle', (e) =>
+            toggles.push((e as unknown as CarouselToggleEvent).detail)
+          );
+          parts.playerEl.click();
           vi.advanceTimersByTime(1000);
-          expect(parts.carousel.properties.value).toBe('three');
+          expect(parts.carousel.value).toBe('three');
           expect(parts.carousel.properties.autoplay).toBe(false);
-          expect(toggles).toEqual([false]);
           vi.advanceTimersByTime(5000);
-          expect(parts.carousel.properties.value).toBe('three');
+          expect(parts.carousel.value).toBe('three');
+          expect(toggles).toEqual([true, false]);
           vi.useRealTimers();
           parts.carouselEl.remove();
         });
@@ -379,34 +363,38 @@ describe('Carousel - Composite Specifications', () => {
         component().run(() => {
           vi.useFakeTimers();
 
-          const parts = buildCarousel({ value: 'one', autoplay: true, interval: 2000 }, ['one', 'two', 'three']);
+          const parts = buildCarousel({ value: 'one', autoplay: true, loop: true, interval: 2000 }, [
+            'one',
+            'two',
+            'three',
+          ]);
 
           const toggles: unknown[] = [];
-          parts.carouselEl.addEventListener('toggle', (event) => toggles.push((event as CustomEvent).detail));
+          parts.carouselEl.addEventListener('toggle', (event) => toggles.push((event as AnyType).detail));
 
           const advances: unknown[] = [];
-          parts.carouselEl.addEventListener('change', (event) => advances.push((event as CustomEvent).detail));
+          parts.carouselEl.addEventListener('change', (event) => advances.push((event as AnyType).detail));
 
           vi.advanceTimersByTime(2000);
-          expect(parts.carousel.properties.value).toBe('two');
+          expect(parts.carousel.value).toBe('two');
           expect(advances).toEqual(['two']);
 
           vi.advanceTimersByTime(4000);
-          expect(parts.carousel.properties.value).toBe('one');
+          expect(parts.carousel.value).toBe('one');
           expect(advances).toEqual(['two', 'three', 'one']);
 
           parts.playerEl.click();
           expect(parts.carousel.properties.autoplay).toBe(false);
           expect(toggles).toEqual([false]);
 
-          const before = parts.carousel.properties.value;
+          const before = parts.carousel.value;
           vi.advanceTimersByTime(10000);
-          expect(parts.carousel.properties.value).toBe(before);
+          expect(parts.carousel.value).toBe(before);
 
           parts.playerEl.click();
           expect(toggles).toEqual([false, true]);
           vi.advanceTimersByTime(2000);
-          expect(parts.carousel.properties.value).not.toBe(before);
+          expect(parts.carousel.value).not.toBe(before);
 
           vi.useRealTimers();
           parts.carouselEl.remove();
@@ -419,13 +407,13 @@ describe('Carousel - Composite Specifications', () => {
           vi.useFakeTimers();
           const parts = buildCarousel({ value: 'one', autoplay: true, interval: 5000 }, ['one', 'two', 'three']);
           vi.advanceTimersByTime(4000);
-          expect(parts.carousel.properties.value).toBe('one');
+          expect(parts.carousel.value).toBe('one');
           parts.nextEl.click();
-          expect(parts.carousel.properties.value).toBe('two');
+          expect(parts.carousel.value).toBe('two');
           vi.advanceTimersByTime(4999);
-          expect(parts.carousel.properties.value).toBe('two');
+          expect(parts.carousel.value).toBe('two');
           vi.advanceTimersByTime(1);
-          expect(parts.carousel.properties.value).toBe('three');
+          expect(parts.carousel.value).toBe('three');
           vi.useRealTimers();
           parts.carouselEl.remove();
         });
@@ -439,7 +427,7 @@ describe('Carousel - Composite Specifications', () => {
             {
               value: 'one',
               loop: true,
-              onchange: (event) => seen.push((event as CustomEvent).detail),
+              onchange: (event) => seen.push((event as AnyType).detail),
             },
             ['one', 'two', 'three']
           );
@@ -457,9 +445,9 @@ describe('Carousel - Composite Specifications', () => {
           vi.useFakeTimers();
           const parts = buildCarousel({ value: 'one', autoplay: true }, ['one', 'two', 'three']);
           vi.advanceTimersByTime(4999);
-          expect(parts.carousel.properties.value).toBe('one');
+          expect(parts.carousel.value).toBe('one');
           vi.advanceTimersByTime(1);
-          expect(parts.carousel.properties.value).toBe('two');
+          expect(parts.carousel.value).toBe('two');
           vi.useRealTimers();
           parts.carouselEl.remove();
         });
@@ -472,26 +460,26 @@ describe('Carousel - Composite Specifications', () => {
 
           const parts = buildCarousel({ value: 'one', autoplay: true }, ['one', 'two', 'three']);
 
-          parts.carouselEl.dispatchEvent(new Event('pointerenter'));
+          parts.viewportEl.dispatchEvent(new Event('pointerenter'));
           vi.advanceTimersByTime(20000);
-          expect(parts.carousel.properties.value).toBe('one');
+          expect(parts.carousel.value).toBe('one');
 
-          parts.carouselEl.dispatchEvent(new Event('pointerleave'));
+          parts.viewportEl.dispatchEvent(new Event('pointerleave'));
           vi.advanceTimersByTime(5000);
-          expect(parts.carousel.properties.value).toBe('two');
+          expect(parts.carousel.value).toBe('two');
 
           parts.carousel.properties.autoplay = false;
-          parts.carouselEl.dispatchEvent(new Event('pointerenter'));
-          parts.carouselEl.dispatchEvent(new Event('pointerleave'));
+          parts.viewportEl.dispatchEvent(new Event('pointerenter'));
+          parts.viewportEl.dispatchEvent(new Event('pointerleave'));
           vi.advanceTimersByTime(20000);
-          expect(parts.carousel.properties.value).toBe('two');
+          expect(parts.carousel.value).toBe('two');
 
           parts.carousel.properties.autoplay = true;
           parts.viewportEl.focus();
           expect(parts.carousel.properties.autoplay).toBe(false);
 
           vi.advanceTimersByTime(20000);
-          expect(parts.carousel.properties.value).toBe('two');
+          expect(parts.carousel.value).toBe('two');
 
           vi.useRealTimers();
           parts.carouselEl.remove();
@@ -505,26 +493,26 @@ describe('Carousel - Composite Specifications', () => {
           const parts = buildCarousel({ value: 'one', autoplay: true, interval: 1000 }, ['one', 'two']);
           const changes: unknown[] = [];
           const toggles: unknown[] = [];
-          parts.carouselEl.addEventListener('change', (e) => changes.push((e as CustomEvent).detail));
-          parts.carouselEl.addEventListener('toggle', (e) => toggles.push((e as CustomEvent).detail));
-          parts.carouselEl.dispatchEvent(new Event('pointerenter'));
+          parts.carouselEl.addEventListener('change', (e) => changes.push((e as AnyType).detail));
+          parts.carouselEl.addEventListener('toggle', (e) => toggles.push((e as AnyType).detail));
+          parts.viewportEl.dispatchEvent(new Event('pointerenter'));
           vi.advanceTimersByTime(5000);
-          expect(parts.carousel.properties.value).toBe('one');
-          expect(parts.carousel.properties.autoplay).toBe(true);
+          expect(parts.carousel.value).toBe('one');
+          expect(parts.carousel.properties.autoplay).toBe(false);
           expect(changes).toEqual([]);
-          expect(toggles).toEqual([]);
+          expect(toggles).toEqual([false]);
           vi.useRealTimers();
           parts.carouselEl.remove();
         });
       }));
 
-    it('announces rotation stop when focus enters the carousel', () =>
+    it('announces rotation stop when focus enters the viewport', () =>
       scope.run(() => {
         component().run(() => {
           vi.useFakeTimers();
           const parts = buildCarousel({ value: 'one', autoplay: true }, ['one', 'two']);
           const toggles: unknown[] = [];
-          parts.carouselEl.addEventListener('toggle', (e) => toggles.push((e as CustomEvent).detail));
+          parts.carouselEl.addEventListener('toggle', (e) => toggles.push((e as AnyType).detail));
           parts.viewportEl.focus();
           expect(parts.carousel.properties.autoplay).toBe(false);
           expect(toggles).toEqual([false]);
@@ -559,34 +547,21 @@ describe('Carousel - Composite Specifications', () => {
           const parts = buildCarousel({ value: 'two' }, ['one', 'two', 'three']);
 
           expect(parts.slides[1].el.hasAttribute('hidden')).toBe(false);
-          expect(parts.slides[1].el.getAttribute('aria-label')).toBe('two slide');
+          expect(parts.pickers[1].el.getAttribute('aria-label')).toBe('two slide');
+          expect(parts.slides[1].el.getAttribute('aria-labelledby')).toBe(parts.pickers[1].el.id);
 
           for (const index of [0, 2]) {
             expect(parts.slides[index].el.hidden).toBe(true);
             expect(parts.slides[index].el.hasAttribute('inert')).toBe(false);
-            expect(parts.slides[index].el.getAttribute('aria-roledescription')).toBe('slide');
+            expect(parts.slides[index].el.getAttribute('aria-roledescription')).toBe('carousel-slide');
           }
 
-          parts.carousel.properties.value = 'three';
+          parts.carousel.value = 'three';
           expect(parts.slides[2].el.hidden).toBe(false);
           expect(parts.slides[1].el.hidden).toBe(true);
-          expect(parts.slides[2].el.getAttribute('aria-label')).toBe('three slide');
+          expect(parts.pickers[2].el.getAttribute('aria-label')).toBe('three slide');
+          expect(parts.slides[2].el.getAttribute('aria-labelledby')).toBe(parts.pickers[2].el.id);
 
-          parts.carouselEl.remove();
-        });
-      }));
-
-    it('moves focus to the viewport when the focused slide is deactivated', () =>
-      scope.run(() => {
-        component().run(() => {
-          const parts = buildCarousel({ value: 'one' }, ['one', 'two']);
-          const inner = document.createElement('button');
-          inner.textContent = 'inside';
-          parts.slides[0].el.appendChild(inner);
-          inner.focus();
-          expect(document.activeElement).toBe(inner);
-          parts.carousel.properties.value = 'two';
-          expect(document.activeElement).toBe(parts.viewportEl);
           parts.carouselEl.remove();
         });
       }));

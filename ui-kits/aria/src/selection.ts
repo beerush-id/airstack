@@ -335,12 +335,13 @@ export abstract class SelectionAria<
   private notifyChange(was: boolean): void {
     if (this.selected === was || !this.element) return;
 
+    const detail = this.group ? this.group.value : this.selected;
     const event: SelectionEvent = new CustomEvent('change', {
+      detail,
       bubbles: true,
-      detail: this.group ? this.group.value : this.selected,
     });
 
-    this.dispatchChange(this.selected);
+    this.dispatchChange(detail);
     this.element.dispatchEvent(event);
     this.dispatch(event);
   }

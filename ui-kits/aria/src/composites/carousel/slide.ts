@@ -1,6 +1,6 @@
 import { $symbol, uIndex } from '@airlib/core';
 import { Aria } from '../../core.js';
-import { type SelectionAttributes, selectionGroup, type SelectionProps } from '../../selection.js';
+import { type SelectionAttributes, type SelectionProps, selectionGroup } from '../../selection.js';
 import type { BaseElement } from '../../types.js';
 import { ariaBoolean } from '../../utils/attributes.js';
 import { CAROUSEL_PICKER, CAROUSEL_SLIDE, carouselCtx } from './shared.js';
@@ -98,7 +98,7 @@ export class CarouselSlideAria<
 
   public constructor(props: Partial<T> = {}) {
     super(props);
-    this.omittedAttrs.push('id', 'label', 'name', 'data-playing');
+    this.omittedAttrs.push('id', 'label', 'name');
     this.update();
   }
 
@@ -118,7 +118,6 @@ export class CarouselSlideAria<
       role: 'group',
       hidden: !this.selected,
       tabindex: -1,
-      'data-playing': ariaBoolean(this.playing),
       'aria-current': ariaBoolean(this.selected),
       'aria-labelledby': buttonId,
       'aria-roledescription': 'carousel-slide',

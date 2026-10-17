@@ -1,8 +1,12 @@
 import type { AriaOptions, AriaProps, BaseElement } from '../../types.js';
-import { ariaBoolean } from '../../utils/attributes.js';
 import { ButtonAria, type ButtonAttributes } from '../../widgets/button.js';
 
 import { carouselCtx } from './shared.js';
+
+export interface CarouselPlayerProps {
+  label?: string;
+  playingLabel?: string;
+}
 
 /**
  * Compiled HTML and ARIA attributes for CarouselPlayer buttons.
@@ -23,7 +27,7 @@ export interface CarouselPlayerAttributes<E extends BaseElement = HTMLButtonElem
 export class CarouselPlayerAria<
   E extends BaseElement = HTMLButtonElement,
   A extends CarouselPlayerAttributes<E> = CarouselPlayerAttributes<E>,
-> extends ButtonAria<E, AriaProps, A> {
+> extends ButtonAria<E, CarouselPlayerProps, A> {
   protected readonly carousel = carouselCtx.get();
 
   /**
@@ -44,12 +48,12 @@ export class CarouselPlayerAria<
    * Whether rotation control is available: several slides present.
    */
   public override get disabled(): boolean {
-    return !!(super.disabled || this.carousel?.disabled);
+    return super.disabled || this.carousel?.disabled || (this.carousel?.state?.total ?? 0) < 2;
   }
 
   public constructor(props: Partial<AriaProps> = {}, options: AriaOptions = {}) {
     super(props, { native: true, ...options });
-    this.omittedAttrs.push('aria-label', 'aria-controls', 'data-playing');
+    this.omittedAttrs.push('aria-label', 'aria-controls', 'label', 'playingLabel');
     this.on('click', this.handleToggle);
     this.update();
   }
@@ -60,10 +64,10 @@ export class CarouselPlayerAria<
    * @returns Player attributes dictionary
    */
   protected override createAttributes(): A {
+    const { label, playingLabel } = this.properties;
     return Object.assign(super.createAttributes(), {
-      'aria-label': this.properties.label,
+      'aria-label': this.autoplay && playingLabel ? playingLabel : label,
       'aria-controls': this.carousel?.viewportId,
-      'data-playing': ariaBoolean(this.playing),
     }) as A;
   }
 
@@ -74,5 +78,9 @@ export class CarouselPlayerAria<
     const group = this.carousel;
     if (!group || this.disabled || event.defaultPrevented) return;
     group.autoplay = !group.autoplay;
+
+    const toggle = new CustomEvent('toggle', { bubbles: true, detail: group.autoplay, cancelable: true });
+    this.element?.dispatchEvent(toggle);
+    this.dispatch(toggle);
   };
 }

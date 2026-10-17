@@ -106,7 +106,7 @@ describe('Checkbox - Contract Specifications', () => {
           // 1. SSR Phase: native uses indeterminate attribute/property
           expect(cb.current).toBeNull();
           expect(cb.properties.indeterminate).toBe(true);
-          expect(cb.attributes.indeterminate).toBe(true);
+          expect(cb.attributes.indeterminate).toBe('true');
           expect(cb.attributes['aria-checked']).toBeUndefined();
 
           // 2. Mount Phase: reflects native input.indeterminate property

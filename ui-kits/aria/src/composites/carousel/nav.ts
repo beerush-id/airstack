@@ -58,7 +58,7 @@ export class CarouselNavAria<
    * Whether the button is disabled.
    */
   public override get disabled() {
-    return !!(super.disabled || this.carousel?.disabled);
+    return super.disabled || this.carousel?.disabled || (this.carousel?.state?.total ?? 0) < 2;
   }
 
   /**

@@ -1,6 +1,6 @@
-import { $static, $symbol, derived, effect, isBrowser, mutable, uIndex, untrack } from '@airlib/core';
+import { $static, $symbol, derived, effect, isBrowser, uIndex, untrack } from '@airlib/core';
 import { Aria } from '../../core.js';
-import { selectionGroup, type SelectionGroupProps } from '../../selection.js';
+import { type SelectionGroupProps, selectionGroup } from '../../selection.js';
 import type { AriaAttributes, AriaEvent, AriaEventHandler, BaseElement, DetachFn } from '../../types.js';
 import { CURRENT_QUERY } from '../../utils/attributes.js';
 import { handleRovingKey } from '../../utils/navigation.js';
@@ -9,7 +9,8 @@ import { CAROUSEL_INDICATOR, CAROUSEL_INTERVAL, CAROUSEL_NAME, CAROUSEL_VIEWPORT
 /**
  * Controller-dispatched carousel event carrying the committed slide value in `detail`.
  */
-export type CarouselChangeEvent = AriaEvent<string | null>;
+export type CarouselChangeEvent = AriaEvent<string | undefined>;
+export type CarouselToggleEvent = AriaEvent<boolean>;
 
 /**
  * Reactive input properties for the Carousel root coordinator.
@@ -45,6 +46,11 @@ export interface CarouselProps extends SelectionGroupProps {
   loop?: boolean;
 
   /**
+   * Whether the carousel is currently playing.
+   */
+  playing?: boolean;
+
+  /**
    * Auto-advance flag.
    */
   autoplay?: boolean;
@@ -63,6 +69,11 @@ export interface CarouselProps extends SelectionGroupProps {
    * Called with the committed slide value after the slide advances.
    */
   onchange?: AriaEventHandler<CarouselChangeEvent>;
+
+  /**
+   * Called with the autoplay toggle value after the carousel plays or pauses.
+   */
+  ontoggle?: AriaEventHandler<CarouselToggleEvent>;
 }
 
 /**
@@ -97,7 +108,7 @@ export class CarouselAria<
   T extends CarouselProps = CarouselProps,
   A extends CarouselAttributes<E> = CarouselAttributes<E>,
 > extends Aria<E, T, A> {
-  protected timer = mutable<ReturnType<typeof setTimeout> | undefined>(undefined);
+  protected timer: ReturnType<typeof setTimeout> | undefined;
 
   public state: CarouselState;
 
@@ -110,6 +121,21 @@ export class CarouselAria<
 
   public get viewportId() {
     return `${this.id}-${CAROUSEL_VIEWPORT}`;
+  }
+
+  /**
+   * Whether the carousel is currently playing.
+   */
+  public get playing() {
+    return !!this.properties.playing;
+  }
+
+  /**
+   * Set whether the carousel is currently playing.
+   * @param {boolean} value
+   */
+  public set playing(value: boolean) {
+    this.properties.playing = value;
   }
 
   /**
@@ -147,13 +173,6 @@ export class CarouselAria<
    */
   public set value(value: string | undefined) {
     this.properties.value = value;
-  }
-
-  /**
-   * Whether the carousel is currently playing.
-   */
-  public get playing() {
-    return !!this.timer.value;
   }
 
   /**
@@ -199,9 +218,6 @@ export class CarouselAria<
       current: this.properties.keys!.indexOf(this.value!) ?? 0,
     }));
 
-    this.on('pointerenter', () => this.pause());
-    this.on('pointerleave', () => this.play());
-
     this.on('keydown', (e) => {
       if (this.properties.arrowNav === false) return;
       this.step(1, e);
@@ -239,10 +255,16 @@ export class CarouselAria<
     untrack(() => {
       if (!this.state.loop && this.state.current === this.state.last) {
         this.autoplay = false;
+
+        const event = new CustomEvent('toggle', { detail: false, bubbles: true });
+        this.element?.dispatchEvent(event);
+        this.dispatch(event);
+
         return;
       }
 
-      this.timer.value = setTimeout(() => {
+      this.playing = true;
+      this.timer = setTimeout(() => {
         this.step();
         this.play();
       }, this.properties.interval ?? CAROUSEL_INTERVAL);
@@ -260,8 +282,9 @@ export class CarouselAria<
     if (!isBrowser()) return;
 
     untrack(() => {
-      clearTimeout(this.timer.value);
-      this.timer.value = undefined;
+      clearTimeout(this.timer);
+      this.timer = undefined;
+      this.properties.playing = false;
     });
   }
 
@@ -281,6 +304,15 @@ export class CarouselAria<
       void this.value;
       this.play();
     });
+  }
+
+  /**
+   * Capture and forward the Carousel event.
+   * @param {AriaEvent} event
+   */
+  protected override capture(event: AriaEvent): void {
+    super.capture(event);
+    if (event.type === 'toggle') this.properties.ontoggle?.(event as CarouselToggleEvent);
   }
 
   /**
