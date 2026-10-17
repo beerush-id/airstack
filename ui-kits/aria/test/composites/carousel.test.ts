@@ -21,9 +21,9 @@ function buildCarousel(props: Partial<CarouselProps>, names: string[]) {
     return { name, slide, el };
   });
 
-  const prev = aria('carousel-prev', { label: 'Previous slide', direction: -1 });
+  const prev = aria('carousel-nav', { label: 'Previous slide', direction: -1 });
   const prevEl = bind(document.createElement('button'), prev);
-  const next = aria('carousel-next', { label: 'Next slide', direction: 1 });
+  const next = aria('carousel-nav', { label: 'Next slide', direction: 1 });
   const nextEl = bind(document.createElement('button'), next);
   carouselEl.append(prevEl, nextEl);
 

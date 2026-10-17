@@ -12,6 +12,7 @@ import {
   BreadcrumbSeparatorAria,
   CarouselAria,
   CarouselNavAria,
+  type CarouselNavProps,
   CarouselPickerAria,
   type CarouselPickerProps,
   CarouselPlayerAria,
@@ -444,8 +445,8 @@ export function aria<E extends BaseElement = HTMLElement>(
   props: CarouselSlideProps
 ): CarouselSlideAria<E>;
 export function aria<E extends BaseElement = HTMLButtonElement>(
-  role: 'carousel-prev' | 'carousel-next',
-  props?: AriaProps
+  role: 'carousel-nav',
+  props: CarouselNavProps
 ): CarouselNavAria<E>;
 export function aria<E extends BaseElement = HTMLButtonElement>(
   role: 'carousel-picker',
@@ -900,10 +901,8 @@ export function aria(role: string, init?: unknown, options?: unknown): unknown {
       return new CarouselViewportAria(init as never);
     case 'carousel-slide':
       return new CarouselSlideAria(init as never);
-    case 'carousel-prev':
-      return new CarouselNavAria(init as never, { ...(options as object), direction: -1 } as never);
-    case 'carousel-next':
-      return new CarouselNavAria(init as never, { ...(options as object), direction: 1 } as never);
+    case 'carousel-nav':
+      return new CarouselNavAria(init as never, options as never);
     case 'carousel-picker':
       return new CarouselPickerAria(init as never);
     case 'carousel-player':

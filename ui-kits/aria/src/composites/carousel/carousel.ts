@@ -215,7 +215,7 @@ export class CarouselAria<
       last: this.properties.keys!.length - 1,
       loop: !!this.properties.loop,
       total: this.properties.keys!.length,
-      current: this.properties.keys!.indexOf(this.value!) ?? 0,
+      current: this.properties.keys!.indexOf(this.value!),
     }));
 
     this.on('keydown', (e) => {
@@ -232,6 +232,7 @@ export class CarouselAria<
    * @param {KeyboardEvent} e - The keyboard event
    */
   public step(direction = 1, e?: KeyboardEvent) {
+    /* istanbul ignore next: SSR guard; tests run in browser */
     if (!isBrowser()) return;
 
     const event = e ?? new KeyboardEvent('keydown', { key: direction === 1 ? 'ArrowRight' : 'ArrowLeft' });
@@ -268,10 +269,6 @@ export class CarouselAria<
         this.step();
         this.play();
       }, this.properties.interval ?? CAROUSEL_INTERVAL);
-
-      return () => {
-        this.pause();
-      };
     });
   }
 
@@ -279,6 +276,7 @@ export class CarouselAria<
    * Stop automatic advancement.
    */
   public pause() {
+    /* istanbul ignore next: SSR guard; tests run in browser */
     if (!isBrowser()) return;
 
     untrack(() => {

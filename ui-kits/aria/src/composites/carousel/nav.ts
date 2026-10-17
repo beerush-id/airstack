@@ -62,7 +62,7 @@ export class CarouselNavAria<
   }
 
   /**
-   * Stepping direction carried by the role options.
+   * Stepping direction carried by props: 1 forward, -1 backward.
    */
   private get direction(): 1 | -1 {
     return this.properties.direction ?? 1;
@@ -110,7 +110,6 @@ export class CarouselNavAria<
    * Activates the navigation direction on the shared value.
    */
   protected activate = (): void => {
-    if (this.disabled) return;
     this.carousel?.step(this.direction);
   };
 }
