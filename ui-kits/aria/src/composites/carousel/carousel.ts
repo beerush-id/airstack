@@ -1,22 +1,19 @@
-import { $static, $symbol, createContext, effect, uIndex } from '@airlib/core';
+import { $static, $symbol, derived, effect, isBrowser, mutable, uIndex, untrack } from '@airlib/core';
 import { Aria } from '../../core.js';
 import { selectionGroup, type SelectionGroupProps } from '../../selection.js';
-import type { AriaAttributes, AriaEventHandler, BaseElement } from '../../types.js';
-import {
-  CAROUSEL_BTN_SELECTOR,
-  CAROUSEL_NAME,
-  CAROUSEL_VIEWPORT,
-  type CarouselChangeEvent,
-  carouselGroup,
-} from './shared.js';
+import type { AriaAttributes, AriaEvent, AriaEventHandler, BaseElement, DetachFn } from '../../types.js';
 import { handleRovingKey } from '../../utils/navigation.js';
+import { CAROUSEL_BTN_SELECTOR, CAROUSEL_INTERVAL, CAROUSEL_NAME, CAROUSEL_VIEWPORT, carouselCtx } from './shared.js';
 
-export const carouselCtx = createContext<CarouselAria>();
+/**
+ * Controller-dispatched carousel event carrying the committed slide value in `detail`.
+ */
+export type CarouselChangeEvent = AriaEvent<string | null>;
 
 /**
  * Reactive input properties for the Carousel root coordinator.
  *
- * The root publishes this object as-is through {@link carouselGroup}: parts
+ * The root publishes this object as-is through {@link carouselCtx}: parts
  * coordinate through these shared props plus deterministic key matching against
  * slide values, never through cross-instance references.
  */
@@ -27,9 +24,19 @@ export interface CarouselProps extends SelectionGroupProps {
   id?: string;
 
   /**
+   * List of slide keys.
+   */
+  keys?: string[];
+
+  /**
    * Current slide identifier.
    */
   value?: string;
+
+  /**
+   * Accessible name.
+   */
+  label: string;
 
   /**
    * Wrap navigation between first and last slide.
@@ -45,11 +52,6 @@ export interface CarouselProps extends SelectionGroupProps {
    * Delay in milliseconds between advances (default: 5000).
    */
   interval?: number;
-
-  /**
-   * Accessible name.
-   */
-  label: string;
 
   /**
    * Called with the committed slide value after the slide advances.
@@ -68,10 +70,17 @@ export interface CarouselAttributes<E extends BaseElement = HTMLElement> extends
   'aria-roledescription': 'carousel';
 }
 
+export interface CarouselState {
+  last: number;
+  loop: boolean;
+  total: number;
+  current: number;
+}
+
 /**
  * Root sequential-slide coordinator owning the shared props, autoplay timer,
  * and container-level event dispatch. Parts discover these props through
- * {@link carouselGroup} and match slides by value keys in DOM order.
+ * {@link carouselCtx} and match slides by value keys in DOM order.
  *
  * @template E - Target Element type (defaults to HTMLElement)
  * @template T - Reactive props type
@@ -82,6 +91,10 @@ export class CarouselAria<
   T extends CarouselProps = CarouselProps,
   A extends CarouselAttributes<E> = CarouselAttributes<E>,
 > extends Aria<E, T, A> {
+  protected timer = mutable<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  public state: CarouselState;
+
   /**
    * Deterministic identity and namespace for viewport derivation.
    */
@@ -94,51 +107,71 @@ export class CarouselAria<
   }
 
   /**
-   * Delay in milliseconds between advances.
-   */
-  public get interval(): number {
-    return this.properties.interval ?? 5000;
-  }
-
-  /**
    * Whether automatic advancement is active.
    */
   public get autoplay(): boolean {
     return !!this.properties.autoplay;
   }
 
+  /**
+   * Set automatic advancement flag.
+   * @param {boolean} value
+   */
   public set autoplay(value: boolean) {
     this.properties.autoplay = value;
   }
 
+  /**
+   * Whether the carousel is disabled.
+   */
   public get disabled() {
     return !!this.properties.disabled;
   }
 
+  /**
+   * Currently selected slide key.
+   */
   public get value() {
     return this.properties.value;
   }
 
+  /**
+   * Set currently selected slide key.
+   * @param {string | undefined} value
+   */
   public set value(value: string | undefined) {
     this.properties.value = value;
   }
 
+  /**
+   * Whether the carousel is currently playing.
+   */
+  public get playing() {
+    return !!this.timer.value;
+  }
+
+  /**
+   * Get the list of picker elements.
+   */
   public get pickers(): Array<HTMLElement> {
     if (!this.element) return [];
     return Array.from(this.element.querySelectorAll(CAROUSEL_BTN_SELECTOR));
   }
 
+  /**
+   * @param {Partial<CarouselProps>} props
+   */
   public constructor(props: Partial<T> = {}) {
     super(props);
 
     $static(() => {
       this.properties.id = this.properties.id ?? `${CAROUSEL_NAME}-${uIndex($symbol(CAROUSEL_NAME), true)}`;
       this.properties.orientation = this.properties.orientation ?? 'horizontal';
+      if (!Array.isArray(this.properties.keys)) this.properties.keys = [];
     });
 
     carouselCtx.set(this as never);
     selectionGroup.set(this.properties as CarouselProps);
-    carouselGroup.set(this.properties as CarouselProps);
 
     this.omittedAttrs.push(
       'id',
@@ -152,10 +185,16 @@ export class CarouselAria<
       'slideCount'
     );
 
-    effect.client(() => this.play());
+    this.state = derived.as(() => ({
+      last: this.properties.keys!.length - 1,
+      loop: !!this.properties.loop,
+      total: this.properties.keys!.length,
+      current: this.properties.keys!.indexOf(this.value!) ?? 0,
+    }));
 
-    this.on('pointerleave', () => this.play());
     this.on('pointerenter', () => this.pause());
+    this.on('pointerleave', () => this.play());
+
     this.on('keydown', (e) => {
       handleRovingKey(this.element!, e, {
         selector: CAROUSEL_BTN_SELECTOR,
@@ -166,44 +205,83 @@ export class CarouselAria<
     this.update();
   }
 
+  /**
+   * Step to the next or previous slide.
+   * @param {number} direction
+   */
   public step(direction = 1) {
+    if (!isBrowser()) return;
     const pickers = this.pickers;
     const current = pickers.findIndex((picker) => picker.getAttribute('aria-current') === 'true');
 
     if (direction === 1) {
-      const last = this.properties.loop ? 0 : pickers.length - 1;
+      const last = this.state.loop ? 0 : pickers.length - 1;
       const next = current === pickers.length - 1 ? last : current + 1;
-      pickers[next].click();
+      pickers[next]?.click();
     } else {
-      const first = this.properties.loop ? pickers.length - 1 : 0;
+      const first = this.state.loop ? pickers.length - 1 : 0;
       const prev = current === 0 ? first : current - 1;
       pickers[prev]?.click();
     }
   }
 
-  protected timer: ReturnType<typeof setTimeout> | undefined;
-
+  /**
+   * Start automatic advancement.
+   */
   public play() {
-    void this.value;
-
-    if (!this.autoplay) return;
-
     this.pause();
-    this.timer = setTimeout(() => {
-      this.step();
-      this.play();
-    }, this.interval);
 
-    return () => {
-      this.pause();
-    };
+    if (!isBrowser() || !this.autoplay) return;
+
+    untrack(() => {
+      if (!this.state.loop && this.state.current === this.state.last) {
+        this.autoplay = false;
+        return;
+      }
+
+      this.timer.value = setTimeout(() => {
+        this.step();
+        this.play();
+      }, this.properties.interval ?? CAROUSEL_INTERVAL);
+
+      return () => {
+        this.pause();
+      };
+    });
   }
 
+  /**
+   * Stop automatic advancement.
+   */
   public pause() {
-    clearTimeout(this.timer);
-    this.timer = undefined;
+    if (!isBrowser()) return;
+    untrack(() => {
+      clearTimeout(this.timer.value);
+      this.timer.value = undefined;
+    });
   }
 
+  /**
+   * Destroy the Carousel.
+   */
+  public override destroy() {
+    this.pause();
+    super.destroy();
+  }
+
+  /**
+   * Attach the Carousel.
+   */
+  protected override attach(): DetachFn | void {
+    return effect.client(() => {
+      void this.value;
+      this.play();
+    });
+  }
+
+  /**
+   * Create the Carousel attributes.
+   */
   protected override createAttributes(): A {
     return {
       ...super.createAttributes(),

@@ -3,7 +3,7 @@ import { Aria } from '../../core.js';
 import { type SelectionAttributes, selectionGroup, type SelectionProps } from '../../selection.js';
 import type { BaseElement } from '../../types.js';
 import { ariaBoolean } from '../../utils/attributes.js';
-import { CAROUSEL_PICKER, CAROUSEL_SLIDE } from './shared.js';
+import { CAROUSEL_PICKER, CAROUSEL_SLIDE, carouselCtx } from './shared.js';
 
 /**
  * Reactive input properties for CarouselSlide members.
@@ -51,6 +51,12 @@ export class CarouselSlideAria<
   A extends CarouselSlideAttributes<E> = CarouselSlideAttributes<E>,
 > extends Aria<E, T, A> {
   /**
+   * Associated carousel selection group props.
+   */
+  protected group = selectionGroup.get();
+  protected carousel = carouselCtx.get();
+
+  /**
    * Guaranteed unique controller instance identifier generated at instantiation.
    */
   public id: string = `${CAROUSEL_SLIDE}-${uIndex($symbol(CAROUSEL_SLIDE), true)}`;
@@ -77,13 +83,22 @@ export class CarouselSlideAria<
   }
 
   /**
-   * Associated carousel selection group props.
+   * Whether the carousel is currently playing.
    */
-  protected group = selectionGroup.get();
+  public get playing() {
+    return !!this.carousel?.playing;
+  }
+
+  /**
+   * Whether automatic advancement is active.
+   */
+  public get autoplay() {
+    return !!this.carousel?.autoplay;
+  }
 
   public constructor(props: Partial<T> = {}) {
     super(props);
-    this.omittedAttrs.push('id', 'label', 'name');
+    this.omittedAttrs.push('id', 'label', 'name', 'data-playing');
     this.update();
   }
 
@@ -103,6 +118,7 @@ export class CarouselSlideAria<
       role: 'group',
       hidden: !this.selected,
       tabindex: -1,
+      'data-playing': ariaBoolean(this.playing),
       'aria-current': ariaBoolean(this.selected),
       'aria-labelledby': buttonId,
       'aria-roledescription': 'slide',

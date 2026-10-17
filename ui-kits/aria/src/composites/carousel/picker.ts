@@ -2,7 +2,7 @@ import { SelectionAria, type SelectionOptions, type SelectionProps } from '../..
 import type { AriaProps, BaseElement } from '../../types.js';
 import { ariaBoolean } from '../../utils/attributes.js';
 import type { ButtonAttributes } from '../../widgets/button.js';
-import { CAROUSEL_PICKER, CAROUSEL_SLIDE } from './shared.js';
+import { CAROUSEL_PICKER, CAROUSEL_SLIDE, carouselCtx } from './shared.js';
 
 /**
  * Reactive input properties for CarouselPicker indicator buttons.
@@ -64,8 +64,27 @@ export class CarouselPickerAria<
   T extends CarouselPickerProps = CarouselPickerProps,
   A extends CarouselPickerAttributes<E> = CarouselPickerAttributes<E>,
 > extends SelectionAria<E, CarouselPickerProps, A> {
+  protected carousel = carouselCtx.get();
+
+  /**
+   * Whether the slide is currently selected.
+   */
   public get active() {
     return this.selected;
+  }
+
+  /**
+   * Whether the carousel is currently playing.
+   */
+  public get playing() {
+    return !!this.carousel?.playing;
+  }
+
+  /**
+   * Whether automatic advancement is active.
+   */
+  public get autoplay() {
+    return !!this.carousel?.autoplay;
   }
 
   public constructor(props: Partial<T> = {}, options?: SelectionOptions) {

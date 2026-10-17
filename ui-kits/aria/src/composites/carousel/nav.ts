@@ -1,6 +1,7 @@
 import type { AriaOptions, AriaProps, BaseElement } from '../../types.js';
 import { ButtonAria, type ButtonAttributes, type ButtonProps } from '../../widgets/button.js';
-import { carouselCtx } from './carousel.js';
+
+import { carouselCtx } from './shared.js';
 
 export interface CarouselNavProps extends ButtonProps {
   /**
@@ -37,10 +38,27 @@ export class CarouselNavAria<
   E extends BaseElement = HTMLButtonElement,
   A extends CarouselNavAttributes<E> = CarouselNavAttributes<E>,
 > extends ButtonAria<E, CarouselNavProps, A> {
-  protected readonly group = carouselCtx.get();
+  protected readonly carousel = carouselCtx.get();
 
+  /**
+   * Whether the carousel is currently playing.
+   */
+  public get playing() {
+    return !!this.carousel?.playing;
+  }
+
+  /**
+   * Whether automatic advancement is active.
+   */
+  public get autoplay() {
+    return !!this.carousel?.autoplay;
+  }
+
+  /**
+   * Whether the button is disabled.
+   */
   public override get disabled() {
-    return !!(super.disabled || this.group?.disabled);
+    return !!(super.disabled || this.carousel?.disabled);
   }
 
   /**
@@ -51,7 +69,7 @@ export class CarouselNavAria<
   }
 
   public constructor(props: Partial<AriaProps> = {}, options?: AriaOptions) {
-    super(props, { native: true, ...options });
+    super(props, options);
     this.omittedAttrs.push('label', 'direction');
     this.on('click', this.activate);
     this.update();
@@ -63,10 +81,26 @@ export class CarouselNavAria<
    * @returns Nav attributes dictionary
    */
   protected override createAttributes(): A {
-    return Object.assign(super.createAttributes(), {
+    const attrs = super.createAttributes();
+    const state = this.carousel?.state;
+    const isNext = this.direction === 1;
+    const canStep = !(isNext ? state?.current === state?.last : state?.current === 0);
+    const disabled = this.disabled || (!state?.loop && !canStep);
+
+    if (this.isNative) {
+      Object.assign(attrs, {
+        disabled,
+      });
+    } else {
+      Object.assign(attrs, {
+        'aria-disabled': disabled ? 'true' : 'false',
+      });
+    }
+
+    return Object.assign(attrs, {
       'aria-label': this.properties.label,
-      'aria-controls': this.group?.viewportId,
-      'aria-roledescription': this.direction === 1 ? 'next' : 'prev',
+      'aria-controls': this.carousel?.viewportId,
+      'aria-roledescription': isNext ? 'next' : 'prev',
     }) as A;
   }
 
@@ -74,7 +108,7 @@ export class CarouselNavAria<
    * Activates the navigation direction on the shared value.
    */
   protected activate = (): void => {
-    if (!this.group || this.disabled || this.group.disabled) return;
-    this.group?.step(this.direction);
+    if (!this.carousel || this.disabled || this.carousel.disabled) return;
+    this.carousel?.step(this.direction);
   };
 }

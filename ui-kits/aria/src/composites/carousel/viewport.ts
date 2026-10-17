@@ -1,6 +1,7 @@
 import { Aria } from '../../core.js';
 import type { AriaAttributes, AriaProps, BaseElement } from '../../types.js';
-import { carouselCtx } from './carousel.js';
+
+import { carouselCtx } from './shared.js';
 
 export interface CarouselViewportProps extends AriaProps {
   label: string;
@@ -31,7 +32,21 @@ export class CarouselViewportAria<
   E extends BaseElement = HTMLElement,
   A extends CarouselViewportAttributes<E> = CarouselViewportAttributes<E>,
 > extends Aria<E, CarouselViewportProps, A> {
-  private readonly group = carouselCtx.get();
+  private readonly carousel = carouselCtx.get();
+
+  /**
+   * Whether the carousel is currently playing.
+   */
+  public get playing() {
+    return !!this.carousel?.playing;
+  }
+
+  /**
+   * Whether automatic advancement is active.
+   */
+  public get autoplay() {
+    return !!this.carousel?.autoplay;
+  }
 
   public constructor(props: Partial<AriaProps> = {}) {
     super(props);
@@ -45,13 +60,13 @@ export class CarouselViewportAria<
    * @returns Viewport attributes dictionary
    */
   protected override createAttributes(): A {
-    const group = this.group;
+    const carousel = this.carousel;
 
     return Object.assign(super.createAttributes(), {
-      id: group?.viewportId,
+      id: carousel?.viewportId,
       role: 'group',
       tabindex: 0,
-      'aria-live': group?.autoplay ? 'off' : 'polite',
+      'aria-live': carousel?.autoplay ? 'off' : 'polite',
       'aria-label': this.properties.label,
       'aria-atomic': 'false',
       'aria-roledescription': 'slides',
