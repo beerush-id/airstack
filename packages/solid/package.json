@@ -135,6 +135,7 @@
     "prepublish": "bun run format && bun run build",
     "format": "biome format --write",
     "test": "rimraf coverage && vitest --run",
+    "test:run": "rimraf coverage && vitest --run",
     "test:preview": "rimraf coverage && vitest --run && vite preview --outDir coverage"
   }
 }

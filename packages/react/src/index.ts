@@ -103,6 +103,7 @@ export {
   uIndex,
   undoable,
   untrack,
+  when,
   withContext,
   withIsolation,
   withScope,

@@ -489,3 +489,39 @@ export function setStaticTracker(tracker: StateReadTracker | undefined) {
 export function getStaticTracker(): StateReadTracker | undefined {
   return plugin.trackStatic;
 }
+
+/**
+ * A function that can be called to trigger a handler.
+ */
+export type DoHandler = (signal?: AbortSignal) => void | Promise<void>;
+
+/**
+ * Creates a reactive condition that triggers a handler when the condition is met.
+ * @param condition - A function that returns a boolean value.
+ * @param deferred - (Optional) A boolean indicating whether the handler should be deferred until the condition is met.
+ * @returns An object with a `do` method that takes a handler function as an argument.
+ */
+export function when(condition: () => boolean, deferred?: boolean) {
+  let handler: DoHandler | undefined;
+  let cleanup: (() => void) | undefined;
+
+  const run = () => {
+    cleanup?.();
+    cleanup = effect(async (e) => {
+      const canRun = condition();
+      if (deferred && e.type === 'init') return;
+      if (canRun) {
+        const controller = new AbortController();
+        untrack(() => handler?.(controller.signal));
+        return () => controller.abort();
+      }
+    });
+  };
+
+  return {
+    do: (fn: DoHandler) => {
+      handler = fn;
+      run();
+    },
+  };
+}

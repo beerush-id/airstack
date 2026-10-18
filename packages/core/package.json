@@ -73,6 +73,7 @@
     "build": "bun run clean && tsdown && publint",
     "prepublish": "bun run format && bun run build",
     "test": "rimraf coverage && vitest --run",
+    "test:run": "rimraf coverage && vitest --run",
     "test:preview": "rimraf coverage && vitest --run && vite preview --outDir coverage",
     "format": "biome format --write"
   },

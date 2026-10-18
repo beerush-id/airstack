@@ -2,13 +2,7 @@
   "name": "@airlib/vue",
   "version": "2.2.0",
   "description": "Vue bindings for Anchor reactive state management",
-  "keywords": [
-    "state",
-    "management",
-    "reactive",
-    "observable",
-    "vue"
-  ],
+  "keywords": ["state", "management", "reactive", "observable", "vue"],
   "author": "Nanang Mahdaen El Agung <mahdaen@gmail.com>",
   "homepage": "https://github.com/beerush-id/airstack",
   "license": "MIT",
@@ -35,9 +29,7 @@
   "directories": {
     "dist": "./dist"
   },
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "publishConfig": {
     "access": "public"
   },
@@ -72,6 +64,7 @@
     "format": "biome format --write",
     "prepublish": "bun run format && bun run build",
     "test": "rimraf coverage && vitest --run",
+    "test:run": "rimraf coverage && vitest --run",
     "test:preview": "rimraf coverage && vitest --run && vite preview --outDir coverage"
   },
   "optionalDependencies": {
