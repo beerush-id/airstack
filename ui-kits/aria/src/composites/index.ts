@@ -1,5 +1,5 @@
 export * from './accordion/index.js';
-export * from './breadcrumb.js';
+export * from './breadcrumb/index.js';
 export * from './calendar/index.js';
 export * from './carousel/index.js';
 export * from './checkbox-group.js';
@@ -16,6 +16,7 @@ export * from './menu/index.js';
 export * from './navigation.js';
 export * from './pagination.js';
 export * from './radio-group.js';
+export * from './reorder/index.js';
 export * from './select.js';
 export * from './stepper.js';
 export * from './tabs/index.js';

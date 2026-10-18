@@ -1,29 +1,25 @@
 # Reorder Specification
 
-The within-collection reorder coordinator unit. Pointer and keyboard interactions preview a new order of existing items
-before committing it; file drops, cross-collection transfer, sorting comparators, and styling controls are outside this
-unit.
+The within-collection reorder coordinator unit. Keyboard and pointer interactions preview a new order of existing items before committing it; labels and live announcements remain strictly in user-land via `oninput`, `onchange`, and `oncancel` events.
 
 - **Entity**: `reorder`
-- **WAI-ARIA Role**: Preserves underlying collection role (`list`, `table`, `tree`), `role="status"` on announcer
+- **WAI-ARIA Role**: Preserves underlying collection semantics (`<ul>`, `<ol>`, `<table>`, `<div>`)
 
 ### Composite Parts (Entity Tree)
 
-- **`Reorder`**: Container coordinator (hosts `value`, `preview`, `active`, `orientation`, `disabled`, `label`).
-- **`ReorderItem`**: Individual item wrapper (`value: string`, `label?: string`).
-- **`ReorderHandle`**: Drag and keyboard handle within item (following Button contract).
-- **`ReorderStatus`**: Accessible live region announcer (`role="status"`, `aria-live="polite"`, `aria-atomic="true"`).
+- **`Reorder`** (`reorder`): Container coordinator hosting `value`, `preview`, `active`, `orientation`, `disabled`, `label`, `labelledby`, and lifecycle events (`oninput`, `onchange`, `oncancel`).
+- **`ReorderItem`** (`reorder-item`): Individual item wrapper (`value`, `disabled`, `label`). Publishes ambient `reorderItemCtx` for its child handle.
+- **`ReorderHandle`** (`reorder-handle`): Interactive handle inside an item (extends `ButtonAria`, defaulting to `native: true`). Initiates pickup, clamped slot movement, drop commit, and cancellation.
 
 ---
 
 ## The Three Semantic Layers
 
-| Part / Role         | HTML Semantic                                               | WAI-ARIA Semantic                                                | Aria Package Semantic Contract                                                       |
-|:--------------------|:------------------------------------------------------------|:-----------------------------------------------------------------|:-------------------------------------------------------------------------------------|
-| **`Reorder`**       | Preserves container semantics (`<ul>`, `<table>`, `<div>`). | Preserves collection role. `aria-disabled="true"` when disabled. | Coordinator. Hosts `value: string[]`, `preview: string[]`, `active: string \| null`. |
-| **`ReorderItem`**   | Preserves item semantics (`<li>`, `<tr>`).                  | Preserves item role (`listitem` in list context).                | Item identifier: `this.props.value`.                                                 |
-| **`ReorderHandle`** | Native `<button type="button">` or custom host.             | Follows Button contract. Accessible name: `Move [item label]`.   | Initiates pickup, drop, and keyboard movement.                                       |
-| **`ReorderStatus`** | Announcement container.                                     | `role="status"`, `aria-live="polite"`, `aria-atomic="true"`.     | Announces pickup, position changes, drop, and cancel.                                |
+| Part / Role          | HTML Semantic                                               | WAI-ARIA Semantic                                                            | Aria Package Semantic Contract                                                                                     |
+|:---------------------|:------------------------------------------------------------|:-----------------------------------------------------------------------------|:-------------------------------------------------------------------------------------------------------------------|
+| **`reorder`**        | Preserves container semantics (`<ul>`, `<table>`, `<div>`). | Preserves collection role. `aria-label`, `aria-labelledby`, `aria-disabled`. | Coordinator. Hosts `value: T[]`, `preview: T[]`, `active: T \| null`, `orientation: 'vertical' \| 'horizontal'`.   |
+| **`reorder-item`**   | Preserves item semantics (`<li>`, `<tr>`, `<div>`).         | Preserves item role. `aria-label`, `aria-disabled`.                          | Item identifier (`value`). Publishes `reorderItemCtx`.                                                             |
+| **`reorder-handle`** | Native `<button type="button">` or custom host.             | Follows `Button` contract (`aria-label` from `label`, `aria-disabled`).      | Discovers enclosing `Reorder` and `ReorderItem`. Initiates pickup, clamped preview movement, drop, and cancel.     |
 
 ---
 
@@ -34,87 +30,93 @@ unit.
 #### `ReorderProps`
 
 ```ts
-export interface ReorderProps {
+export interface ReorderProps<T extends Primitive = string> extends AriaProps {
+  id?: string;
   /** Committed item order */
-  value?: string[];
-  /** Pending item order */
-  preview?: string[];
-  /** Active item being dragged */
-  active?: string | null;
-  orientation?: 'vertical' | 'horizontal';
+  value?: T[];
+  /** Pending item order during active reorder */
+  preview?: T[];
+  /** Active item currently picked up (`null` when idle) */
+  active?: T | null;
+  /** Movement axis (default: 'vertical') */
+  orientation?: Orientation;
   disabled?: boolean;
-  label: string;
+  label?: string;
+  labelledby?: string;
+  oninput?: AriaEventHandler<ReorderEvent<T[]>>;
+  onchange?: AriaEventHandler<ReorderEvent<T[]>>;
+  oncancel?: AriaEventHandler<ReorderCancelEvent<T>>;
 }
 ```
 
 #### `ReorderItemProps`
 
 ```ts
-export interface ReorderItemProps {
-  value: string;
+export interface ReorderItemProps<T extends Primitive = string> extends AriaProps {
+  id?: string;
+  value: T;
   label?: string;
   disabled?: boolean;
 }
 ```
 
+#### `ReorderHandleProps` & `ReorderHandleOptions`
+
+```ts
+export interface ReorderHandleProps extends ButtonProps {
+  id?: string;
+  label?: string;
+  disabled?: boolean;
+}
+
+export type ReorderHandleOptions = ButtonOptions;
+```
+
 ### 2. Overload Contracts
 
 ```ts
-// Reorder: Container
-export function aria<E extends BaseElement = HTMLElement>(
+export function aria<E extends BaseElement = HTMLElement, T extends Primitive = string>(
   role: 'reorder',
-  props: ReorderProps
-): ReorderAria<E>;
+  props?: ReorderProps<T>
+): ReorderAria<E, ReorderProps<T>>;
 
-// ReorderItem: Item
-export function aria<E extends BaseElement = HTMLElement>(
+export function aria<E extends BaseElement = HTMLElement, T extends Primitive = string>(
   role: 'reorder-item',
-  props: ReorderItemProps
-): ReorderItemAria<E>;
+  props: ReorderItemProps<T>
+): ReorderItemAria<E, ReorderItemProps<T>>;
 
-// ReorderHandle: Drag handle
 export function aria<E extends BaseElement = HTMLButtonElement>(
   role: 'reorder-handle',
-  props?: AriaProps
-): ReorderHandleAria<E>;
-
-// ReorderStatus: Live announcer
-export function aria<E extends BaseElement = HTMLElement>(
-  role: 'reorder-status',
-  props?: AriaProps
-): ReorderStatusAria<E>;
+  props?: ReorderHandleProps,
+  options?: ReorderHandleOptions
+): ReorderHandleAria<E, ReorderHandleProps>;
 ```
 
 ---
 
 ## State & Lifecycle Rules
 
-1. **Pickup, Movement, and Drop** (`docs/reorder.md:32-47`):
-  - Idle handle: `Enter` / `Space` / AT click, or primary-button pointer drag **from the handle**, picks up — copies
-    `value` into `preview` and sets `active` (committed `value` unchanged, `:32`). Pointer tracking continues outside
-    the handle via capture and stays within this collection (`:34-36`).
-  - Movement changes **only `preview`**: vertical `Up`/`Down`, horizontal `Left`/`Right` per layout direction; `Home`/
-    `End` to first/last slot; one slot per key, clamped, no notification for an unchanged position (`:38-40`). Unrelated
-    keys ignored.
-  - **A disabled item is not a wall** (`:31,40`): other items move around it and its resulting position changes; it
-    simply cannot initiate.
-  - Second `Enter`/`Space`/release at a valid target drops: commit `preview` copy to `value`, **synchronize `preview`**,
-    clear `active`, emit `change` (`:45`). An unchanged drop still synchronizes `preview`, clears `active`, and
-    announces, but emits no `change` (`:46`).
-  - `Escape` cancels; `Tab` cancels **without preventing its default** so focus continues (`:42`). Cancellation restores
-    `preview` from committed `value`, clears `active`, emits `cancel` (`:47`). Disabling the group/active item
-    mid-gesture, or losing the active item, cancels (`:43`).
-
-2. **Focus** (`docs/reorder.md:52-53`): after keyboard completion/cancellation focus stays on or reconnects to the same
-   item's handle (Tab exempt); if that handle is gone, a valid enabled handle, else the container becomes
-   programmatically focusable — never Tab back into the collection.
-
-3. **Status announcements** (`docs/reorder.md:78-81`): `ReorderStatus` is a `role="status"` polite live region reporting
-   **pickup, each changed preview position, completion, and cancellation** using the **collection label, item label, and
-   1-based position/total** (pickup/movement use preview order; completion/cancellation use committed order). A removed
-   canceled item is named by captured label with the current total.
-
-4. **Events** (`docs/reorder.md:55-62`): `input` (`detail: preview`) on changed preview position; `change`
-   (`detail: value`) on a committed changed drop; `cancel`
-   (`CustomEvent<string>{bubbles,cancelable:false,detail:canceledValue}`) after rollback. Post-state notifications, not
-   vetoes; native handle clicks are not re-dispatched and one gesture never yields two transitions.
+1. **Pickup, Clamped Movement, and Drop**:
+   - **Idle Handle**: Pressing `Enter` or `Space`, clicking, or pressing `pointerdown` (primary button) on an enabled handle picks up its enclosing item — copies `value` into `preview` (`[...value]`) and sets `active = item.value` while keeping committed `value` untouched.
+   - **Pointer Dragging**:
+     - Holding and dragging the handle (`pointermove`) compares the pointer position (`clientY` for vertical, `clientX` for horizontal) against the visual slot midpoints of the collection's mounted items and moves the active item into the crossed slot in `preview`, dispatching `input` (`detail: preview`).
+     - Releasing the pointer (`pointerup`) after dragging drops the item and commits the order if changed.
+     - `pointercancel` cancels the active drag and restores `preview = [...value]`.
+   - **Movement (Active State)**:
+     - Changes **only `preview`**, clamped to `[0, preview.length - 1]`:
+       - `orientation === 'vertical'` (default): `ArrowUp` (`-1`), `ArrowDown` (`+1`). Horizontal arrows are ignored.
+       - `orientation === 'horizontal'`: `ArrowLeft` (`-1`), `ArrowRight` (`+1`). Vertical arrows are ignored.
+       - `Home`: moves active item to index `0`.
+       - `End`: moves active item to index `preview.length - 1`.
+     - When `preview` order changes, dispatches `input` (`detail: preview`) and invokes `oninput`. Pressing an arrow at a boundary where position cannot change is a no-op and does not emit `input`.
+   - **Disabled Items**:
+     - A disabled item (`disabled: true` on `ReorderItem` or `ReorderHandle`) cannot initiate pickup, but other active items can move past it in `preview`.
+     - When the `Reorder` container is `disabled`, no item can be picked up or moved.
+   - **Drop (Commit)**:
+     - Pressing `Enter` or `Space` (or clicking / releasing a drag) while `active === item.value` drops the item:
+       - If `preview` order differs from `value`, commits `value = [...preview]`, synchronizes `preview = [...value]`, clears `active = null`, and dispatches `change` (`detail: value`), invoking `onchange`.
+       - If `preview` order is unchanged from `value`, synchronizes `preview = [...value]` and clears `active = null` without emitting `change`.
+   - **Cancellation**:
+     - `Escape` cancels (`preventDefault()`): restores `preview = [...value]`, clears `active = null`, and dispatches `cancel` (`detail: canceledValue`), invoking `oncancel`.
+     - `Tab` cancels **without preventing default** so focus continues naturally: restores `preview = [...value]`, clears `active = null`, and dispatches `cancel` (`detail: canceledValue`), invoking `oncancel`.
+     - `pointercancel` during an active pointer drag cancels and dispatches `cancel` (`detail: canceledValue`), invoking `oncancel`.

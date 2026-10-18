@@ -109,6 +109,13 @@ import {
   type PaginationProps,
   RadioGroupAria,
   type RadioGroupProps,
+  ReorderAria,
+  ReorderHandleAria,
+  type ReorderHandleOptions,
+  type ReorderHandleProps,
+  ReorderItemAria,
+  type ReorderItemProps,
+  type ReorderProps,
   type RowHeaderProps,
   type RowProps,
   SelectAria,
@@ -796,6 +803,22 @@ export function aria<E extends BaseElement = HTMLElement>(
   props?: TreeGroupProps
 ): TreeGroupAria<E, TreeGroupProps>;
 
+export function aria<E extends BaseElement = HTMLElement, T extends Primitive = string>(
+  role: 'reorder',
+  props?: ReorderProps<T>
+): ReorderAria<E, ReorderProps<T>>;
+
+export function aria<E extends BaseElement = HTMLElement, T extends Primitive = string>(
+  role: 'reorder-item',
+  props: ReorderItemProps<T>
+): ReorderItemAria<E, ReorderItemProps<T>>;
+
+export function aria<E extends BaseElement = HTMLButtonElement>(
+  role: 'reorder-handle',
+  props?: ReorderHandleProps,
+  options?: ReorderHandleOptions
+): ReorderHandleAria<E, ReorderHandleProps>;
+
 export function aria(role: string, init?: unknown, options?: unknown): unknown {
   switch (role) {
     case 'text-input':
@@ -998,6 +1021,12 @@ export function aria(role: string, init?: unknown, options?: unknown): unknown {
       return new TreeItemAria(init as never);
     case 'tree-group':
       return new TreeGroupAria(init as never);
+    case 'reorder':
+      return new ReorderAria(init as never);
+    case 'reorder-item':
+      return new ReorderItemAria(init as never);
+    case 'reorder-handle':
+      return new ReorderHandleAria(init as never, options as never);
     case 'menu':
       return new MenuAria(init as never);
     case 'menu-bar':

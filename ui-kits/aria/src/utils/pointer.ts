@@ -2,6 +2,11 @@
  * Pointer handlers for an active drag session.
  */
 export interface DragSessionHandlers {
+  host?: HTMLElement;
+  startX?: number;
+  startY?: number;
+  orientation?: 'horizontal' | 'vertical';
+
   /**
    * Handles pointer travel anywhere in the window while the session is open.
    */
@@ -27,27 +32,55 @@ export interface DragSessionHandlers {
  * Shared by draggable roles (sliders, splitters) so pointer capture gaps never
  * strand a drag when the pointer leaves the grabbing element.
  *
- * @param handlers - Session move, release, and cancellation handlers
+ * @param options - Session move, release, and cancellation handlers
  * @returns Closer ending the session early
  */
-export function openDragSession(handlers: DragSessionHandlers): () => void {
+export function openDragSession(options: DragSessionHandlers): () => void {
   const handleUp = (e: PointerEvent): void => {
-    handlers.onUp(e);
+    options.onUp(e);
+
+    if (options.host) {
+      options.host.style.removeProperty('--drag-move-x');
+      options.host.style.removeProperty('--drag-move-y');
+      options.host.style.removeProperty('--drag-start-x');
+      options.host.style.removeProperty('--drag-start-y');
+    }
+
     close();
   };
 
   const handleCancel = (e: PointerEvent): void => {
-    handlers.onCancel(e);
+    options.onCancel(e);
     close();
   };
 
+  const handleMove = (e: PointerEvent): void => {
+    if (options.host) {
+      const { startX = 0, startY = 0, host, orientation } = options;
+
+      const moveX = e.clientX - startX;
+      const moveY = e.clientY - startY;
+
+      if (!orientation || orientation === 'horizontal') {
+        host.style.setProperty('--drag-start-x', `${startX}px`);
+        host.style.setProperty('--drag-move-x', `${moveX}px`);
+      }
+      if (!orientation || orientation === 'vertical') {
+        host.style.setProperty('--drag-start-y', `${startY}px`);
+        host.style.setProperty('--drag-move-y', `${moveY}px`);
+      }
+    }
+
+    options.onMove(e);
+  };
+
   function close(): void {
-    window.removeEventListener('pointermove', handlers.onMove);
+    window.removeEventListener('pointermove', handleMove);
     window.removeEventListener('pointerup', handleUp);
     window.removeEventListener('pointercancel', handleCancel);
   }
 
-  window.addEventListener('pointermove', handlers.onMove);
+  window.addEventListener('pointermove', handleMove);
   window.addEventListener('pointerup', handleUp);
   window.addEventListener('pointercancel', handleCancel);
   return close;

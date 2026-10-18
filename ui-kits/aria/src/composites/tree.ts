@@ -157,6 +157,7 @@ export class TreeAria<
     return {
       id: this.id,
       role: ROLE_TREE,
+      tabindex: 0,
       'aria-label': this.properties.label,
       'aria-labelledby': this.properties.labelledby,
       'aria-multiselectable': ariaBoolean(!!this.properties.multiple),
