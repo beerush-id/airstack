@@ -1,31 +1,26 @@
 ---
-title: 'Aria Kits'
+title: 'Headless Kits'
 description: 'Headless, reactive WAI-ARIA behavioral state machines with zero styling opinions.'
 nav: 'Overview'
 nav-priority: 100
 ---
 
 import './aria.css';
+import './accordion.css';
 import './combobox.css';
-import './tree.css';
+import './select.css';
 import './date-picker.css';
 import './dialog.css';
 
-# Aria Kits
+# Headless Kits
 
-Building accessible web applications is difficult. Developers often face a frustrating trade-off: adopt heavyweight component libraries that dictate your markup, styles, and bundle size, or manually wire dozens of WAI-ARIA attributes, manage focus states, and polyfill keyboard interactions by hand.
+Building accessible web applications is difficult. Developers often face a frustrating trade-off: adopt heavyweight component libraries that dictate your markup, styles, and bundle size, or manually wire dozens of WAI-ARIA attributes, manage focus states, and polyfill keyboard interactions by hand. Reach for a headless library instead and it is typically tied to one framework, with verbose wiring mechanics of its own.
 
-**Aria Kits** (`@airlib/aria`) eliminates this trade-off. It provides headless behavioral state machines that manage accessibility semantics, keyboard navigation, and composite coordination—without imposing any CSS, HTML markup structure, or DOM wrappers.
-
-## Live Examples
-
-Some roles cost a week before they feel right — the searchable picker, the folder tree, the calendar popup, the modal. Four of them are live below. Try them first; the markup and styles are the ones written on this page, so nothing here is a mock-up or a screenshot.
-
-:::interactive[City picker]{standalone}
+:::interactive[New task]{standalone}
 ```tsx
 import { aria } from '@airlib/aria';
-import { derived, For, setup, shadowPortal } from '@airlib/react';
-import type { ComponentProps } from 'react';
+import { derived, For, setup, shadowPortal, Snippet } from '@airlib/react';
+import type { ComponentProps, ReactNode } from 'react';
 
 const cityMap: Record<string, string> = {
   ams: 'Amsterdam',
@@ -113,120 +108,62 @@ const DemoCityOption = setup<DemoCityOptionProps>((props) => {
     </div>
   );
 }, 'DemoCityOption');
-```
 
-<div className="demo-combobox-stack">
-  <div className="demo-combobox-row">
-    <DemoCity value="ber" />
-  </div>
-</div>
-:::
+const PRIORITIES = [
+  { value: 'low', label: 'Low' },
+  { value: 'normal', label: 'Normal' },
+  { value: 'high', label: 'High' },
+  { value: 'urgent', label: 'Urgent' },
+];
 
-Searchable pickers are where hand-rolled accessibility goes to die — the query, the highlight, and the committed value drift apart. **Combobox** keeps the three in order and leaves the markup to you. [Combobox →](/docs/aria/combobox)
+const PRIORITY_LABELS = { low: 'Low', normal: 'Normal', high: 'High', urgent: 'Urgent' };
 
-:::interactive[Project browser]{standalone}
-```tsx
-import { aria } from '@airlib/aria';
-import { setup } from '@airlib/react';
-import type { ComponentProps } from 'react';
-
-type DemoTreeProps = Omit<ComponentProps<'ul'>, 'onChange'> & {
-  multiple?: boolean;
+type DemoPriorityProps = ComponentProps<'div'> & {
   value?: string | string[];
-  manual?: boolean;
-  required?: boolean;
-  disabled?: boolean;
-  label?: string;
-};
-
-const DemoTree = setup<DemoTreeProps>((props) => {
-  const tree = aria('tree', props as never);
-
-  return () => (
-    <ul ref={tree.ref} {...tree.restProps(['children'])} className="demo-tree">
-      {props.children}
-    </ul>
-  );
-}, 'DemoTree');
-
-type DemoTreeItemProps = Omit<ComponentProps<'li'>, 'title'> & {
-  name: string;
-  title: string;
-  expanded?: boolean;
+  multiple?: boolean;
   disabled?: boolean;
 };
 
-const DemoTreeItem = setup<DemoTreeItemProps>((props) => {
-  const item = aria('tree-item', props);
+const DemoPriority = setup<DemoPriorityProps>((props) => {
+  const select = aria('select', props, PRIORITY_LABELS);
 
   return () => (
-    <li ref={item.ref} {...item.restProps(['title', 'children'])} className="demo-tree-item">
-      <div className="demo-tree-row">
-        {item.isBranch ? (
-          <span
-            className="demo-tree-chevron"
-            onClick={(e) => {
-              e.stopPropagation();
-              item.toggleExpand();
-            }}
-          />
-        ) : (
-          <span className="demo-tree-leaf-dot" />
-        )}
-        <span className="demo-tree-name">{props.title}</span>
-      </div>
+    <div ref={select.ref} {...select.restProps(['children'])} className="demo-select">
       {props.children}
-    </li>
-  );
-}, 'DemoTreeItem');
-
-type DemoTreeGroupProps = ComponentProps<'ul'>;
-
-const DemoTreeGroup = setup<DemoTreeGroupProps>((props) => {
-  const group = aria('tree-group', props);
-
-  return () => (
-    <ul ref={group.ref} {...group.restProps(['children'])} className="demo-tree-group">
-      {props.children}
-    </ul>
-  );
-}, 'DemoTreeGroup');
-
-const SingleFileTree = () => (
-  <div className="demo-tree-card">
-    <div className="demo-tree-header">
-      <span className="demo-tree-heading">Project files</span>
     </div>
-    <DemoTree label="Project files" value="index.ts">
-      <DemoTreeItem name="src" title="src" expanded={true}>
-        <DemoTreeGroup>
-          <DemoTreeItem name="components" title="components" expanded={false}>
-            <DemoTreeGroup>
-              <DemoTreeItem name="Button.tsx" title="Button.tsx" />
-              <DemoTreeItem name="Tree.tsx" title="Tree.tsx" />
-            </DemoTreeGroup>
-          </DemoTreeItem>
-          <DemoTreeItem name="index.ts" title="index.ts" />
-        </DemoTreeGroup>
-      </DemoTreeItem>
-      <DemoTreeItem name="package.json" title="package.json" />
-      <DemoTreeItem name="secrets" title="secrets.env" disabled={true} />
-      <DemoTreeItem name="README.md" title="README.md" />
-    </DemoTree>
-  </div>
-);
-```
+  );
+}, 'DemoPriority');
 
-<SingleFileTree />
-:::
+const DemoPriorityTrigger = setup<ComponentProps<'button'>>((props) => {
+  const trigger = aria('select-trigger', props);
 
-A folder tree looks like a markup job and turns into a keyboard job: depth, expansion, selection, and a single tab stop over all of it. **Tree** already walks it. [Tree →](/docs/aria/tree)
+  return () => (
+    <button ref={trigger.ref} {...trigger.restProps(['children'])} className="demo-select-trigger">
+      {trigger.label || 'Choose a priority'}
+    </button>
+  );
+}, 'DemoPriorityTrigger');
 
-:::interactive[Pick a day]{standalone}
-```tsx
-import { aria } from '@airlib/aria';
-import { setup, derived, For, shadowPortal, Snippet } from '@airlib/react';
-import type { ComponentProps } from 'react';
+const DemoPriorityPanel = setup<ComponentProps<'div'>>((props) => {
+  const panel = aria('select-panel', props);
+  const shadow = shadowPortal(() => panel.open);
+
+  return () => shadow(
+    <div ref={panel.ref} {...panel.restProps(['children'])} className="demo-select-panel">
+      {props.children}
+    </div>
+  );
+}, 'DemoPriorityPanel');
+
+const DemoPriorityOption = setup<ComponentProps<'div'> & { value: string; disabled?: boolean }>((props) => {
+  const option = aria('option', props);
+
+  return () => (
+    <div ref={option.ref} {...option.restProps(['children'])} className="demo-select-option">
+      {props.children}
+    </div>
+  );
+}, 'DemoPriorityOption');
 
 const dayLabel = (iso: string) => String(Number(iso.slice(8, 10)));
 
@@ -359,22 +296,6 @@ const DemoDay = setup<DemoDayProps>((props) => {
     </div>
   );
 }, 'DemoDay');
-```
-
-<div className="demo-date-picker-stack">
-  <div className="demo-date-picker-field">
-    <DemoPicker value="2026-10-14" label="Choose date" />
-  </div>
-</div>
-:::
-
-A calendar popup looks friendly until you own the month math, the focus handoff, and the grid of days — the part a hand-rolled picker always ships half-finished. **Date Picker** owns all three. [Date Picker →](/docs/aria/date-picker)
-
-:::interactive[Account settings]{standalone}
-```tsx
-import { aria } from '@airlib/aria';
-import { setup, shadowPortal } from '@airlib/react';
-import type { ComponentProps, ReactNode } from 'react';
 
 type DemoDialogProps = ComponentProps<'div'> & {
   open?: boolean;
@@ -470,39 +391,43 @@ const DemoDialogClose = setup<DemoDialogCloseProps>((props) => {
 }, 'DemoDialogClose');
 ```
 
-<div className="demo-dialog-stack">
-  <div className="demo-dialog-row">
-    <span className="demo-dialog-caption">Account security</span>
+<div className="demo-kit-scene">
+  <div className="demo-kit-head">
+    <span className="demo-kit-title">New task</span>
     <DemoDialog>
-      <DemoDialogTrigger>Manage account</DemoDialogTrigger>
+      <DemoDialogTrigger>Manage access</DemoDialogTrigger>
       <DemoDialogPanel>
-        <DemoDialogTitle>Account settings</DemoDialogTitle>
-        <DemoDialogDescription>Update your security settings and the weekly digest.</DemoDialogDescription>
+        <DemoDialogTitle>Sharing and access</DemoDialogTitle>
+        <DemoDialogDescription>Invite teammates and choose who can edit this task.</DemoDialogDescription>
         <div className="demo-dialog-actions">
           <DemoDialogClose>Done</DemoDialogClose>
         </div>
       </DemoDialogPanel>
     </DemoDialog>
   </div>
+  <div className="demo-kit-field">
+    <span className="demo-kit-caption">Assignee</span>
+    <DemoCity value="ber" />
+  </div>
+  <div className="demo-kit-field">
+    <span className="demo-kit-caption">Due date</span>
+    <DemoPicker value="2026-10-14" label="Due date" />
+  </div>
+  <div className="demo-kit-field">
+    <span className="demo-kit-caption">Priority</span>
+    <DemoPriority value="high">
+      <DemoPriorityTrigger />
+      <DemoPriorityPanel>
+        {PRIORITIES.map((priority) => (
+          <DemoPriorityOption key={priority.value} value={priority.value}>{priority.label}</DemoPriorityOption>
+        ))}
+      </DemoPriorityPanel>
+    </DemoPriority>
+  </div>
 </div>
 :::
 
-Modals are where focus, scroll, and screen readers quietly break — usually discovered in review, not in development. **Dialog** holds the contract while you draw the panel. [Dialog →](/docs/aria/dialog)
-
-Every other role in the kit is grouped below.
-
-## The Mental Model
-
-Aria Kits operates on a simple principle: **Behavior without presentation**.
-
-Instead of rendering DOM elements, an ARIA controller acts as a reactive bridge between your component's state and the browser DOM through two primary touchpoints:
-
-1. **`attributes`**: A reactive getter returning the compiled dictionary of HTML and ARIA attributes (`role`, `aria-*`, `tabindex`, `disabled`). Whenever underlying reactive state changes, attributes recompile automatically.
-2. **`ref`**: A lifecycle callback attached to the DOM node. It registers keyboard and pointer listeners, synchronizes DOM properties, and handles cleanup on unmount.
-
-Every demo above is those two touchpoints. The controllers own no element of their own — they write onto the elements you render.
-
-Because the controller only manages attributes and events, you retain 100% control over your markup, CSS, and component structure.
+**Headless Kits** (`@airlib/aria`) eliminates this trade-off. It provides headless behavioral state machines that manage accessibility semantics, keyboard navigation, and composite coordination — written once and usable from React or SolidJS — without imposing any CSS, HTML markup structure, or DOM wrappers.
 
 ## Installation
 
@@ -526,29 +451,57 @@ yarn add @airlib/aria
 
 ## Component Integration
 
-In AirLib, components built with `setup` receive reactive `props`. When passed directly into the `aria()` factory, the controller binds to that existing reactive proxy—eliminating glue code, change-detection boilerplate, and intermediate state management.
+In AirLib, components built with `setup` receive reactive `props`. Pass that object straight into the `aria()` factory and the controller binds to the same reactive proxy — no glue code, no change detection, no mirrored state. The accordion below is three of those wrappers, and nothing else:
 
-:::code-group
+:::code-group[Accordion]
 
-```tsx [React]
+```tsx [React] executable
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
 import type { ComponentProps } from 'react';
 
-export type ActionButtonProps = ComponentProps<'button'> & {
-  disabled?: boolean;
+type AccordionProps = ComponentProps<'div'> & {
+  value?: string | string[];
+  multiple?: boolean;
 };
 
-export const ActionButton = setup<ActionButtonProps>((props) => {
-  const button = aria('button', props);
-  const restProps = props.$omit([...button.ownKeys, 'disabled', 'children']);
+const Accordion = setup<AccordionProps>((props) => {
+  const accordion = aria('accordion', props);
 
   return () => (
-    <button ref={button.ref} {...restProps} {...button.attributes}>
+    <div ref={accordion.ref} {...accordion.restProps(['children'])} className="demo-accordion">
+      {props.children}
+    </div>
+  );
+}, 'Accordion');
+
+type AccordionHeaderProps = ComponentProps<'button'> & {
+  name: string;
+};
+
+const AccordionHeader = setup<AccordionHeaderProps>((props) => {
+  const header = aria('accordion-button', props);
+
+  return () => (
+    <button ref={header.ref} {...header.restProps(['children'])} className="demo-accordion-button">
       {props.children}
     </button>
   );
-});
+}, 'AccordionHeader');
+
+type AccordionPanelProps = ComponentProps<'div'> & {
+  name: string;
+};
+
+const AccordionPanel = setup<AccordionPanelProps>((props) => {
+  const panel = aria('accordion-panel', props);
+
+  return () => (
+    <div ref={panel.ref} {...panel.restProps(['children'])} className="demo-accordion-panel">
+      {props.children}
+    </div>
+  );
+}, 'AccordionPanel');
 ```
 
 ```tsx [SolidJS]
@@ -556,45 +509,156 @@ import { aria } from '@airlib/aria';
 import { setup } from '@airlib/solid';
 import type { ComponentProps } from 'solid-js';
 
-export type ActionButtonProps = ComponentProps<'button'> & {
-  disabled?: boolean;
+type AccordionProps = ComponentProps<'div'> & {
+  value?: string | string[];
+  multiple?: boolean;
 };
 
-export const ActionButton = setup<ActionButtonProps>((props) => {
-  const button = aria('button', props);
-  const restProps = props.$omit([...button.ownKeys, 'disabled', 'children']);
+const Accordion = setup<AccordionProps>((props) => {
+  const accordion = aria('accordion', props);
 
   return (
-    <button ref={button.ref} {...restProps} {...button.attributes}>
+    <div ref={accordion.ref} {...accordion.restProps(['children'])} class="demo-accordion">
+      {props.children}
+    </div>
+  );
+});
+
+type AccordionHeaderProps = ComponentProps<'button'> & {
+  name: string;
+};
+
+const AccordionHeader = setup<AccordionHeaderProps>((props) => {
+  const header = aria('accordion-button', props);
+
+  return (
+    <button ref={header.ref} {...header.restProps(['children'])} class="demo-accordion-button">
       {props.children}
     </button>
+  );
+});
+
+type AccordionPanelProps = ComponentProps<'div'> & {
+  name: string;
+};
+
+const AccordionPanel = setup<AccordionPanelProps>((props) => {
+  const panel = aria('accordion-panel', props);
+
+  return (
+    <div ref={panel.ref} {...panel.restProps(['children'])} class="demo-accordion-panel">
+      {props.children}
+    </div>
   );
 });
 ```
 
 :::
 
-## Safe Prop Forwarding with ownKeys
+:::interactive[Accordion]
 
-When building reusable components that forward consumer props to underlying DOM elements, two pitfalls must be avoided:
+<Accordion value="shipping">
+  <div className="demo-accordion-item">
+    <AccordionHeader name="shipping">Shipping</AccordionHeader>
+    <AccordionPanel name="shipping">Orders leave the warehouse within two business days and every parcel carries a tracking link.</AccordionPanel>
+  </div>
+  <div className="demo-accordion-item">
+    <AccordionHeader name="returns">Returns</AccordionHeader>
+    <AccordionPanel name="returns">Send anything back within 30 days of delivery in its original packaging for a full refund.</AccordionPanel>
+  </div>
+</Accordion>
 
-1. **Attribute Collisions**: User props can inadvertently collide with or shadow attributes compiled by the ARIA controller.
-2. **Prop Leakage**: Component input props (such as `disabled`, `children`, `className`) should not leak onto the DOM as raw HTML attributes.
+:::
 
-`Aria.prototype.ownKeys` exposes the exact array of attribute and listener names currently compiled on `controller.attributes`. Passing `controller.ownKeys` along with component-specific keys to `props.$omit(...)` produces a clean `restProps` object:
+## The Mental Model
+
+Headless Kits operates on a simple principle: **hand the controller your props, and it hands them back ready to spread**.
+
+As your state changes, the controller compiles the matching HTML and ARIA attributes, wires the keyboard and pointer contract, and returns everything through two touchpoints:
+
+1. **`props`** / **`restProps()`**: Your props with the compiled attributes (`role`, `aria-*`, `tabindex`, `disabled`) merged in and the controller-managed keys removed. It stays reactive, so the element follows your state; `restProps()` additionally drops any keys you name.
+2. **`ref`**: The pipe that binds the DOM node, registering keyboard and pointer listeners, synchronizing DOM properties, and handling cleanup on unmount.
+
+The controller owns no element of its own — it writes onto the element you render, so your markup, CSS, and component structure stay entirely yours.
+
+The compiled dictionary is also readable on its own, as the low-level `attributes` getter, with `ownKeys` listing every key the controller writes. Reach for it only when you need the raw attributes themselves.
+
+## Any Element, Same Behavior
+
+The controller never picks the host for you. A native `<button>`, a `<div>`, a `<span>`, even an SVG element — the role behaves the same, because the contract is compiled for whichever element you bind:
+
+- **Native hosts** (`native: true`, default): When the element already carries the semantics (`<button>`, `<input>`), the controller skips redundant ARIA (`role="button"` is never written) and lets the browser own keyboard activation and form submission.
+- **Custom hosts** (`native: false`): On anything without built-in semantics — non-interactive tags and SVG elements alike — the controller supplies what the browser will not: it injects the `role`, manages `tabindex` focusability, and handles `Enter` and `Space` activation.
+
+Below, the same toggle is bound twice — once to a `<button>`, once to an `<svg>` — and drives a single favourite:
+
+:::interactive[Two hosts]
 
 ```tsx
-const restProps = props.$omit([...controller.ownKeys, 'children', ...controlledKeys]);
+import { aria } from '@airlib/aria';
+import { $bind, mutable, setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type ToggleProps = {
+  pressed?: boolean;
+};
+
+const NativeStar = setup<ComponentProps<'button'> & ToggleProps>((props) => {
+  const toggle = aria('toggle', props);
+
+  return () => (
+    <button ref={toggle.ref} {...toggle.restProps(['children'])} className="demo-svg-native">
+      {props.children}
+    </button>
+  );
+}, 'NativeStar');
+
+const SvgStar = setup<ComponentProps<'svg'> & ToggleProps>((props) => {
+  const toggle = aria<SVGSVGElement>('toggle', props, { native: false });
+
+  return () => (
+    <svg
+      ref={toggle.ref}
+      {...toggle.restProps(['children'])}
+      className="demo-svg-host"
+      viewBox="0 0 24 24"
+      width="44"
+      height="44"
+    >
+      <path d="M12 3.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8-5.3-2.8-5.3 2.8 1-5.8L3.5 9.7l5.9-.9z" />
+    </svg>
+  );
+}, 'SvgStar');
+
+const DemoSvgHosts = setup(() => {
+  const state = mutable({ pressed: false });
+
+  return () => (
+    <div className="demo-svg-card">
+      <div className="demo-svg-hosts">
+        <div className="demo-svg-slot">
+          <NativeStar pressed={$bind(state, 'pressed')}>Favourite</NativeStar>
+          <span className="demo-svg-slot-label">{'<button>'}</span>
+        </div>
+        <div className="demo-svg-slot">
+          <SvgStar pressed={$bind(state, 'pressed')} aria-label="Favourite" />
+          <span className="demo-svg-slot-label">{'<svg>'}</span>
+        </div>
+      </div>
+      <span className="demo-svg-note">
+        One state, two hosts. The button carried its role and keyboard behavior for free; the svg was
+        given both.
+      </span>
+    </div>
+  );
+}, 'DemoSvgHosts');
+```
+```html
+<DemoSvgHosts />
 ```
 
-Spreading `{...restProps}` before `{...controller.attributes}` ensures that consumer props (such as custom `onClick`, `title`, or `data-*` attributes) safely reach the DOM without overriding ARIA contracts.
-
-## Native vs Custom Element Contracts
-
-A primary goal of AirLib ARIA is to avoid redundant DOM work while ensuring complete accessibility:
-
-- **Native Elements** (`native: true`, default): When attached to native HTML elements (`<button>`, `<input>`), the controller avoids setting redundant ARIA attributes (`role="button"`) and lets the browser handle native keyboard events and form submission.
-- **Custom Elements** (`native: false`): When building buttons or toggles from non-interactive tags (`<div>`, `<span>`), the controller polyfills the missing browser capabilities by injecting `role`, managing `tabindex` focusability, and handling `Enter` and `Space` keyboard activation.
+<DemoSvgHosts />
+:::
 
 ## Atomic Widgets
 
@@ -609,6 +673,7 @@ Standalone accessible controls — one element, one job:
 - [Link](/docs/aria/link)
 - [Meter](/docs/aria/meter)
 - [Number Stepper](/docs/aria/number-stepper)
+- [Option](/docs/aria/option)
 - [Progress](/docs/aria/progress)
 - [Radio](/docs/aria/radio)
 - [Search Input](/docs/aria/search-input)
@@ -668,10 +733,3 @@ Page structure assistive technologies can jump to:
 A single announcer entity covering urgent alerts, advisory results, streams, counters, and tickers:
 
 - [Announcer](/docs/aria/announcer)
-
-## Utilities
-
-Base controllers and ambient coordination context for authoring custom selectable widgets:
-
-- [Option](/docs/aria/option)
-- [Selection](/docs/aria/selection)

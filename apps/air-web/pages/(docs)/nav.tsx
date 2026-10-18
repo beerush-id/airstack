@@ -164,21 +164,12 @@ export const navs: NavItem[] = [
     items: toNavItems(formMeta),
   },
   {
-    text: 'Aria Kits',
+    text: 'Headless Kits',
     icon: () => <WidgetsIcon />,
     collapsed: true,
-    items: [
-      ...toNavItems(ariaMeta)
-        .filter((item) => item.href !== '/docs/aria/selection')
-        .sort((a, b) => a.href.localeCompare(b.href)),
-      { separator: true },
-      {
-        text: 'Aria Utilities',
-        items: [toNavItems(ariaMeta).find((item) => item.href === '/docs/aria/selection')!],
-        collapsed: true,
-        icon: () => <BuildIcon />,
-      },
-    ],
+    items: toNavItems(ariaMeta)
+      .filter((item) => item.href !== '/docs/aria/selection')
+      .sort((a, b) => a.href.localeCompare(b.href)),
   },
   {
     text: 'R2 File',
