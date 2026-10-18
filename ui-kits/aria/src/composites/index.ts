@@ -7,6 +7,7 @@ export * from './combobox.js';
 export * from './confirm.js';
 export * from './context-menu.js';
 export * from './dialog.js';
+export * from './feed.js';
 export * from './field.js';
 export * from './grid.js';
 export * from './listbox.js';

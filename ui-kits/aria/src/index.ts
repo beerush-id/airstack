@@ -61,6 +61,11 @@ import {
   type DialogProps,
   DialogTitleAria,
   DialogTriggerAria,
+  FeedAria,
+  FeedArticleAria,
+  type FeedArticleOptions,
+  type FeedArticleProps,
+  type FeedProps,
   FieldAria,
   FieldControlAria,
   FieldDescriptionAria,
@@ -77,10 +82,10 @@ import {
   ListboxAria,
   type ListboxProps,
   MenuAria,
-  MenubarAria,
-  type MenubarProps,
   MenuButtonAria,
   type MenuButtonProps,
+  MenubarAria,
+  type MenubarProps,
   MenuGroupAria,
   MenuItemAria,
   MenuItemCheckboxAria,
@@ -660,6 +665,14 @@ export function aria<E extends BaseElement = HTMLElement>(
   props?: ContextMenuPanelProps
 ): ContextMenuPanelAria<E>;
 
+export function aria<E extends BaseElement = HTMLElement>(role: 'feed', props?: FeedProps): FeedAria<E>;
+
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'feed-article',
+  props?: FeedArticleProps,
+  options?: FeedArticleOptions
+): FeedArticleAria<E>;
+
 export function aria<E extends BaseElement = HTMLElement>(role: 'menu', props?: MenuProps): MenuAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement>(role: 'menu-bar', props?: MenubarProps): MenubarAria<E>;
@@ -937,6 +950,10 @@ export function aria(role: string, init?: unknown, options?: unknown): unknown {
       return new ContextMenuAria(init as never);
     case 'context-menu-panel':
       return new ContextMenuPanelAria(init as never);
+    case 'feed':
+      return new FeedAria(init as never);
+    case 'feed-article':
+      return new FeedArticleAria(init as never, options as never);
     case 'menu':
       return new MenuAria(init as never);
     case 'menu-bar':

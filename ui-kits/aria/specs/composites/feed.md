@@ -36,6 +36,8 @@ export interface FeedProps {
   labelledby?: string;
   /** Indicates whether the feed is currently loading new articles (`aria-busy="true"`) */
   busy?: boolean;
+  /** Total count of articles in the feed, or -1 if unknown (default: -1) */
+  setsize?: number;
 }
 ```
 
