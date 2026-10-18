@@ -22,3 +22,4 @@ export * from './tabs/index.js';
 export * from './toast.js';
 export * from './toggle-group.js';
 export * from './toolbar.js';
+export * from './tree.js';

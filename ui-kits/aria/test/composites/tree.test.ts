@@ -16,37 +16,37 @@ function buildTree(props: Partial<TreeProps>, nodes: Node[]) {
   document.body.appendChild(rootUl);
 
   const byName = new Map<string, { item: ReturnType<typeof aria>; el: HTMLElement }>();
+  const groups: Array<ReturnType<typeof aria>> = [];
 
-  const render = (level: Node[], parent: HTMLElement, parentName: string | null) => {
+  const render = (level: Node[], parent: HTMLElement) => {
     for (const node of level) {
       const slot = component();
-      const built = slot.run(() => {
+      slot.run(() => {
         const item = aria('tree-item', { name: node.name, expanded: node.expanded });
         const el = bind(document.createElement('li'), item);
         el.dataset.name = node.name;
-        el.tabIndex = -1;
         parent.appendChild(el);
-        return { item, el };
+        byName.set(node.name, { item, el });
+
+        if (node.children) {
+          const groupCtrl = aria('tree-group');
+          groups.push(groupCtrl);
+          const group = bind(document.createElement('ul'), groupCtrl);
+          group.dataset.for = node.name;
+          el.appendChild(group);
+          render(node.children, group);
+        }
       });
-
-      byName.set(node.name, built);
-
-      if (node.children) {
-        // The group part has no overload, so the container is the author's markup
-        const group = document.createElement('ul');
-        group.setAttribute('role', 'group');
-        group.setAttribute('aria-labelledby', built.el.id);
-        group.dataset.for = node.name;
-        built.el.appendChild(group);
-        render(node.children, group, node.name);
-      }
     }
   };
 
-  render(nodes, rootUl, null);
+  render(nodes, rootUl);
 
   const cleanup = () => {
     tree.destroy();
+    for (const group of groups) {
+      group.destroy();
+    }
     for (const { item } of byName.values()) {
       item.destroy();
     }
@@ -78,6 +78,7 @@ describe('Tree - Composite Specifications', () => {
     it('expands and collapses a branch from the arrow keys and moves focus into it', () =>
       scope.run(() => {
         component().run(() => {
+          const toggled: boolean[] = [];
           const { rootUl, node, cleanup } = buildTree({ value: undefined }, [
             {
               name: 'src',
@@ -87,7 +88,10 @@ describe('Tree - Composite Specifications', () => {
             { name: 'readme' },
           ]);
 
-          // Only a branch carries an expansion state
+          node('src')?.item.assign({
+            ontoggle: (e: CustomEvent<boolean>) => toggled.push(e.detail),
+          });
+
           expect(node('src')?.el.getAttribute('role')).toBe('treeitem');
           expect(node('src')?.el.getAttribute('aria-expanded')).toBe('false');
           expect(node('readme')?.el.hasAttribute('aria-expanded')).toBe(false);
@@ -96,26 +100,24 @@ describe('Tree - Composite Specifications', () => {
 
           node('src')?.el.focus();
 
-          // Right opens a closed branch without selecting it
           expect(press(node('src')!.el, 'ArrowRight').defaultPrevented).toBe(true);
           expect(node('src')?.el.getAttribute('aria-expanded')).toBe('true');
           expect(focusedNode()).toBe('src');
+          expect(toggled).toEqual([true]);
 
-          // Right again walks into the first child of the now-open branch
           press(node('src')!.el, 'ArrowRight');
           expect(focusedNode()).toBe('app');
 
           press(node('app')!.el, 'ArrowRight');
           expect(focusedNode()).toBe('app');
 
-          // Left on a child returns to its parent
           press(node('app')!.el, 'ArrowLeft');
           expect(focusedNode()).toBe('src');
           expect(node('src')?.el.getAttribute('aria-expanded')).toBe('true');
 
-          // Left on the open branch collapses it
           press(node('src')!.el, 'ArrowLeft');
           expect(node('src')?.el.getAttribute('aria-expanded')).toBe('false');
+          expect(toggled).toEqual([true, false]);
 
           cleanup();
         });
@@ -137,8 +139,7 @@ describe('Tree - Composite Specifications', () => {
           press(node('b-root')!.el, 'ArrowUp');
           expect(focusedNode()).toBe('a-root');
 
-          // Opening the branch makes its child the next visible node instead
-          node('a-root')?.el.assign({ expanded: true });
+          node('a-root')?.item.assign({ expanded: true });
           expect(node('a-root')?.el.getAttribute('aria-expanded')).toBe('true');
 
           node('a-root')?.el.focus();
@@ -146,6 +147,12 @@ describe('Tree - Composite Specifications', () => {
           expect(focusedNode()).toBe('a-child');
 
           press(node('a-child')!.el, 'ArrowDown');
+          expect(focusedNode()).toBe('b-root');
+
+          press(node('b-root')!.el, 'Home');
+          expect(focusedNode()).toBe('a-root');
+
+          press(node('a-root')!.el, 'End');
           expect(focusedNode()).toBe('b-root');
 
           cleanup();
@@ -182,7 +189,11 @@ describe('Tree - Composite Specifications', () => {
     it('separates focus from selection under the default manual mode', () =>
       scope.run(() => {
         component().run(() => {
-          const props = mutable<TreeProps>({ value: 'readme' });
+          const changes: Array<string | undefined> = [];
+          const props = mutable<TreeProps>({
+            value: 'readme',
+            onchange: (e) => changes.push(e.detail as string | undefined),
+          });
           const { node, cleanup } = buildTree(props, [
             { name: 'src', expanded: true, children: [{ name: 'app' }] },
             { name: 'readme' },
@@ -196,15 +207,20 @@ describe('Tree - Composite Specifications', () => {
           expect(node('app')?.el.getAttribute('aria-selected')).toBe('false');
           expect(node('readme')?.el.getAttribute('aria-selected')).toBe('true');
 
-          // Enter is what commits the focused node
           press(node('app')!.el, 'Enter');
           expect(props.value).toBe('app');
           expect(node('app')?.el.getAttribute('aria-selected')).toBe('true');
           expect(node('readme')?.el.getAttribute('aria-selected')).toBe('false');
+          expect(changes).toEqual(['app']);
 
           node('readme')?.el.focus();
           press(node('readme')!.el, ' ');
           expect(props.value).toBe('readme');
+          expect(changes).toEqual(['app', 'readme']);
+
+          node('src')?.el.click();
+          expect(props.value).toBe('src');
+          expect(changes).toEqual(['app', 'readme', 'src']);
 
           cleanup();
         });
@@ -268,19 +284,16 @@ describe('Tree - Composite Specifications', () => {
           expect(node('child')?.el.getAttribute('aria-selected')).toBe('true');
           expect(node('root')?.el.getAttribute('aria-selected')).toBe('false');
 
-          // Re-activating the selected node empties a non-required tree
           node('child')?.el.focus();
           press(node('child')!.el, 'Enter');
           expect(props.value).toBeUndefined();
           expect(node('child')?.el.getAttribute('aria-selected')).toBe('false');
 
-          // Selecting across levels moves the single slot
           node('root')?.el.focus();
           press(node('root')!.el, 'Enter');
           expect(props.value).toBe('root');
           expect(node('root')?.el.getAttribute('aria-selected')).toBe('true');
 
-          // Required refuses the same gesture on the selected node
           props.required = true;
           node('root')?.el.focus();
           press(node('root')!.el, 'Enter');
@@ -307,7 +320,6 @@ describe('Tree - Composite Specifications', () => {
           expect(props.value).toEqual(['root', 'child']);
           expect(node('child')?.el.getAttribute('aria-selected')).toBe('true');
 
-          // The parent stays selected while the child joins it
           expect(node('root')?.el.getAttribute('aria-selected')).toBe('true');
 
           press(node('root')!.el, 'Enter');
@@ -354,10 +366,14 @@ describe('Tree - Composite Specifications', () => {
           expect((parentId as string).length).toBeGreaterThan(0);
           expect(node('kid')?.el.id).not.toBe(parentId);
 
-          const group = rootUl.querySelector('ul[data-for="parent"]');
+          const group = rootUl.querySelector<HTMLElement>('ul[data-for="parent"]');
           expect(group?.getAttribute('role')).toBe('group');
           expect(group?.getAttribute('aria-labelledby')).toBe(parentId);
+          expect(group?.hidden).toBe(false);
           expect(document.getElementById(parentId as string)).toBe(node('parent')?.el);
+
+          node('parent')?.item.assign({ expanded: false });
+          expect(group?.hidden).toBe(true);
 
           cleanup();
         });

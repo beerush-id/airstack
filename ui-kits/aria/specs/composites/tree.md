@@ -1,96 +1,148 @@
 # Tree Specification
 
-The hierarchical selection unit. Coordinates visible-node navigation, branch expansion, and **single** selection while
-keeping expansion independent from the selected value (`docs/tree.md`).
+The hierarchical selection and disclosure unit. Coordinates depth-aware visible-node navigation, independent per-branch expansion, and single or multiple selection across nested levels.
 
-### Composite Parts
+- **Entity**: `tree`
+- **WAI-ARIA Role**: `tree` (container), `treeitem` (node)
 
-- **`Tree`**: Container (`role="tree"`), one tab stop via `aria-activedescendant`.
-- **`TreeItem`**: Node (`role="treeitem"`), `value`/`label` required.
-- **`TreeItemGroup`**: A branch's children container (`role="group"`, `hidden` when collapsed), auto-associated with its
-  ambient parent item.
-- **`TreeItemToggle`**: Explicit expand/collapse button (`role` per Button), excluded from sequential focus (the tree
-  owns the keyboard).
+### Composite Parts (Entity Tree)
+
+- **`Tree`** (`tree`): Root container coordinator (compiles `role="tree"`, `aria-multiselectable`, `aria-label`, `aria-labelledby`, `aria-disabled`, `aria-required`).
+- **`TreeItem`** (`tree-item`): Hierarchical node (`role="treeitem"`, `id`, `aria-selected`, `aria-expanded` on branches only, `aria-disabled`, roving `tabindex`). Publishes ambient `treeItemCtx` for its child group and nested items.
+- **`TreeGroup`** (`tree-group`): Branch children container (compiles `role="group"`, `aria-labelledby` paired automatically to its enclosing `TreeItem.id`, and `hidden` when the enclosing `TreeItem` is collapsed).
 
 ---
 
 ## The Three Semantic Layers
 
-| Part / Role            | HTML Semantic               | WAI-ARIA Semantic                                                                                                                                                             | Aria Package Semantic Contract                                                                           |
-|:-----------------------|:----------------------------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:---------------------------------------------------------------------------------------------------------|
-| **`tree`**             | `<ul>` / `<div>`.           | `role="tree"`, `aria-label` from `label`, `aria-activedescendant` (active visible node), `tabindex="0"` (custom; `aria-disabled` + no tab stop when disabled).                | Single selection. Hosts `value: string \| null` and `expanded: string[]`. No member registry.            |
-| **`tree-item`**        | `<li>` / node.              | `role="treeitem"`, `aria-label` (node label), `aria-selected` (value match), `aria-expanded` **on branches only**, `aria-disabled`, own `id`. Excluded from sequential focus. | Selected when `tree.value === item.value`. A node with a child group is a branch; without one, a leaf.   |
-| **`tree-item-group`**  | `<ul>` under a parent item. | `role="group"`; children nested under the parent in the a11y tree; **`hidden` when collapsed**.                                                                               | Associates with its ambient parent item automatically — the author does not hand-wire `aria-labelledby`. |
-| **`tree-item-toggle`** | `<button>` / custom.        | `aria-expanded` (parent branch state), `aria-controls` (child group id), `aria-label` "Expand/Collapse [node]". Button activation; no sequential tab stop.                    | Changes only expansion; never selects.                                                                   |
+| Part / Role      | HTML Semantic         | WAI-ARIA Semantic                                                                                                                           | Aria Package Semantic Contract                                                                                                                                              |
+|:-----------------|:----------------------|:--------------------------------------------------------------------------------------------------------------------------------------------|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **`tree`**       | `<ul>` / `<div>`.     | `role="tree"`, `aria-multiselectable="true" \| "false"`, `aria-label` from `label`, `aria-disabled`, `aria-required` when `required`.       | Selection group coordinator (`SingleTreeProps \| MultipleTreeProps`). Coordinates single/multi selection, `manual` mode, and depth-aware roving focus across visible nodes. |
+| **`tree-item`**  | `<li>` / custom node. | `role="treeitem"`, `id` (paired for child group `aria-labelledby`), `aria-selected`, `aria-expanded` **on branches only**, `aria-disabled`. | Identified by `name` (or `value`). Owns per-branch `expanded?: boolean` (`undefined` on leaf nodes, boolean on branches). Publishes `treeItemCtx`.                          |
+| **`tree-group`** | `<ul>` / `<div>`.     | `role="group"`, `aria-labelledby` (enclosing `TreeItem.id`), `aria-label` from `label`, `hidden` when parent branch is collapsed.           | Self-discovers enclosing `TreeItem` via `treeItemCtx`. Automatically wires `role="group"`, `aria-labelledby`, and `hidden={!item.expanded}`.                                |
 
 ---
 
 ## Architectural & Behavioral Contracts
 
-### 1. Props Contracts
+### 1. Options & Props Contracts
+
+#### `SingleTreeProps`
 
 ```ts
-export interface TreeProps {
+export interface SingleTreeProps<T extends Primitive = string> extends GroupProps<T> {
   id?: string;
-  /** Selected node value; single selection (default: null) */
-  value?: string;
-  /** Values of expanded branches (default: []) — tree-level, not per-item */
-  expanded?: string[];
+  multiple?: false;
+  value?: T;
+  manual?: boolean;
+  required?: boolean;
   disabled?: boolean;
-  /** Accessible tree name. Required. */
-  label: string;
-}
-
-export interface TreeItemProps {
-  /** Node identifier, unique within the tree. Required. */
-  value: string;
-  /** Node name for naming + typeahead, excluding descendant labels. Required. */
-  label: string;
-  disabled?: boolean;
+  label?: string;
+  labelledby?: string;
+  onchange?: AriaEventHandler<TreeChangeEvent<T>>;
 }
 ```
 
-> The tree is single-selection (no `multiple`, `required`, or `manual`). Arrows move focus without selecting
-> (`docs/tree.md:27`); activation commits (`:32`). `expanded` is a tree-level array (`:12,24`), and item identity is
-> `value` (`:18`).
+#### `MultipleTreeProps`
+
+```ts
+export interface MultipleTreeProps<T extends Primitive = string> extends GroupMultipleProps<T> {
+  id?: string;
+  multiple: true;
+  value?: T[];
+  manual?: boolean;
+  required?: boolean;
+  disabled?: boolean;
+  label?: string;
+  labelledby?: string;
+  onchange?: AriaEventHandler<TreeChangeEvent<T[]>>;
+}
+```
+
+#### `TreeProps`
+
+```ts
+export type TreeProps<T extends Primitive = string> = SingleTreeProps<T> | MultipleTreeProps<T>;
+```
+
+#### `TreeItemProps`
+
+```ts
+export interface TreeItemProps<T extends Primitive = string> extends AriaProps {
+  id?: string;
+  /** Semantic node identifier used for selection matching */
+  name?: T;
+  /** Alias for node selection value when `name` is not provided */
+  value?: T;
+  /** Branch expansion state; `boolean` marks a branch (`aria-expanded`), `undefined` marks a leaf (omits `aria-expanded`) */
+  expanded?: boolean;
+  disabled?: boolean;
+  label?: string;
+  ontoggle?: AriaEventHandler<TreeItemToggleEvent>;
+}
+```
+
+#### `TreeGroupProps`
+
+```ts
+export interface TreeGroupProps extends AriaProps {
+  id?: string;
+  label?: string;
+  labelledby?: string;
+}
+```
 
 ### 2. Overload Contracts
 
 ```ts
-export function aria<E extends BaseElement = HTMLElement>(role: 'tree', props?: TreeProps): TreeAria<E>;
-export function aria<E extends BaseElement = HTMLElement>(role: 'tree-item', props: TreeItemProps): TreeItemAria<E>;
+export function aria<E extends BaseElement = HTMLElement, T extends Primitive = string>(
+  role: 'tree',
+  props?: TreeProps<T>
+): TreeAria<E, TreeProps<T>>;
+
+export function aria<E extends BaseElement = HTMLElement, T extends Primitive = string>(
+  role: 'tree-item',
+  props?: TreeItemProps<T>
+): TreeItemAria<E, TreeItemProps<T>>;
+
 export function aria<E extends BaseElement = HTMLElement>(
-  role: 'tree-item-group',
-  props?: AriaProps
-): TreeItemGroupAria<E>;
-export function aria<E extends BaseElement = HTMLButtonElement>(
-  role: 'tree-item-toggle',
-  props?: AriaProps
-): TreeItemToggleAria<E>;
+  role: 'tree-group',
+  props?: TreeGroupProps
+): TreeGroupAria<E, TreeGroupProps>;
 ```
 
 ---
 
 ## State & Lifecycle Rules
 
-1. **Selection & expansion** (`docs/tree.md:24,32`): a node is selected when `tree.value === item.value`; a branch is
-   expanded when its value is in `tree.expanded` — the two are independent. Pointer-on-label, `Enter`, or `Space`commits
-   the node value; re-activating the selected node retains selection. `TreeItemToggle` changes expansion only.
+1. **Branch vs. Leaf Semantics & Automatic Group Pairing**:
+   - A `TreeItem` with `expanded !== undefined` (or containing a `TreeGroup` child) is a **branch** and compiles `aria-expanded="true" | "false"`.
+   - A `TreeItem` with `expanded === undefined` and no child group is a **leaf** and **omits `aria-expanded`** completely.
+   - `TreeGroup` discovers its enclosing `TreeItem` via ambient `treeItemCtx` and automatically compiles `role="group"`, `aria-labelledby={parentItem.id}`, and `hidden={!parentItem.expanded}`.
 
-2. **Focus model** (`:26-27`): the tree is **one sequential tab stop**; DOM focus stays on the container and the active
-   node is exposed via `aria-activedescendant`. On entry the active node = previously-active visible enabled, else
-   selected visible enabled, else first visible enabled. Focus entry and navigation never select.
+2. **Depth-Aware Keyboard Navigation**:
+   - **Visible Nodes**: Traversal visits `[role="treeitem"]` elements in document order, skipping any node inside a collapsed ancestor (`[role="treeitem"][aria-expanded="false"] [role="treeitem"]`) or disabled node.
+   - **`ArrowDown` / `ArrowUp`**: Moves focus to the next / previous visible enabled `treeitem` in document order without wrapping. When `manual === false` (automatic selection mode), moving focus also commits selection.
+   - **`Home` / `End`**: Moves focus to the first / last visible enabled `treeitem`.
+   - **`ArrowRight`**:
+     - On a collapsed branch (`aria-expanded="false"`): expands the branch (`expanded = true`) without moving focus or selecting.
+     - On an expanded branch (`aria-expanded="true"`): moves focus to its first visible enabled child `treeitem`.
+     - On a leaf node: does nothing.
+   - **`ArrowLeft`**:
+     - On an expanded branch (`aria-expanded="true"`): collapses the branch (`expanded = false`) without moving focus.
+     - On a collapsed branch or leaf node inside a parent `treeitem`: moves focus to the nearest enclosing parent `[role="treeitem"]`.
+     - On a top-level collapsed branch or leaf: does nothing.
 
-3. **Keyboard** (`:28-32`): `Down`/`Up` move through visible enabled nodes (excluding collapsed descendants), `Home`/
-   `End` to first/last visible enabled, clamped, scrolled into view. `Right` expands a collapsed branch, else moves to
-   first child (leaf: nothing). `Left` collapses an expanded branch, else moves to nearest visible ancestor. Typeahead:
-   case-insensitive **prefix** match, 500ms buffer; `Space` reserved for selection. Collapsing a branch holding the
-   active node moves active to the branch (or nearest visible enabled ancestor); a hidden selected descendant stays
-   selected.
+3. **Selection & Activation**:
+   - By default (`manual` defaults to `true`), arrow keys move focus without changing selection. Setting `manual: false` commits selection on vertical focus movement.
+   - **`Enter` / `Space` / Click**: Commits selection on the target `treeitem` (without bubbling activation from a child `treeitem` to its parent `treeitem`):
+     - **Single-select (`!multiple`)**: selects the node (`tree.value = itemKey`). Re-activating an already-selected node deselects it (`tree.value = undefined`) unless `required: true`.
+     - **Multi-select (`multiple: true`)**: toggles `itemKey` in `tree.value` array.
 
-4. **Disabled** (`:35`): disabled nodes can't be selected or directly expanded and are skipped; a disabled tree blocks
-   all interaction and focus entry; canceled initiating interactions commit nothing.
+4. **Disabled Lockout**:
+   - A disabled `TreeItem` (`aria-disabled="true"`) cannot be selected or expanded/collapsed via keyboard or pointer.
+   - When the `Tree` container is `disabled`, all items are disabled and keyboard traversal is inert.
 
-5. **Events** (`:39-41`): `change` on container after a different selection commits
-   (`CustomEvent<string | null>{bubbles,detail:value}`); `toggle` on container after the expanded collection changes
-   (`CustomEvent<string[]>{bubbles,detail:expanded}`). Moving the active node emits neither.
+5. **Events**:
+   - `change`: Dispatched on `Tree` when selection changes (`CustomEvent` with `detail: tree.value`), invoking `onchange`.
+   - `toggle`: Dispatched on `TreeItem` when branch expansion toggles (`CustomEvent<boolean>` with `detail: item.expanded`), invoking `ontoggle`.

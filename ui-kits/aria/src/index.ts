@@ -141,8 +141,14 @@ import {
   type ToggleGroupProps,
   ToolbarAria,
   type ToolbarProps,
+  TreeAria,
   TreeGridAria,
   type TreeGridProps,
+  TreeGroupAria,
+  type TreeGroupProps,
+  TreeItemAria,
+  type TreeItemProps,
+  type TreeProps,
 } from './composites/index.js';
 import {
   FooterAria,
@@ -775,6 +781,21 @@ export function aria<E extends BaseElement = HTMLElement>(
   options?: AnnouncerOptions
 ): AnnouncerAria<E>;
 
+export function aria<E extends BaseElement = HTMLElement, T extends Primitive = string>(
+  role: 'tree',
+  props?: TreeProps<T>
+): TreeAria<E, TreeProps<T>>;
+
+export function aria<E extends BaseElement = HTMLElement, T extends Primitive = string>(
+  role: 'tree-item',
+  props?: TreeItemProps<T>
+): TreeItemAria<E, TreeItemProps<T>>;
+
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'tree-group',
+  props?: TreeGroupProps
+): TreeGroupAria<E, TreeGroupProps>;
+
 export function aria(role: string, init?: unknown, options?: unknown): unknown {
   switch (role) {
     case 'text-input':
@@ -971,6 +992,12 @@ export function aria(role: string, init?: unknown, options?: unknown): unknown {
       return new CodeInputAria(init as never);
     case 'code-input-cell':
       return new CodeInputCellAria(init as never, options as never);
+    case 'tree':
+      return new TreeAria(init as never);
+    case 'tree-item':
+      return new TreeItemAria(init as never);
+    case 'tree-group':
+      return new TreeGroupAria(init as never);
     case 'menu':
       return new MenuAria(init as never);
     case 'menu-bar':
