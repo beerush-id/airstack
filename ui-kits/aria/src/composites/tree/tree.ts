@@ -25,8 +25,8 @@ interface TreeBaseProps extends AriaProps {
  * Reactive input properties for single-select TreeAria.
  */
 export interface SingleTreeProps<T extends Primitive = string> extends TreeBaseProps {
-  multiple?: false;
   value?: T;
+  multiple?: false;
   onchange?: AriaEventHandler<TreeChangeEvent<T | undefined>>;
 }
 
@@ -34,8 +34,8 @@ export interface SingleTreeProps<T extends Primitive = string> extends TreeBaseP
  * Reactive input properties for multi-select TreeAria.
  */
 export interface MultipleTreeProps<T extends Primitive = string> extends TreeBaseProps {
-  multiple: true;
   value?: T[];
+  multiple: true;
   onchange?: AriaEventHandler<TreeChangeEvent<T[]>>;
 }
 

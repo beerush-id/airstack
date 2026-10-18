@@ -788,36 +788,20 @@ export function aria<E extends BaseElement = HTMLElement>(
   options?: AnnouncerOptions
 ): AnnouncerAria<E>;
 
-export function aria<E extends BaseElement = HTMLElement, T extends Primitive = string>(
-  role: 'tree',
-  props?: TreeProps<T>
-): TreeAria<E, TreeProps<T>>;
-
-export function aria<E extends BaseElement = HTMLElement, T extends Primitive = string>(
-  role: 'tree-item',
-  props?: TreeItemProps<T>
-): TreeItemAria<E, TreeItemProps<T>>;
+export function aria<E extends BaseElement = HTMLElement>(role: 'tree', props?: TreeProps): TreeAria<E>;
+export function aria<E extends BaseElement = HTMLElement>(role: 'tree-item', props?: TreeItemProps): TreeItemAria<E>;
+export function aria<E extends BaseElement = HTMLElement>(role: 'tree-group', props?: TreeGroupProps): TreeGroupAria<E>;
+export function aria<E extends BaseElement = HTMLElement>(role: 'reorder', props?: ReorderProps): ReorderAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement>(
-  role: 'tree-group',
-  props?: TreeGroupProps
-): TreeGroupAria<E, TreeGroupProps>;
-
-export function aria<E extends BaseElement = HTMLElement, T extends Primitive = string>(
-  role: 'reorder',
-  props?: ReorderProps<T>
-): ReorderAria<E, ReorderProps<T>>;
-
-export function aria<E extends BaseElement = HTMLElement, T extends Primitive = string>(
   role: 'reorder-item',
-  props: ReorderItemProps<T>
-): ReorderItemAria<E, ReorderItemProps<T>>;
-
+  props: ReorderItemProps
+): ReorderItemAria<E>;
 export function aria<E extends BaseElement = HTMLButtonElement>(
   role: 'reorder-handle',
   props?: ReorderHandleProps,
   options?: ReorderHandleOptions
-): ReorderHandleAria<E, ReorderHandleProps>;
+): ReorderHandleAria<E>;
 
 export function aria(role: string, init?: unknown, options?: unknown): unknown {
   switch (role) {
