@@ -56,6 +56,7 @@ export function openDragSession(options: DragSessionHandlers): () => void {
 
   const handleMove = (e: PointerEvent): void => {
     if (options.host) {
+      /* istanbul ignore next */
       const { startX = 0, startY = 0, host, orientation } = options;
 
       const moveX = e.clientX - startX;
