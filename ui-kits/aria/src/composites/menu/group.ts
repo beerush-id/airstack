@@ -1,5 +1,5 @@
 import { Aria } from '../../core.js';
-import { selectionGroup, type SelectionGroupProps } from '../../selection.js';
+import { type SelectionGroupProps, selectionGroup } from '../../selection.js';
 import type { AriaAttributes, BaseElement } from '../../types.js';
 import { type MenuAria, menuCtx } from './menu.js';
 

@@ -162,9 +162,8 @@ export class ConfirmPanelAria<E extends HTMLElement = HTMLElement> extends Dialo
   }
 
   protected override createAttributes(): ConfirmPanelAttributes<E> {
-    const confirm = this.confirm ?? confirmCtx.get() ?? (this.dialog as ConfirmAria);
+    const confirm = this.confirm;
     const parentId = confirm?.id ?? 'confirm';
-    const isOpen = confirm?.open ?? false;
 
     const attrs = super.createAttributes() as ConfirmPanelAttributes<E>;
     attrs.id = `${parentId}-panel`;
@@ -174,7 +173,7 @@ export class ConfirmPanelAria<E extends HTMLElement = HTMLElement> extends Dialo
     attrs['aria-describedby'] = `${parentId}-description`;
 
     if (!this.isNative) {
-      attrs.hidden = !isOpen;
+      attrs.hidden = !this.open;
     }
 
     return attrs;

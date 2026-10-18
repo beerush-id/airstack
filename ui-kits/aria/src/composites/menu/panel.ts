@@ -1,13 +1,14 @@
+import { selectionGroup } from '../../selection.js';
 import type { AriaProps, BaseElement } from '../../types.js';
+import { ENABLED_QUERY } from '../../utils/attributes.js';
 import type { PopoverAria } from '../../widgets/popover.js';
 import { ListboxAria, type ListboxAttributes } from '../listbox.js';
 import { bindPanel, type PopupPanel } from '../popup.js';
 import { type MenuAria, menuCtx } from './menu.js';
-import { selectionGroup } from '../../selection.js';
 
 const ROLE_PANEL = 'menu';
 const ITEM_SELECTOR = ['[role="menuitem"]', '[role="menuitemcheckbox"]', "[role='menuitemradio']"];
-const ENABLED_ITEM_SELECTOR = ITEM_SELECTOR.map((s) => `${s}:not([aria-disabled="true"]):not(:disabled)`).join(',');
+const ENABLED_ITEM_SELECTOR = ITEM_SELECTOR.map((s) => `${s}${ENABLED_QUERY}`).join(',');
 
 /**
  * Reactive input properties for the Menu popup panel.
@@ -93,7 +94,7 @@ export class MenuPanelAria<E extends BaseElement = HTMLElement> extends ListboxA
     super(props, true);
 
     this.host = menuCtx.get();
-    this.omittedAttrs.push('labelledby');
+    this.omittedAttrs.push('labelledby', 'oncommand');
     bindPanel(this as unknown as PopupPanel);
 
     selectionGroup.set(undefined);

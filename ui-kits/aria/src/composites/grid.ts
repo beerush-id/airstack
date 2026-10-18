@@ -1,8 +1,8 @@
 import { $static, $symbol, createContext, effect, uIndex } from '@airlib/core';
 import { roverCtx } from '../context.js';
 import { Aria } from '../core.js';
-import { SelectionAria, type SelectionAttributes, type SelectionOptions, selectionGroup } from '../selection.js';
-import type { AriaAttributes, AriaProps, BaseElement } from '../types.js';
+import { SelectionAria, type SelectionAttributes, selectionGroup, type SelectionOptions } from '../selection.js';
+import type { AriaAttributes, AriaEvent, AriaEventHandler, AriaProps, BaseElement } from '../types.js';
 import { ariaBoolean } from '../utils/attributes.js';
 import { handleRovingKey } from '../utils/navigation.js';
 
@@ -18,9 +18,10 @@ export interface GridProps extends AriaProps {
   rowcount?: number;
   disabled?: boolean;
   editable?: boolean;
+  onchange?: AriaEventHandler<AriaEvent>;
 }
 
-export type TreegridProps = GridProps;
+export type TreeGridProps = GridProps;
 
 export interface RowProps extends AriaProps {
   name?: string;
@@ -137,7 +138,17 @@ export class GridAria<
     gridCtx.set(this as unknown as GridAria);
     roverCtx.set(this as unknown as Aria<BaseElement>);
     selectionGroup.set(this.properties as Record<string, unknown>);
-    this.omittedAttrs.push('id', 'label', 'value', 'editable', 'selectionMode', 'colcount', 'rowcount', 'disabled');
+    this.omittedAttrs.push(
+      'id',
+      'label',
+      'value',
+      'editable',
+      'selectionMode',
+      'colcount',
+      'rowcount',
+      'disabled',
+      'onchange'
+    );
     this.update();
   }
 
@@ -275,7 +286,7 @@ export class GridAria<
 
 export class TreeGridAria<
   E extends BaseElement = HTMLElement,
-  T extends TreegridProps = TreegridProps,
+  T extends TreeGridProps = TreeGridProps,
   A extends GridAttributes<E> = GridAttributes<E>,
 > extends GridAria<E, T, A> {
   protected override gridRole: 'grid' | 'treegrid' = 'treegrid';

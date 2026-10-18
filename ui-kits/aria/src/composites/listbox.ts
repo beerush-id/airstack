@@ -144,6 +144,7 @@ export class ListboxAria<
     selectionGroup.set(this.properties as Record<string, unknown>);
 
     this.omittedAttrs.push('id', 'label', 'value', 'multiple', 'disabled', 'required', 'oninput', 'onchange');
+    this.on('keydown', this.handleKeyDown);
 
     if (!deferred) {
       this.update();
@@ -180,7 +181,6 @@ export class ListboxAria<
       role: ROLE_LISTBOX,
       tabindex: disabled ? undefined : 0,
       'aria-disabled': ariaBoolean(disabled),
-      onkeydown: this.handleKeyDown,
     };
 
     if (this.properties.required) {

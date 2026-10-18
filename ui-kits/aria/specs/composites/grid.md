@@ -51,10 +51,10 @@ export interface GridProps {
 }
 ```
 
-#### `TreegridProps`
+#### `TreeGridProps`
 
 ```ts
-export interface TreegridProps extends GridProps {}
+export interface TreeGridProps extends GridProps {}
 ```
 
 #### `RowProps`
@@ -125,7 +125,7 @@ export function aria<E extends BaseElement = HTMLElement>(
 // Treegrid: Hierarchical 2D grid coordinator
 export function aria<E extends BaseElement = HTMLElement>(
   role: 'treegrid',
-  props?: TreegridProps
+  props?: TreeGridProps
 ): TreeGridAria<E>;
 
 // Row: Row container and selection coordinator

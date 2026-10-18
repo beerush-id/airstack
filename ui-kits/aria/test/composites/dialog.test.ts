@@ -86,6 +86,9 @@ describe('Dialog - Contract Specifications', () => {
           const closeEl = bind(document.createElement('button'), close);
 
           expect(dialog.open).toBe(false);
+          expect(panel.open).toBe(false);
+          expect(trigger.open).toBe(false);
+          expect(close.open).toBe(false);
           expect(panelEl.hidden).toBe(true);
 
           triggerEl.click();

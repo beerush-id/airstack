@@ -76,21 +76,21 @@ export interface DialogAttributes<E extends BaseElement = HTMLElement> extends A
 export interface DialogPanelAttributes<E extends HTMLElement = HTMLElement> extends AriaAttributes<E> {
   id?: string;
   role?: string;
+  hidden?: boolean;
   'aria-modal'?: boolean | 'true' | 'false';
   'aria-labelledby'?: string;
   'aria-describedby'?: string;
-  hidden?: boolean;
 }
 
 /**
  * Compiled HTML and ARIA attributes for a Dialog trigger.
  */
 export interface DialogTriggerAttributes<E extends HTMLElement = HTMLElement> extends AriaAttributes<E> {
+  role?: string;
   type?: string;
   disabled?: boolean;
-  role?: string;
   tabindex?: number;
-  'aria-haspopup'?: string | boolean | 'dialog';
+  'aria-haspopup'?: 'dialog';
   'aria-expanded'?: boolean | 'true' | 'false';
   'aria-controls'?: string;
   'aria-disabled'?: boolean | 'true' | 'false';
@@ -100,9 +100,9 @@ export interface DialogTriggerAttributes<E extends HTMLElement = HTMLElement> ex
  * Compiled HTML and ARIA attributes for a Dialog close trigger.
  */
 export interface DialogCloseAttributes<E extends HTMLElement = HTMLElement> extends AriaAttributes<E> {
+  role?: string;
   type?: string;
   disabled?: boolean;
-  role?: string;
   tabindex?: number;
   'aria-disabled'?: boolean | 'true' | 'false';
 }
@@ -229,13 +229,12 @@ export class DialogAria<E extends HTMLElement = HTMLElement> extends Aria<
 /**
  * Dialog overlay panel controller carrying role="dialog", modality, and accessibility linkages.
  */
-export class DialogPanelAria<E extends HTMLElement = HTMLElement> extends Aria<
-  E,
-  AriaProps,
-  DialogPanelAttributes<E>,
-  AriaOptions
-> {
+export class DialogPanelAria<E extends HTMLElement = HTMLElement> extends Aria<E, AriaProps, DialogPanelAttributes<E>> {
   public dialog?: DialogAria;
+
+  public get open() {
+    return !!this.dialog?.open;
+  }
 
   public constructor(props: Partial<AriaProps> = {}, options: AriaOptions = {}) {
     super(props, options);
@@ -320,10 +319,13 @@ export class DialogPanelAria<E extends HTMLElement = HTMLElement> extends Aria<
 export class DialogTriggerAria<E extends HTMLElement = HTMLElement> extends Aria<
   E,
   AriaProps,
-  DialogTriggerAttributes<E>,
-  AriaOptions
+  DialogTriggerAttributes<E>
 > {
   protected dialog?: DialogAria;
+
+  public get open() {
+    return !!this.dialog?.open;
+  }
 
   public constructor(props: Partial<AriaProps> = {}, options: AriaOptions = { native: true }) {
     super(props, options);
@@ -383,13 +385,12 @@ export class DialogTriggerAria<E extends HTMLElement = HTMLElement> extends Aria
 /**
  * Close button controller committing dialog open = false.
  */
-export class DialogCloseAria<E extends HTMLElement = HTMLElement> extends Aria<
-  E,
-  AriaProps,
-  DialogCloseAttributes<E>,
-  AriaOptions
-> {
+export class DialogCloseAria<E extends HTMLElement = HTMLElement> extends Aria<E, AriaProps, DialogCloseAttributes<E>> {
   protected dialog?: DialogAria;
+
+  public get open() {
+    return !!this.dialog?.open;
+  }
 
   public constructor(props: Partial<AriaProps> = {}, options: AriaOptions = { native: true }) {
     super(props, options);
@@ -432,12 +433,7 @@ export class DialogCloseAria<E extends HTMLElement = HTMLElement> extends Aria<
 /**
  * Title element controller providing accessible labeling for a dialog panel.
  */
-export class DialogTitleAria<E extends HTMLElement = HTMLElement> extends Aria<
-  E,
-  AriaProps,
-  DialogTitleAttributes<E>,
-  AriaOptions
-> {
+export class DialogTitleAria<E extends HTMLElement = HTMLElement> extends Aria<E, AriaProps, DialogTitleAttributes<E>> {
   protected dialog?: DialogAria;
 
   public constructor(props: Partial<AriaProps> = {}, options: AriaOptions = {}) {
@@ -461,8 +457,7 @@ export class DialogTitleAria<E extends HTMLElement = HTMLElement> extends Aria<
 export class DialogDescriptionAria<E extends HTMLElement = HTMLElement> extends Aria<
   E,
   AriaProps,
-  DialogDescriptionAttributes<E>,
-  AriaOptions
+  DialogDescriptionAttributes<E>
 > {
   protected dialog?: DialogAria;
 

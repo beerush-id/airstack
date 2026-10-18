@@ -37,6 +37,10 @@ import {
   type ConfirmProps,
   ConfirmTitleAria,
   ConfirmTriggerAria,
+  ContextMenuAria,
+  ContextMenuPanelAria,
+  type ContextMenuPanelProps,
+  type ContextMenuProps,
   DatePickerAria,
   DatePickerCalendarAria,
   DatePickerDayAria,
@@ -73,10 +77,10 @@ import {
   ListboxAria,
   type ListboxProps,
   MenuAria,
-  MenuButtonAria,
-  type MenuButtonProps,
   MenubarAria,
   type MenubarProps,
+  MenuButtonAria,
+  type MenuButtonProps,
   MenuGroupAria,
   MenuItemAria,
   MenuItemCheckboxAria,
@@ -128,7 +132,7 @@ import {
   ToolbarAria,
   type ToolbarProps,
   TreeGridAria,
-  type TreegridProps,
+  type TreeGridProps,
 } from './composites/index.js';
 import {
   FooterAria,
@@ -295,7 +299,7 @@ export function aria<E extends BaseElement = HTMLElement>(role: 'listbox', props
 
 export function aria<E extends BaseElement = HTMLElement>(role: 'grid', props?: GridProps): GridAria<E>;
 
-export function aria<E extends BaseElement = HTMLElement>(role: 'treegrid', props?: TreegridProps): TreeGridAria<E>;
+export function aria<E extends BaseElement = HTMLElement>(role: 'treegrid', props?: TreeGridProps): TreeGridAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement>(role: 'grid-row', props?: RowProps): GridRowAria<E>;
 
@@ -646,6 +650,16 @@ export function aria<E extends BaseElement = HTMLButtonElement>(
   options?: AriaOptions
 ): ToastCloseAria<E>;
 
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'context-menu',
+  props?: ContextMenuProps
+): ContextMenuAria<E>;
+
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'context-menu-panel',
+  props?: ContextMenuPanelProps
+): ContextMenuPanelAria<E>;
+
 export function aria<E extends BaseElement = HTMLElement>(role: 'menu', props?: MenuProps): MenuAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement>(role: 'menu-bar', props?: MenubarProps): MenubarAria<E>;
@@ -919,6 +933,10 @@ export function aria(role: string, init?: unknown, options?: unknown): unknown {
       return new ToastAria(init as never);
     case 'toast-close':
       return new ToastCloseAria(init as never, options as never);
+    case 'context-menu':
+      return new ContextMenuAria(init as never);
+    case 'context-menu-panel':
+      return new ContextMenuPanelAria(init as never);
     case 'menu':
       return new MenuAria(init as never);
     case 'menu-bar':

@@ -8,7 +8,7 @@ import {
   type RadioAttributes,
   type RadioProps,
 } from '../../widgets/index.js';
-import { MenuAria, type MenuCommandEvent, menuCtx } from './menu.js';
+import { type MenuAria, type MenuCommandEvent, menuCtx } from './menu.js';
 
 /**
  * Configuration options for menu item controllers.
@@ -111,6 +111,7 @@ export class MenuItemAria<E extends BaseElement = HTMLButtonElement> extends But
   protected override createAttributes(): MenuItemAttributes<E> {
     return Object.assign(super.createAttributes(), {
       role: 'menuitem',
+      tabIndex: -1,
     }) as MenuItemAttributes<E>;
   }
 }

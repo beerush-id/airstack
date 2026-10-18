@@ -5,6 +5,7 @@ export * from './carousel/index.js';
 export * from './checkbox-group.js';
 export * from './combobox.js';
 export * from './confirm.js';
+export * from './context-menu.js';
 export * from './dialog.js';
 export * from './field.js';
 export * from './grid.js';
