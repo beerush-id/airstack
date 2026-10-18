@@ -159,6 +159,7 @@ export class ReorderAria<
     const event: ReorderEvent<Primitive[]> = new CustomEvent('input', {
       detail: next,
       bubbles: true,
+      cancelable: true,
     });
     this.element?.dispatchEvent(event);
     this.state.oninput?.(event);
@@ -232,6 +233,7 @@ export class ReorderAria<
       const event: ReorderEvent<Primitive[]> = new CustomEvent('change', {
         detail: this.state.value!,
         bubbles: true,
+        cancelable: true,
       });
       this.element?.dispatchEvent(event);
       this.state.onchange?.(event);

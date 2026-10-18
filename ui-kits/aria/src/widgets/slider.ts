@@ -604,7 +604,7 @@ function dispatchSlider(
   value: number | [number, number],
   handler?: AriaEventHandler<SliderEvent>
 ): void {
-  const event: SliderEvent = new CustomEvent(type, { bubbles: true, detail: value });
+  const event: SliderEvent = new CustomEvent(type, { bubbles: true, detail: value, cancelable: true });
   target.dispatchEvent(event);
   handler?.(event);
 }

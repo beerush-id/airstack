@@ -129,7 +129,7 @@ export class SwitchAria<
     if (this.isNative || this.checked === was) return;
     const host = this.element;
     if (host) {
-      const event: SwitchEvent = new CustomEvent('input', { bubbles: true, detail: this.checked });
+      const event: SwitchEvent = new CustomEvent('input', { bubbles: true, detail: this.checked, cancelable: true });
       host.dispatchEvent(event);
       this.properties.oninput?.(event);
     }

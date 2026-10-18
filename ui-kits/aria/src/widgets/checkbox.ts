@@ -177,7 +177,7 @@ export class CheckboxAria<
     if (this.isNative || this.checked === was) return;
     const host = this.element;
     if (host) {
-      const event: CheckboxEvent = new CustomEvent('input', { bubbles: true, detail: this.checked });
+      const event: CheckboxEvent = new CustomEvent('input', { bubbles: true, detail: this.checked, cancelable: true });
       host.dispatchEvent(event);
       this.properties.oninput?.(event);
     }

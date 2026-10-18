@@ -242,7 +242,7 @@ export class TextInputAria<
       if (current === this.lastCommitted) return;
       this.lastCommitted = current;
       if (this.disabled) return;
-      const event: TextInputEvent = new CustomEvent('change', { bubbles: true, detail: current });
+      const event: TextInputEvent = new CustomEvent('change', { bubbles: true, detail: current, cancelable: true });
       if (!this.isNative) host.dispatchEvent(event);
       this.properties.onchange?.(event);
     };

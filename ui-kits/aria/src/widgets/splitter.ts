@@ -7,16 +7,15 @@ import type {
   DetachFn,
   Orientation,
 } from '../types.js';
+import { ariaBoolean } from '../utils/attributes.js';
+import { openDragSession } from '../utils/pointer.js';
+import { axisRatio, clampRange } from '../utils/range.js';
+import { DividerAria, type DividerProps } from './divider.js';
 
 /**
  * Controller-dispatched splitter event carrying the committed partition in `detail`.
  */
 export type SplitterEvent = AriaEvent<number>;
-
-import { ariaBoolean } from '../utils/attributes.js';
-import { openDragSession } from '../utils/pointer.js';
-import { axisRatio, clampRange } from '../utils/range.js';
-import { DividerAria, type DividerProps } from './divider.js';
 
 /**
  * Reactive input properties for SplitterAria.
@@ -284,13 +283,13 @@ export class SplitterAria<
   };
 
   private notifyInput(): void {
-    const event: SplitterEvent = new CustomEvent('input', { bubbles: true, detail: this.value });
+    const event: SplitterEvent = new CustomEvent('input', { bubbles: true, detail: this.value, cancelable: true });
     this.element!.dispatchEvent(event);
     this.properties.oninput?.(event);
   }
 
   private notifyChange(): void {
-    const event: SplitterEvent = new CustomEvent('change', { bubbles: true, detail: this.value });
+    const event: SplitterEvent = new CustomEvent('change', { bubbles: true, detail: this.value, cancelable: true });
     this.element!.dispatchEvent(event);
     this.properties.onchange?.(event);
   }

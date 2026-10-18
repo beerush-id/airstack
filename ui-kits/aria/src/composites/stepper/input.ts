@@ -1,17 +1,10 @@
 import { type AnyType, effect } from '@airlib/core';
 import type { KeyboardEvent } from 'react';
 import { Aria } from '../../core.js';
-import type {
-  AriaAttributes,
-  AriaEventHandler,
-  AriaOptions,
-  AriaProps,
-  BaseElement,
-  DetachFn,
-} from '../../types.js';
+import type { AriaAttributes, AriaEventHandler, AriaOptions, AriaProps, BaseElement, DetachFn } from '../../types.js';
 import { ariaBoolean } from '../../utils/attributes.js';
 import { focusSelect, maintainCursor, readFloat } from '../../utils/input.js';
-import { type StepperAria, stepperCtx, type StepperChangeEvent, type StepperInputEvent } from './stepper.js';
+import { type StepperAria, type StepperChangeEvent, stepperCtx, type StepperInputEvent } from './stepper.js';
 
 /**
  * Behavioral configuration options for StepperInputAria.
@@ -192,7 +185,7 @@ export class StepperInputAria<
 
     if (value != null) this.stepper?.commit(value);
 
-    const event = new CustomEvent('input', { bubbles: true, detail: this.stepper!.value });
+    const event = new CustomEvent('input', { bubbles: true, detail: this.stepper!.value, cancelable: true });
     this.dispatch(event);
   };
 

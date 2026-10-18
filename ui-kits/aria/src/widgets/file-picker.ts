@@ -155,13 +155,17 @@ export class FilePickerAria<
     const onChange = (event: Event): void => {
       event.stopPropagation();
       const files = Array.from(picker.files!);
-      const changeEvent: FilePickerEvent = new CustomEvent('change', { bubbles: true, detail: files });
+      const changeEvent: FilePickerEvent = new CustomEvent('change', {
+        bubbles: true,
+        detail: files,
+        cancelable: true,
+      });
       host.dispatchEvent(changeEvent);
       this.properties.onchange?.(changeEvent);
     };
     const onCancel = (event: Event): void => {
       event.stopPropagation();
-      const cancelEvent: FilePickerCancelEvent = new CustomEvent('cancel', { bubbles: false });
+      const cancelEvent: FilePickerCancelEvent = new CustomEvent('cancel', { bubbles: false, cancelable: true });
       host.dispatchEvent(cancelEvent);
       this.properties.oncancel?.(cancelEvent);
     };

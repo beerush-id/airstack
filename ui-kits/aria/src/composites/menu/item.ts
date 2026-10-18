@@ -97,7 +97,7 @@ export class MenuItemAria<E extends BaseElement = HTMLButtonElement> extends But
   protected invoke(): void {
     if (this.disabled || !this.element || !this.host) return;
 
-    const event = new CustomEvent('command', { bubbles: true, detail: this.properties.name });
+    const event = new CustomEvent('command', { bubbles: true, detail: this.properties.name, cancelable: true });
 
     this.element.dispatchEvent(event);
     this.properties.oncommand?.(event as MenuCommandEvent);

@@ -339,6 +339,7 @@ export abstract class SelectionAria<
     const event: SelectionEvent = new CustomEvent('change', {
       detail,
       bubbles: true,
+      cancelable: true,
     });
 
     this.dispatchChange(detail);

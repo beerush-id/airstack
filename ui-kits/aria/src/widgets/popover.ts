@@ -463,16 +463,16 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
     this.dispatchedState = isOpen;
 
     if (isOpen) {
-      const openEvent = new CustomEvent('open', { bubbles: true, detail: isOpen });
+      const openEvent = new CustomEvent('open', { bubbles: true, detail: isOpen, cancelable: true });
       el.dispatchEvent(openEvent);
       this.properties.onopen?.(openEvent);
     } else {
-      const closeEvent = new CustomEvent('close', { bubbles: true, detail: isOpen });
+      const closeEvent = new CustomEvent('close', { bubbles: true, detail: isOpen, cancelable: true });
       el.dispatchEvent(closeEvent);
       this.properties.onclose?.(closeEvent);
     }
 
-    const event: PopoverEvent = new CustomEvent('toggle', { bubbles: false, detail: isOpen });
+    const event: PopoverEvent = new CustomEvent('toggle', { bubbles: false, detail: isOpen, cancelable: true });
     el.dispatchEvent(event);
     this.properties.ontoggle?.(event);
   }

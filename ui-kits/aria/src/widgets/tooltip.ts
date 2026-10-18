@@ -112,7 +112,7 @@ export class TooltipAria<E extends HTMLElement = HTMLElement> extends PopoverAri
     if (this.dispatchedState === isOpen) return;
     this.dispatchedState = isOpen;
 
-    const event: TooltipEvent = new CustomEvent('change', { bubbles: true, detail: isOpen });
+    const event: TooltipEvent = new CustomEvent('change', { bubbles: true, detail: isOpen, cancelable: true });
     el.dispatchEvent(event);
     (this.properties as TooltipProps).onchange?.(event);
   }

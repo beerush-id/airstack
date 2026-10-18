@@ -1,13 +1,6 @@
 import { $static, createContext, isBrowser } from '@airlib/core';
 import { Aria } from '../../core.js';
-import type {
-  AriaAttributes,
-  AriaEvent,
-  AriaEventHandler,
-  AriaProps,
-  BaseElement,
-  DetachFn,
-} from '../../types.js';
+import type { AriaAttributes, AriaEvent, AriaEventHandler, AriaProps, BaseElement, DetachFn } from '../../types.js';
 
 export const toastCtx = createContext<ToastAria>();
 
@@ -139,7 +132,7 @@ export class ToastAria<
     if (this.dismissed) return;
 
     this.state.dismissed = true;
-    const event = new CustomEvent('dismiss', { bubbles: true });
+    const event = new CustomEvent('dismiss', { bubbles: true, cancelable: true });
 
     this.element?.dispatchEvent(event);
     this.properties.ondismiss?.(event as unknown as ToastEvent);

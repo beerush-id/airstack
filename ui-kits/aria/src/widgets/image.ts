@@ -197,7 +197,7 @@ export class ImageAria<
     this.properties.status = status;
     const host = this.element;
     if (host) {
-      const event: ImageEvent = new CustomEvent('change', { bubbles: true, detail: status });
+      const event: ImageEvent = new CustomEvent('change', { bubbles: true, detail: status, cancelable: true });
       host.dispatchEvent(event);
       this.properties.onchange?.(event);
     }

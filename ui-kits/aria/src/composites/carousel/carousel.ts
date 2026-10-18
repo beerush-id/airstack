@@ -1,6 +1,6 @@
 import { $static, $symbol, derived, effect, isBrowser, uIndex, untrack } from '@airlib/core';
 import { Aria } from '../../core.js';
-import { type SelectionGroupProps, selectionGroup } from '../../selection.js';
+import { selectionGroup, type SelectionGroupProps } from '../../selection.js';
 import type { AriaAttributes, AriaEvent, AriaEventHandler, BaseElement, DetachFn } from '../../types.js';
 import { CURRENT_QUERY } from '../../utils/attributes.js';
 import { handleRovingKey } from '../../utils/navigation.js';
@@ -257,7 +257,7 @@ export class CarouselAria<
       if (!this.state.loop && this.state.current === this.state.last) {
         this.autoplay = false;
 
-        const event = new CustomEvent('toggle', { detail: false, bubbles: true });
+        const event = new CustomEvent('toggle', { detail: false, bubbles: true, cancelable: true });
         this.element?.dispatchEvent(event);
         this.dispatch(event);
 

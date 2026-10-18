@@ -91,7 +91,7 @@ export class CarouselViewportAria<
     };
 
     const announce = () => {
-      const toggle = new CustomEvent('toggle', { bubbles: true, detail: this.autoplay });
+      const toggle = new CustomEvent('toggle', { bubbles: true, detail: this.autoplay, cancelable: true });
       this.element?.dispatchEvent(toggle);
       this.dispatch(toggle);
     };
