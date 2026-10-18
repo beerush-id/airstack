@@ -1,4 +1,4 @@
-import type { AnyType } from '@airlib/core';
+import { type AnyType, isBrowser } from '@airlib/core';
 
 /**
  * Generic event callback signature.
@@ -62,6 +62,9 @@ export class EventMap<E extends Element = HTMLElement> {
    * @returns A teardown function to unregister the handler.
    */
   public add(type: string, handler: GenericHandler): () => void {
+    /* istanbul ignore if */
+    if (!isBrowser()) return () => {};
+
     const eventType = this.normalizeType(type);
     this.createHandler(eventType);
     this.createListener(eventType, handler);
@@ -81,6 +84,9 @@ export class EventMap<E extends Element = HTMLElement> {
    * @param handler - Specific callback to remove, or undefined to remove all.
    */
   public remove(type: string, handler?: GenericHandler): void {
+    /* istanbul ignore if */
+    if (!isBrowser()) return;
+
     const eventType = this.normalizeType(type);
     const listeners = this.listeners.get(eventType);
 
