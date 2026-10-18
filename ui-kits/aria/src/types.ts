@@ -80,6 +80,11 @@ export interface AriaOptions {
    * Whether the key-to-click polyfill is deferred to the keyup phase.
    */
   deferredKey?: boolean;
+
+  /**
+   * List of allowed key codes for keyboard activation.
+   */
+  allowKeys?: string[];
 }
 
 /**

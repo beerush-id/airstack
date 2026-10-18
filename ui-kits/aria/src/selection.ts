@@ -173,7 +173,7 @@ export abstract class SelectionAria<
   }
 
   public constructor(props: Partial<T> = {}, options: O = {} as O) {
-    super(props, { clickable: options?.allowKeys ?? DEFAULT_ALLOW_KEYS, ...options });
+    super(props, { clickable: options?.allowKeys, ...options });
 
     const role = this.options.role ?? 'item';
     this.id = `${role}-${uIndex($symbol(role), true)}`;
@@ -396,9 +396,9 @@ export abstract class SelectionAria<
     if (!this.isNative) {
       Object.assign(attrs, {
         tabindex: isDisabled ? -1 : 0,
+        onkeyup: this.handleKeyClickUp,
+        onkeydown: this.handleKeyClickDown,
         'aria-disabled': isDisabled ? 'true' : 'false',
-        onkeyup: this.handleKeyUp,
-        onkeydown: this.handleKeyDown,
       });
     }
 
@@ -408,33 +408,6 @@ export abstract class SelectionAria<
   private readonly handleClick = (event: MouseEvent): void => {
     if (this.disabled || event.defaultPrevented) return;
     this.toggle();
-  };
-
-  private spaceArmed = false;
-
-  private readonly handleKeyDown = (event: KeyboardEvent): void => {
-    const allowKeys = this.options.allowKeys ?? DEFAULT_ALLOW_KEYS;
-    if (this.disabled || event.defaultPrevented || !allowKeys.includes(event.key)) return;
-
-    if (event.key === ' ') {
-      event.preventDefault();
-      this.spaceArmed = true;
-    } else if (!this.options.deferredKey && event.key === 'Enter') {
-      this.dispatchClick();
-    }
-  };
-
-  private readonly handleKeyUp = (event: KeyboardEvent): void => {
-    const allowKeys = this.options.allowKeys ?? DEFAULT_ALLOW_KEYS;
-    const armed = this.spaceArmed;
-    this.spaceArmed = false;
-    if (this.disabled || event.defaultPrevented || !allowKeys.includes(event.key)) return;
-
-    if (event.key === ' ' && armed) {
-      this.dispatchClick();
-    } else if (this.options.deferredKey && event.key === 'Enter') {
-      this.dispatchClick();
-    }
   };
 
   /**
@@ -448,5 +421,3 @@ export abstract class SelectionAria<
     }
   }
 }
-
-const DEFAULT_ALLOW_KEYS = [' ', 'Enter'];

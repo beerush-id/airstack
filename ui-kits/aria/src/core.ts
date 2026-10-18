@@ -360,10 +360,8 @@ export class Aria<
    * Protects the element from interaction when disabled.
    */
   protected protectClickable() {
-    const keys = Array.isArray(this.options.clickable) ? this.options.clickable : ['Enter', ' '];
+    const keys = Array.isArray(this.options.clickable) ? this.options.clickable : DEFAULT_ALLOW_KEYS;
     const self = this as AnyType;
-
-    let spaceArmed = false;
 
     this.on('click', (e) => {
       if (self.disabled) {
@@ -376,16 +374,6 @@ export class Aria<
       if (keys.includes(e.key) && self.disabled) {
         e.preventDefault();
         e.stopPropagation();
-        return;
-      }
-      if (self) return;
-      if (this.isNative || e.defaultPrevented || !keys.includes(e.key)) return;
-
-      if (e.key === ' ') {
-        e.preventDefault();
-        spaceArmed = true;
-      } else if (e.key === 'Enter' && !this.options.deferredKey) {
-        this.dispatchClick();
       }
     });
 
@@ -393,20 +381,51 @@ export class Aria<
       if (keys.includes(e.key) && self.disabled) {
         e.preventDefault();
         e.stopPropagation();
-        return;
       }
-      if (self) return;
-      if (this.isNative || e.defaultPrevented || !keys.includes(e.key)) return;
-
-      if (e.key === ' ' && spaceArmed) {
-        this.dispatchClick();
-      } else if (e.key === 'Enter' && this.options.deferredKey) {
-        this.dispatchClick();
-      }
-
-      spaceArmed = false;
     });
   }
+
+  /**
+   * Indicates whether the space key is currently armed.
+   */
+  protected spaceArmed = false;
+
+  /**
+   * Handles keydown events for space and enter keys.
+   *
+   * @param event - The keyboard event
+   */
+  protected handleKeyClickDown = (event: KeyboardEvent) => {
+    const self = this as AnyType;
+    const allowKeys = this.options.allowKeys ?? DEFAULT_ALLOW_KEYS;
+    if (self.disabled || event.defaultPrevented || !allowKeys.includes(event.key)) return;
+
+    if (event.key === ' ') {
+      event.preventDefault();
+      this.spaceArmed = true;
+    } else if (!this.options.deferredKey && event.key === 'Enter') {
+      this.dispatchClick();
+    }
+  };
+
+  /**
+   * Handles keyup events for space and enter keys.
+   *
+   * @param event - The keyboard event
+   */
+  protected handleKeyClickUp = (event: KeyboardEvent) => {
+    const self = this as AnyType;
+    const allowKeys = this.options.allowKeys ?? DEFAULT_ALLOW_KEYS;
+    const armed = this.spaceArmed;
+    this.spaceArmed = false;
+    if (self.disabled || event.defaultPrevented || !allowKeys.includes(event.key)) return;
+
+    if (event.key === ' ' && armed) {
+      this.dispatchClick();
+    } else if (this.options.deferredKey && event.key === 'Enter') {
+      this.dispatchClick();
+    }
+  };
 
   /**
    * Requests the capture of options from the current role or its parent scope.
@@ -428,17 +447,12 @@ export class Aria<
    */
   protected dispatchClick() {
     const element = this.element as unknown as HTMLElement;
-
-    if (this.isNative) {
-      element.click();
-    } else {
-      const event = new PointerEvent('click', {
-        bubbles: true,
-        pointerId: -1,
-        cancelable: true,
-      });
-      element.dispatchEvent?.(event);
-    }
+    const event = new PointerEvent('click', {
+      bubbles: true,
+      pointerId: -1,
+      cancelable: true,
+    });
+    element.dispatchEvent?.(event);
   }
 
   /**
@@ -617,3 +631,5 @@ export class Aria<
     Aria.translator = translator;
   }
 }
+
+const DEFAULT_ALLOW_KEYS = [' ', 'Enter'];
