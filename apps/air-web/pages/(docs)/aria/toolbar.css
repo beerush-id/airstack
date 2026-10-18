@@ -1,0 +1,99 @@
+.demo-toolbar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  max-width: 100%;
+  padding: 0.25rem;
+  border: 1px solid var(--demo-border);
+  border-radius: var(--demo-radius-sm);
+  background: var(--demo-hover);
+}
+
+.demo-toolbar-surface {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: min(100%, 26rem);
+  margin-inline: auto;
+  padding: 0.875rem 1rem 1rem;
+  border: 1px solid var(--demo-border);
+  border-radius: var(--demo-radius);
+  background: var(--demo-bg);
+}
+
+.demo-toolbar-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.demo-toolbar-title {
+  font-size: var(--demo-font);
+  font-weight: 600;
+  color: var(--demo-fg);
+}
+
+.demo-toolbar-note {
+  font-size: 0.75rem;
+  color: var(--demo-muted);
+}
+
+.demo-toolbar-action {
+  display: inline-flex;
+  align-items: center;
+  height: 1.875rem;
+  padding: 0 0.5rem;
+  border: 0;
+  border-radius: var(--demo-radius-xs);
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--demo-fg);
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
+}
+
+.demo-toolbar-action:hover:not(:disabled):not([aria-disabled='true']) {
+  background: color-mix(in srgb, var(--demo-bg) 75%, transparent);
+}
+
+.demo-toolbar-action:active:not(:disabled):not([aria-disabled='true']) {
+  background: var(--demo-border);
+}
+
+.demo-toolbar-action[aria-pressed='true'] {
+  background: var(--demo-fg);
+  color: var(--demo-bg);
+}
+
+.demo-toolbar-action[aria-pressed='true']:hover:not(:disabled) {
+  background: var(--demo-fg-hover);
+}
+
+.demo-toolbar-action:focus-visible {
+  outline: var(--demo-outline);
+  outline-offset: var(--demo-outline-offset);
+}
+
+.demo-toolbar-action:disabled,
+.demo-toolbar-action[aria-disabled='true'] {
+  color: var(--demo-muted);
+  opacity: var(--demo-disabled);
+  pointer-events: none;
+}
+
+.demo-toolbar-divider {
+  width: 1px;
+  height: 1.125rem;
+  margin-inline: 0.25rem;
+  background: var(--demo-border);
+}
+
+.demo-toolbar-hint {
+  font-size: 0.75rem;
+  color: var(--demo-muted);
+}

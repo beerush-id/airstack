@@ -1,29 +1,34 @@
 ---
-title: 'Section'
-description: 'Headless section landmark that compiles role="region" only when the section carries an accessible name, turning significant sections into jump destinations.'
+title: 'Headless Section'
+description: 'Headless section landmarks for React and SolidJS. Compiles the region role only when the section is named, withdraws it when the name is cleared, and takes no focus or keys — with no markup or styles imposed.'
 nav: 'Section'
 nav-priority: 580
 ---
 
-# AirLib Headless Section
+import './aria.css';
+import './section.css';
 
-Long documents are hard to navigate by listening. A `region` landmark turns a significant, self-contained section into a destination in the assistive technology's landmark list — a table of contents for the page. The catch is that a section only becomes a landmark when it is named; an unnamed `<section>` is a generic container that appears in no list at all. **AirLib Headless Section** (`aria('section')`) enforces that rule by compilation: with `label` or `labelledby` it emits `role="region"` plus the name, and without either it emits no role, so an anonymous section never pollutes the landmark list.
+# Headless Section
+
+A long page is reached through the landmark list, and a section joins that list only when it carries a name.
+
+Getting it right means **compiling `region` only while the section is named**, **withdrawing the role when the name is cleared**, **taking no tab stop and claiming no keys**, and **keeping the name props off the host as stray attributes**.
+
+**Headless Section** does all of that for you, and leaves the markup and the styling entirely yours.
 
 ```tsx
 const section = aria('section', props);
 
-<section ref={section.ref} {...section.restProps(['children'])} />
+<div ref={section.ref} {...section.restProps(['children'])} />
 ```
 
-<style>{`.demo-section-stack{display:flex;flex-direction:column;gap:.75rem;padding:1rem;max-width:24rem;border:1px solid #e4e4e7;border-radius:.75rem;background:#fafafa;font-size:.875rem}.demo-section{padding:1rem;border:1px solid #e4e4e7;border-radius:.5rem;background:#fff}.demo-section-title{margin:0 0 .25rem;font-size:.875rem;font-weight:500;color:#3f3f46}.demo-section-body{margin:0;color:#71717a}.demo-section-unnamed{padding:1rem;border:1px dashed #d4d4d8;border-radius:.5rem;color:#a1a1aa}`}</style>
-
-:::interactive[Named And Unnamed Sections]
+:::interactive[Document Sections]
 ```tsx
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
 import type { ComponentProps, ReactNode } from 'react';
 
-type DemoSectionProps = ComponentProps<'section'> & {
+type DemoSectionProps = ComponentProps<'div'> & {
   label?: string;
   labelledby?: string;
   children: ReactNode;
@@ -33,27 +38,62 @@ const DemoSection = setup<DemoSectionProps>((props) => {
   const section = aria('section', props);
 
   return () => (
-    <section ref={section.ref} {...section.restProps(['children'])}>
+    <div ref={section.ref} {...section.restProps(['children'])}>
       {props.children}
-    </section>
+    </div>
   );
 }, 'DemoSection');
 ```
-
-<div className="demo-section-stack">
-  <DemoSection labelledby="pricing-heading" className="demo-section">
-    <h2 id="pricing-heading" className="demo-section-title">Pricing</h2>
-    <p className="demo-section-body">Named, so it appears in the landmark list.</p>
+```html
+<div className="demo-section-frame">
+  <div className="demo-section-chrome">
+    <span>Release notes</span>
+    <span className="demo-section-note">One section is intentionally unnamed</span>
+  </div>
+  <DemoSection labelledby="demo-billing-title" className="demo-section">
+    <span id="demo-billing-title" className="demo-section-title">Billing</span>
+    <span className="demo-section-body">Invoices move to the new ledger on 1 November.</span>
   </DemoSection>
-  <DemoSection className="demo-section-unnamed">
-    Unnamed section — no role compiled, so it stays a generic container
+  <DemoSection label="Security" className="demo-section">
+    <span className="demo-section-caption">Named by label</span>
+    <span className="demo-section-body">Session keys rotate every 90 days for every workspace.</span>
+  </DemoSection>
+  <DemoSection className="demo-section demo-section-unnamed">
+    <span className="demo-section-caption">Unnamed</span>
+    <span className="demo-section-body">No region role is compiled, so the landmark list never sees it.</span>
+  </DemoSection>
+</div>
+```
+
+<div className="demo-section-frame">
+  <div className="demo-section-chrome">
+    <span>Release notes</span>
+    <span className="demo-section-note">One section is intentionally unnamed</span>
+  </div>
+  <DemoSection labelledby="demo-billing-title" className="demo-section">
+    <span id="demo-billing-title" className="demo-section-title">Billing</span>
+    <span className="demo-section-body">Invoices move to the new ledger on 1 November.</span>
+  </DemoSection>
+  <DemoSection label="Security" className="demo-section">
+    <span className="demo-section-caption">Named by label</span>
+    <span className="demo-section-body">Session keys rotate every 90 days for every workspace.</span>
+  </DemoSection>
+  <DemoSection className="demo-section demo-section-unnamed">
+    <span className="demo-section-caption">Unnamed</span>
+    <span className="demo-section-body">No region role is compiled, so the landmark list never sees it.</span>
   </DemoSection>
 </div>
 :::
 
+:::tip
+**Name the section from its own heading.** Point `labelledby` at the heading's `id` so the announced name follows the visible text instead of drifting from a copied string.
+:::
+
 ## Section
 
-The named generic landmark. It compiles the role only when the section carries an accessible name, and exposes `section.named` so a wrapper can tell whether the landmark was actually published.
+**The named region.** It compiles `region` while the section carries an accessible name, and nothing at all while it does not.
+
+### Usage
 
 ```ts
 aria<E extends BaseElement = HTMLElement>(
@@ -63,8 +103,6 @@ aria<E extends BaseElement = HTMLElement>(
 ): SectionAria<E>
 ```
 
-### Usage
-
 :::code-group
 
 ```tsx [React]
@@ -72,7 +110,7 @@ import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
 import type { ComponentProps, ReactNode } from 'react';
 
-type SectionProps = ComponentProps<'section'> & {
+type SectionProps = ComponentProps<'div'> & {
   label?: string;
   labelledby?: string;
   children: ReactNode;
@@ -82,30 +120,31 @@ const Section = setup<SectionProps>((props) => {
   const section = aria('section', props);
 
   return () => (
-    <section ref={section.ref} {...section.restProps(['children'])}>
+    <div ref={section.ref} {...section.restProps(['children'])}>
       {props.children}
-    </section>
+    </div>
   );
-});
+}, 'Section');
 ```
 
 ```tsx [SolidJS]
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/solid';
-import type { ComponentProps } from 'solid-js';
+import type { ComponentProps, JSX } from 'solid-js';
 
-type SectionProps = ComponentProps<'section'> & {
+type SectionProps = ComponentProps<'div'> & {
   label?: string;
   labelledby?: string;
+  children: JSX.Element;
 };
 
 const Section = setup<SectionProps>((props) => {
   const section = aria('section', props);
 
   return (
-    <section ref={section.ref} {...section.restProps(['children'])}>
+    <div ref={section.ref} {...section.restProps(['children'])}>
       {props.children}
-    </section>
+    </div>
   );
 });
 ```
@@ -114,37 +153,82 @@ const Section = setup<SectionProps>((props) => {
 
 ### Parameters
 
-- `props.label` *(string, optional)*: Accessible label compiled to `aria-label`. Required for the landmark to be exposed.
-- `props.labelledby` *(string, optional)*: Element ID providing the accessible name, compiled to `aria-labelledby`. Point it at the section's own heading rather than duplicating the text.
-- `options.native` *(boolean, optional, default `false`)*: Inert for this role. The `region` role is compiled from the accessible name rather than from the host, so a named section gets `role="region"` either way.
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **label** _string, optional_: The name the landmark list announces, compiled to `aria-label`. Either name prop publishes the section.
+- **labelledby** _string, optional_: The ID of an element already on the page that carries that name, compiled to `aria-labelledby`.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **label** _string | undefined_: The label in force.
+- **labelledby** _string | undefined_: The ID reference in force.
+- **named** _boolean_: Whether the section carries a name, and therefore a role.
 
 ### How it behaves
 
-- With `label` or `labelledby` present, compiles `role="region"` together with the accessible name — explicitly, on native and custom hosts alike, because the HTML mapping only exposes a named `<section>` as a landmark.
-- With neither present, compiles no role at all and the element stays a generic container. Clearing the name withdraws the role again, reactively.
-- `section.named` reports whether the landmark is currently exposed, so a wrapper can branch on it.
-- The role never depends on `native` or on the host tag: naming is the only gate.
-- Structure only: no `tabindex`, no key handling, and no state. The content inside keeps its own semantics and controllers.
-- `label` and `labelledby` are consumed by the controller and carried in `ownKeys`, so `restProps(['children'])` is the whole omission list — neither leaks to the DOM as a stray attribute.
-
-:::tip[Prefer labelledby over label]
-A section almost always has a visible heading. Point `labelledby` at that heading's `id` instead of repeating its text in `label`: the name stays in sync when the heading changes, and the visible text and the announced name cannot drift apart.
-:::
-
-## Keyboard Navigation
-
-- **None.** The landmark takes no tab stop and claims no keys; the content inside it keeps its own keyboard behavior.
-
-## What you get
-
-- **Naming enforced by compilation.** No accessible name means no `role="region"`, keeping the landmark list free of anonymous entries.
-- **A `named` projection.** `section.named` tells your wrapper whether the section was actually exposed.
-- **Reactive promotion and demotion.** Adding or clearing the name adds or withdraws the role.
-- **Native and custom hosts.** `<section>` and `<div>` both work, with the role compiled explicitly in either case when named.
-- **Placement-stable output.** The compiled attributes are identical in SSR and after hydration, because nothing is read from the DOM.
+- **The name is the gate.** With `label` or `labelledby` the host compiles `role="region"` next to the name; with neither it compiles no role and stays a generic container.
+- **Clearing the name withdraws the role.** The projection is reactive, so dropping `label` or `labelledby` removes `role` on the next write.
+- **`native` decides nothing here.** The role follows the name on both hosts, so a `<section>` and a `<div>` are treated the same.
+- **Structure only.** No `tabindex`, no key handling, no state; the content inside keeps its own controllers and its own semantics.
+- **Both name props stay off the host as plain attributes.** `label` and `labelledby` compile to `aria-label` and `aria-labelledby` only, so `restProps(['children'])` is the whole omission list.
 
 ## Next Steps
 
-- **[Form](/docs/aria/form)**: The other landmark exposed only when named.
-- **[Main](/docs/aria/main)**: The primary content that sections sit inside.
+- **[Main](/docs/aria/main)**: The primary content the sections sit inside.
+- **[Form](/docs/aria/form)**: The other landmark exposed only when it is named.
 - **[Sidebar](/docs/aria/sidebar)**: Supporting content that belongs beside main rather than inside it.
+- **[Link](/docs/aria/link)**: The in-page links that carry a reader to a section.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Section
+
+```ts
+interface SectionProps {
+  label?: string;
+  labelledby?: string;
+}
+
+interface SectionOptions {
+  native?: boolean;
+}
+
+interface SectionAttributes {
+  role?: 'region';
+  'aria-label'?: string;
+  'aria-labelledby'?: string;
+}
+
+declare class SectionAria {
+  get label(): string | undefined;
+  get labelledby(): string | undefined;
+  get named(): boolean;
+}
+```
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`attributes`** is the dictionary you spread; **`ref`** is what you bind the element with; **`props`** is the full props dictionary for spreading onto the host; **`restProps(omit)`** hands back your props with the keys you name left out.
+- **`assign()`** changes several parameters at once, **`refine()`** adds attributes of your own, **`on()`** listens for anything the part fires, **`destroy()`** tears it down.

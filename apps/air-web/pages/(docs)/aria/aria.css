@@ -17,6 +17,7 @@
     --demo-outline-offset: 2px;
     --demo-disabled: 0.4;
     --demo-danger: light-dark(#dc2626, #f87171);
+    --demo-scrim: light-dark(rgb(24 24 27 / 45%), rgb(0 0 0 / 60%));
   }
 
   .demo-field-card {

@@ -61,7 +61,7 @@ const DemoArea = setup<DemoFieldProps>((props) => {
 }, 'DemoArea');
 ```
 ```html
-<div className="demo-field-card">
+<div className="demo-field-card demo-text-card">
   <DemoField caption="Display name" value="Ada Lovelace" hint="Shown beside your reviews." />
   <DemoField caption="Work email" placeholder="you@example.com" required={true} invalid={true} error="Enter a valid email address." />
   <DemoArea caption="About you" placeholder="Anything else we should know?" hint="Optional, up to 500 characters." />
@@ -69,7 +69,7 @@ const DemoArea = setup<DemoFieldProps>((props) => {
 </div>
 ```
 
-<div className="demo-field-card">
+<div className="demo-field-card demo-text-card">
   <DemoField caption="Display name" value="Ada Lovelace" hint="Shown beside your reviews." />
   <DemoField caption="Work email" placeholder="you@example.com" required={true} invalid={true} error="Enter a valid email address." />
   <DemoArea caption="About you" placeholder="Anything else we should know?" hint="Optional, up to 500 characters." />

@@ -32,6 +32,7 @@ type DemoPickerProps = ComponentProps<'div'> & {
   value?: string;
   min?: string;
   max?: string;
+  label?: string;
   disabled?: boolean;
 };
 
@@ -48,9 +49,13 @@ const DemoPicker = setup<DemoPickerProps>((props) => {
         <div className="demo-date-picker-nav">
           <DemoPrevMonth />
           <Snippet>
-            {() => <span className="demo-date-picker-month">{picker.range.monthStr}</span>}
+            {() => (
+              <span className="demo-date-picker-label">
+                <span className="demo-date-picker-month">{picker.range.monthStr}</span>
+                <DemoYearInput />
+              </span>
+            )}
           </Snippet>
-          <DemoYearInput />
           <DemoNextMonth />
         </div>
       </DemoPickerCalendar>
@@ -77,8 +82,13 @@ const DemoPickerTrigger = setup<DemoPickerTriggerProps>((props) => {
   const trigger = aria<HTMLButtonElement>('date-picker-trigger', props);
 
   return () => (
-    <button ref={trigger.ref} {...trigger.restProps(['children'])} className="demo-date-picker-trigger">
-      📅
+    <button
+      ref={trigger.ref}
+      {...trigger.restProps(['children'])}
+      className="demo-date-picker-trigger"
+      aria-label="Open calendar"
+    >
+      <span className="demo-date-picker-icon" aria-hidden="true" />
     </button>
   );
 }, 'DemoPickerTrigger');
@@ -149,29 +159,29 @@ const DemoDay = setup<DemoDayProps>((props) => {
 }, 'DemoDay');
 ```
 ```html
-<DemoPicker />
-<DemoPicker value="2026-10-14" />
-<DemoPicker value="2026-10-14" min="2026-10-01" max="2026-10-31" />
+<DemoPicker label="Choose date" />
+<DemoPicker value="2026-10-14" label="Choose date" />
+<DemoPicker value="2026-10-14" min="2026-10-01" max="2026-10-31" label="Choose date" />
 ```
 
-<div className="flex flex-col items-center justify-center gap-4">
-  <div className='flex flex-col gap-1'>
-    <span className='font-semibold text-xs'>Empty picker</span>
-    <DemoPicker />
+<div className="demo-date-picker-stack">
+  <div className="demo-date-picker-field">
+    <span className="demo-date-picker-caption">Starts empty, accepts a typed date</span>
+    <DemoPicker label="Choose date" />
   </div>
-  <div className='flex flex-col gap-1'>
-    <span className='font-semibold text-xs'>Has initial value</span>
-    <DemoPicker value="2026-10-14" />
+  <div className="demo-date-picker-field">
+    <span className="demo-date-picker-caption">Opens on the saved day</span>
+    <DemoPicker value="2026-10-14" label="Choose date" />
   </div>
-  <div className='flex flex-col gap-1'>
-    <span className='font-semibold text-xs'>Has min and max date</span>
-    <DemoPicker value="2026-10-14" min="2026-10-01" max="2026-10-31" />
+  <div className="demo-date-picker-field">
+    <span className="demo-date-picker-caption">Only October is selectable</span>
+    <DemoPicker value="2026-10-14" min="2026-10-01" max="2026-10-31" label="Choose date" />
   </div>
 </div>
 :::
 
 :::tip
-Open the popup and focus lands on the chosen day. **The arrows move focus only** — `Enter`, `Space`, or a click is what saves the day, and the field shows the saved date. `‹` `›` flip the shown month without choosing. The bounded demo greys out everything outside October.
+**The arrows move focus; they never choose.** `Enter`, `Space`, or a click saves the day, and focus lands on the saved day when the calendar opens.
 :::
 
 ## Date Picker
@@ -197,14 +207,17 @@ import type { ComponentProps, ReactNode } from 'react';
 type PickerProps = ComponentProps<'div'> & {
   id?: string;
   value?: string;
-  open?: boolean;
+  month?: number;
+  year?: number;
   min?: string;
   max?: string;
+  label?: string;
+  locales?: string[];
+  open?: boolean;
   disabled?: boolean;
   required?: boolean;
-  activeDate?: string;
   oninput?: (event: CustomEvent<string>) => void;
-  onchange?: (event: CustomEvent<string>) => void;
+  onchange?: (event: CustomEvent<string | undefined>) => void;
   onopen?: (event: CustomEvent<true>) => void;
   onclose?: (event: CustomEvent<false>) => void;
   children: ReactNode;
@@ -242,61 +255,71 @@ const Picker = setup((props) => {
 
 _What you pass in. The props object stays live — change a value on it and the part follows._
 
-- **id** _string, optional_: The prefix the field, the button, and the calendar are linked through. Generated when you leave it out.
-- **value** _string, optional_: The chosen date as `YYYY-MM-DD`. Leave it out and nothing is chosen yet.
-- **month** _string, optional_: The shown month as `YYYY-MM`. Starts as the chosen date's month, otherwise the current month; travel updates it without choosing anything.
-- **open** _boolean, optional_: Whether the calendar shows. Flip it to open or close from code.
-- **min** _string, optional_: The earliest date that can be chosen. Earlier days show disabled and refuse clicks.
-- **max** _string, optional_: The latest date that can be chosen. Later days show disabled and refuse clicks.
-- **disabled** _boolean, optional_: Locks typing, toggling, and choosing across the **whole group**.
-- **required** _boolean, optional_: Marks date entry as required.
-- **activeDate** _string, optional_: The day holding the tab stop. Starts as `value`, otherwise today; moving focus across days keeps it fresh.
-- **oninput** _(event: CustomEvent&lt;string&gt;) =&gt; void, optional_: Called whenever the field text is edited, with the typed text in `detail`.
-- **onchange** _(event: CustomEvent&lt;string&gt;) =&gt; void, optional_: Called whenever a day is chosen, with the chosen date in `detail`.
-- **onopen** _(event: CustomEvent&lt;true&gt;) =&gt; void, optional_: Called after the calendar opens, however it was opened.
-- **onclose** _(event: CustomEvent&lt;false&gt;) =&gt; void, optional_: Called after the calendar closes, through every dismissal path.
+- **id** _string, optional_: The prefix the field, the button, and the calendar are linked through. Generated as `date-picker-<n>` when you leave it out.
+- **value** _string, optional_: The chosen date as `YYYY-MM-DD`. Leave it out and nothing is chosen.
+- **month** _number, optional_: The shown month as `1`–`12`. Defaults to the chosen date's month, otherwise the current month.
+- **year** _number, optional_: The shown year as `YYYY`. Defaults to the chosen date's year, otherwise the current year.
+- **min** _string, optional_: The earliest date that can be chosen. Earlier days read disabled and refuse every choosing path.
+- **max** _string, optional_: The latest date that can be chosen. Later days read disabled and refuse every choosing path.
+- **label** _string, optional_: The calendar's name for screen readers. Leave it out and the dialog is unnamed.
+- **locales** _string[], optional_: The locale stack every label is formatted with. Defaults to the runtime locale.
+- **disabled** _boolean, optional_: Locks typing, opening, and choosing across the **whole composite**.
+- **required** _boolean, optional_: Marks the field as required.
+- **open** _boolean, optional_: Whether the calendar shows.
+- **oninput** _(event: CustomEvent&lt;string&gt;) =&gt; void, optional_: The raw field text as it is typed.
+- **onchange** _(event: CustomEvent&lt;string | undefined&gt;) =&gt; void, optional_: The chosen date, `undefined` once it is cleared.
+- **onopen** / **onclose** _(event: CustomEvent&lt;true&gt; | CustomEvent&lt;false&gt;) =&gt; void, optional_: The popup's edges, through every path.
 
 ### Options
 
-_The date picker doesn't take any options._
+_What you fix when you create it. Read once, never reactive._
+
+- **type** _'single' | 'range', optional, default `'single'`_: The value archetype this instance reads.
+- **grid** _'fixed' | 'dynamic', optional, default `'fixed'`_: Whether the month keeps six rows or drops the rows that hold no day of it.
+- **native** _boolean, optional, default `true`_: Pass `false` when the host isn't a native element for the role.
 
 ### Properties
 
 _What you read or write on the instance afterwards._
 
 - **value** _string | undefined_: The chosen date. Writing sets it directly.
-- **activeDate** _string_: The day holding the tab stop, `""` when cleared.
-- **month** _string | undefined_: The shown month id. Writing sets it directly.
-- **open** _boolean_: Whether the calendar shows. Closing from code keeps the saved date.
-- **calendarLabel** _string_: The popup name, `"Calendar"`.
+- **month** _number_: The month the grid shows, `1`–`12`. Writing it moves the grid.
+- **year** _number_: The year the grid shows. Writing it moves the grid.
+- **open** _boolean_: Whether the calendar shows.
+- **disabled** _boolean_: Whether the composite refuses interaction.
+- **range** _ParsedDate_: The shown month as a date — `monthStr` is the label the header shows.
+- **today** _ParsedDate_: Today, parsed.
+- **start** _ParsedDate_: The chosen date, parsed. Empty while nothing is chosen.
+- **end** _ParsedDate_: Always empty on a single picker.
+- **limit** _object_: The earliest and latest dates you allow, ready to compare, as `min` and `max`.
+- **draft** _(string | undefined)[]_: The half-chosen date while a pick is pending; empty otherwise.
+- **id** / **panelId** / **triggerId** _string_: The identifiers the parts link through.
 
 ### Methods
 
 _What you call on the instance._
 
-- **`isSelected(date)`**: Whether `date` is the chosen one.
-- **`isDisabledDate(date)`**: Whether `date` refuses interaction — the group locked, or outside `min` / `max`.
-- **`activate(date)`**: Chooses `date`, unless it refuses interaction.
-- **`commit(date)`**: Saves `date`, announces it, and closes the popup.
-- **`navigateMonth(direction)`**: Steps the shown `month` back (`-1`) or forward (`1`) without choosing anything. An invalid or cleared month holds still.
-- **`emitInput(detail)`**: Announces edited text as if the field was typed in.
-- **`emitChange(detail)`**: Announces a chosen date as if a day was picked.
+- **`select(start, end?)`**: Chooses a day: it becomes the value, `change` fires, and the calendar closes.
+- **`deselect(index?)`**: Clears the chosen date and announces `change`. Does nothing while disabled.
+- **`navigateMonth(direction)`**: Moves the grid a month back (`-1`) or forward (`1`), across the year boundary. Chooses nothing.
+- **`navigateYear(direction)`**: Moves the grid a year back (`-1`) or forward (`1`). Chooses nothing.
 
 ### How it behaves
 
-- **Typing announces, never chooses.** Every keystroke sends `input` with the raw text; `value` stays put until a day is picked.
-- **Travel never saves.** Arrow, `Home` / `End`, and `PageUp` / `PageDown` move focus only — `value` changes solely through choosing.
+- **Typing announces, never chooses.** `input` carries the text as you type; the value changes only when a day is chosen.
+- **Choosing closes.** A day saves itself as `value`, announces `change`, and closes the popup.
+- **Travel never saves.** Arrows, `Home` / `End`, and `PageUp` / `PageDown` move focus or flip the month; the chosen date stays put.
 - **One tab stop for the whole grid.** The active day carries it; the rest stay out of the tab order.
-- **Out-of-range days refuse everything.** They show disabled and ignore clicks, `Enter`, and `Space`.
+- **Out-of-range days refuse everything.** They read disabled and ignore clicks, `Enter`, and `Space`.
 - **Focus comes home.** Choosing or dismissing returns focus to the field or button that opened the popup.
-- **Screen readers get a combobox, a button, and a dialog.** The field announces its popup state, the button announces the same, and the calendar announces itself as `"Calendar"`.
+- **The dialog is named by `label`.** Leave it out and the calendar carries no accessible name.
 
 ### Events
 
 _What it tells you._
 
-- **`input`** — fires when the field text is edited, with the typed text in `detail`.
-- **`change`** — fires when a day is chosen, with the chosen date in `detail`.
+- **`input`** — the raw field text while typing, in `detail`.
+- **`change`** — the chosen date in `detail`, `undefined` once it is cleared.
 
 ```tsx
 const picker = aria('date-picker', {
@@ -366,19 +389,24 @@ const PickerInput = setup<PickerInputProps>((props) => {
 
 ### Parameters
 
-_What you pass in. This part takes no date props — it reads everything from the group it belongs to._
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **id** _string, optional_: This field's identifier in the DOM.
+- **slot** _string, optional_: Marks the field as one end of a range — `'start'` or `'end'`. Leave it out on a single picker.
+- **disabled** _boolean, optional_: This field alone refuses typing and opening. Group-level disablement applies on top.
 
 ### Options
 
 _What you fix when you create it. Read once, never reactive._
 
-- **native** _boolean, optional, default `true`_: Pass `false` when the host isn't an `<input>` and you get the `combobox` face with popup wiring instead of native field behavior.
+- **native** _boolean, optional, default `true`_: Pass `false` when the host isn't an `<input>`.
 
 ### Properties
 
 _What you read or write on the instance afterwards._
 
-- **disabled** _boolean_: Whether the field refuses typing, **including by the group**.
+- **slot** _string | undefined_: Which side of a range this field stands for — `start` or `end`. Left out, the field edits a single date.
+- **isRangeInput** _boolean_: Whether the field belongs to a range rather than a single date.
 
 ### Methods
 
@@ -557,8 +585,12 @@ _The calendar doesn't take any options._
 
 _What you read or write on the instance afterwards._
 
-- **id** _string_: The panel identifier the field and the button point at.
+- **id** _string_: The dialog identifier the field and the button point at.
 - **open** _boolean_: Whether the popup shows.
+- **weeks** _string[]_: The seven weekday column labels.
+- **dates** _ParsedDate[]_: Every cell of the shown month, left to right.
+- **grid** _DateGrid_: The month, the weekday labels, and the cells together.
+- **popup** _PopoverAria_: The popover this dialog runs on.
 
 ### Methods
 
@@ -658,7 +690,10 @@ _The day doesn't take any options._
 
 _What you read or write on the instance afterwards._
 
-- **date** _string_: The day this cell stands for.
+- **date** _ParsedDate_: The day this cell stands for, parsed.
+- **selected** _boolean_: Whether the day is the chosen one.
+- **disabled** _boolean_: Whether the day refuses interaction.
+- **inRange** _boolean_: Whether the day sits between a range's start and end. Always `false` on a single picker.
 
 ### Methods
 
@@ -681,15 +716,15 @@ _What the keys do._
 
 - **The day handles no keys itself.** Everything runs through the **calendar**.
 
-## Date Picker Prev Month / Next Month
+## Date Picker Nav
 
-**Month travel buttons.** Flip the shown month without choosing anything.
+**Month and year travel buttons.** One click steps the grid without choosing anything.
 
 ```ts
 aria<E extends BaseElement = HTMLButtonElement>(
-  role: 'date-picker-prev-month' | 'date-picker-next-month',
-  props?: AriaProps
-): DatePickerMonthNavAria<E>
+  role: 'date-picker-nav',
+  props?: DatePickerNavProps
+): DatePickerNav<E>
 ```
 
 :::code-group
@@ -699,10 +734,13 @@ import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
 import type { ComponentProps } from 'react';
 
-type MonthNavProps = ComponentProps<'button'>;
+type NavProps = ComponentProps<'button'> & {
+  type: 'month' | 'year';
+  direction: -1 | 1;
+};
 
-const PrevMonth = setup<MonthNavProps>((props) => {
-  const nav = aria<HTMLButtonElement>('date-picker-prev-month', props);
+const Nav = setup<NavProps>((props) => {
+  const nav = aria<HTMLButtonElement>('date-picker-nav', props.$pick(['type', 'direction']));
 
   return () => (
     <button ref={nav.ref} {...nav.restProps(['children'])}>
@@ -717,10 +755,13 @@ import { aria } from '@airlib/aria';
 import { setup } from '@airlib/solid';
 import type { ComponentProps } from 'solid-js';
 
-type MonthNavProps = ComponentProps<'button'>;
+type NavProps = ComponentProps<'button'> & {
+  type: 'month' | 'year';
+  direction: -1 | 1;
+};
 
-const PrevMonth = setup<MonthNavProps>((props) => {
-  const nav = aria<HTMLButtonElement>('date-picker-prev-month', props);
+const Nav = setup<NavProps>((props) => {
+  const nav = aria<HTMLButtonElement>('date-picker-nav', { type: props.type, direction: props.direction });
 
   return (
     <button ref={nav.ref} {...nav.restProps(['children'])}>
@@ -734,37 +775,114 @@ const PrevMonth = setup<MonthNavProps>((props) => {
 
 ### Parameters
 
-_What you pass in. These parts take no date props._
+_What you pass in. These parts take no date props — they borrow the group they sit in._
 
-### Options
+- **type** _'month' | 'year', optional, default `'month'`_: Which dimension the control steps.
+- **direction** _-1 | 1, optional, default `-1`_: Back or forward.
 
-_These parts take no options._
+### Properties
 
-### Methods
+_What you read or write on the instance afterwards._
 
-_These parts expose no methods of their own._
+- **type** _'month' | 'year'_: The dimension in use.
+- **direction** _-1 | 1_: The direction in use.
 
 ### How it behaves
 
-- **Plain buttons.** No popup wiring and no date state of their own — they borrow the group they sit in.
-- **Each click flips the shown month.** Back (`prev-month`) or forward (`next-month`), without touching the draft, the saved date, or the popup.
-- **Travel never saves.** Clicking leaves `value` exactly as it was.
-- **A cancelled click travels nothing.** Calling `preventDefault` on the click holds the month still.
-
-### Events
-
-_These parts dispatch no events of their own._
+- **One click steps the grid.** A month control moves one month, rolling the year across December and January; a year control moves one year.
+- **Travel saves nothing.** `value` stays exactly as it was.
+- **A canceled click travels nothing.** `preventDefault` on the click holds the grid still.
 
 ### Navigation
 
 _What the keys do._
 
-- **`Enter` / `Space`** — travel one month on a native button through the browser itself.
-- **`Click`** — travel one month.
+- **`Enter` / `Space`** — steps the grid on a native button through the browser itself.
+- **`Click`** — steps once.
+
+## Date Picker Year Input
+
+**The year field.** Four digits jump the grid to that year without choosing a day.
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'date-picker-year-input',
+  props?: AriaProps
+): DatePickerNav<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type YearInputProps = ComponentProps<'input'>;
+
+const YearInput = setup<YearInputProps>((props) => {
+  const input = aria<HTMLInputElement>('date-picker-year-input', props);
+
+  return () => (
+    <input ref={input.ref} {...input.props} type="number" />
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type YearInputProps = ComponentProps<'input'>;
+
+const YearInput = setup<YearInputProps>((props) => {
+  const input = aria<HTMLInputElement>('date-picker-year-input', props);
+
+  return (
+    <input ref={input.ref} {...input.props} type="number" />
+  );
+});
+```
+
+:::
+
+### Parameters
+
+_What you pass in. It takes no date props of its own — it borrows the group it sits in._
+
+### Options
+
+_This part takes no options._
+
+### Properties
+
+_This part exposes no properties of its own._
+
+### Methods
+
+_This part exposes no methods of its own._
+
+### How it behaves
+
+- **A year typed is a year shown.** The grid moves to that year; the month stays where it is.
+- **It never chooses.** Typing a year leaves `value` exactly as it was.
+- **It borrows the group.** It reads and moves the picker around it, and does nothing without one.
+
+### Events
+
+_This part dispatches no events of its own._ A year lands on the **group** as the shown year, not as a chosen date.
+
+### Navigation
+
+_What the keys do._
+
+- **Digits** — build the year as you type, through the field itself.
+- **`Enter`** — keeps the year on screen; the calendar stays open.
 
 ## Next Steps
 
-- **[Date Range Picker](/docs/aria/date-range-picker)**: Two endpoints sharing one calendar, with an unfinished draft kept apart from the saved range.
+- **[Date Range Picker](/docs/aria/date-range-picker)**: A start and an end sharing one calendar, with an unfinished draft kept apart from the saved range.
 - **[Dialog](/docs/aria/dialog)**: A popup that must be answered before continuing.
 - **[Grid](/docs/aria/grid)**: Two-dimensional travel with cell and row selection for data tables.
 
@@ -778,52 +896,96 @@ What you can actually use, with every alias resolved to what it really is. Each 
 interface DatePickerProps {
   id?: string;
   value?: string;
-  month?: string;
-  open?: boolean;
+  month?: number;
+  year?: number;
   min?: string;
   max?: string;
+  label?: string;
+  locales?: string[];
+  open?: boolean;
   disabled?: boolean;
   required?: boolean;
-  activeDate?: string;
   oninput?: (event: CustomEvent<string>) => void;
-  onchange?: (event: CustomEvent<string>) => void;
+  onchange?: (event: CustomEvent<string | undefined>) => void;
   onopen?: (event: CustomEvent<true>) => void;
   onclose?: (event: CustomEvent<false>) => void;
+}
+
+interface DatePickerOptions {
+  type?: 'single' | 'range';
+  grid?: 'fixed' | 'dynamic';
+  native?: boolean;
+  clickable?: boolean;
 }
 
 interface DatePickerAttributes {
   id: string;
 }
 
+interface ParsedDate {
+  raw?: string;
+  iso?: string;
+  day?: string;
+  text?: string;
+  time?: number;
+  date?: number;
+  year?: number;
+  month?: number;
+  monthStr?: string;
+}
+
 declare class DatePickerAria {
-  readonly calendarLabel: string;
+  readonly range: ParsedDate;
+  readonly today: ParsedDate;
+  readonly start: ParsedDate;
+  readonly end: ParsedDate;
+  readonly limit: { min?: Date; max?: Date };
+  readonly draft: (string | undefined)[];
+  readonly id: string;
+  readonly panelId: string;
+  readonly triggerId: string;
   get value(): string | undefined;
   set value(value: string | undefined);
-  get activeDate(): string;
-  set activeDate(date: string);
-  get month(): string | undefined;
-  set month(month: string | undefined);
+  get month(): number;
+  set month(month: number);
+  get year(): number;
+  set year(year: number);
+  get open(): boolean;
+  set open(value: boolean);
+  get disabled(): boolean;
 
-  isSelected(date: string): boolean;
-  isDisabledDate(date: string): boolean;
-  activate(date: string): void;
-  commit(date: string): void;
+  select(start: string, end?: string): void;
+  deselect(index?: number): void;
   navigateMonth(direction: -1 | 1): void;
-  emitInput(detail: string): void;
-  emitChange(detail: string): void;
+  navigateYear(direction: -1 | 1): void;
 }
 ```
 
 ### Date Picker Input
 
 ```ts
+interface DatePickerInputProps {
+  id?: string;
+  slot?: string;
+  disabled?: boolean;
+}
+
 interface DatePickerInputAttributes {
-  role?: 'combobox';
+  id?: string;
+  role?: string;
   type?: string;
-  'aria-haspopup'?: 'dialog';
+  value?: string;
+  tabindex?: number;
+  disabled?: boolean;
+  'aria-haspopup'?: string;
   'aria-expanded'?: 'true' | 'false';
   'aria-controls'?: string;
-  disabled?: boolean;
+  'aria-disabled'?: 'true';
+}
+
+declare class DatePickerInputAria {
+  get slot(): string | undefined;
+  get isRangeInput(): boolean;
 }
 ```
 
@@ -833,11 +995,13 @@ interface DatePickerInputAttributes {
 interface DatePickerTriggerAttributes {
   id?: string;
   role?: string;
-  type?: 'button';
-  'aria-haspopup'?: 'dialog';
+  type?: string;
+  tabindex?: number;
+  disabled?: boolean;
+  'aria-haspopup'?: string;
   'aria-expanded'?: 'true' | 'false';
   'aria-controls'?: string;
-  disabled?: boolean;
+  'aria-disabled'?: 'true';
 }
 ```
 
@@ -847,13 +1011,25 @@ interface DatePickerTriggerAttributes {
 interface DatePickerCalendarAttributes {
   id?: string;
   role?: 'dialog';
-  'aria-label'?: string;
   hidden?: boolean;
+  'aria-label'?: string;
+}
+
+interface DateGrid {
+  year: number;
+  month: number;
+  weeks: string[];
+  dates: ParsedDate[];
 }
 
 declare class DatePickerCalendarAria {
+  readonly popup: PopoverAria;
+  readonly grid: DateGrid;
   get id(): string;
   get open(): boolean;
+  get weeks(): string[];
+  get dates(): ParsedDate[];
+  set current(element: HTMLElement | null);
 }
 ```
 
@@ -861,35 +1037,50 @@ declare class DatePickerCalendarAria {
 
 ```ts
 interface DatePickerDayProps {
-  date: string;
+  date: string | ParsedDate;
 }
 
 interface DatePickerDayAttributes {
   role?: 'gridcell';
   tabindex?: number;
+  'data-date'?: string;
+  'aria-current'?: 'date';
   'aria-selected'?: 'true' | 'false';
   'aria-disabled'?: 'true' | 'false';
-  'data-date'?: string;
 }
 
 declare class DatePickerDayAria {
-  get date(): string;
+  get date(): ParsedDate;
+  get selected(): boolean;
+  get disabled(): boolean;
+  get inRange(): boolean;
 }
 ```
 
-### Date Picker Prev Month / Next Month
+### Date Picker Nav
 
 ```ts
-interface DatePickerMonthNavProps {
+interface DatePickerNavProps {
+  type?: 'month' | 'year';
   direction?: -1 | 1;
 }
 
-declare class DatePickerMonthNavAria {
+declare class DatePickerNav {
+  get type(): 'month' | 'year';
   get direction(): -1 | 1;
 }
 ```
 
-_The `direction` follows the role you called — `prev-month` steps back, `next-month` steps forward — so you never pass it yourself._
+### Date Picker Year Input
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'date-picker-year-input',
+  props?: AriaProps
+): DatePickerNav<E>
+```
+
+A four-digit field that jumps the grid to that year. It carries no dictionary of its own; it takes the standard attributes of its host.
 
 ### On every one of them
 

@@ -1,9 +1,9 @@
 .demo-stepper-card {
   display: flex;
   flex-direction: column;
-  gap: var(--demo-gap);
-  width: 100%;
-  padding: 1rem;
+  overflow: hidden;
+  width: min(100%, 26rem);
+  margin-inline: auto;
   border: 1px solid var(--demo-border);
   border-radius: var(--demo-radius);
   background: var(--demo-bg);
@@ -14,8 +14,13 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--demo-gap);
+  padding: 0.625rem 0.75rem;
   font-size: var(--demo-font);
   color: var(--demo-fg);
+}
+
+.demo-stepper-row + .demo-stepper-row {
+  border-top: 1px solid var(--demo-border);
 }
 
 .demo-stepper-caption {
@@ -23,11 +28,17 @@
 }
 
 .demo-stepper {
+  position: relative;
+  z-index: 0;
   display: inline-flex;
   align-items: stretch;
   border: 1px solid var(--demo-border);
-  border-radius: var(--demo-radius-sm);
+  border-radius: var(--demo-radius-xs);
   background: var(--demo-bg);
+}
+
+.demo-stepper:focus-within {
+  z-index: 1;
 }
 
 .demo-stepper:has(:focus-visible) {

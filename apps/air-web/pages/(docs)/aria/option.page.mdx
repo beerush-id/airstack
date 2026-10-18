@@ -1,6 +1,6 @@
 ---
 title: 'Headless Option'
-description: 'Headless options for React and SolidJS. One choice in a list: selection derived from the group, a roving tab stop, no keystrokes of its own, and native option sync — with no markup or styles imposed.'
+description: 'Headless options for React and SolidJS. One choice in a list: selection derived from the group, a tab stop per selected option, no keystrokes of its own, and native option sync — with no markup or styles imposed.'
 nav: 'Option'
 nav-priority: 250
 ---
@@ -10,7 +10,7 @@ import './option.css';
 
 # Headless Option
 
-An option is one choice in a list somebody else drives. Getting it right means **deriving selected from the group instead of holding a private copy**, **staying out of the keyboard because the popup owns the arrows and the typeahead**, **moving the single tab stop to whichever option is on**, and **announcing the value sitting under the cursor**.
+An option is one choice in a list somebody else drives. Getting it right means **deriving selected from the group instead of holding a private copy**, **staying out of the keyboard because the popup owns the arrows and the typeahead**, **putting the tab stop on the option that is selected**, and **announcing the value sitting under the cursor**.
 
 **Headless Option** does all of that for you, and leaves the markup and the styling entirely yours.
 
@@ -20,7 +20,7 @@ const option = aria('option', props);
 <li ref={option.ref} {...option.restProps(['children'])} />
 ```
 
-:::interactive[Currency Options]
+:::interactive[Currency Watchlist]
 ```tsx
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
@@ -45,9 +45,8 @@ const DemoListbox = setup<DemoListboxProps>((props) => {
 
 type DemoOptionProps = ComponentProps<'li'> & {
   value: string;
-  selected?: boolean;
-  disabled?: boolean;
   hint?: string;
+  disabled?: boolean;
 };
 
 const DemoOption = setup<DemoOptionProps>((props) => {
@@ -55,6 +54,7 @@ const DemoOption = setup<DemoOptionProps>((props) => {
 
   return () => (
     <li ref={option.ref} {...option.restProps(['children', 'hint'])} className="demo-option">
+      <span className="demo-option-mark" aria-hidden="true" />
       <span>{props.children}</span>
       <span className="demo-option-hint">{props.hint}</span>
     </li>
@@ -62,36 +62,48 @@ const DemoOption = setup<DemoOptionProps>((props) => {
 }, 'DemoOption');
 ```
 ```html
-<div className="demo-option-pair">
-  <DemoListbox label="Single currency" value="usd">
-    <DemoOption value="usd" hint="US Dollar">United States</DemoOption>
-    <DemoOption value="eur" hint="Shared">Germany</DemoOption>
-    <DemoOption value="jpy" hint="Unavailable" disabled={true}>Japan</DemoOption>
-  </DemoListbox>
-  <DemoListbox label="Currencies to watch" multiple={true} value={['usd', 'eur']}>
-    <DemoOption value="usd" hint="US Dollar">United States</DemoOption>
-    <DemoOption value="eur" hint="Shared">Germany</DemoOption>
-    <DemoOption value="jpy" hint="Unavailable" disabled={true}>Japan</DemoOption>
-  </DemoListbox>
+<div className="demo-option-card">
+  <div className="demo-option-section">
+    <span className="demo-option-caption">Single select: the stop follows the choice</span>
+    <DemoListbox label="Reporting currency" value="usd">
+      <DemoOption value="usd" hint="USD">United States</DemoOption>
+      <DemoOption value="eur" hint="EUR">Germany</DemoOption>
+      <DemoOption value="jpy" hint="JPY" disabled={true}>Japan</DemoOption>
+    </DemoListbox>
+  </div>
+  <div className="demo-option-section">
+    <span className="demo-option-caption">Multi select: every chosen row holds a stop</span>
+    <DemoListbox label="Tracked currencies" multiple={true} value={['usd', 'eur']}>
+      <DemoOption value="usd" hint="USD">United States</DemoOption>
+      <DemoOption value="eur" hint="EUR">Germany</DemoOption>
+      <DemoOption value="jpy" hint="JPY" disabled={true}>Japan</DemoOption>
+    </DemoListbox>
+  </div>
 </div>
 ```
 
-<div className="demo-option-pair">
-  <DemoListbox label="Single currency" value="usd">
-    <DemoOption value="usd" hint="US Dollar">United States</DemoOption>
-    <DemoOption value="eur" hint="Shared">Germany</DemoOption>
-    <DemoOption value="jpy" hint="Unavailable" disabled={true}>Japan</DemoOption>
-  </DemoListbox>
-  <DemoListbox label="Currencies to watch" multiple={true} value={['usd', 'eur']}>
-    <DemoOption value="usd" hint="US Dollar">United States</DemoOption>
-    <DemoOption value="eur" hint="Shared">Germany</DemoOption>
-    <DemoOption value="jpy" hint="Unavailable" disabled={true}>Japan</DemoOption>
-  </DemoListbox>
+<div className="demo-option-card">
+  <div className="demo-option-section">
+    <span className="demo-option-caption">Single select: the stop follows the choice</span>
+    <DemoListbox label="Reporting currency" value="usd">
+      <DemoOption value="usd" hint="USD">United States</DemoOption>
+      <DemoOption value="eur" hint="EUR">Germany</DemoOption>
+      <DemoOption value="jpy" hint="JPY" disabled={true}>Japan</DemoOption>
+    </DemoListbox>
+  </div>
+  <div className="demo-option-section">
+    <span className="demo-option-caption">Multi select: every chosen row holds a stop</span>
+    <DemoListbox label="Tracked currencies" multiple={true} value={['usd', 'eur']}>
+      <DemoOption value="usd" hint="USD">United States</DemoOption>
+      <DemoOption value="eur" hint="EUR">Germany</DemoOption>
+      <DemoOption value="jpy" hint="JPY" disabled={true}>Japan</DemoOption>
+    </DemoListbox>
+  </div>
 </div>
 :::
 
 :::tip
-An option is a **member**, not a widget you drop on a page. Put them inside a [listbox](/docs/aria/listbox), a [select](/docs/aria/select), or a [combobox](/docs/aria/combobox): the container is what owns the arrows, the typeahead, and the one value every option is measured against.
+**An option is a member of a group, not a widget of its own.** Put it inside a [listbox](/docs/aria/listbox), a [select](/docs/aria/select), or a [combobox](/docs/aria/combobox): the container owns the arrows, the typeahead, and the one value every option is measured against.
 :::
 
 ## Option
@@ -161,7 +173,7 @@ const Option = setup<OptionProps>((props) => {
 _What you pass in. The props object stays live — change a value on it and the option follows._
 
 - **value** _Primitive, **required**_: The token this option stands for. **The group measures itself against it** — a single-select compares equality, a multi-select looks for it in the array.
-- **selected** _boolean, optional_: A hint that this option is the one. Standalone it is the state; inside a group it only decides who claims a still-empty selection.
+- **selected** _boolean, optional_: A hint that this option is the one. Standalone it is the state; inside a group it writes the group's value at mount — a single-select takes this token even when the group declared another, a multi-select appends it when the array lacks it.
 - **disabled** _boolean, optional_: Locks this option. The container's own `disabled` reaches every option the same way.
 - **onchange** _(event: CustomEvent&lt;boolean&gt;) =&gt; void, optional_: Called when the selection changes. _Inside a group, `detail` carries the group's whole value instead._
 
@@ -179,7 +191,7 @@ _What you read or write on the instance afterwards._
 - **selected** _boolean_: Whether this option is the one. **Read and write** — writing runs through the group's rules, so a required group can refuse the write.
 - **value** _Primitive_: The token this option stands for.
 - **disabled** _boolean_: Whether this option is locked, **including by the container**.
-- **id** _string_: The option's own identifier — `option-<n>`, which is also the DOM id unless a group namespaces it.
+- **id** _string_: The option's own identifier — `option-<n>`, used as the DOM id unless the enclosing group carries an `id`, which namespaces the element as `<group>-option-<value>`.
 
 ### Methods
 
@@ -194,8 +206,8 @@ _What you call on the instance._
 - **Selection is derived, not stored.** A single-select group marks this option when its value equals the token, a multi-select marks it when the array contains the token, and standalone it is `props.selected`. **One write to the group's value re-derives every option at once.**
 - **The member owns no keystroke.** Nothing an option binds for itself reacts to `Space`, `Enter`, the arrows, `Home`/`End`, or typeahead — the popup is what reads the keyboard, and then activates the option under the cursor.
 - **Re-activating the option on gives the slot back.** In an optional single-select group, activating the option that already holds it **empties the group**; a `required` group refuses and stays put. A multi-select group drops that token from the array and leaves the others alone. Standalone, activation only selects unless you opt into `toggle`.
-- **The tab stop follows the choice.** `aria-selected="true"` comes with `tabindex="0"` and every other option gets `-1`, so focus comes back to the option that is on. A disabled option leaves the order entirely.
-- **The cursor is announced.** Taking focus dispatches a `input` carrying this option's own token, which is how a popup echoes the highlighted value before anything is committed.
+- **The tab stop rides the selection.** `aria-selected="true"` comes with `tabindex="0"` and every other option gets `-1` — so a single-select has one stop that moves with the choice, while a multi-select with two chosen rows has two. Emptying an optional slot leaves no option in the order at all; a disabled option compiles `-1` and leaves it the same way.
+- **The cursor is announced.** Taking focus dispatches an `input` carrying this option's own token, which is how a popup echoes the highlighted value before anything is committed.
 - **Disabled means inert.** A click is refused and the event itself is cancelled and stopped from bubbling — so nothing above the option reacts to a click on a locked row either.
 - **A native `<option>` stays native.** `selected` is synced as a DOM property, `role`, `tabindex`, and `aria-selected` are left off, and the browser's own events are never replayed.
 - **Linkage is shielded.** `id`, `aria-selected`, and `aria-disabled` can't be overwritten by a refiner of your own, and `value` is consumed, so it never lands on the element.
@@ -204,7 +216,7 @@ _What you call on the instance._
 
 _What it tells you._
 
-- **`change`** — fires when a commit by this option really moves the selection, with the group's whole value in `detail` when it is a member. A disabled option, a canceled click, and a write that changes nothing stay silent — emptying an optional slot counts as a real move, and fires.
+- **`change`** — fires when a commit by this option really moves the selection, with the group's whole value in `detail` when it is a member. The declared handler type is `CustomEvent<boolean>`, so narrow the detail yourself on a grouped option. A disabled option, a canceled click, and a write that changes nothing stay silent — emptying an optional slot counts as a real move, and fires.
 - **`input`** — fires when this option **takes focus**, with its own token in `detail`.
 
 ```tsx

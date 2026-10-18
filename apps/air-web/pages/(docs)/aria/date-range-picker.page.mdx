@@ -1,6 +1,6 @@
 ---
 title: 'Headless Date Range Picker'
-description: 'Headless date range picker for React and SolidJS. Picks a start and an end in a shared calendar, keeps the unfinished draft apart from the saved range, and orders the pair — with no markup or styles imposed.'
+description: 'Headless date range picker for React and SolidJS. Picks a start and an end in a shared calendar, holds change until both ends are picked, and orders the pair — with no markup or styles imposed.'
 nav: 'Date Range Picker'
 nav-priority: 358
 ---
@@ -10,7 +10,7 @@ import './date-picker.css';
 
 # Headless Date Range Picker
 
-A date range is two picks that only count together. Getting it right means **keeping the half-picked start out of the saved range**, **ordering the pair no matter which end was picked first**, **throwing the draft away when the popup is abandoned**, and **travelling months without saving anything**.
+A date range is two picks that only count together. Getting it right means **holding `change` silent until both ends are picked**, **ordering the pair no matter which end was picked first**, **landing on the day you left when the calendar reopens**, and **travelling months without saving anything**.
 
 **Headless Date Range Picker** does all of that for you, and leaves the markup and the styling entirely yours.
 
@@ -27,9 +27,10 @@ import { setup, derived, For, Snippet, shadowPortal } from '@airlib/react';
 import type { ComponentProps } from 'react';
 
 type DemoRangeProps = ComponentProps<'div'> & {
-  value?: [string, string] | null;
+  value?: [string, string];
   min?: string;
   max?: string;
+  label?: string;
   disabled?: boolean;
 };
 
@@ -37,9 +38,10 @@ const DemoRange = setup<DemoRangeProps>((props) => {
   const picker = aria('date-range-picker', props);
 
   return () => (
-    <div ref={picker.ref} {...picker.restProps(['children'])} className="demo-date-picker">
+    <div ref={picker.ref} {...picker.restProps(['children'])} className="demo-date-picker demo-date-range">
       <div className="demo-date-picker-row">
         <DemoPickerInput slot="start" />
+        <span className="demo-date-range-sep">–</span>
         <DemoPickerInput slot="end" />
         <DemoPickerTrigger />
       </div>
@@ -47,9 +49,13 @@ const DemoRange = setup<DemoRangeProps>((props) => {
         <div className="demo-date-picker-nav">
           <DemoPrevMonth />
           <Snippet>
-            {() => <span className="demo-date-picker-month">{picker.range.monthStr}</span>}
+            {() => (
+              <span className="demo-date-picker-label">
+                <span className="demo-date-picker-month">{picker.range.monthStr}</span>
+                <DemoYearInput />
+              </span>
+            )}
           </Snippet>
-          <DemoYearInput />
           <DemoNextMonth />
         </div>
       </DemoPickerCalendar>
@@ -76,8 +82,13 @@ const DemoPickerTrigger = setup<DemoPickerTriggerProps>((props) => {
   const trigger = aria<HTMLButtonElement>('date-picker-trigger', props);
 
   return () => (
-    <button ref={trigger.ref} {...trigger.restProps(['children'])} className="demo-date-picker-trigger">
-      📅
+    <button
+      ref={trigger.ref}
+      {...trigger.restProps(['children'])}
+      className="demo-date-picker-trigger"
+      aria-label="Open calendar"
+    >
+      <span className="demo-date-picker-icon" aria-hidden="true" />
     </button>
   );
 }, 'DemoPickerTrigger');
@@ -118,8 +129,7 @@ const DemoPickerCalendar = setup<DemoPickerCalendarProps>((props) => {
   const calendar = aria<HTMLElement>('date-picker-calendar', props);
   const shadow = shadowPortal(() => calendar.open);
 
-  return () => shadow(
-    <div ref={calendar.ref} {...calendar.restProps(['children'])} className="demo-date-picker-calendar">
+  return () => shadow(      <div ref={calendar.ref} {...calendar.restProps(['children'])} className="demo-date-picker-calendar demo-date-range">
       {props.children}
       <div className="demo-date-picker-grid">
         <For each={() => calendar.grid.weeks}>
@@ -148,29 +158,29 @@ const DemoDay = setup<DemoDayProps>((props) => {
 }, 'DemoDay');
 ```
 ```html
-<DemoRange />
-<DemoRange value={[new Date('Oct 4, 2026').toIsoString(), new Date('Oct 16, 2026').toIsoString()]} />
-<DemoRange min="2026-09-01" max={new Date().toISOString()} />
+<DemoRange label="Choose date range" />
+<DemoRange value={[new Date('Oct 4, 2026').toISOString(), new Date('Oct 16, 2026').toISOString()]} label="Choose date range" />
+<DemoRange min="2026-09-01" max={new Date().toISOString()} label="Choose date range" />
 ```
 
-<div className="flex flex-col items-center justify-center gap-4">
-  <div className='flex flex-col gap-1'>
-    <span className='font-semibold text-xs'>Empty range picker</span>
-    <DemoRange />
+<div className="demo-date-picker-stack">
+  <div className="demo-date-picker-field">
+    <span className="demo-date-picker-caption">Starts empty, two picks save it</span>
+    <DemoRange label="Choose date range" />
   </div>
-  <div className='flex flex-col gap-1'>
-    <span className='font-semibold text-xs'>Has initial value</span>
-    <DemoRange value={[new Date('Oct 4, 2026').toISOString(), new Date('Oct 16, 2026').toISOString()]} />
+  <div className="demo-date-picker-field">
+    <span className="demo-date-picker-caption">Opens on the saved range</span>
+    <DemoRange value={[new Date('Oct 4, 2026').toISOString(), new Date('Oct 16, 2026').toISOString()]} label="Choose date range" />
   </div>
-  <div className='flex flex-col gap-1'>
-    <span className='font-semibold text-xs'>Has min and max date</span>
-    <DemoRange min="2026-09-01" max={new Date().toISOString()} />
+  <div className="demo-date-picker-field">
+    <span className="demo-date-picker-caption">Nothing before September or past today</span>
+    <DemoRange min="2026-09-01" max={new Date().toISOString()} label="Choose date range" />
   </div>
 </div>
 :::
 
 :::tip
-Click one day and the popup stays open — that is the draft, not the answer. **Click a second day and the pair saves ordered**, even when you picked the end first. `Escape` or tabbing away throws the draft out.
+**One click is a draft, two are the answer.** The pair saves ordered whichever end you pick first, and `change` stays silent until the second pick.
 :::
 
 ## Date Range Picker
@@ -195,17 +205,18 @@ import type { ComponentProps, ReactNode } from 'react';
 
 type RangeProps = ComponentProps<'div'> & {
   id?: string;
-  value?: [string, string] | null;
-  draft?: [string, string];
-  month?: string;
+  value?: [string, string];
+  month?: number;
+  year?: number;
   open?: boolean;
   min?: string;
   max?: string;
+  label?: string;
+  locales?: string[];
   disabled?: boolean;
   required?: boolean;
-  activeDate?: string;
-  oninput?: (event: CustomEvent<[string, string]>) => void;
-  onchange?: (event: CustomEvent<[string, string] | null>) => void;
+  oninput?: (event: CustomEvent<string>) => void;
+  onchange?: (event: CustomEvent<[string, string] | undefined>) => void;
   onopen?: (event: CustomEvent<true>) => void;
   onclose?: (event: CustomEvent<false>) => void;
   children: ReactNode;
@@ -243,64 +254,60 @@ const Range = setup((props) => {
 
 _What you pass in. The props object stays live — change a value on it and the part follows._
 
-- **id** _string, optional_: The prefix the fields, the button, and the calendar are linked through. Generated when you leave it out.
-- **value** _[string, string] | null, optional_: The saved range as ordered `YYYY-MM-DD` endpoints. `null` means nothing saved; repeating one day twice saves a single-day range.
-- **draft** _[string, string], optional_: The unfinished pick. A started draft reads `[day, ""]` — the empty end marks it incomplete.
-- **month** _string, optional_: The shown month as `YYYY-MM`. Starts as the draft start's month, otherwise the saved start's, otherwise today's; travel updates it without touching the draft or the saved range.
-- **open** _boolean, optional_: Whether the calendar shows. Flip it to open or close from code.
-- **min** _string, optional_: The earliest date that can be chosen. Earlier days show disabled and refuse interaction.
-- **max** _string, optional_: The latest date that can be chosen. Later days show disabled and refuse interaction.
-- **disabled** _boolean, optional_: Locks editing, toggling, and choosing across the **whole group**.
+- **id** _string, optional_: The prefix the fields, the button, and the calendar are linked through. Generated as `date-range-picker-<n>` when you leave it out.
+- **value** _[string, string], optional_: The saved pair as ordered dates. After the first pick that end is set and the other is still empty.
+- **month** _number, optional_: The shown month as `1`–`12`. Defaults to the saved start's month, otherwise the current month.
+- **year** _number, optional_: The shown year as `YYYY`. Defaults to the saved start's year, otherwise the current year.
+- **min** _string, optional_: The earliest date that can be chosen. Earlier days read disabled.
+- **max** _string, optional_: The latest date that can be chosen. Later days read disabled.
+- **label** _string, optional_: The calendar's name for screen readers. Leave it out and the dialog is unnamed.
+- **locales** _string[], optional_: The locale stack every label is formatted with. Defaults to the runtime locale.
+- **disabled** _boolean, optional_: Locks editing, opening, and choosing across the **whole composite**.
 - **required** _boolean, optional_: Marks range entry as required.
-- **activeDate** _string, optional_: The day holding the tab stop. Starts as the draft start, otherwise the saved start, otherwise today.
-- **oninput** _(event: CustomEvent&lt;[string, string]&gt;) =&gt; void, optional_: Called whenever an endpoint is edited or a day starts or completes a draft, with the current draft in `detail`.
-- **onchange** _(event: CustomEvent&lt;[string, string] | null&gt;) =&gt; void, optional_: Called whenever a complete range saves, with the saved pair in `detail`.
-- **onopen** _(event: CustomEvent&lt;true&gt;) =&gt; void, optional_: Called after the calendar opens, however it was opened.
-- **onclose** _(event: CustomEvent&lt;false&gt;) =&gt; void, optional_: Called after the calendar closes, through every dismissal path.
-
-### Options
-
-_The date range picker doesn't take any options._
+- **open** _boolean, optional_: Whether the calendar shows.
+- **oninput** _(event: CustomEvent&lt;string&gt;) =&gt; void, optional_: The raw text as the start or the end is typed.
+- **onchange** _(event: CustomEvent&lt;[string, string] | undefined&gt;) =&gt; void, optional_: The pair as it stands whenever a pick or a field edit changes it.
+- **onopen** / **onclose** _(event: CustomEvent&lt;true&gt; | CustomEvent&lt;false&gt;) =&gt; void, optional_: The popup's edges, through every path.
 
 ### Properties
 
 _What you read or write on the instance afterwards._
 
-- **value** _[string, string] | null | undefined_: The saved range. Writing sets it directly.
-- **draft** _[string, string] | undefined_: The unfinished pick.
-- **month** _string | undefined_: The shown month id.
-- **activeDate** _string_: The day holding the tab stop, `""` when cleared.
-- **calendarLabel** _string_: The popup name, `"Choose date range"`.
+- **value** _[string, string] | undefined_: The pair. A waiting start has no end yet; a finished pair has both.
+- **draft** _(string | undefined)[]_: The day picked so far while the pair is unfinished.
+- **month** _number_: The month the grid shows, `1`–`12`. Writing it moves the grid.
+- **year** _number_: The year the grid shows. Writing it moves the grid.
+- **open** _boolean_: Whether the calendar shows.
+- **disabled** _boolean_: Whether the composite refuses interaction.
+- **range** _ParsedDate_: The shown month as a date — `monthStr` is the label the header shows.
+- **today** / **start** / **end** _ParsedDate_: Today, the saved start, and the saved end as dates, ready to compare.
+- **limit** _object_: The earliest and latest dates you allow, ready to compare, as `min` and `max`.
+- **id** / **panelId** / **triggerId** _string_: The identifiers the parts link through.
 
 ### Methods
 
 _What you call on the instance._
 
-- **`isSelected(date)`**: Whether `date` is one of the saved endpoints.
-- **`isDisabledDate(date)`**: Whether `date` refuses interaction — the group locked, or outside `min` / `max`.
-- **`activate(date)`**: Runs one pick step — starts a draft, or completes, orders, saves, and closes.
-- **`navigateMonth(direction)`**: Steps the shown `month` back (`-1`) or forward (`1`) without saving anything. Invalid months hold still.
-- **`editEndpoint(endpoint, text)`**: Writes one draft endpoint from a text field and announces it. _Does nothing while disabled._
-- **`resetDraft()`**: Throws the draft away and brings back the saved range — or empties both fields when nothing is saved.
-- **`emitInput(detail)`**: Announces a draft as if an endpoint was edited.
-- **`emitChange(detail)`**: Announces a saved range as if a pair was completed.
+- **`select(start, end?)`**: Picks a day. The first pick waits for a partner; the second saves the ordered pair, fires `change`, and closes. Pass both ends to save at once.
+- **`deselect(index?)`**: Clears one end, or the whole pair when no index is given, and fires `change`.
+- **`navigateMonth(direction)`**: Moves the grid a month back (`-1`) or forward (`1`), across the year boundary. Chooses nothing.
+- **`navigateYear(direction)`**: Moves the grid a year back (`-1`) or forward (`1`). Chooses nothing.
 
 ### How it behaves
 
-- **Drafts are not answers.** A half-pick lives only in `draft` — `value` changes solely when a complete, ordered pair saves.
+- **The first pick waits.** One day marks a starting point and `change` stays silent until you pick the other end.
 - **Order fixes itself.** Picking the end before the start still saves start → end, and equal picks save a valid single day.
-- **Abandoning restores.** `Escape`, dismissal, closing, or focus leaving without a finished pick discards the draft and brings back `value`.
-- **Travel saves nothing.** Flipping months updates `month` alone — through `PageUp` / `PageDown`, or the shared `date-picker-prev-month` / `date-picker-next-month` buttons.
+- **A half pick replaces the pair.** The first pick sets that end and clears the other; the calendar reopens on the day you left.
+- **Travel saves nothing.** Flipping months moves the grid, through `PageUp` / `PageDown` or the nav buttons; the pair stays put.
 - **One tab stop for the whole grid.** The active day carries it; the rest stay out of the tab order.
-- **The popup never traps.** Focus is free to leave — and leaving discards the draft.
-- **Screen readers get two fields, a button, and a dialog.** Each field is named for its endpoint, and the calendar announces itself as `"Choose date range"`.
+- **The dialog is named by `label`.** Leave it out and the calendar carries no accessible name.
 
 ### Events
 
 _What it tells you._
 
-- **`input`** — fires when an endpoint is edited or a day starts or completes a draft, with the current draft in `detail`.
-- **`change`** — fires when a complete range saves, with the saved pair (or `null`) in `detail`.
+- **`input`** — a field edit as the start or the end is typed; the text arrives through `oninput`.
+- **`change`** — the pair in `detail`, whenever a pick or a field edit changes it.
 
 ```tsx
 const picker = aria('date-range-picker', {
@@ -310,336 +317,17 @@ const picker = aria('date-range-picker', {
 
 ### Navigation
 
-_The group handles no keys itself._ Text goes to the **endpoint fields**, grid travel to the **calendar**, picking to the **days**.
+_The group handles no keys itself._ Text goes to the **start and end fields**, grid travel to the **calendar**, picking to the **days**.
 
-## Date Range Picker Input
+## Shared with Date Picker
 
-**One endpoint field.** Render one for the start and one for the end.
+The start and end fields, the calendar button, the popup, and the day cells are the parts the single-date picker already documents — read [Date Picker](/docs/aria/date-picker) for their usage, parameters, and dictionaries. A range composes them with three differences:
 
-### Usage
+- **Each field carries its slot.** The same `date-picker-input` takes `slot="start"` or `slot="end"`, so typing edits that end of the pair rather than a standalone date.
+- **The calendar opens on the draft.** Opening lands focus on the draft start, otherwise the saved start, otherwise today, otherwise the first enabled day.
+- **A pick is a step, not an answer.** `Enter` or `Space` on a day starts a draft or completes the pair, and the popup stays open through the first pick.
 
-```ts
-aria<E extends BaseElement = HTMLInputElement>(
-  role: 'date-range-picker-input',
-  props: DateRangePickerInputProps,
-  options?: AriaOptions
-): DateRangePickerInputAria<E>
-```
-
-:::code-group
-
-```tsx [React]
-import { aria } from '@airlib/aria';
-import { setup } from '@airlib/react';
-import type { ComponentProps } from 'react';
-
-type EndpointProps = ComponentProps<'input'> & {
-  endpoint: 'start' | 'end';
-  label?: string;
-};
-
-const Endpoint = setup<EndpointProps>((props) => {
-  const input = aria<HTMLInputElement>('date-range-picker-input', props);
-
-  return () => (
-    <input ref={input.ref} {...input.restProps()} placeholder="YYYY-MM-DD" />
-  );
-});
-```
-
-```tsx [SolidJS]
-import { aria } from '@airlib/aria';
-import { setup } from '@airlib/solid';
-
-const Endpoint = setup((props) => {
-  const input = aria<HTMLInputElement>('date-range-picker-input', props);
-
-  return (
-    <input ref={input.ref} {...input.restProps()} placeholder="YYYY-MM-DD" />
-  );
-});
-```
-
-:::
-
-### Parameters
-
-_What you pass in. The props object stays live — change a value on it and the part follows._
-
-- **endpoint** _'start' | 'end', **required**_: Which end of the draft this field edits.
-- **label** _string, optional_: The name screen readers give the field. Defaults to `"Start date"` / `"End date"` by endpoint.
-
-### Options
-
-_What you fix when you create it. Read once, never reactive._
-
-- **native** _boolean, optional, default `true`_: Pass `false` when the host isn't an `<input>` and you get the `textbox` face instead of native field behavior.
-
-### Properties
-
-_What you read or write on the instance afterwards._
-
-- **disabled** _boolean_: Whether the field refuses typing, **including by the group**.
-
-### Methods
-
-_The field exposes no methods of its own._
-
-### How it behaves
-
-- **Typing edits the draft.** Each keystroke rewrites that endpoint and announces it — `value` stays put.
-- **Shows the draft, else the saved.** Each field carries its endpoint's draft text while a draft is open, otherwise the saved endpoint. Picking the pair rewrites both fields.
-- **Locked means locked.** While the group is disabled, edits go nowhere.
-
-### Events
-
-_The field dispatches no events of its own._ Editing arrives as `input` on the **group**.
-
-### Navigation
-
-_What the keys do._
-
-- **Printable keys** — edit the text like any field.
-
-## Date Range Picker Trigger
-
-**The calendar button.** Opens the popup for everyone who would rather browse than type.
-
-### Usage
-
-```ts
-aria<E extends BaseElement = HTMLButtonElement>(
-  role: 'date-range-picker-trigger',
-  props?: AriaProps
-): DateRangePickerTriggerAria<E>
-```
-
-:::code-group
-
-```tsx [React]
-import { aria } from '@airlib/aria';
-import { setup } from '@airlib/react';
-import type { ComponentProps } from 'react';
-
-type RangeTriggerProps = ComponentProps<'button'>;
-
-const RangeTrigger = setup<RangeTriggerProps>((props) => {
-  const trigger = aria<HTMLButtonElement>('date-range-picker-trigger', props);
-
-  return () => (
-    <button ref={trigger.ref} {...trigger.restProps(['children'])}>
-      {props.children}
-    </button>
-  );
-});
-```
-
-```tsx [SolidJS]
-import { aria } from '@airlib/aria';
-import { setup } from '@airlib/solid';
-import type { ComponentProps } from 'solid-js';
-
-type RangeTriggerProps = ComponentProps<'button'>;
-
-const RangeTrigger = setup<RangeTriggerProps>((props) => {
-  const trigger = aria<HTMLButtonElement>('date-range-picker-trigger', props);
-
-  return (
-    <button ref={trigger.ref} {...trigger.restProps(['children'])}>
-      {props.children}
-    </button>
-  );
-});
-```
-
-:::
-
-### Parameters
-
-_What you pass in. This part takes no date props — it reads everything from the group it belongs to._
-
-### Options
-
-_This role takes no options._
-
-### How it behaves
-
-- **Opening lands in the grid.** Focus moves to the draft start, otherwise the saved start, otherwise today, otherwise the first enabled day.
-- **Always linked.** The button carries the popup's open state and points at the calendar.
-- **Leaving through it discards.** Dismissal from the trigger throws the draft away like any other abandon path.
-
-### Events
-
-_The trigger dispatches no events of its own._
-
-### Navigation
-
-_What the keys do._
-
-- **`Enter` / `Space`** — opens the calendar on a native button through the browser itself.
-- **`Click`** — opens the calendar.
-
-## Date Range Picker Calendar
-
-**The shared popup.** Render the month grid inside it — one day per visible date.
-
-### Usage
-
-```ts
-aria<E extends BaseElement = HTMLElement>(
-  role: 'date-range-picker-calendar',
-  props?: AriaProps
-): DateRangePickerCalendarAria<E>
-```
-
-:::code-group
-
-```tsx [React]
-import { aria } from '@airlib/aria';
-import { setup } from '@airlib/react';
-import type { ComponentProps } from 'react';
-
-type RangeCalendarProps = ComponentProps<'div'>;
-
-const RangeCalendar = setup<RangeCalendarProps>((props) => {
-  const calendar = aria<HTMLElement>('date-range-picker-calendar', props);
-
-  return () => (
-    <div ref={calendar.ref} {...calendar.restProps(['children'])}>
-      {props.children}
-    </div>
-  );
-});
-```
-
-```tsx [SolidJS]
-import { aria } from '@airlib/aria';
-import { setup } from '@airlib/solid';
-import type { ComponentProps } from 'solid-js';
-
-type RangeCalendarProps = ComponentProps<'div'>;
-
-const RangeCalendar = setup<RangeCalendarProps>((props) => {
-  const calendar = aria<HTMLElement>('date-range-picker-calendar', props);
-
-  return (
-    <div ref={calendar.ref} {...calendar.restProps(['children'])}>
-      {props.children}
-    </div>
-  );
-});
-```
-
-:::
-
-### Parameters
-
-_What you pass in. This part takes no date props — it reads everything from the group it belongs to._
-
-### Options
-
-_The calendar doesn't take any options._
-
-### How it behaves
-
-- **Hidden until open.** A closed calendar is off screen and out of reach.
-- **Days need no key wiring.** The popup handles every grid key from the focused day, so cells stay plain.
-- **Screen readers get a named dialog.** Announced as `"Choose date range"`.
-
-### Events
-
-_The calendar dispatches no events of its own._ Picking arrives as `input` and `change` on the **group**.
-
-### Navigation
-
-_What the keys do — identical to the single-date calendar, except choosing runs a pick step._
-
-- **`ArrowLeft` / `ArrowRight`** — focus the **previous / next** day.
-- **`ArrowUp` / `ArrowDown`** — focus the day a **week back / forward**.
-- **`Home` / `End`** — focus the **first / last** day of the week.
-- **`PageUp` / `PageDown`** — flip the shown month back / forward, saving nothing.
-- **`Enter` / `Space`** — draft the focused day, or complete and save the pair.
-- **`Escape`** — discard the draft and close.
-- **`Tab`** — leave the grid from the current day.
-
-## Date Range Picker Day
-
-**One day.** Give it the date it stands for and it behaves like the rest of the grid.
-
-### Usage
-
-```ts
-aria<E extends BaseElement = HTMLElement>(
-  role: 'date-range-picker-day',
-  props: DateRangePickerDayProps
-): DateRangePickerDayAria<E>
-```
-
-:::code-group
-
-```tsx [React]
-import { aria } from '@airlib/aria';
-import { setup } from '@airlib/react';
-import type { ComponentProps } from 'react';
-
-type RangeDayProps = ComponentProps<'div'> & {
-  date: string;
-};
-
-const RangeDay = setup<RangeDayProps>((props) => {
-  const day = aria<HTMLElement>('date-range-picker-day', props);
-
-  return () => (
-    <div ref={day.ref} {...day.restProps(['children'])}>
-      {props.children}
-    </div>
-  );
-});
-```
-
-```tsx [SolidJS]
-import { aria } from '@airlib/aria';
-import { setup } from '@airlib/solid';
-
-const RangeDay = setup((props) => {
-  const day = aria<HTMLElement>('date-range-picker-day', props);
-
-  return (
-    <div ref={day.ref} {...day.restProps(['children'])}>
-      {props.children}
-    </div>
-  );
-});
-```
-
-:::
-
-### Parameters
-
-_What you pass in. The props object stays live — change a value on it and the part follows._
-
-- **date** _string, **required**_: The day this cell stands for, as `YYYY-MM-DD`.
-
-### Options
-
-_The day doesn't take any options._
-
-### How it behaves
-
-- **Saved endpoints read selected.** Both ends of the saved range announce as selected.
-- **Out-of-range days read disabled.** They stay visible but refuse every choosing path.
-- **Focusing moves the tab stop.** Landing on an enabled day makes it the holder; a disabled day changes nothing.
-- **First click drafts, second saves.** Choosing with no pending start opens `[day, ""]` and stays open; choosing with a pending start orders, saves, announces, and closes.
-
-### Events
-
-_The day dispatches no events of its own._ Picking arrives as `input` and `change` on the **group**.
-
-### Navigation
-
-_What the keys do._
-
-- **The day handles no keys itself.** Everything runs through the **calendar**.
+The saved start and end read `aria-selected="true"`, the stretch from the start up to the day before the end carries `data-in-range="true"`, and anything outside `min` / `max` reads `aria-disabled="true"`.
 
 ## Next Steps
 
@@ -656,17 +344,18 @@ What you can actually use, with every alias resolved to what it really is. Each 
 ```ts
 interface DateRangePickerProps {
   id?: string;
-  value?: [string, string] | null;
-  draft?: [string, string];
-  month?: string;
-  open?: boolean;
+  value?: [string, string];
+  month?: number;
+  year?: number;
   min?: string;
   max?: string;
+  label?: string;
+  locales?: string[];
+  open?: boolean;
   disabled?: boolean;
   required?: boolean;
-  activeDate?: string;
-  oninput?: (event: CustomEvent<[string, string]>) => void;
-  onchange?: (event: CustomEvent<[string, string] | null>) => void;
+  oninput?: (event: CustomEvent<string>) => void;
+  onchange?: (event: CustomEvent<[string, string] | undefined>) => void;
   onopen?: (event: CustomEvent<true>) => void;
   onclose?: (event: CustomEvent<false>) => void;
 }
@@ -676,85 +365,38 @@ interface DateRangePickerAttributes {
 }
 
 declare class DateRangePickerAria {
-  readonly calendarLabel: string;
-  get value(): [string, string] | null | undefined;
-  set value(value: [string, string] | null | undefined);
-  get draft(): [string, string] | undefined;
-  set draft(draft: [string, string] | undefined);
-  get month(): string | undefined;
-  set month(month: string | undefined);
-  get activeDate(): string;
-  set activeDate(date: string);
-
-  isSelected(date: string): boolean;
-  isDisabledDate(date: string): boolean;
-  activate(date: string): void;
-  navigateMonth(direction: -1 | 1): void;
-  editEndpoint(endpoint: 'start' | 'end', text: string): void;
-  resetDraft(): void;
-  emitInput(detail: [string, string]): void;
-  emitChange(detail: [string, string] | null): void;
-}
-```
-
-### Date Range Picker Input
-
-```ts
-interface DateRangePickerInputProps {
-  endpoint: 'start' | 'end';
-  label?: string;
-}
-
-interface DateRangePickerInputAttributes {
-  role?: 'textbox';
-  'aria-label'?: string;
-  disabled?: boolean;
-}
-
-declare class DateRangePickerInputAria {
+  readonly range: ParsedDate;
+  readonly today: ParsedDate;
+  readonly start: ParsedDate;
+  readonly end: ParsedDate;
+  readonly limit: { min?: Date; max?: Date };
+  readonly draft: (string | undefined)[];
+  readonly id: string;
+  readonly panelId: string;
+  readonly triggerId: string;
+  get value(): [string, string] | undefined;
+  set value(value: [string, string] | undefined);
+  get month(): number;
+  set month(month: number);
+  get year(): number;
+  set year(year: number);
+  get open(): boolean;
+  set open(value: boolean);
   get disabled(): boolean;
+
+  select(start: string, end?: string): void;
+  deselect(index?: number): void;
+  navigateMonth(direction: -1 | 1): void;
+  navigateYear(direction: -1 | 1): void;
 }
 ```
 
-### Date Range Picker Trigger
+### Shared parts
+
+The `date-picker-input`, `date-picker-trigger`, `date-picker-calendar`, `date-picker-day`, and `date-picker-nav` roles carry the dictionaries documented on [Date Picker](/docs/aria/date-picker#api-reference). Only the root changes shape:
 
 ```ts
-interface DateRangePickerTriggerAttributes {
-  id?: string;
-  role?: string;
-  type?: 'button';
-  'aria-haspopup'?: 'dialog';
-  'aria-expanded'?: 'true' | 'false';
-  'aria-controls'?: string;
-  disabled?: boolean;
-}
-```
-
-### Date Range Picker Calendar
-
-```ts
-interface DateRangePickerCalendarAttributes {
-  id?: string;
-  role?: 'dialog';
-  'aria-label'?: string;
-  hidden?: boolean;
-}
-```
-
-### Date Range Picker Day
-
-```ts
-interface DateRangePickerDayProps {
-  date: string;
-}
-
-interface DateRangePickerDayAttributes {
-  role?: 'gridcell';
-  tabindex?: number;
-  'aria-selected'?: 'true' | 'false';
-  'aria-disabled'?: 'true' | 'false';
-  'data-date'?: string;
-}
+type DateRangePickerValue = [string, string] | undefined;
 ```
 
 ### On every one of them

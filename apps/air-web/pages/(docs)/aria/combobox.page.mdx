@@ -73,13 +73,16 @@ const DemoCityInput = setup<DemoCityInputProps>((props) => {
   const input = aria<HTMLInputElement>('combobox-input', props);
 
   return () => (
-    <input
-      ref={input.ref}
-      {...input.restProps(['children', 'label'])}
-      aria-label={props.label}
-      placeholder="Type to filter"
-      className="demo-combobox-input"
-    />
+    <span className="demo-combobox-field">
+      <input
+        ref={input.ref}
+        {...input.restProps(['children', 'label'])}
+        aria-label={props.label}
+        placeholder="Type to filter"
+        className="demo-combobox-input"
+      />
+      <span className="demo-combobox-caret" aria-hidden="true" />
+    </span>
   );
 }, 'DemoCityInput');
 
@@ -113,11 +116,11 @@ const DemoCityOption = setup<DemoCityOptionProps>((props) => {
 ```html
 <div className="demo-combobox-stack">
   <div className="demo-combobox-row">
-    <span className="demo-combobox-caption">Typing narrows the list, committing puts the chosen label in the field</span>
+    <span className="demo-combobox-caption">Typing filters, picking fills the field</span>
     <DemoCity value="ber" />
   </div>
   <div className="demo-combobox-row">
-    <span className="demo-combobox-caption">One flag locks typing, opening, and committing</span>
+    <span className="demo-combobox-caption">Locked: no typing, no popup, no commit</span>
     <DemoCity value="ber" disabled />
   </div>
 </div>
@@ -125,21 +128,30 @@ const DemoCityOption = setup<DemoCityOptionProps>((props) => {
 
 <div className="demo-combobox-stack">
   <div className="demo-combobox-row">
-    <span className="demo-combobox-caption">Typing narrows the list, committing puts the chosen label in the field</span>
+    <span className="demo-combobox-caption">Typing filters, picking fills the field</span>
     <DemoCity value="ber" />
   </div>
   <div className="demo-combobox-row">
-    <span className="demo-combobox-caption">One flag locks typing, opening, and committing</span>
+    <span className="demo-combobox-caption">Locked: no typing, no popup, no commit</span>
     <DemoCity value="ber" disabled />
   </div>
 </div>
 :::
 
-:::interactive[Destination Cities]
+:::interactive[Departure Airports]
 ```tsx
 import { aria } from '@airlib/aria';
 import { derived, For, setup, shadowPortal } from '@airlib/react';
 import type { ComponentProps } from 'react';
+
+const airportMap: Record<string, string> = {
+  ams: 'Schiphol',
+  lhr: 'Heathrow',
+  jfk: 'Kennedy',
+  cdg: 'Charles de Gaulle',
+  nrt: 'Narita',
+};
+const airports = Object.entries(airportMap);
 
 type DemoCitiesProps = ComponentProps<'div'> & {
   value?: string | string[] | null;
@@ -151,21 +163,21 @@ type DemoCitiesProps = ComponentProps<'div'> & {
 };
 
 const DemoCities = setup<DemoCitiesProps>((props) => {
-  const combobox = aria('combobox', props, cityMap);
+  const combobox = aria('combobox', props, airportMap);
 
   const matches = derived(() => {
     const query = combobox.query.trim().toLowerCase();
-    return cities.filter(([key, city]) => key.includes(query) || city.toLowerCase().includes(query));
+    return airports.filter(([key, airport]) => key.includes(query) || airport.toLowerCase().includes(query));
   });
 
   return () => (
     <div ref={combobox.ref} {...combobox.restProps(['children'])} className="demo-combobox">
-      <DemoCitiesInput label="Cities" />
+      <DemoCitiesInput label="Airports" placeholder="Filter airports" />
       <DemoCitiesPanel>
         <For each={() => matches.value}>
-          {([key, city]) => <DemoCitiesOption value={key}>{city}</DemoCitiesOption>}
+          {([key, airport]) => <DemoCitiesOption value={key}>{airport}</DemoCitiesOption>}
         </For>
-        {matches.value.length === 0 ? <div className="demo-combobox-empty">No city matches that.</div> : null}
+        {matches.value.length === 0 ? <div className="demo-combobox-empty">No airport matches that.</div> : null}
       </DemoCitiesPanel>
     </div>
   );
@@ -173,19 +185,23 @@ const DemoCities = setup<DemoCitiesProps>((props) => {
 
 type DemoCitiesInputProps = ComponentProps<'input'> & {
   label?: string;
+  placeholder?: string;
 };
 
 const DemoCitiesInput = setup<DemoCitiesInputProps>((props) => {
   const input = aria<HTMLInputElement>('combobox-input', props);
 
   return () => (
-    <input
-      ref={input.ref}
-      {...input.restProps(['children', 'label'])}
-      aria-label={props.label}
-      placeholder="Type to filter"
-      className="demo-combobox-input"
-    />
+    <span className="demo-combobox-field">
+      <input
+        ref={input.ref}
+        {...input.restProps(['children', 'label', 'placeholder'])}
+        aria-label={props.label}
+        placeholder={props.placeholder}
+        className="demo-combobox-input"
+      />
+      <span className="demo-combobox-caret" aria-hidden="true" />
+    </span>
   );
 }, 'DemoCitiesInput');
 
@@ -219,11 +235,11 @@ const DemoCitiesOption = setup<DemoCitiesOptionProps>((props) => {
 ```html
 <div className="demo-combobox-stack">
   <div className="demo-combobox-row">
-    <span className="demo-combobox-caption">Multiple selection keeps the list open across commits</span>
-    <DemoCities multiple value={['ams', 'ber']} />
+    <span className="demo-combobox-caption">Multiple stays open across commits</span>
+    <DemoCities multiple value={['lhr', 'jfk']} />
   </div>
   <div className="demo-combobox-row">
-    <span className="demo-combobox-caption">Required: the first option claims the field</span>
+    <span className="demo-combobox-caption">Required claims the first option</span>
     <DemoCities required />
   </div>
 </div>
@@ -231,11 +247,11 @@ const DemoCitiesOption = setup<DemoCitiesOptionProps>((props) => {
 
 <div className="demo-combobox-stack">
   <div className="demo-combobox-row">
-    <span className="demo-combobox-caption">Multiple selection keeps the list open across commits</span>
-    <DemoCities multiple value={['ams', 'ber']} />
+    <span className="demo-combobox-caption">Multiple stays open across commits</span>
+    <DemoCities multiple value={['lhr', 'jfk']} />
   </div>
   <div className="demo-combobox-row">
-    <span className="demo-combobox-caption">Required: the first option claims the field</span>
+    <span className="demo-combobox-caption">Required claims the first option</span>
     <DemoCities required />
   </div>
 </div>

@@ -1,40 +1,53 @@
 .demo-dialog-stack {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  width: 100%;
+  gap: 0.75rem;
+  width: min(100%, 34rem);
+  margin-inline: auto;
+}
+
+.demo-dialog-group {
+  display: contents;
 }
 
 .demo-dialog-row {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--demo-gap-sm);
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid var(--demo-border);
+  border-radius: var(--demo-radius-sm);
+  background: var(--demo-bg);
 }
 
 .demo-dialog-caption {
   font-size: 0.8125rem;
   font-weight: 600;
-  color: var(--demo-muted);
+  line-height: 1.4;
+  color: var(--demo-fg);
 }
 
 .demo-dialog-trigger {
-  padding: 0.5rem 1rem;
-  border: 1px solid var(--demo-border);
+  min-height: 2rem;
+  padding: 0.375rem 0.875rem;
+  border: 1px solid transparent;
   border-radius: var(--demo-radius-sm);
-  background: var(--demo-bg);
+  background: var(--demo-fg);
+  font-family: inherit;
   font-size: var(--demo-font);
   font-weight: 500;
-  color: var(--demo-fg);
+  color: var(--demo-bg);
   cursor: pointer;
 }
 
-.demo-dialog-trigger:hover:not(:disabled) {
-  background: var(--demo-hover);
+.demo-dialog-trigger:hover:not(:disabled):not([aria-disabled='true']) {
+  background: color-mix(in srgb, var(--demo-fg) 88%, var(--demo-bg));
 }
 
-.demo-dialog-trigger:active:not(:disabled) {
-  background: var(--demo-border);
+.demo-dialog-trigger:active:not(:disabled):not([aria-disabled='true']) {
+  background: color-mix(in srgb, var(--demo-fg) 78%, var(--demo-bg));
 }
 
 .demo-dialog-trigger:focus-visible {
@@ -42,7 +55,8 @@
   outline-offset: var(--demo-outline-offset);
 }
 
-.demo-dialog-trigger:disabled {
+.demo-dialog-trigger:disabled,
+.demo-dialog-trigger[aria-disabled='true'] {
   opacity: var(--demo-disabled);
   pointer-events: none;
 }
@@ -52,16 +66,20 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+  z-index: 50;
   display: flex;
   flex-direction: column;
-  gap: var(--demo-gap);
-  width: min(90vw, 26rem);
-  padding: 1.5rem;
+  gap: 0.625rem;
+  width: min(90vw, 24rem);
+  max-height: min(80vh, 30rem);
+  overflow: auto;
+  padding: 1.25rem;
   border: 1px solid var(--demo-border);
   border-radius: var(--demo-radius);
   background: var(--demo-bg);
-  box-shadow: 0 25px 50px -12px color-mix(in srgb, var(--demo-fg) 35%, transparent);
-  z-index: 50;
+  box-shadow:
+    0 0 0 100vmax var(--demo-scrim),
+    0 25px 50px -12px color-mix(in srgb, var(--demo-fg) 35%, transparent);
 }
 
 .demo-dialog-panel[hidden] {
@@ -71,16 +89,19 @@
 .demo-dialog-floating {
   top: auto;
   left: auto;
-  bottom: 1.5rem;
-  right: 1.5rem;
+  bottom: 1.25rem;
+  right: 1.25rem;
   transform: none;
-  width: 20rem;
+  width: 19rem;
+  max-height: min(60vh, 20rem);
   padding: 1rem;
+  box-shadow: 0 12px 28px -12px color-mix(in srgb, var(--demo-fg) 35%, transparent);
 }
 
 .demo-dialog-title {
-  font-size: 1.125rem;
+  font-size: 1rem;
   font-weight: 600;
+  line-height: 1.3;
   color: var(--demo-fg);
 }
 
@@ -98,25 +119,30 @@
   display: flex;
   justify-content: flex-end;
   gap: var(--demo-gap-sm);
+  margin-top: 0.25rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--demo-border);
 }
 
 .demo-dialog-close {
-  padding: 0.375rem 0.75rem;
-  border: 1px solid var(--demo-border);
+  min-height: 2rem;
+  padding: 0.375rem 0.875rem;
+  border: 1px solid transparent;
   border-radius: var(--demo-radius-xs);
-  background: var(--demo-bg);
+  background: var(--demo-fg);
+  font-family: inherit;
   font-size: var(--demo-font);
   font-weight: 500;
-  color: var(--demo-fg);
+  color: var(--demo-bg);
   cursor: pointer;
 }
 
 .demo-dialog-close:hover:not(:disabled) {
-  background: var(--demo-hover);
+  background: color-mix(in srgb, var(--demo-fg) 88%, var(--demo-bg));
 }
 
 .demo-dialog-close:active:not(:disabled) {
-  background: var(--demo-border);
+  background: color-mix(in srgb, var(--demo-fg) 78%, var(--demo-bg));
 }
 
 .demo-dialog-close:focus-visible {
@@ -124,7 +150,8 @@
   outline-offset: var(--demo-outline-offset);
 }
 
-.demo-dialog-close:disabled {
+.demo-dialog-close:disabled,
+.demo-dialog-close[aria-disabled='true'] {
   opacity: var(--demo-disabled);
   pointer-events: none;
 }

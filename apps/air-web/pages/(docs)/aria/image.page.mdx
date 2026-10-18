@@ -1,6 +1,6 @@
 ---
 title: 'Headless Image'
-description: 'Headless image for React and SolidJS. Coordinates idle, loading, loaded, and error across a content element and a fallback, so exactly one representation shows and the label is always right.'
+description: 'Headless image coordinators for React and SolidJS. Tracks the source through idle, loading, loaded, and error, keeps one representation on screen, and leaves the markup and styles entirely yours — with no markup or styles imposed.'
 nav: 'Image'
 nav-priority: 265
 ---
@@ -8,15 +8,17 @@ nav-priority: 265
 import './aria.css';
 import './image.css';
 
-```ts executable module
+```ts executable="hidden" module
 import avatar from '@/assets/avatar.jpeg?asset&sizes=128';
 ```
 
 # Headless Image
 
-An image that loads slowly leaves a hole in your layout, and a `<div>` standing in for one has no semantics at all until you give it a role, a label, and load tracking by hand.
+An image is a source that loads in the background and may fail.
 
-**Headless Image** coordinates the whole lifecycle — idle, loading, loaded, error — across a content element and a fallback element, so exactly one representation is on screen and assistive technology always hears the right label.
+Getting it right means **tracking idle, loading, loaded, and error**, **showing exactly one representation at a time**, **leaving a native `<img>` its own semantics**, and **keeping a decorative source out of the accessibility tree**.
+
+**Headless Image** does all of that for you, and leaves the markup and the styling entirely yours.
 
 ```tsx
 const image = aria('image', props);
@@ -24,78 +26,99 @@ const content = aria('image-content');
 const fallback = aria('image-fallback');
 
 <div ref={image.ref} {...image.restProps(['children'])}>
-  <img ref={content.ref} {...content.props} />
-  <div ref={fallback.ref} {...fallback.props}>…</div>
+  <img ref={content.ref} {...content.restProps(['children'])} />
+  <div ref={fallback.ref} {...fallback.restProps(['children'])}>…</div>
 </div>
 ```
 
-:::interactive[Avatars]
+:::interactive[Team Roster]
 ```tsx
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
-import type { ComponentProps } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 
 type DemoAvatarProps = ComponentProps<'div'> & {
   src?: string;
   alt: string;
+  children: ReactNode;
 };
 
 const DemoAvatar = setup<DemoAvatarProps>((props) => {
   const image = aria('image', props);
-  const content = aria('image-content');
-  const fallback = aria('image-fallback');
 
   return () => (
-    <div
-      ref={image.ref}
-      {...image.restProps(['children'])}
-      className="demo-image-frame"
-      data-status={image.status}
-    >
-      <div ref={fallback.ref} {...fallback.props} className="demo-image-fallback">
-        {props.alt.slice(0, 1)}
-      </div>
-      <img ref={content.ref} {...content.props} className="demo-image-content" />
+    <div ref={image.ref} {...image.restProps(['children'])} className="demo-image-frame" data-status={image.status}>
+      {props.children}
     </div>
   );
 }, 'DemoAvatar');
-```
 
+type DemoAvatarFallbackProps = ComponentProps<'div'> & {
+  children?: ReactNode;
+};
+
+const DemoAvatarFallback = setup<DemoAvatarFallbackProps>((props) => {
+  const fallback = aria('image-fallback');
+
+  return () => (
+    <div ref={fallback.ref} {...fallback.restProps(['children'])} className="demo-image-fallback">
+      {props.children}
+    </div>
+  );
+}, 'DemoAvatarFallback');
+
+const DemoAvatarContent = setup<ComponentProps<'img'>>((props) => {
+  const content = aria('image-content', props);
+
+  return () => <img ref={content.ref} {...content.restProps(['children'])} className="demo-image-content" />;
+}, 'DemoAvatarContent');
+
+type DemoPersonProps = {
+  src?: string;
+  alt: string;
+  initials: string;
+  name: string;
+  role: string;
+};
+
+const DemoPerson = (props: DemoPersonProps) => (
+  <div className="demo-image-person">
+    <DemoAvatar src={props.src} alt={props.alt}><DemoAvatarFallback>{props.initials}</DemoAvatarFallback><DemoAvatarContent /></DemoAvatar>
+    <span className="demo-image-identity">
+      <span className="demo-image-name">{props.name}</span>
+      <span className="demo-image-meta">{props.role}</span>
+    </span>
+  </div>
+);
+
+const Demo = () => (
+  <div className="demo-image-roster">
+    <div className="demo-image-row">
+      <span className="demo-image-caption">The photo replaces the initials once it loads</span>
+      <DemoPerson src={avatar.src} alt="Portrait of Mira Okonkwo" initials="MO" name="Mira Okonkwo" role="Product designer" />
+    </div>
+
+    <div className="demo-image-row">
+      <span className="demo-image-caption">A broken source keeps the initials on screen</span>
+      <DemoPerson src="data:image/png;base64,////" alt="Portrait of Sam Fischer" initials="SF" name="Sam Fischer" role="Engineer" />
+    </div>
+
+    <div className="demo-image-row">
+      <span className="demo-image-caption">An empty alt takes the whole unit out of the tree</span>
+      <DemoPerson src={avatar.src} alt="" initials="" name="Ana Reyes" role="Support lead" />
+    </div>
+  </div>
+);
+```
 ```html
-<div className="demo-image-stack">
-  <div className="demo-image-card">
-    <span className="demo-image-card-title">Loaded</span>
-    <DemoAvatar src={avatar.src} alt="Portrait of a sailor" />
-  </div>
-  <div className="demo-image-card">
-    <span className="demo-image-card-title">Broken source</span>
-    <DemoAvatar src="data:image/png;base64,////" alt="Broken avatar" />
-  </div>
-  <div className="demo-image-card">
-    <span className="demo-image-card-title">Decorative</span>
-    <DemoAvatar src={avatar.src} alt="" />
-  </div>
-</div>
+<Demo />
 ```
 
-<div className="demo-image-stack">
-  <div className="demo-image-card">
-    <span className="demo-image-card-title">Loaded</span>
-    <DemoAvatar src={avatar.src} alt="Portrait of a sailor" />
-  </div>
-  <div className="demo-image-card">
-    <span className="demo-image-card-title">Broken source</span>
-    <DemoAvatar src="data:image/png;base64,////" alt="Broken avatar" />
-  </div>
-  <div className="demo-image-card">
-    <span className="demo-image-card-title">Decorative</span>
-    <DemoAvatar src={avatar.src} alt="" />
-  </div>
-</div>
+<Demo />
 :::
 
 :::tip
-Keep the fallback mounted next to the content and put your placeholder inside it — initials, a skeleton, an icon. The coordinator swaps representations itself, so you never conditionally render either one.
+**Keep the fallback mounted next to the content.** Put your placeholder inside it — initials, a skeleton, an icon — and let the coordinator swap representations, so you never conditionally render either one.
 :::
 
 ## Image
@@ -116,50 +139,42 @@ aria<E extends BaseElement = HTMLElement>(
 ```tsx [React]
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
-import type { ComponentProps } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 
 type AvatarProps = ComponentProps<'div'> & {
   src?: string;
   alt: string;
+  children: ReactNode;
 };
 
 const Avatar = setup<AvatarProps>((props) => {
   const image = aria('image', props);
-  const content = aria('image-content');
-  const fallback = aria('image-fallback');
 
   return () => (
     <div ref={image.ref} {...image.restProps(['children'])}>
-      <img ref={content.ref} {...content.props} />
-      <div ref={fallback.ref} {...fallback.props}>
-        {props.children}
-      </div>
+      {props.children}
     </div>
   );
-});
+}, 'Avatar');
 ```
 
 ```tsx [SolidJS]
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/solid';
-import type { ComponentProps } from 'solid-js';
+import type { ComponentProps, JSX } from 'solid-js';
 
 type AvatarProps = ComponentProps<'div'> & {
   src?: string;
   alt: string;
+  children: JSX.Element;
 };
 
 const Avatar = setup<AvatarProps>((props) => {
   const image = aria('image', props);
-  const content = aria('image-content');
-  const fallback = aria('image-fallback');
 
   return (
     <div ref={image.ref} {...image.restProps(['children'])}>
-      <img ref={content.ref} {...content.props} />
-      <div ref={fallback.ref} {...fallback.props}>
-        {props.children}
-      </div>
+      {props.children}
     </div>
   );
 });
@@ -171,8 +186,8 @@ const Avatar = setup<AvatarProps>((props) => {
 
 _What you pass in. The props object stays live — change a value on it and the part follows._
 
-- **src** _string, optional_: The source URL. **Absent means idle**; setting one starts a load before any result exists.
-- **alt** _string, **required**_: The alternative text, shared by content and fallback. **An empty string marks the image decorative.**
+- **src** _string, optional_: The source URL. **Absent means idle**; setting one starts a load before any result exists, and changing it starts a new one.
+- **alt** _string, **required**_: The alternative text, shared by the content and the fallback. **An empty string marks the image decorative.**
 - **onchange** _(event: CustomEvent&lt;ImageStatus&gt;) =&gt; void, optional_: Called after every lifecycle transition, with the new status in `detail`.
 
 ### Properties
@@ -187,13 +202,13 @@ _What you read or write on the instance afterwards._
 - **A new source orphans the old load.** Late results from a superseded URL never commit, even for the same address.
 - **Exactly one representation.** The fallback shows until the content settles, then steps aside.
 - **Decorative means silent.** `alt=""` takes both parts out of the accessibility tree.
-- **Nothing to focus, nothing to click.** Hiding is done with `aria-hidden` alone, so a load is never interrupted by representation swaps.
+- **Nothing to focus, nothing to click.** Visibility is carried by `aria-hidden` alone, so a swap never interrupts a load and never moves the tab order.
 
 ### Events
 
 _What it tells you._
 
-- **`change`** — fires after every lifecycle transition, with the new status in `detail`.
+- **`change`** _CustomEvent&lt;ImageStatus&gt;_: Fires after every lifecycle transition, with the new status in `detail`. The event bubbles from the container, so one listener covers the whole unit.
 
 ## Image Content
 
@@ -215,7 +230,7 @@ import { aria } from '@airlib/aria';
 
 const content = aria('image-content');
 
-<img ref={content.ref} {...content.props} />;
+<img ref={content.ref} {...content.restProps(['children'])} />
 ```
 
 ```tsx [SolidJS]
@@ -223,17 +238,17 @@ import { aria } from '@airlib/aria';
 
 const content = aria('image-content');
 
-<img ref={content.ref} {...content.props} />;
+<img ref={content.ref} {...content.restProps(['children'])} />
 ```
 
 :::
 
 ### How it behaves
 
-- **Native stays native.** On an `<img>` the source and label are projected with no redundant role.
-- **Custom hosts become images.** Once loaded and non-decorative, a non-`<img>` host carries the image role and the label.
+- **A native `<img>` stays native.** The source and the alternative text are projected onto the element with no redundant role.
+- **A custom host becomes the image.** Once it has loaded and the source is not decorative, a non-`<img>` host carries the image role and the label.
 - **It reports its own settling.** Load and error reach the coordinator from the element, and an image already in cache settles on mount.
-- **Hidden but still loading.** While it isn't the active representation it stays out of the accessibility tree without stopping the load.
+- **Hidden while it loads.** Before it is the active representation it stays out of the accessibility tree without stopping the load.
 
 ## Image Fallback
 
@@ -255,7 +270,7 @@ import { aria } from '@airlib/aria';
 
 const fallback = aria('image-fallback');
 
-<div ref={fallback.ref} {...fallback.props}>…</div>;
+<div ref={fallback.ref} {...fallback.restProps(['children'])}>…</div>
 ```
 
 ```tsx [SolidJS]
@@ -263,7 +278,7 @@ import { aria } from '@airlib/aria';
 
 const fallback = aria('image-fallback');
 
-<div ref={fallback.ref} {...fallback.props}>…</div>;
+<div ref={fallback.ref} {...fallback.restProps(['children'])}>…</div>
 ```
 
 :::
@@ -272,13 +287,14 @@ const fallback = aria('image-fallback');
 
 - **It is the image while it shows.** During idle, loading, and error it carries the image role and the shared label.
 - **It steps aside once content settles.** After a successful load it withdraws from the accessibility tree.
-- **Decorative images skip it too.** `alt=""` withdraws the fallback along with the content.
+- **A decorative source skips it too.** `alt=""` withdraws the fallback along with the content.
 
 ## Next Steps
 
 - **[Link](/docs/aria/link)**: Navigation triggers with native behavior on any host.
 - **[Button](/docs/aria/button)**: Command triggers with safe form defaults.
 - **[Progress](/docs/aria/progress)**: Another read-only status you render against.
+- **[File Picker](/docs/aria/file-picker)**: The other surface that hands you something to display.
 
 ## API Reference
 
@@ -292,6 +308,7 @@ type ImageStatus = 'idle' | 'loading' | 'loaded' | 'error';
 interface ImageProps {
   src?: string;
   alt: string;
+  status?: ImageStatus;
   onchange?: (event: CustomEvent<ImageStatus>) => void;
 }
 
@@ -304,7 +321,7 @@ declare class ImageAria {
 }
 ```
 
-The container itself carries no attributes of its own — it coordinates, and the two parts carry the semantics. The three methods above are the wiring the content part uses to report; you never call them.
+The container compiles no attributes of its own — it coordinates, and the two parts carry the semantics. The three methods are the wiring a content part uses to report its settling; a consumer never calls them.
 
 ### Image Content
 
@@ -316,8 +333,6 @@ interface ImageContentAttributes {
   'aria-label'?: string;
   'aria-hidden'?: 'true';
 }
-
-declare class ImageContentAria {}
 ```
 
 ### Image Fallback
@@ -328,8 +343,6 @@ interface ImageFallbackAttributes {
   'aria-label'?: string;
   'aria-hidden'?: 'true';
 }
-
-declare class ImageFallbackAria {}
 ```
 
 ### On every one of them

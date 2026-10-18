@@ -1,56 +1,67 @@
 .demo-button-stack {
   display: flex;
   flex-direction: column;
-  gap: var(--demo-gap);
-  width: 100%;
+  gap: 1rem;
+  width: min(100%, 30rem);
+  margin-inline: auto;
 }
 
 .demo-button-card {
   display: flex;
   flex-direction: column;
-  gap: var(--demo-gap-sm);
-  padding: var(--demo-gap);
+  gap: 0.75rem;
+  padding: 1rem;
   border: 1px solid var(--demo-border);
   border-radius: var(--demo-radius);
   background: var(--demo-bg);
 }
 
 .demo-button-card-title {
-  font-size: var(--demo-font);
+  font-size: 0.8125rem;
   font-weight: 600;
-  color: var(--demo-fg);
+  line-height: 1.4;
+  color: var(--demo-muted);
 }
 
 .demo-button-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--demo-gap);
+  gap: 0.5rem;
 }
 
 .demo-button-count {
-  font-size: var(--demo-font);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
   color: var(--demo-muted);
 }
 
 .demo-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.25rem;
   padding: 0.5rem 1rem;
   border: 1px solid transparent;
   border-radius: var(--demo-radius-sm);
   background: var(--demo-fg);
   color: var(--demo-bg);
+  font-family: inherit;
   font-size: var(--demo-font);
   font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
   cursor: pointer;
   user-select: none;
 }
 
-.demo-button:hover {
-  background: var(--demo-fg-hover);
+.demo-button:hover:not(:disabled):not([aria-disabled='true']) {
+  background: color-mix(in srgb, var(--demo-fg) 88%, var(--demo-bg));
 }
 
-.demo-button:active {
-  background: var(--demo-fg-active);
+.demo-button:active:not(:disabled):not([aria-disabled='true']) {
+  background: color-mix(in srgb, var(--demo-fg) 78%, var(--demo-bg));
 }
 
 .demo-button:focus-visible {
@@ -60,8 +71,7 @@
 
 .demo-button:disabled,
 .demo-button[aria-disabled='true'] {
-  background: var(--demo-hover);
-  color: var(--demo-muted);
+  opacity: var(--demo-disabled);
   pointer-events: none;
 }
 
@@ -71,11 +81,12 @@
   color: var(--demo-fg);
 }
 
-.demo-button--custom:hover {
+.demo-button--custom:hover:not(:disabled):not([aria-disabled='true']) {
+  border-color: var(--demo-muted);
   background: var(--demo-hover);
 }
 
-.demo-button--custom:active {
+.demo-button--custom:active:not(:disabled):not([aria-disabled='true']) {
   border-color: var(--demo-fg);
   background: var(--demo-hover);
 }

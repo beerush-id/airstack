@@ -1,0 +1,627 @@
+---
+title: 'Headless Reorder'
+description: 'Headless reorder coordinator for React and SolidJS. Manages pickup, clamped slot preview movement, drop commit, and Escape/Tab cancellation — with no markup or styles imposed.'
+nav: 'Reorder'
+nav-priority: 397
+---
+
+import './aria.css';
+import './reorder.css';
+
+# Headless Reorder
+
+A reorderable list lets users rearrange existing items by keyboard or pointer before committing the new sequence. Getting it right means **separating the live preview order from the committed order while an item is held**, **clamping arrow-key movement to the collection boundaries**, **restoring the original sequence when the user cancels with `Escape` or tabs away**, and **firing distinct events for preview moves, committed drops, and cancellations**.
+
+**Headless Reorder** does all of that for you, and leaves the markup, announcements, and styling entirely yours.
+
+```tsx
+const reorder = aria('reorder', props);
+
+<ul ref={reorder.ref} {...reorder.restProps(['children'])} />
+```
+
+:::interactive[Release Checklist]
+```tsx
+import { aria, type ReorderCancelEvent, type ReorderEvent } from '@airlib/aria';
+import { mutable, setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type StageEntry = {
+  value: string;
+  title: string;
+  disabled?: boolean;
+};
+
+type DemoReorderProps = Omit<ComponentProps<'ul'>, 'onChange' | 'onInput'> & {
+  value?: string[];
+  label?: string;
+  orientation?: 'vertical' | 'horizontal';
+  oninput?: (event: ReorderEvent<string[]>) => void;
+  onchange?: (event: ReorderEvent<string[]>) => void;
+  oncancel?: (event: ReorderCancelEvent<string>) => void;
+};
+
+const DemoReorder = setup<DemoReorderProps>((props) => {
+  const reorder = aria('reorder', props);
+
+  return () => (
+    <ul
+      ref={reorder.ref}
+      {...reorder.restProps(['children'])}
+      className="demo-reorder"
+      data-orientation={reorder.orientation}
+    >
+      {props.children}
+    </ul>
+  );
+}, 'DemoReorder');
+
+type DemoReorderItemProps = ComponentProps<'li'> & {
+  value: string;
+  title: string;
+  disabled?: boolean;
+};
+
+const DemoReorderItem = setup<DemoReorderItemProps>((props) => {
+  const item = aria('reorder-item', props);
+  const handle = aria('reorder-handle', {
+    get label() {
+      return `Move ${props.title}`;
+    },
+  });
+
+  return () => (
+    <li
+      ref={item.ref}
+      {...item.restProps(['children', 'title'])}
+      className="demo-reorder-item"
+      style={{ order: item.index }}
+    >
+      <span className="demo-reorder-item-label">
+        <span className="demo-reorder-badge">{item.index + 1}</span>
+        <span>{props.title}</span>
+      </span>
+      <button ref={handle.ref} {...handle.restProps(['children'])} className="demo-reorder-handle"
+      >
+        {handle.active ? 'Drop' : 'Move'}
+      </button>
+    </li>
+  );
+}, 'DemoReorderItem');
+
+const VERTICAL_STAGES: StageEntry[] = [
+  { value: 'build', title: 'Build' },
+  { value: 'lint', title: 'Lint', disabled: true },
+  { value: 'test', title: 'Test' },
+  { value: 'deploy', title: 'Deploy' },
+];
+
+const HORIZONTAL_STAGES: StageEntry[] = [
+  { value: 'todo', title: 'To Do' },
+  { value: 'doing', title: 'In Progress' },
+  { value: 'done', title: 'Done' },
+];
+
+const Demo = setup(() => {
+  const state = mutable({
+    verticalOrder: ['build', 'lint', 'test', 'deploy'],
+    horizontalOrder: ['todo', 'doing', 'done'],
+  });
+
+  return () => (
+    <div className="demo-reorder-stack">
+      <div className="demo-reorder-card">
+        <div className="demo-reorder-header">
+          <span className="demo-reorder-heading">Release checklist</span>
+          <span className="demo-reorder-caption">Enter picks a step up, the arrows move its slot, Enter commits it, Escape restores the order — the locked lint step cannot be picked up</span>
+        </div>
+        <DemoReorder
+          label="Release checklist"
+          value={state.verticalOrder}
+          onchange={(event) => {
+            state.verticalOrder = event.detail;
+          }}
+        >
+          {VERTICAL_STAGES.map((stage) => (
+            <DemoReorderItem
+              key={stage.value}
+              value={stage.value}
+              title={stage.title}
+              disabled={stage.disabled}
+            />
+          ))}
+        </DemoReorder>
+      </div>
+
+      <div className="demo-reorder-card">
+        <div className="demo-reorder-header">
+          <span className="demo-reorder-heading">Board columns</span>
+          <span className="demo-reorder-caption">The same handle moves a column along the horizontal axis with the arrow keys</span>
+        </div>
+        <DemoReorder
+          label="Board columns"
+          value={state.horizontalOrder}
+          orientation="horizontal"
+          onchange={(event) => {
+            state.horizontalOrder = event.detail;
+          }}
+        >
+          {HORIZONTAL_STAGES.map((stage) => (
+            <DemoReorderItem
+              key={stage.value}
+              value={stage.value}
+              title={stage.title}
+              disabled={stage.disabled}
+            />
+          ))}
+        </DemoReorder>
+      </div>
+    </div>
+  );
+}, 'Demo');
+```
+```html
+<Demo />
+```
+
+<Demo />
+:::
+
+:::tip
+Focus a **Move** handle and press `Enter` or `Space` (or click it) to pick up its item. Use **`ArrowUp` / `ArrowDown`** (or **`ArrowLeft` / `ArrowRight`** in the horizontal list) and **`Home` / `End`** to preview a new slot, press `Enter` or `Space` again to commit, or press **`Escape`** to cancel and restore the original order.
+:::
+
+## Reorder
+
+**The collection coordinator.** It holds the committed `value` sequence, tracks the active item and `preview` sequence while an item is picked up, and dispatches `input`, `change`, and `cancel` events.
+
+### Usage
+
+```ts
+aria<E extends BaseElement = HTMLElement, T extends Primitive = string>(
+  role: 'reorder',
+  props?: ReorderProps<T>
+): ReorderAria<E, ReorderProps<T>>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria, type ReorderCancelEvent, type ReorderEvent } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type ReorderProps = ComponentProps<'ul'> & {
+  id?: string;
+  value?: string[];
+  preview?: string[];
+  active?: string | null;
+  orientation?: 'vertical' | 'horizontal';
+  disabled?: boolean;
+  label?: string;
+  labelledby?: string;
+  oninput?: (event: ReorderEvent<string[]>) => void;
+  onchange?: (event: ReorderEvent<string[]>) => void;
+  oncancel?: (event: ReorderCancelEvent<string>) => void;
+};
+
+const Reorder = setup<ReorderProps>((props) => {
+  const reorder = aria('reorder', props);
+
+  return () => (
+    <ul ref={reorder.ref} {...reorder.restProps(['children'])}>
+      {props.children}
+    </ul>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria, type ReorderCancelEvent, type ReorderEvent } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type ReorderProps = ComponentProps<'ul'> & {
+  id?: string;
+  value?: string[];
+  preview?: string[];
+  active?: string | null;
+  orientation?: 'vertical' | 'horizontal';
+  disabled?: boolean;
+  label?: string;
+  labelledby?: string;
+  oninput?: (event: ReorderEvent<string[]>) => void;
+  onchange?: (event: ReorderEvent<string[]>) => void;
+  oncancel?: (event: ReorderCancelEvent<string>) => void;
+};
+
+const Reorder = setup<ReorderProps>((props) => {
+  const reorder = aria('reorder', props);
+
+  return (
+    <ul ref={reorder.ref} {...reorder.restProps(['children'])}>
+      {props.children}
+    </ul>
+  );
+});
+```
+
+:::
+
+### Parameters
+
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **id** _string, optional_: The DOM identifier of the container. Generated as `reorder-<n>` when left out.
+- **value** _T[], optional_: The committed sequence of item values. Defaults to `[]` when omitted.
+- **preview** _T[], optional_: The live sequence of item values while an item is picked up. Initialized from `value` on pickup and updated on each move.
+- **active** _T | null, optional_: The value of the item currently picked up, or `null` when idle.
+- **orientation** _'vertical' | 'horizontal', optional, default `'vertical'`_: Which arrow pair moves the active item (`ArrowUp` / `ArrowDown` for `'vertical'`, `ArrowLeft` / `ArrowRight` for `'horizontal'`).
+- **disabled** _boolean, optional_: Locks pickup and movement across the entire collection.
+- **label** _string, optional_: Accessible name for the collection (`aria-label`).
+- **labelledby** _string, optional_: ID of an element that labels the collection (`aria-labelledby`).
+- **oninput** _(event: ReorderEvent&lt;T[]&gt;) =&gt; void, optional_: Called whenever the active item moves to a new slot in `preview`, with the updated `preview` array in `detail`.
+- **onchange** _(event: ReorderEvent&lt;T[]&gt;) =&gt; void, optional_: Called when an item is dropped at a different position than where it started, with the newly committed `value` array in `detail`.
+- **oncancel** _(event: ReorderCancelEvent&lt;T&gt;) =&gt; void, optional_: Called when an active reorder is canceled with `Escape` or `Tab`, with the canceled item's value in `detail`.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **id** _string | undefined_: The container's DOM identifier.
+- **value** _T[] | undefined_: Reads or replaces the committed item order.
+- **preview** _T[] | undefined_: The pending item order during an active reorder.
+- **active** _T | null | undefined_: The currently picked-up item value, or `null` when idle.
+- **orientation** _'vertical' | 'horizontal'_: The active movement axis.
+- **disabled** _boolean_: Whether the collection is disabled.
+
+### Methods
+
+_What you call on the instance._
+
+- **`pickup(itemValue)`**: Picks up `itemValue` if it exists in `value`, copying `value` into `preview` and setting `active = itemValue`. _Does nothing while disabled._
+- **`move(delta)`**: Moves the active item by a relative offset (`-1`, `1`) or to `'home'` / `'end'`, clamped to `[0, preview.length - 1]`. Dispatches `input` when the position changes.
+- **`moveByPointer(clientX, clientY)`** → `boolean`: Moves the active item once the pointer crosses a sibling slot's midpoint on the movement axis, returning whether the order changed. It is the method the handle calls during a drag.
+- **`drop()`**: Drops the active item. If `preview` differs from `value`, commits `value = [...preview]` and dispatches `change`; clears `active = null`.
+- **`cancel()`**: Restores `preview = [...value]`, clears `active = null`, and dispatches `cancel` with the previously active item value.
+
+### How it behaves
+
+- **Preview stays separate from committed state.** Moving an item mutates only `preview` and emits `input`. The committed `value` is updated only when `drop()` finishes on a changed order.
+- **No-op drops stay silent.** Picking up an item and dropping it back into its original slot clears `active` without firing `change`.
+- **Movement clamps at boundaries.** Pressing `ArrowUp` at index `0` or `ArrowDown` at the last index leaves `preview` unchanged and emits no `input` event.
+- **A drag is the same gesture with a pointer.** Pressing the handle picks the item up, moving past a sibling's midpoint rewrites `preview`, and releasing drops it — a press that never crosses a midpoint drops back into the same slot and fires nothing.
+- **Preserves host semantics.** Neither `reorder` nor `reorder-item` overrides the host element's role, so `<ul>` / `<li>`, `<ol>` / `<li>`, and `<div>` structures keep their native semantics.
+
+### Events
+
+_What it tells you._
+
+- **`input`** — fires whenever `preview` order changes during an active reorder, with the updated `preview` array in `detail`.
+- **`change`** — fires when a drop commits a changed order, with the committed `value` array in `detail`.
+- **`cancel`** — fires when `Escape` or `Tab` aborts an active reorder, with the canceled item's value in `detail`.
+
+```tsx
+const reorder = aria('reorder', {
+  value: ['build', 'test', 'deploy'],
+  oninput: (event) => console.log('Preview order:', event.detail),
+  onchange: (event) => saveOrder(event.detail),
+  oncancel: (event) => console.log('Canceled item:', event.detail),
+});
+```
+
+## Reorder Item
+
+**One movable item inside the collection.** It binds an item's `value` to the enclosing `Reorder` coordinator and publishes ambient context for its child handle.
+
+### Usage
+
+```ts
+aria<E extends BaseElement = HTMLElement, T extends Primitive = string>(
+  role: 'reorder-item',
+  props: ReorderItemProps<T>
+): ReorderItemAria<E, ReorderItemProps<T>>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type ReorderItemProps = ComponentProps<'li'> & {
+  id?: string;
+  value: string;
+  label?: string;
+  disabled?: boolean;
+};
+
+const ReorderItem = setup<ReorderItemProps>((props) => {
+  const item = aria('reorder-item', props);
+
+  return () => (
+    <li ref={item.ref} {...item.restProps(['children'])}>
+      {props.children}
+    </li>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type ReorderItemProps = ComponentProps<'li'> & {
+  id?: string;
+  value: string;
+  label?: string;
+  disabled?: boolean;
+};
+
+const ReorderItem = setup<ReorderItemProps>((props) => {
+  const item = aria('reorder-item', props);
+
+  return (
+    <li ref={item.ref} {...item.restProps(['children'])}>
+      {props.children}
+    </li>
+  );
+});
+```
+
+:::
+
+### Parameters
+
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **value** _T, **required**_: The unique value identifying this item inside the collection's `value` and `preview` arrays.
+- **id** _string, optional_: Explicit DOM identifier for the item element.
+- **label** _string, optional_: Accessible name for the item (`aria-label`).
+- **disabled** _boolean, optional_: Locks this item from being picked up while still allowing other active items to move past it.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **value** _T_: This item's identifier value.
+- **index** _number_: This item's current 0-based position in `preview` (while an item is picked up) or in `value` (while idle), or `-1` if absent.
+- **active** _boolean_: Whether this item is currently picked up (`reorder.active === item.value`).
+- **disabled** _boolean_: Whether this item is locked, **including when the parent `Reorder` is disabled**.
+
+### How it behaves
+
+- **Locked items can still be passed.** A disabled item refuses to initiate pickup, but other items can step past it during an active reorder.
+- **Self-discovers its container.** Automatically connects to the enclosing `Reorder` controller and publishes itself for its child `ReorderHandle`.
+
+## Reorder Handle
+
+**The interactive grip inside an item.** It initiates pickup, handles directional arrow movement, drops to commit, and cancels on `Escape` or `Tab`.
+
+### Usage
+
+```ts
+aria<E extends BaseElement = HTMLButtonElement>(
+  role: 'reorder-handle',
+  props?: ReorderHandleProps,
+  options?: ReorderHandleOptions
+): ReorderHandleAria<E, ReorderHandleProps>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type ReorderHandleProps = ComponentProps<'button'> & {
+  id?: string;
+  label?: string;
+  disabled?: boolean;
+};
+
+const ReorderHandle = setup<ReorderHandleProps>((props) => {
+  const handle = aria('reorder-handle', props);
+
+  return () => (
+    <button ref={handle.ref} {...handle.restProps(['children'])}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type ReorderHandleProps = ComponentProps<'button'> & {
+  id?: string;
+  label?: string;
+  disabled?: boolean;
+};
+
+const ReorderHandle = setup<ReorderHandleProps>((props) => {
+  const handle = aria('reorder-handle', props);
+
+  return (
+    <button ref={handle.ref} {...handle.restProps(['children'])}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+:::
+
+### Parameters
+
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **id** _string, optional_: Explicit DOM identifier for the handle element.
+- **type** _'button' | 'submit' | 'reset', optional, default `'button'`_: Native button type emitted when bound to a `<button>`.
+- **label** _string, optional_: Accessible name for the handle (`aria-label`), such as `"Move Build"`.
+- **disabled** _boolean, optional_: Disables this handle directly.
+
+### Options
+
+_What you fix when you create it. Read once, never reactive._
+
+- **native** _boolean, optional, default `true`_: Pass `false` when binding the handle to a non-button element (`<div>`, `<span>`) to emit `role="button"` and `tabindex`.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **active** _boolean_: Whether the enclosing item is currently picked up.
+- **disabled** _boolean_: Whether this handle is disabled directly, by its `ReorderItem`, or by the `Reorder` container.
+
+### How it behaves
+
+- **Toggle pickup and drop.** Activating an idle handle picks up its item; activating it again drops and commits the item.
+- **Directional keys only apply while active.** Arrow keys, `Home`, `End`, `Escape`, and `Tab` are intercepted only while this handle's item is picked up.
+- **`Tab` cancels without trapping focus.** Pressing `Tab` during an active reorder restores the committed order and lets focus move naturally to the next element.
+
+### Navigation
+
+_What the keys do._
+
+- **`Enter` / `Space` / `Click`** — picks up the item when idle, or drops and commits the item when active.
+- **Press and drag** — picks the item up on pointer down, previews new slots as the pointer crosses their midpoints, and drops on release.
+- **`ArrowUp` / `ArrowDown`** (vertical) — moves the active item one slot earlier or later in `preview`, clamped at the ends.
+- **`ArrowLeft` / `ArrowRight`** (horizontal) — moves the active item one slot earlier or later in `preview`, clamped at the ends.
+- **`Home` / `End`** — moves the active item to the first (`0`) or last (`preview.length - 1`) slot in `preview`.
+- **`Escape`** — cancels the active reorder and restores `preview` from `value`.
+- **`Tab`** — cancels the active reorder without preventing default focus movement.
+
+## Next Steps
+
+- **[Listbox](/docs/aria/listbox)**: Single and multiple item selection across a list of options.
+- **[Tree](/docs/aria/tree)**: Hierarchical branches with expandable nested groups.
+- **[Toolbar](/docs/aria/toolbar)**: Grouped action controls sharing a single roving tab stop.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Reorder
+
+```ts
+interface ReorderProps<T extends Primitive = Primitive> {
+  id?: string;
+  value?: T[];
+  preview?: T[];
+  active?: T | null;
+  orientation?: 'horizontal' | 'vertical';
+  disabled?: boolean;
+  label?: string;
+  labelledby?: string;
+  oninput?: (event: ReorderEvent<T[]>) => void;
+  onchange?: (event: ReorderEvent<T[]>) => void;
+  oncancel?: (event: ReorderCancelEvent<T>) => void;
+}
+
+interface ReorderAttributes {
+  id?: string;
+  'aria-label'?: string;
+  'aria-labelledby'?: string;
+  'aria-disabled'?: 'true' | 'false';
+}
+
+declare class ReorderAria<E extends BaseElement = HTMLElement, T extends ReorderProps = ReorderProps> {
+  readonly items: Set<ReorderItemAria>;
+  get id(): string | undefined;
+  get value(): T['value'];
+  set value(val: T['value']);
+  get preview(): T['preview'];
+  get active(): T['active'];
+  get orientation(): 'horizontal' | 'vertical';
+  get disabled(): boolean;
+
+  pickup(itemValue: Primitive): void;
+  move(delta: number | 'home' | 'end'): void;
+  moveByPointer(clientX: number, clientY: number): boolean;
+  drop(): void;
+  cancel(): void;
+}
+```
+
+### Reorder Item
+
+```ts
+interface ReorderItemProps<T extends Primitive = Primitive> {
+  id?: string;
+  value: T;
+  label?: string;
+  disabled?: boolean;
+}
+
+interface ReorderItemAttributes {
+  id?: string;
+  'aria-label'?: string;
+  'aria-disabled'?: 'true' | 'false';
+}
+
+declare class ReorderItemAria<E extends BaseElement = HTMLElement, T extends ReorderItemProps = ReorderItemProps> {
+  get value(): T['value'];
+  get index(): number;
+  get active(): boolean;
+  get disabled(): boolean;
+}
+```
+
+### Reorder Handle
+
+```ts
+interface ReorderHandleProps {
+  id?: string;
+  type?: 'button' | 'submit' | 'reset';
+  label?: string;
+  disabled?: boolean;
+}
+
+interface ReorderHandleOptions {
+  native?: boolean;
+}
+
+interface ReorderHandleAttributes {
+  id?: string;
+  role?: 'button';
+  type?: 'button' | 'submit' | 'reset';
+  tabindex?: number;
+  'aria-label'?: string;
+  'aria-disabled'?: 'true' | 'false';
+}
+
+declare class ReorderHandleAria {
+  get active(): boolean;
+  get disabled(): boolean;
+}
+```
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`attributes`** is the dictionary you spread; **`ref`** is what you bind the element with; **`props`** is the full props dictionary for spreading onto the host; **`restProps(omit)`** hands back your props with the keys you name left out.
+- **`assign()`** changes several parameters at once, **`refine()`** adds attributes of your own, **`on()`** listens for anything the part fires, **`destroy()`** tears it down.

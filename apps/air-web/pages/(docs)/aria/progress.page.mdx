@@ -1,99 +1,131 @@
 ---
-title: 'Progress'
-description: 'Task-completion reporting with clamped reads, declared-unit custom announcements, and zero-based native interval mapping.'
+title: 'Headless Progress'
+description: 'Headless progress for React and SolidJS. A read-only indicator that clamps what it reports, keeps declared units on custom hosts, maps them onto the native scale, and withdraws the position when nothing is measurable — with no markup or styles imposed.'
 nav: 'Progress'
 nav-priority: 281
 ---
 
-# AirLib Headless Progress
+import './aria.css';
+import './progress.css';
 
-A task bar looks like a filled track until the platform gets involved: out-of-range reports must clamp without rewriting what the task wrote, custom hosts must announce declared units while native `<progress>` speaks a zero-based range, an unmeasurable task must withdraw its position instead of claiming zero, and none of it may ever take focus or keys. **AirLib Headless Progress** (`aria('progress')`) owns that normalization — one read-only indicator that compiles honest announcements on either host, without dictating markup or styles.
+# Headless Progress
+
+A progress bar reports how far a task has come. Getting it right means **clamping every read without rewriting what the task wrote**, **mapping declared bounds onto the native scale**, **withdrawing the position while nothing is measurable**, and **taking no focus, keys, or pointer**.
+
+**Headless Progress** does all of that for you, and leaves the markup and the styling entirely yours.
 
 ```tsx
-const bar = aria('progress', props);
+const bar = aria('progress', props, { native: false });
 
-<progress ref={bar.ref} {...bar.props} />
+<div ref={bar.ref} {...bar.restProps(['children'])} />
 ```
 
-<style>{`.demo-progress{display:flex;flex-direction:column;gap:.5rem;max-width:20rem}.demo-progresstrack{height:.5rem;width:100%;overflow:hidden;border-radius:9999px;background:#e4e4e7}.demo-progressfill{display:block;height:100%;width:var(--aria-progress-offset);border-radius:9999px;background:#18181b}.demo-progressfill-idle{display:block;height:100%;width:33.3333%;border-radius:9999px;background:#a1a1aa;animation:demo-progresspulse 1.5s ease-in-out infinite}@keyframes demo-progresspulse{0%,100%{opacity:1}50%{opacity:.4}}.demo-progresslabel{font-size:.875rem;font-weight:500;color:#18181b}.demo-progresslabel-idle{font-size:.875rem;font-weight:500;color:#a1a1aa}`}</style>
-
-:::interactive[Progress Across Both Hosts]
+:::interactive[Encoding Queue]
 ```tsx
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
 import type { ComponentProps } from 'react';
 
-type DemoProgressProps = ComponentProps<'div'> & {
+type DemoBarProps = ComponentProps<'div'> & {
   value?: number | null;
   min?: number;
   max?: number;
   label?: string;
   valuetext?: string;
+  reading: string;
 };
 
-const DemoProgress = setup<DemoProgressProps>((props) => {
+type DemoBarNativeProps = ComponentProps<'progress'> & {
+  value?: number | null;
+  min?: number;
+  max?: number;
+  label?: string;
+  reading: string;
+};
+
+const DemoBar = setup<DemoBarProps>((props) => {
   const bar = aria('progress', props, { native: false });
 
   return () => (
-    <div className="demo-progress">
-      <span className="demo-progresslabel">{props.label}</span>
-      <div ref={bar.ref} {...bar.props} className="demo-progresstrack">
-        <span className="demo-progressfill" />
+    <div className="demo-progress-row">
+      <div className="demo-progress-head">
+        <span className="demo-progress-name">{props.label}</span>
+        <span className="demo-progress-reading">{props.reading}</span>
+      </div>
+      <div ref={bar.ref} {...bar.restProps(['reading'])} className="demo-progress-track">
+        <span className="demo-progress-fill" />
       </div>
     </div>
   );
-}, 'DemoProgress');
+}, 'DemoBar');
 
-const DemoProgressIdle = setup<DemoProgressProps>((props) => {
+const DemoBarIdle = setup<DemoBarProps>((props) => {
   const bar = aria('progress', props, { native: false });
 
   return () => (
-    <div className="demo-progress">
-      <span className="demo-progresslabel-idle">{props.label}</span>
-      <div ref={bar.ref} {...bar.props} className="demo-progresstrack">
-        <span className="demo-progressfill-idle" />
+    <div className="demo-progress-row">
+      <div className="demo-progress-head">
+        <span className="demo-progress-name">{props.label}</span>
+        <span className="demo-progress-reading">{props.reading}</span>
+      </div>
+      <div ref={bar.ref} {...bar.restProps(['reading'])} className="demo-progress-track">
+        <span className="demo-progress-fill demo-progress-fill-idle" />
       </div>
     </div>
   );
-}, 'DemoProgressIdle');
+}, 'DemoBarIdle');
 
-const DemoProgressNative = setup<DemoProgressProps>((props) => {
+const DemoBarNative = setup<DemoBarNativeProps>((props) => {
   const bar = aria('progress', props);
 
   return () => (
-    <div className="demo-progress">
-      <span className="demo-progresslabel">{props.label}</span>
-      <progress ref={bar.ref} {...bar.props} className="demo-progresstrack" />
+    <div className="demo-progress-row">
+      <div className="demo-progress-head">
+        <span className="demo-progress-name">{props.label}</span>
+        <span className="demo-progress-reading">{props.reading}</span>
+      </div>
+      <progress ref={bar.ref} {...bar.restProps(['reading'])} aria-label={props.label} className="demo-progress-native" />
     </div>
   );
-}, 'DemoProgressNative');
+}, 'DemoBarNative');
+```
+```html
+<div className="demo-progress-card">
+  <DemoBar label="Uploading assets" value={65} reading="65%" />
+  <DemoBar label="Transcoding segments" value={45} min={20} max={60} valuetext="45 of 60 segments" reading="45 / 60" />
+  <DemoBarIdle label="Preparing workspace" value={null} reading="Waiting" />
+  <DemoBarNative label="Exporting archive" value={30} max={60} reading="30 / 60" />
+</div>
 ```
 
-<div className="inline-flex flex-col mx-auto gap-6">
-  <DemoProgress label="Uploading assets" value={65} />
-  <DemoProgress label="Transcoding segments" value={45} min={20} max={60} valuetext="45 of 60 segments" />
-  <DemoProgressIdle label="Preparing workspace" value={null} />
-  <DemoProgressNative label="Exporting archive" value={30} max={60} />
+<div className="demo-progress-card">
+  <DemoBar label="Uploading assets" value={65} reading="65%" />
+  <DemoBar label="Transcoding segments" value={45} min={20} max={60} valuetext="45 of 60 segments" reading="45 / 60" />
+  <DemoBarIdle label="Preparing workspace" value={null} reading="Waiting" />
+  <DemoBarNative label="Exporting archive" value={30} max={60} reading="30 / 60" />
 </div>
+:::
+
+:::tip
+Compare the second bar with the fourth. **One fraction drives them both** — the custom host carries `--aria-progress-offset` for the fill to read, and the native host maps the same fraction onto its own `value` and `max`.
 :::
 
 ## Progress
 
-Task-completion reporting normalized across native `<progress>` and custom elements.
+**The indicator.** It holds the reported position, the declared bounds, and the mapping between them, and it is the only part of the widget.
+
+### Usage
 
 ```ts
-aria<E extends BaseElement = HTMLProgressElement>(
-  role: 'progress',
+progress<E extends BaseElement = HTMLProgressElement>(
   props?: ProgressProps,
   options?: ProgressOptions
 ): ProgressAria<E>
 ```
 
-### Usage
-
 :::code-group
 
-```tsx [React] executable
+```tsx [React]
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
 import type { ComponentProps } from 'react';
@@ -106,12 +138,12 @@ type ProgressProps = ComponentProps<'div'> & {
   valuetext?: string;
 };
 
-const Progress = setup<ProgressProps>((props) => {
+const Bar = setup<ProgressProps>((props) => {
   const bar = aria('progress', props, { native: false });
 
   return () => (
     <div ref={bar.ref} {...bar.restProps(['children'])}>
-      <span className="progress-fill" />
+      <span className="bar-fill" />
     </div>
   );
 });
@@ -130,12 +162,12 @@ type ProgressProps = ComponentProps<'div'> & {
   valuetext?: string;
 };
 
-const Progress = setup<ProgressProps>((props) => {
+const Bar = setup<ProgressProps>((props) => {
   const bar = aria('progress', props, { native: false });
 
   return (
     <div ref={bar.ref} {...bar.restProps(['children'])}>
-      <span className="progress-fill" />
+      <span className="bar-fill" />
     </div>
   );
 });
@@ -146,63 +178,120 @@ const Progress = setup<ProgressProps>((props) => {
 Style the fill against the published variable — no math in the component:
 
 ```css
-.progress-fill {
+.bar-fill {
   display: block;
   height: 100%;
-  width: var(--aria-progress-offset);
+  width: var(--aria-progress-offset, 0%);
 }
 ```
 
-For the native host, bind without options and let the browser own the semantics — no role is emitted because `<progress>` implies it:
+Bind a real `<progress>` without options and the browser keeps its own semantics:
 
 ```tsx
 const bar = aria('progress', props);
 
-<progress ref={bar.ref} {...bar.props} />
+<progress ref={bar.ref} {...bar.restProps(['children'])} />
 ```
 
 ### Parameters
 
-- `props.value` *(number | null, optional)*: Completion number, clamped to `[min, max]` on every read without rewriting the input. `null` or omitted renders the bar indeterminate.
-- `props.min` *(number, optional, default `0`)*: Lower bound of the declared interval.
-- `props.max` *(number, optional, default `100`)*: Upper bound of the declared interval.
-- `props.label` *(string, optional)*: Accessible name compiled to `aria-label` on custom hosts.
-- `props.valuetext` *(string, optional)*: Human-readable position compiled to `aria-valuetext`.
-- `options.native` *(boolean, optional, default `true`)*: Pass `false` for custom non-progress elements.
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **value** _number | null, optional_: Completion number, clamped into the declared range on every read; `null` or omitted reports an unmeasurable task. The prop itself keeps the number the task wrote.
+- **min** _number, optional, default `0`_: Lower bound of the declared interval.
+- **max** _number, optional, default `100`_: Upper bound of the declared interval.
+- **label** _string, optional_: Accessible name, compiled to `aria-label` on a custom host only.
+- **valuetext** _string, optional_: Human-readable position, compiled to `aria-valuetext` on both hosts.
+
+### Options
+
+_What you fix when you create it. Read once, never reactive._
+
+- **native** _boolean, optional, default `true`_: Set `false` on a custom element. The custom host then carries the role, the ARIA bounds, and the offset variable; the native host compiles `value` and `max` only.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **value** _number | null_: The clamped reading, or `null` while unmeasurable. Writing it updates `props.value`.
+- **indeterminate** _boolean_: Whether the current reading is `null`.
+- **offset** _number | null_: Completion as `0`–`100` along the declared interval — the numeric content of the published variable, unchanged — or `null` while unmeasurable.
+- **min** / **max** _number_: The declared bounds in use, defaults filled in.
 
 ### How it behaves
 
-- Every read clamps into `[min, max]` while `props.value` keeps exactly what the task wrote — narrowing the range re-clamps a live value that ends up past a bound, and widening back never resurrects the discarded reading.
-- Custom hosts keep declared units: `role="progressbar"` with `aria-valuenow` carrying the clamped value, `aria-valuemin`/`aria-valuemax` carrying the declared bounds, and `aria-label` naming the task.
-- Native hosts map the declared interval onto the zero-based scale both directions read identically: `max = max - min`, `value = clampedValue - min`, no `min` attribute, no role, no ARIA mirrors.
-- A `null` value withdraws the position on both hosts — `aria-valuenow` omitted on custom, the `value` attribute removed on native — while the scale stays declared.
-- The indicator is non-interactive by contract: no `tabindex`, no keys claimed, no pointer claimed, no events dispatched, focus never moves.
-- Fills size themselves from `--aria-progress-offset`, published on custom hosts in compiled `style`. Script consumers read the same percentage from `bar.offset` (`0`–`100`, `null` while indeterminate) — the numeric content of the variable, with no conversion.
-
-## Putting It Together
-
-Once your components are wired with `aria(...)`, drive them from the task that reports progress:
-
-```tsx
-<div className="flex flex-col gap-4 max-w-sm">
-  <Progress label="Uploading assets" value={65} />
-  <Progress label="Transcoding segments" value={45} min={20} max={60} valuetext="45 of 60 segments" />
-  <Progress label="Preparing workspace" value={null} />
-</div>
-```
-
-## Keyboard Navigation
-
-- **None.** Progress is read-only: it takes no tab stop, claims no keys, and reports progress only through the attributes the task writes to it.
-
-## What you get
-
-- **Clamp-on-read honesty.** Out-of-range reports land inside the declared range while the task's own value stays untouched.
-- **Two hosts, one fraction.** Declared units on custom hosts and zero-based mapping on native hosts report the same completion.
-- **True indeterminate state.** A `null` value withdraws the position on both hosts instead of announcing zero.
-- **Zero interaction.** No tab stop, no keys, no events — the task writes, the indicator announces.
+- **Every read clamps, the prop never changes.** A report of `140` against `max={100}` reads as `100` while `props.value` stays `140`; narrowing `max` under a live reading lowers what is announced, and widening it back does not resurrect the old number.
+- **Custom hosts keep declared units.** The host compiles `role="progressbar"` with `aria-valuenow` carrying the clamped reading, `aria-valuemin` / `aria-valuemax` carrying the declared bounds, and `aria-label` from `label`.
+- **Native hosts shift to zero.** The declared interval becomes `value = clamped - min` and `max = max - min`, with no `min` attribute and no role — so `min={20}` with `max={60}` and a reading of `45` compiles `value="25"` and `max="40"`.
+- **The fill reads one published fraction.** A custom host carries `--aria-progress-offset` for your stylesheet to size against, and a span of zero or less reports `offset` `0` instead of dividing by the gap.
+- **No position while unmeasurable.** A `null` reading omits `aria-valuenow` on a custom host and removes the `value` attribute on a native one, while the declared bounds stay stated.
+- **Nothing to interact with.** No tab stop, no keys, no pointer, no events — the indicator reports and nothing more.
+- **`valuetext` is the one ARIA mirror that reaches both hosts.** `label` names a custom host only, so a native `<progress>` takes its `aria-label` from you.
 
 ## Next Steps
 
 - **[Meter](/docs/aria/meter)**: Scalar gauges that report a value without task-completion semantics.
-- **[Button](/docs/aria/button)**: Command and toggle button behavioral bridges.
+- **[Number Stepper](/docs/aria/number-stepper)**: Bounded numbers the user does change.
+- **[Slider](/docs/aria/slider)**: The interactive counterpart that owns a thumb and its keys.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Progress
+
+```ts
+interface ProgressProps {
+  value?: number | null;
+  min?: number;
+  max?: number;
+  label?: string;
+  valuetext?: string;
+}
+
+interface ProgressOptions {
+  native?: boolean;
+}
+
+interface ProgressAttributes {
+  value?: number;
+  max?: number;
+  role?: 'progressbar';
+  'aria-valuenow'?: number;
+  'aria-valuemin'?: number;
+  'aria-valuemax'?: number;
+  'aria-valuetext'?: string;
+  'aria-label'?: string;
+}
+
+declare class ProgressAria {
+  get value(): number | null;
+  set value(value: number | null);
+  get indeterminate(): boolean;
+  get offset(): number | null;
+  get min(): number;
+  get max(): number;
+}
+```
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`attributes`** is the dictionary you spread; **`ref`** is what you bind the element with; **`props`** is the full props dictionary for spreading onto the host; **`restProps(omit)`** hands back your props with the keys you name left out.

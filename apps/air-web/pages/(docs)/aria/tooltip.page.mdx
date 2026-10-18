@@ -1,281 +1,112 @@
 ---
-title: 'Tooltip'
-description: 'Accessible non-interactive advisory popup displaying helper text on pointer hover or keyboard focus, complying with WCAG 2.1 SC 1.4.13.'
+title: 'Headless Tooltip'
+description: 'Headless tooltips for React and SolidJS. A non-focusable advisory panel linked by aria-describedby only while open, revealed on hover after a delay and on focus at once, hoverable, and dismissed by Escape — with no markup or styles imposed.'
 nav: 'Tooltip'
 nav-priority: 294
 ---
 
-<style>{`
-.tooltip-container { position: relative; display: inline-flex; }
-.tooltip-trigger {
-  anchor-name: var(--tooltip-anchor-name);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  border-radius: 0.5rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  padding: 0.5rem 1rem;
-  border: 1px solid #3f3f46;
-  background: #27272a;
-  color: #fafafa;
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-.tooltip-trigger:hover { background: #3f3f46; }
-.tooltip-trigger:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }
-.tooltip-panel {
-  position: fixed;
-  position-anchor: var(--tooltip-anchor-name);
-  top: anchor(bottom);
-  bottom: auto;
-  left: anchor(center);
-  transform: translateX(-50%);
-  position-area: bottom;
-  margin-top: 0.5rem;
-  border-radius: 0.375rem;
-  background: #18181b;
-  border: 1px solid #3f3f46;
-  color: #f4f4f5;
-  font-size: 0.75rem;
-  padding: 0.375rem 0.625rem;
-  white-space: nowrap;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  pointer-events: auto;
-  z-index: 50;
-}
-@supports (position-area: bottom) {
-  .tooltip-panel {
-    top: auto;
-    left: auto;
-    transform: none;
-  }
-}
-.tooltip-panel[data-tooltip-y="above"],
-.tooltip-panel[data-tooltip-y="top"] {
-  position-area: top;
-  margin-top: 0;
-  margin-bottom: 0.5rem;
-  top: auto;
-  bottom: anchor(top);
-}
-.tooltip-panel[data-tooltip-y="below"],
-.tooltip-panel[data-tooltip-y="bottom"] {
-  position-area: bottom;
-  margin-top: 0.5rem;
-  top: anchor(bottom);
-  bottom: auto;
-}
-.tooltip-panel[data-tooltip-x="left"] {
-  position-area: left;
-  left: anchor(left);
-  transform: none;
-}
-.tooltip-panel[data-tooltip-x="right"] {
-  position-area: right;
-  left: auto;
-  right: anchor(right);
-  transform: none;
-}
-.tooltip-panel[data-tooltip-x="before"] {
-  position-area: left;
-  left: auto;
-  right: anchor(left);
-  margin-right: 0.5rem;
-  transform: none;
-}
-.tooltip-panel[data-tooltip-x="after"] {
-  position-area: right;
-  left: anchor(right);
-  margin-left: 0.5rem;
-  transform: none;
-}
-.tooltip-panel[data-tooltip-x="between"],
-.tooltip-panel[data-tooltip-x="center"] {
-  left: anchor(center);
-  transform: translateX(-50%);
-}
+import './aria.css';
+import './tooltip.css';
 
-.tooltip-panel[data-tooltip-y="below"][data-tooltip-x="left"],
-.tooltip-panel[data-tooltip-y="bottom"][data-tooltip-x="left"] {
-  position-area: bottom span-right;
-  top: anchor(bottom);
-  left: anchor(left);
-  right: auto;
-  bottom: auto;
-  transform: none;
-}
-.tooltip-panel[data-tooltip-y="below"][data-tooltip-x="right"],
-.tooltip-panel[data-tooltip-y="bottom"][data-tooltip-x="right"] {
-  position-area: bottom span-left;
-  top: anchor(bottom);
-  right: anchor(right);
-  left: auto;
-  bottom: auto;
-  transform: none;
-}
-.tooltip-panel[data-tooltip-y="above"][data-tooltip-x="left"],
-.tooltip-panel[data-tooltip-y="top"][data-tooltip-x="left"] {
-  position-area: top span-right;
-  bottom: anchor(top);
-  left: anchor(left);
-  right: auto;
-  top: auto;
-  transform: none;
-}
-.tooltip-panel[data-tooltip-y="above"][data-tooltip-x="right"],
-.tooltip-panel[data-tooltip-y="top"][data-tooltip-x="right"] {
-  position-area: top span-left;
-  bottom: anchor(top);
-  right: anchor(right);
-  left: auto;
-  top: auto;
-  transform: none;
-}
-.tooltip-panel[data-tooltip-x="after"][data-tooltip-y="top"],
-.tooltip-panel[data-tooltip-x="after"][data-tooltip-y="above"] {
-  position-area: right span-bottom;
-  align-self: start;
-  top: anchor(top);
-  bottom: auto;
-  left: anchor(right);
-  right: auto;
-  margin-left: 0.5rem;
-  margin-top: 0;
-  margin-bottom: 0;
-  transform: none;
-}
-.tooltip-panel[data-tooltip-x="after"][data-tooltip-y="bottom"],
-.tooltip-panel[data-tooltip-x="after"][data-tooltip-y="below"] {
-  position-area: right span-top;
-  align-self: end;
-  bottom: anchor(bottom);
-  top: auto;
-  left: anchor(right);
-  right: auto;
-  margin-left: 0.5rem;
-  margin-top: 0;
-  margin-bottom: 0;
-  transform: none;
-}
-.tooltip-panel[data-tooltip-x="before"][data-tooltip-y="top"],
-.tooltip-panel[data-tooltip-x="before"][data-tooltip-y="above"] {
-  position-area: left span-bottom;
-  align-self: start;
-  top: anchor(top);
-  bottom: auto;
-  right: anchor(left);
-  left: auto;
-  margin-right: 0.5rem;
-  margin-top: 0;
-  margin-bottom: 0;
-  transform: none;
-}
-.tooltip-panel[data-tooltip-x="before"][data-tooltip-y="bottom"],
-.tooltip-panel[data-tooltip-x="before"][data-tooltip-y="below"] {
-  position-area: left span-top;
-  align-self: end;
-  bottom: anchor(bottom);
-  top: auto;
-  right: anchor(left);
-  left: auto;
-  margin-right: 0.5rem;
-  margin-top: 0;
-  margin-bottom: 0;
-  transform: none;
-}
-.tooltip-panel[hidden] { display: none; }
-.tooltip-text { margin: 0; line-height: 1.4; color: #f4f4f5; font-size: 0.75rem; }
-`}</style>
+# Headless Tooltip
 
-# AirLib Headless Tooltip
+A tooltip explains the control it hangs from: a save button's destination, an icon's meaning, a shortcut.
 
-Displaying auxiliary advisory text when hovering over or focusing interactive elements is essential for contextual clarity. However, custom tooltips frequently fail core accessibility requirements: omitting `aria-describedby` linkages, clobbering screen reader focus, vanishing unexpectedly when users move the cursor onto the popup, or lacking immediate response on keyboard focus.
+Getting it right means **describing the trigger only while the panel is open**, **revealing on focus without the pointer delay**, **staying open while the pointer crosses into the panel**, and **dismissing on `Escape` without stealing focus**.
 
-**AirLib Headless Tooltip** (`aria('tooltip')`) is a single-unit self-discovering overlay widget compliant with **WCAG 2.1 SC 1.4.13 (Content on Hover or Focus)**:
-- **Scope Discovery**: Automatically discovers its interactive host candidate via ambient scope (`scope.actionable`) or falls back to its DOM `parentElement`.
-- **Hover & Focus Synchronization**: Pointer hover reveals after a configurable delay (`delay: 300ms`), while keyboard focus reveals immediately (0ms delay).
-- **Hoverable Advisory**: The tooltip remains visible when the pointer moves from trigger to panel.
-- **Escape Dismissal**: Pressing `Escape` hides the tooltip immediately and stops propagation.
-- **Advisory Semantics**: Compiles `role="tooltip"` on the panel and dynamically references it via `aria-describedby` on the trigger strictly while open.
+**Headless Tooltip** does all of that for you, and leaves the markup and the styling entirely yours.
 
 ```tsx
-const host = aria('button');
-const tip = aria('tooltip', { delay: 300 });
+const tip = aria('tooltip', props);
 
-<button ref={host.ref} {...host.props}>
-  Save Draft
-  <div ref={tip.ref} {...tip.props}>
-    Saves your changes locally
-  </div>
-</button>
+<div ref={tip.ref} {...tip.restProps(['children'])} />
 ```
 
-:::interactive[Advisory Hover and Focus Popup]
+:::interactive[Document Actions]
 ```tsx
 import { aria, type TooltipProps } from '@airlib/aria';
 import { setup, teleport } from '@airlib/react';
 import type { ComponentProps } from 'react';
 
-const Button = setup<ComponentProps<'button'>>((props) => {
+const DemoTrigger = setup<ComponentProps<'button'>>((props) => {
   const btn = aria('button', props);
+
   return () => (
-    <button ref={btn.ref} {...btn.props}>
+    <button ref={btn.ref} {...btn.restProps(['children'])} className="demo-tip-trigger">
       {props.children}
     </button>
   );
-});
+}, 'DemoTrigger');
 
-const Tooltip = setup<TooltipProps>((props) => {
+const DemoPrimaryTrigger = setup<ComponentProps<'button'>>((props) => {
+  const btn = aria('button', props);
+
+  return () => (
+    <button ref={btn.ref} {...btn.restProps(['children'])} className="demo-tip-trigger demo-tip-trigger--primary">
+      {props.children}
+    </button>
+  );
+}, 'DemoPrimaryTrigger');
+
+const DemoTip = setup<TooltipProps>((props) => {
   const tip = aria('tooltip', props);
 
   return () => {
     if (!tip.open) return null;
 
     return teleport(
-      <div ref={tip.ref} {...tip.props}>
+      <div ref={tip.ref} {...tip.restProps(['children'])} className="demo-tip-panel">
         {props.children}
       </div>
     );
   };
-});
+}, 'DemoTip');
 
-const TooltipDemo = (props: TooltipProps) => (
-  <div className="tooltip-container">
-    <Button className="tooltip-trigger">
-      <span>{props.mode?.length === 1 && props.mode[0] === 'hover' ? 'Hover Only' : 'Hover or Focus'}</span>
-      <Tooltip className="tooltip-panel" delay={props.delay} mode={props.mode} xDir={props.xDir} yDir={props.yDir}>
-        <p className="tooltip-text">WCAG 2.1 SC 1.4.13 advisory popup.</p>
-      </Tooltip>
-    </Button>
+const DemoDocument = setup(() => (
+  <div className="demo-tip-card">
+    <span className="demo-tip-title">Document</span>
+
+    <div className="demo-tip-row">
+      <span className="demo-tip-label">Local copy</span>
+      <DemoPrimaryTrigger>Save<DemoTip>Stored on this device</DemoTip></DemoPrimaryTrigger>
+    </div>
+
+    <div className="demo-tip-row">
+      <span className="demo-tip-label">Read-only link</span>
+      <DemoTrigger>Share<DemoTip>Anyone with the link can read</DemoTip></DemoTrigger>
+    </div>
+
+    <div className="demo-tip-row">
+      <span className="demo-tip-label">Publishing is locked</span>
+      <DemoTrigger disabled={true}>Publish<DemoTip>Never shown while the trigger is locked</DemoTip></DemoTrigger>
+    </div>
   </div>
-);
+), 'DemoDocument');
+```
+```html
+<DemoDocument />
 ```
 
-<div className="flex justify-center p-6 gap-4">
-  <TooltipDemo delay={0} />
-  <TooltipDemo delay={0} yDir="above" />
-  <TooltipDemo delay={0} mode={['hover']} />
-</div>
+<DemoDocument />
 :::
 
-## Anatomy & Scope Discovery
+:::tip
+**Put the tooltip inside the control it explains.** The controller takes the enclosing actionable element as its trigger; only when there is none does it fall back to the panel's parent element in the DOM.
+:::
 
-The tooltip widget is applied directly to the advisory floating element:
+## Tooltip
 
-```ts
-const tip = aria('tooltip', props?: TooltipProps, options?: TooltipOptions);
-```
-
-### Automatic Candidate Discovery
-
-When initialized, `TooltipAria` resolves its trigger anchor in two tiers:
-
-1. **Ambient Scope (`this.scope?.actionable`)**: If nested inside an interactive component that marks itself actionable (such as `ButtonAria`, `LinkAria`, or `ToggleAria`), the tooltip automatically registers an attribute refiner on that controller to inject `aria-describedby` (when open) and bind hover/focus handlers.
-2. **DOM Fallback (`this.element.parentElement`)**: When mounted directly inside a plain HTML host without an enclosing controller, `attach()` configures the parent element with `aria-describedby` and hover/focus/keyboard listeners, cleaning them up upon detachment.
+**The advisory panel.** Non-focusable, described-by, and revealed by the trigger.
 
 ### Usage
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'tooltip',
+  props?: TooltipProps,
+  options?: TooltipOptions
+): TooltipAria<E>
+```
 
 :::code-group
 
@@ -290,12 +121,12 @@ export const Tooltip = setup<TooltipProps>((props) => {
     if (!tip.open) return null;
 
     return teleport(
-      <div ref={tip.ref} {...tip.props}>
+      <div ref={tip.ref} {...tip.restProps(['children'])}>
         {props.children}
       </div>
     );
   };
-});
+}, 'Tooltip');
 ```
 
 ```tsx [SolidJS]
@@ -308,7 +139,7 @@ export const Tooltip = setup<TooltipProps>((props) => {
 
   return (
     <Show when={tip.open}>
-      <div ref={tip.ref} {...tip.props}>
+      <div ref={tip.ref} {...tip.restProps(['children'])}>
         {props.children}
       </div>
     </Show>
@@ -318,82 +149,150 @@ export const Tooltip = setup<TooltipProps>((props) => {
 
 :::
 
-## Architectural & Accessibility Contracts
+### Parameters
+
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **open** _boolean, optional, default `false`_: Whether the panel is showing. Writing it opens or closes without a trigger in sight.
+- **mode** _('hover' | 'focus' | 'click')[], optional, default `['hover', 'focus']`_: Which gestures reach the panel. Drop `focus` and keyboard users get nothing; drop `hover` and only focus and click reveal it.
+- **delay** _number, optional, default `300`_: The hover wait in milliseconds. Focus never waits — it opens at once.
+- **dismissable** _boolean, optional, default `true`_: Whether an outside press closes the panel. `Escape` closes it either way.
+- **xDir** _'before' | 'after' | 'left' | 'between' | 'right', optional_: The horizontal placement token, compiled as `data-tooltip-x`.
+- **yDir** _'top' | 'bottom' | 'above' | 'below' | 'between', optional_: The vertical placement token, compiled as `data-tooltip-y`.
+- **id** _string, optional_: The panel's identifier, and the value `aria-describedby` points at. Generated as `tooltip-<n>` when omitted.
+
+### Options
+
+_What you fix when you create it. Read once, never reactive._
+
+- **native** _boolean, optional, default `false`_: On a native host the panel also compiles `popover="auto"` or `"manual"` from `dismissable`, so the browser's own light dismiss applies on top of the controller's.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **open** _boolean_: Whether the panel is showing. Reading and writing it is the same commit the triggers use.
+- **delay** _number_: The hover wait in force, defaulted to `300`.
+- **mode** _('hover' | 'focus' | 'click')[]_: The gestures in force, defaulted to hover and focus.
+- **dismissable** _boolean_: Whether an outside press closes the panel.
+- **id** _string_: The panel's identifier, and the one the trigger describes itself with.
+
+### Methods
+
+_What you call on the instance._
+
+- **`show()`**: Opens at once, clearing any pending hover timer. _Refused while the trigger is locked._
+- **`close()`**: Closes at once and clears the timer. _Refused while the trigger is locked._
+- **`toggle()`**: Inverts the open state. _Refused while the trigger is locked._
+- **`scheduleOpen()`**: Starts the hover timer — the delay decides whether it opens now or waits. _This is the path a pointer arrival takes._
+- **`cancelOpen()`**: Clears a pending hover timer without changing what is on screen.
+
+### How it behaves
+
+- **The panel is an advisory, not a control.** It compiles `role="tooltip"` and `hidden` while closed, claims no tab stop, and never takes focus — the controller turns autofocus off for this part.
+- **The link exists only while the panel does.** `aria-describedby` lands on the trigger while the panel is open and disappears when it closes, so a screen reader never reads stale advisory text.
+- **The trigger is found, not passed.** A tooltip created inside an actionable controller — button, link, toggle — describes that controller's element; created inside a plain host, it describes the panel's `parentElement` instead.
+- **Hover waits; focus does not.** Arriving with the pointer schedules the open at `delay`; focusing the trigger calls `show()` immediately.
+- **The panel is hoverable.** Leaving the trigger into the panel keeps it open — the leave handler ignores a pointer that lands inside the panel.
+- **A locked trigger opens nothing.** `show()`, `scheduleOpen()`, and `toggle()` refuse while the trigger is disabled, so a locked control shows no advisory at all.
+- **Placement is the stylesheet's job.** The controller writes the anchor pair while the panel is open and turns `xDir` / `yDir` into `data-tooltip-x` / `data-tooltip-y`; where the panel lands is CSS.
 
 ### Events
 
-`onchange` is called with the open state after the tooltip toggles, and the same `change` `CustomEvent<boolean>` (`bubbles: true`) dispatches on the panel — tooltips announce visibility with `change`, unlike the `toggle` a popover emits:
+_What it tells you._
 
-```ts
-const tooltip = aria('tooltip', {
-  open: false,
-  onchange: (event) => {
-    const isOpen = event.detail;
-  },
+- **`change`** — fires on the panel each time visibility commits, bubbling with the new state in `detail`. `Escape`, a blur, an outside press, and a programmatic `open` write all arrive here.
+
+```tsx
+const tip = aria('tooltip', {
+  onchange: (event) => setHintOpen(event.detail),
 });
 ```
 
-### Semantic Layering
+### Navigation
 
-| Host Element | Attributes Emitted | Semantics & Behavior |
-| :--- | :--- | :--- |
-| **Trigger (`<button>`)** | `aria-describedby` (when open) | Anchors hover and keyboard focus; injects description only while open. |
-| **Custom Trigger (`<div>`)** | `tabindex="0"`, `aria-describedby` (when open) | Receives focus; keyboard focus reveals tooltip immediately. |
-| **Panel (`<div>`)** | `id`, `role="tooltip"`, `hidden` | Strictly non-focusable advisory container; hoverable per WCAG 2.1 SC 1.4.13. |
+_What the keys do._
 
-### WCAG 2.1 SC 1.4.13 Compliance
-
-1. **Dismissable**: Pressing the `Escape` key dismisses the tooltip immediately and stops propagation so underlying modals or page listeners are not triggered.
-2. **Hoverable**: Pointer can move from the trigger element over the advisory panel without dismissing the tooltip.
-3. **Persistent**: Once shown via hover or focus, remains visible until the user moves pointer away, blurs focus, or presses `Escape`.
-
-## Entity Specifications
-
-### `TooltipAria`
-
-- **Role / Type**: Overlay Widget (`aria('tooltip')`)
-- **Factory**: `aria('tooltip', props?, options?)` or `tooltip(props?, options?)`
-- **Parameters (`TooltipProps`)**:
-  - `open` *(boolean, optional, default `false`)*: Controls visibility of the tooltip advisory panel.
-  - `mode` *(('hover' | 'focus' | 'click')[], optional, default `['hover', 'focus']`)*: Activation trigger modes. Pass `['hover']` to suppress focus-triggered reveal.
-  - `delay` *(number, optional, default `300`)*: Hover delay in milliseconds before showing tooltip on pointerenter.
-  - `id` *(string, optional)*: Explicit base identifier used to coordinate `aria-describedby` and panel `id`. Auto-generated by default.
-  - `xDir` *('before' | 'after' | 'left' | 'between' | 'right', optional)*: Horizontal placement token.
-  - `yDir` *('top' | 'bottom' | 'above' | 'below' | 'between', optional)*: Vertical placement token.
-- **Controller Properties & Methods**:
-  - `open` *(boolean)*: Reactive open state getter/setter.
-  - `delay` *(number)*: Delay in milliseconds getter/setter.
-  - `show()`: Opens the tooltip immediately.
-  - `close()`: Closes the tooltip immediately.
-  - `toggle()`: Inverts the open state.
-  - `scheduleOpen()`: Starts the hover timer.
-  - `cancelOpen()`: Clears any active hover timer.
-
-## Events
-
-The tooltip element dispatches a `change` event whenever visibility commits:
-
-| Event | Type | Bubbles | Detail |
-| :--- | :--- | :--- | :--- |
-| `change` | `CustomEvent<boolean>` | `true` | `boolean` (new `open` state) |
-
-## Keyboard Navigation
-
-- **Focus**: Revealing tooltip immediately upon focus.
-- **Blur**: Dismisses tooltip upon blur.
-- **Escape**: Dismisses the open tooltip immediately and stops propagation.
-
-## What you get
-
-- **Self-discovering linkage.** Tooltips discover their actionable host automatically from ambient scope or parent DOM hierarchy without manual ID wiring.
-- **Immediate focus feedback.** Keyboard users don't wait for pointer delay timers; focus reveals content instantly.
-- **WCAG 2.1 SC 1.4.13 guarantee.** Pointer hover over the advisory panel does not cause flickering or dismissals.
-- **Zero focus hijacking.** The advisory panel never steals tab stops or keyboard focus.
-- **Clean SSR describedby linkage.** `aria-describedby` only links the trigger when open, preventing screen readers from reading advisory text prematurely.
+- **`Tab`** — reaches the trigger, which reveals the panel as it takes focus. The panel itself is never a stop.
+- **`Escape`** — closes an open panel, cancels the default action, and stops the event from reaching listeners above the trigger.
+- **Leaving the trigger** — a blur or a pointer that lands outside both trigger and panel closes it.
 
 ## Next Steps
 
-- **[Popover](/docs/aria/popover)**: Floating disclosure overlay with light dismissal and interactive panel controls.
-- **[Dialog](/docs/aria/dialog)**: Modal and non-modal focus-trapping dialog composite widgets.
-- **[Confirm](/docs/aria/confirm)**: Blocking confirmation alertdialogs with safe autofocus and non-dismissable choice requirements.
-- **[Disclosure](/docs/aria/disclosure)**: Expandable and collapsible sections without floating overlay elevation.
+- **[Popover](/docs/aria/popover)**: A panel the user works in, with focus landing inside.
+- **[Dialog](/docs/aria/dialog)**: A modal decision that holds focus until it is answered.
+- **[Button](/docs/aria/button)**: The trigger this panel describes.
+- **[Toolbar](/docs/aria/toolbar)**: A strip of controls where advisories explain each one.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Tooltip
+
+```ts
+type OverlayTriggerMode = 'hover' | 'focus' | 'click' | 'rove' | 'combo';
+
+interface TooltipProps {
+  id?: string;
+  open?: boolean;
+  mode?: OverlayTriggerMode[];
+  delay?: number;
+  dismissable?: boolean;
+  xDir?: 'before' | 'after' | 'left' | 'between' | 'right';
+  yDir?: 'top' | 'bottom' | 'above' | 'below' | 'between';
+  onchange?: (event: CustomEvent<boolean>) => void;
+}
+
+interface TooltipOptions {
+  native?: boolean;
+}
+
+interface TooltipAttributes {
+  id?: string;
+  role?: 'tooltip';
+  hidden?: boolean;
+  popover?: 'auto' | 'manual';
+  'data-tooltip-x'?: 'before' | 'after' | 'left' | 'between' | 'right';
+  'data-tooltip-y'?: 'top' | 'bottom' | 'above' | 'below' | 'between';
+}
+
+declare class TooltipAria {
+  id: string;
+  get open(): boolean;
+  set open(value: boolean);
+  get delay(): number;
+  set delay(value: number);
+  get mode(): OverlayTriggerMode[];
+  get dismissable(): boolean;
+
+  show(): void;
+  close(): void;
+  toggle(): void;
+  scheduleOpen(): void;
+  cancelOpen(): void;
+}
+```
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`attributes`** is the dictionary you spread; **`ref`** is what you bind the element with; **`props`** is the full props dictionary for spreading onto the host; **`restProps(omit)`** hands back your props with the keys you name left out.
+- **`assign()`** changes several parameters at once, **`refine()`** adds attributes of your own, **`on()`** listens for anything the part fires, **`destroy()`** tears it down.

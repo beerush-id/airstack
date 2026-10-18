@@ -1,6 +1,6 @@
 ---
 title: 'Headless Toggle'
-description: 'Headless toggle for React and SolidJS. A two-state button with pressed inversion, change events, and group coordination on any element — with no markup or styles imposed.'
+description: 'Headless toggles for React and SolidJS. A two-state button that inverts once per activation, announces its pressed state on either host, stays inert when locked, and shares one value inside a group — with no markup or styles imposed.'
 nav: 'Toggle'
 nav-priority: 215
 ---
@@ -10,54 +10,64 @@ import './toggle.css';
 
 # Headless Toggle
 
-A two-state button has to hold its state, show it, and invert on command — and inside a group of them, every member has to agree on one shared value. Hand-rolled, that means wiring `aria-pressed`, the tab stop, the keys, and the group sync yourself.
+A toggle is a button that keeps its state: pressed or not, announced as such, and inverted by activation.
 
-**Headless Toggle** gives you a toggle that behaves on any element: pressed inversion with a change event on its own, and one shared value when several of them form a group.
+Getting it right means **inverting exactly once per activation**, **announcing the pressed state on a host that has no native equivalent**, **staying inert while locked**, and **sharing one value when several toggles form a group**.
+
+**Headless Toggle** does all of that for you, and leaves the markup and the styling entirely yours.
 
 ```tsx
-const toggle = aria('toggle', props, { native: false });
+const toggle = aria('toggle', props);
 
-<div ref={toggle.ref} {...toggle.restProps(['children'])} />
+<button ref={toggle.ref} {...toggle.restProps(['children'])} />
 ```
 
-:::interactive[Toggles]
+:::interactive[Formatting Bar]
 ```tsx
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
 import type { ComponentProps } from 'react';
 
-type DemoToggleProps = ComponentProps<'div'> & {
+type DemoToggleProps = ComponentProps<'button'> & {
   pressed?: boolean;
   disabled?: boolean;
 };
 
 const DemoToggle = setup<DemoToggleProps>((props) => {
-  const toggle = aria('toggle', props, { native: false });
+  const toggle = aria('toggle', props);
 
   return () => (
-    <div ref={toggle.ref} {...toggle.restProps(['children'])} className="demo-toggle">
+    <button ref={toggle.ref} {...toggle.restProps(['children'])} className="demo-toggle">
       {props.children}
-    </div>
+    </button>
   );
 }, 'DemoToggle');
 ```
 ```html
-<div className="demo-toggle-stack">
-  <DemoToggle>Bold</DemoToggle>
-  <DemoToggle pressed>Italic</DemoToggle>
-  <DemoToggle disabled>Underline</DemoToggle>
+<div className="demo-toggle-card">
+  <span className="demo-toggle-title">Formatting</span>
+  <span className="demo-toggle-caption">{'Underline is locked in this style.'}</span>
+  <div className="demo-toggle-row">
+    <DemoToggle><span className="demo-toggle-glyph">B</span><span>Bold</span></DemoToggle>
+    <DemoToggle pressed><span className="demo-toggle-glyph demo-toggle-glyph-italic">I</span><span>Italic</span></DemoToggle>
+    <DemoToggle disabled><span className="demo-toggle-glyph demo-toggle-glyph-underline">U</span><span>Underline</span></DemoToggle>
+  </div>
 </div>
 ```
 
-<div className="demo-toggle-stack">
-  <DemoToggle>Bold</DemoToggle>
-  <DemoToggle pressed>Italic</DemoToggle>
-  <DemoToggle disabled>Underline</DemoToggle>
+<div className="demo-toggle-card">
+  <span className="demo-toggle-title">Formatting</span>
+  <span className="demo-toggle-caption">{'Underline is locked in this style.'}</span>
+  <div className="demo-toggle-row">
+    <DemoToggle><span className="demo-toggle-glyph">B</span><span>Bold</span></DemoToggle>
+    <DemoToggle pressed><span className="demo-toggle-glyph demo-toggle-glyph-italic">I</span><span>Italic</span></DemoToggle>
+    <DemoToggle disabled><span className="demo-toggle-glyph demo-toggle-glyph-underline">U</span><span>Underline</span></DemoToggle>
+  </div>
 </div>
 :::
 
 :::tip
-Inside a group, give each member a `value` and let the group hold the state. Members derive their pressed state from the shared value — setting `pressed` on a grouped member yourself fights the group.
+**Inside a group, the group owns the state.** Give each member a `value` and read the shared value instead of setting `pressed`: a member with a token derives its pressed state from the group, while a member without one stays on its own.
 :::
 
 ## Toggle
@@ -79,11 +89,12 @@ aria<E extends BaseElement = HTMLButtonElement>(
 ```tsx [React]
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
-import type { ComponentProps } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 
 type ToggleButtonProps = ComponentProps<'button'> & {
   pressed?: boolean;
   disabled?: boolean;
+  children: ReactNode;
 };
 
 const ToggleButton = setup<ToggleButtonProps>((props) => {
@@ -94,17 +105,18 @@ const ToggleButton = setup<ToggleButtonProps>((props) => {
       {props.children}
     </button>
   );
-});
+}, 'ToggleButton');
 ```
 
 ```tsx [SolidJS]
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/solid';
-import type { ComponentProps } from 'solid-js';
+import type { ComponentProps, JSX } from 'solid-js';
 
 type ToggleButtonProps = ComponentProps<'button'> & {
   pressed?: boolean;
   disabled?: boolean;
+  children: JSX.Element;
 };
 
 const ToggleButton = setup<ToggleButtonProps>((props) => {
@@ -124,25 +136,25 @@ const ToggleButton = setup<ToggleButtonProps>((props) => {
 
 _What you pass in. The props object stays live — change a value on it and the part follows._
 
-- **value** _string | number | boolean, optional_: This member's token inside a [toggle group](/docs/aria/toggle-group). Standalone toggles don't need one.
-- **pressed** _boolean, optional_: The state when standalone. Inside a group the shared value decides instead.
-- **disabled** _boolean, optional_: Blocks inversion and state changes.
-- **onchange** _(event: CustomEvent&lt;boolean&gt;) =&gt; void, optional_: Called after each commit, with the new pressed state in `detail`.
+- **pressed** _boolean, optional, default `false`_: The state when standalone. A grouped member reads the shared value instead.
+- **value** _Primitive, optional_: The token this toggle contributes to a group. Give one and the toggle is a member; leave it out and it keeps its own state.
+- **disabled** _boolean, optional_: Locks the toggle. A group's own `disabled` reaches it the same way.
+- **onchange** _(event: CustomEvent&lt;boolean | Primitive | Primitive[]&gt;) =&gt; void, optional_: Called after each commit. Standalone `detail` is the new pressed boolean; a grouped member carries the group's value instead.
 
 ### Options
 
 _What you fix when you create it. Read once, never reactive._
 
-- **native** _boolean, optional, default `true`_: Pass `false` when the host isn't a `<button>`, and the role, the tab stop, and the keys come with it.
+- **native** _boolean, optional, default `true`_: Set `false` when the host is not a real `<button>`, and the role, the tab stop, the keys, and the `<label>` click polyfill come with it.
 
 ### Properties
 
 _What you read or write on the instance afterwards._
 
-- **pressed** _boolean_: Whether it is pressed. **Read and write** — assigning it inverts the state without a user interaction.
-- **value** _string | number | boolean_: This member's token.
+- **pressed** _boolean_: Whether it is pressed. **Writing it presses or releases the toggle** through the same commit path as a click, and a write is refused while disabled.
+- **value** _Primitive_: The token this toggle contributes to a group.
 - **disabled** _boolean_: Whether it is locked, **including by the group**.
-- **id** _string_: This toggle's identifier in the DOM.
+- **id** _string_: The toggle's own identifier — `button-<n>` standalone, and `<group-id>-button-<value>` when the group carries an `id` and the toggle a `value`.
 
 ### Methods
 
@@ -150,29 +162,39 @@ _What you call on the instance._
 
 - **`select()`**: Presses it. _Does nothing while disabled._
 - **`deselect()`**: Releases it. _Does nothing while disabled._
-- **`toggle()`**: Inverts it.
+- **`toggle()`**: Inverts it. _This is the path every activation arrives on._
 
 ### How it behaves
 
-- **Inversion is the whole interaction.** A click, `Enter`, or `Space` flips the state; a cancelled flip commits nothing.
-- **Every commit is observable.** One bubbling `change` per inversion, carrying the new state.
-- **Custom hosts become toggles.** With `native: false`, a `<div>` or `<span>` gets the button role, the pressed state, a tab stop, and the keys.
-- **Grouped members share one value.** Single-select sets or clears it; multi-select toggles membership — the member's pressed state follows.
-- **Safe in forms.** A native host carries `type="button"`, so a toggle never submits.
+- **Inversion is the whole interaction.** One commit per activation: a click, a `Space` that lands on keyup, or an `Enter` on keydown. A canceled trigger commits nothing.
+- **Every commit is observable.** One bubbling `change` carrying the new state, and a commit that lands on the state it started from stays silent.
+- **Both hosts announce.** `aria-pressed` is compiled either way, because HTML has no pressed state. A real `<button>` also gets `type="button"` and `disabled`; a custom host gets `role="button"`, a tab stop, and the `aria-disabled` mirror.
+- **A `<button>` host is left to the browser.** With `native: true` no key handling is added and nothing is canceled — activation arrives as the click the browser generates.
+- **Locked means refused.** Click, keys, and writes are refused while disabled. A disabled `<button>` fires no click at all; a custom host refuses it without stopping it, so a listener above the toggle still sees the activation.
+- **Grouped members share one value.** A single-select member sets the shared value when pressed and clears it when released; a multi-select member adds and removes its token. The group's `disabled` locks every member.
+- **Group membership changes the tab stop.** A member with a `value` compiles `0` only while it is the pressed one and `-1` otherwise, so a single-select group holds one stop — a multi-select group holds one per pressed member.
+- **Safe in forms.** A native host carries `type="button"`, and the selection token is consumed by the controller rather than written to the field.
 
 ### Events
 
 _What it tells you._
 
-- **`change`** — fires after each commit, with the new pressed state in `detail`.
+- **`change`** — fires when the state really flips, with the new state in `detail`. A grouped member carries the group's shared value there instead: a token in a single-select group, the current array in a multi-select one. Canceled triggers, disabled toggles, and writes that change nothing stay silent.
+
+```tsx
+const bold = aria('toggle', {
+  pressed: false,
+  onchange: (event) => setBold(event.detail === true),
+});
+```
 
 ### Navigation
 
 _What the keys do._
 
-- **`Tab`** — focuses the toggle. A disabled one leaves the tab order.
-- **`Space`** — stops the page scrolling on keydown and inverts on keyup; a cancelled keydown disarms the keyup.
-- **`Enter`** — inverts on keydown.
+- **`Space`** — on a custom host, suppresses the page scroll on keydown and commits on keyup; a canceled keydown never commits, and a held key commits once. On a `<button>` host the browser owns the key and the click it produces.
+- **`Enter`** — on a custom host, commits on keydown, once for each press. On a `<button>` host the browser owns it.
+- **`Tab`** — reaches a custom host. A disabled toggle leaves the tab order, and a grouped member is only a stop while it is pressed.
 
 ## Next Steps
 
@@ -189,10 +211,10 @@ What you can actually use, with every alias and every base resolved to what it r
 
 ```ts
 interface ToggleProps {
-  value?: string | number | boolean;
   pressed?: boolean;
+  value?: Primitive;
   disabled?: boolean;
-  onchange?: (event: CustomEvent<boolean>) => void;
+  onchange?: (event: CustomEvent<boolean | Primitive | Primitive[]>) => void;
 }
 
 interface ToggleOptions {
@@ -200,19 +222,20 @@ interface ToggleOptions {
 }
 
 interface ToggleAttributes {
+  id?: string;
   role?: 'button';
   type?: 'button';
-  'aria-pressed': 'true' | 'false';
   disabled?: boolean;
   tabindex?: number;
+  'aria-pressed'?: 'true' | 'false';
+  'aria-disabled'?: 'true' | 'false';
 }
 
 declare class ToggleAria {
   id: string;
-
   get pressed(): boolean;
   set pressed(value: boolean);
-  get value(): string | number | boolean;
+  get value(): Primitive;
   get disabled(): boolean;
 
   select(): void;

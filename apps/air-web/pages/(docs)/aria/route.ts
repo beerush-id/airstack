@@ -54,6 +54,11 @@ const breadcrumbRoute = route.route('/breadcrumb');
 const datePickerRoute = route.route('/date-picker');
 const dateRangePickerRoute = route.route('/date-range-picker');
 const carouselRoute = route.route('/carousel');
+const contextMenuRoute = route.route('/context-menu');
+const feedRoute = route.route('/feed');
+const codeInputRoute = route.route('/code-input');
+const treeRoute = route.route('/tree');
+const reorderRoute = route.route('/reorder');
 /** AirLib managed */
 
 export const ariaRoute = route;
@@ -109,5 +114,10 @@ export const ariaBreadcrumbRoute = breadcrumbRoute;
 export const ariaDatePickerRoute = datePickerRoute;
 export const ariaDateRangePickerRoute = dateRangePickerRoute;
 export const ariaCarouselRoute = carouselRoute;
+export const ariaContextMenuRoute = contextMenuRoute;
+export const ariaFeedRoute = feedRoute;
+export const ariaCodeInputRoute = codeInputRoute;
+export const ariaTreeRoute = treeRoute;
+export const ariaReorderRoute = reorderRoute;
 
 export default ariaRoute;

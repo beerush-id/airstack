@@ -50,8 +50,8 @@ const DemoFormCard = setup(() => {
         >
           Submit
         </button>
-        <span className="demo-button-count">submissions: {state.submissions}</span>
       </div>
+      <span className="demo-button-count">submissions: {state.submissions}</span>
     </form>
   );
 }, 'DemoFormCard');
@@ -82,9 +82,9 @@ const DemoCustomCard = setup(() => {
       <span className="demo-button-card-title">On a non-button host</span>
       <div className="demo-button-row">
         <DemoCustomButton onClick={() => (state.activations += 1)}>Custom host</DemoCustomButton>
-        <span className="demo-button-count">activations: {state.activations}</span>
         <DemoCustomButton disabled>Disabled custom host</DemoCustomButton>
       </div>
+      <span className="demo-button-count">activations: {state.activations}</span>
     </div>
   );
 }, 'DemoCustomCard');

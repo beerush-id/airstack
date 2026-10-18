@@ -1,21 +1,26 @@
 ---
-title: 'Footer'
-description: 'Headless contentinfo landmark that compiles role="contentinfo" and an accessible name onto a generic host, taking no focus and claiming no keys.'
+title: 'Headless Footer'
+description: 'Headless footer landmarks for React and SolidJS. Compiles the contentinfo role onto a generic host, adds a name when two footers share a document, and never touches the keyboard — with no markup or styles imposed.'
 nav: 'Footer'
 nav-priority: 550
 ---
 
-# AirLib Headless Footer
+import './aria.css';
+import './footer.css';
 
-Copyright notices, privacy links, and contact details sit at the end of every page. Users who need them want to jump straight there, and users who do not want them skipped — which requires the page footer to be identified as a landmark rather than as more content to listen through. **AirLib Headless Footer** (`aria('footer')`) compiles `role="contentinfo"` onto the generic host you already render, adds an accessible name when a document needs one, and stays purely structural — no focus, no keys, no state.
+# Headless Footer
+
+Copyright, policy links, and contact details close the document, and a landmark is what lets a user jump straight to them instead of tabbing through the page.
+
+Getting it right means **compiling `contentinfo` onto a generic host**, **naming it only when a document carries two**, **leaving a real `<footer>` its own implicit role**, and **taking no focus and claiming no keys**.
+
+**Headless Footer** does all of that for you, and leaves the markup and the styling entirely yours.
 
 ```tsx
 const footer = aria('footer', props);
 
 <div ref={footer.ref} {...footer.restProps(['children'])} />
 ```
-
-<style>{`.demo-footer{display:flex;flex-direction:column;gap:.5rem;padding:.75rem 1rem;border:1px solid #e4e4e7;border-radius:.75rem;background:#fafafa;font-size:.875rem;color:#71717a}.demo-footer-links{display:flex;align-items:center;gap:.75rem}.demo-footer-link{color:#3f3f46;text-decoration:none;cursor:pointer}.demo-footer-link:hover{text-decoration:underline}.demo-footer-link:focus-visible{outline:2px solid #18181b;outline-offset:2px}@media (min-width:640px){.demo-footer{flex-direction:row;align-items:center;justify-content:space-between}}`}</style>
 
 :::interactive[Site Footer]
 ```tsx
@@ -39,30 +44,78 @@ const DemoFooter = setup<DemoFooterProps>((props) => {
   );
 }, 'DemoFooter');
 
-const DemoFooterLink = setup<ComponentProps<'a'>>((props) => {
-  const link = aria('link', props);
+type DemoPageFooterProps = ComponentProps<'footer'> & {
+  label?: string;
+  children: ReactNode;
+};
+
+const DemoPageFooter = setup<DemoPageFooterProps>((props) => {
+  const footer = aria('footer', props, { native: true });
 
   return () => (
-    <a ref={link.ref} {...link.restProps(['children'])} className="demo-footer-link">
+    <footer ref={footer.ref} {...footer.restProps(['children'])} className="demo-footer">
       {props.children}
-    </a>
+    </footer>
   );
-}, 'DemoFooterLink');
+}, 'DemoPageFooter');
+
+const DemoFooterUnit = () => (
+  <div className="demo-footer-unit">
+    <span className="demo-footer-brand">
+      <span className="demo-footer-name">AirLib</span>
+      <span className="demo-footer-meta">© 2026 Beerush</span>
+    </span>
+    <span className="demo-footer-links">
+      <a className="demo-footer-link" href="#privacy">Privacy</a>
+      <a className="demo-footer-link" href="#terms">Terms</a>
+      <a className="demo-footer-link" href="#contact">Contact</a>
+    </span>
+  </div>
+);
+
+const Demo = () => (
+  <div className="demo-footer-stack">
+    <div className="demo-footer-row">
+      <span className="demo-footer-caption">A div host compiles the landmark itself</span>
+      <DemoFooter><DemoFooterUnit /></DemoFooter>
+    </div>
+
+    <div className="demo-footer-row">
+      <span className="demo-footer-caption">A name tells two footers apart</span>
+      <DemoFooter label="Site footer"><DemoFooterUnit /></DemoFooter>
+    </div>
+
+    <div className="demo-footer-row">
+      <span className="demo-footer-caption">A real footer element keeps the role the browser gives it</span>
+      <DemoPageFooter><DemoFooterUnit /></DemoPageFooter>
+    </div>
+
+    <div className="demo-footer-row">
+      <span className="demo-footer-caption">Inside a section, the custom host still compiles it</span>
+      <div className="demo-footer-section">
+        <span className="demo-footer-section-label">section</span>
+        <DemoFooter><DemoFooterUnit /></DemoFooter>
+      </div>
+    </div>
+  </div>
+);
+```
+```html
+<Demo />
 ```
 
-<DemoFooter>
-  <span>© 2026 AirLib</span>
-  <nav className="demo-footer-links">
-    <DemoFooterLink href="#privacy">Privacy</DemoFooterLink>
-    <DemoFooterLink href="#terms">Terms</DemoFooterLink>
-    <DemoFooterLink href="#contact">Contact</DemoFooterLink>
-  </nav>
-</DemoFooter>
+<Demo />
+:::
+
+:::tip
+**Only the page-level footer is a contentinfo landmark.** A `<footer>` inside `<main>`, `<article>`, `<aside>`, or `<section>` closes that section instead and exposes no landmark role at all, so keep one at the body level and name a custom host wherever else you need it.
 :::
 
 ## Footer
 
-The prime footer landmark. It projects contentinfo semantics onto a generic host and compiles the accessible name that tells two footers apart.
+**The footer landmark.** It compiles `contentinfo` onto a generic host and carries the accessible name that tells two footers apart.
+
+### Usage
 
 ```ts
 aria<E extends BaseElement = HTMLElement>(
@@ -71,8 +124,6 @@ aria<E extends BaseElement = HTMLElement>(
   options?: FooterOptions
 ): FooterAria<E>
 ```
-
-### Usage
 
 :::code-group
 
@@ -95,17 +146,18 @@ const Footer = setup<FooterProps>((props) => {
       {props.children}
     </div>
   );
-});
+}, 'Footer');
 ```
 
 ```tsx [SolidJS]
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/solid';
-import type { ComponentProps } from 'solid-js';
+import type { ComponentProps, JSX } from 'solid-js';
 
 type FooterProps = ComponentProps<'div'> & {
   label?: string;
   labelledby?: string;
+  children: JSX.Element;
 };
 
 const Footer = setup<FooterProps>((props) => {
@@ -123,37 +175,89 @@ const Footer = setup<FooterProps>((props) => {
 
 ### Parameters
 
-- `props.label` *(string, optional)*: Accessible label compiled to `aria-label`. Omitted when absent, so an unnamed page footer carries no redundant attribute.
-- `props.labelledby` *(string, optional)*: Element ID providing the accessible name, compiled to `aria-labelledby`.
-- `options.native` *(boolean, optional, default `false`)*: Pass `true` when the host is a real `<footer>`, which already implies `contentinfo` — the redundant role is dropped and only the name is compiled.
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **label** _string, optional_: The name screen readers announce for this footer, compiled to `aria-label`. Omitted when absent, so an unnamed page footer carries no redundant attribute.
+- **labelledby** _string, optional_: The ID of an element already on the page that provides that name, compiled to `aria-labelledby`.
+
+### Options
+
+_What you fix when you create it. Read once, never reactive._
+
+- **native** _boolean, optional, default `false`_: Pass `true` when the host is a real `<footer>`, which already implies `contentinfo`. The redundant role is dropped and only the name is compiled.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **label** _string | undefined_: The label in force.
+- **labelledby** _string | undefined_: The ID reference in force.
+- **named** _boolean_: Whether the landmark carries an accessible name.
 
 ### How it behaves
 
-- Compiles `role="contentinfo"` on a generic host. With `native: true` the role is left to the `<footer>` element and only the accessible name is emitted.
-- The role comes from `native` alone — never from the host tag and never from where the element sits in the tree — so a custom host keeps its compiled role wherever you place it.
-- `label` compiles to `aria-label` and `labelledby` to `aria-labelledby`, both reactively: set, change, or clear either one and the projection follows.
-- Structure only: no `tabindex`, no `aria-live`, no key handling, and no state. A `submit` or `Enter` inside it is never intercepted.
-- Keeping one `contentinfo` per page is yours to manage — the controller never counts footers and never suppresses a second one.
-- `label` and `labelledby` are consumed by the controller and carried in `ownKeys`, so `restProps(['children'])` is the whole omission list — neither leaks to the DOM as a stray attribute.
-
-:::tip[Only the page footer is contentinfo]
-A `<footer>` inside `<main>`, `<article>`, `<aside>`, or `<section>` closes that section, not the document, and the HTML mapping exposes no role for it at all. Keep the landmark on the body-level footer, and hold to one per page. A custom host compiles `role="contentinfo"` wherever it is placed, so nesting one inside a section publishes a second contentinfo.
-:::
-
-## Keyboard Navigation
-
-- **None.** The landmark takes no tab stop and claims no keys; the links inside it keep their own keyboard behavior.
-
-## What you get
-
-- **Contentinfo on a generic host.** A `<div>` becomes a navigable landmark with no markup lock-in.
-- **No redundant role.** `native: true` on a real `<footer>` leaves the implicit role alone.
-- **Optional naming.** `label` and `labelledby` cover the rare document with more than one footer.
-- **Placement-stable output.** The compiled attributes are identical in SSR and after hydration, because nothing is read from the DOM.
-- **Structure only.** No focus, no keys, no state — nothing to keep in sync.
+- **Compiles `role="contentinfo"` on a generic host.** A `<div>` host is announced as the document footer, whatever the surrounding markup looks like.
+- **The role follows `native`, never the host tag or its position.** Pass `native: true` and the element supplies the role itself; a custom host keeps its compiled role wherever you place it, including inside a section.
+- **Naming is reactive.** Set, change, or clear `label` or `labelledby` and the projection follows on the next write.
+- **Structure only.** No `tabindex`, no `aria-live`, no key handling, and no state of its own; a `submit` or `Enter` inside it is never intercepted, and the links you place in it keep their keyboard behavior.
+- **Two footers on one page are yours to manage.** The controller never counts footers and never suppresses a second one, so the name is what keeps them apart in a landmark list.
+- **Both name props stay off the DOM as plain attributes.** `label` and `labelledby` compile to `aria-label` and `aria-labelledby` only, so `restProps(['children'])` is the whole omission list.
 
 ## Next Steps
 
-- **[Header](/docs/aria/header)**: The matching header landmark at the start of the document.
+- **[Header](/docs/aria/header)**: The matching banner landmark at the start of the document.
 - **[Main](/docs/aria/main)**: The primary content the footer closes.
 - **[Link](/docs/aria/link)**: The navigation triggers a footer is usually made of.
+- **[Section](/docs/aria/section)**: The region landmark, which exists only when it is named.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Footer
+
+```ts
+interface FooterProps {
+  label?: string;
+  labelledby?: string;
+}
+
+interface FooterOptions {
+  native?: boolean;
+}
+
+interface FooterAttributes {
+  role?: 'contentinfo';
+  'aria-label'?: string;
+  'aria-labelledby'?: string;
+}
+
+declare class FooterAria {
+  get label(): string | undefined;
+  get labelledby(): string | undefined;
+  get named(): boolean;
+}
+```
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`attributes`** is the dictionary you spread; **`ref`** is what you bind the element with; **`props`** is the full props dictionary for spreading onto the host; **`restProps(omit)`** hands back your props with the keys you name left out.
+- **`assign()`** changes several parameters at once, **`refine()`** adds attributes of your own, **`on()`** listens for anything the part fires, **`destroy()`** tears it down.

@@ -1,6 +1,6 @@
 ---
 title: 'Headless Link'
-description: 'Headless link for React and SolidJS. A real disabled state on anchors, the current-page mark, and the role, tab stop, and keys on any other element — with no markup or styles imposed.'
+description: 'Headless links for React and SolidJS. Keeps the destination on any host, cancels navigation without hiding it, marks the current page, and supplies the role and keys on a custom host — with no markup or styles imposed.'
 nav: 'Link'
 nav-priority: 270
 ---
@@ -10,9 +10,11 @@ import './link.css';
 
 # Headless Link
 
-A link has to announce itself, expose its destination, and step aside cleanly when that destination is unavailable. A real `<a>` does the first two and has no disabled state at all — an unavailable link either still navigates, or loses its `href` and vanishes from assistive technology. A `<span>` standing in for a link has to be given its role, its tab stop, and its `Enter` key by hand.
+A link names a destination and takes you there when you activate it.
 
-**Headless Link** makes any element a navigation trigger: the destination on any host, a real disabled state that blocks navigation while keeping the destination discoverable, the current-page mark, and the keyboard on custom hosts.
+Getting it right means **blocking a disabled link without hiding it**, **marking the page you are on**, **carrying the role, the tab stop, and `Enter` onto a custom host**, and **leaving a native anchor native**.
+
+**Headless Link** does all of that for you, and leaves the markup and the styling entirely yours.
 
 ```tsx
 const link = aria('link', props);
@@ -20,7 +22,7 @@ const link = aria('link', props);
 <a ref={link.ref} {...link.restProps(['children'])} />
 ```
 
-:::interactive[Links]
+:::interactive[Support Shortcuts]
 ```tsx
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
@@ -42,6 +44,7 @@ const DemoLink = setup<DemoLinkProps>((props) => {
 }, 'DemoLink');
 
 type DemoSpanLinkProps = ComponentProps<'span'> & {
+  href?: string;
   disabled?: boolean;
 };
 
@@ -54,31 +57,50 @@ const DemoSpanLink = setup<DemoSpanLinkProps>((props) => {
     </span>
   );
 }, 'DemoSpanLink');
+
+const Demo = () => (
+  <div className="demo-link-panel">
+    <div className="demo-link-head">
+      <span className="demo-link-title">Help and resources</span>
+      <span className="demo-link-meta">Member</span>
+    </div>
+
+    <div className="demo-link-row">
+      <DemoLink href="/docs/aria/link" current>This guide</DemoLink>
+      <span className="demo-link-caption">Marked as the page you are on.</span>
+    </div>
+
+    <div className="demo-link-row">
+      <DemoLink href="/docs/aria/button">Component reference</DemoLink>
+      <span className="demo-link-caption">A real anchor keeps the browser's own activation.</span>
+    </div>
+
+    <div className="demo-link-row">
+      <DemoLink href="/account/billing" disabled>Billing portal</DemoLink>
+      <span className="demo-link-caption">Unavailable, yet the destination stays readable and out of the tab order.</span>
+    </div>
+
+    <div className="demo-link-row">
+      <DemoSpanLink href="/docs/aria/breadcrumb">Breadcrumb guide</DemoSpanLink>
+      <span className="demo-link-caption">A span gets the link role, a tab stop, and Enter.</span>
+    </div>
+  </div>
+);
 ```
 ```html
-<div className="demo-link-stack">
-  <DemoLink href="/docs/aria/button">Button documentation</DemoLink>
-  <DemoLink href="/docs/aria/link" current>Link documentation (marked current)</DemoLink>
-  <DemoLink href="/admin" disabled>Restricted destination</DemoLink>
-  <DemoSpanLink href="/docs/aria/divider">Custom host (a span)</DemoSpanLink>
-</div>
+<Demo />
 ```
 
-<div className="demo-link-stack">
-  <DemoLink href="/docs/aria/button">Button documentation</DemoLink>
-  <DemoLink href="/docs/aria/link" current>Link documentation (marked current)</DemoLink>
-  <DemoLink href="/admin" disabled>Restricted destination</DemoLink>
-  <DemoSpanLink href="/docs/aria/divider">Custom host (a span)</DemoSpanLink>
-</div>
+<Demo />
 :::
 
 :::tip
-Keep a disabled link in the DOM and pass `disabled` rather than swapping the `<a>` for a `<span>`. The destination stays discoverable, navigation is blocked, and assistive technology reports the link as unavailable instead of reporting nothing at all.
+**Keep a disabled link on the page instead of swapping it for a span.** The destination stays discoverable, activation is cancelled, and assistive technology reports an unavailable link rather than nothing at all.
 :::
 
 ## Link
 
-**One navigation trigger.** It behaves like an anchor whether the host is one or not.
+**The navigation trigger.** It behaves like an anchor whether the host is one or not.
 
 ### Usage
 
@@ -150,7 +172,7 @@ _What you pass in. The props object stays live — change a value on it and the 
 - **target** _string, optional_: The browsing context, such as `_blank`.
 - **disabled** _boolean, optional_: Blocks navigation, announces the link as unavailable, and parks it outside the tab order.
 - **current** _boolean, optional_: Forces the current-page mark. Left unset, the destination is matched against the page you are on.
-- **page** _number, optional_: The position this link commits into an enclosing [pagination](/docs/aria/pagination) when it activates.
+- **page** _number, optional_: The position this link commits into an enclosing [pagination](/docs/aria/pagination) when it is clicked.
 
 ### Options
 
@@ -168,19 +190,19 @@ _What you read or write on the instance afterwards._
 
 ### How it behaves
 
-- **Native first.** On a real `<a>` nothing redundant is added and the browser keeps handling activation.
-- **A disabled state HTML doesn't have.** The destination stays on the element, the click is cancelled instead, and the link is announced as unavailable rather than gone.
-- **Custom hosts become links.** With `native: false`, a `<span>` or `<div>` gets the link role, a tab stop, and `Enter` activation. `Space` stays out of it — that is a button's key.
-- **New-tab gestures behave like the browser's.** `Ctrl` / `Cmd` / `Shift`-click and middle-click open the destination in a new tab unless `target` says otherwise.
-- **The current page says so.** Matching the page you are on — or `current: true` — marks the link as it.
-- **It can drive a pagination.** A link carrying `page` writes that position into the enclosing pagination when it activates; new-tab gestures open a tab and commit nothing, because you never left the page.
-- **Inside a pagination or a breadcrumb, one tab stop.** Only the current link takes it; the rest are reached with the arrow keys.
+- **Native first.** On a real `<a>` the destination, the target, and the marks land on the element as they are, and the browser keeps handling activation.
+- **Disabled without losing the destination.** The `href` stays on the element, activation is cancelled instead, and `aria-disabled` reports the link as unavailable rather than gone.
+- **Custom hosts become links.** With `native: false` a `<span>` or `<div>` gets the link role, a tab stop, `Enter` activation, and the same cancellation when disabled. `Space` stays out of it — that is a button's key.
+- **Custom hosts follow the new-tab gestures.** `Ctrl` / `Cmd` / `Shift`-click and middle-click open the destination in a new tab when `target` does not name one; a plain click stays in the page.
+- **The current page says so.** `current` forces the mark; left unset, the destination is compared with the page you are on, and `aria-current="page"` goes on the match.
+- **It can drive a pagination.** A link carrying `page` writes that position into the enclosing pagination on a click, modifier keys included; a middle-click opens the destination and commits nothing.
+- **One tab stop inside a group.** Inside a pagination, a breadcrumb, or a navigation group only the current link keeps the stop, and a disabled link leaves it wherever it sits.
 
 ### Navigation
 
 _What the keys do._
 
-- **`Tab`** — focuses the link. A disabled link is parked outside the tab order on either host; inside a pagination or a breadcrumb only the current link takes the stop.
+- **`Tab`** — focuses the link. A disabled link is parked outside the tab order on either host, and inside a group only the current link holds the stop.
 - **`Enter`** — activates the link. A native anchor does this in the browser; a custom host gets it from the link.
 - **`Space`** — does nothing on purpose. `Space` activates buttons, not links, and the page keeps scrolling.
 
@@ -188,7 +210,7 @@ _What the keys do._
 
 - **[Button](/docs/aria/button)**: Command triggers with safe form defaults.
 - **[Navigation](/docs/aria/navigation)**: The roving group these links live in.
-- **[Pagination](/docs/aria/pagination)**: The page run a link carrying `page` commits into.
+- **[Pagination](/docs/aria/pagination)**: The group a link carrying `page` commits into.
 - **[Breadcrumb](/docs/aria/breadcrumb)**: The same roving group over a trail of ancestors.
 
 ## API Reference

@@ -1,13 +1,20 @@
 ---
-title: 'Form'
-description: 'Headless form landmark that compiles role="form" only when the container carries an accessible name, and no role at all when it does not.'
+title: 'Headless Form'
+description: 'Headless form landmarks for React and SolidJS. Compiles role="form" only while the container carries an accessible name, and withdraws it again once the name goes — with no markup or styles imposed.'
 nav: 'Form'
 nav-priority: 570
 ---
 
-# AirLib Headless Form
+import './aria.css';
+import './form.css';
 
-A page can hold several forms: checkout, a filter panel, a comment box, account settings. When they are all just `<form>` elements, assistive technologies cannot list or jump to any of them, because HTML only exposes a form as a landmark when it has an accessible name. An unnamed form is a structural container, not a destination. **AirLib Headless Form** (`aria('form')`) enforces that rule by compilation instead of by memory: with `label` or `labelledby` it emits `role="form"` and the name, and without either it emits no role at all — so a form can never be announced as a landmark it does not qualify as.
+# Headless Form
+
+A page can hold a checkout, a filter panel, and a comment box at the same time, and none of them becomes a landmark until it carries an accessible name.
+
+Getting it right means **compiling `role="form"` only while the container is named**, **withdrawing it the moment the name goes**, **never leaning on `native` or the host tag**, and **never touching submission**.
+
+**Headless Form** does all of that for you, and leaves the markup and the styling entirely yours.
 
 ```tsx
 const form = aria('form', props);
@@ -15,9 +22,7 @@ const form = aria('form', props);
 <form ref={form.ref} {...form.restProps(['children'])} />
 ```
 
-<style>{`.demo-form-stack{display:flex;flex-direction:column;gap:.75rem;padding:1rem;max-width:24rem;border:1px solid #e4e4e7;border-radius:.75rem;background:#fafafa;font-size:.875rem}.demo-form{display:flex;flex-direction:column;gap:.75rem;padding:1rem;border:1px solid #e4e4e7;border-radius:.5rem;background:#fff;margin:0}.demo-form-title{font-weight:500;color:#3f3f46}.demo-form-input{padding:.5rem .75rem;border:1px solid #d4d4d8;border-radius:.5rem;background:#fff;font-size:.875rem;color:#3f3f46;outline:none}.demo-form-input:focus{border-color:#18181b}.demo-form-input::placeholder{color:#a1a1aa}.demo-form-button{align-self:flex-start;padding:.375rem .75rem;border:0;border-radius:.5rem;background:#18181b;color:#fff;font-size:.875rem;font-weight:500;cursor:pointer}.demo-form-button:hover{opacity:.9}.demo-form-unnamed{margin:0;padding:1rem;border:1px dashed #d4d4d8;border-radius:.5rem;color:#a1a1aa}`}</style>
-
-:::interactive[Named And Unnamed Forms]
+:::interactive[Checkout Forms]
 ```tsx
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
@@ -33,30 +38,73 @@ const DemoForm = setup<DemoFormProps>((props) => {
   const form = aria('form', props);
 
   return () => (
-    <form ref={form.ref} {...form.restProps(['children'])}>
+    <form ref={form.ref} {...form.restProps(['children'])} className="demo-form">
       {props.children}
     </form>
   );
 }, 'DemoForm');
+
+type DemoFieldProps = {
+  name: string;
+  children: ReactNode;
+};
+
+const DemoField = (props: DemoFieldProps) => (
+  <div className="demo-field">
+    <span className="demo-field-label">{props.name}</span>
+    {props.children}
+  </div>
+);
+
+const Demo = () => (
+  <div className="demo-form-stack">
+    <div className="demo-form-row">
+      <span className="demo-form-caption">Named after the task it performs</span>
+      <DemoForm label="Shipping address">
+        <span className="demo-form-title">Where should it go?</span>
+        <DemoField name="Street"><input name="street" placeholder="12 Anchor Lane" className="demo-field-input" /></DemoField>
+        <DemoField name="Country"><input name="country" defaultValue="United Kingdom" disabled className="demo-field-input" /></DemoField>
+        <button type="button" className="demo-form-submit">Save address</button>
+      </DemoForm>
+    </div>
+
+    <div className="demo-form-row">
+      <span className="demo-form-caption">Named by reference to a heading just outside it</span>
+      <span id="demo-form-payment-title" className="demo-form-title">How would you like to pay?</span>
+      <DemoForm labelledby="demo-form-payment-title">
+        <DemoField name="Card number"><input name="card" placeholder="4242 4242 4242 4242" className="demo-field-input" /></DemoField>
+        <DemoField name="Billing postcode"><input name="postcode" defaultValue="E1 6AN" readOnly className="demo-field-input" /></DemoField>
+        <button type="button" className="demo-form-submit">Save card</button>
+      </DemoForm>
+    </div>
+
+    <div className="demo-form-row">
+      <span className="demo-form-caption">Unnamed, so no role is compiled at all</span>
+      <DemoForm>
+        <span className="demo-form-title">Add a gift note</span>
+        <DemoField name="Message"><textarea name="note" rows={2} placeholder="Happy birthday" className="demo-field-input" /></DemoField>
+        <button type="button" className="demo-form-submit">Save note</button>
+      </DemoForm>
+    </div>
+  </div>
+);
+```
+```html
+<Demo />
 ```
 
-<div className="demo-form-stack">
-  <DemoForm label="Shipping address" className="demo-form">
-    <span className="demo-form-title">Shipping address</span>
-    <input name="street" aria-label="Street" placeholder="Street" className="demo-form-input" />
-    <button type="button" className="demo-form-button">
-      Save address
-    </button>
-  </DemoForm>
-  <DemoForm className="demo-form-unnamed">
-    Unnamed form — no role compiled, so it is not a landmark
-  </DemoForm>
-</div>
+<Demo />
+:::
+
+:::tip
+**Name the task, not the element.** "Shipping address", "Payment details", and "Filter results" are what a screen reader announces in the landmark list, while three landmarks all called "form" tell a user nothing about which one to open.
 :::
 
 ## Form
 
-The form area landmark. It compiles the role only when the container is named, and exposes `form.named` so a wrapper can tell whether the landmark was actually published.
+**The form area landmark.** It compiles the role only while the container is named, and exposes `form.named` so a wrapper can tell whether the landmark was published.
+
+### Usage
 
 ```ts
 aria<E extends BaseElement = HTMLFormElement>(
@@ -65,8 +113,6 @@ aria<E extends BaseElement = HTMLFormElement>(
   options?: FormLandmarkOptions
 ): FormAria<E>
 ```
-
-### Usage
 
 :::code-group
 
@@ -89,17 +135,18 @@ const FormLandmark = setup<FormLandmarkProps>((props) => {
       {props.children}
     </form>
   );
-});
+}, 'FormLandmark');
 ```
 
 ```tsx [SolidJS]
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/solid';
-import type { ComponentProps } from 'solid-js';
+import type { ComponentProps, JSX } from 'solid-js';
 
 type FormLandmarkProps = ComponentProps<'form'> & {
   label?: string;
   labelledby?: string;
+  children: JSX.Element;
 };
 
 const FormLandmark = setup<FormLandmarkProps>((props) => {
@@ -115,42 +162,85 @@ const FormLandmark = setup<FormLandmarkProps>((props) => {
 
 :::
 
-The component is named `FormLandmark` rather than `Form` to stay clear of the package's own `FormAria` type and of form-library components in your app; the controller variable stays `form`.
-
 ### Parameters
 
-- `props.label` *(string, optional)*: Accessible label compiled to `aria-label`. Required for the landmark to be exposed.
-- `props.labelledby` *(string, optional)*: Element ID providing the accessible name, compiled to `aria-labelledby`. Also satisfies the naming requirement.
-- `options.native` *(boolean, optional, default `false`)*: Inert for this role. The `form` role is compiled from the accessible name rather than from the host, so a named form gets `role="form"` either way.
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **label** _string, optional_: The name screen readers announce for this form, compiled to `aria-label`. **The landmark exists only while this or `labelledby` is set.**
+- **labelledby** _string, optional_: The ID of an element already on the page that provides that name, compiled to `aria-labelledby`. Satisfies the naming requirement the same way.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **label** _string | undefined_: The label in force.
+- **labelledby** _string | undefined_: The ID reference in force.
+- **named** _boolean_: Whether the landmark is currently exposed — the same condition that decides whether the role is written.
 
 ### How it behaves
 
-- With `label` or `labelledby` present, compiles `role="form"` together with the accessible name — explicitly, even on a native `<form>`, because the HTML mapping only exposes a named form as a landmark.
-- With neither present, compiles no role at all and the element stays a structural container. Clearing the name withdraws the role again, reactively.
-- `form.named` reports whether the landmark is currently exposed, so a wrapper can branch on it.
-- The role never depends on `native` or on the host tag: naming is the only gate.
-- It is a landmark, not a form engine — no `name`, `value`, `action`, `method`, `enctype`, or `novalidate` is compiled, and a `submit` event is never intercepted.
-- A control placed inside keeps its own identity and still participates in `FormData`.
-- `label` and `labelledby` are consumed by the controller and carried in `ownKeys`, so `restProps(['children'])` is the whole omission list — neither leaks to the DOM as a stray attribute.
-
-:::tip[Name it after the task]
-Use the task the form performs, not the word "form": "Shipping address", "Payment details", "Filter results". That is the string announced in the landmark list, and "form" three times over tells a user nothing about which one to open.
-:::
-
-## Keyboard Navigation
-
-- **None.** The landmark takes no tab stop of its own. Keyboard users interact with the fields and submit control inside it, and native form submission stays entirely yours to wire.
-
-## What you get
-
-- **Naming enforced by compilation.** No accessible name means no `role="form"`, so the landmark list never carries a form that does not qualify.
-- **A `named` projection.** `form.named` tells your wrapper whether the landmark was actually exposed.
-- **Reactive promotion and demotion.** Adding or clearing the name adds or withdraws the role.
-- **No form semantics.** No form attributes are compiled and submission is never touched.
-- **Placement-stable output.** The compiled attributes are identical in SSR and after hydration, because nothing is read from the DOM.
+- **A named container compiles `role="form"` and the name together.** Clear the name and both go, leaving a structural container that a screen reader never lists.
+- **The role comes from the name alone.** `native` changes nothing here: a named `<form>` gets the explicit role too, because the HTML mapping never exposes an unnamed one as a landmark.
+- **`form.named` reports the same condition**, so a wrapper can branch on whether the landmark was published instead of guessing.
+- **It is a landmark, not a form engine.** No `action`, `method`, `enctype`, or `novalidate` is compiled, no `submit` event is intercepted, and submission stays yours to wire.
+- **A control inside keeps its own identity** and still participates in `FormData`.
+- **Both name props stay off the DOM as plain attributes.** `label` and `labelledby` compile to `aria-label` and `aria-labelledby` only, so `restProps(['children'])` is the whole omission list.
 
 ## Next Steps
 
-- **[Section](/docs/aria/section)**: The other landmark that only exists when it is named.
+- **[Section](/docs/aria/section)**: The other landmark that exists only when it is named.
+- **[Field](/docs/aria/field)**: The unit that binds a label, a control, and its failure message.
 - **[Text Input](/docs/aria/text-input)**: The field controllers that live inside the form.
-- **[Search](/docs/aria/search)**: The search facility, which is its own landmark rather than a form.
+- **[Footer](/docs/aria/footer)**: The matching landmark that closes the page.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Form
+
+```ts
+interface FormLandmarkProps {
+  label?: string;
+  labelledby?: string;
+}
+
+interface FormLandmarkOptions {
+  native?: boolean;
+}
+
+interface FormLandmarkAttributes {
+  role?: 'form';
+  'aria-label'?: string;
+  'aria-labelledby'?: string;
+}
+
+declare class FormAria {
+  get label(): string | undefined;
+  get labelledby(): string | undefined;
+  get named(): boolean;
+}
+```
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`attributes`** is the dictionary you spread; **`ref`** is what you bind the element with; **`props`** is the full props dictionary for spreading onto the host; **`restProps(omit)`** hands back your props with the keys you name left out.
+- **`assign()`** changes several parameters at once, **`refine()`** adds attributes of your own, **`on()`** listens for anything the part fires, **`destroy()`** tears it down.

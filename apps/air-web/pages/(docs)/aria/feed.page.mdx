@@ -1,0 +1,400 @@
+---
+title: 'Headless Feed'
+description: 'Headless feeds for React and SolidJS. A named stream of articles that carries one size for the whole run, announces a loading batch, and travels between entries with PageUp and PageDown — with no markup or styles imposed.'
+nav: 'Feed'
+nav-priority: 378
+---
+
+import './aria.css';
+import './feed.css';
+
+# Headless Feed
+
+A feed is a named stream of articles that grows while the reader moves through it, and every entry carries its place in the run. Getting it right means **compiling the stream role on the container**, **giving each entry its position and the run its size**, **announcing a batch while it loads**, and **stepping between entries with `PageDown` and `PageUp` without claiming the reader's own keys**.
+
+**Headless Feed** does all of that for you, and leaves the markup and the styling entirely yours.
+
+```tsx
+const feed = aria('feed', props);
+
+<div ref={feed.ref} {...feed.restProps(['children'])} />
+```
+
+:::interactive[Release Stream]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type DemoFeedProps = ComponentProps<'div'> & {
+  label?: string;
+  busy?: boolean;
+  setsize?: number;
+};
+
+const DemoFeed = setup<DemoFeedProps>((props) => {
+  const feed = aria('feed', props);
+
+  return () => (
+    <div ref={feed.ref} {...feed.restProps(['children', 'label', 'busy', 'setsize'])} className="demo-feed-stream">
+      {props.children}
+    </div>
+  );
+}, 'DemoFeed');
+
+type DemoFeedArticleProps = ComponentProps<'div'> & {
+  posinset?: number;
+};
+
+const DemoFeedArticle = setup<DemoFeedArticleProps>((props) => {
+  const article = aria('feed-article', props, { native: false });
+
+  return () => (
+    <div ref={article.ref} tabIndex={-1} {...article.restProps(['children', 'id', 'posinset'])} className="demo-feed-article">
+      {props.children}
+    </div>
+  );
+}, 'DemoFeedArticle');
+
+const ReleaseStream = setup(() => (
+  <DemoFeed label="Release notes">
+    <DemoFeedArticle posinset={1}>
+      <span className="demo-feed-title">Streaming markup lands in engine 2.4</span>
+      <span className="demo-feed-body">{'Fine-grained signals and server streaming ship in the same release.'}</span>
+      <div className="demo-feed-meta">
+        <span className="demo-feed-tag">Engine</span>
+        <button type="button" className="demo-feed-action">Read</button>
+      </div>
+    </DemoFeedArticle>
+    <DemoFeedArticle posinset={2}>
+      <span className="demo-feed-title">Route transitions drop under a millisecond</span>
+      <span className="demo-feed-body">{'The router now matches and resolves in one pass, with no intermediate frame.'}</span>
+      <div className="demo-feed-meta">
+        <span className="demo-feed-tag">Router</span>
+        <button type="button" className="demo-feed-action">Read</button>
+      </div>
+    </DemoFeedArticle>
+    <DemoFeedArticle posinset={3}>
+      <span className="demo-feed-title">Workers probe their own health</span>
+      <span className="demo-feed-body">{'Each isolate reports reachability after the edge cache latency spikes of last week.'}</span>
+      <div className="demo-feed-meta">
+        <span className="demo-feed-tag">Platform</span>
+        <button type="button" className="demo-feed-action">Read</button>
+      </div>
+    </DemoFeedArticle>
+  </DemoFeed>
+), 'ReleaseStream');
+
+const LoadingStream = setup(() => (
+  <DemoFeed label="Release notes" busy setsize={4}>
+    <DemoFeedArticle posinset={4}>
+      <span className="demo-feed-title">Migration guide for 2.3 projects</span>
+      <span className="demo-feed-body">{'Two codemods carry a project across the router and form changes in one run.'}</span>
+      <div className="demo-feed-meta">
+        <span className="demo-feed-tag">Docs</span>
+        <button type="button" className="demo-feed-action">Read</button>
+      </div>
+    </DemoFeedArticle>
+  </DemoFeed>
+), 'LoadingStream');
+```
+```html
+<div className="demo-feed-stack">
+  <div className="demo-feed-block">
+    <span className="demo-feed-caption">PageDown and PageUp travel between entries, Ctrl + Home and Ctrl + End jump to the ends</span>
+    <ReleaseStream />
+  </div>
+  <div className="demo-feed-block">
+    <span className="demo-feed-caption">A busy stream dims and refuses pointer input until the batch settles</span>
+    <LoadingStream />
+  </div>
+</div>
+```
+
+<div className="demo-feed-stack">
+  <div className="demo-feed-block">
+    <span className="demo-feed-caption">PageDown and PageUp travel between entries, Ctrl + Home and Ctrl + End jump to the ends</span>
+    <ReleaseStream />
+  </div>
+  <div className="demo-feed-block">
+    <span className="demo-feed-caption">A busy stream dims and refuses pointer input until the batch settles</span>
+    <LoadingStream />
+  </div>
+</div>
+:::
+
+:::tip
+**The entries carry the stops, the container carries the keys.** Tab reaches the actions inside each entry, and from there `PageDown` and `PageUp` move focus along the stream — the container itself compiles no tab stop of its own.
+:::
+
+## Feed
+
+**The stream container.** It compiles the feed role, publishes the run's size to every entry, and delegates travel between them.
+
+### Usage
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'feed',
+  props?: FeedProps
+): FeedAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type FeedProps = ComponentProps<'div'> & {
+  id?: string;
+  label?: string;
+  labelledby?: string;
+  busy?: boolean;
+  setsize?: number;
+};
+
+const Feed = setup<FeedProps>((props) => {
+  const feed = aria('feed', props);
+
+  return () => (
+    <div ref={feed.ref} {...feed.restProps(['children', 'label', 'labelledby', 'busy', 'setsize'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type FeedProps = ComponentProps<'div'> & {
+  id?: string;
+  label?: string;
+  labelledby?: string;
+  busy?: boolean;
+  setsize?: number;
+};
+
+const Feed = setup<FeedProps>((props) => {
+  const feed = aria('feed', props);
+
+  return (
+    <div ref={feed.ref} {...feed.restProps(['children', 'label', 'labelledby', 'busy', 'setsize'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
+
+### Parameters
+
+_What you pass in. The props object stays live — change a value on it and the container follows._
+
+- **label** _string, optional_: The stream's accessible name, compiled as `aria-label`.
+- **labelledby** _string, optional_: The identifier of an element that names the stream instead, compiled as `aria-labelledby`.
+- **busy** _boolean, optional_: Whether a batch is still arriving, compiled as `aria-busy` in both states.
+- **setsize** _number, optional, default `-1`_: How many entries the run holds, or `-1` while that is unknown. Every entry reads it from here.
+- **id** _string, optional_: The container's identifier and the namespace its entries derive theirs from. Generated as `feed-<n>` when omitted.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **id** _string_: The identifier in use, generated or given.
+- **busy** _boolean_: Whether the stream is loading a batch.
+- **setsize** _number_: The run's size in force, `-1` when indeterminate.
+- **articles** _number_: How many entries have been created under this container, incremented as each one takes its identifier.
+
+### How it behaves
+
+- **The container is always a feed.** HTML has no feed element, so `role="feed"` is compiled on every host, next to `aria-busy` as `"true"` or `"false"`.
+- **One size for the whole run.** `setsize` reaches each entry through the container, so a page never restates the count per entry — and an unknown end is `-1` rather than a guess.
+- **Travel is delegated, not trapped.** `PageDown` and `PageUp` move focus to the next and previous entry, and `Ctrl + Home` or `Ctrl + End` jump to the ends. Keys arriving elsewhere, or an unmodified `Home` or `End`, are left alone.
+- **At the ends nothing moves.** `PageDown` on the last entry and `PageUp` on the first one change nothing and cancel nothing, so the browser keeps scrolling the page.
+- **A key only counts from inside an entry.** A `PageDown` that reaches the container from outside an article is ignored.
+- **Busy is a state, not a spinner.** The flag compiles `aria-busy` and stops there: nothing is announced by the controller, no timer runs, and the styling of the wait is yours.
+
+### Navigation
+
+_What the keys do._
+
+- **`PageDown`** — moves focus to the next entry in document order; on the last entry the key is left to the browser.
+- **`PageUp`** — moves focus to the previous entry; on the first entry the key is left to the browser.
+- **`Ctrl + Home`** — moves focus to the first entry, cancelling the default action.
+- **`Ctrl + End`** — moves focus to the last entry, cancelling the default action.
+- **`Home` and `End` alone, and `Ctrl` with `PageUp` or `PageDown`** — unclaimed, so the browser's own paging and scrolling behave as usual.
+
+## Feed Article
+
+**One entry in the run.** It compiles its position, reads the run's size from the container, and takes an identifier under the feed.
+
+### Usage
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'feed-article',
+  props?: FeedArticleProps,
+  options?: FeedArticleOptions
+): FeedArticleAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type FeedArticleProps = ComponentProps<'div'> & {
+  id?: string;
+  posinset?: number;
+};
+
+const FeedArticle = setup<FeedArticleProps>((props) => {
+  const article = aria('feed-article', props, { native: false });
+
+  return () => (
+    <div ref={article.ref} tabIndex={-1} {...article.restProps(['children', 'id', 'posinset'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type FeedArticleProps = ComponentProps<'div'> & {
+  id?: string;
+  posinset?: number;
+};
+
+const FeedArticle = setup<FeedArticleProps>((props) => {
+  const article = aria('feed-article', props, { native: false });
+
+  return (
+    <div ref={article.ref} tabIndex={-1} {...article.restProps(['children', 'id', 'posinset'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
+
+### Parameters
+
+_What you pass in. The props object stays live — change a value on it and the entry follows._
+
+- **posinset** _number, optional_: 1-based position within the run, compiled as `aria-posinset`. Leave it out and the entry carries no position.
+- **id** _string, optional_: The entry's own name, folded into the host identifier. Generated as `article-<n>`, counted from one per container.
+
+### Options
+
+_What you fix when you create it. Read once, never reactive._
+
+- **native** _boolean, optional, default `true`_: Whether the host is a real `<article>`. With the default no role is compiled; pass `false` for a `div` or `span` host and `role="article"` is compiled instead.
+
+### Properties
+
+_What you read on the instance afterwards._
+
+- **id** _string_: The entry's own identifier, the part the container prefixes.
+
+### How it behaves
+
+- **The identifier is namespaced.** A host inside a feed compiles `<feed id>-<article id>`, so the first entry of a generated container lands on `feed-1-article-1`. An entry created without a container compiles no `id` at all.
+- **The size is inherited, not declared.** `aria-setsize` is read from the container on every entry, so an unknown end is the container's `-1` and an entry cannot state a smaller run of its own.
+- **The position is yours to state.** `aria-posinset` is compiled only when you pass it; nothing counts entries for you, and the number you pass is the number announced.
+- **Focus is the entry's own.** The host is a container, not a control: it compiles no tab stop, so bind `tabIndex={-1}` on the element and let the feed's keys move focus onto it.
+
+## Next Steps
+
+- **[Section](/docs/aria/section)**: A named region around the stream, with its own heading.
+- **[Navigation](/docs/aria/navigation)**: A set of links that travel with the arrow keys.
+- **[Grid](/docs/aria/grid)**: Two-dimensional travel across rows and cells.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Feed
+
+```ts
+interface FeedProps {
+  id?: string;
+  label?: string;
+  labelledby?: string;
+  busy?: boolean;
+  setsize?: number;
+}
+
+interface FeedAttributes {
+  id?: string;
+  role: 'feed';
+  'aria-label'?: string;
+  'aria-labelledby'?: string;
+  'aria-busy'?: 'true' | 'false';
+}
+
+declare class FeedAria {
+  get id(): string;
+  articles: number;
+  get setsize(): number;
+  get busy(): boolean;
+}
+```
+
+### Feed Article
+
+```ts
+interface FeedArticleProps {
+  id?: string;
+  posinset?: number;
+}
+
+interface FeedArticleOptions {
+  native?: boolean;
+}
+
+interface FeedArticleAttributes {
+  role?: 'article';
+  'aria-posinset'?: number;
+  'aria-setsize'?: number;
+}
+
+declare class FeedArticleAria {
+  get id(): string;
+}
+```
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`attributes`** is the dictionary you spread; **`ref`** is what you bind the element with; **`props`** is the full props dictionary for spreading onto the host; **`restProps(omit)`** hands back your props with the keys you name left out.
+- **`assign()`** changes several parameters at once, **`refine()`** adds attributes of your own, **`on()`** listens for anything the part fires, **`destroy()`** tears it down.

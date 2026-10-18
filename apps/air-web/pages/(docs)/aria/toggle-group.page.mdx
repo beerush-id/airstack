@@ -1,13 +1,20 @@
 ---
-title: 'Toggle Group'
-description: 'Single or multi-press toggle coordinator managing aria-pressed state with focus-only roving navigation.'
+title: 'Headless Toggle Group'
+description: 'Headless toggle groups for React and SolidJS. One shared value behind several pressed buttons, focus-only arrow travel that never commits, a single tab stop, and cascaded disablement — with no markup or styles imposed.'
 nav: 'Toggle Group'
 nav-priority: 335
 ---
 
-# AirLib Headless Toggle Group
+import './aria.css';
+import './toggle-group.css';
 
-A strip of bold/italic/underline buttons looks trivial until you coordinate it: the pressed state has to live in one place so assistive technology reads `aria-pressed` on a real button, arrows must move focus without silently pressing something, only the pressed button should hold the Tab stop, and clearing a selection has to be announced the same way as making one. Hand-rolled strips get each of these wrong separately — usually the arrow key that quietly toggles a button, or the group that swallows Tab. **AirLib Headless Toggle Group** (`aria('toggle-group')`) coordinates single-press or multi-press state across member toggles — ambient value membership, focus-only circular roving on every axis, and cascaded group disablement — without dictating markup or styles.
+# Headless Toggle Group
+
+Several pressed buttons are one control: bold, italic, and underline belong to a single value, and a set of alignment buttons belongs to another.
+
+Getting it right means **holding the pressed state in one place**, **moving focus with the arrows without pressing anything**, **leaving one tab stop in the page order**, and **letting the group's `disabled` reach every member**.
+
+**Headless Toggle Group** does all of that for you, and leaves the markup and the styling entirely yours.
 
 ```tsx
 const group = aria('toggle-group', props);
@@ -15,57 +22,100 @@ const group = aria('toggle-group', props);
 <div ref={group.ref} {...group.props} />
 ```
 
-<style>{`.demo-toggle-group{display:inline-flex;align-items:center;gap:.25rem;padding:.5rem;border:1px solid #e4e4e7;border-radius:.75rem;background:#fafafa}.demo-toggle-button{padding:.375rem .75rem;border:0;border-radius:.5rem;background:transparent;color:#3f3f46;font-size:.875rem;font-weight:500;cursor:pointer;transition:background-color .15s,color .15s}.demo-toggle-button:hover{background:#e4e4e7}.demo-toggle-button[aria-pressed="true"]{background:#0071f2;color:#fff}.demo-toggle-button[aria-pressed="true"]:hover{background:#0060cf}.demo-toggle-button[aria-disabled="true"],.demo-toggle-button:disabled{opacity:.5;cursor:not-allowed}.demo-toggle-button:focus-visible{outline:2px solid #0071f2;outline-offset:2px}`}</style>
-
-:::interactive[Toggle Group]
+:::interactive[Paragraph Controls]
 ```tsx
 import { aria } from '@airlib/aria';
-import { setup } from '@airlib/react';
+import { mutable, setup } from '@airlib/react';
 import type { ComponentProps } from 'react';
 
 type DemoToggleGroupProps = ComponentProps<'div'> & {
   value?: string | string[];
   multiple?: boolean;
   disabled?: boolean;
+  onchange?: (event: CustomEvent) => void;
 };
 
-const DemoToggleGroup = setup<DemoToggleGroupProps>((props) => {
+const DemoSegGroup = setup<DemoToggleGroupProps>((props) => {
   const group = aria('toggle-group', props);
 
   return () => (
-    <div ref={group.ref} {...group.props} className="demo-toggle-group">
+    <div ref={group.ref} {...group.props} className="demo-seg">
       {props.children}
     </div>
   );
-}, 'DemoToggleGroup');
+}, 'DemoSegGroup');
 
-type DemoToggleButtonProps = ComponentProps<'button'> & {
-  value?: string;
+type DemoToggleMemberProps = ComponentProps<'button'> & {
+  value: string;
   disabled?: boolean;
 };
 
-const DemoToggleButton = setup<DemoToggleButtonProps>((props) => {
+const DemoSegMember = setup<DemoToggleMemberProps>((props) => {
   const toggle = aria('toggle', props);
 
   return () => (
-    <button ref={toggle.ref} {...toggle.restProps(['children'])} className="demo-toggle-button">
+    <button ref={toggle.ref} {...toggle.restProps(['children'])} className="demo-seg-item">
       {props.children}
     </button>
   );
-}, 'DemoToggleButton');
+}, 'DemoSegMember');
+
+const DemoEditor = setup(() => {
+  const state = mutable({ style: ['bold'] as string[], align: 'left' });
+
+  return () => (
+    <div className="demo-seg-card">
+      <span className="demo-seg-title">Paragraph</span>
+
+      <div className="demo-seg-row">
+        <span className="demo-seg-label">Style</span>
+        <DemoSegGroup
+          multiple
+          value={state.style}
+          onchange={(event) => {
+            state.style = event.detail;
+          }}
+        >
+          <DemoSegMember value="bold">Bold</DemoSegMember>
+          <DemoSegMember value="italic">Italic</DemoSegMember>
+          <DemoSegMember value="underline">Underline</DemoSegMember>
+          <DemoSegMember value="strike" disabled>Strike</DemoSegMember>
+        </DemoSegGroup>
+      </div>
+
+      <div className="demo-seg-row">
+        <span className="demo-seg-label">Align</span>
+        <DemoSegGroup
+          value={state.align}
+          onchange={(event) => {
+            state.align = event.detail;
+          }}
+        >
+          <DemoSegMember value="left">Left</DemoSegMember>
+          <DemoSegMember value="center">Center</DemoSegMember>
+          <DemoSegMember value="right">Right</DemoSegMember>
+        </DemoSegGroup>
+      </div>
+    </div>
+  );
+}, 'DemoEditor');
+```
+```html
+<DemoEditor />
 ```
 
-<DemoToggleGroup value={['bold']} multiple>
-  <DemoToggleButton value="bold">Bold</DemoToggleButton>
-  <DemoToggleButton value="italic">Italic</DemoToggleButton>
-  <DemoToggleButton value="underline">Underline</DemoToggleButton>
-  <DemoToggleButton value="strike" disabled>Strike</DemoToggleButton>
-</DemoToggleGroup>
+<DemoEditor />
+:::
+
+:::tip
+**A member joins a group by declaring a `value`.** Inside the group, give every toggle a token and let the group hold the state; a toggle with no token stays standalone, which is how a utility button can sit in the same strip without becoming a candidate.
 :::
 
 ## Toggle Group
 
-Single or multi-press container coordinator that compiles `role="group"` and ambiently manages the pressed value.
+**The coordinator.** One shared value, one tab stop, one arrow handler.
+
+### Usage
 
 ```ts
 aria<E extends BaseElement = HTMLElement, T extends Primitive = Primitive>(
@@ -74,14 +124,12 @@ aria<E extends BaseElement = HTMLElement, T extends Primitive = Primitive>(
 ): ToggleGroupAria<E>
 ```
 
-### Usage
-
 :::code-group
 
 ```tsx [React]
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
-import type { ComponentProps } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 
 type ToggleGroupProps = ComponentProps<'div'> & {
   id?: string;
@@ -89,6 +137,7 @@ type ToggleGroupProps = ComponentProps<'div'> & {
   multiple?: boolean;
   disabled?: boolean;
   onchange?: (event: CustomEvent) => void;
+  children: ReactNode;
 };
 
 const ToggleGroup = setup<ToggleGroupProps>((props) => {
@@ -99,13 +148,13 @@ const ToggleGroup = setup<ToggleGroupProps>((props) => {
       {props.children}
     </div>
   );
-});
+}, 'ToggleGroup');
 ```
 
 ```tsx [SolidJS]
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/solid';
-import type { ComponentProps } from 'solid-js';
+import type { ComponentProps, JSX } from 'solid-js';
 
 type ToggleGroupProps = ComponentProps<'div'> & {
   id?: string;
@@ -113,6 +162,7 @@ type ToggleGroupProps = ComponentProps<'div'> & {
   multiple?: boolean;
   disabled?: boolean;
   onchange?: (event: CustomEvent) => void;
+  children: JSX.Element;
 };
 
 const ToggleGroup = setup<ToggleGroupProps>((props) => {
@@ -130,44 +180,182 @@ const ToggleGroup = setup<ToggleGroupProps>((props) => {
 
 ### Parameters
 
-- `props.value` *(Primitive | Primitive[], optional)*: Active selection token — a single value in single mode, an array of tokens when `multiple: true`.
-- `props.multiple` *(boolean, optional, default `false`)*: Allows several toggle buttons to stay pressed concurrently.
-- `props.disabled` *(boolean, optional)*: Disables the entire group and cascades disablement to all members.
-- `props.id` *(string, optional)*: Explicit DOM identifier and member id namespace; generated when omitted.
-- `props.onchange` *(AriaEventHandler, optional)*: Called with the member `change` event as it bubbles through the container.
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **value** _Primitive | Primitive[], optional_: The shared selection — one token in single mode, an array when `multiple`. Without an array a multi-select group resets itself to `[]` on the first press.
+- **multiple** _boolean, optional, default `false`_: Keeps several members pressed at once, where a single-select group holds one token.
+- **disabled** _boolean, optional_: Locks every member, drops each one out of the tab order, and leaves the arrows unclaimed.
+- **id** _string, optional_: The group's identifier and the namespace its members derive theirs from. Generated as `togglegroup-<n>` when omitted.
+- **onchange** _(event: CustomEvent) =&gt; void, optional_: Runs for the member's bubbling `change` that reaches the container. `detail` is the group's shared value.
+
+### Properties
+
+_What you read on the instance afterwards._
+
+- **id** _string_: The group's identifier, generated or given.
+- **disabled** _boolean_: Whether the whole group is locked.
+
+### Methods
+
+_What you call on the instance._
+
+- **`toggle(props?, options?)`**: Creates a member already bound to this group, which is the programmatic path where markup is not available.
 
 ### How it behaves
 
-- Compiles `role="group"` always — a toggle group is never promoted to `radiogroup`, and it carries an explicit `aria-disabled="true" | "false"`.
-- Ambiently provides the selection context so member toggles derive `aria-pressed` from the group value without prop drilling; a member placed inside without a `value` stays fully standalone, which is how a utility button can sit in the strip without becoming a candidate.
-- Activating an inactive member moves the single value to it, and activating the member that already holds it clears the selection back to `undefined` — nothing is ever forced to stay pressed. In `multiple` mode activation flips membership in the array instead.
-- Holds one tab stop: the pressed member gets `tabindex="0"` and unpressed members `tabindex="-1"`, while a declared group `disabled` puts every member at `-1` and releases the container's arrow claim entirely.
-- Arrow travel never presses anything; committing a member dispatches a bubbling `change` that reaches the container, and writing `value` from outside announces nothing because nobody acted.
+- **The container is a group, never a radio group.** `role="group"` is compiled always, alongside `aria-disabled` as `"true"` or `"false"`.
+- **Membership is a token.** A member with a `value` reads its pressed state from the shared value; a member without one keeps its own state and takes no part in the group.
+- **One commit per activation.** In single mode, pressing an inactive member moves the value to it and pressing the pressed member clears the value — nothing is forced to stay pressed. In `multiple` mode, pressing flips membership in the array.
+- **One tab stop in single mode.** A member with a token compiles `tabindex="0"` only while it holds the pressed state and `-1` otherwise, so a single-select group is one stop. A multi-select group holds one stop per pressed member. Clear the single value and the group holds **no** stop until something is pressed again — nothing falls back to the first enabled member.
+- **Locking cascades.** A disabled group reaches every member: each native host carries `disabled`, each custom host `aria-disabled` and `tabindex="-1"`, and the container stops claiming the arrows — so a disabled group has no tab stop at all.
+- **Member ids are namespaced.** With a group `id`, a member's own id becomes `<group-id>-button-<value>`.
+- **Arrows never commit.** Travel moves focus only, and writing `value` from outside announces nothing because no member acted.
 
-## Toggle Buttons
+### Events
 
-Individual members of a toggle group are standard `toggle` controllers (`aria('toggle')`) that discover the enclosing group through ambient context, so they may sit at any depth below the container. See the [Toggle](/docs/aria/toggle) documentation for the full parameter reference, `aria-pressed` projection, and native `<button>` versus custom host behavior.
+_What it tells you._
 
-## Keyboard Navigation
+- **`change`** — the member's own bubbling event reaches the container, which is why `onchange` on the group hears every press. `detail` carries the group's shared value rather than a boolean: the token in single mode, the array in `multiple`.
 
-- **ArrowRight / ArrowDown**: Moves roving focus to the next enabled toggle, wrapping past the last one back to the first.
-- **ArrowLeft / ArrowUp**: Moves roving focus to the previous enabled toggle, wrapping past the first one back to the last.
-- **Home / End**: Moves focus to the first or last enabled toggle.
-- **Space / Enter**: Presses or releases the focused toggle; disabled members refuse both.
-- **Tab**: Leaves the toggle group completely, moving focus to the next page element.
+```tsx
+const align = aria('toggle-group', {
+  value: 'left',
+  onchange: (event) => setAlign(event.detail),
+});
+```
 
-## What you get
+### Navigation
 
-- **Focus and pressing kept apart.** Arrows move focus on both axes and never commit state, so keyboard users are never surprised by a pressed button.
-- **Single or multi-press from one API.** `multiple` switches the same group between exclusive and set membership without changing your markup.
-- **One tab stop.** The pressed member owns the stop and siblings are suppressed, so the strip behaves as a single control in the page tab order.
-- **Always releasable.** Re-activating the pressed member clears it; there is no `required` lock-in and no forced selection.
-- **Native parity on custom hosts.** A `<button>` keeps browser activation with no redundant `role`, while a custom element gains `role="button"` plus synthesized `Enter`/`Space`.
-- **Zero markup lock-in.** Render native buttons, icon buttons, or rich custom toggles as long as each member declares its `value`.
+_What the keys do._
+
+- **`ArrowRight` / `ArrowDown`** — moves focus to the next enabled member, wrapping past the last one to the first.
+- **`ArrowLeft` / `ArrowUp`** — moves focus to the previous enabled member, wrapping past the first one to the last.
+- **`Home` / `End`** — moves focus to the first or last enabled member.
+- **`Space` / `Enter`** — belongs to the focused member, which presses or releases itself; a locked member refuses both.
+- **`Tab`** — leaves the group. The stop is the pressed member; with the single value cleared every member sits at `-1`, so an emptied group cannot be reached by keyboard until a value is set again.
+- **The handler lives on the container**, not on the members, and matches enabled `[role="button"]` and `<button>` descendants — so it works at any depth and skips a disabled member entirely. Inside a [toolbar](/docs/aria/toolbar) the outer rover owns the arrows and the group leaves them alone.
+
+## Toggle
+
+**The member.** A plain toggle that contributes a token to the group above it.
+
+### Parameters
+
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **value** _Primitive, required to join_: The token this member contributes. Without it the toggle keeps its own state.
+- **disabled** _boolean, optional_: Locks this member. The group's own `disabled` reaches it the same way.
+- **pressed** _boolean, optional_: Ignored while the member carries a `value` in a group — the shared value decides.
+
+### How it behaves
+
+- **The member is a toggle**, with the same `aria-pressed`, `type="button"`, and key contract documented on [Toggle](/docs/aria/toggle); the only difference is where its pressed state comes from.
+- **Writing `pressed` still works** and moves the shared value, because a write routes through the same `select()` / `deselect()` path a click uses.
+- **A locked member refuses activation** and stays out of the roving order, so the arrows step over it.
 
 ## Next Steps
 
-- **[Toggle](/docs/aria/toggle)**: The two-state button a group member is built from.
+- **[Toggle](/docs/aria/toggle)**: The two-state button every member is built from.
+- **[Toolbar](/docs/aria/toolbar)**: Toggles and actions under one outer rover.
 - **[Checkbox Group](/docs/aria/checkbox-group)**: Multi-selection cards that keep an independent tab stop each.
-- **[Radio Group](/docs/aria/radio-group)**: Mutually exclusive single-choice sets that select as focus moves.
-- **[Toolbar](/docs/aria/toolbar)**: Group buttons, toggles, and dropdowns into an action bar with single-tab-stop roving focus.
+- **[Radio Group](/docs/aria/radio-group)**: Mutually exclusive sets that select as focus moves.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Toggle Group
+
+```ts
+interface SingleToggleGroupProps<T extends Primitive = Primitive> {
+  multiple?: false;
+  id?: string;
+  value?: T;
+  disabled?: boolean;
+  onchange?: (event: CustomEvent<boolean>) => void;
+}
+
+interface MultipleToggleGroupProps<T extends Primitive = Primitive> {
+  multiple: true;
+  id?: string;
+  value?: T[];
+  disabled?: boolean;
+  onchange?: (event: CustomEvent<boolean>) => void;
+}
+
+type ToggleGroupProps<T extends Primitive = Primitive> =
+  | SingleToggleGroupProps<T>
+  | MultipleToggleGroupProps<T>;
+
+interface ToggleGroupAttributes {
+  id?: string;
+  role?: 'group';
+  'aria-disabled'?: 'true' | 'false';
+}
+
+declare class ToggleGroupAria {
+  id: string;
+  get disabled(): boolean;
+
+  toggle<E extends BaseElement = HTMLButtonElement>(
+    props?: Partial<ToggleProps>,
+    options?: Partial<ToggleOptions>
+  ): ToggleAria<E>;
+}
+```
+
+### Toggle
+
+```ts
+interface ToggleProps {
+  value?: Primitive;
+  pressed?: boolean;
+  disabled?: boolean;
+  onchange?: (event: CustomEvent<boolean | Primitive | Primitive[]>) => void;
+}
+
+interface ToggleAttributes {
+  id?: string;
+  role?: 'button';
+  type?: 'button';
+  disabled?: boolean;
+  tabindex?: number;
+  'aria-pressed'?: 'true' | 'false';
+  'aria-disabled'?: 'true' | 'false';
+}
+
+declare class ToggleAria {
+  id: string;
+  get pressed(): boolean;
+  set pressed(value: boolean);
+  get value(): Primitive;
+  get disabled(): boolean;
+
+  select(): void;
+  deselect(): void;
+  toggle(): void;
+}
+```
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`attributes`** is the dictionary you spread; **`ref`** is what you bind the element with; **`props`** is the full props dictionary for spreading onto the host; **`restProps(omit)`** hands back your props with the keys you name left out.
+- **`assign()`** changes several parameters at once, **`refine()`** adds attributes of your own, **`on()`** listens for anything the part fires, **`destroy()`** tears it down.

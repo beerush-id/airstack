@@ -2,8 +2,9 @@
   display: flex;
   flex-direction: column;
   gap: var(--demo-gap-sm);
-  width: 100%;
-  padding: 1rem;
+  width: min(100%, 24rem);
+  margin-inline: auto;
+  padding: 0.5rem;
   border: 1px solid var(--demo-border);
   border-radius: var(--demo-radius);
   background: var(--demo-bg);
@@ -19,7 +20,6 @@
   font-size: var(--demo-font);
   color: var(--demo-fg);
   cursor: pointer;
-  user-select: none;
 }
 
 .demo-switch-row:hover:not(:has(.demo-switch[aria-disabled='true'])) {
@@ -32,7 +32,7 @@
 
 .demo-switch-row:has(.demo-switch[aria-disabled='true']) {
   color: var(--demo-muted);
-  cursor: not-allowed;
+  pointer-events: none;
 }
 
 .demo-switch {
@@ -42,7 +42,7 @@
   width: 2.5rem;
   height: 1.375rem;
   border-radius: 9999px;
-  background: var(--demo-border);
+  background: color-mix(in srgb, var(--demo-muted) 35%, var(--demo-bg));
   cursor: pointer;
   user-select: none;
   transition: background-color 0.15s;
@@ -57,12 +57,14 @@
   height: 1.125rem;
   border-radius: 9999px;
   background: var(--demo-bg);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--demo-fg) 12%, transparent),
+    0 1px 2px color-mix(in srgb, var(--demo-fg) 30%, transparent);
   transition: transform 0.15s;
 }
 
-.demo-switch:hover {
-  background: color-mix(in oklab, var(--demo-border), var(--demo-muted) 18%);
+.demo-switch:hover:not([aria-disabled='true']) {
+  background: color-mix(in srgb, var(--demo-muted) 55%, var(--demo-bg));
 }
 
 .demo-switch[aria-checked='true'] {
@@ -73,11 +75,11 @@
   transform: translateX(1.125rem);
 }
 
-.demo-switch[aria-checked='true']:hover {
+.demo-switch[aria-checked='true']:hover:not([aria-disabled='true']) {
   background: var(--demo-fg-hover);
 }
 
-.demo-switch:active {
+.demo-switch:active:not([aria-disabled='true']) {
   background: var(--demo-muted);
 }
 

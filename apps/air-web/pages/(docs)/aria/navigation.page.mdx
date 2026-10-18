@@ -1,23 +1,28 @@
 ---
-title: 'Navigation'
-description: 'Headless roving link group that compiles role="navigation", names the landmark, and carries vertical arrow-key travel across its links under a single tab stop.'
+title: 'Headless Navigation'
+description: 'Headless navigation groups for React and SolidJS. Name the landmark, hold one tab stop instead of one per link, rove across the links with the vertical arrows, and leave activation to the links themselves — with no markup or styles imposed.'
 nav: 'Navigation'
 nav-priority: 530
 ---
 
-# AirLib Headless Navigation
+import './aria.css';
+import './navigation.css';
 
-A sidebar nav with twenty links is twenty tab stops a keyboard user has to step through to get past, and to assistive technology the pile is an unnamed group of links with no way to jump to it. **AirLib Headless Navigation** (`aria('navigation')`) compiles `role="navigation"` onto the host you render, names it so it can be jumped to, and carries `Up` / `Down` / `Home` / `End` travel across its links under a single tab stop — wrapping at both ends and passing over disabled links. It travels vertically by default, because a horizontal bar of menus is a [`menubar`](/docs/aria/menu), and a horizontal trail of ancestors is a [`breadcrumb`](/docs/aria/breadcrumb).
+# Headless Navigation
+
+A navigation group is the run of links every page of a site repeats — a sidebar, a section index, a settings menu.
+
+Getting it right means **naming the landmark so it can be jumped to**, **holding one tab stop instead of one per link**, **roving across the links with the vertical arrows**, **stepping over the disabled ones and wrapping at both ends**, and **leaving the activation, the URL, and the current-page marker to the links themselves**.
+
+**Headless Navigation** does all of that for you, and leaves the markup and the styling entirely yours.
 
 ```tsx
 const nav = aria('navigation', props);
 
-<nav ref={nav.ref} {...nav.restProps(['children'])} />
+<div ref={nav.ref} {...nav.restProps(['children'])} />
 ```
 
-<style>{`.demo-nav{display:flex;flex-direction:column;gap:.25rem;padding:.75rem;max-width:14rem;border:1px solid #e4e4e7;border-radius:.75rem;background:#fafafa}.demo-nav-heading{padding:.25rem .5rem;font-size:.75rem;font-weight:600;letter-spacing:.02em;text-transform:uppercase;color:#a1a1aa}.demo-nav-link{padding:.375rem .5rem;border-radius:.5rem;font-size:.875rem;font-weight:500;color:#3f3f46;text-decoration:none;cursor:pointer}.demo-nav-link:hover{background:#e4e4e7}.demo-nav-link:focus-visible{outline:2px solid #18181b;outline-offset:2px}.demo-nav-link[aria-current="page"]{background:#18181b;color:#fff}.demo-nav-link[aria-disabled="true"]{opacity:.5;cursor:not-allowed}`}</style>
-
-:::interactive[Section Navigation]
+:::interactive[Project Sections]
 ```tsx
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
@@ -25,7 +30,6 @@ import type { ComponentProps, ReactNode } from 'react';
 
 type DemoNavigationProps = ComponentProps<'div'> & {
   label?: string;
-  labelledby?: string;
   children: ReactNode;
 };
 
@@ -33,39 +37,84 @@ const DemoNavigation = setup<DemoNavigationProps>((props) => {
   const nav = aria('navigation', props, { native: false });
 
   return () => (
-    <div ref={nav.ref} {...nav.restProps(['children'])} className="demo-nav">
+    <div ref={nav.ref} {...nav.restProps(['children'])} className="demo-navigation-group">
       {props.children}
     </div>
   );
 }, 'DemoNavigation');
 
+const DemoNativeNavigation = setup<DemoNavigationProps>((props) => {
+  const nav = aria('navigation', props);
+
+  return () => (
+    <nav ref={nav.ref} {...nav.restProps(['children'])} className="demo-navigation-group">
+      {props.children}
+    </nav>
+  );
+}, 'DemoNativeNavigation');
+
 type DemoNavLinkProps = ComponentProps<'a'> & {
+  href: string;
   current?: boolean;
+  disabled?: boolean;
 };
 
 const DemoNavLink = setup<DemoNavLinkProps>((props) => {
   const link = aria('link', props);
 
   return () => (
-    <a ref={link.ref} {...link.restProps(['children'])} className="demo-nav-link">
+    <a ref={link.ref} {...link.restProps(['children'])} className="demo-navigation-link">
       {props.children}
     </a>
   );
 }, 'DemoNavLink');
 ```
+```html
+<div className="demo-navigation-card">
+  <DemoNavigation label="Project sections">
+    <span className="demo-navigation-caption">Project</span>
+    <DemoNavLink href="#overview" current>Overview</DemoNavLink>
+    <DemoNavLink href="#members">Members</DemoNavLink>
+    <DemoNavLink href="#billing">Billing</DemoNavLink>
+    <DemoNavLink href="#archived" disabled>Archived</DemoNavLink>
+  </DemoNavigation>
 
-<DemoNavigation label="Documentation sections">
-  <span className="demo-nav-heading">Aria</span>
-  <DemoNavLink href="#overview" current>Overview</DemoNavLink>
-  <DemoNavLink href="#widgets">Widgets</DemoNavLink>
-  <DemoNavLink href="#composites">Composites</DemoNavLink>
-  <DemoNavLink href="#landmarks">Landmarks</DemoNavLink>
-</DemoNavigation>
+  <DemoNativeNavigation label="Reference">
+    <span className="demo-navigation-caption">Reference</span>
+    <DemoNavLink href="#guides" current>Guides</DemoNavLink>
+    <DemoNavLink href="#api">API</DemoNavLink>
+    <DemoNavLink href="#changelog">Changelog</DemoNavLink>
+  </DemoNativeNavigation>
+</div>
+```
+
+<div className="demo-navigation-card">
+  <DemoNavigation label="Project sections">
+    <span className="demo-navigation-caption">Project</span>
+    <DemoNavLink href="#overview" current>Overview</DemoNavLink>
+    <DemoNavLink href="#members">Members</DemoNavLink>
+    <DemoNavLink href="#billing">Billing</DemoNavLink>
+    <DemoNavLink href="#archived" disabled>Archived</DemoNavLink>
+  </DemoNavigation>
+
+  <DemoNativeNavigation label="Reference">
+    <span className="demo-navigation-caption">Reference</span>
+    <DemoNavLink href="#guides" current>Guides</DemoNavLink>
+    <DemoNavLink href="#api">API</DemoNavLink>
+    <DemoNavLink href="#changelog">Changelog</DemoNavLink>
+  </DemoNativeNavigation>
+</div>
+:::
+
+:::tip
+**Mark the link that is current.** With native links in the group, the current one takes the group's single tab stop and every other link parks at `-1` until the arrows reach it — so the tab stop lands where the reader already is.
 :::
 
 ## Navigation
 
-Roving link group and navigation landmark. The container holds the accessible name and the arrow-key travel; the links themselves are ordinary [`aria('link')`](/docs/aria/link) controllers.
+**The group.** It names the landmark and moves focus across the links inside it.
+
+### Usage
 
 ```ts
 aria<E extends BaseElement = HTMLElement>(
@@ -74,8 +123,6 @@ aria<E extends BaseElement = HTMLElement>(
   options?: AriaOptions
 ): NavigationAria<E>
 ```
-
-### Usage
 
 :::code-group
 
@@ -98,7 +145,7 @@ const Navigation = setup<NavigationProps>((props) => {
       {props.children}
     </nav>
   );
-});
+}, 'Navigation');
 ```
 
 ```tsx [SolidJS]
@@ -124,47 +171,107 @@ const Navigation = setup<NavigationProps>((props) => {
 
 :::
 
+The links inside are ordinary link controllers:
+
+```tsx
+const link = aria('link', { href: '#members', current: false });
+
+<a ref={link.ref} {...link.restProps(['children'])} />
+```
+
 ### Parameters
 
-- `props.label` *(string, optional)*: Accessible label compiled to `aria-label`. There is no default — an unnamed navigation carries no name, because two unnamed navigations on a page are indistinguishable and only you know which is which.
-- `props.labelledby` *(string, optional)*: Element ID providing the accessible name, compiled to `aria-labelledby`.
-- `options.native` *(boolean, optional, default `true`)*: Leave it for a real `<nav>`, which already implies the role. Pass `false` for a generic host so `role="navigation"` is compiled.
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **label** _string, optional_: The landmark's accessible name, compiled to `aria-label`. There is no default, because two unnamed navigations on one page are indistinguishable.
+- **labelledby** _string, optional_: The ID of an element already on the page that provides that name, compiled to `aria-labelledby`.
+
+### Options
+
+_What you fix when you create it. Read once, never reactive._
+
+- **native** _boolean, optional, default `true`_: Declares the host. A real `<nav>` already means navigation, so no role is compiled; declare a generic element and the host takes `role="navigation"` instead.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **label** _string | undefined_: The name in force, yours or the role's own default — which this group does not set.
 
 ### How it behaves
 
-- Compiles `role="navigation"` on a generic host; on a native `<nav>` the role is omitted and only the name is added.
-- `Up` / `Down` move DOM focus to the previous / next enabled link, wrapping at both ends.
-- `Home` / `End` move focus to the first / last enabled link.
-- Disabled links are passed over in every direction.
-- One tab stop for the whole group: the current link sits at `tabindex="0"` and every other link parks at `-1`, reached with the arrow keys.
-- `Left` / `Right` are left alone — the group travels vertically, so the horizontal arrows keep their browser behavior.
-- No selection state of any kind: no `value`, no `aria-activedescendant`, no `aria-current` invented on your behalf. Activation stays with the link.
-- `label` and `labelledby` are consumed by the controller and carried in `ownKeys`, so `restProps(['children'])` is the whole omission list.
-- This is the baseline the other link groups extend: [`breadcrumb`](/docs/aria/breadcrumb) and [`pagination`](/docs/aria/pagination) are the same roving group locked to the horizontal axis, each adding its own member semantics.
+- **Both hosts become the landmark.** A generic host compiles `role="navigation"`; a real `<nav>` compiles no role, and the name lands on either.
+- **The group holds one tab stop.** With native links inside it, the link marked `current` compiles `tabindex="0"` and every other enabled link compiles `-1`. A link on a custom host is a tab stop of its own whatever the group does.
+- **The arrows travel and wrap.** Focus moves down and up the group and wraps at both ends; `Home` and `End` jump to the ends.
+- **Disabled links are stepped over.** A disabled link keeps its `href` so it stays discoverable, announces `aria-disabled`, parks at `-1`, and is skipped by every direction of travel.
+- **The horizontal arrows are left alone.** The group travels vertically, so `ArrowLeft` and `ArrowRight` keep whatever the browser does with them.
+- **Roving never activates.** The arrows move focus and nothing else — no click, no navigation, no page change.
+- **It invents no selection.** No `value`, no `aria-activedescendant`, and no `aria-current` written on your behalf; the link compiles `aria-current="page"` from its own `current`.
+- **It owns no markup.** The group labels itself and moves focus; the links keep their own navigation, activation, and disabled lockout.
 
-:::tip[Mark the active link current]
-The single tab stop lands on whichever link is `current`, so mark the active one — that is where a keyboard user arrives and where `Tab` leaves from. A horizontal top bar of menus is not this role: use [`menubar`](/docs/aria/menu), whose members are menu items rather than links.
-:::
+### Navigation
 
-## Keyboard Navigation
+_What the keys do._
 
-- **ArrowDown / ArrowUp**: Moves focus to the next / previous enabled link, wrapping at both ends.
-- **Home / End**: Moves focus to the first / last enabled link.
-- **ArrowLeft / ArrowRight**: Left to the browser — this group travels vertically.
-- **Enter / Space**: Left to the focused link, which navigates itself.
-- **Tab**: Left to the browser. From inside the group, `Tab` leaves from the current link — the group's only tab stop.
-
-## What you get
-
-- **One tab stop, not twenty.** Arrow travel across the whole group from a single stop.
-- **Named landmark.** `label` or `labelledby` makes the group a jump destination.
-- **Wrapped travel.** Arrows wrap from the last link back to the first, and past disabled links.
-- **Links stay links.** Native navigation, `aria-current`, and disabled lockout all keep working as themselves.
-- **Zero markup lock-in.** Native `<nav>` or a custom host; the container only names the group and moves focus.
+- **`ArrowDown` / `ArrowUp`** — the next / previous enabled link, wrapping at both ends.
+- **`Home` / `End`** — the first / last enabled link.
+- **`Enter`** — left to the focused link, which navigates itself.
+- **`ArrowLeft` / `ArrowRight`** — left to the browser; this group travels vertically.
+- **`Tab`** — left to the browser, which leaves the group from its own single stop.
 
 ## Next Steps
 
-- **[Link](/docs/aria/link)**: The navigation triggers that live inside this group.
-- **[Breadcrumb](/docs/aria/breadcrumb)**: The same rover locked horizontal, over an ordered trail with a terminal page.
+- **[Link](/docs/aria/link)**: The links that live inside this group and carry the current-page marker.
+- **[Breadcrumb](/docs/aria/breadcrumb)**: The same rover, locked horizontal over a trail of ancestors.
 - **[Pagination](/docs/aria/pagination)**: The same rover over a page list, holding the page position.
-- **[Menu](/docs/aria/menu)**: `menubar` for a horizontal bar of menu items rather than links.
+- **[Menu](/docs/aria/menu)**: A menubar for a horizontal bar of menu items rather than links.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Navigation
+
+```ts
+interface NavigationProps {
+  label?: string;
+  labelledby?: string;
+}
+
+interface NavigationOptions {
+  native?: boolean;
+}
+
+interface NavigationAttributes {
+  role?: 'navigation';
+  'aria-label'?: string;
+  'aria-labelledby'?: string;
+}
+
+declare class NavigationAria {
+  get label(): string | undefined;
+}
+```
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`attributes`** is the dictionary you spread; **`ref`** is what you bind the element with; **`props`** is the full props dictionary for spreading onto the host; **`restProps(omit)`** hands back your props with the keys you name left out.
+- **`assign()`** changes several parameters at once, **`refine()`** adds attributes of your own, **`on()`** listens for anything the part fires, **`destroy()`** tears it down.

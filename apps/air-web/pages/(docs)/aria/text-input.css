@@ -1,3 +1,8 @@
+.demo-text-card {
+  width: min(100%, 26rem);
+  margin-inline: auto;
+}
+
 textarea.demo-field-input {
   min-height: 4.5rem;
   resize: vertical;

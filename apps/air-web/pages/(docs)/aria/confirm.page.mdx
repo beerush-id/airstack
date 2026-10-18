@@ -24,63 +24,176 @@ const trigger = confirm.trigger();
 :::interactive[Delete Repository]
 ```tsx
 import { aria } from '@airlib/aria';
-import { setup } from '@airlib/react';
-import type { ComponentProps } from 'react';
+import { setup, shadowPortal } from '@airlib/react';
+import type { ComponentProps, ReactNode } from 'react';
 
 type DemoConfirmProps = ComponentProps<'div'> & {
   open?: boolean;
-  caption?: string;
-  trigger?: string;
-  heading?: string;
-  note?: string;
-  action?: string;
+  dismissable?: boolean;
+  children: ReactNode;
 };
 
 const DemoConfirm = setup<DemoConfirmProps>((props) => {
-  const root = aria('confirm', props);
-  const trigger = root.trigger();
-  const panel = root.panel();
-  const title = root.title();
-  const description = root.description();
-  const cancel = root.cancel();
-  const action = root.action();
+  const confirm = aria('confirm', props);
 
   return () => (
-    <div className="demo-confirm-row">
-      <span className="demo-confirm-caption">{props.caption}</span>
-      <button ref={trigger.ref} {...trigger.restProps(['children'])} className="demo-confirm-trigger">
-        {props.trigger}
-      </button>
-      <div ref={panel.ref} {...panel.restProps(['children'])} className="demo-confirm-panel">
-        <span ref={title.ref} {...title.restProps(['children'])} className="demo-confirm-title">
-          {props.heading}
-        </span>
-        <span ref={description.ref} {...description.restProps(['children'])} className="demo-confirm-note">
-          {props.note}
-        </span>
-        <div className="demo-confirm-actions">
-          <button ref={cancel.ref} {...cancel.restProps(['children'])} className="demo-confirm-cancel">
-            Cancel
-          </button>
-          <button ref={action.ref} {...action.restProps(['children'])} className="demo-confirm-action">
-            {props.action}
-          </button>
-        </div>
-      </div>
+    <div ref={confirm.ref} {...confirm.restProps(['children'])} className="demo-confirm-group">
+      {props.children}
     </div>
   );
 }, 'DemoConfirm');
+
+type DemoConfirmTriggerProps = ComponentProps<'button'> & {
+  children: ReactNode;
+};
+
+const DemoConfirmTrigger = setup<DemoConfirmTriggerProps>((props) => {
+  const trigger = aria('confirm-trigger', props);
+
+  return () => (
+    <button ref={trigger.ref} {...trigger.restProps(['children'])} className="demo-confirm-trigger">
+      {props.children}
+    </button>
+  );
+}, 'DemoConfirmTrigger');
+
+type DemoConfirmPanelProps = ComponentProps<'div'> & {
+  children: ReactNode;
+};
+
+const DemoConfirmPanel = setup<DemoConfirmPanelProps>((props) => {
+  const panel = aria('confirm-panel', props);
+  const shadow = shadowPortal(() => panel.open);
+
+  return () => shadow(
+    <div ref={panel.ref} {...panel.restProps(['children'])} className="demo-confirm-panel">
+      {props.children}
+    </div>
+  );
+}, 'DemoConfirmPanel');
+
+type DemoConfirmTitleProps = ComponentProps<'span'> & {
+  children: ReactNode;
+};
+
+const DemoConfirmTitle = setup<DemoConfirmTitleProps>((props) => {
+  const title = aria('confirm-title', props);
+
+  return () => (
+    <span ref={title.ref} {...title.restProps(['children'])} className="demo-confirm-title">
+      {props.children}
+    </span>
+  );
+}, 'DemoConfirmTitle');
+
+type DemoConfirmDescriptionProps = ComponentProps<'span'> & {
+  children: ReactNode;
+};
+
+const DemoConfirmDescription = setup<DemoConfirmDescriptionProps>((props) => {
+  const description = aria('confirm-description', props);
+
+  return () => (
+    <span ref={description.ref} {...description.restProps(['children'])} className="demo-confirm-note">
+      {props.children}
+    </span>
+  );
+}, 'DemoConfirmDescription');
+
+type DemoConfirmCancelProps = ComponentProps<'button'> & {
+  children: ReactNode;
+};
+
+const DemoConfirmCancel = setup<DemoConfirmCancelProps>((props) => {
+  const cancel = aria('confirm-cancel', props);
+
+  return () => (
+    <button ref={cancel.ref} {...cancel.restProps(['children'])} className="demo-confirm-cancel">
+      {props.children}
+    </button>
+  );
+}, 'DemoConfirmCancel');
+
+type DemoConfirmActionProps = ComponentProps<'button'> & {
+  children: ReactNode;
+};
+
+const DemoConfirmAction = setup<DemoConfirmActionProps>((props) => {
+  const action = aria('confirm-action', props);
+
+  return () => (
+    <button ref={action.ref} {...action.restProps(['children'])} className="demo-confirm-action">
+      {props.children}
+    </button>
+  );
+}, 'DemoConfirmAction');
 ```
 ```html
 <div className="demo-confirm-stack">
-  <DemoConfirm caption="Open: focus lands on Cancel" trigger="Delete repository" heading="This permanently deletes the repository" note="All branches, commits, and releases are removed. There is no undo." action="Delete forever" />
-  <DemoConfirm caption="Open: neither Escape nor an outside click decides it" trigger="Revoke API token" heading="Live integrations stop on their next call" note="The token is invalidated immediately and cannot be restored." action="Revoke token" />
+  <div className="demo-confirm-row">
+    <span className="demo-confirm-caption">Focus lands on Cancel</span>
+    <span className="demo-confirm-hint">No undo after confirmation.</span>
+    <DemoConfirm>
+      <DemoConfirmTrigger>Delete repository</DemoConfirmTrigger>
+      <DemoConfirmPanel>
+        <DemoConfirmTitle>This permanently deletes the repository</DemoConfirmTitle>
+        <DemoConfirmDescription>All branches, commits, and releases are removed. There is no undo.</DemoConfirmDescription>
+        <div className="demo-confirm-actions">
+          <DemoConfirmCancel>Cancel</DemoConfirmCancel>
+          <DemoConfirmAction>Delete forever</DemoConfirmAction>
+        </div>
+      </DemoConfirmPanel>
+    </DemoConfirm>
+  </div>
+  <div className="demo-confirm-row">
+    <span className="demo-confirm-caption">Escape and outside clicks decide nothing</span>
+    <span className="demo-confirm-hint">Integrations fail on their next call.</span>
+    <DemoConfirm>
+      <DemoConfirmTrigger>Revoke API token</DemoConfirmTrigger>
+      <DemoConfirmPanel>
+        <DemoConfirmTitle>Live integrations stop on their next call</DemoConfirmTitle>
+        <DemoConfirmDescription>The token is invalidated immediately and cannot be restored.</DemoConfirmDescription>
+        <div className="demo-confirm-actions">
+          <DemoConfirmCancel>Cancel</DemoConfirmCancel>
+          <DemoConfirmAction>Revoke token</DemoConfirmAction>
+        </div>
+      </DemoConfirmPanel>
+    </DemoConfirm>
+  </div>
 </div>
 ```
 
 <div className="demo-confirm-stack">
-  <DemoConfirm caption="Open: focus lands on Cancel" trigger="Delete repository" heading="This permanently deletes the repository" note="All branches, commits, and releases are removed. There is no undo." action="Delete forever" />
-  <DemoConfirm caption="Open: neither Escape nor an outside click decides it" trigger="Revoke API token" heading="Live integrations stop on their next call" note="The token is invalidated immediately and cannot be restored." action="Revoke token" />
+  <div className="demo-confirm-row">
+    <span className="demo-confirm-caption">Focus lands on Cancel</span>
+    <span className="demo-confirm-hint">No undo after confirmation.</span>
+    <DemoConfirm>
+      <DemoConfirmTrigger>Delete repository</DemoConfirmTrigger>
+      <DemoConfirmPanel>
+        <DemoConfirmTitle>This permanently deletes the repository</DemoConfirmTitle>
+        <DemoConfirmDescription>All branches, commits, and releases are removed. There is no undo.</DemoConfirmDescription>
+        <div className="demo-confirm-actions">
+          <DemoConfirmCancel>Cancel</DemoConfirmCancel>
+          <DemoConfirmAction>Delete forever</DemoConfirmAction>
+        </div>
+      </DemoConfirmPanel>
+    </DemoConfirm>
+  </div>
+  <div className="demo-confirm-row">
+    <span className="demo-confirm-caption">Escape and outside clicks decide nothing</span>
+    <span className="demo-confirm-hint">Integrations fail on their next call.</span>
+    <DemoConfirm>
+      <DemoConfirmTrigger>Revoke API token</DemoConfirmTrigger>
+      <DemoConfirmPanel>
+        <DemoConfirmTitle>Live integrations stop on their next call</DemoConfirmTitle>
+        <DemoConfirmDescription>The token is invalidated immediately and cannot be restored.</DemoConfirmDescription>
+        <div className="demo-confirm-actions">
+          <DemoConfirmCancel>Cancel</DemoConfirmCancel>
+          <DemoConfirmAction>Revoke token</DemoConfirmAction>
+        </div>
+      </DemoConfirmPanel>
+    </DemoConfirm>
+  </div>
 </div>
 :::
 
@@ -117,17 +230,12 @@ type ConfirmProps = ComponentProps<'div'> & {
 };
 
 const Confirm = setup<ConfirmProps>((props) => {
-  const root = aria('confirm', props);
-  const trigger = root.trigger();
-  const panel = root.panel();
+  const confirm = aria('confirm', props);
 
   return () => (
-    <>
-      <button ref={trigger.ref} {...trigger.restProps(['children'])}>
-        {props.children}
-      </button>
-      <div ref={panel.ref} {...panel.restProps(['children'])} />
-    </>
+    <div ref={confirm.ref} {...confirm.restProps(['children'])}>
+      {props.children}
+    </div>
   );
 });
 ```
@@ -145,17 +253,12 @@ type ConfirmProps = ComponentProps<'div'> & {
 };
 
 const Confirm = setup<ConfirmProps>((props) => {
-  const root = aria('confirm', props);
-  const trigger = root.trigger();
-  const panel = root.panel();
+  const confirm = aria('confirm', props);
 
   return (
-    <>
-      <button ref={trigger.ref} {...trigger.restProps(['children'])}>
-        {props.children}
-      </button>
-      <div ref={panel.ref} {...panel.restProps(['children'])} />
-    </>
+    <div ref={confirm.ref} {...confirm.restProps(['children'])}>
+      {props.children}
+    </div>
   );
 });
 ```
@@ -270,6 +373,13 @@ const ConfirmTrigger = setup<ComponentProps<'button'>>((props) => {
 
 :::
 
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **open** _boolean_: Whether the confirmation it opens is showing.
+- **disabled** _boolean_: Whether this trigger refuses to open it.
+
 ### How it behaves
 
 - **Announced as opening something.** `aria-haspopup="dialog"` with `aria-expanded` tracking the panel and `aria-controls` pointing at it.
@@ -325,6 +435,12 @@ const ConfirmPanel = setup<ComponentProps<'div'> & { children: JSX.Element }>((p
 ```
 
 :::
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **open** _boolean_: Whether the panel is showing.
 
 ### How it behaves
 
@@ -491,6 +607,13 @@ const ConfirmCancel = setup<ComponentProps<'button'>>((props) => {
 
 :::
 
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **open** _boolean_: Whether the confirmation it dismisses is showing.
+- **disabled** _boolean_: Whether this button refuses to dismiss it.
+
 ### How it behaves
 
 - **Takes the first focus.** Compiled with `autofocus`, so the trap lands here when the panel opens.
@@ -545,6 +668,13 @@ const ConfirmAction = setup<ComponentProps<'button'>>((props) => {
 ```
 
 :::
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **open** _boolean_: Whether the confirmation it commits is showing.
+- **disabled** _boolean_: Whether this button refuses to commit it.
 
 ### How it behaves
 
@@ -610,6 +740,11 @@ interface ConfirmTriggerAttributes {
   'aria-controls'?: string;
   'aria-disabled'?: 'true' | 'false';
 }
+
+declare class ConfirmTriggerAria {
+  get open(): boolean;
+  get disabled(): boolean;
+}
 ```
 
 ### Confirm Panel
@@ -623,9 +758,13 @@ interface ConfirmPanelAttributes {
   'aria-describedby'?: string;
   hidden?: boolean;
 }
+
+declare class ConfirmPanelAria {
+  get open(): boolean;
+}
 ```
 
-### Confirm Action and Confirm Cancel
+### Confirm Action
 
 ```ts
 interface ConfirmActionAttributes {
@@ -636,17 +775,43 @@ interface ConfirmActionAttributes {
   'aria-disabled'?: 'true' | 'false';
 }
 
-type ConfirmCancelAttributes = ConfirmActionAttributes;
+declare class ConfirmActionAria {
+  get open(): boolean;
+  get disabled(): boolean;
+}
 ```
 
-### Confirm Title and Confirm Description
+### Confirm Cancel
+
+```ts
+interface ConfirmCancelAttributes {
+  type?: string;
+  disabled?: boolean;
+  role?: string;
+  tabindex?: number;
+  'aria-disabled'?: 'true' | 'false';
+}
+
+declare class ConfirmCancelAria {
+  get open(): boolean;
+  get disabled(): boolean;
+}
+```
+
+### Confirm Title
 
 ```ts
 interface ConfirmTitleAttributes {
   id?: string;
 }
+```
 
-type ConfirmDescriptionAttributes = ConfirmTitleAttributes;
+### Confirm Description
+
+```ts
+interface ConfirmDescriptionAttributes {
+  id?: string;
+}
 ```
 
 ### On every one of them

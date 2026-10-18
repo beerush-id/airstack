@@ -29,11 +29,9 @@ import type { ComponentProps } from 'react';
 const ENTRIES = [
   { name: 'Tabs', tier: 'Composite' },
   { name: 'Accordion', tier: 'Composite' },
-  { name: 'Toolbar', tier: 'Composite' },
   { name: 'Combobox', tier: 'Composite' },
   { name: 'Listbox', tier: 'Composite' },
   { name: 'Switch', tier: 'Widget' },
-  { name: 'Slider', tier: 'Widget' },
 ];
 
 type DemoSearchProps = ComponentProps<'input'> & {
@@ -50,24 +48,20 @@ const DemoWidgetSearch = setup<DemoSearchProps>((props) => {
     const hits = ENTRIES.filter((entry) => entry.name.toLowerCase().includes(term));
 
     return (
-      <div className="demo-search">
+      <div className="demo-query">
         <label className="demo-field">
           <span className="demo-field-label">{props.label}</span>
           <input ref={search.ref} {...search.restProps(['children', 'label'])} className="demo-field-input" />
-          <span className="demo-field-hint">
-            {hits.length} of {ENTRIES.length} parts match.
-          </span>
         </label>
-
-        <ul className="demo-search-results">
+        <div className="demo-query-results">
           {hits.map((entry) => (
-            <li key={entry.name} className="demo-search-hit">
+            <div key={entry.name} className="demo-query-hit">
               <span>{entry.name}</span>
-              <span className="demo-search-tier">{entry.tier}</span>
-            </li>
+              <span className="demo-query-tier">{entry.tier}</span>
+            </div>
           ))}
-          {hits.length === 0 ? <li className="demo-search-empty">Nothing matches “{props.value}”.</li> : null}
-        </ul>
+          {hits.length === 0 ? <div className="demo-query-empty">{'No widget matches that query.'}</div> : null}
+        </div>
       </div>
     );
   };
@@ -85,15 +79,23 @@ const DemoArchiveSearch = setup<DemoSearchProps>((props) => {
 }, 'DemoArchiveSearch');
 ```
 ```html
-<div className="demo-field-card">
-  <DemoWidgetSearch label="Search the widget list" value="" placeholder="Try “tab”" />
-  <DemoArchiveSearch label="Archive search" value="" placeholder="Unavailable while the index rebuilds" disabled={true} />
+<div className="demo-query-stack">
+  <div className="demo-field-card">
+    <DemoWidgetSearch label="Search the widget list" value="" placeholder="Try “tab”" />
+  </div>
+  <div className="demo-field-card">
+    <DemoArchiveSearch label="Archive search" value="" placeholder="Unavailable while the index rebuilds" disabled={true} />
+  </div>
 </div>
 ```
 
-<div className="demo-field-card">
-  <DemoWidgetSearch label="Search the widget list" value="" placeholder="Try “tab”" />
-  <DemoArchiveSearch label="Archive search" value="" placeholder="Unavailable while the index rebuilds" disabled={true} />
+<div className="demo-query-stack">
+  <div className="demo-field-card">
+    <DemoWidgetSearch label="Search the widget list" value="" placeholder="Try “tab”" />
+  </div>
+  <div className="demo-field-card">
+    <DemoArchiveSearch label="Archive search" value="" placeholder="Unavailable while the index rebuilds" disabled={true} />
+  </div>
 </div>
 :::
 

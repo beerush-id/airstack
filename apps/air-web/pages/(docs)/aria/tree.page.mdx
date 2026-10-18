@@ -1,0 +1,620 @@
+---
+title: 'Headless Tree'
+description: 'Headless treeview for React and SolidJS. Coordinates depth-aware arrow navigation, per-branch expansion, automatic group pairing, and single or multiple selection — with no markup or styles imposed.'
+nav: 'Tree'
+nav-priority: 396
+---
+
+import './aria.css';
+import './tree.css';
+
+# Headless Tree
+
+A tree presents a nested hierarchy of folders, categories, or organization nodes that expand and collapse in place. Getting it right means **stepping through visible nodes across levels with the up and down arrows**, **expanding and entering branches with the right arrow**, **collapsing or returning to the parent with the left arrow**, **pairing every child group with its branch**, and **keeping selection coordinated across the whole hierarchy**.
+
+**Headless Tree** does all of that for you, and leaves the markup and the styling entirely yours.
+
+```tsx
+const tree = aria('tree', props);
+
+<ul ref={tree.ref} {...tree.restProps(['children'])} />
+```
+
+:::interactive[Repository File Explorer]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type DemoTreeProps = Omit<ComponentProps<'ul'>, 'onChange'> & {
+  multiple?: boolean;
+  value?: string | string[];
+  manual?: boolean;
+  required?: boolean;
+  disabled?: boolean;
+  label?: string;
+};
+
+const DemoTree = setup<DemoTreeProps>((props) => {
+  const tree = aria('tree', props as never);
+
+  return () => (
+    <ul ref={tree.ref} {...tree.restProps(['children'])} className="demo-tree">
+      {props.children}
+    </ul>
+  );
+}, 'DemoTree');
+
+type DemoTreeItemProps = Omit<ComponentProps<'li'>, 'title'> & {
+  name: string;
+  title: string;
+  expanded?: boolean;
+  disabled?: boolean;
+};
+
+const DemoTreeItem = setup<DemoTreeItemProps>((props) => {
+  const item = aria('tree-item', props);
+
+  return () => (
+    <li ref={item.ref} {...item.restProps(['title', 'children'])} className="demo-tree-item">
+      <div className="demo-tree-row">
+        {item.isBranch ? (
+          <span
+            className="demo-tree-chevron"
+            onClick={(e) => {
+              e.stopPropagation();
+              item.toggleExpand();
+            }}
+          />
+        ) : (
+          <span className="demo-tree-leaf-dot" />
+        )}
+        <span className="demo-tree-name">{props.title}</span>
+      </div>
+      {props.children}
+    </li>
+  );
+}, 'DemoTreeItem');
+
+type DemoTreeGroupProps = ComponentProps<'ul'>;
+
+const DemoTreeGroup = setup<DemoTreeGroupProps>((props) => {
+  const group = aria('tree-group', props);
+
+  return () => (
+    <ul ref={group.ref} {...group.restProps(['children'])} className="demo-tree-group">
+      {props.children}
+    </ul>
+  );
+}, 'DemoTreeGroup');
+
+const SingleFileTree = () => (
+  <div className="demo-tree-card">
+    <div className="demo-tree-header">
+      <span className="demo-tree-heading">Project files</span>
+      <span className="demo-tree-caption">The arrows walk visible nodes, Right opens a folder or steps inside it, Left closes it or returns to the parent</span>
+    </div>
+    <DemoTree label="Project files" value="index.ts">
+      <DemoTreeItem name="src" title="src" expanded={true}>
+        <DemoTreeGroup>
+          <DemoTreeItem name="components" title="components" expanded={false}>
+            <DemoTreeGroup>
+              <DemoTreeItem name="Button.tsx" title="Button.tsx" />
+              <DemoTreeItem name="Tree.tsx" title="Tree.tsx" />
+            </DemoTreeGroup>
+          </DemoTreeItem>
+          <DemoTreeItem name="index.ts" title="index.ts" />
+        </DemoTreeGroup>
+      </DemoTreeItem>
+      <DemoTreeItem name="package.json" title="package.json" />
+      <DemoTreeItem name="secrets" title="secrets.env" disabled={true} />
+      <DemoTreeItem name="README.md" title="README.md" />
+    </DemoTree>
+  </div>
+);
+
+const MultiSelectTree = () => (
+  <div className="demo-tree-card">
+    <div className="demo-tree-header">
+      <span className="demo-tree-heading">Export targets</span>
+      <span className="demo-tree-caption">Space toggles a node in the export set, and every chosen node keeps its own tab stop</span>
+    </div>
+    <DemoTree label="Export targets" multiple={true} value={['esm', 'types']}>
+      <DemoTreeItem name="dist" title="dist" expanded={true}>
+        <DemoTreeGroup>
+          <DemoTreeItem name="esm" title="esm/bundle.js" />
+          <DemoTreeItem name="cjs" title="cjs/bundle.cjs" />
+          <DemoTreeItem name="types" title="types/index.d.ts" />
+        </DemoTreeGroup>
+      </DemoTreeItem>
+      <DemoTreeItem name="docs" title="docs" expanded={false}>
+        <DemoTreeGroup>
+          <DemoTreeItem name="api.md" title="api.md" />
+        </DemoTreeGroup>
+      </DemoTreeItem>
+    </DemoTree>
+  </div>
+);
+```
+```html
+<div className="demo-tree-stack">
+  <SingleFileTree />
+  <MultiSelectTree />
+</div>
+```
+
+<div className="demo-tree-stack">
+  <SingleFileTree />
+  <MultiSelectTree />
+</div>
+:::
+
+:::tip
+Focus any node and use `ArrowUp` and `ArrowDown` to walk through visible items, `ArrowRight` to open a folder or step into its first child, `ArrowLeft` to close a folder or jump back to its parent, and `Enter` or `Space` to select.
+:::
+
+## Tree
+
+**The root hierarchy coordinator.** It holds the active selection across every level and steers vertical keyboard traversal through visible nodes.
+
+### Usage
+
+```ts
+aria<E extends BaseElement = HTMLElement, T extends Primitive = string>(
+  role: 'tree',
+  props?: TreeProps<T>
+): TreeAria<E, TreeProps<T>>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type TreeProps = Omit<ComponentProps<'ul'>, 'onChange'> & {
+  id?: string;
+  multiple?: boolean;
+  value?: string | string[];
+  manual?: boolean;
+  required?: boolean;
+  disabled?: boolean;
+  label?: string;
+  labelledby?: string;
+  onchange?: (event: CustomEvent<string | string[] | undefined>) => void;
+};
+
+const Tree = setup<TreeProps>((props) => {
+  const tree = aria('tree', props as never);
+
+  return () => (
+    <ul ref={tree.ref} {...tree.restProps(['children'])}>
+      {props.children}
+    </ul>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type TreeProps = Omit<ComponentProps<'ul'>, 'onChange'> & {
+  id?: string;
+  multiple?: boolean;
+  value?: string | string[];
+  manual?: boolean;
+  required?: boolean;
+  disabled?: boolean;
+  label?: string;
+  labelledby?: string;
+  onchange?: (event: CustomEvent<string | string[] | undefined>) => void;
+};
+
+const Tree = setup<TreeProps>((props) => {
+  const tree = aria('tree', props as never);
+
+  return (
+    <ul ref={tree.ref} {...tree.restProps(['children'])}>
+      {props.children}
+    </ul>
+  );
+});
+```
+
+:::
+
+### Parameters
+
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **id** _string, optional_: Namespace prefix for node IDs. Generated as `tree-<n>` when omitted.
+- **multiple** _boolean, optional, default `false`_: Enables multi-selection (`aria-multiselectable="true"`) with an array `value`.
+- **value** _T | T[], optional_: Selected node identifier (or array of identifiers when `multiple` is `true`).
+- **manual** _boolean, optional, default `true`_: When `true`, arrow keys move focus without changing selection. Set `false` to commit selection automatically as focus moves.
+- **required** _boolean, optional_: Prevents deselecting the active node in single-selection mode and emits `aria-required="true"`.
+- **disabled** _boolean, optional_: Locks selection, expansion, and keyboard traversal across the entire tree.
+- **label** _string, optional_: Accessible name announced for the tree (`aria-label`).
+- **labelledby** _string, optional_: ID of an external heading that names the tree (`aria-labelledby`).
+- **onchange** _(event: CustomEvent&lt;T | T[] | undefined&gt;) =&gt; void, optional_: Called whenever the tree selection changes.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **id** _string | undefined_: The active container identifier.
+- **value** _T | T[] | undefined_: Reads or replaces the current selection.
+- **disabled** _boolean_: Whether the tree is currently disabled.
+
+### How it behaves
+
+- **Collapsed branches stay out of arrow travel.** `ArrowDown` and `ArrowUp` visit only visible, enabled nodes in document order without stepping into closed folders.
+- **Focus and selection stay separate by default.** Walking the tree with the arrow keys never changes selection unless you set `manual: false`.
+- **Single or multiple across any depth.** Selection works across root items and deeply nested children alike.
+- **The stop follows the selection.** A node compiles `tabindex="0"` only while it is selected and `-1` otherwise, so a single-select tree holds one stop and a multi-select tree holds one per selected node. With no value set the tree carries no stop at all, so seed `value` when the tree has to be reachable by keyboard.
+- **`manual: false` commits as focus moves.** Travel then presses the node it lands on, so selection follows the arrows instead of waiting for `Enter` or `Space`.
+- **A disabled tree claims nothing.** With `disabled` set the container answers no key at all, and each node compiles `tabindex="-1"` with `aria-disabled="true"`.
+
+### Events
+
+_What it tells you._
+
+- **`change`** — fires whenever the selected node or array of nodes changes, carrying the new `value` in `detail`.
+
+```tsx
+const tree = aria('tree', {
+  value: 'index.ts',
+  onchange: (event) => openFile(event.detail),
+});
+```
+
+### Navigation
+
+_What the keys do._
+
+- **`ArrowDown` / `ArrowUp`** — move focus to the **next / previous** visible enabled node in document order without wrapping.
+- **`Home` / `End`** — move focus to the **first / last** visible enabled node.
+
+## Tree Item
+
+**One node in the hierarchy.** Acts as a leaf on its own, or as an expandable branch when given `expanded` or a child `TreeGroup`.
+
+### Usage
+
+```ts
+aria<E extends BaseElement = HTMLElement, T extends Primitive = string>(
+  role: 'tree-item',
+  props?: TreeItemProps<T>
+): TreeItemAria<E, TreeItemProps<T>>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type TreeItemProps = ComponentProps<'li'> & {
+  id?: string;
+  name?: string;
+  value?: string;
+  expanded?: boolean;
+  disabled?: boolean;
+  label?: string;
+  ontoggle?: (event: CustomEvent<boolean>) => void;
+};
+
+const TreeItem = setup<TreeItemProps>((props) => {
+  const item = aria('tree-item', props);
+
+  return () => (
+    <li ref={item.ref} {...item.restProps(['children'])}>
+      {props.children}
+    </li>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type TreeItemProps = ComponentProps<'li'> & {
+  id?: string;
+  name?: string;
+  value?: string;
+  expanded?: boolean;
+  disabled?: boolean;
+  label?: string;
+  ontoggle?: (event: CustomEvent<boolean>) => void;
+};
+
+const TreeItem = setup<TreeItemProps>((props) => {
+  const item = aria('tree-item', props);
+
+  return (
+    <li ref={item.ref} {...item.restProps(['children'])}>
+      {props.children}
+    </li>
+  );
+});
+```
+
+:::
+
+### Parameters
+
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **name** _T, optional_: Identifier matched against the tree's `value`.
+- **value** _T, optional_: Alias for `name` when `name` is not provided.
+- **expanded** _boolean, optional_: Marks the item as a branch (`aria-expanded="true" | "false"`). Omit on leaf items so `aria-expanded` is not emitted.
+- **disabled** _boolean, optional_: Prevents selecting, expanding, or collapsing this node.
+- **id** _string, optional_: Explicit DOM identifier; generated from the tree namespace and node name when omitted.
+- **label** _string, optional_: Accessible label (`aria-label`) for the node.
+- **ontoggle** _(event: CustomEvent&lt;boolean&gt;) =&gt; void, optional_: Called when a branch item expands or collapses, with the new `expanded` boolean in `detail`.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **id** _string_: The DOM identifier paired with its child `TreeGroup`.
+- **value** _T_: This node's selection key (`name` or `value`).
+- **selected** _boolean_: Reads or updates whether this node is selected.
+- **isBranch** _boolean_: Whether this node is an expandable branch.
+- **expanded** _boolean_: Reads or updates whether this branch is open.
+- **disabled** _boolean_: Whether this node is disabled, including when locked by the enclosing tree.
+
+### Methods
+
+_What you call on the instance._
+
+- **`select()`**: Selects this node.
+- **`deselect()`**: Deselects this node when optional.
+- **`toggle()`**: Toggles selection on this node.
+- **`expand()`**: Opens this branch and dispatches `toggle`.
+- **`collapse()`**: Closes this branch and dispatches `toggle`.
+- **`toggleExpand()`**: Flips expansion state on this branch.
+
+### How it behaves
+
+- **Only branches advertise expansion.** A leaf omits `aria-expanded` so screen readers never announce a file as a collapsible folder.
+- **Nested clicks stay scoped.** Clicking or pressing `Enter` on a child node selects only that child without bubbling activation up to its parent branch.
+- **Independent per-branch state.** Opening or closing an inner branch never disturbs its ancestors or siblings.
+
+### Events
+
+_What it tells you._
+
+- **`toggle`** — fires on a branch when it expands or collapses, with `expanded` (`true` or `false`) in `detail`.
+- **`change`** — fires from the selection foundation on every commit. Its declared `detail` type is `boolean`, while a node inside a tree carries the tree's value, so narrow the detail before you use it.
+
+### Navigation
+
+_What the keys do._
+
+- **`ArrowRight`** — expands a closed branch without moving focus; on an already-open branch, moves focus to its first enabled child node.
+- **`ArrowLeft`** — collapses an open branch without moving focus; on a closed branch or leaf inside a group, moves focus to its parent branch node.
+- **`Enter` / `Space` / `Click`** — selects or toggles the node according to the enclosing tree's selection mode.
+
+## Tree Group
+
+**The children container inside a branch.** Automatically pairs with its enclosing `TreeItem` and hides while the branch is collapsed.
+
+### Usage
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'tree-group',
+  props?: TreeGroupProps
+): TreeGroupAria<E, TreeGroupProps>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type TreeGroupProps = ComponentProps<'ul'> & {
+  id?: string;
+  label?: string;
+  labelledby?: string;
+};
+
+const TreeGroup = setup<TreeGroupProps>((props) => {
+  const group = aria('tree-group', props);
+
+  return () => (
+    <ul ref={group.ref} {...group.restProps(['children'])}>
+      {props.children}
+    </ul>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type TreeGroupProps = ComponentProps<'ul'> & {
+  id?: string;
+  label?: string;
+  labelledby?: string;
+};
+
+const TreeGroup = setup<TreeGroupProps>((props) => {
+  const group = aria('tree-group', props);
+
+  return (
+    <ul ref={group.ref} {...group.restProps(['children'])}>
+      {props.children}
+    </ul>
+  );
+});
+```
+
+:::
+
+### Parameters
+
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **id** _string, optional_: Optional DOM identifier for the group element.
+- **label** _string, optional_: Explicit `aria-label` when you prefer a custom name over automatic pairing with the parent `TreeItem`.
+- **labelledby** _string, optional_: Explicit `aria-labelledby` override; defaults automatically to the enclosing `TreeItem.id`.
+
+### How it behaves
+
+- **Zero manual ARIA wiring.** Placed inside a `TreeItem`, `TreeGroup` discovers its parent branch automatically, compiles `role="group"` and `aria-labelledby={item.id}`, marks the parent item as a branch, and sets `hidden` whenever the branch is collapsed.
+
+## Next Steps
+
+- **[Accordion](/docs/aria/accordion)**: Stacked disclosure sections without hierarchical nesting.
+- **[Listbox](/docs/aria/listbox)**: Flat single and multi-selection lists with typeahead.
+- **[Grid](/docs/aria/grid)**: Two-dimensional tabular and treegrid navigation.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Tree
+
+```ts
+interface SingleTreeProps<T extends Primitive = string> {
+  id?: string;
+  multiple?: false;
+  value?: T;
+  manual?: boolean;
+  required?: boolean;
+  disabled?: boolean;
+  label?: string;
+  labelledby?: string;
+  onchange?: (event: CustomEvent<T | undefined>) => void;
+}
+
+interface MultipleTreeProps<T extends Primitive = string> {
+  id?: string;
+  multiple: true;
+  value?: T[];
+  manual?: boolean;
+  required?: boolean;
+  disabled?: boolean;
+  label?: string;
+  labelledby?: string;
+  onchange?: (event: CustomEvent<T[]>) => void;
+}
+
+type TreeProps<T extends Primitive = string> = SingleTreeProps<T> | MultipleTreeProps<T>;
+
+interface TreeAttributes {
+  id?: string;
+  role?: 'tree';
+  'aria-label'?: string;
+  'aria-labelledby'?: string;
+  'aria-multiselectable'?: 'true' | 'false';
+  'aria-required'?: 'true';
+  'aria-disabled'?: 'true' | 'false';
+}
+
+declare class TreeAria<E extends BaseElement = HTMLElement, T extends TreeProps = TreeProps> {
+  get id(): string | undefined;
+  get value(): T['value'];
+  set value(val: T['value']);
+  get disabled(): boolean;
+}
+```
+
+### Tree Item
+
+```ts
+interface TreeItemProps<T extends Primitive = string> {
+  id?: string;
+  name?: T;
+  value?: T;
+  expanded?: boolean;
+  selected?: boolean;
+  disabled?: boolean;
+  label?: string;
+  onchange?: (event: CustomEvent<boolean>) => void;
+  ontoggle?: (event: CustomEvent<boolean>) => void;
+}
+
+interface TreeItemAttributes {
+  id?: string;
+  role?: 'treeitem';
+  tabindex?: number;
+  'aria-label'?: string;
+  'aria-selected'?: 'true' | 'false';
+  'aria-expanded'?: 'true' | 'false';
+  'aria-disabled'?: 'true' | 'false';
+}
+
+declare class TreeItemAria<E extends BaseElement = HTMLElement, T extends TreeItemProps = TreeItemProps> {
+  id: string;
+  get value(): T['name'] | T['value'];
+  get selected(): boolean;
+  set selected(value: boolean);
+  get isBranch(): boolean;
+  get expanded(): boolean;
+  set expanded(value: boolean);
+  get disabled(): boolean;
+
+  markBranch(): void;
+  select(): void;
+  deselect(): void;
+  toggle(): void;
+  expand(): void;
+  collapse(): void;
+  toggleExpand(): void;
+}
+```
+
+### Tree Group
+
+```ts
+interface TreeGroupProps {
+  id?: string;
+  label?: string;
+  labelledby?: string;
+}
+
+interface TreeGroupAttributes {
+  id?: string;
+  role?: 'group';
+  hidden?: boolean;
+  'aria-label'?: string;
+  'aria-labelledby'?: string;
+}
+
+declare class TreeGroupAria<E extends BaseElement = HTMLElement, T extends TreeGroupProps = TreeGroupProps> {}
+```
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`attributes`** is the dictionary you spread; **`ref`** is what you bind the element with; **`props`** is the full props dictionary for spreading onto the host; **`restProps(omit)`** hands back your props with the keys you name left out.
+- **`assign()`** changes several parameters at once, **`refine()`** adds attributes of your own, **`on()`** listens for anything the part fires, **`destroy()`** tears it down.

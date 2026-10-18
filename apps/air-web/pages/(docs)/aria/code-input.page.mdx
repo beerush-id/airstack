@@ -1,0 +1,423 @@
+---
+title: 'Headless Code Input'
+description: 'Headless segmented OTP and PIN input for React and SolidJS. Coordinates character entry, paste distribution, contiguous backspace shifting, and a single roving tab stop across cells — with no markup or styles imposed.'
+nav: 'Code Input'
+nav-priority: 379
+---
+
+import './aria.css';
+import './code-input.css';
+
+# Headless Code Input
+
+A segmented code input splits a verification code or PIN across individual character cells while behaving as a single field. Getting it right means **keeping the whole strip at a single tab stop**, **advancing focus as characters are typed**, **distributing pasted or autofilled strings across cells**, **shifting characters contiguously on deletion**, and **telling your code when the value changes or completes**.
+
+**Headless Code Input** does all of that for you, and leaves the markup and the styling entirely yours.
+
+```tsx
+const code = aria('code-input', props);
+
+<div ref={code.ref} {...code.restProps(['children'])} />
+```
+
+:::interactive[Verification Code Input]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type DemoCodeInputProps = ComponentProps<'div'> & {
+  value?: string;
+  length?: number;
+  kind?: 'numeric' | 'alphanumeric';
+  disabled?: boolean;
+  readonly?: boolean;
+  label?: string;
+};
+
+const DemoCodeInput = setup<DemoCodeInputProps>((props) => {
+  const code = aria('code-input', props);
+
+  return () => (
+    <div ref={code.ref} {...code.restProps(['children'])} className="demo-code-input">
+      {props.children}
+    </div>
+  );
+}, 'DemoCodeInput');
+
+type DemoCodeCellProps = ComponentProps<'input'> & {
+  index: number;
+};
+
+const DemoCodeCell = setup<DemoCodeCellProps>((props) => {
+  const cell = aria('code-input-cell', props);
+
+  return () => <input ref={cell.ref} {...cell.restProps()} className="demo-code-cell" />;
+}, 'DemoCodeCell');
+
+const Demo = (props: DemoCodeInputProps) => {
+  const count = props.length ?? 6;
+  return (
+    <DemoCodeInput {...props}>
+      {Array.from({ length: count }, (_, index) => (
+        <DemoCodeCell key={index} index={index} />
+      ))}
+    </DemoCodeInput>
+  );
+};
+```
+```html
+<div className="demo-code-card">
+  <div className="demo-code-row">
+    <span className="demo-code-caption">Pasting a full code fills the cells left to right, and the sixth digit completes the group</span>
+    <Demo label="Verification code" length={6} value="42" />
+  </div>
+  <div className="demo-code-row">
+    <span className="demo-code-caption">This field takes letters too, and Backspace shifts the rest of the code left</span>
+    <Demo label="Backup code" length={4} kind="alphanumeric" value="A9" />
+  </div>
+</div>
+```
+
+<div className="demo-code-card">
+  <div className="demo-code-row">
+    <span className="demo-code-caption">Pasting a full code fills the cells left to right, and the sixth digit completes the group</span>
+    <Demo label="Verification code" length={6} value="42" />
+  </div>
+  <div className="demo-code-row">
+    <span className="demo-code-caption">This field takes letters too, and Backspace shifts the rest of the code left</span>
+    <Demo label="Backup code" length={4} kind="alphanumeric" value="A9" />
+  </div>
+</div>
+:::
+
+:::tip
+Click or tab into a group and type, paste a multi-character code, or move between occupied cells and the first unfilled position with **`ArrowLeft`** and **`ArrowRight`**.
+:::
+
+## Code Input
+
+**The group as a whole.** It owns the concatenated code string, character length, allowed character set, and single-tab-stop focus coordination across its cells.
+
+### Usage
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'code-input',
+  props?: CodeInputProps
+): CodeInputAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type CodeInputProps = ComponentProps<'div'> & {
+  value?: string;
+  length?: number;
+  kind?: 'numeric' | 'alphanumeric';
+  disabled?: boolean;
+  readonly?: boolean;
+  label?: string;
+  oninput?: (event: CustomEvent<string>) => void;
+  onchange?: (event: CustomEvent<string>) => void;
+  oncomplete?: (event: CustomEvent<string>) => void;
+};
+
+const CodeInput = setup<CodeInputProps>((props) => {
+  const code = aria('code-input', props);
+
+  return () => (
+    <div ref={code.ref} {...code.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type CodeInputProps = ComponentProps<'div'> & {
+  value?: string;
+  length?: number;
+  kind?: 'numeric' | 'alphanumeric';
+  disabled?: boolean;
+  readonly?: boolean;
+  label?: string;
+  oninput?: (event: CustomEvent<string>) => void;
+  onchange?: (event: CustomEvent<string>) => void;
+  oncomplete?: (event: CustomEvent<string>) => void;
+};
+
+const CodeInput = setup<CodeInputProps>((props) => {
+  const code = aria('code-input', props);
+
+  return (
+    <div ref={code.ref} {...code.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
+
+### Parameters
+
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **value** _string, optional_: The current code string, kept as a contiguous valid prefix up to `length`.
+- **length** _number, optional, default `6`_: Number of character positions in the code.
+- **kind** _'numeric' | 'alphanumeric', optional, default `'numeric'`_: Allowed character set (`0-9` for `'numeric'`, `0-9a-zA-Z` for `'alphanumeric'`).
+- **disabled** _boolean, optional_: Locks interaction and removes every cell from the tab order.
+- **readonly** _boolean, optional_: Keeps cells focusable and navigable while blocking character entry, paste, and deletion.
+- **label** _string, optional_: Accessible name announced for the group (`aria-label`) and used to derive each cell's positional `aria-label`.
+- **oninput** _(event: CustomEvent&lt;string&gt;) =&gt; void, optional_: Called after an edit commits a different code string, with the updated code in `detail`.
+- **onchange** _(event: CustomEvent&lt;string&gt;) =&gt; void, optional_: Called when focus leaves the group and the code differs from when focus entered, with the committed code in `detail`.
+- **oncomplete** _(event: CustomEvent&lt;string&gt;) =&gt; void, optional_: Called after an edit yields a different code whose length equals `length`, following `input`.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **value** _string_: Reads or writes the sanitized code string.
+- **length** _number_: Number of character positions in the code.
+- **kind** _'numeric' | 'alphanumeric'_: Active character set constraint.
+- **disabled** _boolean_: Whether the group is disabled from interaction.
+- **readonly** _boolean_: Whether the group is read-only.
+- **activeIndex** _number_: The zero-based index of the cell currently holding the single tab stop.
+
+### Methods
+
+_What you call on the instance._
+
+- **`cell(props, options?)`** → `CodeInputCellAria`: Creates a cell controller belonging to this group.
+- **`focusCell(index)`**: Focuses the cell at `index` (clamped to `[0, length - 1]`) and moves the roving tab stop to it.
+- **`distribute(index, raw)`** → `boolean`: Filters `raw` according to `kind` and distributes accepted characters starting at `index`, discarding overflow beyond `length`.
+- **`removeAt(index)`**: Removes the character at `index` and shifts subsequent characters left.
+- **`isValidChar(char)`** → `boolean`: Returns whether `char` matches the active `kind`.
+- **`handleCellFocus(index)`** / **`handleCellBlur(event)`**: Record the focus entry value and fire `change` once focus leaves the group. The cell controllers call both; call them yourself only when you drive focus outside a cell.
+
+### How it behaves
+
+- **One contiguous value.** The code is never sparse: removing a character in the middle shifts the following characters left, and typing or pasting into an unfilled cell appends at the first unfilled position.
+- **One tab stop for the whole group.** Before focus enters, the entry cell is the first unfilled position (or the last cell when full). Pressing `Tab` leaves the group instead of stepping through every cell.
+- **Paste and autofill distribute from the target cell.** Accepted characters replace existing characters from the receiving cell onward, overflow beyond `length` is discarded, and focus lands on the next unfilled cell or the last cell when full.
+- **User-land labels stay user-land.** When you provide `label`, the group emits `aria-label` and each cell derives `"{label}, character {index + 1} of {length}"`. When you leave `label` out, no English text is invented.
+
+### Events
+
+_What it tells you._
+
+- **`input`** — fires after an edit commits a different code string, with the updated code in `detail`.
+- **`change`** — fires on blur leaving the group when `value` differs from focus entry, with the committed code in `detail`.
+- **`complete`** — fires after an edit yields a different value whose length equals `length`, immediately following `input`, with the full code in `detail`.
+
+```tsx
+const code = aria('code-input', {
+  length: 6,
+  oncomplete: (event) => verifyCode(event.detail),
+});
+```
+
+## Code Input Cell
+
+**One character slot.** It derives its character from `code.value[index]`, reflects `inputmode` and `autocomplete="one-time-code"` on the first cell, and forwards edits to the group.
+
+### Usage
+
+```ts
+aria<E extends BaseElement = HTMLInputElement>(
+  role: 'code-input-cell',
+  props: CodeInputCellProps,
+  options?: CodeInputCellOptions
+): CodeInputCellAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type CodeInputCellProps = ComponentProps<'input'> & {
+  index: number;
+};
+
+const CodeInputCell = setup<CodeInputCellProps>((props) => {
+  const cell = aria('code-input-cell', props);
+
+  return () => <input ref={cell.ref} {...cell.restProps()} />;
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type CodeInputCellProps = ComponentProps<'input'> & {
+  index: number;
+};
+
+const CodeInputCell = setup<CodeInputCellProps>((props) => {
+  const cell = aria('code-input-cell', props);
+
+  return <input ref={cell.ref} {...cell.restProps()} />;
+});
+```
+
+:::
+
+### Parameters
+
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **index** _number, **required**_: Zero-based character position of this cell within the code.
+
+### Options
+
+_What you fix when you create it. Read once, never reactive._
+
+- **native** _boolean, optional, default `true`_: Pass `false` when the host is a custom element (`<div>` or `<span>`) to emit `role="textbox"`, `contenteditable`, and synchronize the derived character into `textContent`.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **index** _number_: Zero-based position index of this cell.
+- **value** _string_: The single character currently occupying this cell, or `''` when unfilled.
+- **disabled** _boolean_: Whether this cell is disabled by its enclosing group.
+
+### How it behaves
+
+- **First cell hints autofill.** Cell `0` receives `autocomplete="one-time-code"` so browser SMS and password-manager autofill target the start of the code.
+- **Virtual keyboard matches `kind`.** Emits `inputmode="numeric"` when the group's `kind` is `'numeric'` and `inputmode="text"` when `'alphanumeric'`.
+- **Native and custom hosts stay in lockstep.** On a native `<input>`, `.value` reflects the character at `index`; on a custom host (`native: false`), `role="textbox"` and `contenteditable` are managed automatically and `textContent` stays synchronized.
+
+### Navigation
+
+_What the keys do._
+
+- **`ArrowLeft` / `ArrowRight`** — move focus between occupied cells and the first unfilled cell without wrapping.
+- **`Home`** — focuses cell `0`.
+- **`End`** — focuses the first unfilled cell, or the last cell when full.
+- **`Backspace`** — clears the current cell if filled, or when on the first unfilled cell removes the preceding character and focuses it, shifting following characters left.
+- **`Delete`** — clears the focused cell in place and shifts following characters left without moving focus.
+- **`Tab`** — leaves the code input group.
+
+## Next Steps
+
+- **[Text Input](/docs/aria/text-input)**: Single-field text and password entry.
+- **[Field](/docs/aria/field)**: Accessible label, description, and error wiring around form controls.
+- **[Stepper](/docs/aria/stepper)**: Segmented numeric increment and decrement controls.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Code Input
+
+```ts
+interface CodeInputProps {
+  value?: string;
+  length?: number;
+  kind?: 'numeric' | 'alphanumeric';
+  disabled?: boolean;
+  readonly?: boolean;
+  label?: string;
+  oninput?: (event: CustomEvent<string>) => void;
+  onchange?: (event: CustomEvent<string>) => void;
+  oncomplete?: (event: CustomEvent<string>) => void;
+}
+
+interface CodeInputAttributes {
+  role: 'group';
+  'aria-label'?: string;
+  'aria-disabled': 'true' | 'false';
+}
+
+declare class CodeInputAria {
+  get value(): string;
+  set value(next: string);
+  get length(): number;
+  get kind(): 'numeric' | 'alphanumeric';
+  get disabled(): boolean;
+  get readonly(): boolean;
+  get activeIndex(): number;
+
+  cell<CE extends BaseElement = HTMLInputElement>(
+    props: CodeInputCellProps,
+    options?: CodeInputCellOptions
+  ): CodeInputCellAria<CE>;
+  focusCell(index: number): void;
+  handleCellFocus(index: number): void;
+  handleCellBlur(event: FocusEvent): void;
+  distribute(index: number, raw: string): boolean;
+  removeAt(index: number): void;
+  isValidChar(char: string): boolean;
+}
+```
+
+### Code Input Cell
+
+```ts
+interface CodeInputCellProps {
+  index: number;
+}
+
+interface CodeInputCellOptions {
+  native?: boolean;
+}
+
+interface CodeInputCellAttributes {
+  type?: 'text';
+  role?: 'textbox';
+  value?: string;
+  inputmode: 'numeric' | 'text';
+  autocomplete?: 'one-time-code';
+  tabindex: number;
+  disabled?: boolean;
+  readonly?: boolean;
+  contenteditable?: 'true' | 'false';
+  'aria-label'?: string;
+  'aria-disabled'?: 'true' | 'false';
+  'aria-readonly'?: 'true' | 'false';
+}
+
+declare class CodeInputCellAria {
+  get index(): number;
+  get value(): string;
+  get disabled(): boolean;
+}
+```
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`attributes`** is the dictionary you spread; **`ref`** is what you bind the element with; **`props`** is the full props dictionary for spreading onto the host; **`restProps(omit)`** hands back your props with the keys you name left out.
+- **`assign()`** changes several parameters at once, **`refine()`** adds attributes of your own, **`on()`** listens for anything the part fires, **`destroy()`** tears it down.

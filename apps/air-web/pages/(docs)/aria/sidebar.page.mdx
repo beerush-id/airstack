@@ -1,13 +1,20 @@
 ---
-title: 'Sidebar'
-description: 'Headless complementary landmark that compiles role="complementary" onto a generic host, marking supporting content as separate from main.'
+title: 'Headless Sidebar'
+description: 'Headless complementary landmarks for React and SolidJS. Publishes supporting content as a named landmark beside main, leaves a real `<aside>` its implicit role, and takes no focus or keys — with no markup or styles imposed.'
 nav: 'Sidebar'
 nav-priority: 540
 ---
 
-# AirLib Headless Sidebar
+import './aria.css';
+import './sidebar.css';
 
-Sidebars hold content that supports the main document without being part of it: related links, filters, notes, a table of contents. Users who need the main content should be able to skip that supporting material, and users who want it should be able to jump straight to it — which only works if it is identified as separate from `main`. **AirLib Headless Sidebar** (`aria('sidebar')`) compiles `role="complementary"` onto the generic host you already render and names it when a page holds more than one.
+# Headless Sidebar
+
+A sidebar holds content that supports the document without belonging to it: related links, filters, notes, a table of contents.
+
+Getting it right means **compiling `complementary` onto a generic host**, **leaving a real `<aside>` its own role**, **naming each sidebar when a page holds more than one**, and **taking no tab stop and no ownership of the content inside**.
+
+**Headless Sidebar** does all of that for you, and leaves the markup and the styling entirely yours.
 
 ```tsx
 const sidebar = aria('sidebar', props);
@@ -15,9 +22,7 @@ const sidebar = aria('sidebar', props);
 <div ref={sidebar.ref} {...sidebar.restProps(['children'])} />
 ```
 
-<style>{`.demo-sidebar-layout{display:flex;gap:.75rem;padding:.75rem;border:1px solid #e4e4e7;border-radius:.75rem;background:#fafafa;font-size:.875rem}.demo-sidebar-main{flex:1;padding:1rem;border:1px solid #e4e4e7;border-radius:.5rem;background:#fff;color:#52525b}.demo-sidebar{width:10rem;flex-shrink:0;padding:1rem;border:1px solid #e4e4e7;border-radius:.5rem;background:#fff;color:#71717a}.demo-sidebar-title{font-weight:500;color:#18181b}.demo-sidebar-layout p,.demo-sidebar p{margin:0 0 .25rem}.demo-sidebar-layout p:last-child,.demo-sidebar p:last-child{margin-bottom:0}`}</style>
-
-:::interactive[Beside The Main Content]
+:::interactive[Reading Layout]
 ```tsx
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
@@ -33,30 +38,50 @@ const DemoSidebar = setup<DemoSidebarProps>((props) => {
   const sidebar = aria('sidebar', props);
 
   return () => (
-    <div ref={sidebar.ref} {...sidebar.restProps(['children'])}>
+    <div ref={sidebar.ref} {...sidebar.restProps(['children'])} className="demo-sidebar">
       {props.children}
     </div>
   );
 }, 'DemoSidebar');
 ```
+```html
+<div className="demo-sidebar-layout">
+  <div className="demo-sidebar-body">
+    <span className="demo-sidebar-body-title">Release notes</span>
+    <span className="demo-sidebar-body-text">The document this sidebar supports.</span>
+  </div>
+  <DemoSidebar label="On this page">
+    <span className="demo-sidebar-title">On this page</span>
+    <span className="demo-sidebar-link">Parameters</span>
+    <span className="demo-sidebar-link">Usage</span>
+    <span className="demo-sidebar-link">Next steps</span>
+  </DemoSidebar>
+</div>
+```
 
 <div className="demo-sidebar-layout">
-  <div className="demo-sidebar-main">
-    <p className="demo-sidebar-title">main</p>
-    <p>The document the sidebar supports.</p>
+  <div className="demo-sidebar-body">
+    <span className="demo-sidebar-body-title">Release notes</span>
+    <span className="demo-sidebar-body-text">The document this sidebar supports.</span>
   </div>
-  <DemoSidebar label="On this page" className="demo-sidebar">
-    <p className="demo-sidebar-title">On this page</p>
-    <p>Parameters</p>
-    <p>Usage</p>
-    <p>Next steps</p>
+  <DemoSidebar label="On this page">
+    <span className="demo-sidebar-title">On this page</span>
+    <span className="demo-sidebar-link">Parameters</span>
+    <span className="demo-sidebar-link">Usage</span>
+    <span className="demo-sidebar-link">Next steps</span>
   </DemoSidebar>
 </div>
 :::
 
+:::tip
+**Keep the sidebar a sibling of main.** Name a custom host and it publishes the landmark wherever it sits; a real `<aside>` nested inside other landmark content is demoted to a generic container by the HTML mapping and loses the role.
+:::
+
 ## Sidebar
 
-The supporting content landmark. It projects complementary semantics onto a generic host so assistive technology can tell the aside from the document it sits beside.
+**The supporting landmark.** It publishes `complementary` on a generic host and carries the name that separates one sidebar from another.
+
+### Usage
 
 ```ts
 aria<E extends BaseElement = HTMLElement>(
@@ -65,8 +90,6 @@ aria<E extends BaseElement = HTMLElement>(
   options?: SidebarOptions
 ): SidebarAria<E>
 ```
-
-### Usage
 
 :::code-group
 
@@ -89,17 +112,18 @@ const Sidebar = setup<SidebarProps>((props) => {
       {props.children}
     </div>
   );
-});
+}, 'Sidebar');
 ```
 
 ```tsx [SolidJS]
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/solid';
-import type { ComponentProps } from 'solid-js';
+import type { ComponentProps, JSX } from 'solid-js';
 
 type SidebarProps = ComponentProps<'div'> & {
   label?: string;
   labelledby?: string;
+  children: JSX.Element;
 };
 
 const Sidebar = setup<SidebarProps>((props) => {
@@ -117,38 +141,89 @@ const Sidebar = setup<SidebarProps>((props) => {
 
 ### Parameters
 
-- `props.label` *(string, optional)*: Accessible label compiled to `aria-label`, distinguishing this sidebar from others on the page.
-- `props.labelledby` *(string, optional)*: Element ID providing the accessible name, compiled to `aria-labelledby`.
-- `options.native` *(boolean, optional, default `false`)*: Pass `true` when the host is a real `<aside>`, which already implies the role — the redundant `role="complementary"` is dropped and only the name is compiled.
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **label** _string, optional_: The name the landmark list announces, compiled to `aria-label`. This is what separates two sidebars on one page.
+- **labelledby** _string, optional_: The ID of an element already on the page that carries that name, compiled to `aria-labelledby`.
+
+### Options
+
+_What you fix when you create it. Read once, never reactive._
+
+- **native** _boolean, optional, default `false`_: Pass `true` when the host is a real `<aside>`, which already implies `complementary`. The redundant role is dropped and only the name is compiled.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **label** _string | undefined_: The label in force.
+- **labelledby** _string | undefined_: The ID reference in force.
+- **named** _boolean_: Whether the landmark carries an accessible name.
 
 ### How it behaves
 
-- Compiles `role="complementary"` on a generic host. With `native: true` the role is left to the `<aside>` element and only the accessible name is emitted.
-- The role comes from `native` alone — never from the host tag and never from where the element sits in the tree.
-- `label` compiles to `aria-label` and `labelledby` to `aria-labelledby`, both reactively, and both are omitted when absent.
-- Two sidebars are distinguished by name, not by position: the controller invents no fallback label and tracks no order.
-- It points nowhere — no `aria-controls`, no `aria-labelledby` borrowed from the content it supports, and nothing inside `main` is hidden or claimed.
-- Structure only: no `tabindex`, no `aria-live`, no `aria-expanded`, no `aria-orientation`, and no state. Arrow keys and clicks pass through untouched.
-- `label` and `labelledby` are consumed by the controller and carried in `ownKeys`, so `restProps(['children'])` is the whole omission list — neither leaks to the DOM as a stray attribute.
-
-:::tip[Keep it a sibling of main]
-An `<aside>` nested inside `<main>`, `<article>`, `<section>`, `<nav>`, or another `<aside>` is not a complementary landmark — the HTML mapping demotes it to a generic container and exposes no role for it at all. Render the sidebar as a sibling of `<main>` so the supporting content stays separate from the content it supports. A custom host compiles `role="complementary"` wherever it is placed, so nesting one inside a section still publishes the landmark.
-:::
-
-## Keyboard Navigation
-
-- **None.** The landmark takes no tab stop and claims no keys; the controls inside it keep their own keyboard behavior.
-
-## What you get
-
-- **Complementary on a generic host.** A `<div>` becomes supporting content that can be skipped or jumped to.
-- **Nameable sidebars.** `label` and `labelledby` separate several asides on one page.
-- **No redundant role.** `native: true` on a real `<aside>` leaves the implicit role alone.
-- **No ownership of the content.** The sidebar references nothing and hides nothing.
-- **Placement-stable output.** The compiled attributes are identical in SSR and after hydration, because nothing is read from the DOM.
+- **A generic host gets the role.** A `<div>` compiles `role="complementary"`, whether or not you name it.
+- **`native` decides the role, never the tag.** Pass `native: true` and the element supplies the role itself, so no redundant `complementary` is written.
+- **Naming is reactive.** Set, change, or clear `label` or `labelledby` and the projection follows on the next write.
+- **Nothing is claimed from the content it supports.** No `aria-controls`, no borrowed name, and nothing inside `main` is hidden or owned.
+- **Structure only.** No `tabindex`, no `aria-live`, no state; the controls inside keep their own keyboard behavior.
+- **Both name props stay off the host as plain attributes.** `label` and `labelledby` compile to `aria-label` and `aria-labelledby` only, so `restProps(['children'])` is the whole omission list.
 
 ## Next Steps
 
 - **[Main](/docs/aria/main)**: The primary content the sidebar sits beside.
 - **[Navigation](/docs/aria/navigation)**: The link collection a sidebar often holds.
-- **[Section](/docs/aria/section)**: Name a significant section that is part of the content rather than beside it.
+- **[Section](/docs/aria/section)**: A named region that belongs to the content rather than beside it.
+- **[Footer](/docs/aria/footer)**: The contentinfo landmark that closes the page.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Sidebar
+
+```ts
+interface SidebarProps {
+  label?: string;
+  labelledby?: string;
+}
+
+interface SidebarOptions {
+  native?: boolean;
+}
+
+interface SidebarAttributes {
+  role?: 'complementary';
+  'aria-label'?: string;
+  'aria-labelledby'?: string;
+}
+
+declare class SidebarAria {
+  get label(): string | undefined;
+  get labelledby(): string | undefined;
+  get named(): boolean;
+}
+```
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`attributes`** is the dictionary you spread; **`ref`** is what you bind the element with; **`props`** is the full props dictionary for spreading onto the host; **`restProps(omit)`** hands back your props with the keys you name left out.
+- **`assign()`** changes several parameters at once, **`refine()`** adds attributes of your own, **`on()`** listens for anything the part fires, **`destroy()`** tears it down.

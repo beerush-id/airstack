@@ -1,40 +1,85 @@
 ---
 title: 'Selection'
-description: 'Low-level abstract foundation for authoring custom selectable widgets and coordination groups.'
+description: 'Low-level selection foundation for React and SolidJS. Tracks single and multiple selection, follows an ambient group, inherits its disabled state, and handles Space and Enter on custom hosts.'
 nav: 'Selection'
 nav-priority: 400
 ---
 
 # Selection Foundation
 
-:::warning[Internal / Extensibility API]
-This page covers the internal architecture for authoring new custom controls (such as chips, segmented controls, or tree items). For everyday application components, use the pre-built widgets and composites (`Button`, `Checkbox`, `Radio`, `Option`, `Tabs`, `Select`) — the selection foundation documented here already powers them under the hood.
+Every selectable control answers the same questions: which value is chosen, whether more than one may be, what a group expects of it, and which keys activate it. Getting it right means **mapping the choice onto the prop your control already exposes**, **coordinating through an ambient group instead of prop drilling**, **inheriting the group's lockout**, and **answering `Space` and `Enter` on a host the browser does not know how to activate**.
+
+`SelectionAria` is the abstract class behind `Button`, `Checkbox`, `Radio`, `Switch`, `Option`, and `TreeItem`. Subclass it to give a custom control the same selection behavior, and keep your own markup and styling.
+
+:::warning[Extensibility API]
+This page covers the foundation for authoring custom selectable controls such as chips, segmented controls, or tree nodes. For everyday surfaces, use the finished widgets and composites — [Button](/docs/aria/button), [Checkbox](/docs/aria/checkbox), [Radio](/docs/aria/radio), [Option](/docs/aria/option), and [Tabs](/docs/aria/tabs).
 :::
 
-Custom selectable controls all share common behavioral requirements: tracking selected values, supporting single- or multi-selection modes, inheriting disabled state from a parent container, and handling `Space` and `Enter` keyboard activation. 
+## Selection
 
-`SelectionAria` is the abstract foundation in `@airlib/aria` that encapsulates these responsibilities, allowing custom widgets to focus strictly on their visual presentation and role-specific semantics.
+**The shared selection engine.** It holds the chosen state, routes a change through the ambient group when one exists, and compiles the lockout and key handlers the host needs.
 
-## What a custom control inherits
+### Usage
 
-- **Universal state mapping.** Maps selection onto whichever prop name your control expects (`pressed`, `checked`, or `selected`). Controls are matched by their `value` (or by `name` for paired composites like tabs and accordions).
-- **Selection lifecycle methods.** Exposes `select()`, `deselect()`, and `toggle()`. Deselection is automatically prevented when the control is disabled, or when deselecting would violate a `required` single-selection constraint.
-- **Ambient group synchronization.** When placed inside a coordinating container publishing `selectionGroup`, the control derives its selection state automatically without manual prop drilling.
-- **Inherited disablement.** A disabled parent group automatically disables all child controls within its scope.
-- **Custom element keyboard support.** Automatically handles `Space` and `Enter` key events when bound to non-native elements (`native: false`).
+```ts
+class SelectionAria<
+  E extends BaseElement = BaseElement,
+  T extends SelectionProps = SelectionProps,
+  A extends SelectionAttributes<E> = SelectionAttributes<E>,
+  O extends SelectionOptions = SelectionOptions
+> extends Aria<E, T, A, O>
+```
 
-## Building a custom selectable control
+### Options
 
-Here is an example authoring a custom `Chip` control that behaves as an accessible toggle:
+_What you fix when you create it. Read once, never reactive._
+
+- **key** _string, optional, default `'selected'`_: The prop on your control that carries the state — `checked`, `pressed`, or `selected`.
+- **valueKey** _'value' | 'name', optional, default `'value'`_: Which prop identifies the control inside its group. Paired composites such as tabs and accordions use `'name'`.
+- **role** _string, optional_: The role used to namespace the generated identifier — `button-<n>`, `checkbox-<n>`, and so on. It is not compiled onto the host; write the role yourself.
+- **idempotent** _boolean, optional_: Whether the control refuses to deselect once chosen. Defaults to `true` when the selection is `required`, and to `false` otherwise.
+- **allowKeys** _string[], optional, default `[' ', 'Enter']`_: The keys that activate the control on a custom host.
+- **deferredKey** _boolean, optional, default `false`_: Whether `Enter` commits on keyup instead of keydown.
+- **required** _boolean, optional_: Whether a chosen value may not be cleared, for this control alone or for its group.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **id** _string_: The generated identifier, also the fallback token when the control declares no value.
+- **value** _unknown_: The identity token the group compares against, read through `valueKey`.
+- **disabled** _boolean_: Whether the control is locked — its own `disabled` when declared, otherwise its group's.
+- **selected** _boolean_ (protected): The state read through `key`; writing it routes through `select()` or `deselect()` and is refused while disabled.
+
+### Methods
+
+_What you call on the instance._
+
+- **`select()`**: Chooses the control. Through a group it writes the group's value; standalone it writes its own state prop. Fires `change` when the state actually moved.
+- **`deselect()`**: Clears the control. Refused while disabled, and refused when the selection is idempotent.
+- **`toggle()`**: Selects an unchosen control, deselects a chosen one, and does nothing while disabled.
+
+### Events
+
+_What it tells you._
+
+- **`change`** — fires once per move, with the group's value in `detail` when the control is coordinated and its own boolean when it stands alone. The event bubbles, so a container hears its members, and the `onchange` prop is invoked in the same step.
+
+### How it behaves
+
+- **A group overrides the local state.** Inside a container that publishes `selectionGroup`, the control derives its selected state from the group's value on every change; its own state prop is ignored while the group has a value.
+- **A read outside a group returns nothing.** `selectionGroup.get()` hands back `undefined` when no container published one, even though its signature reads as a required value — guard the result when you read the group yourself.
+- **Only a control with a value coordinates.** A member that declares no `value` keeps its own state and inherits the group's disabled flag, but it never claims or clears the shared slot.
+- **The group's lockout cascades, an explicit flag wins.** A control that declares `disabled` uses its own value in either direction, so `disabled={false}` on a member keeps it active inside a disabled group.
+- **`Space` and `Enter` are synthesized on custom hosts.** A custom host is clicked on keyup after a `Space` press and on keydown for `Enter`, so the browser's native behavior is reproduced where it does not exist. A native host keeps its own key handling and only receives the state, the lockout, and the click handler.
+- **No host attribute is invented.** The base class writes `id`, `disabled`, and `onclick`; on a custom host it adds `tabindex`, `aria-disabled`, and the two key handlers. The role, `aria-checked`, `aria-pressed`, and `aria-selected` belong to the subclass.
+
+## Building a Custom Control
+
+Here is a `Chip` that behaves as an accessible toggle button:
 
 ```ts [TypeScript]
-import {
-  SelectionAria,
-  type SelectionProps,
-  type SelectionAttributes,
-  type SelectionOptions,
-  type BaseElement,
-} from '@airlib/aria';
+import { SelectionAria, type SelectionProps, type SelectionAttributes, type SelectionOptions, type BaseElement } from '@airlib/aria';
 
 export interface ChipProps extends SelectionProps {
   selected?: boolean;
@@ -52,25 +97,27 @@ export class ChipAria<E extends BaseElement = HTMLElement> extends SelectionAria
   SelectionOptions
 > {
   constructor(props?: Partial<ChipProps>, options?: SelectionOptions) {
-    super(props, { key: 'selected', role: 'button', ...options });
+    super(props, { key: 'selected', role: 'button', native: false, ...options });
   }
 
   protected createAttributes(): ChipAttributes<E> {
     const attrs = super.createAttributes();
+    attrs.role = 'button';
     attrs['aria-pressed'] = this.selected ? 'true' : 'false';
     return attrs;
   }
 }
 ```
 
-## How wrappers share their choice
+The `native: false` option is what makes the chip focusable and keyboard-operable: without it the base class assumes a real control and compiles neither a tab stop nor a key handler. The role is written by the subclass because the base class only uses `role` to namespace the identifier.
 
-A parent container that coordinates multiple selectable controls publishes its ambient state using `selectionGroup`:
+## Publishing a Group
+
+A container that coordinates several controls publishes its ambient state before those controls are created:
 
 ```ts [TypeScript]
 import { selectionGroup } from '@airlib/aria';
 
-// Publish selection state to child controls created within this scope
 selectionGroup.set({
   id: 'settings-group',
   value: activeValue,
@@ -79,10 +126,95 @@ selectionGroup.set({
 });
 ```
 
-Any child control created within that reactive scope reads the ambient context via `selectionGroup.get()` and synchronizes its state automatically.
+Every control created inside that scope reads it back through `selectionGroup.get()` and follows the group's value, its `multiple` mode, and its lockout. A group can also declare `required`, `orientation`, and `manual`; the selection foundation reads `required`, while travel and commit timing belong to the container that owns the rover.
 
 ## Next Steps
 
-- **Atomic Widgets** — Explore the pre-built widgets powered by this selection foundation: [Button](/docs/aria/button), [Checkbox](/docs/aria/checkbox), [Radio](/docs/aria/radio), and [Option](/docs/aria/option).
-- **[Composites Overview](/docs/aria#composites)** — Learn how multi-item composites manage roving tabindex and group selection.
-- **[Toggle Group](/docs/aria/toggle-group)** — See how multi-selection is coordinated across button groups.
+- **[Button](/docs/aria/button)**: The simplest subclass, with `pressed` as its state key.
+- **[Toggle Group](/docs/aria/toggle-group)**: A container that coordinates several toggles over one shared value.
+- **[Tree](/docs/aria/tree)**: Nodes that pair a selection with per-branch expansion.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host.
+
+### Selection
+
+```ts
+interface SelectionProps {
+  id?: string;
+  name?: string;
+  value?: unknown;
+  disabled?: boolean;
+  onchange?: (event: CustomEvent<boolean>) => void;
+}
+
+interface SelectionOptions {
+  key?: string;
+  valueKey?: 'value' | 'name';
+  role?: string;
+  idempotent?: boolean;
+  allowKeys?: string[];
+  deferredKey?: boolean;
+  required?: boolean;
+}
+
+interface SelectionAttributes {
+  id?: string;
+  disabled?: boolean;
+  tabindex?: number;
+}
+
+declare abstract class SelectionAria {
+  id: string;
+  get value(): unknown;
+  get disabled(): boolean;
+
+  select(): void;
+  deselect(): void;
+  toggle(): void;
+}
+```
+
+### Selection Group
+
+```ts
+interface SelectionGroupProps {
+  id?: string;
+  value?: unknown;
+  multiple?: boolean;
+  required?: boolean;
+  disabled?: boolean;
+  orientation?: 'horizontal' | 'vertical';
+  manual?: boolean;
+}
+
+declare const selectionGroup: {
+  key: symbol;
+  get(fallback?: SelectionGroupProps): SelectionGroupProps;
+  set(value: SelectionGroupProps): void;
+};
+```
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`attributes`** is the dictionary you spread; **`ref`** is what you bind the element with; **`props`** is the full props dictionary for spreading onto the host; **`restProps(omit)`** hands back your props with the keys you name left out.
+- **`assign()`** changes several parameters at once, **`refine()`** adds attributes of your own, **`on()`** listens for anything the part fires, **`destroy()`** tears it down.

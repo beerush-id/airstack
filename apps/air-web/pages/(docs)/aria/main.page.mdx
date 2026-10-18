@@ -1,13 +1,20 @@
 ---
-title: 'Main'
-description: 'Headless main landmark that compiles role="main" onto a generic host, giving screen reader users a direct route to the content and skip links a target.'
+title: 'Headless Main'
+description: 'Headless main landmarks for React and SolidJS. Compiles the main role onto a generic host, leaves a real `<main>` its implicit role, and never touches the keyboard — with no markup or styles imposed.'
 nav: 'Main'
 nav-priority: 520
 ---
 
-# AirLib Headless Main
+import './aria.css';
+import './main.css';
 
-The reason a page has structure at all is so a user can get to its content. Without a `main` landmark, a screen reader user has no direct route past the header and navigation, and a skip link has nothing to target. A page with more than one `main` breaks that route just as thoroughly, because the destination stops being unique. **AirLib Headless Main** (`aria('main')`) compiles `role="main"` onto the generic host you already render, keeps the landmark free of everything that is not structure, and leaves the `id` that your skip link points at in your hands.
+# Headless Main
+
+Every page carries one region of primary content, and a landmark is how a user reaches it without walking the header and the navigation first.
+
+Getting it right means **compiling `main` onto a generic host**, **leaving a real `<main>` its implicit role**, **keeping the region free of focus and keys**, and **leaving the skip-link `id` to you**.
+
+**Headless Main** does all of that for you, and leaves the markup and the styling entirely yours.
 
 ```tsx
 const main = aria('main', props);
@@ -15,9 +22,7 @@ const main = aria('main', props);
 <div id="content" ref={main.ref} {...main.restProps(['children'])} />
 ```
 
-<style>{`.demo-main-frame{border:1px solid #e4e4e7;border-radius:.75rem;overflow:hidden;font-size:.875rem}.demo-main-chrome{padding:.5rem 1rem;background:#f4f4f5;color:#71717a}.demo-main{padding:1rem 1.5rem;background:#fafafa;color:#52525b}.demo-main-title{font-weight:500;color:#18181b}`}</style>
-
-:::interactive[Skip Link Target]
+:::interactive[Document Frame]
 ```tsx
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
@@ -39,20 +44,42 @@ const DemoMain = setup<DemoMainProps>((props) => {
   );
 }, 'DemoMain');
 ```
+```html
+<div className="demo-main-frame">
+  <div className="demo-main-chrome">
+    <span>Header</span>
+    <span className="demo-main-chrome-note">skip link target #content</span>
+  </div>
+  <DemoMain id="content" label="Release notes">
+    <span className="demo-main-title">Version 2.4</span>
+    <span className="demo-main-text">The body of the page, reached before the header and the navigation.</span>
+  </DemoMain>
+  <div className="demo-main-chrome">Footer</div>
+</div>
+```
 
 <div className="demo-main-frame">
-  <div className="demo-main-chrome">header</div>
-  <DemoMain id="content">
-    <p className="demo-main-title">Primary unique content</p>
-    <p>The target of the skip link, and exactly one per page.</p>
+  <div className="demo-main-chrome">
+    <span>Header</span>
+    <span className="demo-main-chrome-note">skip link target #content</span>
+  </div>
+  <DemoMain id="content" label="Release notes">
+    <span className="demo-main-title">Version 2.4</span>
+    <span className="demo-main-text">The body of the page, reached before the header and the navigation.</span>
   </DemoMain>
-  <div className="demo-main-chrome">footer</div>
+  <div className="demo-main-chrome">Footer</div>
 </div>
+:::
+
+:::tip
+**Give the host the `id` your skip link points at.** The controller compiles no identifier, so the fragment is yours to name — and a skip link that targets a fragment the page never defines lands nowhere.
 :::
 
 ## Main
 
-The primary content landmark. It projects main semantics onto a generic host so the document's unique content is reachable in one jump.
+**The main landmark.** It compiles `main` onto a generic host and carries the name the landmark list announces.
+
+### Usage
 
 ```ts
 aria<E extends BaseElement = HTMLElement>(
@@ -61,8 +88,6 @@ aria<E extends BaseElement = HTMLElement>(
   options?: MainOptions
 ): MainAria<E>
 ```
-
-### Usage
 
 :::code-group
 
@@ -85,17 +110,18 @@ const Main = setup<MainProps>((props) => {
       {props.children}
     </div>
   );
-});
+}, 'Main');
 ```
 
 ```tsx [SolidJS]
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/solid';
-import type { ComponentProps } from 'solid-js';
+import type { ComponentProps, JSX } from 'solid-js';
 
 type MainProps = ComponentProps<'div'> & {
   label?: string;
   labelledby?: string;
+  children: JSX.Element;
 };
 
 const Main = setup<MainProps>((props) => {
@@ -113,37 +139,90 @@ const Main = setup<MainProps>((props) => {
 
 ### Parameters
 
-- `props.label` *(string, optional)*: Accessible label compiled to `aria-label`. Omitted when absent, so an unnamed main region carries no redundant attribute.
-- `props.labelledby` *(string, optional)*: Element ID providing the accessible name, compiled to `aria-labelledby`.
-- `options.native` *(boolean, optional, default `false`)*: Pass `true` when the host is a real `<main>`, which already implies the role — the redundant `role="main"` is dropped and only the name is compiled.
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **label** _string, optional_: The name screen readers announce for this region, compiled to `aria-label`. Omitted when absent, so an unnamed page region carries no redundant attribute.
+- **labelledby** _string, optional_: The ID of an element already on the page that provides that name, compiled to `aria-labelledby`.
+
+### Options
+
+_What you fix when you create it. Read once, never reactive._
+
+- **native** _boolean, optional, default `false`_: Pass `true` when the host is a real `<main>`, which already implies `main`. The redundant role is dropped and only the name is compiled.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **label** _string | undefined_: The label in force.
+- **labelledby** _string | undefined_: The ID reference in force.
+- **named** _boolean_: Whether the landmark carries an accessible name.
 
 ### How it behaves
 
-- Compiles `role="main"` on a generic host. With `native: true` the role is left to the `<main>` element and only the accessible name is emitted.
-- The role comes from `native` alone — never from the host tag and never from where the element sits in the tree.
-- `label` compiles to `aria-label` and `labelledby` to `aria-labelledby`, both reactively.
-- A second main is compiled unchanged: the controller keeps no registry, counts no instances, and never suppresses a duplicate. Uniqueness is yours to enforce.
-- Structure only: no `tabindex`, no `aria-live`, no `aria-busy`, no key handling, and no state. Content inside it keeps its own semantics and its own controllers.
-- `label` and `labelledby` are consumed by the controller and carried in `ownKeys`, so `restProps(['children'])` is the whole omission list — neither leaks to the DOM as a stray attribute.
-
-:::tip[Exactly one, and give it an id]
-A document holds exactly one `main` landmark. Give the element an `id` and point your skip link at it — the landmark tells assistive technologies where the content is, and the `id` gives keyboard users a way to jump there. The controller compiles neither the `id` nor the skip link.
-:::
-
-## Keyboard Navigation
-
-- **None.** The landmark itself takes no tab stop and claims no keys; a skip link pointing at its `id` is what moves focus into it.
-
-## What you get
-
-- **Main on a generic host.** A `<div>` becomes the document's primary content landmark.
-- **A skip-link target.** Pair it with an `id` so `<a href="#content">` lands keyboard users directly inside it.
-- **No redundant role.** `native: true` on a real `<main>` leaves the implicit role alone.
-- **Placement-stable output.** The compiled attributes are identical in SSR and after hydration, because nothing is read from the DOM.
-- **Structure only.** No focus, no keys, no state — nothing to keep in sync.
+- **Compiles `role="main"` on a generic host.** A `<div>` is announced as the document's primary content, and the role is written whether or not you name it.
+- **The role follows `native`, never the host tag.** Pass `native: true` and the element supplies the role itself; a custom host keeps its compiled role wherever you place it.
+- **Naming is reactive.** Set, change, or clear `label` or `labelledby` and the projection follows on the next write.
+- **Structure only.** No `tabindex`, no `aria-live`, no key handling, and no state of its own; a form or a link inside it keeps its own behavior.
+- **Exactly one is your rule.** The controller never counts mains and never suppresses a second one, so a document with two compiles both.
+- **The `id` and the skip link are yours.** The controller compiles no identifier, so put `id` on the host and point the skip link at it; the browser jumps to that fragment, and the landmark itself takes no tab stop.
+- **Both name props stay off the DOM as plain attributes.** `label` and `labelledby` compile to `aria-label` and `aria-labelledby` only, so `restProps(['children'])` is the whole omission list.
 
 ## Next Steps
 
-- **[Header](/docs/aria/header)**: The page header that precedes the main content.
-- **[Footer](/docs/aria/footer)**: The page footer that follows it.
-- **[Section](/docs/aria/section)**: Name significant sections inside the main content.
+- **[Header](/docs/aria/header)**: The banner landmark that precedes this content.
+- **[Footer](/docs/aria/footer)**: The contentinfo landmark that closes it.
+- **[Section](/docs/aria/section)**: The named regions you place inside it.
+- **[Link](/docs/aria/link)**: The skip link that targets its `id`.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Main
+
+```ts
+interface MainProps {
+  label?: string;
+  labelledby?: string;
+}
+
+interface MainOptions {
+  native?: boolean;
+}
+
+interface MainAttributes {
+  role?: 'main';
+  'aria-label'?: string;
+  'aria-labelledby'?: string;
+}
+
+declare class MainAria {
+  get label(): string | undefined;
+  get labelledby(): string | undefined;
+  get named(): boolean;
+}
+```
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`attributes`** is the dictionary you spread; **`ref`** is what you bind the element with; **`props`** is the full props dictionary for spreading onto the host; **`restProps(omit)`** hands back your props with the keys you name left out.
+- **`assign()`** changes several parameters at once, **`refine()`** adds attributes of your own, **`on()`** listens for anything the part fires, **`destroy()`** tears it down.

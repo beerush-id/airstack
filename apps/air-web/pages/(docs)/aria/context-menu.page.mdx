@@ -1,0 +1,499 @@
+---
+title: 'Headless Context Menu'
+description: 'Headless context menus for React and SolidJS. Open where a secondary click lands or at the focused element, rove the items with the arrows and a typed prefix, and dismiss on Escape — with no markup or styles imposed.'
+nav: 'Context Menu'
+nav-priority: 375
+---
+
+import './aria.css';
+import './menu.css';
+import './context-menu.css';
+
+# Headless Context Menu
+
+A context menu reveals the actions of one thing, at the place that thing sits.
+
+Getting it right means **cancelling the browser's own menu**, **recording where the pointer landed inside the surface**, **opening from `Shift + F10` and the `ContextMenu` key at the focused element**, and **composing the menu contract underneath it — panel, items, roving, and commands**.
+
+**Headless Context Menu** does all of that for you, and leaves the markup and the styling entirely yours.
+
+```tsx
+const menu = aria('context-menu', props);
+
+<div ref={menu.ref} {...menu.restProps(['children'])} />
+```
+
+:::interactive[Release Checklist]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup, shadowPortal } from '@airlib/react';
+import type { ComponentProps, ReactNode } from 'react';
+
+type DemoContextMenuProps = ComponentProps<'div'> & {
+  open?: boolean;
+  disabled?: boolean;
+  label?: string;
+};
+
+const DemoContextMenu = setup<DemoContextMenuProps>((props) => {
+  const menu = aria('context-menu', props);
+
+  return () => (
+    <div ref={menu.ref} {...menu.restProps(['children', 'label'])} className="demo-context-menu-zone">
+      {props.children}
+    </div>
+  );
+}, 'DemoContextMenu');
+
+type DemoContextMenuPanelProps = ComponentProps<'div'> & {
+  children: ReactNode;
+};
+
+const DemoContextMenuPanel = setup<DemoContextMenuPanelProps>((props) => {
+  const panel = aria('context-menu-panel', props);
+  const shadow = shadowPortal(() => panel.open);
+
+  return () => shadow(
+    <div ref={panel.ref} {...panel.restProps(['children'])} className="demo-menu-panel demo-context-menu-panel">
+      {props.children}
+    </div>
+  );
+}, 'DemoContextMenuPanel');
+
+type DemoMenuItemProps = ComponentProps<'button'> & {
+  name: string;
+  disabled?: boolean;
+  children: ReactNode;
+};
+
+const DemoMenuItem = setup<DemoMenuItemProps>((props) => {
+  const item = aria('menu-item', props);
+
+  return () => (
+    <button ref={item.ref} {...item.restProps(['children'])} className="demo-menu-item">
+      {props.children}
+    </button>
+  );
+}, 'DemoMenuItem');
+
+type DemoMenuItemCheckboxProps = ComponentProps<'button'> & {
+  name: string;
+  checked?: boolean;
+  children: ReactNode;
+};
+
+const DemoMenuItemCheckbox = setup<DemoMenuItemCheckboxProps>((props) => {
+  const checkbox = aria('menu-item-checkbox', props);
+
+  return () => (
+    <button ref={checkbox.ref} {...checkbox.restProps(['children'])} className="demo-menu-item">
+      {props.children}
+    </button>
+  );
+}, 'DemoMenuItemCheckbox');
+
+type DemoMenuGroupProps = ComponentProps<'div'> & {
+  label: string;
+  value?: string;
+  children: ReactNode;
+};
+
+const DemoMenuGroup = setup<DemoMenuGroupProps>((props) => {
+  const group = aria('menu-item-group', props);
+
+  return () => (
+    <div ref={group.ref} {...group.restProps(['children'])} className="demo-menu-group">
+      <span className="demo-menu-group-label">{props.label}</span>
+      {props.children}
+    </div>
+  );
+}, 'DemoMenuGroup');
+
+type DemoMenuItemRadioProps = ComponentProps<'button'> & {
+  value: string;
+  children: ReactNode;
+};
+
+const DemoMenuItemRadio = setup<DemoMenuItemRadioProps>((props) => {
+  const radio = aria('menu-item-radio', props);
+
+  return () => (
+    <button ref={radio.ref} {...radio.restProps(['children'])} className="demo-menu-item">
+      {props.children}
+    </button>
+  );
+}, 'DemoMenuItemRadio');
+```
+```html
+<div className="demo-context-menu-board">
+  <div className="demo-context-menu-head">
+    <span className="demo-context-menu-title">Release checklist</span>
+    <span className="demo-context-menu-meta">Right-click a step, or focus one and press Shift + F10</span>
+  </div>
+
+  <DemoContextMenu label="Step actions">
+    <div className="demo-context-menu-row" tabIndex={0}>
+      <span className="demo-context-menu-row-title">Ship the docs</span>
+      <span className="demo-context-menu-row-meta">Due Thursday</span>
+    </div>
+    <div className="demo-context-menu-row" tabIndex={0}>
+      <span className="demo-context-menu-row-title">Publish the release notes</span>
+      <span className="demo-context-menu-row-meta">Waiting on review</span>
+    </div>
+    <div className="demo-context-menu-row" tabIndex={0}>
+      <span className="demo-context-menu-row-title">Announce in the forum</span>
+      <span className="demo-context-menu-row-meta">Drafted</span>
+    </div>
+
+    <DemoContextMenuPanel>
+      <DemoMenuItem name="duplicate-step">Duplicate step</DemoMenuItem>
+      <DemoMenuItem name="rename-step">Rename…</DemoMenuItem>
+      <DemoMenuItem name="delete-step" disabled>Delete</DemoMenuItem>
+      <div className="demo-menu-separator" />
+      <DemoMenuItemCheckbox name="timestamps" checked>Show timestamps</DemoMenuItemCheckbox>
+      <div className="demo-menu-separator" />
+      <DemoMenuGroup label="Sort by" value="manual">
+        <DemoMenuItemRadio value="manual">Manual order</DemoMenuItemRadio>
+        <DemoMenuItemRadio value="recent">Recent changes</DemoMenuItemRadio>
+      </DemoMenuGroup>
+    </DemoContextMenuPanel>
+  </DemoContextMenu>
+</div>
+```
+
+<div className="demo-context-menu-board">
+  <div className="demo-context-menu-head">
+    <span className="demo-context-menu-title">Release checklist</span>
+    <span className="demo-context-menu-meta">Right-click a step, or focus one and press Shift + F10</span>
+  </div>
+
+  <DemoContextMenu label="Step actions">
+    <div className="demo-context-menu-row" tabIndex={0}>
+      <span className="demo-context-menu-row-title">Ship the docs</span>
+      <span className="demo-context-menu-row-meta">Due Thursday</span>
+    </div>
+    <div className="demo-context-menu-row" tabIndex={0}>
+      <span className="demo-context-menu-row-title">Publish the release notes</span>
+      <span className="demo-context-menu-row-meta">Waiting on review</span>
+    </div>
+    <div className="demo-context-menu-row" tabIndex={0}>
+      <span className="demo-context-menu-row-title">Announce in the forum</span>
+      <span className="demo-context-menu-row-meta">Drafted</span>
+    </div>
+
+    <DemoContextMenuPanel>
+      <DemoMenuItem name="duplicate-step">Duplicate step</DemoMenuItem>
+      <DemoMenuItem name="rename-step">Rename…</DemoMenuItem>
+      <DemoMenuItem name="delete-step" disabled>Delete</DemoMenuItem>
+      <div className="demo-menu-separator" />
+      <DemoMenuItemCheckbox name="timestamps" checked>Show timestamps</DemoMenuItemCheckbox>
+      <div className="demo-menu-separator" />
+      <DemoMenuGroup label="Sort by" value="manual">
+        <DemoMenuItemRadio value="manual">Manual order</DemoMenuItemRadio>
+        <DemoMenuItemRadio value="recent">Recent changes</DemoMenuItemRadio>
+      </DemoMenuGroup>
+    </DemoContextMenuPanel>
+  </DemoContextMenu>
+</div>
+:::
+
+:::tip
+**The surface only hears keys from inside itself.** A secondary click opens the menu at the pointer; `Shift + F10` and the `ContextMenu` key open it under the focused descendant, so the surface needs at least one focusable element of its own.
+:::
+
+## Context Menu
+
+**The host surface.** It turns a secondary click or a keyboard shortcut into an anchored panel and owns the menu underneath it.
+
+### Usage
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'context-menu',
+  props?: ContextMenuProps
+): ContextMenuAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type ContextMenuProps = ComponentProps<'div'> & {
+  id?: string;
+  open?: boolean;
+  disabled?: boolean;
+  label?: string;
+  onopen?: (event: CustomEvent<true>) => void;
+  onclose?: (event: CustomEvent<false>) => void;
+  oncommand?: (event: CustomEvent<string>) => void;
+};
+
+const ContextMenu = setup<ContextMenuProps>((props) => {
+  const menu = aria('context-menu', props);
+
+  return () => (
+    <div ref={menu.ref} {...menu.restProps(['children', 'label'])}>
+      {props.children}
+    </div>
+  );
+}, 'ContextMenu');
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type ContextMenuProps = ComponentProps<'div'> & {
+  id?: string;
+  open?: boolean;
+  disabled?: boolean;
+  label?: string;
+  onopen?: (event: CustomEvent<true>) => void;
+  onclose?: (event: CustomEvent<false>) => void;
+  oncommand?: (event: CustomEvent<string>) => void;
+};
+
+const ContextMenu = setup<ContextMenuProps>((props) => {
+  const menu = aria('context-menu', props);
+
+  return (
+    <div ref={menu.ref} {...menu.restProps(['children', 'label'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
+
+### Parameters
+
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **id** _string, optional_: The identifier the panel is scoped to, generated as `menu-<n>` when you leave it out — the context menu inherits the menu coordinator's namespace.
+- **label** _string, optional_: The panel's accessible name. **Pass it on the host**: the host and its panel share one props object, so the panel compiles it as `aria-label`. It is absent from `ContextMenuProps`, so `restProps` will not strip it — omit it there if you don't want it on the surface.
+- **open** _boolean, optional_: Panel visibility. **Write it through `menu.open` to open or close without a gesture.**
+- **disabled** _boolean, optional_: Refuses the secondary click and the keyboard shortcut on the whole surface, and every item refuses on top of it.
+- **onopen** _(event: CustomEvent&lt;true&gt;) =&gt; void, optional_: Called after the panel opens, whichever gesture opened it.
+- **onclose** _(event: CustomEvent&lt;false&gt;) =&gt; void, optional_: Called after it closes, through every dismissal path.
+- **oncommand** _(event: CustomEvent&lt;string&gt;) =&gt; void, optional_: Receives every item command that bubbles up, with the item's `name` in `detail`.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **id** _string_: The identifier in force, generated when you left it out.
+- **open** _boolean_: Panel visibility. **Writing it flips the panel and dispatches no event.**
+- **disabled** _boolean_: Whether the surface refuses both ways in.
+- **anchorX** _number | undefined_: Where the pointer landed across the surface, in pixels. Unset until a gesture records it.
+- **anchorY** _number | undefined_: Where it landed down the surface, in pixels.
+
+### Methods
+
+_What you call on the instance._
+
+- **`panel(props?)`** → `ContextMenuPanelAria`: Creates the panel belonging to this surface.
+
+### How it behaves
+
+- **A secondary click opens it where the pointer is.** The host cancels the browser's own menu, measures the click inside its own box, and opens the panel at that offset.
+- **The keyboard opens it at the focused element.** `Shift + F10` and the `ContextMenu` key anchor the panel at the bottom-centre of the descendant that had focus.
+- **It compiles no role and no trigger.** The surface stays an ordinary element; the menu role lives on the panel.
+- **The popup contract appears only while open.** `aria-haspopup="menu"`, `aria-expanded`, and `aria-controls` reach the surface while the panel shows and are dropped once it closes.
+- **The surface is the anchor.** It compiles an `anchor-name` of its own, and the panel reads the recorded offset back through `--anchor-x` and `--anchor-y`.
+- **Commands bubble to the surface.** An item activated inside dispatches `command` with its `name`, and the host's `oncommand` hears it.
+- **Disabling closes both ways in.** The secondary click and the keyboard shortcut are refused together, and the lock reaches every item.
+- **`aria-controls` names `{id}-menu`.** The panel compiles the host's own identifier instead, so nothing carries the `{id}-menu` address the host points at.
+
+### Events
+
+_What it tells you._
+
+- **`open`** _CustomEvent&lt;true&gt;_: Fires after the panel opens.
+- **`close`** _CustomEvent&lt;false&gt;_: Fires after it closes, through every dismissal path.
+- **`command`** _CustomEvent&lt;string&gt;_: Fires when an item activates, with that item's `name` in `detail`.
+
+```tsx
+const menu = aria('context-menu', {
+  oncommand: (event) => run(event.detail),
+});
+```
+
+## Context Menu Panel
+
+**The anchored popup.** It carries the menu role and the items, and it dismisses itself.
+
+### Usage
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'context-menu-panel',
+  props?: ContextMenuPanelProps
+): ContextMenuPanelAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup, shadowPortal } from '@airlib/react';
+import type { ComponentProps, ReactNode } from 'react';
+
+type ContextMenuPanelProps = ComponentProps<'div'> & {
+  children: ReactNode;
+};
+
+const ContextMenuPanel = setup<ContextMenuPanelProps>((props) => {
+  const panel = aria('context-menu-panel', props);
+  const shadow = shadowPortal(() => panel.open);
+
+  return () => shadow(
+    <div ref={panel.ref} {...panel.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+}, 'ContextMenuPanel');
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type ContextMenuPanelProps = ComponentProps<'div'>;
+
+const ContextMenuPanel = setup<ContextMenuPanelProps>((props) => {
+  const panel = aria('context-menu-panel', props);
+
+  return (
+    <div ref={panel.ref} {...panel.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **id** _string | undefined_: The identifier in force — the host's own.
+- **open** _boolean_: The host's visibility, read through the panel.
+- **popup** _PopoverAria_: The overlay that places focus and dismisses the panel.
+
+### How it behaves
+
+- **It roves like a menu panel.** The arrows, `Home`/`End`, a typed prefix, and `Enter`/`Space` activation work across the command, checkbox, and radio items inside it.
+- **Focus lands on the first enabled item when it opens**, and comes back to the element that had it when the panel closes.
+- **It compiles the pointer offset.** `--anchor-x` and `--anchor-y` carry the recorded position in pixels, for your positioning to read.
+- **Its name comes from the host.** The host and the panel share one props object, so a `label` passed to the panel itself is not read.
+- **It dismisses itself.** `Escape` and a press outside close it, and an item command closes it too.
+- **It is always vertical.** `aria-orientation="vertical"` is compiled whatever the layout looks like.
+- **Mounting and positioning stay with you.** The panel reports visibility and the offset; where it is portaled and how it is placed are yours.
+
+### Navigation
+
+_What the keys do._
+
+- **`ArrowDown` / `ArrowUp`** — the next / previous enabled item, wrapping at both ends.
+- **`Home` / `End`** — the first / last enabled item.
+- **Printable character** — the next enabled item whose text begins with the typed prefix.
+- **`Enter` / `Space`** — activates the focused item.
+- **`Escape`** — closes the panel without invoking anything.
+- **`Tab`** — leaves the panel, stopping on each checkbox item and on the checked radio item first.
+
+## Next Steps
+
+- **[Menu](/docs/aria/menu)**: The coordinator this surface composes, with the trigger, the bar, and the same panel mechanics.
+- **[Menu Item](/docs/aria/menu#menu-item)**: The commands, checkboxes, and radios that go inside the panel.
+- **[Popover](/docs/aria/popover)**: The overlay engine behind the panel's dismissal and focus return.
+- **[Listbox](/docs/aria/listbox)**: The roving and typeahead the panel inherits.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Context Menu
+
+```ts
+interface ContextMenuProps {
+  id?: string;
+  open?: boolean;
+  disabled?: boolean;
+  onopen?: (event: CustomEvent<true>) => void;
+  onclose?: (event: CustomEvent<false>) => void;
+  oncommand?: (event: CustomEvent<string>) => void;
+}
+
+interface ContextMenuAttributes {
+  id?: string;
+  'aria-haspopup'?: 'menu';
+  'aria-expanded'?: 'true' | 'false';
+  'aria-controls'?: string;
+}
+
+declare class ContextMenuAria {
+  get id(): string | undefined;
+  get open(): boolean;
+  set open(open: boolean);
+  get disabled(): boolean;
+  anchorX?: number;
+  anchorY?: number;
+
+  panel(props?: ContextMenuPanelProps): ContextMenuPanelAria;
+}
+```
+
+### Context Menu Panel
+
+```ts
+interface ContextMenuPanelAttributes {
+  id?: string;
+  role?: 'menu';
+  tabindex?: number;
+  'aria-label'?: string;
+  'aria-orientation'?: 'vertical';
+  'aria-disabled'?: 'true' | 'false';
+  style?: {
+    '--anchor-x'?: string;
+    '--anchor-y'?: string;
+  };
+}
+
+declare class ContextMenuPanelAria {
+  get id(): string | undefined;
+  get open(): boolean;
+  popup: PopoverAria;
+}
+```
+
+The host and the panel share one props object, so the panel's own argument is never read. `label` is absent from `ContextMenuProps`, which is why it reaches the panel while `restProps` still leaves it on the host.
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`attributes`** is the dictionary you spread; **`ref`** is what you bind the element with; **`props`** is the full props dictionary for spreading onto the host; **`restProps(omit)`** hands back your props with the keys you name left out.
+- **`assign()`** changes several parameters at once, **`refine()`** adds attributes of your own, **`on()`** listens for anything the part fires, **`destroy()`** tears it down.

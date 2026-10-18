@@ -1,13 +1,18 @@
 ---
-title: 'Pagination'
-description: 'Headless page-list navigation that names the landmark, carries arrow-key travel across page links, and holds the page position that drives prev and next.'
+title: 'Headless Pagination'
+description: 'Headless pagination for React and SolidJS. A named page run that keeps one tab stop on the current page, travels the enabled links with the arrow keys, and holds the position previous and next step from — with no markup or styles imposed.'
 nav: 'Pagination'
 nav-priority: 340
 ---
 
-# AirLib Headless Pagination
+import './aria.css';
+import './pagination.css';
 
-Search results split across ten pages leave keyboard users tabbing through every page link one stop at a time, while assistive technology announces the pile with no name and no relationship. The prev and next controls around it are usually wired by hand, each one re-deriving whether there is a page to step to. **AirLib Headless Pagination** (`aria('pagination')`) names the landmark, carries `Left` / `Right` / `Home` / `End` travel across the page links — wrapping at both ends and passing over disabled entries — and holds the page position that `prev()`, `next()`, `canBackward`, and `canForward` all read from.
+# Headless Pagination
+
+A run of page links that has to behave as one control. Getting it right means **naming the run as a landmark**, **holding a single tab stop on the current page**, **travelling only the enabled links and wrapping at both ends**, and **keeping a page position that previous and next can guard**.
+
+**Headless Pagination** does all of that for you, and leaves the markup and the styling entirely yours.
 
 ```tsx
 const nav = aria('pagination', props);
@@ -15,30 +20,22 @@ const nav = aria('pagination', props);
 <nav ref={nav.ref} {...nav.restProps(['children'])} />
 ```
 
-<style>{`.demo-pagination{display:flex;align-items:center;gap:.375rem;padding:.625rem .75rem;border:1px solid #e4e4e7;border-radius:.75rem;background:#fafafa}.demo-page{display:inline-flex;align-items:center;justify-content:center;min-width:2.25rem;padding:.375rem .625rem;border:1px solid transparent;border-radius:.5rem;background:transparent;font-size:.875rem;font-weight:500;color:#3f3f46;text-decoration:none;cursor:pointer;transition:background-color .15s,border-color .15s,color .15s}.demo-page:hover{background:#e4e4e7}.demo-page:focus-visible{outline:2px solid #18181b;outline-offset:2px}.demo-page[aria-current="page"]{border-color:#18181b;background:#18181b;color:#fff}.demo-page[aria-disabled="true"]{opacity:.5;cursor:not-allowed}`}</style>
-
-:::interactive[Results Pages]
+:::interactive[Search Results Page]
 ```tsx
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
-import type { ComponentProps, ReactNode } from 'react';
+import type { ComponentProps } from 'react';
 
-type DemoPaginationProps = ComponentProps<'nav'> & {
+const demoPages = [1, 2, 3, 4, 5];
+
+type DemoPagerProps = ComponentProps<'div'> & {
   label?: string;
-  children: ReactNode;
+  page?: number;
+  total?: number;
 };
 
-const DemoPagination = setup<DemoPaginationProps>((props) => {
-  const nav = aria('pagination', props, { native: false });
-
-  return () => (
-    <div ref={nav.ref} {...nav.restProps(['children'])} className="demo-pagination">
-      {props.children}
-    </div>
-  );
-}, 'DemoPagination');
-
 type DemoPageLinkProps = ComponentProps<'a'> & {
+  page?: number;
   current?: boolean;
 };
 
@@ -46,50 +43,67 @@ const DemoPageLink = setup<DemoPageLinkProps>((props) => {
   const link = aria('link', props);
 
   return () => (
-    <a ref={link.ref} {...link.restProps(['children'])} className="demo-page">
+    <a ref={link.ref} {...link.restProps(['children'])} className="demo-pager-page">
       {props.children}
     </a>
   );
 }, 'DemoPageLink');
+
+const DemoPager = setup<DemoPagerProps>((props) => {
+  const nav = aria('pagination', props, { native: false });
+
+  return () => (
+    <div ref={nav.ref} {...nav.restProps(['children'])} className="demo-pager">
+      <button type="button" className="demo-pager-step" disabled={!nav.canBackward} onClick={() => nav.prev()}>Previous</button>
+      <div className="demo-pager-pages">
+        {demoPages.map((page) => (
+          <DemoPageLink key={page} href={`#page-${page}`} page={page} current={nav.page === page}>{page}</DemoPageLink>
+        ))}
+      </div>
+      <button type="button" className="demo-pager-step" disabled={!nav.canForward} onClick={() => nav.next()}>Next</button>
+    </div>
+  );
+}, 'DemoPager');
+```
+```html
+<DemoPager label="Search results pages" page={2} total={5} />
 ```
 
-<DemoPagination label="Search results pages">
-  <DemoPageLink href="#page-1" current>1</DemoPageLink>
-  <DemoPageLink href="#page-2">2</DemoPageLink>
-  <DemoPageLink href="#page-3">3</DemoPageLink>
-  <DemoPageLink href="#page-4">4</DemoPageLink>
-  <DemoPageLink href="#page-5">5</DemoPageLink>
-</DemoPagination>
+<DemoPager label="Search results pages" page={2} total={5} />
+:::
+
+:::tip
+**The run is links, not a widget.** The container names the run, holds the position, and moves focus; every page control stays an ordinary `aria('link')` with its own `href`, and `current` is what puts the one tab stop where readers expect it.
 :::
 
 ## Pagination
 
-Page-list navigation coordinator. The container holds the accessible label, the page position, and the arrow-key travel; the page controls themselves are ordinary links.
+**The run's coordinator.** It labels the landmark, holds the page position, and moves focus across the links it contains.
+
+### Usage
 
 ```ts
 aria<E extends BaseElement = HTMLElement>(
   role: 'pagination',
-  props?: PaginationProps
+  props?: PaginationProps,
+  options?: PaginationOptions
 ): PaginationAria<E>
 ```
-
-### Usage
 
 :::code-group
 
 ```tsx [React]
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
-import type { ComponentProps, ReactNode } from 'react';
+import type { ComponentProps } from 'react';
 
-type PaginationProps = ComponentProps<'nav'> & {
+type ResultsProps = ComponentProps<'nav'> & {
   label?: string;
   page?: number;
   total?: number;
-  children: ReactNode;
 };
 
-const Pagination = setup<PaginationProps>((props) => {
+const Results = setup<ResultsProps>((props) => {
   const nav = aria('pagination', props);
 
   return () => (
@@ -111,13 +125,13 @@ import { aria } from '@airlib/aria';
 import { setup } from '@airlib/solid';
 import type { ComponentProps } from 'solid-js';
 
-type PaginationProps = ComponentProps<'nav'> & {
+type ResultsProps = ComponentProps<'nav'> & {
   label?: string;
   page?: number;
   total?: number;
 };
 
-const Pagination = setup<PaginationProps>((props) => {
+const Results = setup<ResultsProps>((props) => {
   const nav = aria('pagination', props);
 
   return (
@@ -138,55 +152,113 @@ const Pagination = setup<PaginationProps>((props) => {
 
 ### Parameters
 
-- `props.label` *(string, optional, default `'Pagination'`)*: Accessible name for the navigation landmark, applied via `aria-label`.
-- `props.page` *(number, optional, default `1`)*: Current page position, read and written through `nav.page`.
-- `props.total` *(number, optional)*: Last page position. Absent means the forward bound is unknown, so `canForward` stays `false` and `next()` does nothing.
+_What you pass in. The props object stays live — change `total` and the forward bound follows._
 
-### Projections & Methods
+- **label** _string, optional, default `'Pagination'`_: The accessible name compiled onto the landmark as `aria-label`.
+- **page** _number, optional, default `1`_: The current position, read and written through `page` on the instance.
+- **total** _number, optional_: The last position. Left out, the forward bound is unknown: `canForward` stays `false` and `next()` does nothing.
 
-- `nav.page` *(number)*: Current page position. Writable — assigning it moves the run.
-- `nav.total` *(number | undefined)*: Last page position, or `undefined` when unknown.
-- `nav.canBackward` *(boolean)*: `page > 1`.
-- `nav.canForward` *(boolean)*: `total` is known and `page < total`.
-- `nav.prev()` / `nav.next()`: Step one page in that direction, and only where one exists. They stop at both ends rather than wrapping, so binding them to a control's `disabled` is the whole guard.
+### Options
+
+_What you fix when you create it. Read once, never reactive._
+
+- **native** _boolean, optional, default `true`_: Set on a real `<nav>`, which is already a landmark — the controller only adds the name. Pass `false` to bind a plain element: it compiles `role="navigation"`; with the default a `<div>` gets no role at all.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **page** _number_: The current position. Writing it moves the run.
+- **total** _number | undefined_: The last position, or nothing when the forward bound is unknown.
+- **canBackward** _boolean_: Whether a page exists before the current one.
+- **canForward** _boolean_: Whether `total` is known and a page exists after the current one.
+
+### Methods
+
+_What you call on the instance._
+
+- **`prev()`**: Steps back one position where `canBackward` holds, and stops at the first page.
+- **`next()`**: Steps forward one position where `canForward` holds. It stops at `total`, and does nothing at all while `total` is unknown.
 
 ### How it behaves
 
-- Compiles `role="navigation"` plus `aria-label` on a generic host; on a native `<nav>` the role is omitted and only the label is added.
-- `Left` / `Right` move DOM focus to the previous / next enabled page link, wrapping at both ends.
-- `Home` / `End` move focus to the first / last enabled page link.
-- Disabled page links are passed over in every direction.
-- One tab stop for the whole run: only the current page link sits at `tabindex="0"` — every other page link parks at `-1` and is reached with the arrow keys. Mark the active page with `current` so the stop lands where readers expect it.
-- Up and Down arrows keep native scroll; `Enter`, `Space`, and any other key are never swallowed.
-- A page link carrying `page` writes that position into the pagination when it activates, so clicking page 4 moves the run. A middle-click or a `Ctrl` / `Cmd` / `Shift` gesture opens a tab and commits nothing.
-- The page position is state, not markup: `page` and `total` are owned by the controller, compile to no attribute, and never reach the DOM.
+- **One tab stop, on the current page.** A page link marked `current` compiles `tabindex="0"` on a native anchor, every other page link compiles `-1`, and the arrows move focus between them without adding stops. With no link marked current, none of the page links is a stop.
+- **Disabled pages are stepped over.** A page link carrying `aria-disabled="true"` is excluded from travel in both directions, and `Home` / `End` land on the first and last enabled link.
+- **A page link commits its position.** A link carrying `page` writes that number into the container when it activates, so clicking page 4 moves `page` to 4. A middle-click never commits; a `Ctrl`, `Cmd`, or `Shift` click still commits while the browser opens the destination in a new tab or window.
+- **The position is state, not markup.** `page` and `total` compile to no attribute, and the container never announces the current page itself — `aria-current` belongs to the link you mark.
+- **Vertical arrows and typing stay native.** `ArrowUp` / `ArrowDown` scroll the page, and `Enter`, `Space`, and every other key are left to the focused link or the browser.
+- **The landmark follows the host.** On a real `<nav>` the role is left off and only `aria-label` is added; on a custom host the controller compiles `role="navigation"` itself.
 
-:::tip[No Page Item Role]
-WAI-ARIA defines no pagination item role, so there is no `Pagination.Item` to reach for. Page controls are ordinary [`aria('link')`](/docs/aria/link) instances — with `href` for destinations, `page` for the position they commit, and `current` for the active page — and participate in travel by being there.
-:::
+### Navigation
 
-## Page Links
+_What the keys do._
 
-Pagination members are ordinary link controllers: [`aria('link')`](/docs/aria/link) with `href`, optional `disabled`, `page` for the position the link commits on activation, and `current` for the active page (`aria-current="page"`). Each keeps its own props, projections, and native navigation.
-
-## Keyboard Navigation
-
-- **ArrowRight / ArrowLeft**: Moves focus to the next / previous enabled page link, wrapping at both ends.
-- **Home / End**: Moves focus to the first / last enabled page link.
-- **ArrowUp / ArrowDown**: Left to the browser for native scroll.
-- **Enter / Space**: Left to the focused link, which navigates itself and commits its `page`.
-- **Tab**: Left to the browser, moving focus to the next interactive element on the page. From inside the run, `Tab` leaves from the current page link — the run's only tab stop.
-
-## What you get
-
-- **Named landmark.** One `label` gives the whole page run an accessible name.
-- **A page position you can drive.** `page` and `total` feed `canBackward` / `canForward`, and `prev()` / `next()` step inside those bounds.
-- **Wrapped travel.** Arrows wrap from the last page back to the first (and from the first back to the last).
-- **Links stay links.** Native navigation, `aria-current`, and disabled lockout all keep working as themselves.
-- **Zero markup lock-in.** Native `<nav>` or a custom host; the container only labels, holds the position, and moves focus.
+- **`ArrowLeft` / `ArrowRight`** — move focus to the previous / next enabled page link, wrapping at both ends.
+- **`Home` / `End`** — move focus to the first / last enabled page link.
+- **`ArrowUp` / `ArrowDown`** — left to the browser for native scroll.
+- **`Enter`** — left to the focused link, which navigates itself and commits its `page`.
+- **`Tab`** — reaches the step buttons in document order and, among the page links, only the current one; the other pages are arrow-only.
 
 ## Next Steps
 
-- **[Link](/docs/aria/link)**: Destinations, disabled lockout, the committed `page`, and the current-page marker behind each page control.
-- **[Navigation](/docs/aria/navigation)**: The roving link group pagination extends.
-- **[Toolbar](/docs/aria/toolbar)**: Arrow-key roving across mixed controls with the same wrapping travel.
+- **[Link](/docs/aria/link)**: The destination, disabled lockout, committed `page`, and current-page marker behind every page control.
+- **[Navigation](/docs/aria/navigation)**: The roving link group this coordinator extends.
+- **[Toolbar](/docs/aria/toolbar)**: Arrow-key travel across mixed controls with the same wrapping.
+- **[Breadcrumb](/docs/aria/breadcrumb)**: The other trail of links a page carries.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Pagination
+
+```ts
+interface PaginationProps {
+  label?: string;
+  page?: number;
+  total?: number;
+}
+
+interface PaginationOptions {
+  native?: boolean;
+}
+
+interface PaginationAttributes {
+  role?: string;
+  'aria-label'?: string;
+}
+
+declare class PaginationAria {
+  get page(): number;
+  set page(page: number);
+  get total(): number | undefined;
+  get canBackward(): boolean;
+  get canForward(): boolean;
+
+  prev(): void;
+  next(): void;
+}
+```
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`attributes`** is the dictionary you spread; **`ref`** is what you bind the element with; **`props`** is the full props dictionary for spreading onto the host; **`restProps(omit)`** hands back your props with the keys you name left out.
+- **`assign()`** changes several parameters at once, **`refine()`** adds attributes of your own, **`on()`** listens for anything the part fires, **`destroy()`** tears it down.

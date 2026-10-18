@@ -1,41 +1,45 @@
 ---
-title: 'Field'
-description: 'Form-field association unit wiring labels, controls, descriptions, and error messages without manual ID ceremony.'
+title: 'Headless Field'
+description: 'Headless form fields for React and SolidJS. Derives every part address from one namespace, holds a failure back until the field is touched, and wires label, control, description, and error — with no markup or styles imposed.'
 nav: 'Field'
 nav-priority: 347
 ---
 
-# AirLib Headless Field
+import './aria.css';
+import './field.css';
 
-Every form repeats the same wiring by hand: a `<label>` needs `for` matching the input's `id`, helper text needs an `id` referenced by `aria-describedby`, and a failure needs `aria-invalid` plus `aria-errormessage` pointing at a polite live region — but only once the developer has actually left the field, or the form screams before anyone types. Miss one link and the field silently degrades for assistive technology. **AirLib Headless Field** (`aria('field')`) hosts an ambient field namespace that wires labels, slotted controls, descriptions, and error messages automatically — on native inputs or custom controls, without dictating markup or styles.
+# Headless Field
+
+A field ties a label, a control, helper text, and a failure message into one unit. Getting it right means **deriving every address from a single namespace**, **holding a failure back until the field is touched**, **keeping helper text and the failure on separate channels**, and **falling back to the control's own rule when you pass none**.
+
+**Headless Field** does all of that for you, and leaves the markup and the styling entirely yours.
 
 ```tsx
 const field = aria('field', props);
 
-<div ref={field.ref} {...field.props} />
+<div ref={field.ref} {...field.restProps(['children'])} />
 ```
 
-<style>{`.demo-field{display:grid;gap:.5rem;max-width:22rem;padding:1.5rem;border:1px solid #e4e4e7;border-radius:.75rem;background:#fafafa}.demo-field-label{font-size:.875rem;font-weight:600;color:#18181b}.demo-field-input{padding:.5rem .75rem;border:1px solid #d4d4d8;border-radius:.5rem;background:#fff;font-size:.875rem}.demo-field-input[aria-invalid="true"]{border-color:#dc2626;box-shadow:0 0 0 2px rgba(220,38,38,.12)}.demo-field-desc{font-size:.75rem;color:#71717a}.demo-field-error{display:none;font-size:.75rem;color:#dc2626}.demo-field:has([aria-invalid="true"]) .demo-field-error{display:block}`}</style>
-
-:::interactive[Sign-in field with error wiring]
+:::interactive[Sign-in Form]
 ```tsx
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
-import type { ComponentProps } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 
 type DemoFieldProps = ComponentProps<'div'> & {
   id?: string;
+  value?: string;
   invalid?: boolean;
   touched?: boolean;
   required?: boolean;
-  disabled?: boolean;
+  children: ReactNode;
 };
 
 const DemoField = setup<DemoFieldProps>((props) => {
   const field = aria('field', props);
 
   return () => (
-    <div ref={field.ref} {...field.restProps(['children'])} className="demo-field">
+    <div ref={field.ref} {...field.restProps(['children'])} className="demo-field-card demo-field-form">
       {props.children}
     </div>
   );
@@ -58,38 +62,35 @@ type DemoFieldControlProps = ComponentProps<'input'>;
 const DemoFieldControl = setup<DemoFieldControlProps>((props) => {
   const control = aria('field-control');
 
-  return () => (
-    <input ref={control.ref} {...control.props} className="demo-field-input"
-    />
-  );
+  return () => <input ref={control.ref} {...control.props} className="demo-field-input" />;
 }, 'DemoFieldControl');
 
-type DemoFieldDescriptionProps = ComponentProps<'p'>;
+type DemoFieldDescriptionProps = ComponentProps<'span'>;
 
 const DemoFieldDescription = setup<DemoFieldDescriptionProps>((props) => {
   const description = aria('field-description');
 
   return () => (
-    <p ref={description.ref} {...description.props} className="demo-field-desc">
+    <span ref={description.ref} {...description.props} className="demo-field-hint">
       {props.children}
-    </p>
+    </span>
   );
 }, 'DemoFieldDescription');
 
-type DemoFieldErrorProps = ComponentProps<'p'>;
+type DemoFieldErrorProps = ComponentProps<'span'>;
 
 const DemoFieldError = setup<DemoFieldErrorProps>((props) => {
   const error = aria('field-error');
 
   return () => (
-    <p ref={error.ref} {...error.props} className="demo-field-error">
+    <span ref={error.ref} {...error.props} className="demo-field-error">
       {props.children}
-    </p>
+    </span>
   );
 }, 'DemoFieldError');
 
 const Demo = (props) => (
-  <DemoField id={props.id} type="email" value={props.value ?? 'de@do'} required={props.required} invalid={props.invalid} touched={props.touched} placeholder="you@example.com" oninput={(e) => console.log('New value:', e.target.value)}>
+  <DemoField id={props.id} type="email" value={props.value} placeholder="you@example.com" required={props.required} invalid={props.invalid} touched={props.touched}>
     <DemoFieldLabel>Email address</DemoFieldLabel>
     <DemoFieldControl />
     <DemoFieldDescription>We will send a sign-in link to this address.</DemoFieldDescription>
@@ -98,21 +99,39 @@ const Demo = (props) => (
 );
 ```
 ```html
-  <Demo id="demo-signin" />
-  <Demo id="demo-signin-error" value="d" invalid touched required />
+<div className="demo-field-stack">
+  <div className="demo-field-row">
+    <span className="demo-field-caption">Failure waits for blur</span>
+    <Demo id="demo-email" required />
+  </div>
+  <div className="demo-field-row">
+    <span className="demo-field-caption">Touched and invalid</span>
+    <Demo id="demo-email-bad" value="d" invalid touched required />
+  </div>
+</div>
 ```
 
-<div className="flex flex-col gap-6 mx-auto">
-  <Demo id="demo-signin" />
-  <Demo id="demo-signin-error" value="d" invalid touched required />
+<div className="demo-field-stack">
+  <div className="demo-field-row">
+    <span className="demo-field-caption">Failure waits for blur</span>
+    <Demo id="demo-email" required />
+  </div>
+  <div className="demo-field-row">
+    <span className="demo-field-caption">Touched and invalid</span>
+    <Demo id="demo-email-bad" value="d" invalid touched required />
+  </div>
 </div>
 :::
 
-Compare the two fields: the touched invalid one carries `aria-invalid="true"` and `aria-errormessage` pointing at the error id, and its error part drops `hidden` so the polite live region announces. `aria-describedby` keeps referencing only the helper text in both states. The untouched field stays clean no matter what `invalid` says — the same restraint a native input shows before you tab out of it. Type into either one: `d` fails the built-in email rule, `de@do` passes it.
+:::tip
+**Nothing is announced until the field is touched.** Until then the control carries no `aria-invalid` and no `aria-errormessage`, and `aria-describedby` keeps pointing at the helper text alone.
+:::
 
-## Field container
+## Field
 
-Ambient coordinator hosting the field namespace, the value, and the validation state. Parts created inside its setup scope discover it automatically — no prop drilling.
+**The unit as a whole.** It holds the namespace, the value, and the validation state; the label, the control, the description, and the error all follow it.
+
+### Usage
 
 ```ts
 aria<E extends BaseElement = HTMLElement>(
@@ -122,19 +141,23 @@ aria<E extends BaseElement = HTMLElement>(
 ): FieldAria<E>
 ```
 
-### Usage
-
 :::code-group
 
 ```tsx [React]
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
 
-const EmailField = setup<{ invalid?: boolean }>((props) => {
-  const field = aria('field', { id: 'email', required: true, invalid: props.invalid });
+type FieldProps = ComponentProps<'div'> & {
+  invalid?: boolean;
+  required?: boolean;
+};
+
+const Field = setup<FieldProps>((props) => {
+  const field = aria('field', props);
 
   return () => (
-    <div ref={field.ref} {...field.props}>
+    <div ref={field.ref} {...field.restProps(['children'])}>
       {props.children}
     </div>
   );
@@ -144,47 +167,85 @@ const EmailField = setup<{ invalid?: boolean }>((props) => {
 ```tsx [SolidJS]
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
 
-const EmailField = setup<{ invalid?: boolean }>((props) => {
-  const field = aria('field', { id: 'email', required: true, invalid: props.invalid });
+type FieldProps = ComponentProps<'div'> & {
+  invalid?: boolean;
+  required?: boolean;
+};
+
+const Field = setup<FieldProps>((props) => {
+  const field = aria('field', props);
 
   return (
-    <div ref={field.ref} {...field.props}>
+    <div ref={field.ref} {...field.restProps(['children'])}>
       {props.children}
     </div>
   );
 });
+```
+
 :::
 
 ### Parameters
 
-- `props.id` *(string, optional)*: Explicit field namespace. Generated as `field-*` when omitted; every part derives its address from it.
-- `props.value` *(string | number, optional)*: Current value. Rendered onto a native control and written back as the developer types.
-- `props.type` *(string, optional)*: Input type rendered onto a native control, defaulting to `text`. Drives the built-in validation rule.
-- `props.placeholder` *(string, optional)*: Placeholder rendered onto a native control.
-- `props.invalid` *(boolean, optional)*: Validation failure flag. Reaches the control only while `touched` is true.
-- `props.invalidMessages` *(string | string[], optional)*: Failure text. Written by validation, or set by you for failures the field cannot compute.
-- `props.touched` *(boolean, optional)*: Set by the control's `blur`. Until it is true the field announces nothing.
-- `props.required` *(boolean, optional)*: Requirement flag reflected onto the control.
-- `props.disabled` *(boolean, optional)*: Disabled flag inherited by the control.
-- `props.oninput` *(handler, optional)*: Fires on every keystroke with the control's input event.
-- `options.validate` *(function, optional)*: `(value) => string | string[] | void`. Replaces the built-in rule; a non-empty return marks the field invalid and fills `invalidMessages`.
-- `options.labelled` *(boolean, optional, default `true`)*: Pass `false` to keep `aria-labelledby` off the control and name it yourself.
-- `options.described` *(boolean, optional, default `true`)*: Pass `false` to keep `aria-describedby` off the control and describe it yourself.
-- `options.native` *(boolean, optional)*: Declare `{ native: true }` when binding a native `<fieldset>`.
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **id** _string, optional_: The namespace every part address is derived from, generated as `field-<n>` when you leave it out.
+- **value** _string | number, optional_: The current value, rendered onto a native control and written back as the developer types.
+- **type** _string, optional, default `'text'`_: The input type rendered onto a native control, and the rule the fallback validation applies.
+- **placeholder** _string, optional_: The placeholder rendered onto a native control.
+- **invalid** _boolean, optional_: Whether the field currently fails. It reaches the control only while `touched` is true.
+- **invalidMessages** _string | string[], optional_: The failure text. Written by validation, or set by you for failures the field cannot compute.
+- **touched** _boolean, optional_: Set when the control blurs. Until it is true the field announces nothing.
+- **required** _boolean, optional_: Reflected onto the control.
+- **disabled** _boolean, optional_: Inherited by the control.
+- **oninput** _(event: InputEvent, target: HTMLInputElement) =&gt; void, optional_: Called on every keystroke, after the value is written and validation has run.
+
+### Options
+
+_What you fix when you create it. Read once, never reactive._
+
+- **validate** _(value?: string | number) =&gt; string | string[] | void, optional_: Replaces the built-in rule; any return marks the field invalid and fills `invalidMessages`.
+- **labelled** _boolean, optional, default `true`_: Pass `false` to keep `aria-labelledby` off the control and name it yourself.
+- **described** _boolean, optional, default `true`_: Pass `false` to keep `aria-describedby` off the control and describe it yourself.
+- **native** _boolean, optional, default `false`_: Declare it when the container is a native `<fieldset>`, which keeps its own grouping semantics.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **id** _string_: The namespace in use, generated when you left it out.
+- **type** _string_: The input type in force.
+- **value** _string | number | undefined, read and write_: The current value.
+- **placeholder** _string_: The placeholder in force, empty when you set none.
+- **invalid** _boolean, read and write_: Whether the field fails validation.
+- **touched** _boolean, read and write_: Whether the field has been left once.
+- **invalidMessages** _string | string[] | undefined, read and write_: The failure text the error part reads.
+- **canValidate** _boolean_: Whether a `validate` option is in force.
+- **disabled** _boolean_: Whether the whole field is locked.
+- **required** _boolean_: Whether the field is required.
+
+### Methods
+
+_What you call on the instance._
+
+- **`validate(value?)`**: Runs your rule for the value and returns its message, if any. Nothing is written until you assign the result.
 
 ### How it behaves
 
-- Derives every part address from one namespace: `{id}-control`, `{id}-label`, `{id}-desc`, `{id}-error`.
-- The container compiles `id` and nothing else — no role. A `<fieldset>` keeps its own native grouping semantics, and grouping several controls is your markup's job.
-- Typing writes the control's value into `value`, then validates: your `validate` rule when you pass one, otherwise the control's native `checkValidity()`.
-- Holds every failure back until `touched`, so a required field never opens red.
-- Exposes the state directly: `id`, `type`, `value`, `placeholder`, `required`, `disabled`, `invalid`, `touched`, `invalidMessages`, `canValidate`, and `validate(value)`. `value`, `invalid`, `touched`, and `invalidMessages` are writable.
-- Destroying the field detaches every part — controls freeze their last state instead of following a dead coordinator.
+- **One namespace, every address.** The label, the control, the description, and the error derive their identifiers from the container's `id` — no address you maintained by hand.
+- **The container carries no role.** It compiles `id` and nothing else; grouping several controls is your markup's job.
+- **Typing validates.** Every keystroke writes the value, then runs your rule when you passed one, otherwise the control's own `checkValidity()`.
+- **Failures wait for `touched`.** A required field never opens red, however early the value fails.
+- **One field, one namespace.** Parts created in the same scope as the field discover it through ambient context; a second field on the page is a second namespace.
+- **Teardown freezes the parts.** Destroying the field leaves each part at its last state instead of following a dead coordinator.
 
 ## Field Label
 
-Accessible-name member binding to the control through `for` on a native label, or through an ID reference on a custom element. Finds its field through ambient context — create it in the same setup scope as the field.
+**The name of the control.** It binds through `for` on a native label, or through an ID reference on a custom element.
+
+### Usage
 
 ```ts
 aria<E extends BaseElement = HTMLLabelElement>(
@@ -194,8 +255,6 @@ aria<E extends BaseElement = HTMLLabelElement>(
 ): FieldLabelAria<E>
 ```
 
-### Usage
-
 :::code-group
 
 ```tsx [React]
@@ -219,7 +278,7 @@ const FieldLabel = setup<FieldLabelProps>((props) => {
 ```tsx [SolidJS]
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/solid';
-import type { ComponentProps } from 'solid-js';
+import type { ComponentProps, JSX } from 'solid-js';
 
 type FieldLabelProps = ComponentProps<'label'>;
 
@@ -236,19 +295,23 @@ const FieldLabel = setup<FieldLabelProps>((props) => {
 
 :::
 
-### Parameters
+### Options
 
-- `options.native` *(boolean, optional, default `true`)*: Native `<label>` hosts compile `for`. Pass `false` on custom elements, which receive the `{id}-label` address instead.
+_What you fix when you create it. Read once, never reactive._
+
+- **native** _boolean, optional, default `true`_: A native `<label>` compiles `for`. Pass `false` on a custom element, which receives the `{id}-label` address instead.
 
 ### How it behaves
 
-- A `<label>` compiles `for` pointing at the control, and the control still carries `aria-labelledby="{id}-label"` unless the field is created with `labelled: false`.
-- A custom element receives the `{id}-label` address, which the control points at via `aria-labelledby`.
-- With no live field above it, a label compiles nothing rather than pointing at a missing control.
+- **It points at the control, both ways.** A `<label>` compiles `for` at the control, and the control carries `aria-labelledby` back at `{id}-label`.
+- **A custom element gets the address instead.** The label compiles its own identifier, which the control points at the same way.
+- **With no field above it, it compiles nothing,** rather than pointing at a control that does not exist.
 
 ## Field Control
 
-Slotted proxy reflecting ambient field state onto the bound element. Finds its field through ambient context — create it in the same setup scope as the field.
+**The element the user works in.** It reflects the field's state onto whatever host you bind.
+
+### Usage
 
 ```ts
 aria<E extends BaseElement = HTMLElement>(
@@ -258,8 +321,6 @@ aria<E extends BaseElement = HTMLElement>(
 ): FieldControlAria<E>
 ```
 
-### Usage
-
 :::code-group
 
 ```tsx [React]
@@ -267,14 +328,10 @@ import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
 import type { ComponentProps } from 'react';
 
-type FieldControlProps = ComponentProps<'input'>;
-
-const FieldControl = setup<FieldControlProps>((props) => {
+const FieldControl = setup<ComponentProps<'input'>>((props) => {
   const control = aria('field-control');
 
-  return () => (
-    <input ref={control.ref} type={props.type} {...control.props} />
-  );
+  return () => <input ref={control.ref} {...control.props} />;
 });
 ```
 
@@ -283,36 +340,45 @@ import { aria } from '@airlib/aria';
 import { setup } from '@airlib/solid';
 import type { ComponentProps } from 'solid-js';
 
-type FieldControlProps = ComponentProps<'input'>;
-
-const FieldControl = setup<FieldControlProps>((props) => {
+const FieldControl = setup<ComponentProps<'input'>>((props) => {
   const control = aria('field-control');
 
-  return (
-    <input ref={control.ref} type={props.type} {...control.props} />
-  );
+  return <input ref={control.ref} {...control.props} />;
 });
 ```
 
 :::
 
-### Parameters
+### Options
 
-- `options.native` *(boolean, optional, default `true`)*: Native inputs receive real `disabled` and `required`. Pass `false` on custom controls, which receive `aria-disabled` and `aria-required` instead.
+_What you fix when you create it. Read once, never reactive._
+
+- **native** _boolean, optional, default `true`_: Native inputs receive real `disabled` and `required`. Pass `false` on a custom control, which receives `aria-disabled` and `aria-required` instead.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **type** _string_: The input type the field projects.
+- **value** _string | number_: The value the field holds.
+- **invalid** _boolean_: Whether the field fails validation.
+- **disabled** _boolean_: Whether the field is locked.
+- **required** _boolean_: Whether the field is required.
 
 ### How it behaves
 
-- Native inputs (`<input>`, `<select>`, `<textarea>`) reflect `type`, `value`, `placeholder`, `disabled`, and `required` as properties.
-- Custom controls project `aria-disabled` and `aria-required` instead — explicit `"false"` until set, then explicit `"true"`.
-- `aria-describedby` references the description and nothing else, for the life of the field.
-- While the field is both touched and invalid the control gains `aria-invalid="true"` and `aria-errormessage="{id}-error"`; both withdraw the moment the value validates.
-- Listens for `input` to write the value and run validation, and for `blur` to mark the field touched.
-- Proxies the field state as `type`, `value`, `invalid`, `disabled`, and `required`.
-- Destroying the field freezes the control at its last state instead of following dead props.
+- **Native hosts get the real properties.** `type`, `value`, `placeholder`, `disabled`, and `required` are written onto the element.
+- **Custom hosts get the ARIA states.** `aria-disabled` and `aria-required` carry an explicit `"false"` until they are set, then `"true"`.
+- **Helper text is the only thing `aria-describedby` points at**, for the life of the field.
+- **A failure adds two attributes.** While the field is touched and invalid the control gains `aria-invalid="true"` and `aria-errormessage`, and both withdraw the moment the value validates.
+- **Keystrokes and blur drive it.** `input` writes the value and validates; `blur` marks the field touched.
+- **Teardown freezes it.** A destroyed field leaves the control at its last state instead of feeding it dead props.
 
 ## Field Description
 
-Helper-text container referenced through the control's `aria-describedby` for the life of the field. Finds its field through ambient context — create it in the same setup scope as the field.
+**Helper text.** Referenced by the control through `aria-describedby` for the life of the field.
+
+### Usage
 
 ```ts
 aria<E extends BaseElement = HTMLElement>(
@@ -321,8 +387,6 @@ aria<E extends BaseElement = HTMLElement>(
 ): FieldDescriptionAria<E>
 ```
 
-### Usage
-
 :::code-group
 
 ```tsx [React]
@@ -330,9 +394,7 @@ import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
 import type { ComponentProps } from 'react';
 
-type FieldDescriptionProps = ComponentProps<'p'>;
-
-const FieldDescription = setup<FieldDescriptionProps>((props) => {
+const FieldDescription = setup<ComponentProps<'p'>>((props) => {
   const description = aria('field-description');
 
   return () => (
@@ -346,11 +408,9 @@ const FieldDescription = setup<FieldDescriptionProps>((props) => {
 ```tsx [SolidJS]
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/solid';
-import type { ComponentProps } from 'solid-js';
+import type { ComponentProps, JSX } from 'solid-js';
 
-type FieldDescriptionProps = ComponentProps<'p'>;
-
-const FieldDescription = setup<FieldDescriptionProps>((props) => {
+const FieldDescription = setup<ComponentProps<'p'> & { children: JSX.Element }>((props) => {
   const description = aria('field-description');
 
   return (
@@ -363,18 +423,16 @@ const FieldDescription = setup<FieldDescriptionProps>((props) => {
 
 :::
 
-### Parameters
-
-- Takes no role-specific props or options — `<p>` is the only host, so there is nothing to declare.
-
 ### How it behaves
 
-- Carries the `{id}-desc` address and stays referenced for the life of the field.
-- Carries no live region — helper text is reference content, not an announcement.
+- **One address, held for the life of the field.** It carries `{id}-desc`, the address the control's `aria-describedby` points at.
+- **It is not an announcement.** Helper text is reference content, so it carries no live region.
 
 ## Field Error
 
-Failure-message container with a polite live region, referenced only while the field is invalid. Finds its field through ambient context — create it in the same setup scope as the field.
+**The failure message.** A polite live region, referenced only while the field is invalid.
+
+### Usage
 
 ```ts
 aria<E extends BaseElement = HTMLElement>(
@@ -383,8 +441,6 @@ aria<E extends BaseElement = HTMLElement>(
 ): FieldErrorAria<E>
 ```
 
-### Usage
-
 :::code-group
 
 ```tsx [React]
@@ -392,9 +448,7 @@ import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
 import type { ComponentProps } from 'react';
 
-type FieldErrorProps = ComponentProps<'p'>;
-
-const FieldError = setup<FieldErrorProps>((props) => {
+const FieldError = setup<ComponentProps<'p'>>((props) => {
   const error = aria('field-error');
 
   return () => (
@@ -408,11 +462,9 @@ const FieldError = setup<FieldErrorProps>((props) => {
 ```tsx [SolidJS]
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/solid';
-import type { ComponentProps } from 'solid-js';
+import type { ComponentProps, JSX } from 'solid-js';
 
-type FieldErrorProps = ComponentProps<'p'>;
-
-const FieldError = setup<FieldErrorProps>((props) => {
+const FieldError = setup<ComponentProps<'p'> & { children: JSX.Element }>((props) => {
   const error = aria('field-error');
 
   return (
@@ -425,34 +477,19 @@ const FieldError = setup<FieldErrorProps>((props) => {
 
 :::
 
-### Parameters
+### Properties
 
-- Takes no role-specific props or options — `<p>` is the only host, so there is nothing to declare.
+_What you read or write on the instance afterwards._
+
+- **visible** _boolean_: Whether the field is touched and invalid — the same state that drops `hidden`.
+- **message** _string | string[] | undefined_: The text to render. The field authors no copy of its own.
 
 ### How it behaves
 
-- Carries the `{id}-error` address with `aria-live="polite"`.
-- Stays `hidden` until the field is both touched and invalid, then reveals itself so the polite region announces.
-- Reached through the control's `aria-errormessage`, never through `aria-describedby`.
-- Publishes `visible` and `message` so you render the text yourself — the field authors no copy.
-
-## Native and custom hosts
-
-Each part defaults to the host you almost always bind: `field-label` assumes `<label>`, `field-control` assumes a native input. Only custom hosts declare themselves with `{ native: false }`, and only the container takes `{ native: true }` (for `<fieldset>`). Descriptions and errors take no host option at all — `<p>` is the only host there is. The same field logic drives a native checkout form and a fully custom design-system control.
-
-## Keyboard Navigation
-
-- **Tab**: Moves into the field's control and out to the next focusable element; the field adds no tab stops of its own.
-- **Shift + Tab**: Returns to the previous focusable element in reverse order.
-- **Enter / Space**: Owned entirely by the bound control; the field claims no keystrokes.
-
-## What you get
-
-- **Zero ID ceremony.** One namespace fans out to every part — no hand-matched `for`, `id`, or `describedby` strings.
-- **Error wiring that waits for you.** Nothing is announced until the field is touched, then `aria-invalid`, `aria-errormessage`, and the polite live region all follow the value.
-- **Validation with a native floor.** Pass `validate` for your own rule; pass nothing and the control's native `checkValidity()` decides, driven by `type`.
-- **Native parity on demand.** Native hosts get real `disabled`/`required`/`for`; custom hosts get the equivalent ARIA states from the same code.
-- **Clean teardown.** Destroying the field freezes parts instead of leaking listeners or projecting from dead state.
+- **A polite live region.** It carries `{id}-error` and `aria-live="polite"`.
+- **Hidden until it matters.** It drops `hidden` only while the field is both touched and invalid, so the announcement follows a real failure.
+- **Reached through `aria-errormessage`, never through `aria-describedby`.**
+- **You write the copy.** See `visible` and `message` in your own render.
 
 ## Next Steps
 
@@ -460,3 +497,133 @@ Each part defaults to the host you almost always bind: `field-label` assumes `<l
 - **[Checkbox Group](/docs/aria/checkbox-group)**: Multi-control grouping with ambient coordination — the pattern Field extends to forms.
 - **[Select](/docs/aria/select)**: Dropdown composite whose panel and trigger can live inside a Field.
 - **[Form](/docs/aria/form)**: The landmark that owns submission for the fields it contains.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Field
+
+```ts
+interface FieldProps {
+  id?: string;
+  required?: boolean;
+  disabled?: boolean;
+  type?: string;
+  value?: string | number;
+  placeholder?: string;
+  invalid?: boolean;
+  invalidMessages?: string | string[];
+  touched?: boolean;
+  oninput?: (event: InputEvent, target: HTMLInputElement) => void;
+}
+
+interface FieldOptions extends AriaOptions {
+  validate?: (value?: string | number) => string | string[] | void;
+  labelled?: boolean;
+  described?: boolean;
+}
+
+interface FieldAttributes {
+  id: string;
+}
+
+declare class FieldAria {
+  get id(): string;
+  get type(): string;
+  get value(): string | number | undefined;
+  set value(value: string | number | undefined);
+  get placeholder(): string;
+  get invalid(): boolean;
+  set invalid(value: boolean);
+  get touched(): boolean;
+  set touched(value: boolean);
+  get invalidMessages(): string | string[] | undefined;
+  set invalidMessages(messages: string | string[] | undefined);
+  get canValidate(): boolean;
+  get disabled(): boolean;
+  get required(): boolean;
+  options: FieldOptions;
+
+  validate(value?: string | number): string | string[] | void;
+}
+```
+
+### Field Label
+
+```ts
+interface FieldLabelAttributes {
+  id: string;
+  for?: string;
+}
+```
+
+### Field Control
+
+```ts
+interface FieldControlAttributes {
+  id: string;
+  disabled?: boolean;
+  required?: boolean;
+  'aria-invalid'?: 'true';
+  'aria-disabled'?: 'true' | 'false';
+  'aria-required'?: 'true' | 'false';
+  'aria-labelledby'?: string;
+  'aria-describedby'?: string;
+  'aria-errormessage'?: string;
+}
+
+declare class FieldControlAria {
+  get type(): string;
+  get value(): string | number;
+  get invalid(): boolean;
+  get disabled(): boolean;
+  get required(): boolean;
+}
+```
+
+### Field Description
+
+```ts
+interface FieldDescriptionAttributes {
+  id: string;
+}
+```
+
+### Field Error
+
+```ts
+interface FieldErrorAttributes {
+  id: string;
+  hidden?: boolean;
+  'aria-live': 'polite';
+}
+
+declare class FieldErrorAria {
+  get visible(): boolean;
+  get message(): string | string[] | undefined;
+}
+```
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`attributes`** is the dictionary you spread; **`ref`** is what you bind the element with; **`props`** is the full props dictionary for spreading onto the host; **`restProps(omit)`** hands back your props with the keys you name left out.
+- **`assign()`** changes several parameters at once, **`refine()`** adds attributes of your own, **`on()`** listens for anything the part fires, **`destroy()`** tears it down.

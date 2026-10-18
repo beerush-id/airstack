@@ -79,7 +79,11 @@ const DemoNav = setup<DemoNavProps>((props) => {
   const prev = aria('carousel-nav', props);
 
   return () => (
-    <button ref={prev.ref} {...prev.restProps(['children'])} className="demo-carousel-prev">
+    <button
+      ref={prev.ref}
+      {...prev.restProps(['children'])}
+      className={props.direction === 1 ? 'demo-carousel-next' : 'demo-carousel-prev'}
+    >
       {props.label ?? 'Step'}
     </button>
   );
@@ -133,11 +137,11 @@ const Demo = (props: DemoCarouselProps) => (
 ```html
 <div className="demo-carousel-stack">
   <div>
-    <p className="demo-label">Looped, autoplay</p>
+    <span className="demo-carousel-caption">Looped autoplay with player</span>
     <Demo label="Featured slides" value="mountains" autoplay interval={3000} loop />
   </div>
   <div>
-    <p className="demo-label">No loop, autoplay off</p>
+    <span className="demo-carousel-caption">No loop, autoplay off</span>
     <Demo label="Field notes" value="mountains" interval={3000} />
   </div>
 </div>
@@ -145,11 +149,11 @@ const Demo = (props: DemoCarouselProps) => (
 
 <div className="demo-carousel-stack">
   <div>
-    <p className="demo-label">Looped autoplay with player</p>
+    <span className="demo-carousel-caption">Looped autoplay with player</span>
     <Demo label="Featured slides" value="mountains" autoplay interval={3000} loop />
   </div>
   <div>
-    <p className="demo-label">No loop, autoplay off</p>
+    <span className="demo-carousel-caption">No loop, autoplay off</span>
     <Demo label="Field notes" value="mountains" interval={3000} />
   </div>
 </div>

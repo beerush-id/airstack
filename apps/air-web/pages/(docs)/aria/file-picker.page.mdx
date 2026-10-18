@@ -58,7 +58,7 @@ const DemoFileBrowse = setup<DemoFileBrowseProps>((props) => {
   const picker = aria('file-picker', props, { native: false });
 
   return () => (
-    <div ref={picker.ref} {...picker.restProps(['children'])} className="demo-file-trigger">
+    <div ref={picker.ref} {...picker.restProps(['children'])} className="demo-file-trigger demo-file-trigger--custom">
       {props.children}
     </div>
   );
@@ -72,36 +72,54 @@ const DemoAttachments = setup(() => {
   };
 
   return () => (
-    <div className="demo-file-card">
-      <div className="demo-file-group">
+    <div className="demo-file-stack">
+      <div className="demo-file-row">
         <span className="demo-file-caption">Images, several at a time</span>
-        <DemoFileButton accept="image/*" multiple={true} onchange={attach}>
-          Choose images
-        </DemoFileButton>
-        <span className="demo-file-sub">accepts images, on a real button host</span>
+        <div className="demo-file-card">
+          <DemoFileButton accept="image/*" multiple={true} onchange={attach}>
+            Choose images
+          </DemoFileButton>
+          <span className="demo-file-note">{'A real <button> host: accept and multiple ride the hidden input, never the trigger.'}</span>
+        </div>
       </div>
 
-      <div className="demo-file-group">
+      <div className="demo-file-row">
         <span className="demo-file-caption">One PDF</span>
-        <DemoFileBrowse accept="application/pdf" onchange={attach}>
-          Browse for a PDF
-        </DemoFileBrowse>
-        <span className="demo-file-sub">accepts PDFs, on a div given the button mechanics</span>
+        <div className="demo-file-card">
+          <DemoFileBrowse accept="application/pdf" onchange={attach}>
+            Browse for a PDF
+          </DemoFileBrowse>
+          <span className="demo-file-note">{'A <div> host given role="button", a tab stop, and the Enter/Space mechanics a button has for free.'}</span>
+        </div>
       </div>
 
-      <ul className="demo-file-list">
-        {state.files.map((file) => (
-          <li key={file.name} className="demo-file-item">
-            <span>{file.name}</span>
-            <span className="demo-file-size">{formatSize(file.size)}</span>
-          </li>
-        ))}
-        {state.files.length === 0 ? <li className="demo-file-empty">Nothing picked yet.</li> : null}
-      </ul>
-
-      <div className="demo-file-group">
+      <div className="demo-file-row">
         <span className="demo-file-caption">Locked while the upload runs</span>
-        <DemoFileButton disabled={true}>Choose files</DemoFileButton>
+        <div className="demo-file-card">
+          <div className="demo-file-actions">
+            <DemoFileButton disabled={true}>Uploading…</DemoFileButton>
+            <DemoFileBrowse disabled={true}>Uploading…</DemoFileBrowse>
+          </div>
+          <span className="demo-file-note">{'A native host gets disabled; the custom host gets aria-disabled, leaves the tab order, and has its events canceled.'}</span>
+        </div>
+      </div>
+
+      <div className="demo-file-row">
+        <span className="demo-file-caption">Picked</span>
+        <div className="demo-file-card">
+          {state.files.length === 0 ? (
+            <span className="demo-file-empty">Nothing picked yet.</span>
+          ) : (
+            <ul className="demo-file-list">
+              {state.files.map((file) => (
+                <li key={file.name} className="demo-file-item">
+                  <span>{file.name}</span>
+                  <span className="demo-file-size">{formatSize(file.size)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -254,18 +272,19 @@ What you can actually use, with every alias and every base resolved to what it r
 ### File Picker
 
 ```ts
+type FilePickerEvent = CustomEvent<File[]>;
+type FilePickerCancelEvent = CustomEvent<void>;
+
 interface FilePickerProps {
   accept?: string;
   multiple?: boolean;
   capture?: 'user' | 'environment';
   disabled?: boolean;
-  onchange?: (event: CustomEvent<File[]>) => void;
-  oncancel?: (event: CustomEvent<void>) => void;
+  onchange?: (event: FilePickerEvent) => void;
+  oncancel?: (event: FilePickerCancelEvent) => void;
 }
 
-interface FilePickerOptions {
-  native?: boolean;
-}
+interface FilePickerOptions extends AriaOptions {}
 
 interface FilePickerAttributes {
   role?: 'button';
@@ -273,15 +292,14 @@ interface FilePickerAttributes {
   disabled?: boolean;
   tabindex?: number;
   'aria-disabled'?: 'true' | 'false';
-  onclick?: (event: MouseEvent) => void;
-  onkeydown?: (event: KeyboardEvent) => void;
-  onkeyup?: (event: KeyboardEvent) => void;
 }
 
 declare class FilePickerAria {
   get disabled(): boolean;
 }
 ```
+
+`onclick`, `onkeydown`, and `onkeyup` are compiled onto the attributes dictionary at runtime — that is how the trigger opens the dialog and how a custom host gets its key mechanics — but they are absent from the published `FilePickerAttributes` interface.
 
 ### On every one of them
 

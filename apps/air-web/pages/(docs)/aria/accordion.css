@@ -1,8 +1,9 @@
 .demo-accordion-stack {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  width: 100%;
+  gap: 1.25rem;
+  width: min(100%, 30rem);
+  margin-inline: auto;
 }
 
 .demo-accordion-row {
@@ -14,24 +15,44 @@
 .demo-accordion-caption {
   font-size: 0.8125rem;
   font-weight: 600;
+  line-height: 1.4;
   color: var(--demo-muted);
 }
 
 .demo-accordion {
   display: flex;
   flex-direction: column;
-  gap: var(--demo-gap-sm);
-  width: 100%;
-  padding: 1rem;
   border: 1px solid var(--demo-border);
   border-radius: var(--demo-radius);
   background: var(--demo-bg);
 }
 
 .demo-accordion-item {
-  border: 1px solid var(--demo-border);
-  border-radius: var(--demo-radius-sm);
-  background: var(--demo-bg);
+  display: flex;
+  flex-direction: column;
+}
+
+.demo-accordion-item + .demo-accordion-item {
+  border-top: 1px solid var(--demo-border);
+}
+
+.demo-accordion-item:first-child {
+  border-start-start-radius: calc(var(--demo-radius) - 1px);
+  border-start-end-radius: calc(var(--demo-radius) - 1px);
+}
+
+.demo-accordion-item:last-child {
+  border-end-start-radius: calc(var(--demo-radius) - 1px);
+  border-end-end-radius: calc(var(--demo-radius) - 1px);
+}
+
+.demo-accordion-item:has(:focus-visible) {
+  outline: var(--demo-outline);
+  outline-offset: var(--demo-outline-offset);
+}
+
+.demo-accordion-item:has([aria-expanded='true']) {
+  background: color-mix(in srgb, var(--demo-fg) 4%, transparent);
 }
 
 .demo-accordion-button {
@@ -40,15 +61,16 @@
   justify-content: space-between;
   gap: var(--demo-gap);
   width: 100%;
-  padding: 0.625rem 0.875rem;
+  padding: 0.75rem 0.875rem;
   border: 0;
-  border-radius: calc(var(--demo-radius-sm) - 1px);
+  border-radius: inherit;
   background: transparent;
   font-family: inherit;
   font-size: var(--demo-font);
   font-weight: 500;
+  line-height: 1.4;
   color: var(--demo-fg);
-  text-align: left;
+  text-align: start;
   cursor: pointer;
 }
 
@@ -59,16 +81,19 @@
   height: 0.4rem;
   border-right: 1.5px solid currentColor;
   border-bottom: 1.5px solid currentColor;
-  transform: rotate(45deg);
+  transform: rotate(45deg) translate(-1px, -1px);
   opacity: 0.5;
+  transition: transform 0.15s ease, opacity 0.15s ease;
 }
 
 .demo-accordion-button[aria-expanded='true']::after {
-  transform: rotate(-135deg);
+  transform: rotate(-135deg) translate(-1px, -1px);
+  opacity: 1;
 }
 
 .demo-accordion-button:hover:not(:disabled):not([aria-disabled='true']) {
   background: var(--demo-hover);
+  color: var(--demo-fg-hover);
 }
 
 .demo-accordion-button:active:not(:disabled):not([aria-disabled='true']) {
@@ -77,8 +102,7 @@
 }
 
 .demo-accordion-button:focus-visible {
-  outline: var(--demo-outline);
-  outline-offset: var(--demo-outline-offset);
+  outline: none;
 }
 
 .demo-accordion-button:disabled,
@@ -88,9 +112,9 @@
 }
 
 .demo-accordion-panel {
-  padding: 0.625rem 0.875rem 0.75rem;
-  border-top: 1px solid var(--demo-border);
+  padding: 0 0.875rem 0.875rem;
   font-size: var(--demo-font);
+  line-height: 1.55;
   color: var(--demo-muted);
 }
 

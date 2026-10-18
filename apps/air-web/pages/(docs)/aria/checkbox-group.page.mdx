@@ -6,7 +6,6 @@ nav-priority: 345
 ---
 
 import './aria.css';
-import './checkbox.css';
 import './checkbox-group.css';
 
 # Headless Checkbox Group
@@ -133,79 +132,73 @@ import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
 import type { ComponentProps } from 'react';
 
-type DemoNativeProps = ComponentProps<'div'> & {
+type DemoRowsProps = ComponentProps<'div'> & {
   value?: string[];
   label?: string;
   disabled?: boolean;
 };
 
-const DemoNative = setup<DemoNativeProps>((props) => {
+const DemoRows = setup<DemoRowsProps>((props) => {
   const group = aria('checkbox-group', props);
 
   return () => (
-    <div ref={group.ref} {...group.restProps(['children'])} className="demo-checkbox-stack">
+    <div ref={group.ref} {...group.restProps(['children'])} className="demo-group-list">
       {props.children}
     </div>
   );
-}, 'DemoNative');
+}, 'DemoRows');
 
-type DemoNativeCheckProps = ComponentProps<'input'> & {
+type DemoRowProps = ComponentProps<'label'> & {
   value: string;
-  checked?: boolean;
-  indeterminate?: boolean;
   disabled?: boolean;
 };
 
-const DemoNativeCheck = setup<DemoNativeCheckProps>((props) => {
-  const checkbox = aria('checkbox', props, { native: true });
+const DemoRow = setup<DemoRowProps>((props) => {
+  const checkbox = aria('checkbox', props, { native: false });
 
   return () => (
     <label className="demo-group-line">
-      <input
-        ref={checkbox.ref}
-        {...checkbox.restProps(['children', 'checked', 'indeterminate'])}
-        className="demo-group-input"
-      />
+      <div ref={checkbox.ref} {...checkbox.restProps(['children'])} className="demo-group-box" />
       <span>{props.children}</span>
     </label>
   );
-}, 'DemoNativeCheck');
+}, 'DemoRow');
 ```
 ```html
 <div className="demo-group-stack">
   <div className="demo-group-row">
-    <span className="demo-group-caption">Plain inputs, same committed set</span>
-    <DemoNative value={['email']} label="Notification channels">
-      <DemoNativeCheck value="email">Email me a weekly digest</DemoNativeCheck>
-      <DemoNativeCheck value="sms">Text me when a payment fails</DemoNativeCheck>
-      <DemoNativeCheck value="push">Push me release notes</DemoNativeCheck>
-    </DemoNative>
+    <span className="demo-group-caption">Custom boxes over the same committed set</span>
+    <DemoRows value={['email']} label="Notification channels">
+      <DemoRow value="email">Email me a weekly digest</DemoRow>
+      <DemoRow value="sms">Text me when a payment fails</DemoRow>
+      <DemoRow value="push">Push me release notes</DemoRow>
+    </DemoRows>
   </div>
   <div className="demo-group-row">
     <span className="demo-group-caption">Locked at the group, locked in every box</span>
-    <DemoNative value={['email']} label="Locked channels" disabled={true}>
-      <DemoNativeCheck value="email">Email me a weekly digest</DemoNativeCheck>
-      <DemoNativeCheck value="sms">Text me when a payment fails</DemoNativeCheck>
-    </DemoNative>
+    <DemoRows value={['email']} label="Locked channels" disabled={true}>
+      <DemoRow value="email">Email me a weekly digest</DemoRow>
+      <DemoRow value="sms">Text me when a payment fails</DemoRow>
+    </DemoRows>
   </div>
 </div>
 ```
 
 <div className="demo-group-stack">
   <div className="demo-group-row">
-    <span className="demo-group-caption">Plain inputs, same committed set</span>
-    <DemoNative value={['email']} label="Notification channels">
-      <DemoNativeCheck value="email">Email me a weekly digest</DemoNativeCheck>
-      <DemoNativeCheck value="sms">Text me when a payment fails</DemoNativeCheck>
-      <DemoNativeCheck value="push">Push me release notes</DemoNativeCheck>
-    </DemoNative>
+    <span className="demo-group-caption">Custom boxes over the same committed set</span>
+    <DemoRows value={['email']} label="Notification channels">
+      <DemoRow value="email">Email me a weekly digest</DemoRow>
+      <DemoRow value="sms">Text me when a payment fails</DemoRow>
+      <DemoRow value="push">Push me release notes</DemoRow>
+    </DemoRows>
   </div>
   <div className="demo-group-row">
     <span className="demo-group-caption">Locked at the group, locked in every box</span>
-    <DemoNative value={['email']} label="Locked channels" disabled={true}>
-      <DemoNativeCheck value="email">Email me a weekly digest</DemoNativeCheck>
-      <DemoNativeCheck value="sms">Text me when a payment fails</DemoNativeCheck>
-    </DemoNative>
+    <DemoRows value={['email']} label="Locked channels" disabled={true}>
+      <DemoRow value="email">Email me a weekly digest</DemoRow>
+      <DemoRow value="sms">Text me when a payment fails</DemoRow>
+    </DemoRows>
   </div>
 </div>
 :::

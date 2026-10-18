@@ -1,13 +1,20 @@
 ---
-title: 'Header'
-description: 'Headless banner landmark that compiles role="banner" and an accessible name onto a generic host, taking no focus and claiming no keys.'
+title: 'Headless Header'
+description: 'Headless banner landmarks for React and SolidJS. Compiles the banner role onto a generic host, adds a name when two headers share a document, and never touches the keyboard — with no markup or styles imposed.'
 nav: 'Header'
 nav-priority: 510
 ---
 
-# AirLib Headless Header
+import './aria.css';
+import './header.css';
 
-Every page repeats the same header: identity, global navigation, maybe an account menu. Assistive technology needs that repetition named once so it can be skipped, and a page with no `banner` landmark makes a screen reader user listen through the whole header to find out where the content starts. **AirLib Headless Header** (`aria('header')`) compiles `role="banner"` onto the generic host you already render, adds an accessible name when a page carries more than one header, and stays purely structural — no focus, no keys, no state to keep in sync.
+# Headless Header
+
+Identity, global navigation, and the account controls repeat at the top of every page, and a landmark is what lets a user skip them or jump straight back to them.
+
+Getting it right means **compiling `banner` onto a generic host**, **naming it only when a document carries two**, **leaving a real `<header>` its own implicit role**, and **taking no focus and claiming no keys**.
+
+**Headless Header** does all of that for you, and leaves the markup and the styling entirely yours.
 
 ```tsx
 const header = aria('header', props);
@@ -15,9 +22,7 @@ const header = aria('header', props);
 <div ref={header.ref} {...header.restProps(['children'])} />
 ```
 
-<style>{`.demo-header{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.75rem 1rem;border:1px solid #e4e4e7;border-radius:.75rem;background:#fafafa}.demo-header-brand{font-size:.875rem;font-weight:700;color:#18181b}.demo-header-nav{display:flex;align-items:center;gap:.75rem;font-size:.875rem}.demo-header-link{color:#3f3f46;text-decoration:none;cursor:pointer}.demo-header-link:hover{text-decoration:underline}.demo-header-link:focus-visible{outline:2px solid #18181b;outline-offset:2px}`}</style>
-
-:::interactive[Site Header]
+:::interactive[Storefront Header]
 ```tsx
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
@@ -39,30 +44,76 @@ const DemoHeader = setup<DemoHeaderProps>((props) => {
   );
 }, 'DemoHeader');
 
-const DemoHeaderLink = setup<ComponentProps<'a'>>((props) => {
-  const link = aria('link', props);
+type DemoPageHeaderProps = ComponentProps<'header'> & {
+  label?: string;
+  children: ReactNode;
+};
+
+const DemoPageHeader = setup<DemoPageHeaderProps>((props) => {
+  const header = aria('header', props, { native: true });
 
   return () => (
-    <a ref={link.ref} {...link.restProps(['children'])} className="demo-header-link">
+    <header ref={header.ref} {...header.restProps(['children'])} className="demo-header">
       {props.children}
-    </a>
+    </header>
   );
-}, 'DemoHeaderLink');
+}, 'DemoPageHeader');
+
+const DemoHeaderBar = () => (
+  <div className="demo-header-bar">
+    <span className="demo-header-brand">AirLib</span>
+    <span className="demo-header-links">
+      <a className="demo-header-link" href="#docs" aria-current="page">Docs</a>
+      <a className="demo-header-link" href="#blog">Blog</a>
+      <a className="demo-header-link" href="#pricing">Pricing</a>
+    </span>
+    <button type="button" className="demo-header-signin">Sign in</button>
+  </div>
+);
+
+const Demo = () => (
+  <div className="demo-header-stack">
+    <div className="demo-header-row">
+      <span className="demo-header-caption">A div host compiles the landmark itself</span>
+      <DemoHeader><DemoHeaderBar /></DemoHeader>
+    </div>
+
+    <div className="demo-header-row">
+      <span className="demo-header-caption">A name tells two headers apart</span>
+      <DemoHeader label="Storefront header"><DemoHeaderBar /></DemoHeader>
+    </div>
+
+    <div className="demo-header-row">
+      <span className="demo-header-caption">A real header element keeps the role the browser gives it</span>
+      <DemoPageHeader><DemoHeaderBar /></DemoPageHeader>
+    </div>
+
+    <div className="demo-header-row">
+      <span className="demo-header-caption">Inside a section, the custom host still compiles it</span>
+      <div className="demo-header-section">
+        <span className="demo-header-section-label">section</span>
+        <DemoHeader><DemoHeaderBar /></DemoHeader>
+      </div>
+    </div>
+  </div>
+);
+```
+```html
+<Demo />
 ```
 
-<DemoHeader label="Site header">
-  <span className="demo-header-brand">AirLib</span>
-  <nav className="demo-header-nav">
-    <DemoHeaderLink href="#docs">Docs</DemoHeaderLink>
-    <DemoHeaderLink href="#blog">Blog</DemoHeaderLink>
-    <DemoHeaderLink href="#sign-in">Sign in</DemoHeaderLink>
-  </nav>
-</DemoHeader>
+<Demo />
+:::
+
+:::tip
+**Only the body-level header is a banner.** A `<header>` inside `<main>`, `<article>`, `<aside>`, or `<section>` heads that section instead and exposes no landmark role at all, so keep the landmark on the body-level header and hold to one per page.
 :::
 
 ## Header
 
-The prime header landmark. It projects banner semantics onto a generic host and compiles the accessible name that tells two headers apart.
+**The header landmark.** It compiles `banner` onto a generic host and carries the accessible name that tells two headers apart.
+
+### Usage
 
 ```ts
 aria<E extends BaseElement = HTMLElement>(
@@ -71,8 +122,6 @@ aria<E extends BaseElement = HTMLElement>(
   options?: HeaderOptions
 ): HeaderAria<E>
 ```
-
-### Usage
 
 :::code-group
 
@@ -95,17 +144,18 @@ const Header = setup<HeaderProps>((props) => {
       {props.children}
     </div>
   );
-});
+}, 'Header');
 ```
 
 ```tsx [SolidJS]
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/solid';
-import type { ComponentProps } from 'solid-js';
+import type { ComponentProps, JSX } from 'solid-js';
 
 type HeaderProps = ComponentProps<'div'> & {
   label?: string;
   labelledby?: string;
+  children: JSX.Element;
 };
 
 const Header = setup<HeaderProps>((props) => {
@@ -123,38 +173,90 @@ const Header = setup<HeaderProps>((props) => {
 
 ### Parameters
 
-- `props.label` *(string, optional)*: Accessible label compiled to `aria-label`. Omitted when absent, so an unnamed page header carries no redundant attribute.
-- `props.labelledby` *(string, optional)*: Element ID providing the accessible name, compiled to `aria-labelledby`.
-- `options.native` *(boolean, optional, default `false`)*: Pass `true` when the host is a real `<header>`, which already implies `banner` — the redundant role is dropped and only the name is compiled.
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **label** _string, optional_: The name screen readers announce for this header, compiled to `aria-label`. Omitted when absent, so an unnamed page header carries no redundant attribute.
+- **labelledby** _string, optional_: The ID of an element already on the page that provides that name, compiled to `aria-labelledby`.
+
+### Options
+
+_What you fix when you create it. Read once, never reactive._
+
+- **native** _boolean, optional, default `false`_: Pass `true` when the host is a real `<header>`, which already implies `banner`. The redundant role is dropped and only the name is compiled.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **label** _string | undefined_: The label in force.
+- **labelledby** _string | undefined_: The ID reference in force.
+- **named** _boolean_: Whether the landmark carries an accessible name.
 
 ### How it behaves
 
-- Compiles `role="banner"` on a generic host. With `native: true` the role is left to the `<header>` element and only the accessible name is emitted.
-- The role comes from `native` alone — never from the host tag and never from where the element sits in the tree — so a custom host keeps its compiled role wherever you place it.
-- `label` compiles to `aria-label` and `labelledby` to `aria-labelledby`, both reactively: set, change, or clear either one and the projection follows.
-- Both may be present at once; neither takes precedence, and assistive technology resolves the name from what the host exposes.
-- Structure only: no `tabindex`, no `aria-live`, no key handling, and no state. Nothing on either host is prevented or swallowed.
-- Keeping one `banner` per page is yours to manage — the controller never counts headers and never suppresses a second one.
-- `label` and `labelledby` are consumed by the controller and carried in `ownKeys`, so `restProps(['children'])` is the whole omission list — neither leaks to the DOM as a stray attribute.
-
-:::tip[Only the page header is a banner]
-A `<header>` nested inside `<main>`, `<article>`, `<aside>`, or `<section>` is not a banner landmark — it is the header of that section, and HTML exposes no role for it at all. The header entity belongs to the body-level header, and a page should hold at most one. A custom host compiles `role="banner"` wherever it is placed, so nesting one inside a section publishes a second banner: keep the entity at document scope.
-:::
-
-## Keyboard Navigation
-
-- **None.** A landmark takes no tab stop and claims no keys. Assistive technologies reach it through their own landmark commands, and the controls inside it keep their own keyboard behavior.
-
-## What you get
-
-- **Banner on a generic host.** A `<div>` becomes a navigable landmark with no markup lock-in.
-- **No redundant role.** `native: true` on a real `<header>` leaves the implicit role alone.
-- **Optional naming.** `label` and `labelledby` cover the rare page with more than one header.
-- **Placement-stable output.** The compiled attributes are identical in SSR and after hydration, because nothing is read from the DOM.
-- **Structure only.** No focus, no keys, no state — nothing to keep in sync.
+- **Compiles `role="banner"` on a generic host.** A `<div>` host is announced as the document header, whatever the surrounding markup looks like.
+- **The role follows `native`, never the host tag or its position.** Pass `native: true` and the element supplies the role itself; a custom host keeps its compiled role wherever you place it, including inside a section.
+- **Naming is reactive.** Set, change, or clear `label` or `labelledby` and the projection follows on the next write.
+- **Both names can be set at once.** The controller writes whichever you pass, and the name resolution order is the platform's — `aria-labelledby` before `aria-label` — so name the header once, in the way your markup can keep true.
+- **Structure only.** No `tabindex`, no `aria-live`, no key handling, and no state of its own; the links and controls you place inside it keep their own keyboard behavior, and nothing they do is intercepted.
+- **Two headers on one page are yours to manage.** The controller never counts headers and never suppresses a second one, so the name is what keeps them apart in a landmark list.
+- **Both name props stay off the DOM as plain attributes.** `label` and `labelledby` compile to `aria-label` and `aria-labelledby` only, so `restProps(['children'])` is the whole omission list.
 
 ## Next Steps
 
 - **[Footer](/docs/aria/footer)**: The matching footer landmark at the end of the document.
 - **[Main](/docs/aria/main)**: The primary content the header sits above.
 - **[Navigation](/docs/aria/navigation)**: The link collection a header usually contains.
+- **[Section](/docs/aria/section)**: The region landmark, which exists only when it is named.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Header
+
+```ts
+interface HeaderProps {
+  label?: string;
+  labelledby?: string;
+}
+
+interface HeaderOptions {
+  native?: boolean;
+}
+
+interface HeaderAttributes {
+  role?: 'banner';
+  'aria-label'?: string;
+  'aria-labelledby'?: string;
+}
+
+declare class HeaderAria {
+  get label(): string | undefined;
+  get labelledby(): string | undefined;
+  get named(): boolean;
+}
+```
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`attributes`** is the dictionary you spread; **`ref`** is what you bind the element with; **`props`** is the full props dictionary for spreading onto the host; **`restProps(omit)`** hands back your props with the keys you name left out.
+- **`assign()`** changes several parameters at once, **`refine()`** adds attributes of your own, **`on()`** listens for anything the part fires, **`destroy()`** tears it down.

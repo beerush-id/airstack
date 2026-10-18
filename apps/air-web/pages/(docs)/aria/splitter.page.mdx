@@ -1,37 +1,41 @@
 ---
-title: 'Splitter'
-description: 'Movable pane partition with pointer drag, arrow-key stepping, committed clamping, and a CSS-ready position offset.'
+title: 'Headless Splitter'
+description: 'Headless splitters for React and SolidJS. A focusable separator that drags along the parent area, steps with the arrows, clamps every write, and publishes its position as a CSS percentage — with no markup or styles imposed.'
 nav: 'Splitter'
 nav-priority: 291
 ---
 
-# AirLib Headless Splitter
+import './aria.css';
+import './splitter.css';
 
-A pane boundary looks like a thin handle until the platform gets involved: arrow keys must step it without stealing the rest, pointer drags must track outside the handle until release, every write must clamp without drifting past a bound, the position must announce against real bounds, and a disabled splitter must keep its allocation while leaving the tab order. **AirLib Headless Splitter** (`aria('splitter')`) owns that contract — a focusable separator with keyboard stepping and pointer drag, without dictating markup or styles.
+# Headless Splitter
+
+A pane boundary looks like a thin handle until the platform gets involved.
+
+Getting it right means **stepping the position with four arrow keys while leaving every other key to the page**, **tracking a pointer drag outside the handle until release**, **clamping every write inside the declared bounds**, **announcing the position against real minimums and maximums**, and **keeping the allocation while leaving the tab order when locked**.
+
+**Headless Splitter** does all of that for you, and leaves the markup and the styling entirely yours.
 
 ```tsx
 const partition = aria('splitter', props);
 
-<div ref={partition.ref} {...partition.props}>
-  <span className="demo-splitterfill" />
-</div>
+<div ref={partition.ref} {...partition.restProps(['children'])} />
 ```
 
-<style>{`.demo-splitter{display:flex;gap:.5rem;align-items:stretch;height:6rem;max-width:20rem}.demo-splitterpane{border-radius:.5rem;background:#e4e4e7;min-width:0}.demo-splitterpane-first{flex-basis:var(--aria-splitter-offset);flex-grow:0;flex-shrink:0}.demo-splitterpane-second{flex:1}.demo-splittergrip{width:.5rem;flex:none;border-radius:9999px;background:#a1a1aa;outline:none;cursor:ew-resize}.demo-splittergrip:hover{background:#71717a}.demo-splittergrip:focus-visible{box-shadow:0 0 0 2px #18181b}.demo-splittergrip[aria-disabled="true"]{opacity:.4;cursor:not-allowed}.demo-splitterlabel{font-size:.875rem;font-weight:500;color:#18181b}`}</style>
-
-:::interactive[Splitter With Drag And Keys]
+:::interactive[Preview Layout]
 ```tsx
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
 import type { ComponentProps } from 'react';
 
 type DemoSplitterProps = ComponentProps<'div'> & {
+  label?: string;
   value?: number;
   min?: number;
   max?: number;
   step?: number;
+  orientation?: 'horizontal' | 'vertical';
   disabled?: boolean;
-  label?: string;
 };
 
 const DemoSplitter = setup<DemoSplitterProps>((props) => {
@@ -39,24 +43,55 @@ const DemoSplitter = setup<DemoSplitterProps>((props) => {
 
   return () => (
     <div className="demo-splitter" style={{ '--aria-splitter-offset': `${partition.offset}%` } as never}>
-      <div className="demo-splitterpane demo-splitterpane-first" />
-      <div ref={partition.ref} {...partition.props} aria-label={props.label} className="demo-splittergrip" />
-      <div className="demo-splitterpane demo-splitterpane-second" />
+      <div className="demo-splitter-pane demo-splitter-pane-first">
+        <span>Canvas</span>
+      </div>
+      <div
+        ref={partition.ref}
+        {...partition.restProps(['children', 'label'])}
+        className="demo-splitter-grip"
+      />
+      <div className="demo-splitter-pane demo-splitter-pane-second">
+        <span>Inspector</span>
+      </div>
     </div>
   );
 }, 'DemoSplitter');
 ```
-
-<div className="inline-flex flex-col mx-auto gap-6">
-  <span className="demo-splitterlabel">Drag the handle or focus it and use arrow keys</span>
-  <DemoSplitter label="Preview width" value={40} min={10} max={90} />
-  <DemoSplitter label="Locked layout" value={60} min={0} max={100} disabled={true} />
+```html
+<div className="demo-splitter-stack">
+  <div className="demo-splitter-unit">
+    <span className="demo-splitter-caption">Preview width</span>
+    <DemoSplitter label="Preview width" value={40} min={10} max={90} orientation="vertical" />
+  </div>
+  <div className="demo-splitter-unit">
+    <span className="demo-splitter-caption">Locked layout</span>
+    <DemoSplitter label="Locked layout" value={60} min={20} max={80} orientation="vertical" disabled={true} />
+  </div>
 </div>
+```
+
+<div className="demo-splitter-stack">
+  <div className="demo-splitter-unit">
+    <span className="demo-splitter-caption">Preview width</span>
+    <DemoSplitter label="Preview width" value={40} min={10} max={90} orientation="vertical" />
+  </div>
+  <div className="demo-splitter-unit">
+    <span className="demo-splitter-caption">Locked layout</span>
+    <DemoSplitter label="Locked layout" value={60} min={20} max={80} orientation="vertical" disabled={true} />
+  </div>
+</div>
+:::
+
+:::tip
+**The position is published on the handle, and panes are its siblings.** Read `splitter.offset` and republish it as `--aria-splitter-offset` on their shared parent, so the pane sizing stays in the stylesheet instead of a component measuring boxes.
 :::
 
 ## Splitter
 
-Movable pane partition compiling separator range semantics with drag and keys.
+**The movable partition.** It holds the position against real bounds, follows a pointer drag, and steps with the arrows.
+
+### Usage
 
 ```ts
 aria<E extends BaseElement = HTMLElement>(
@@ -66,54 +101,54 @@ aria<E extends BaseElement = HTMLElement>(
 ): SplitterAria<E>
 ```
 
-### Usage
-
 :::code-group
 
-```tsx [React] executable
+```tsx [React]
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
 import type { ComponentProps } from 'react';
 
 type SplitterProps = ComponentProps<'div'> & {
+  label?: string;
   value?: number;
   min?: number;
   max?: number;
   step?: number;
+  orientation?: 'horizontal' | 'vertical';
   disabled?: boolean;
-  label?: string;
 };
 
 const Splitter = setup<SplitterProps>((props) => {
   const partition = aria('splitter', props);
 
   return () => (
-    <div ref={partition.ref} {...partition.restProps(['children'])}>
+    <div ref={partition.ref} {...partition.restProps(['children', 'label'])}>
       {props.children}
     </div>
   );
-});
+}, 'Splitter');
 ```
 
 ```tsx [SolidJS]
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/solid';
-import type { ComponentProps } from 'solid-js';
+import type { ComponentProps, JSX } from 'solid-js';
 
 type SplitterProps = ComponentProps<'div'> & {
+  label?: string;
   value?: number;
   min?: number;
   max?: number;
   step?: number;
+  orientation?: 'horizontal' | 'vertical';
   disabled?: boolean;
-  label?: string;
 };
 
 const Splitter = setup<SplitterProps>((props) => {
   const partition = aria('splitter', props);
 
   return (
-    <div ref={partition.ref} {...partition.restProps(['children'])}>
+    <div ref={partition.ref} {...partition.restProps(['children', 'label'])}>
       {props.children}
     </div>
   );
@@ -122,79 +157,135 @@ const Splitter = setup<SplitterProps>((props) => {
 
 :::
 
-Pane sizes read the published variable — no math in the component:
-
-```css
-.pane-first {
-  flex-basis: var(--aria-splitter-offset);
-}
-```
-
 ### Parameters
 
-- `props.value` *(number, optional)*: Partition position in percentage points, committed clamped to `[min, max]`. Falls back to `min`.
-- `props.min` *(number, optional, default `0`)*: Lower partition bound.
-- `props.max` *(number, optional, default `100`)*: Upper partition bound.
-- `props.step` *(number, optional, default `1`)*: Increment applied per arrow keystroke.
-- `props.disabled` *(boolean, optional)*: Blocks pointer and keyboard resizing, parks the handle at `tabindex="-1"`, and announces `aria-disabled="true"` without changing the allocation.
-- `props.label` *(string, optional)*: Accessible handle name compiled to `aria-label`.
-- `props.oninput` *(function, optional)*: Called with the committed size after each arrow keystroke or drag move.
-- `props.onchange` *(function, optional)*: Called with the committed size when the interaction ends.
+_What you pass in. The props object stays live — change a bound and every later move is measured against it._
 
-### Events
+- **value** _number, optional_: The partition position in percentage points, committed clamped to `min` and `max`. Missing, it falls back to `min`.
+- **min** _number, optional, default `0`_: The lower bound, both for the position and for the announced minimum.
+- **max** _number, optional, default `100`_: The upper bound, both for the position and for the announced maximum.
+- **step** _number, optional, default `1`_: How far one arrow keystroke travels.
+- **orientation** _'horizontal' | 'vertical', optional, default `'horizontal'`_: The axis the separator announces **and the axis a drag is measured along**. Column layouts need `'vertical'`, or a sideways drag moves nothing.
+- **disabled** _boolean, optional_: Refuses keys and drags, parks the handle at `tabindex="-1"`, and leaves the allocation where it is.
+- **label** _string, optional_: The name the handle is announced by, compiled to `aria-label`.
+- **oninput** _(event: CustomEvent&lt;number&gt;) =&gt; void, optional_: Called with the committed position after every key step and every drag move.
+- **onchange** _(event: CustomEvent&lt;number&gt;) =&gt; void, optional_: Called with the committed position when the interaction ends.
 
-Declare the handlers as props and the controller calls them with the committed event — `detail` is typed, no cast:
+### Properties
 
-```ts
-const splitter = aria('splitter', {
-  value: 50,
-  oninput: (event) => {
-    const size = event.detail;
-  },
-  onchange: (event) => {
-    const committed = event.detail;
-  },
-});
-```
+_What you read or write on the instance afterwards._
 
-- `input`: dispatched with `bubbles: true` on every committed size, whether from a keystroke or a drag move.
-- `change`: dispatched with `bubbles: true` when the interaction ends — a keyboard commit, or a drag release that actually moved the partition. A press that commits nothing stays silent.
-- Attaching to the handle still works, but there the DOM library types the listener as `Event`, so reading `detail` needs `event as SplitterEvent`.
+- **value** _number_: The position with the bounds applied. Writing it clamps instead of rejecting.
+- **min** _number_: The lower bound in use.
+- **max** _number_: The upper bound in use.
+- **step** _number_: The arrow increment in use.
+- **disabled** _boolean_: Whether resizing is blocked.
+- **offset** _number_: The position as a percentage of the declared span, published as `--aria-splitter-offset`. A range with no span reads `0`.
+- **orientation** _'horizontal' | 'vertical'_: The axis the separator announces.
 
 ### How it behaves
 
-- Arrow keys travel the partition on either axis — `Right`/`Down` advance by `step`, `Left`/`Up` retreat — holding at the bounds instead of overshooting. Every other key stays with the browser, including `PageUp`/`PageDown` and `Home`/`End`.
-- Primary-pointer drags track along the parent area even outside the handle until release or cancellation; drags are continuous, never snapped to `step`. A zero-size area produces no update.
-- Every keyboard commit dispatches `input` and `change` carrying the partition; drags dispatch `input` per commit and `change` on release only when the value moved from the drag start.
-- A disabled handle refuses keys and drags, and a mid-drag disable ends tracking at the last committed size.
-- Panes size themselves from `--aria-splitter-offset`, published on the handle in compiled `style`. Script consumers read the same percentage from `splitter.offset` (`0`–`100`, `0` when the range has no span) — the numeric content of the variable, with no conversion.
+- **The handle is a separator.** It compiles `role="separator"`, `tabindex="0"` (or `-1` while disabled), the announced value, minimum, maximum, and the orientation, plus `aria-disabled` on both states.
+- **A pointer drag follows the parent area.** Tracking starts on the handle and continues outside it until release or cancellation, reading against the parent's box on the announced axis. Drags are continuous, never snapped to `step`.
+- **Every write lands inside the bounds.** Keys hold at `min` and `max` instead of overshooting, and a write through `value` is clamped the same way.
+- **`input` for every commit, `change` when the gesture moved.** A drag dispatches `input` per move and `change` on release only if the position moved from the drag start; a press that commits nothing stays silent.
+- **Disabled keeps the allocation.** Keys and drags are refused, a mid-drag lock ends tracking at the last committed position, and the handle leaves the tab order.
 
-## Putting It Together
+### Events
 
-Once your components are wired with `aria(...)`, compose partitions with honest bounds:
+_What it tells you._
+
+- **`input`** — the committed position, after each key step and each drag move, in `detail`.
+- **`change`** — the committed position once the interaction ends, in `detail`. A press that commits nothing is silent.
 
 ```tsx
-<div className="flex gap-4 max-w-sm">
-  <Splitter label="Preview width" value={40} min={10} max={90} />
-</div>
+const partition = aria('splitter', {
+  value: 50,
+  oninput: (event) => track(event.detail),
+  onchange: (event) => save(event.detail),
+});
 ```
 
-## Keyboard Navigation
+### Navigation
 
-- **Tab**: Focuses the handle (`tabindex="0"`, resolving to `tabindex="-1"` while disabled).
-- **ArrowRight / ArrowDown**: Advance the partition by `step`, holding at `max`.
-- **ArrowLeft / ArrowUp**: Retreat the partition by `step`, holding at `min`.
-- **Every other key**: Left unclaimed for the browser, including `PageUp`/`PageDown` and `Home`/`End`.
+_What the keys do._
 
-## What you get
-
-- **Drag plus keys.** Pointer tracking along the parent area and four arrow keys drive the same clamped partition.
-- **Committed writes.** Every commit lands inside the declared range and stays put.
-- **Honest events.** `input` per commit and `change` when the interaction actually moved the value.
-- **CSS-ready position.** `--aria-splitter-offset` sizes panes with no JS math.
+- **`ArrowRight` / `ArrowDown`** — advance the partition by `step`, holding at `max`.
+- **`ArrowLeft` / `ArrowUp`** — retreat by `step`, holding at `min`.
+- **`Tab`** — focus the handle, or step over it while disabled.
+- **Every other key** — left to the browser, including `PageUp` / `PageDown` and `Home` / `End`.
 
 ## Next Steps
 
-- **[Divider](/docs/aria/divider)**: The static structural divider that stays out of the tab order.
-- **[Slider](/docs/aria/slider)**: Bounded numeric entry with pointer drag and dual-thumb ranges.
-- **[Progress](/docs/aria/progress)**: The read-only face of the same `aria-value*` range vocabulary.
+- **[Divider](/docs/aria/divider)**: The static rule that takes no tab stop.
+- **[Slider](/docs/aria/slider)**: The same range vocabulary on a track you drag.
+- **[Progress](/docs/aria/progress)**: The read-only face of the same `aria-value*` numbers.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Splitter
+
+```ts
+interface SplitterProps {
+  value?: number;
+  min?: number;
+  max?: number;
+  step?: number;
+  disabled?: boolean;
+  label?: string;
+  oninput?: (event: CustomEvent<number>) => void;
+  onchange?: (event: CustomEvent<number>) => void;
+}
+
+interface SplitterOptions {
+  native?: boolean;
+}
+
+interface SplitterAttributes {
+  role?: 'separator';
+  tabindex?: number;
+  'aria-orientation'?: 'horizontal' | 'vertical';
+  'aria-valuenow'?: number;
+  'aria-valuemin'?: number;
+  'aria-valuemax'?: number;
+  'aria-label'?: string;
+  'aria-disabled'?: 'true' | 'false';
+  style?: { '--aria-splitter-offset': string };
+}
+
+declare class SplitterAria {
+  get value(): number;
+  set value(next: number);
+  get min(): number;
+  get max(): number;
+  get step(): number;
+  get disabled(): boolean;
+  get offset(): number;
+  get orientation(): 'horizontal' | 'vertical';
+}
+```
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`attributes`** is the dictionary you spread; **`ref`** is what you bind the element with; **`props`** is the full props dictionary for spreading onto the host; **`restProps(omit)`** hands back your props with the keys you name left out.
+- **`assign()`** changes several parameters at once, **`refine()`** adds attributes of your own, **`on()`** listens for anything the part fires, **`destroy()`** tears it down.

@@ -1,0 +1,107 @@
+.demo-splitter-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: min(100%, 28rem);
+  margin-inline: auto;
+}
+
+.demo-splitter-unit {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.demo-splitter-caption {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--demo-muted);
+}
+
+.demo-splitter {
+  display: flex;
+  align-items: stretch;
+  height: 7rem;
+  overflow: hidden;
+  border: 1px solid var(--demo-border);
+  border-radius: var(--demo-radius-sm);
+  background: var(--demo-bg);
+}
+
+.demo-splitter-pane {
+  display: flex;
+  align-items: flex-end;
+  min-width: 0;
+  padding: 0.5rem 0.625rem;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--demo-muted);
+}
+
+.demo-splitter-pane-first {
+  flex: 0 0 var(--aria-splitter-offset, 50%);
+  background: color-mix(in srgb, var(--demo-fg) 5%, var(--demo-bg));
+}
+
+.demo-splitter-pane-second {
+  flex: 1 1 0;
+}
+
+.demo-splitter-grip {
+  position: relative;
+  flex: none;
+  width: 0.75rem;
+  border: 0;
+  background: transparent;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.demo-splitter-grip::before {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  left: 50%;
+  width: 1px;
+  background: var(--demo-border);
+  transform: translateX(-50%);
+  transition: background-color 0.15s;
+}
+
+.demo-splitter-grip::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0.1875rem;
+  height: 1.5rem;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--demo-muted) 70%, var(--demo-bg));
+  transform: translate(-50%, -50%);
+  transition: background-color 0.15s;
+}
+
+.demo-splitter-grip:hover::before,
+.demo-splitter-grip:hover::after {
+  background: var(--demo-muted);
+}
+
+.demo-splitter-grip:focus::before,
+.demo-splitter-grip:focus::after {
+  background: var(--demo-fg);
+}
+
+.demo-splitter-grip:focus-visible {
+  outline: var(--demo-outline);
+  outline-offset: var(--demo-outline-offset);
+}
+
+.demo-splitter-grip[aria-disabled='true'] {
+  pointer-events: none;
+}
+
+.demo-splitter-grip[aria-disabled='true']::before,
+.demo-splitter-grip[aria-disabled='true']::after {
+  opacity: var(--demo-disabled);
+}

@@ -25,124 +25,211 @@ const panel = dialog.panel();
 :::interactive[Account Settings]
 ```tsx
 import { aria } from '@airlib/aria';
-import { setup } from '@airlib/react';
-import type { ComponentProps } from 'react';
+import { setup, shadowPortal } from '@airlib/react';
+import type { ComponentProps, ReactNode } from 'react';
 
 type DemoDialogProps = ComponentProps<'div'> & {
   open?: boolean;
   modality?: 'modal' | 'nonmodal';
   dismissable?: boolean;
-  trigger?: string;
-  heading?: string;
-  note?: string;
-  close?: string;
-  floating?: boolean;
+  children: ReactNode;
 };
 
 const DemoDialog = setup<DemoDialogProps>((props) => {
-  const root = aria('dialog', props);
-  const trigger = root.trigger();
-  const panel = root.panel();
-  const title = root.title();
-  const description = root.description();
-  const close = root.closeButton();
+  const dialog = aria('dialog', props);
 
   return () => (
-    <div className="demo-dialog-slot">
-      <button ref={trigger.ref} {...trigger.restProps(['children'])} className="demo-dialog-trigger">
-        {props.trigger}
-      </button>
-      <div
-        ref={panel.ref}
-        {...panel.restProps(['children'])}
-        className={props.floating ? 'demo-dialog-panel demo-dialog-floating' : 'demo-dialog-panel'}
-      >
-        <span ref={title.ref} {...title.restProps(['children'])} className="demo-dialog-title">
-          {props.heading}
-        </span>
-        <span ref={description.ref} {...description.restProps(['children'])} className="demo-dialog-note">
-          {props.note}
-        </span>
-        <div className="demo-dialog-actions">
-          <button ref={close.ref} {...close.restProps(['children'])} className="demo-dialog-close">
-            {props.close}
-          </button>
-        </div>
-      </div>
+    <div ref={dialog.ref} {...dialog.restProps(['children'])} className="demo-dialog-group">
+      {props.children}
     </div>
   );
 }, 'DemoDialog');
-```
-```html
-<div className="demo-dialog-stack">
-  <div className="demo-dialog-row">
-    <span className="demo-dialog-caption">Escape and outside clicks close it</span>
-    <DemoDialog trigger="Manage account" heading="Account settings" note="Update your security settings and the weekly digest." close="Done" />
-  </div>
-  <div className="demo-dialog-row">
-    <span className="demo-dialog-caption">One flag refuses both</span>
-    <DemoDialog dismissable={false} trigger="Choose a workspace" heading="Workspace required" note="Pick the workspace this project bills to before continuing." close="Choose" />
-  </div>
-</div>
-```
 
-<div className="demo-dialog-stack">
-  <div className="demo-dialog-row">
-    <span className="demo-dialog-caption">Escape and outside clicks close it</span>
-    <DemoDialog trigger="Manage account" heading="Account settings" note="Update your security settings and the weekly digest." close="Done" />
-  </div>
-  <div className="demo-dialog-row">
-    <span className="demo-dialog-caption">One flag refuses both</span>
-    <DemoDialog dismissable={false} trigger="Choose a workspace" heading="Workspace required" note="Pick the workspace this project bills to before continuing." close="Choose" />
-  </div>
-</div>
-:::
-
-:::interactive[Scratchpad]
-```tsx
-import { setup } from '@airlib/react';
-import type { ComponentProps } from 'react';
-
-type DemoFloatProps = ComponentProps<'div'> & {
-  open?: boolean;
-  dismissable?: boolean;
-  trigger?: string;
-  heading?: string;
-  note?: string;
-  close?: string;
+type DemoDialogTriggerProps = ComponentProps<'button'> & {
+  children: ReactNode;
 };
 
-const DemoFloat = setup<DemoFloatProps>((props) => {
+const DemoDialogTrigger = setup<DemoDialogTriggerProps>((props) => {
+  const trigger = aria('dialog-trigger', props);
+
   return () => (
-    <DemoDialog
-      {...props.$pick(['open', 'dismissable', 'trigger', 'heading', 'note', 'close'])}
-      modality="nonmodal"
-      floating={true}
-    />
+    <button ref={trigger.ref} {...trigger.restProps(['children'])} className="demo-dialog-trigger">
+      {props.children}
+    </button>
   );
-});
+}, 'DemoDialogTrigger');
+
+type DemoDialogPanelProps = ComponentProps<'div'> & {
+  floating?: boolean;
+  children: ReactNode;
+};
+
+const DemoDialogPanel = setup<DemoDialogPanelProps>((props) => {
+  const panel = aria('dialog-panel', props);
+  const shadow = shadowPortal(() => panel.open);
+
+  return () => shadow(
+    <div
+      ref={panel.ref}
+      {...panel.restProps(['children', 'floating'])}
+      className={props.floating ? 'demo-dialog-panel demo-dialog-floating' : 'demo-dialog-panel'}
+    >
+      {props.children}
+    </div>
+  );
+}, 'DemoDialogPanel');
+
+type DemoDialogTitleProps = ComponentProps<'span'> & {
+  children: ReactNode;
+};
+
+const DemoDialogTitle = setup<DemoDialogTitleProps>((props) => {
+  const title = aria('dialog-title', props);
+
+  return () => (
+    <span ref={title.ref} {...title.restProps(['children'])} className="demo-dialog-title">
+      {props.children}
+    </span>
+  );
+}, 'DemoDialogTitle');
+
+type DemoDialogDescriptionProps = ComponentProps<'span'> & {
+  children: ReactNode;
+};
+
+const DemoDialogDescription = setup<DemoDialogDescriptionProps>((props) => {
+  const description = aria('dialog-description', props);
+
+  return () => (
+    <span ref={description.ref} {...description.restProps(['children'])} className="demo-dialog-note">
+      {props.children}
+    </span>
+  );
+}, 'DemoDialogDescription');
+
+type DemoDialogCloseProps = ComponentProps<'button'> & {
+  children: ReactNode;
+};
+
+const DemoDialogClose = setup<DemoDialogCloseProps>((props) => {
+  const close = aria('dialog-close', props);
+
+  return () => (
+    <button ref={close.ref} {...close.restProps(['children'])} className="demo-dialog-close">
+      {props.children}
+    </button>
+  );
+}, 'DemoDialogClose');
 ```
 ```html
 <div className="demo-dialog-stack">
   <div className="demo-dialog-row">
+    <span className="demo-dialog-caption">Escape and outside clicks close it</span>
+    <DemoDialog>
+      <DemoDialogTrigger>Manage account</DemoDialogTrigger>
+      <DemoDialogPanel>
+        <DemoDialogTitle>Account settings</DemoDialogTitle>
+        <DemoDialogDescription>Update your security settings and the weekly digest.</DemoDialogDescription>
+        <div className="demo-dialog-actions">
+          <DemoDialogClose>Done</DemoDialogClose>
+        </div>
+      </DemoDialogPanel>
+    </DemoDialog>
+  </div>
+  <div className="demo-dialog-row">
+    <span className="demo-dialog-caption">One flag refuses both</span>
+    <DemoDialog dismissable={false}>
+      <DemoDialogTrigger>Choose a workspace</DemoDialogTrigger>
+      <DemoDialogPanel>
+        <DemoDialogTitle>Workspace required</DemoDialogTitle>
+        <DemoDialogDescription>Pick the workspace this project bills to before continuing.</DemoDialogDescription>
+        <div className="demo-dialog-actions">
+          <DemoDialogClose>Choose</DemoDialogClose>
+        </div>
+      </DemoDialogPanel>
+    </DemoDialog>
+  </div>
+  <div className="demo-dialog-row">
     <span className="demo-dialog-caption">The page behind stays usable</span>
-    <DemoFloat trigger="Open scratchpad" heading="Scratchpad" note="Notes stay put while you work elsewhere on the page." close="Hide" />
+    <DemoDialog modality="nonmodal">
+      <DemoDialogTrigger>Open scratchpad</DemoDialogTrigger>
+      <DemoDialogPanel floating>
+        <DemoDialogTitle>Scratchpad</DemoDialogTitle>
+        <DemoDialogDescription>Notes stay put while you work elsewhere on the page.</DemoDialogDescription>
+        <div className="demo-dialog-actions">
+          <DemoDialogClose>Hide</DemoDialogClose>
+        </div>
+      </DemoDialogPanel>
+    </DemoDialog>
   </div>
   <div className="demo-dialog-row">
     <span className="demo-dialog-caption">Tab leaves the panel for the page</span>
-    <DemoFloat trigger="Open build log" heading="Build log" note="Follow the build without losing your place in the form." close="Hide" />
+    <DemoDialog modality="nonmodal">
+      <DemoDialogTrigger>Open build log</DemoDialogTrigger>
+      <DemoDialogPanel floating>
+        <DemoDialogTitle>Build log</DemoDialogTitle>
+        <DemoDialogDescription>Follow the build without losing your place in the form.</DemoDialogDescription>
+        <div className="demo-dialog-actions">
+          <DemoDialogClose>Hide</DemoDialogClose>
+        </div>
+      </DemoDialogPanel>
+    </DemoDialog>
   </div>
 </div>
 ```
 
 <div className="demo-dialog-stack">
   <div className="demo-dialog-row">
+    <span className="demo-dialog-caption">Escape and outside clicks close it</span>
+    <DemoDialog>
+      <DemoDialogTrigger>Manage account</DemoDialogTrigger>
+      <DemoDialogPanel>
+        <DemoDialogTitle>Account settings</DemoDialogTitle>
+        <DemoDialogDescription>Update your security settings and the weekly digest.</DemoDialogDescription>
+        <div className="demo-dialog-actions">
+          <DemoDialogClose>Done</DemoDialogClose>
+        </div>
+      </DemoDialogPanel>
+    </DemoDialog>
+  </div>
+  <div className="demo-dialog-row">
+    <span className="demo-dialog-caption">One flag refuses both</span>
+    <DemoDialog dismissable={false}>
+      <DemoDialogTrigger>Choose a workspace</DemoDialogTrigger>
+      <DemoDialogPanel>
+        <DemoDialogTitle>Workspace required</DemoDialogTitle>
+        <DemoDialogDescription>Pick the workspace this project bills to before continuing.</DemoDialogDescription>
+        <div className="demo-dialog-actions">
+          <DemoDialogClose>Choose</DemoDialogClose>
+        </div>
+      </DemoDialogPanel>
+    </DemoDialog>
+  </div>
+  <div className="demo-dialog-row">
     <span className="demo-dialog-caption">The page behind stays usable</span>
-    <DemoFloat trigger="Open scratchpad" heading="Scratchpad" note="Notes stay put while you work elsewhere on the page." close="Hide" />
+    <DemoDialog modality="nonmodal">
+      <DemoDialogTrigger>Open scratchpad</DemoDialogTrigger>
+      <DemoDialogPanel floating>
+        <DemoDialogTitle>Scratchpad</DemoDialogTitle>
+        <DemoDialogDescription>Notes stay put while you work elsewhere on the page.</DemoDialogDescription>
+        <div className="demo-dialog-actions">
+          <DemoDialogClose>Hide</DemoDialogClose>
+        </div>
+      </DemoDialogPanel>
+    </DemoDialog>
   </div>
   <div className="demo-dialog-row">
     <span className="demo-dialog-caption">Tab leaves the panel for the page</span>
-    <DemoFloat trigger="Open build log" heading="Build log" note="Follow the build without losing your place in the form." close="Hide" />
+    <DemoDialog modality="nonmodal">
+      <DemoDialogTrigger>Open build log</DemoDialogTrigger>
+      <DemoDialogPanel floating>
+        <DemoDialogTitle>Build log</DemoDialogTitle>
+        <DemoDialogDescription>Follow the build without losing your place in the form.</DemoDialogDescription>
+        <div className="demo-dialog-actions">
+          <DemoDialogClose>Hide</DemoDialogClose>
+        </div>
+      </DemoDialogPanel>
+    </DemoDialog>
   </div>
 </div>
 :::
@@ -182,17 +269,12 @@ type DialogProps = ComponentProps<'div'> & {
 };
 
 const Dialog = setup<DialogProps>((props) => {
-  const root = aria('dialog', props);
-  const trigger = root.trigger();
-  const panel = root.panel();
+  const dialog = aria('dialog', props);
 
   return () => (
-    <>
-      <button ref={trigger.ref} {...trigger.restProps(['children'])}>
-        {props.children}
-      </button>
-      <div ref={panel.ref} {...panel.restProps(['children'])} />
-    </>
+    <div ref={dialog.ref} {...dialog.restProps(['children'])}>
+      {props.children}
+    </div>
   );
 });
 ```
@@ -212,17 +294,12 @@ type DialogProps = ComponentProps<'div'> & {
 };
 
 const Dialog = setup<DialogProps>((props) => {
-  const root = aria('dialog', props);
-  const trigger = root.trigger();
-  const panel = root.panel();
+  const dialog = aria('dialog', props);
 
   return (
-    <>
-      <button ref={trigger.ref} {...trigger.restProps(['children'])}>
-        {props.children}
-      </button>
-      <div ref={panel.ref} {...panel.restProps(['children'])} />
-    </>
+    <div ref={dialog.ref} {...dialog.restProps(['children'])}>
+      {props.children}
+    </div>
   );
 });
 ```
@@ -334,6 +411,13 @@ const DialogTrigger = setup<ComponentProps<'button'>>((props) => {
 
 :::
 
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **open** _boolean_: Whether the dialog it opens is showing.
+- **disabled** _boolean_: Whether this trigger refuses to open it.
+
 ### How it behaves
 
 - **Announced as opening something.** `aria-haspopup="dialog"` with `aria-expanded` tracking the panel and `aria-controls` pointing at it.
@@ -391,10 +475,16 @@ const DialogPanel = setup<ComponentProps<'div'> & { children: JSX.Element }>((pr
 
 :::
 
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **open** _boolean_: Whether the panel is showing.
+
 ### How it behaves
 
 - **Named from its own content.** `role="dialog"` with `aria-modal` from the modality, labelled by the title and described by the description through derived identifiers.
-- **Focus lands inside on open.** On an `[autofocus]` element when you mark one, otherwise the first focusable child, otherwise the panel itself.
+- **Focus lands inside on open while modal.** An `[autofocus]` element when you mark one, otherwise the first focusable child, otherwise the panel itself. A nonmodal panel leaves focus where it was.
 - **The trap holds while modal.** `Tab` and `Shift+Tab` cycle within the panel; nonmodal leaves them free.
 - **Light dismissal ignores the trigger.** A pointer down anywhere outside the panel closes it, except on the trigger that owns it.
 - **A native `<dialog>` host stays native.** Visibility runs through `showModal()` and `close()`; a custom host gets `hidden` instead.
@@ -557,6 +647,13 @@ const DialogCloseButton = setup<ComponentProps<'button'>>((props) => {
 
 :::
 
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **open** _boolean_: Whether the dialog it closes is showing.
+- **disabled** _boolean_: Whether this button refuses to close it.
+
 ### How it behaves
 
 - **Closes and returns focus.** One click commits `open = false`; the focus restoration runs as it does for every other closing path.
@@ -620,6 +717,11 @@ interface DialogTriggerAttributes {
   'aria-controls'?: string;
   'aria-disabled'?: 'true' | 'false';
 }
+
+declare class DialogTriggerAria {
+  get open(): boolean;
+  get disabled(): boolean;
+}
 ```
 
 ### Dialog Panel
@@ -633,6 +735,10 @@ interface DialogPanelAttributes {
   'aria-describedby'?: string;
   hidden?: boolean;
 }
+
+declare class DialogPanelAria {
+  get open(): boolean;
+}
 ```
 
 ### Dialog Close Button
@@ -645,16 +751,27 @@ interface DialogCloseAttributes {
   tabindex?: number;
   'aria-disabled'?: 'true' | 'false';
 }
+
+declare class DialogCloseAria {
+  get open(): boolean;
+  get disabled(): boolean;
+}
 ```
 
-### Dialog Title and Dialog Description
+### Dialog Title
 
 ```ts
 interface DialogTitleAttributes {
   id?: string;
 }
+```
 
-type DialogDescriptionAttributes = DialogTitleAttributes;
+### Dialog Description
+
+```ts
+interface DialogDescriptionAttributes {
+  id?: string;
+}
 ```
 
 ### On every one of them

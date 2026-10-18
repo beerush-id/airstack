@@ -10,9 +10,9 @@ import './divider.css';
 
 # Headless Divider
 
-A rule across a layout says *these are separate things*, but a bare line says nothing to a screen reader, and hand-wiring the separator role, its axis, and its exclusion from the tab order is easy to get wrong.
+A divider marks where one part of a layout ends and the next begins. Getting it right means **compiling the separator role on your own element**, **announcing the axis only when it departs from the default**, **keeping it out of the tab order**, and **carrying no value**.
 
-**Headless Divider** marks any element as a structural boundary — announced as a separator, skipped by the tab key, carrying no value. For a boundary the user moves, see [Splitter](/docs/aria/splitter).
+**Headless Divider** does all of that for you, and leaves the markup and the styling entirely yours.
 
 ```tsx
 const divider = aria('divider', props);
@@ -20,7 +20,7 @@ const divider = aria('divider', props);
 <div ref={divider.ref} {...divider.restProps(['children'])} />
 ```
 
-:::interactive[Dividers]
+:::interactive[Panel Layout]
 ```tsx
 import { aria } from '@airlib/aria';
 import { setup } from '@airlib/react';
@@ -38,40 +38,64 @@ const DemoDivider = setup<DemoDividerProps>((props) => {
 ```
 ```html
 <div className="demo-divider-stack">
-  <div className="demo-divider-card">
-    <span className="demo-divider-card-title">Horizontal</span>
-    <div className="demo-divider-row">
-      <span>Sidebar</span>
+  <div className="demo-divider-row">
+    <span className="demo-divider-caption">Between stacked sections</span>
+    <div className="demo-divider-card">
+      <div className="demo-divider-block">
+        <span className="demo-divider-label">Layers</span>
+        <span className="demo-divider-note">24 items, grouped by page</span>
+      </div>
       <DemoDivider />
-      <span>Content</span>
+      <div className="demo-divider-block">
+        <span className="demo-divider-label">Assets</span>
+        <span className="demo-divider-note">8 symbols shared with the team</span>
+      </div>
     </div>
   </div>
-  <div className="demo-divider-card">
-    <span className="demo-divider-card-title">Vertical</span>
-    <div className="demo-divider-row">
-      <span>Copy</span>
+  <div className="demo-divider-row">
+    <span className="demo-divider-caption">Between side-by-side panes</span>
+    <div className="demo-divider-card demo-divider-card--row">
+      <div className="demo-divider-block">
+        <span className="demo-divider-label">Preview</span>
+        <span className="demo-divider-note">Rendered at 100%</span>
+      </div>
       <DemoDivider orientation="vertical" />
-      <span>Paste</span>
+      <div className="demo-divider-block">
+        <span className="demo-divider-label">Inspector</span>
+        <span className="demo-divider-note">Padding, radius, and fill</span>
+      </div>
     </div>
   </div>
 </div>
 ```
 
 <div className="demo-divider-stack">
-  <div className="demo-divider-card">
-    <span className="demo-divider-card-title">Horizontal</span>
-    <div className="demo-divider-row">
-      <span>Sidebar</span>
+  <div className="demo-divider-row">
+    <span className="demo-divider-caption">Between stacked sections</span>
+    <div className="demo-divider-card">
+      <div className="demo-divider-block">
+        <span className="demo-divider-label">Layers</span>
+        <span className="demo-divider-note">24 items, grouped by page</span>
+      </div>
       <DemoDivider />
-      <span>Content</span>
+      <div className="demo-divider-block">
+        <span className="demo-divider-label">Assets</span>
+        <span className="demo-divider-note">8 symbols shared with the team</span>
+      </div>
     </div>
   </div>
-  <div className="demo-divider-card">
-    <span className="demo-divider-card-title">Vertical</span>
-    <div className="demo-divider-row">
-      <span>Copy</span>
+  <div className="demo-divider-row">
+    <span className="demo-divider-caption">Between side-by-side panes</span>
+    <div className="demo-divider-card demo-divider-card--row">
+      <div className="demo-divider-block">
+        <span className="demo-divider-label">Preview</span>
+        <span className="demo-divider-note">Rendered at 100%</span>
+      </div>
       <DemoDivider orientation="vertical" />
-      <span>Paste</span>
+      <div className="demo-divider-block">
+        <span className="demo-divider-label">Inspector</span>
+        <span className="demo-divider-note">Padding, radius, and fill</span>
+      </div>
     </div>
   </div>
 </div>
@@ -169,8 +193,8 @@ interface DividerProps {
 }
 
 interface DividerAttributes {
-  role: 'separator';
-  'aria-orientation'?: 'vertical';
+  role?: 'separator';
+  'aria-orientation'?: 'horizontal' | 'vertical';
 }
 
 declare class DividerAria {

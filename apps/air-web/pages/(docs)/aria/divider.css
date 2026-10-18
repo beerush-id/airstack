@@ -1,41 +1,66 @@
 .demo-divider-stack {
   display: flex;
   flex-direction: column;
-  gap: var(--demo-gap);
-  width: 100%;
+  gap: 1.25rem;
+  width: min(100%, 32rem);
+  margin-inline: auto;
+}
+
+.demo-divider-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--demo-gap-sm);
+}
+
+.demo-divider-caption {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--demo-muted);
 }
 
 .demo-divider-card {
   display: flex;
   flex-direction: column;
-  gap: var(--demo-gap-sm);
-  padding: var(--demo-gap);
+  gap: var(--demo-gap);
+  padding: 0.875rem 1rem;
   border: 1px solid var(--demo-border);
   border-radius: var(--demo-radius);
   background: var(--demo-bg);
-  font-size: var(--demo-font);
-  color: var(--demo-muted);
 }
 
-.demo-divider-card-title {
+.demo-divider-card--row {
+  flex-direction: row;
+}
+
+.demo-divider-block {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.demo-divider-label {
+  font-size: var(--demo-font);
   font-weight: 600;
+  line-height: 1.4;
   color: var(--demo-fg);
 }
 
-.demo-divider-row {
-  display: flex;
-  align-items: center;
-  gap: var(--demo-gap);
+.demo-divider-note {
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--demo-muted);
 }
 
 .demo-divider {
-  flex: 1;
+  flex: none;
   border-top: 1px solid var(--demo-border);
 }
 
 .demo-divider[aria-orientation='vertical'] {
-  flex: none;
-  align-self: stretch;
-  border-top: none;
+  border-top: 0;
   border-left: 1px solid var(--demo-border);
+  align-self: stretch;
 }
