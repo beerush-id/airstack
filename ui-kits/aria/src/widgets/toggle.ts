@@ -1,4 +1,4 @@
-import { SelectionAria, type SelectionAttributes, type SelectionOptions } from '../selection.js';
+import { SelectionAria, type SelectionAttributes } from '../selection.js';
 import type { AriaEvent, AriaEventHandler, AriaOptions, AriaProps, BaseElement, Primitive } from '../types.js';
 
 /**
@@ -63,7 +63,7 @@ export class ToggleAria<
   T extends ToggleProps = ToggleProps,
   A extends ToggleAttributes<E> = ToggleAttributes<E>,
   O extends ToggleOptions = ToggleOptions,
-> extends SelectionAria<E, T, A, SelectionOptions> {
+> extends SelectionAria<E, T, A> {
   public constructor(props: Partial<T> = {}, options: O = {} as O) {
     super(props, {
       native: true,

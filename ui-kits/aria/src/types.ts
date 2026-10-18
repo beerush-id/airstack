@@ -74,7 +74,12 @@ export interface AriaOptions {
   /**
    * Whether the target element is clickable.
    */
-  clickable?: boolean;
+  clickable?: boolean | string[];
+
+  /**
+   * Whether the key-to-click polyfill is deferred to the keyup phase.
+   */
+  deferredKey?: boolean;
 }
 
 /**

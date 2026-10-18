@@ -173,7 +173,7 @@ export abstract class SelectionAria<
   }
 
   public constructor(props: Partial<T> = {}, options: O = {} as O) {
-    super(props, options);
+    super(props, { clickable: options?.allowKeys ?? DEFAULT_ALLOW_KEYS, ...options });
 
     const role = this.options.role ?? 'item';
     this.id = `${role}-${uIndex($symbol(role), true)}`;
@@ -387,7 +387,7 @@ export abstract class SelectionAria<
     const id = this.properties.id ?? (this.group?.id ? `${this.group.id}-${role}${token}` : this.id);
 
     const attrs: Record<string, unknown> = {
-      id,
+      id: !this.group ? this.properties.id : id,
       disabled: this.isNative ? isDisabled : undefined,
       onclick: this.handleClick,
     };
@@ -419,7 +419,7 @@ export abstract class SelectionAria<
       event.preventDefault();
       this.spaceArmed = true;
     } else if (!this.options.deferredKey && event.key === 'Enter') {
-      (event.currentTarget as HTMLElement)?.click?.();
+      this.dispatchClick();
     }
   };
 
@@ -430,9 +430,9 @@ export abstract class SelectionAria<
     if (this.disabled || event.defaultPrevented || !allowKeys.includes(event.key)) return;
 
     if (event.key === ' ' && armed) {
-      (event.currentTarget as HTMLElement)?.click?.();
+      this.dispatchClick();
     } else if (this.options.deferredKey && event.key === 'Enter') {
-      (event.currentTarget as HTMLElement)?.click?.();
+      this.dispatchClick();
     }
   };
 

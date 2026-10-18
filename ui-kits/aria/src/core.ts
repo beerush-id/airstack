@@ -360,23 +360,51 @@ export class Aria<
    * Protects the element from interaction when disabled.
    */
   protected protectClickable() {
+    const keys = Array.isArray(this.options.clickable) ? this.options.clickable : ['Enter', ' '];
+    const self = this as AnyType;
+
+    let spaceArmed = false;
+
     this.on('click', (e) => {
-      if ((this as AnyType).disabled) {
+      if (self.disabled) {
         e.preventDefault();
         e.stopPropagation();
       }
     });
+
     this.on('keydown', (e) => {
-      if ((e.key === 'Enter' || e.key === ' ') && (this as AnyType).disabled) {
+      if (keys.includes(e.key) && self.disabled) {
         e.preventDefault();
         e.stopPropagation();
+        return;
+      }
+      if (self) return;
+      if (this.isNative || e.defaultPrevented || !keys.includes(e.key)) return;
+
+      if (e.key === ' ') {
+        e.preventDefault();
+        spaceArmed = true;
+      } else if (e.key === 'Enter' && !this.options.deferredKey) {
+        this.dispatchClick();
       }
     });
+
     this.on('keyup', (e) => {
-      if ((e.key === 'Enter' || e.key === ' ') && (this as AnyType).disabled) {
+      if (keys.includes(e.key) && self.disabled) {
         e.preventDefault();
         e.stopPropagation();
+        return;
       }
+      if (self) return;
+      if (this.isNative || e.defaultPrevented || !keys.includes(e.key)) return;
+
+      if (e.key === ' ' && spaceArmed) {
+        this.dispatchClick();
+      } else if (e.key === 'Enter' && this.options.deferredKey) {
+        this.dispatchClick();
+      }
+
+      spaceArmed = false;
     });
   }
 
@@ -392,6 +420,24 @@ export class Aria<
         role.captureChange(this.element!, value);
         return;
       }
+    }
+  }
+
+  /**
+   * Dispatches a click event on the element based on whether it is a native or custom element.
+   */
+  protected dispatchClick() {
+    const element = this.element as unknown as HTMLElement;
+
+    if (this.isNative) {
+      element.click();
+    } else {
+      const event = new PointerEvent('click', {
+        bubbles: true,
+        pointerId: -1,
+        cancelable: true,
+      });
+      element.dispatchEvent?.(event);
     }
   }
 

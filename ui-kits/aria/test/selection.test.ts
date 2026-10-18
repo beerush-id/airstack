@@ -367,9 +367,10 @@ describe('Selection - Contract Specifications', () => {
             expect(second.id).toBe('option-2');
 
             // Sequential default 'item' index
+            // Outside a group, attributes.id resolves to properties.id without fallback.
             const unassigned = new TestItem();
             expect(unassigned.id).toBe('item-2');
-            expect(unassigned.attributes.id).toBe('item-2');
+            expect(unassigned.attributes.id).toBeUndefined();
           });
         });
       });

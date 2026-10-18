@@ -73,7 +73,7 @@ export class OptionAria<
   T extends OptionProps = OptionProps,
   A extends OptionAttributes<E> = OptionAttributes<E>,
   O extends OptionOptions = OptionOptions,
-> extends SelectionAria<E, T, A, SelectionOptions> {
+> extends SelectionAria<E, T, A, OptionOptions> {
   /**
    * Standalone inversion opt-in snapshotted from engine options at construction.
    */

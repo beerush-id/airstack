@@ -1,6 +1,6 @@
 import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
-import { aria, type TreeProps } from '../../src/index.js';
+import { aria, TreeGroupAria, TreeItemAria, type TreeProps } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 interface Node {
@@ -15,8 +15,8 @@ function buildTree(props: Partial<TreeProps>, nodes: Node[]) {
   rootUl.setAttribute('aria-label', 'Files');
   document.body.appendChild(rootUl);
 
-  const byName = new Map<string, { item: ReturnType<typeof aria>; el: HTMLElement }>();
-  const groups: Array<ReturnType<typeof aria>> = [];
+  const byName = new Map<string, { item: TreeItemAria; el: HTMLElement }>();
+  const groups: Array<TreeGroupAria> = [];
 
   const render = (level: Node[], parent: HTMLElement) => {
     for (const node of level) {
