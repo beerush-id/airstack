@@ -21,6 +21,7 @@ const REACT_PROP_MAP: Record<string, string> = {
   maxlength: 'maxLength',
   minlength: 'minLength',
   novalidate: 'noValidate',
+  inputmode: 'inputMode',
 };
 
 /**

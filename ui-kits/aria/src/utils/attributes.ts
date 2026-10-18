@@ -78,6 +78,7 @@ const ATTR_MAP: Record<string, string> = {
   readOnly: 'readonly',
   autoComplete: 'autocomplete',
   defaultValue: 'value',
+  inputMode: 'inputmode',
 };
 
 /**

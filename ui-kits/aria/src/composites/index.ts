@@ -3,6 +3,7 @@ export * from './breadcrumb.js';
 export * from './calendar/index.js';
 export * from './carousel/index.js';
 export * from './checkbox-group.js';
+export * from './code-input.js';
 export * from './combobox.js';
 export * from './confirm.js';
 export * from './context-menu.js';

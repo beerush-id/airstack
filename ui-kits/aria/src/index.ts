@@ -22,6 +22,11 @@ import {
   CarouselViewportAria,
   CheckboxGroupAria,
   type CheckboxGroupProps,
+  CodeInputAria,
+  CodeInputCellAria,
+  type CodeInputCellOptions,
+  type CodeInputCellProps,
+  type CodeInputProps,
   type ColumnHeaderProps,
   ComboboxAria,
   ComboboxInputAria,
@@ -673,6 +678,14 @@ export function aria<E extends BaseElement = HTMLElement>(
   options?: FeedArticleOptions
 ): FeedArticleAria<E>;
 
+export function aria<E extends BaseElement = HTMLElement>(role: 'code-input', props?: CodeInputProps): CodeInputAria<E>;
+
+export function aria<E extends BaseElement = HTMLInputElement>(
+  role: 'code-input-cell',
+  props: CodeInputCellProps,
+  options?: CodeInputCellOptions
+): CodeInputCellAria<E>;
+
 export function aria<E extends BaseElement = HTMLElement>(role: 'menu', props?: MenuProps): MenuAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement>(role: 'menu-bar', props?: MenubarProps): MenubarAria<E>;
@@ -954,6 +967,10 @@ export function aria(role: string, init?: unknown, options?: unknown): unknown {
       return new FeedAria(init as never);
     case 'feed-article':
       return new FeedArticleAria(init as never, options as never);
+    case 'code-input':
+      return new CodeInputAria(init as never);
+    case 'code-input-cell':
+      return new CodeInputCellAria(init as never, options as never);
     case 'menu':
       return new MenuAria(init as never);
     case 'menu-bar':
