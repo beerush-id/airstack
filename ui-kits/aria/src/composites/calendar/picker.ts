@@ -1,7 +1,7 @@
 import { $static, $symbol, createContext, derived, mutable } from '@airlib/core';
 import type { AriaAttributes, AriaEvent, AriaEventHandler, AriaOptions, AriaProps, BaseElement } from '../../types.js';
 import { parseDate, type ParsedDate } from '../../utils/calendar.js';
-import { PopupAria, popupCtx, type PopupProps } from '../popup.js';
+import { PopupAria, popupCtx, type PopupProps } from '../popup/popup.js';
 
 export type DatePickerInputEvent = AriaEvent<string>;
 

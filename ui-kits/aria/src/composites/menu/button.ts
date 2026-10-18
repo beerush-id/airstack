@@ -4,7 +4,7 @@ import {
   type PopupTriggerAttributes,
   type PopupTriggerOptions,
   type PopupTriggerProps,
-} from '../popup.js';
+} from '../popup/trigger.js';
 import { type MenuAria, menuCtx } from './menu.js';
 
 /**

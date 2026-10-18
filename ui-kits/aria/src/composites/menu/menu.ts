@@ -1,7 +1,7 @@
 import { $static, $symbol, type ContextReader } from '@airlib/core';
 import type { AriaEvent, AriaEventHandler, BaseElement } from '../../types.js';
 import { type ListboxProps, listboxCtx } from '../listbox.js';
-import { PopupAria, type PopupCloseEvent, type PopupOpenEvent, type PopupProps, popupCtx } from '../popup.js';
+import { PopupAria, type PopupCloseEvent, type PopupOpenEvent, type PopupProps, popupCtx } from '../popup/popup.js';
 import { MenuButtonAria, type MenuButtonProps } from './button.js';
 import type { MenuItemOptions } from './item.js';
 import { MenuPanelAria, type MenuPanelProps } from './panel.js';

@@ -1,5 +1,5 @@
 import type { AriaOptions, AriaProps, BaseElement } from '../../types.js';
-import { PopupTriggerAria, type PopupTriggerAttributes } from '../popup.js';
+import { PopupTriggerAria, type PopupTriggerAttributes } from '../popup/trigger.js';
 import type { DatePickerAria } from './picker.js';
 import type { DateRangePickerAria } from './range.js';
 

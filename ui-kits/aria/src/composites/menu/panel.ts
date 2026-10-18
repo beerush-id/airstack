@@ -3,7 +3,7 @@ import type { AriaProps, BaseElement } from '../../types.js';
 import { ENABLED_QUERY } from '../../utils/attributes.js';
 import type { PopoverAria } from '../../widgets/popover.js';
 import { ListboxAria, type ListboxAttributes } from '../listbox.js';
-import { bindPanel, type PopupPanel } from '../popup.js';
+import { bindPanel, type PopupPanel } from '../popup/panel.js';
 import { type MenuAria, menuCtx } from './menu.js';
 
 const ROLE_PANEL = 'menu';

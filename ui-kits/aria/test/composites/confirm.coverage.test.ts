@@ -1,13 +1,13 @@
 import { withContext } from '@airlib/react';
 import { describe, expect, it } from 'vitest';
 import {
+  confirm,
   ConfirmCancelAria,
   ConfirmDescriptionAria,
   ConfirmPanelAria,
   ConfirmTitleAria,
   ConfirmTriggerAria,
-  confirm,
-} from '../../src/composites/confirm.js';
+} from '../../src/index.js';
 import { bind } from '../utils.js';
 
 describe('Confirm Composite - Coverage & Edge Cases', () => {

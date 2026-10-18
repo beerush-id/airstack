@@ -1,21 +1,17 @@
 import { $symbol, type AnyType } from '@airlib/core';
 import { shadow } from '@airlib/core/browser';
-import { selectionGroup } from '../selection.js';
-import type { AriaEvent, AriaEventHandler, AriaOptions, AriaProps, BaseElement, DetachFn } from '../types.js';
-import type { PopoverAria } from '../widgets/popover.js';
-import { ListboxAria, type ListboxAttributes, listboxCtx, type ListboxProps } from './listbox.js';
+import { selectionGroup } from '../../selection.js';
+import type { AriaEvent, AriaEventHandler, BaseElement, DetachFn } from '../../types.js';
+import { listboxCtx, type ListboxProps } from '../listbox.js';
 import {
-  bindPanel,
   PopupAria,
   type PopupCloseEvent,
   popupCtx,
   type PopupOpenEvent,
-  type PopupPanel,
   type PopupProps,
-  PopupTriggerAria,
-  type PopupTriggerAttributes,
-  type PopupTriggerOptions,
-} from './popup.js';
+} from '../popup/popup.js';
+import { SelectPanelAria, type SelectPanelProps } from './panel.js';
+import { SelectTriggerAria, type SelectTriggerOptions, type SelectTriggerProps } from './trigger.js';
 
 /**
  * Controller-dispatched open/close event.
@@ -82,35 +78,6 @@ export interface MultipleSelectProps extends SelectBaseProps {
  * Reactive input properties for the Select container orchestrator.
  */
 export type SelectProps = SingleSelectProps | MultipleSelectProps;
-
-/**
- * Reactive input properties for the Select combobox trigger.
- */
-export interface SelectTriggerProps extends AriaProps {
-  /**
-   * Optional DOM element identifier.
-   */
-  id?: string;
-
-  /**
-   * Whether this trigger is disabled from user interaction.
-   */
-  disabled?: boolean;
-}
-
-export interface SelectTriggerOptions extends PopupTriggerOptions {}
-
-/**
- * Compiled HTML and ARIA attributes for a Select combobox trigger.
- *
- * @template E - Target Element type
- */
-export interface SelectTriggerAttributes<E extends BaseElement = HTMLElement> extends PopupTriggerAttributes<E> {}
-
-/**
- * Popup panel props inherit the listbox contract.
- */
-export type SelectPanelProps = ListboxProps;
 
 const SELECT_SYMBOL = $symbol('select');
 
@@ -223,129 +190,5 @@ export class SelectAria<E extends BaseElement = HTMLElement> extends PopupAria<E
     const detach = super.attach();
     this.captureChange();
     return detach;
-  }
-}
-
-/**
- * Combobox trigger opening the select listbox. Compiles attributes only;
- * click and arrow-key activation come from the composed popover modes.
- *
- * @template E - Target Element type (defaults to HTMLElement)
- */
-export class SelectTriggerAria<E extends BaseElement = HTMLElement> extends PopupTriggerAria<
-  E,
-  SelectProps,
-  SelectTriggerAttributes<E>,
-  SelectTriggerOptions
-> {
-  /**
-   * Enclosing select orchestrator discovered from ambient context.
-   */
-  public declare host?: SelectAria;
-
-  /**
-   * Get the currently selected value(s).
-   */
-  public get value(): string | string[] | undefined {
-    return this.host?.value;
-  }
-
-  /**
-   * Get the currently selected text(s).
-   */
-  public get text(): string {
-    return this.host?.text ?? '';
-  }
-
-  /**
-   * Get the label of the current choice(s).
-   */
-  public get label() {
-    return this.host?.label ?? '';
-  }
-
-  /**
-   * @param props - User-provided trigger properties.
-   * @param options - User-provided trigger options.
-   */
-  public constructor(props: Partial<SelectTriggerProps> = {}, options: AriaOptions = { native: true }) {
-    super(props, options);
-    this.omittedAttrs.push('value', 'text');
-    this.update();
-  }
-}
-
-/**
- * Popup listbox panel inheriting listbox mechanics and proxying overlay
- * dismissal, positioning, and focus management through an internal popover.
- *
- * @template E - Target Element type (defaults to HTMLElement)
- */
-export class SelectPanelAria<E extends BaseElement = HTMLElement> extends ListboxAria<
-  E,
-  ListboxProps,
-  ListboxAttributes<E>
-> {
-  /**
-   * Enclosing select orchestrator discovered from ambient context.
-   */
-  public host?: SelectAria;
-  public popup!: PopoverAria;
-
-  /**
-   * Unique panel identifier shared with the trigger's aria-controls.
-   */
-  public override get id() {
-    return `${this.properties.id}-panel`;
-  }
-
-  /**
-   * Whether the popup is currently open.
-   */
-  public get open() {
-    return this.popup.open;
-  }
-
-  /**
-   * Sets the internal panel element reference and delegates to the popup.
-   *
-   * @param element - Element to track.
-   */
-  /* istanbul ignore next: no flow assigns panel.current; popup tracks the element through its own ref */
-  public override set current(element: E | null) {
-    super.current = element;
-    this.popup.current = element as unknown as HTMLElement;
-  }
-
-  /**
-   * @param props - User-provided panel properties.
-   */
-  public constructor(props: Partial<ListboxProps> = {}) {
-    super(props, true);
-
-    this.host = popupCtx.get() as SelectAria;
-    this.omittedAttrs.push('query', 'text');
-    bindPanel(this as unknown as PopupPanel);
-
-    this.update();
-  }
-
-  /**
-   * Destroys the internal popover and delegates to the base implementation.
-   */
-  public override destroy(): void {
-    this.popup.destroy();
-    super.destroy();
-  }
-
-  protected override createAttributes(): ListboxAttributes<E> {
-    return Object.assign((this.popup as unknown as this).attrs, super.createAttributes());
-  }
-
-  protected capture(event: AriaEvent): void {
-    if (event.type === 'change' && !this.properties.multiple) {
-      this.popup.close();
-    }
-    super.capture(event);
   }
 }

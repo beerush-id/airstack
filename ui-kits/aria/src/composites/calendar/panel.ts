@@ -3,7 +3,8 @@ import { Aria } from '../../core.js';
 import type { AriaAttributes, AriaProps, BaseElement } from '../../types.js';
 import { type DateGrid, dateGrids } from '../../utils/calendar.js';
 import type { PopoverAria } from '../../widgets/index.js';
-import { bindPanel, type PopupPanel, popupCtx } from '../popup.js';
+import { bindPanel, type PopupPanel } from '../popup/panel.js';
+import { popupCtx } from '../popup/popup.js';
 import { type DatePickerBase, dateSelectionCtx } from './picker.js';
 
 export interface DatePickerCalendarAttributes<E extends BaseElement = HTMLElement> extends AriaAttributes<E> {

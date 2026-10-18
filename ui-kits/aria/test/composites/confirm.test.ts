@@ -1,6 +1,8 @@
 import { withContext } from '@airlib/react';
 import { describe, expect, it, vi } from 'vitest';
 import {
+  aria,
+  confirm,
   ConfirmActionAria,
   ConfirmAria,
   ConfirmCancelAria,
@@ -8,10 +10,9 @@ import {
   ConfirmPanelAria,
   ConfirmTitleAria,
   ConfirmTriggerAria,
-  confirm,
-} from '../../src/composites/confirm.js';
-import { DialogAria, DialogPanelAria } from '../../src/composites/dialog.js';
-import { aria } from '../../src/index.js';
+  DialogAria,
+  DialogPanelAria,
+} from '../../src/index.js';
 import { bind } from '../utils.js';
 
 describe('Confirm Composite Widget (alertdialog)', () => {
