@@ -1,4 +1,4 @@
-import type { ExecutionContext, ExportedHandler } from '@cloudflare/workers-types';
+import type { ExecutionContext } from '@cloudflare/workers-types';
 import { HTTPRouter } from '@irpclib/http/router';
 import type { AnyType } from '@irpclib/irpc';
 import type { FileAdapter } from './adapter.js';
@@ -52,7 +52,7 @@ const DEFAULT_EDGE_TTL = 2592000;
  * @param config Filesystem wiring plus topology, signing, cache, and CORS controls
  * @returns Standard Cloudflare Worker handler
  */
-export function createWorker(config: FileWorkerConfig = {}): ExportedHandler<FileWorkerEnv> {
+export function createWorker(config: FileWorkerConfig = {}) {
   const callable = config.callable !== false;
   const endpoint = config.endpoint ?? '/irpc';
   const browserTtl = config.cache?.browserTtl ?? DEFAULT_BROWSER_TTL;
@@ -66,7 +66,7 @@ export function createWorker(config: FileWorkerConfig = {}): ExportedHandler<Fil
 
   return {
     router,
-    async fetch(request: Request, env: FileWorkerEnv, ctx: ExecutionContext): Promise<Response> {
+    async fetch(request: Request, env: FileWorkerEnv, ctx: AnyType): Promise<Response> {
       const url = new URL(request.url);
 
       if (request.method === 'OPTIONS') {
@@ -90,7 +90,7 @@ export function createWorker(config: FileWorkerConfig = {}): ExportedHandler<Fil
 
       return new Response('Method Not Allowed', { status: 405 });
     },
-  } as unknown as ExportedHandler<FileWorkerEnv>;
+  };
 }
 
 /**

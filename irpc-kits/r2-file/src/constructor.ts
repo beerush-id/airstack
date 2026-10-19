@@ -1,5 +1,5 @@
 import type { D1Database, R2Bucket } from '@cloudflare/workers-types';
-import { credential, getContext, GuardError, IRPCBlob } from '@irpclib/irpc';
+import { type AnyType, credential, getContext, GuardError, IRPCBlob, type IRPCStub } from '@irpclib/irpc';
 import type { FileAdapter } from './adapter.js';
 import { createFs } from './fs/index.js';
 import {
@@ -17,7 +17,7 @@ import {
   stat,
   writeStub,
 } from './index.js';
-import type { FileAdapterOptions, FileEncoding, ReadOptions } from './types.js';
+import type { FileAdapterOptions } from './types.js';
 import { signUrl } from './utils/security.js';
 
 /**
@@ -73,9 +73,9 @@ export function implement(options: FileImplementOptions): void {
 
   fileModule.construct(writeStub, (path, data, options) => adapter.write(path, data, options));
 
-  fileModule.construct(readStub, async (path, options) => {
+  fileModule.construct(readStub as IRPCStub<AnyType, AnyType, AnyType>, async (path: string, options: AnyType) => {
     if (options?.encoding !== undefined) {
-      return adapter.read(path, options as ReadOptions<FileEncoding>);
+      return adapter.read(path, options as never);
     }
 
     const info = await adapter.stat(path);

@@ -3,17 +3,7 @@
   "version": "2.2.0",
   "type": "module",
   "description": "High-performance isomorphic natural file system toolkit for Cloudflare Workers, R2, and D1",
-  "keywords": [
-    "cloudflare",
-    "workers",
-    "r2",
-    "d1",
-    "fs",
-    "filesystem",
-    "irpc",
-    "storage",
-    "streaming"
-  ],
+  "keywords": ["cloudflare", "workers", "r2", "d1", "fs", "filesystem", "irpc", "storage", "streaming"],
   "author": "Nanang Mahdaen El Agung <mahdaen@gmail.com>",
   "license": "MIT",
   "sideEffects": false,
@@ -53,9 +43,7 @@
       "import": "./dist/worker.js"
     }
   },
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "directories": {
     "dist": "./dist"
   },
@@ -79,6 +67,7 @@
   "devDependencies": {
     "@biomejs/biome": "catalog:",
     "@cloudflare/workers-types": "^4.20250224.0",
+    "@types/node": "catalog:",
     "@types/bun": "catalog:",
     "publint": "catalog:",
     "rimraf": "catalog:",
