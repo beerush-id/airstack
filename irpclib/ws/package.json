@@ -14,9 +14,7 @@
       "import": "./dist/router.js"
     }
   },
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "directories": {
     "dist": "./dist"
   },
@@ -43,6 +41,7 @@
     "clean": "rimraf dist",
     "build": "bun run clean && tsdown && publint",
     "test": "rimraf coverage && vitest --run",
+    "test:run": "rimraf coverage && vitest --run",
     "test:preview": "rimraf coverage && vitest --run && vite preview --outDir coverage",
     "prepublish": "bun run format && bun run build",
     "format": "biome format --write"

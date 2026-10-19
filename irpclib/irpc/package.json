@@ -22,9 +22,7 @@
       "import": "./dist/wrangler/index.js"
     }
   },
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "directories": {
     "dist": "./dist"
   },
@@ -56,6 +54,7 @@
     "build": "bun run clean && tsdown && publint",
     "format": "biome format --write",
     "test": "rimraf coverage && vitest --run",
+    "test:run": "rimraf coverage && vitest --run",
     "test:preview": "rimraf coverage && vitest --run && vite preview --outDir coverage",
     "prepublish": "bun run format && bun run build"
   },
