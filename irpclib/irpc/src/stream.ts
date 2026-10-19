@@ -1,7 +1,8 @@
+import { uuid } from '@airlib/core';
 import { getAbortController, getAbortSignal } from './context.js';
 import { IRPC_PACKET_TYPE, IRPC_STATUS } from './enum.js';
-import { CallError, HandlerError, ResolveError } from './error.js';
-import { encodeBlobs } from './packet.js';
+import { CallError, HandlerError, IRPCError, ResolveError } from './error.js';
+import { decodeBlobs, encodeBlobs } from './packet.js';
 import type { IRPCRouter } from './router.js';
 import { RemoteState } from './state.js';
 import { IRPC_STORE } from './store.js';
@@ -10,6 +11,7 @@ import type {
   IRPCDataSchema,
   IRPCInputs,
   IRPCPacketAnswer,
+  IRPCPacketAsk,
   IRPCPacketClose,
   IRPCPacketError,
   IRPCPacketEvent,
@@ -23,7 +25,7 @@ import type {
  * A server-side producer that normalizes and serializes RPC outputs into standard transport packets.
  *
  * Supports both standard asynchronous responses and reactive streams. When handling a continuous stream,
- * it intercepts state mutations and emits sequential network packets (`ANSWER`, `EVENT`, `CLOSE`).
+ * it intercepts state mutations and emits sequential network packets (`ANSWER`, `EVENT`, `ASK`, `CLOSE`).
  *
  * @template T - The type of data yielded by the stream.
  */
@@ -31,6 +33,8 @@ export class IRPCStream<T extends IRPCData> {
   private pipeHandlers: Set<(event: IRPCPacketStream<T>) => void> = new Set();
   private closeHandlers: Set<() => void> = new Set();
   private errorHandlers: Set<(error: IRPCPacketError) => void> = new Set();
+  private queries = new Map<string, { resolve: (value: unknown) => void; reject: (error: Error) => void }>();
+  private remoteState?: RemoteState<IRPCData>;
 
   public value?: T;
   public error?: IRPCPacketError;
@@ -58,7 +62,40 @@ export class IRPCStream<T extends IRPCData> {
     public spec?: IRPCSpec<IRPCInputs, IRPCDataSchema>,
     public router?: IRPCRouter
   ) {
+    this.router?.streams.set(this.id, this as IRPCStream<IRPCData>);
     IRPC_STORE.queue(this);
+  }
+
+  /**
+   * Executes the registered answer handler on the underlying RemoteState for a client ask.
+   *
+   * @param type - The query identifier.
+   * @param args - The arguments passed with the query.
+   * @returns A Promise resolving to the answer or `undefined`.
+   */
+  public async answerQuery(type: string, args: unknown[] = []): Promise<unknown> {
+    if (!this.remoteState) return undefined;
+    return await this.remoteState.dispatchAnswer(type, args);
+  }
+
+  /**
+   * Settles an in-flight server ask query with the client's reply.
+   *
+   * @param queryId - The unique query identifier.
+   * @param data - The resolved answer data.
+   * @param error - Optional error payload if the client handler threw.
+   */
+  public resolveQuery(queryId: string, data?: unknown, error?: IRPCPacketError) {
+    const pending = this.queries.get(queryId);
+    if (!pending) return;
+
+    this.queries.delete(queryId);
+
+    if (error) {
+      pending.reject(IRPCError.from(error));
+    } else {
+      pending.resolve(data !== undefined ? decodeBlobs(data as IRPCData) : undefined);
+    }
   }
 
   /**
@@ -92,6 +129,7 @@ export class IRPCStream<T extends IRPCData> {
       const { result } = response;
 
       if (result instanceof RemoteState) {
+        this.remoteState = result;
         this.value = encodeBlobs(result.data) as T;
 
         if (result.status === IRPC_STATUS.SUCCESS || result.status === IRPC_STATUS.ERROR) {
@@ -131,6 +169,29 @@ export class IRPCStream<T extends IRPCData> {
             status: result.status,
             createdAt: Date.now(),
           } satisfies IRPCPacketAnswer<T>);
+        });
+
+        result.bindAsk((type, askArgs) => {
+          const queryId = uuid();
+
+          return new Promise((resolve, reject) => {
+            this.queries.set(queryId, { resolve, reject });
+
+            const askPacket: IRPCPacketAsk = {
+              id,
+              queryId,
+              name,
+              type: IRPC_PACKET_TYPE.ASK,
+              status: IRPC_STATUS.PENDING,
+              data: {
+                type,
+                args: encodeBlobs(askArgs) as IRPCData[],
+              },
+              createdAt: Date.now(),
+            };
+
+            this.pipeHandlers.forEach((handler) => handler(askPacket));
+          });
         });
 
         const unsubscribe = result.subscribe((state, { type, keys, value }) => {
@@ -179,6 +240,7 @@ export class IRPCStream<T extends IRPCData> {
 
         const abortStream = () => {
           unsubscribe();
+          result.abort();
           this.finish();
         };
 
@@ -293,6 +355,14 @@ export class IRPCStream<T extends IRPCData> {
 
   private finish() {
     this.closed = true;
+    this.router?.streams.delete(this.id);
+
+    for (const pending of this.queries.values()) {
+      pending.resolve(undefined);
+    }
+    this.queries.clear();
+    this.remoteState = undefined;
+
     this.closeHandlers.forEach((handler) => handler());
 
     this.pipeHandlers.clear();

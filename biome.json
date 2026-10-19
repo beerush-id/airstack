@@ -79,6 +79,7 @@
       "tailwindDirectives": true
     },
     "formatter": {
+      "lineWidth": 100,
       "quoteStyle": "single"
     }
   },

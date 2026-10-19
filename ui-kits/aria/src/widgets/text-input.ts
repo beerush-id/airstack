@@ -1,4 +1,4 @@
-import { $static } from '@airlib/core';
+import { $static, isEmpty } from '@airlib/core';
 import { Aria } from '../core.js';
 import type {
   AriaAttributes,
@@ -158,6 +158,7 @@ export class TextInputAria<
       'tabindex',
       'readonly',
       'required',
+      'placeholder',
       'aria-required',
       'aria-readonly',
       'aria-disabled',
@@ -204,10 +205,6 @@ export class TextInputAria<
     const attrs: Record<string, unknown> = {
       value: value ?? '',
       oninput: this.handleInput,
-      readonly: !!readonly,
-      disabled: !!disabled,
-      required: !!required,
-      placeholder,
       'aria-label': label,
       'aria-invalid': ariaInvalid(invalid) ?? 'false',
     };
@@ -216,6 +213,14 @@ export class TextInputAria<
       if (type !== undefined) {
         attrs.type = type;
       }
+
+      Object.assign(attrs, {
+        placeholder,
+        readonly: !!readonly,
+        disabled: !!disabled,
+        required: !!required,
+      });
+
       if (this.options.role === 'search-input') {
         attrs['aria-required'] = ariaPresent(required) ?? 'false';
       }
@@ -229,6 +234,8 @@ export class TextInputAria<
       'aria-readonly': ariaBoolean(readonly),
       'aria-disabled': ariaBoolean(disabled),
       'aria-required': ariaPresent(required) ?? 'false',
+      'aria-placeholder': placeholder,
+      'data-placeholder-visible': isEmpty(value),
     }) as A;
   }
 

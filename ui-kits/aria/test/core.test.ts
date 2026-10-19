@@ -1,4 +1,4 @@
-import { createLifecycle, mutable } from '@airlib/core';
+import { type AnyType, createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 import { Aria } from '../src/core.js';
 import type { AriaAttributes } from '../src/types.js';
@@ -202,6 +202,36 @@ describe('Core - Units', () => {
 
         const customWidget = new Aria({}, { native: false });
         expect(customWidget.isNative).toBe(false);
+      });
+    }));
+
+  it('forward ref to properties.ref', () =>
+    scope.run(() => {
+      const tree = component();
+      const fnRef = vi.fn();
+      const obRef = { current: null };
+      const ivRef = { nope: '' } as AnyType;
+
+      tree.run(() => {
+        const fnWidget = new Aria({ ref: fnRef });
+        const obWidget = new Aria({ ref: obRef });
+        const ivWidget = new Aria({ ref: ivRef });
+
+        expect(fnRef).not.toHaveBeenCalled();
+        expect(obRef.current).toBeNull();
+        expect(ivWidget.current).toBeNull();
+
+        fnWidget.ref(document.createElement('div'));
+        expect(fnRef).toHaveBeenCalled();
+        expect(fnWidget.current).not.toBeNull();
+
+        obWidget.ref(document.createElement('div'));
+        expect(obRef.current).not.toBeNull();
+        expect(obWidget.current).not.toBeNull();
+
+        ivWidget.ref(document.createElement('div'));
+        expect(ivWidget.current).not.toBeNull();
+        expect(ivRef.current).toBeUndefined();
       });
     }));
 

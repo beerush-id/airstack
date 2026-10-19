@@ -4,7 +4,8 @@ import { HookError } from './error.js';
 import type { IRPCPackage } from './package.js';
 import { IRPC_STORE } from './store.js';
 import { IRPCTransport } from './transport.js';
-import type { IRPCRequest, IRPCSubRequest } from './types.js';
+import type { IRPCData, IRPCRequest, IRPCSubRequest } from './types.js';
+import type { IRPCStream } from './stream.js';
 
 export type IRPCHook = () => void | Promise<void>;
 
@@ -12,6 +13,8 @@ export class IRPCRouter {
   /** Array of middleware functions to be executed */
   public hooks: IRPCHook[] = [];
   public transport: IRPCTransport;
+  /** Active streams indexed by their call ID */
+  public streams = new Map<string, IRPCStream<IRPCData>>();
 
   public get packages() {
     return this.transport.packages;

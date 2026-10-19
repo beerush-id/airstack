@@ -46,6 +46,7 @@ export type IRPCPacketBase = {
 
 export type IRPCPacketCall = IRPCPacketBase & {
   args: IRPCData[];
+  callId?: string;
 };
 
 export type IRPCPacketAnswer<T extends IRPCData> = IRPCPacketBase & {
@@ -61,7 +62,28 @@ export type IRPCPacketClose = IRPCPacketBase & {
   error?: IRPCPacketError;
 };
 
-export type IRPCPacketStream<T extends IRPCData> = IRPCPacketAnswer<T> | IRPCPacketEvent | IRPCPacketClose;
+export type IRPCPacketAsk = IRPCPacketBase & {
+  queryId: string;
+  data: {
+    type: string;
+    args: IRPCData[];
+  };
+};
+
+export type IRPCPacketReply<T extends IRPCData = IRPCData> = IRPCPacketBase & {
+  queryId: string;
+  data?: T;
+  error?: IRPCPacketError;
+};
+
+export type IRPCPacketStream<T extends IRPCData> =
+  | IRPCPacketAnswer<T>
+  | IRPCPacketEvent
+  | IRPCPacketClose
+  | IRPCPacketAsk
+  | IRPCPacketReply<T>;
+
+export type IRPCQueryMap = Record<string, (...args: any[]) => any>;
 
 export interface IRPCReadable<T> {
   data: T;
@@ -76,9 +98,10 @@ export interface IRPCReadable<T> {
  * @template T - The original function type.
  * @template A - The argument types of the function.
  * @template R - The return data type.
+ * @template Q - The duplex query map type.
  */
-export interface IRPCStub<T, A extends unknown[], R extends IRPCData> {
-  (...args: A): IRPCReader<R>;
+export interface IRPCStub<T, A extends unknown[], R extends IRPCData, Q extends IRPCQueryMap = IRPCQueryMap> {
+  (...args: A): IRPCReader<R, Q>;
 
   /* The original function type. */
   stub: T;
@@ -90,7 +113,7 @@ export interface IRPCStub<T, A extends unknown[], R extends IRPCData> {
    * @param args - A factory function returning the argument array.
    * @returns An IRPCReader instance for handling the asynchronous result or stream.
    */
-  once(...args: A): IRPCReader<R>;
+  once(...args: A): IRPCReader<R, Q>;
 
   /**
    * Creates a reactive call that expect to run in browser environment.
@@ -101,7 +124,7 @@ export interface IRPCStub<T, A extends unknown[], R extends IRPCData> {
    * @param debounce - The debounce time in milliseconds.
    * @returns An IRPCReader instance for handling the asynchronous result or stream.
    */
-  with(args: () => A, debounce?: number): IRPCReader<R>;
+  with(args: () => A, debounce?: number): IRPCReader<R, Q>;
 
   /**
    * Creates a reactive call that expect to run in browser environment.
@@ -112,14 +135,14 @@ export interface IRPCStub<T, A extends unknown[], R extends IRPCData> {
    * @param debounce - The debounce time in milliseconds.
    * @returns An IRPCReader instance for handling the asynchronous result or stream.
    */
-  when(args: () => A, debounce?: number): IRPCReader<R>;
+  when(args: () => A, debounce?: number): IRPCReader<R, Q>;
 
   /**
    * Creates a reactive call that expects to be manually dispatched later.
    * @param debounce - Optional debounce time before dispatched.
-   * @returns {IRPCReader<R> & {dispatch: (...args: A) => Promise<void>}}
+   * @returns {IRPCReader<R, Q> & {dispatch: (...args: A) => Promise<void>}}
    */
-  later(debounce?: number): IRPCReader<R> & {
+  later(debounce?: number): IRPCReader<R, Q> & {
     /** Method to execute and dispatch the actual call */
     dispatch: (...args: A) => Promise<void>;
   };
@@ -132,10 +155,10 @@ export interface IRPCStub<T, A extends unknown[], R extends IRPCData> {
  * @template T - The function type to be transformed.
  */
 export type IRPCFunction<T> = T extends (...args: infer A) => infer R
-  ? R extends RemoteState<infer S>
+  ? R extends RemoteState<infer S, infer Q>
     ? S extends IRPCData
-      ? IRPCStub<T, A, S>
-      : IRPCStub<T, A, IRPCData>
+      ? IRPCStub<T, A, S, Q>
+      : IRPCStub<T, A, IRPCData, Q>
     : R extends Promise<infer O>
       ? O extends IRPCData
         ? IRPCStub<T, A, O>
@@ -236,6 +259,10 @@ export type IRPCPayload = {
   args: IRPCData[];
   /** The package information */
   package: IRPCPackagePayload;
+  /** Optional packet type ('call', 'ask', 'reply') */
+  type?: IRPCPacketType;
+  /** Optional parent call identifier for duplex ask/reply calls */
+  callId?: string;
 };
 
 /**
@@ -317,7 +344,7 @@ export type IRPCDeclareArgs<F, I extends IRPCInputs, O extends IRPCOutput> =
  * @template F - The function type to extract from.
  */
 export type IRPCReturnOf<F> = F extends (...args: infer _A) => infer R
-  ? R extends RemoteState<infer S>
+  ? R extends RemoteState<infer S, infer _Q>
     ? S
     : R extends Promise<infer D>
       ? D
@@ -362,7 +389,7 @@ export type IRPCStreamInit<I extends IRPCInputs, O extends IRPCOutput, R> = IRPC
  * @template O - Output validation schema
  */
 export type IRPCDeclareInit<F, I extends IRPCInputs, O extends IRPCOutput> = F extends (...args: infer _A) => infer R
-  ? R extends RemoteState<infer S>
+  ? R extends RemoteState<infer S, infer _Q>
     ? S extends IRPCData
       ? IRPCStreamInit<I, O, S>
       : IRPCInit<S, IRPCInputs, IRPCOutput>
@@ -478,6 +505,10 @@ export type IRPCRequest = {
   package: IRPCPackagePayload;
   /** Optional file payload for the call */
   files?: IRPCFilePointer[];
+  /** Optional packet type ('call', 'ask', 'reply') */
+  type?: IRPCPacketType;
+  /** Optional parent call identifier for duplex ask/reply calls */
+  callId?: string;
 };
 
 export type IRPCSubRequest = Omit<IRPCRequest, 'package' | 'files'>;
@@ -566,8 +597,8 @@ export type StreamCleanup = () => void;
  * @param resolve - Callback to statically mark the stream as successfully completed, optionally with a resolved value.
  * @param reject - Callback to forcefully throw a runtime error into the stream structure.
  */
-export type StreamConstructor<T> = (
-  state: IRPCReadable<T>,
+export type StreamConstructor<T, Q extends IRPCQueryMap = IRPCQueryMap> = (
+  state: RemoteState<T, Q>,
   resolve: (value?: T) => void,
   reject: (error: Error) => void
 ) => StreamCleanup | void | Promise<StreamCleanup | void>;

@@ -1,0 +1,122 @@
+@layer utility {
+  /*
+   * Lowest-level text primitives. Memorable `text-` prefix, one concern per
+   * class so apps compose (e.g. `text-title-md text-center`).
+   * Type-scale classes mirror the theme tokens widgets already use;
+   * weight/family/transform/wrap atoms cover the rest. Logical alignment
+   * keeps RTL correct. Tier 1 only: flat selectors, cascade-layered.
+   */
+
+  /* ---- alignment ---- */
+  .text-start {
+    text-align: start;
+  }
+  .text-center {
+    text-align: center;
+  }
+  .text-end {
+    text-align: end;
+  }
+  .text-justify {
+    text-align: justify;
+  }
+
+  /* ---- type scale (size + weight + line-height + tracking) ---- */
+  .text-label-sm {
+    font-size: var(--font-label-sm-size);
+    font-weight: var(--font-label-sm-weight);
+    line-height: var(--font-label-sm-line-height);
+    letter-spacing: var(--font-label-sm-tracking);
+  }
+  .text-label-md {
+    font-size: var(--font-label-md-size);
+    font-weight: var(--font-label-md-weight);
+    line-height: var(--font-label-md-line-height);
+    letter-spacing: var(--font-label-md-tracking);
+  }
+  .text-label-lg {
+    font-size: var(--font-label-lg-size);
+    font-weight: var(--font-label-lg-weight);
+    line-height: var(--font-label-lg-line-height);
+    letter-spacing: var(--font-label-lg-tracking);
+  }
+  .text-title-sm {
+    font-size: var(--font-title-sm-size);
+    font-weight: var(--font-title-sm-weight);
+    line-height: var(--font-title-sm-line-height);
+    letter-spacing: var(--font-title-sm-tracking);
+  }
+  .text-title-md {
+    font-size: var(--font-title-md-size);
+    font-weight: var(--font-title-md-weight);
+    line-height: var(--font-title-md-line-height);
+    letter-spacing: var(--font-title-md-tracking);
+  }
+  .text-title-lg {
+    font-size: var(--font-title-lg-size);
+    font-weight: var(--font-title-lg-weight);
+    line-height: var(--font-title-lg-line-height);
+    letter-spacing: var(--font-title-lg-tracking);
+  }
+
+  /* ---- weight ---- */
+  .text-regular {
+    font-weight: 400;
+  }
+  .text-medium {
+    font-weight: 500;
+  }
+  .text-semibold {
+    font-weight: 600;
+  }
+  .text-bold {
+    font-weight: 700;
+  }
+
+  /* ---- family ---- */
+  .text-sans {
+    font-family: var(--font-sans);
+  }
+  .text-serif {
+    font-family: var(--font-serif);
+  }
+  .text-mono {
+    font-family: var(--font-mono);
+  }
+
+  /* ---- transform ---- */
+  .text-uppercase {
+    text-transform: uppercase;
+  }
+  .text-lowercase {
+    text-transform: lowercase;
+  }
+  .text-capitalize {
+    text-transform: capitalize;
+  }
+  .text-normal-case {
+    text-transform: none;
+  }
+
+  /* ---- wrap / overflow ---- */
+  .text-wrap {
+    text-wrap: wrap;
+  }
+  .text-nowrap {
+    text-wrap: nowrap;
+  }
+  .text-balance {
+    text-wrap: balance;
+  }
+  .text-pretty {
+    text-wrap: pretty;
+  }
+  .text-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .text-break {
+    overflow-wrap: break-word;
+  }
+}

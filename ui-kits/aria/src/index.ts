@@ -87,10 +87,10 @@ import {
   ListboxAria,
   type ListboxProps,
   MenuAria,
-  MenuButtonAria,
-  type MenuButtonProps,
   MenubarAria,
   type MenubarProps,
+  MenuButtonAria,
+  type MenuButtonProps,
   MenuGroupAria,
   MenuItemAria,
   MenuItemCheckboxAria,
@@ -283,18 +283,18 @@ export function aria<E extends BaseElement = HTMLButtonElement, T extends Primit
   role: 'toggle',
   props?: ToggleProps<T>,
   options?: ToggleOptions
-): ToggleAria<E>;
+): ToggleAria<E, ToggleProps<T>>;
 
 export function aria<E extends BaseElement = HTMLElement, T extends Primitive = Primitive>(
   role: 'toggle-group',
   props?: ToggleGroupProps<T>
-): ToggleGroupAria<E>;
+): ToggleGroupAria<E, ToggleGroupProps<T>>;
 
 export function aria<E extends BaseElement = HTMLElement, T extends Primitive = Primitive>(
   role: 'switch',
   props?: SwitchProps<T>,
   options?: SwitchOptions
-): SwitchAria<E>;
+): SwitchAria<E, SwitchProps<T>>;
 
 export function aria<E extends BaseElement = HTMLInputElement, T extends Primitive = Primitive>(
   role: 'checkbox',
@@ -306,12 +306,12 @@ export function aria<E extends BaseElement = HTMLInputElement, T extends Primiti
   role: 'radio',
   props?: RadioProps<T>,
   options?: RadioOptions
-): RadioAria<E>;
+): RadioAria<E, RadioProps<T>>;
 
 export function aria<E extends BaseElement = HTMLElement, T extends Primitive = Primitive>(
   role: 'radio-group',
   props?: RadioGroupProps<T>
-): RadioGroupAria<E>;
+): RadioGroupAria<E, RadioGroupProps<T>>;
 
 export function aria<E extends BaseElement = HTMLElement>(
   role: 'checkbox-group',
@@ -441,7 +441,7 @@ export function aria<E extends BaseElement = HTMLElement, T extends Primitive = 
   role: 'option',
   props?: OptionProps<T>,
   options?: OptionOptions
-): OptionAria<E>;
+): OptionAria<E, OptionProps<T>>;
 
 export function aria<E extends BaseElement = HTMLElement>(role: 'accordion', props?: AccordionProps): AccordionAria<E>;
 export function aria<E extends BaseElement = HTMLButtonElement>(
@@ -732,7 +732,7 @@ export function aria<E extends BaseElement = HTMLButtonElement, T extends Primit
   role: 'menu-item-radio',
   props?: MenuItemRadioProps<T>,
   options?: MenuItemOptions
-): MenuItemRadioAria<E>;
+): MenuItemRadioAria<E, MenuItemRadioProps<T>>;
 
 export function aria<E extends BaseElement = HTMLElement>(
   role: 'header',

@@ -5,6 +5,8 @@ export const IRPC_PACKET_TYPE = {
   EVENT: 'event',
   CLOSE: 'close',
   ANSWER: 'answer',
+  ASK: 'ask',
+  REPLY: 'reply',
 } as const;
 
 export const IRPC_STATUS = {

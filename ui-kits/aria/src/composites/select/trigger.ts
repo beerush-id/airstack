@@ -1,10 +1,7 @@
+import { isEmpty } from '@airlib/core';
 import type { AriaOptions, AriaProps, BaseElement } from '../../types.js';
-import {
-  PopupTriggerAria,
-  type PopupTriggerAttributes,
-  type PopupTriggerOptions,
-} from '../popup/trigger.js';
-import type { SelectAria, SelectProps } from './select.js';
+import { PopupTriggerAria, type PopupTriggerAttributes, type PopupTriggerOptions } from '../popup/trigger.js';
+import type { SelectAria } from './select.js';
 
 export interface SelectTriggerProps extends AriaProps {
   /**
@@ -16,6 +13,11 @@ export interface SelectTriggerProps extends AriaProps {
    * Whether this trigger is disabled from user interaction.
    */
   disabled?: boolean;
+
+  /**
+   * Optional placeholder text when no value is selected.
+   */
+  placeholder?: string;
 }
 
 export interface SelectTriggerOptions extends PopupTriggerOptions {}
@@ -35,7 +37,7 @@ export interface SelectTriggerAttributes<E extends BaseElement = HTMLElement> ex
  */
 export class SelectTriggerAria<E extends BaseElement = HTMLElement> extends PopupTriggerAria<
   E,
-  SelectProps,
+  SelectTriggerProps,
   SelectTriggerAttributes<E>,
   SelectTriggerOptions
 > {
@@ -71,8 +73,14 @@ export class SelectTriggerAria<E extends BaseElement = HTMLElement> extends Popu
    */
   public constructor(props: Partial<SelectTriggerProps> = {}, options: AriaOptions = { native: true }) {
     super(props, options);
-    this.omittedAttrs.push('value', 'text');
+    this.omittedAttrs.push('value', 'text', 'placeholder');
     this.update();
   }
-}
 
+  protected override createAttributes(): SelectTriggerAttributes<E> {
+    return Object.assign(super.createAttributes(), {
+      'data-placeholder': this.properties.placeholder,
+      'data-placeholder-visible': isEmpty(this.host?.label),
+    });
+  }
+}

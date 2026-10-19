@@ -3,6 +3,7 @@ import {
   type AnyType,
   createContext,
   createObserver,
+  isObjectLike,
   mutable,
   onCleanup,
   type StateObserver,
@@ -25,7 +26,7 @@ import { applyAttributes, normalizeAttrs } from './utils/attributes.js';
 /**
  * Non-DOM controller input tokens stripped from DOM assignment and JSX spreads.
  */
-export const OMITTED_ATTRIBUTES = ['manual', 'multiple', 'movable', 'orientation', 'invalid'];
+export const OMITTED_ATTRIBUTES = ['ref', 'manual', 'multiple', 'movable', 'orientation', 'invalid'];
 
 /**
  * Core library-managed attributes common across all interactive Aria controllers.
@@ -149,7 +150,20 @@ export class Aria<
       };
     }
 
-    return () => this.detach?.();
+    let refCleanup: (() => void) | undefined;
+
+    if ('ref' in this.properties) {
+      if (typeof this.properties.ref === 'function') {
+        refCleanup = this.properties.ref(element);
+      } else if (isObjectLike(this.properties.ref) && 'current' in this.properties.ref) {
+        this.properties.ref.current = element;
+      }
+    }
+
+    return () => {
+      refCleanup?.();
+      this.detach?.();
+    };
   };
 
   /**
@@ -233,7 +247,7 @@ export class Aria<
     this.scope = ariaScope.get() as Aria<BaseElement, object, AriaAttributes<BaseElement>> | undefined;
     ariaScope.set(this as unknown as Aria<BaseElement, object, AriaAttributes<BaseElement>>);
 
-    this.properties = (anchor.has(props) ? props : mutable(props)) as T;
+    this.properties = (anchor.has(props) || props.$omit ? props : mutable(props)) as T;
     this.events.add('focus', () => {
       currentAria.set(this as unknown as Aria);
     });

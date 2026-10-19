@@ -145,7 +145,7 @@ export class BroadcastTransport extends IRPCTransport {
     try {
       calls.forEach((call) => {
         const { id, payload } = call;
-        const { name, package: pkg, args } = payload;
+        const { name, package: pkg, args, type, callId } = payload;
 
         this.pendingCalls.set(id, call);
 
@@ -156,6 +156,8 @@ export class BroadcastTransport extends IRPCTransport {
           package: pkg,
           args: packet.json.data,
           files: packet.json.files,
+          type,
+          callId,
         };
 
         if (packet.queues.length > 0) {

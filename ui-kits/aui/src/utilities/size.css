@@ -1,0 +1,16 @@
+@layer utility {
+  :root {
+    --aui-segment-gap: calc(var(--spacing) * 0.5);
+    --aui-segment-size: calc(var(--spacing) * 10);
+    --aui-segment-inner-radius: calc(var(--spacing) * 2);
+    --aui-segment-outer-radius: calc((var(--aui-segment-size) / 2) - var(--spacing));
+  }
+
+  .aui-segment-base {
+    border-radius: var(--aui-segment-outer-radius);
+  }
+
+  .aui-segment-inner {
+    border-radius: var(--aui-segment-inner-radius);
+  }
+}

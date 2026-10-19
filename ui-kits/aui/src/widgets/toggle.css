@@ -1,0 +1,169 @@
+@import '../base/index.css';
+@import '../theme/index.css';
+@import '../utilities/action.css';
+@import '../utilities/size.css';
+@import '../utilities/variant.css';
+@import '../utilities/color-variant.css';
+@import '../utilities/focus.css';
+@import '../utilities/touch.css';
+@import '../utilities/state.css';
+
+@layer component {
+  :root {
+    /* Box metrics live in the shared control rule in utilities/action.css. */
+    --aui-toggle-border-width: var(--shadow-base, 1px);
+
+    --aui-toggle-filled-bg: var(--color-primary);
+    --aui-toggle-filled-fg: var(--color-on-primary);
+    --aui-toggle-filled-state: var(--color-on-primary);
+
+    --aui-toggle-tonal-bg: var(--color-secondary-container);
+    --aui-toggle-tonal-fg: var(--color-on-secondary-container);
+    --aui-toggle-tonal-state: var(--color-on-secondary-container);
+
+    --aui-toggle-outlined-bg: transparent;
+    --aui-toggle-outlined-fg: var(--color-on-surface-variant);
+    --aui-toggle-outlined-border: var(--color-outline);
+    --aui-toggle-outlined-state: var(--color-on-surface-variant);
+
+    --aui-toggle-selected-bg: var(--color-secondary, var(--color-primary));
+    --aui-toggle-selected-fg: var(--color-on-secondary, var(--color-on-primary));
+    --aui-toggle-selected-state: var(--color-on-secondary, var(--color-on-primary));
+  }
+
+  .aui-toggle-filled {
+    background-color: var(--aui-toggle-filled-bg);
+    color: var(--aui-toggle-filled-fg);
+    --aui-state-layer-color: var(--aui-toggle-filled-state);
+  }
+
+  .aui-toggle-tonal {
+    background-color: var(--aui-toggle-tonal-bg);
+    color: var(--aui-toggle-tonal-fg);
+    --aui-state-layer-color: var(--aui-toggle-tonal-state);
+  }
+
+  .aui-toggle-outlined {
+    background-color: var(--aui-toggle-outlined-bg);
+    color: var(--aui-toggle-outlined-fg);
+    border-width: var(--aui-toggle-border-width);
+    border-style: solid;
+    border-color: var(--aui-toggle-outlined-border);
+    --aui-state-layer-color: var(--aui-toggle-outlined-state);
+  }
+
+  .aui-toggle-primary {
+    --aui-toggle-filled-bg: var(--color-primary);
+    --aui-toggle-filled-fg: var(--color-on-primary);
+    --aui-toggle-filled-state: var(--color-on-primary);
+    --aui-toggle-tonal-bg: var(--color-primary-container);
+    --aui-toggle-tonal-fg: var(--color-on-primary-container);
+    --aui-toggle-tonal-state: var(--color-on-primary-container);
+    --aui-toggle-outlined-fg: var(--color-primary);
+    --aui-toggle-outlined-state: var(--color-primary);
+    --aui-toggle-selected-bg: var(--color-primary);
+    --aui-toggle-selected-fg: var(--color-on-primary);
+    --aui-toggle-selected-state: var(--color-on-primary);
+  }
+
+  .aui-toggle-secondary {
+    --aui-toggle-filled-bg: var(--color-secondary);
+    --aui-toggle-filled-fg: var(--color-on-secondary);
+    --aui-toggle-filled-state: var(--color-on-secondary);
+    --aui-toggle-tonal-bg: var(--color-secondary-container);
+    --aui-toggle-tonal-fg: var(--color-on-secondary-container);
+    --aui-toggle-tonal-state: var(--color-on-secondary-container);
+    --aui-toggle-outlined-fg: var(--color-secondary);
+    --aui-toggle-outlined-state: var(--color-secondary);
+    --aui-toggle-selected-bg: var(--color-secondary);
+    --aui-toggle-selected-fg: var(--color-on-secondary);
+    --aui-toggle-selected-state: var(--color-on-secondary);
+  }
+
+  .aui-toggle-tertiary {
+    --aui-toggle-filled-bg: var(--color-tertiary);
+    --aui-toggle-filled-fg: var(--color-on-tertiary);
+    --aui-toggle-filled-state: var(--color-on-tertiary);
+    --aui-toggle-tonal-bg: var(--color-tertiary-container);
+    --aui-toggle-tonal-fg: var(--color-on-tertiary-container);
+    --aui-toggle-tonal-state: var(--color-on-tertiary-container);
+    --aui-toggle-outlined-fg: var(--color-tertiary);
+    --aui-toggle-outlined-state: var(--color-tertiary);
+    --aui-toggle-selected-bg: var(--color-tertiary);
+    --aui-toggle-selected-fg: var(--color-on-tertiary);
+    --aui-toggle-selected-state: var(--color-on-tertiary);
+  }
+
+  .aui-toggle-error {
+    --aui-toggle-filled-bg: var(--color-error);
+    --aui-toggle-filled-fg: var(--color-on-error);
+    --aui-toggle-filled-state: var(--color-on-error);
+    --aui-toggle-tonal-bg: var(--color-error-container);
+    --aui-toggle-tonal-fg: var(--color-on-error-container);
+    --aui-toggle-tonal-state: var(--color-on-error-container);
+    --aui-toggle-outlined-fg: var(--color-error);
+    --aui-toggle-outlined-state: var(--color-error);
+    --aui-toggle-selected-bg: var(--color-error);
+    --aui-toggle-selected-fg: var(--color-on-error);
+    --aui-toggle-selected-state: var(--color-on-error);
+  }
+
+  .aui-toggle-success {
+    --aui-toggle-filled-bg: var(--color-success);
+    --aui-toggle-filled-fg: var(--color-on-success);
+    --aui-toggle-filled-state: var(--color-on-success);
+    --aui-toggle-tonal-bg: var(--color-success-container);
+    --aui-toggle-tonal-fg: var(--color-on-success-container);
+    --aui-toggle-tonal-state: var(--color-on-success-container);
+    --aui-toggle-outlined-fg: var(--color-success);
+    --aui-toggle-outlined-state: var(--color-success);
+    --aui-toggle-selected-bg: var(--color-success);
+    --aui-toggle-selected-fg: var(--color-on-success);
+    --aui-toggle-selected-state: var(--color-on-success);
+  }
+
+  .aui-toggle-warning {
+    --aui-toggle-filled-bg: var(--color-warning);
+    --aui-toggle-filled-fg: var(--color-on-warning);
+    --aui-toggle-filled-state: var(--color-on-warning);
+    --aui-toggle-tonal-bg: var(--color-warning-container);
+    --aui-toggle-tonal-fg: var(--color-on-warning-container);
+    --aui-toggle-tonal-state: var(--color-on-warning-container);
+    --aui-toggle-outlined-fg: var(--color-warning);
+    --aui-toggle-outlined-state: var(--color-warning);
+    --aui-toggle-selected-bg: var(--color-warning);
+    --aui-toggle-selected-fg: var(--color-on-warning);
+    --aui-toggle-selected-state: var(--color-on-warning);
+  }
+
+  .aui-toggle-info {
+    --aui-toggle-filled-bg: var(--color-info);
+    --aui-toggle-filled-fg: var(--color-on-info);
+    --aui-toggle-filled-state: var(--color-on-info);
+    --aui-toggle-tonal-bg: var(--color-info-container);
+    --aui-toggle-tonal-fg: var(--color-on-info-container);
+    --aui-toggle-tonal-state: var(--color-on-info-container);
+    --aui-toggle-outlined-fg: var(--color-info);
+    --aui-toggle-outlined-state: var(--color-info);
+    --aui-toggle-selected-bg: var(--color-info);
+    --aui-toggle-selected-fg: var(--color-on-info);
+    --aui-toggle-selected-state: var(--color-on-info);
+  }
+
+  .aui-toggle[aria-pressed='true'] {
+    background-color: var(--aui-toggle-selected-bg);
+    color: var(--aui-toggle-selected-fg);
+    border-color: transparent;
+    --aui-state-layer-color: var(--aui-toggle-selected-state);
+  }
+
+  /* Disabled must live in the component layer: utility-layer state rules
+   * can never override component-layer variant backgrounds. */
+  .aui-toggle:disabled,
+  .aui-toggle[aria-disabled='true'] {
+    background-color: var(--color-disabled-bg);
+    color: var(--color-disabled-fg);
+    border-color: transparent;
+    --aui-state-layer-color: transparent;
+  }
+}

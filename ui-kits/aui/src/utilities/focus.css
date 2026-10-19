@@ -1,0 +1,14 @@
+@layer utility {
+  .aui-focus-ring,
+  .aui-action {
+    outline-width: var(--focus-ring-width);
+    outline-style: solid;
+    outline-color: transparent;
+    outline-offset: var(--focus-ring-offset);
+  }
+
+  .aui-focus-ring:focus-visible,
+  .aui-action:focus-visible {
+    outline-color: var(--color-secondary);
+  }
+}

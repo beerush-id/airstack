@@ -36,6 +36,7 @@ import type {
   IRPCOutput,
   IRPCPackageConfig,
   IRPCPackageInfo,
+  IRPCQueryMap,
   IRPCReturnOf,
   IRPCSpec,
   IRPCSpecStore,
@@ -182,9 +183,9 @@ export class IRPCPackage<K extends string = 'id'> {
     if ($options.init && !$options.seed) $options.seed = $options.init as never;
 
     const spec = {
-      package: { name: this.config.name, version: this.config.version },
       seed: () => undefined,
-      ...$options,
+      ...($options as object),
+      package: { name: this.config.name, version: this.config.version },
     } as IRPCSpec<IRPCInputs, IRPCOutput>;
 
     if ($options.keepAlive) {
@@ -308,8 +309,14 @@ export class IRPCPackage<K extends string = 'id'> {
     }
 
     function resolveTo(reader: IRPCReader<IRPCData>, args: unknown[]) {
+      const bindSource = (src: IRPCReader<IRPCData>) => {
+        void src.pipeTo(reader);
+        reader.bindAsk((type, askArgs) => src.ask(type, ...askArgs));
+        src.bindAnswer((type, askArgs) => reader.dispatchAnswer(type, askArgs));
+      };
+
       let source = resolve(args, true);
-      void source.pipeTo(reader);
+      bindSource(source);
 
       let off: (() => void) | undefined;
 
@@ -320,7 +327,7 @@ export class IRPCPackage<K extends string = 'id'> {
 
           source.close();
           source = resolve(args, true, true);
-          void source.pipeTo(reader);
+          bindSource(source);
         };
 
         import.meta.hot.on('custom', onInvalidate as AnyType);
@@ -509,7 +516,10 @@ export class IRPCPackage<K extends string = 'id'> {
    * @returns This IRPCPackage instance for chaining
    * @throws Error if the stub or handler is invalid, or if no IRPC exists for the stub
    */
-  public construct<F, A extends unknown[], R extends IRPCData>(stub: IRPCStub<F, A, R>, handler: F): this {
+  public construct<F, A extends unknown[], R extends IRPCData, Q extends IRPCQueryMap = IRPCQueryMap>(
+    stub: IRPCStub<F, A, R, Q>,
+    handler: NoInfer<F>
+  ): this {
     if (typeof stub !== 'function') {
       throw StubError.invalid();
     }
@@ -663,6 +673,10 @@ export class IRPCPackage<K extends string = 'id'> {
       throw StubError.invalidVersion(config.version!);
     }
 
+    if (config.transport) {
+      this.use(config.transport);
+    }
+
     Object.assign(this.config, config);
     return this;
   }
@@ -738,6 +752,9 @@ export function intercept(
     }
 
     anchor.assign(reader.state, result.state);
+
+    reader.bindAsk((type, askArgs) => result.dispatchAnswer(type, askArgs));
+    result.bindAsk((type, askArgs) => reader.dispatchAnswer(type, askArgs));
 
     if (result.status !== IRPC_STATUS.PENDING) {
       reader.close();

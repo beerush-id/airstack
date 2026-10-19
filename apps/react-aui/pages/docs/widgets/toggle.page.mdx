@@ -1,0 +1,202 @@
+---
+title: Maui Toggle
+description: Two-state button with pressed announcement, six sizes, three variants, and seven colors.
+---
+
+# Maui Toggle
+
+A toggle is a button that keeps its state: pressed or not, announced as such, and flipped by every activation. Formatting bars, favorite stars, and mute switches are all toggles — anywhere a control stays on after you let go.
+
+Styling is optional. Without Material CSS the Toggle stays a correct, operable two-state button; with it, the same markup gets the Material treatment through either the full-library or the selective import.
+
+:::interactive[Toggle demo]
+
+```tsx
+import { Select, SelectOption, SelectPanel, SelectTrigger, Toggle } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+
+const SIZE_LABELS = {
+  xs: 'Extra small',
+  sm: 'Small',
+  md: 'Medium',
+  lg: 'Large',
+  xl: 'Extra large',
+  xxl: 'Extra extra large',
+};
+
+const VARIANT_LABELS = {
+  filled: 'Filled',
+  tonal: 'Tonal',
+  outlined: 'Outlined',
+};
+
+const COLOR_LABELS = {
+  primary: 'Primary',
+  secondary: 'Secondary',
+  tertiary: 'Tertiary',
+  error: 'Error',
+  success: 'Success',
+  warning: 'Warning',
+  info: 'Info',
+};
+
+const ToggleDemo = setup(() => {
+  const state = mutable({ pressed: false, size: 'md', variant: 'outlined', color: 'primary', disabled: false });
+
+  return () => (
+    <div className="demo-button">
+      <div className="demo-button-row">
+        <span className="demo-control">
+          <span>Size</span>
+          <Select labels={SIZE_LABELS} value={$bind(state, 'size')}>
+          <SelectTrigger />
+          <SelectPanel>
+            <SelectOption value="xs">Extra small</SelectOption>
+            <SelectOption value="sm">Small</SelectOption>
+            <SelectOption value="md">Medium</SelectOption>
+            <SelectOption value="lg">Large</SelectOption>
+            <SelectOption value="xl">Extra large</SelectOption>
+            <SelectOption value="xxl">Extra extra large</SelectOption>
+          </SelectPanel>
+        </Select>
+        </span>
+        <span className="demo-control">
+          <span>Variant</span>
+          <Select labels={VARIANT_LABELS} value={$bind(state, 'variant')}>
+          <SelectTrigger />
+          <SelectPanel>
+            <SelectOption value="filled">Filled</SelectOption>
+            <SelectOption value="tonal">Tonal</SelectOption>
+            <SelectOption value="outlined">Outlined</SelectOption>
+          </SelectPanel>
+        </Select>
+        </span>
+        <span className="demo-control">
+          <span>Color</span>
+          <Select labels={COLOR_LABELS} value={$bind(state, 'color')}>
+          <SelectTrigger />
+          <SelectPanel>
+            <SelectOption value="primary">Primary</SelectOption>
+            <SelectOption value="secondary">Secondary</SelectOption>
+            <SelectOption value="tertiary">Tertiary</SelectOption>
+            <SelectOption value="error">Error</SelectOption>
+            <SelectOption value="success">Success</SelectOption>
+            <SelectOption value="warning">Warning</SelectOption>
+            <SelectOption value="info">Info</SelectOption>
+          </SelectPanel>
+        </Select>
+        </span>
+        <Toggle pressed={$bind(state, 'disabled')}>Disable preview</Toggle>
+      </div>
+      <div className="demo-button-row">
+        <Toggle
+          size={state.size}
+          variant={state.variant}
+          color={state.color}
+          pressed={$bind(state, 'pressed')}
+          disabled={state.disabled}
+        >
+          <Snippet>{() => state.pressed ? 'Pressed' : 'Not pressed'}</Snippet>
+        </Toggle>
+      </div>
+    </div>
+  );
+}, 'ToggleDemo');
+```
+
+```html
+<ToggleDemo />
+```
+
+<ToggleDemo />
+
+:::
+
+## Usage
+
+```tsx
+import { Toggle } from '@airlib/react-aui';
+import '@airlib/aui/widgets/toggle.css';
+
+export const BoldControl = () => <Toggle>Bold</Toggle>;
+```
+
+For the full library instead of the selective import, load `import '@airlib/aui';`. Both modes look the same.
+
+### Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `pressed` | `Bindable<boolean>` | `false` | Whether the toggle is pressed. Bind it to read and write the state from outside. |
+| `value` | `string`, `number`, `boolean` | — | Group membership token; a member derives `pressed` from the shared group value instead. |
+| `disabled` | `boolean` | `false` | Locks the toggle; clicks, keys, and writes are refused while locked. |
+| `size` | `xs`, `sm`, `md`, `lg`, `xl`, `xxl` | `'lg'` | Explicit props win; otherwise the configured default applies. |
+| `variant` | `filled`, `tonal`, `outlined` | `'outlined'` | Same precedence as `size`. |
+| `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | Same precedence as `size`. |
+| `onchange` | `(event: CustomEvent<...>) => void` | — | Fires after each real flip with the new state in `detail`; silent when nothing changes. |
+| `className` | `string` | — | Added alongside the built-in classes by default; replaces them in replacement mode. |
+| `children` | `ReactNode` | — | Toggle label. |
+| `ref` | `Ref<HTMLButtonElement>` | — | Access to the underlying button element. |
+
+Set app-wide defaults once instead of repeating props on every toggle:
+
+```tsx
+import { configure } from '@airlib/react-aui';
+
+configure({ toggle: { size: 'sm' } });
+
+// Renders small without passing size every time
+<Toggle>Save</Toggle>;
+```
+
+Your own classes are added next to the built-in ones:
+
+```tsx
+// class="maui-action maui-toggle maui-toggle-lg maui-toggle-outlined maui-toggle-primary my-toggle"
+<Toggle className="my-toggle">Bold</Toggle>
+```
+
+Replacement mode renders only your classes — the toggle keeps working exactly the same:
+
+```tsx
+import { configure } from '@airlib/react-aui';
+
+configure({ overrides: true });
+
+// class="my-toggle"
+<Toggle className="my-toggle">Bold</Toggle>
+```
+
+Keyboard: `Tab` focuses the toggle, `Space` flips on key-up, `Enter` flips on key-down. The pressed state is announced through `aria-pressed`, and a locked toggle is announced as disabled.
+
+### Sizes
+
+Sizes: `xs`, `sm`, `md`, `lg`, `xl`, `xxl`, default `lg`:
+
+```tsx
+<Toggle size="sm">Compact</Toggle>
+<Toggle size="lg">Spacious</Toggle>
+```
+
+### Variants
+
+Variants: `filled`, `tonal`, `outlined`, default `outlined`. A pressed toggle always takes the solid base color for its color (unpressed stays neutral surface):
+
+```tsx
+<Toggle variant="filled">High emphasis</Toggle>
+<Toggle variant="tonal">Medium emphasis</Toggle>
+```
+
+### Color Variants
+
+Colors: `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info`, default `primary`:
+
+```tsx
+<Toggle color="error">Alarmed</Toggle>
+<Toggle variant="tonal" color="success">Synced</Toggle>
+```
+
+## Next Steps
+
+- [Button](/docs/widgets/button) — The one-state trigger this is built beside: for actions that fire and forget.
+- [Select](/docs/widgets/select) — Collapse several choices behind one trigger instead of spreading toggles across the page.

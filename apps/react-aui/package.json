@@ -1,0 +1,38 @@
+{
+  "name": "react-aui",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 6173",
+    "build": "bun run build:client && bun run build:server",
+    "build:client": "vite build --outDir dist/client",
+    "build:server": "vite build --ssr --outDir dist/server",
+    "start": "NODE_ENV=production bun run server/bun.js",
+    "start:node": "NODE_ENV=production node server/node.js",
+    "start:deno": "NODE_ENV=production deno run --allow-net --allow-read --allow-env server/deno.js",
+    "lint": "biome check"
+  },
+  "dependencies": {
+    "@airlib/aria": "workspace:*",
+    "@airlib/aui": "workspace:*",
+    "@airlib/react": "workspace:*",
+    "@airlib/react-aui": "workspace:*",
+    "@irpclib/http": "workspace:*",
+    "@irpclib/irpc": "workspace:*",
+    "@irpclib/ws": "workspace:*",
+    "react": "catalog:app",
+    "react-dom": "catalog:app"
+  },
+  "devDependencies": {
+    "@airlib/vite": "workspace:*",
+    "@biomejs/biome": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:lib",
+    "@types/react-dom": "catalog:lib",
+    "@vitejs/plugin-react": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  }
+}

@@ -1,6 +1,7 @@
+import { isEmpty } from '@airlib/core';
 import { Aria } from '../../core.js';
 import type { AriaAttributes, AriaEvent, AriaOptions, AriaProps, BaseElement } from '../../types.js';
-import { type FieldAria, fieldCtx } from './field.js';
+import { fieldCtx } from './field.js';
 
 /**
  * Compiled HTML and ARIA attributes for FieldControl elements.
@@ -17,6 +18,7 @@ export interface FieldControlAttributes<E extends BaseElement = HTMLElement> ext
   'aria-labelledby'?: string;
   'aria-describedby'?: string;
   'aria-errormessage'?: string;
+  'data-placeholder-visible'?: boolean;
 }
 /**
  * Slotted control proxy reflecting ambient field ID, disabled, required,
@@ -134,8 +136,11 @@ export class FieldControlAria<
       Object.assign(attrs, {
         'aria-disabled': this.disabled ? 'true' : 'false',
         'aria-required': this.required ? 'true' : 'false',
+        'aria-placeholder': field.placeholder,
       });
     }
+
+    attrs['data-placeholder-visible'] = isEmpty(field.value);
 
     return attrs;
   }

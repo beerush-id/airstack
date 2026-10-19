@@ -1,0 +1,450 @@
+---
+title: Theming
+description: Tokens, CSS layers, shared size/variant/color vocabulary, utilities, overrides, and selective imports.
+---
+
+# Theming
+
+Material supplies the look, React supplies the structure. Every component works without CSS; add `import '@airlib/aui'` for the full library or `import '@airlib/aui/widgets/button.css'` for a single component. Both modes look the same because each component stylesheet brings its own base, token, and utility dependencies.
+
+Selective imports never pull unrelated component families, and CSS never loads through JavaScript utilities — `import { configure } from '@airlib/react-aui'` and `import { SIZES } from '@airlib/aui/utils'` carry types and configuration only.
+
+## Layers
+
+Cascade order is fixed once in `base`:
+
+```css
+@layer base, utility, component;
+```
+
+`base` owns tokens and defaults, `utility` owns reusable concerns (`maui-action`, spacing, layout, text, size, variant, color-variant, focus, touch, state), `component` owns only unique structure and token mappings like `.maui-button`. HTML class order never decides precedence.
+
+## Tokens
+
+Primitive tokens live once in `theme`, components reference them through semantic tokens:
+
+```css
+.demo-themed {
+  --color-primary: oklch(55% 0.18 250);
+  --spacing: 0.25rem;
+}
+```
+
+Override any `--color-*`, `--spacing`, radius, or component token such as `--maui-control-radius` from your own stylesheet or inline style. Spacing derives with `calc(var(--spacing) * 4)`, colors shift with `color-mix(in srgb, var(--color-primary) 90%, white)`. Light and dark ship together via `light-dark()` and `color-scheme: light dark`.
+
+## Sizes, variants, colors
+
+One vocabulary across every component:
+
+```tsx
+import { Button } from '@airlib/react-aui';
+
+<Button size="sm" variant="tonal" color="success">Saved</Button>
+```
+
+Sizes `xs`–`xxl` default `lg`, variants `filled`, `elevated`, `tonal`, `outlined`, `text` default `filled`, colors `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` default `primary`. Explicit props win; otherwise the configured fallback applies:
+
+```tsx
+import { configure } from '@airlib/react-aui';
+
+configure({ button: { size: 'sm' } });
+```
+
+## Palette
+
+Every color token rendered live — each swatch pairs a background role with its `on-` role (`Aa` is set in the on-color), so a broken pairing is visible instead of theoretical. Outlines render as borders on `surface`; override `--seed-color` or any `--color-*` above and the whole grid follows the derivation chain.
+
+:::interactive[Color palette]{standalone}
+
+```tsx
+const PALETTE: Array<[string, string, string, string?]> = [
+  ['primary', '--color-primary', '--color-on-primary'],
+  ['secondary', '--color-secondary', '--color-on-secondary'],
+  ['tertiary', '--color-tertiary', '--color-on-tertiary'],
+  ['error', '--color-error', '--color-on-error'],
+  ['success', '--color-success', '--color-on-success'],
+  ['warning', '--color-warning', '--color-on-warning'],
+  ['info', '--color-info', '--color-on-info'],
+  ['primary-container', '--color-primary-container', '--color-on-primary-container'],
+  ['secondary-container', '--color-secondary-container', '--color-on-secondary-container'],
+  ['tertiary-container', '--color-tertiary-container', '--color-on-tertiary-container'],
+  ['error-container', '--color-error-container', '--color-on-error-container'],
+  ['success-container', '--color-success-container', '--color-on-success-container'],
+  ['warning-container', '--color-warning-container', '--color-on-warning-container'],
+  ['info-container', '--color-info-container', '--color-on-info-container'],
+  ['surface', '--color-surface', '--color-on-surface'],
+  ['surface-lowest', '--color-surface-lowest', '--color-on-surface'],
+  ['surface-low', '--color-surface-low', '--color-on-surface'],
+  ['surface-container', '--color-surface-container', '--color-on-surface'],
+  ['surface-high', '--color-surface-high', '--color-on-surface'],
+  ['surface-highest', '--color-surface-highest', '--color-on-surface'],
+  ['surface-variant', '--color-surface-variant', '--color-on-surface-variant'],
+  ['ghost-surface', '--color-ghost-surface', '--color-on-surface'],
+  ['inverse-surface', '--color-inverse-surface', '--color-inverse-on-surface'],
+  ['inverse-primary on inverse-surface', '--color-inverse-surface', '--color-inverse-primary'],
+  ['outline', '--color-surface', '--color-on-surface', '--color-outline'],
+  ['outline-variant', '--color-surface', '--color-on-surface', '--color-outline-variant'],
+  ['disabled', '--color-disabled-bg', '--color-disabled-fg'],
+];
+
+const PaletteDemo = () => (
+  <div className="demo-palette">
+    {PALETTE.map(([label, bg, fg, border]) => (
+      <div
+        key={label}
+        className="demo-swatch"
+        style={{
+          backgroundColor: `var(${bg})`,
+          color: `var(${fg})`,
+          borderColor: border ? `var(${border})` : undefined,
+          borderWidth: border ? '2px' : undefined,
+          borderStyle: border ? 'solid' : undefined,
+        }}
+      >
+        <span className="demo-swatch-name">{label}</span>
+        <span className="demo-swatch-aa">Aa</span>
+      </div>
+    ))}
+  </div>
+);
+```
+
+<PaletteDemo />
+
+:::
+
+## Spacing
+
+One base unit, everything else derived — bar widths below are the tokens themselves, so overriding `--spacing` re-flows the whole scale (`xs`–`xxl` are `spacing * 1, 2, 4, 6, 8, 12`). Component sizes live separately as `--size-*` (`spacing * 6` through `spacing * 16`, starting at 24px).
+
+:::interactive[Spacing scale]{standalone}
+
+```tsx
+const SIZES: Array<[string, string]> = [
+  ['--spacing-xs', 'spacing * 1'],
+  ['--spacing-sm', 'spacing * 2'],
+  ['--spacing-md', 'spacing * 4'],
+  ['--spacing-lg', 'spacing * 6'],
+  ['--spacing-xl', 'spacing * 8'],
+  ['--spacing-xxl', 'spacing * 12'],
+];
+
+const SpacingDemo = () => (
+  <div>
+    {SIZES.map(([token, formula]) => (
+      <div key={token} className="demo-spacing-row">
+        <span className="demo-spacing-label">{token}</span>
+        <div className="demo-spacing-bar" style={{ width: `var(${token})` }} />
+        <span className="demo-type-token">{formula}</span>
+      </div>
+    ))}
+  </div>
+);
+```
+
+<SpacingDemo />
+
+:::
+
+## Shape
+
+`--radius-base` equals `--spacing`; every step is a multiple of it. Boxes below use the tokens directly as `border-radius`.
+
+:::interactive[Shape scale]{standalone}
+
+```tsx
+const RADII = [
+  '--radius-none',
+  '--radius-xs',
+  '--radius-sm',
+  '--radius-md',
+  '--radius-lg',
+  '--radius-xl',
+  '--radius-xxl',
+  '--radius-full',
+];
+
+const ShapeDemo = () => (
+  <div className="demo-radius-grid">
+    {RADII.map((token) => (
+      <div key={token} className="demo-radius-box" style={{ borderRadius: `var(${token})` }}>
+        {token}
+      </div>
+    ))}
+  </div>
+);
+```
+
+<ShapeDemo />
+
+:::
+
+## Typography
+
+Type scales off `--font-base`; each role bundles size, weight, tracking, and line height. Samples below bind all four vars per role, plus the four family tokens.
+
+:::interactive[Type scale]{standalone}
+
+```tsx
+const TypeDemo = () => (
+  <div className="demo-type-stack">
+    <div className="demo-type-row">
+      <span className="demo-type-token">--font-label-sm</span>
+      <span
+        style={{
+          fontSize: 'var(--font-label-sm-size)',
+          fontWeight: 'var(--font-label-sm-weight)',
+          letterSpacing: 'var(--font-label-sm-tracking)',
+          lineHeight: 'var(--font-label-sm-line-height)',
+        }}
+      >
+        Label small — sizes, variants, colors
+      </span>
+    </div>
+    <div className="demo-type-row">
+      <span className="demo-type-token">--font-label-md</span>
+      <span
+        style={{
+          fontSize: 'var(--font-label-md-size)',
+          fontWeight: 'var(--font-label-md-weight)',
+          letterSpacing: 'var(--font-label-md-tracking)',
+          lineHeight: 'var(--font-label-md-line-height)',
+        }}
+      >
+        Label medium — sizes, variants, colors
+      </span>
+    </div>
+    <div className="demo-type-row">
+      <span className="demo-type-token">--font-label-lg</span>
+      <span
+        style={{
+          fontSize: 'var(--font-label-lg-size)',
+          fontWeight: 'var(--font-label-lg-weight)',
+          letterSpacing: 'var(--font-label-lg-tracking)',
+          lineHeight: 'var(--font-label-lg-line-height)',
+        }}
+      >
+        Label large — sizes, variants, colors
+      </span>
+    </div>
+    <div className="demo-type-row">
+      <span className="demo-type-token">--font-title-sm</span>
+      <span
+        style={{
+          fontSize: 'var(--font-title-sm-size)',
+          fontWeight: 'var(--font-title-sm-weight)',
+          letterSpacing: 'var(--font-title-sm-tracking)',
+          lineHeight: 'var(--font-title-sm-line-height)',
+        }}
+      >
+        Title small — one vocabulary, every component
+      </span>
+    </div>
+    <div className="demo-type-row">
+      <span className="demo-type-token">--font-title-md</span>
+      <span
+        style={{
+          fontSize: 'var(--font-title-md-size)',
+          fontWeight: 'var(--font-title-md-weight)',
+          letterSpacing: 'var(--font-title-md-tracking)',
+          lineHeight: 'var(--font-title-md-line-height)',
+        }}
+      >
+        Title medium — one vocabulary, every component
+      </span>
+    </div>
+    <div className="demo-type-row">
+      <span className="demo-type-token">--font-title-lg</span>
+      <span
+        style={{
+          fontSize: 'var(--font-title-lg-size)',
+          fontWeight: 'var(--font-title-lg-weight)',
+          letterSpacing: 'var(--font-title-lg-tracking)',
+          lineHeight: 'var(--font-title-lg-line-height)',
+        }}
+      >
+        Title large — one vocabulary, every component
+      </span>
+    </div>
+    <div className="demo-type-row">
+      <span className="demo-type-token">--font-sans / --font-serif / --font-mono / --font-brand</span>
+      <span style={{ fontFamily: 'var(--font-sans)' }}>Sans — Material supplies the look.</span>
+      <span style={{ fontFamily: 'var(--font-serif)' }}>Serif — React supplies the structure.</span>
+      <span style={{ fontFamily: 'var(--font-mono)' }}>Mono — tokens live once in theme.</span>
+    </div>
+  </div>
+);
+```
+
+<TypeDemo />
+
+:::
+
+## Elevation
+
+Shadows derive from `--shadow-base`; boxes below apply the tokens directly as `box-shadow` on the page surface.
+
+:::interactive[Elevation scale]{standalone}
+
+```tsx
+const ELEVATIONS = ['--elevation-0', '--elevation-1', '--elevation-2', '--elevation-3', '--elevation-4', '--elevation-5'];
+
+const ElevationDemo = () => (
+  <div className="demo-elevation-grid">
+    {ELEVATIONS.map((token) => (
+      <div key={token} className="demo-elevation-box" style={{ boxShadow: `var(${token})` }}>
+        {token}
+      </div>
+    ))}
+  </div>
+);
+```
+
+<ElevationDemo />
+
+:::
+
+## Motion
+
+Durations pair with easings in any `transition` or `animation` shorthand — the dots below animate live, each driven by its own duration + easing tokens.
+
+:::interactive[Motion tokens]{standalone}
+
+```tsx
+const MOTIONS: Array<[string, string, string]> = [
+  ['short + standard', '--duration-short', '--ease-standard'],
+  ['medium + emphasized', '--duration-medium', '--ease-emphasized'],
+  ['long + decelerate', '--duration-long', '--ease-emphasized-decelerate'],
+];
+
+const MotionDemo = () => (
+  <div>
+    {MOTIONS.map(([label, duration, ease]) => (
+      <div key={label} className="demo-motion-row">
+        <span className="demo-motion-label">{label}</span>
+        <div className="demo-motion-track">
+          <div
+            className="demo-motion-dot"
+            style={{ animationDuration: `var(${duration})`, animationTimingFunction: `var(${ease})` }}
+          />
+        </div>
+      </div>
+    ))}
+  </div>
+);
+```
+
+<MotionDemo />
+
+:::
+
+## Utilities
+
+Framework-agnostic helpers carry the same vocabulary without React or CSS side effects:
+
+```tsx
+import { SIZES, VARIANTS, COLORS } from '@airlib/aui/utils';
+```
+
+Use them for configuration and prop values. They never inject styles and never touch the DOM.
+
+### Spacing utilities
+
+`m` = margin, `p` = padding, then direction (`b` block, `i` inline, `bs`/`be` block-start/end, `is`/`ie` inline-start/end), then size (`0`, `xs`–`xxl`, plus `auto` for margin) — so `mi-xs` is `margin-inline: var(--spacing-xs)` and `mis-xs` is `margin-inline-start`. Gap is the full word: `gap-*`, `gap-row-*`, `gap-col-*`.
+
+:::interactive[Spacing utilities]{standalone}
+
+```tsx
+const SpacingUtilitiesDemo = () => (
+  <div>
+    <div className="flex-row items-center gap-sm">
+      <div className="demo-spacing-bar" style={{ width: 'var(--spacing-md)' }} />
+      <span className="demo-type-token">flex-row items-center gap-sm</span>
+    </div>
+    <div className="mi-md p-sm" style={{ border: '1px dashed var(--color-outline)' }}>
+      <span className="demo-type-token">mi-md p-sm — margin-inline + padding</span>
+    </div>
+    <div className="flex-row gap-xs">
+      <div className="demo-spacing-bar" style={{ width: 'var(--spacing-sm)' }} />
+      <div className="demo-spacing-bar" style={{ width: 'var(--spacing-sm)' }} />
+      <span className="demo-type-token">gap-xs</span>
+    </div>
+  </div>
+);
+```
+
+<SpacingUtilitiesDemo />
+
+:::
+
+### Layout utilities
+
+Direction and wrap compose `display: flex`, so `flex-row` alone suffices — never `flex flex-row`. Alignment stays display-agnostic for grid: `items-*`, `justify-*`, `self-*`, `content-*`, `place-*`, plus `grid-cols-1`–`grid-cols-6` and `grid-flow-*`.
+
+:::interactive[Layout utilities]{standalone}
+
+```tsx
+const LayoutUtilitiesDemo = () => (
+  <div className="flex-col gap-sm">
+    <div className="flex-row items-center justify-between gap-sm" style={{ border: '1px dashed var(--color-outline)' }}>
+      <span className="demo-type-token">flex-row</span>
+      <span className="demo-type-token">items-center justify-between</span>
+    </div>
+    <div className="grid grid-cols-3 gap-sm">
+      <div className="demo-spacing-bar" style={{ width: '100%' }} />
+      <div className="demo-spacing-bar" style={{ width: '100%' }} />
+      <div className="demo-spacing-bar" style={{ width: '100%' }} />
+    </div>
+  </div>
+);
+```
+
+<LayoutUtilitiesDemo />
+
+:::
+
+### Text utilities
+
+Memorable `text-` prefix: alignment (`text-start`, `text-center`, `text-end`, `text-justify`), type scale bound to the theme tokens (`text-label-sm`–`text-title-lg`), weights, families, transforms, and wrap (`text-balance`, `text-pretty`, `text-truncate`).
+
+:::interactive[Text utilities]{standalone}
+
+```tsx
+const TextUtilitiesDemo = () => (
+  <div className="flex-col gap-sm">
+    <div className="text-title-md text-center">Title medium, centered</div>
+    <div className="text-label-sm text-center demo-type-token">text-label-sm — same tokens as Typography above</div>
+    <div className="text-truncate" style={{ maxWidth: '14rem' }}>
+      text-truncate cuts this long line with an ellipsis
+    </div>
+  </div>
+);
+```
+
+<TextUtilitiesDemo />
+
+:::
+
+## Overrides
+
+Your classes add next to the built-in ones by default:
+
+```tsx
+<Button className="my-btn">Save</Button>
+```
+
+Replacement mode emits only your classes — behavior, refs, events, and accessibility stay intact:
+
+```tsx
+import { configure } from '@airlib/react-aui';
+
+configure({ overrides: true });
+```
+
+## Global defaults
+
+Component imports never reset the page. Opt in explicitly when you want the page defaults:
+
+```tsx
+import '@airlib/aui/default.css';
+```

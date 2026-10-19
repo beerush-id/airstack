@@ -1,0 +1,262 @@
+---
+title: Maui Select
+description: Collapsible option list with trigger, popup panel, and options — single or multiple, six sizes, two variants, and seven colors.
+---
+
+# Maui Select
+
+A select is an option list collapsed behind a trigger: closed it shows one value, open it offers every choice. Country pickers, per-page counts, and city departures are all selects — anywhere a list would eat the layout it sits behind a button instead.
+
+Styling is optional. Without Material CSS the Select stays a correct, operable combobox; with it, the same markup gets the Material treatment through either the full-library or the selective import.
+
+:::interactive[Select demo]
+
+```tsx
+import { Select, SelectOption, SelectPanel, SelectTrigger, Toggle } from '@airlib/react-aui';
+import { $bind, mutable, setup } from '@airlib/react';
+
+const CITY_LABELS = {
+  ams: 'Amsterdam',
+  ber: 'Berlin',
+  cop: 'Copenhagen',
+  dub: 'Dublin',
+  vil: 'Vilnius',
+};
+
+const SIZE_LABELS = {
+  xs: 'Extra small',
+  sm: 'Small',
+  md: 'Medium',
+  lg: 'Large',
+  xl: 'Extra large',
+  xxl: 'Extra extra large',
+};
+
+const VARIANT_LABELS = {
+  filled: 'Filled',
+  outlined: 'Outlined',
+};
+
+const COLOR_LABELS = {
+  primary: 'Primary',
+  secondary: 'Secondary',
+  tertiary: 'Tertiary',
+  error: 'Error',
+  success: 'Success',
+  warning: 'Warning',
+  info: 'Info',
+};
+
+const CityOptions = () => (
+  <>
+    <SelectOption value="ams">Amsterdam</SelectOption>
+    <SelectOption value="ber">Berlin</SelectOption>
+    <SelectOption value="cop">Copenhagen</SelectOption>
+    <SelectOption value="dub">Dublin</SelectOption>
+    <SelectOption value="vil">Vilnius</SelectOption>
+  </>
+);
+
+const SelectDemo = setup(() => {
+  const state = mutable({
+    city: 'ber',
+    stops: ['cop'],
+    size: 'md',
+    variant: 'filled',
+    color: 'primary',
+    disabled: false,
+  });
+
+  return () => (
+    <div className="demo-button">
+      <div className="demo-button-row">
+        <span className="demo-control">
+          <span>Size</span>
+          <Select labels={SIZE_LABELS} value={$bind(state, 'size')}>
+          <SelectTrigger />
+          <SelectPanel>
+            <SelectOption value="xs">Extra small</SelectOption>
+            <SelectOption value="sm">Small</SelectOption>
+            <SelectOption value="md">Medium</SelectOption>
+            <SelectOption value="lg">Large</SelectOption>
+            <SelectOption value="xl">Extra large</SelectOption>
+            <SelectOption value="xxl">Extra extra large</SelectOption>
+          </SelectPanel>
+        </Select>
+        </span>
+        <span className="demo-control">
+          <span>Variant</span>
+          <Select labels={VARIANT_LABELS} value={$bind(state, 'variant')}>
+          <SelectTrigger />
+          <SelectPanel>
+            <SelectOption value="filled">Filled</SelectOption>
+            <SelectOption value="outlined">Outlined</SelectOption>
+          </SelectPanel>
+        </Select>
+        </span>
+        <span className="demo-control">
+          <span>Color</span>
+          <Select labels={COLOR_LABELS} value={$bind(state, 'color')}>
+          <SelectTrigger />
+          <SelectPanel>
+            <SelectOption value="primary">Primary</SelectOption>
+            <SelectOption value="secondary">Secondary</SelectOption>
+            <SelectOption value="tertiary">Tertiary</SelectOption>
+            <SelectOption value="error">Error</SelectOption>
+            <SelectOption value="success">Success</SelectOption>
+            <SelectOption value="warning">Warning</SelectOption>
+            <SelectOption value="info">Info</SelectOption>
+          </SelectPanel>
+        </Select>
+        </span>
+        <Toggle pressed={$bind(state, 'disabled')}>Disable previews</Toggle>
+      </div>
+      <div className="demo-button-row">
+        <span className="demo-control">
+          <span>Departure</span>
+          <Select
+          labels={CITY_LABELS}
+          value={$bind(state, 'city')}
+          size={state.size}
+          variant={state.variant}
+          color={state.color}
+          disabled={state.disabled}
+        >
+          <SelectTrigger />
+          <SelectPanel>
+            <CityOptions />
+          </SelectPanel>
+        </Select>
+        </span>
+        <span className="demo-control">
+          <span>Stops</span>
+          <Select
+          labels={CITY_LABELS}
+          value={$bind(state, 'stops')}
+          multiple
+          size={state.size}
+          variant={state.variant}
+          color={state.color}
+          disabled={state.disabled}
+        >
+          <SelectTrigger />
+          <SelectPanel>
+            <CityOptions />
+          </SelectPanel>
+        </Select>
+        </span>
+      </div>
+    </div>
+  );
+}, 'SelectDemo');
+```
+
+```html
+<SelectDemo />
+```
+
+<SelectDemo />
+
+:::
+
+## Usage
+
+```tsx
+import { Select, SelectOption, SelectPanel, SelectTrigger } from '@airlib/react-aui';
+import '@airlib/aui/widgets/select.css';
+
+const CITY_LABELS = { ams: 'Amsterdam', ber: 'Berlin' };
+
+export const DeparturePicker = () => (
+  <Select labels={CITY_LABELS} value="ams">
+    <SelectTrigger />
+    <SelectPanel>
+      <SelectOption value="ams">Amsterdam</SelectOption>
+      <SelectOption value="ber">Berlin</SelectOption>
+    </SelectPanel>
+  </Select>
+);
+```
+
+For the full library instead of the selective import, load `import '@airlib/aui';`. Both modes look the same.
+
+The `labels` map turns tokens into trigger text — without it the trigger has nothing to show. A commit in single mode closes the popup; in `multiple` mode it stays open so a picker that takes several values never slams shut mid-choice.
+
+### Properties
+
+Select (root) holds the value and the popup visibility:
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `value` | `Bindable<string \| string[]>` | — | One token, or an array with `multiple`. Bind it to read and replace the selection from outside. |
+| `open` | `Bindable<boolean>` | `false` | Popup visibility. Bind it to move the trigger and panel from outside. |
+| `multiple` | `boolean` | `false` | Takes an array `value`; commits keep the popup open. |
+| `disabled` | `boolean` | `false` | Locks toggling and committing across the whole select. |
+| `required` | `boolean` | `false` | Declares a non-empty selection requirement. |
+| `labels` | `Record<string, string>` | — | Token-to-label map the trigger reads at creation. |
+| `size` | `xs`, `sm`, `md`, `lg`, `xl`, `xxl` | `'lg'` | Explicit props win; otherwise the configured default applies. |
+| `variant` | `filled`, `outlined` | `'outlined'` | Same precedence as `size`. |
+| `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | Same precedence as `size`; drives the trigger text, indicator, and caret. |
+| `onchange` | `(event: CustomEvent<...>) => void` | — | Fires with the whole value once a member commit reaches the root. |
+| `className` | `string` | — | Added alongside the built-in classes by default; replaces them in replacement mode. |
+| `children` | `ReactNode` | — | Trigger, panel, and options. |
+| `ref` | `Ref<HTMLDivElement>` | — | Access to the root element. |
+
+SelectTrigger (combobox face), SelectPanel (popup listbox), and SelectOption (selection member) take `id`, `disabled` where applicable, `value` (options only, required), `className`, and children. Options render their children as the row content; the trigger renders the current choice from `labels`.
+
+Set app-wide defaults once instead of repeating props on every select:
+
+```tsx
+import { configure } from '@airlib/react-aui';
+
+configure({ select: { size: 'sm' } });
+```
+
+Your own classes are added next to the built-in ones:
+
+```tsx
+// class="maui-select maui-select-lg maui-select-outlined maui-select-primary my-select"
+<Select className="my-select" labels={CITY_LABELS}>
+```
+
+Replacement mode renders only your classes — the select keeps working exactly the same:
+
+```tsx
+import { configure } from '@airlib/react-aui';
+
+configure({ overrides: true });
+
+// class="my-select"
+<Select className="my-select" labels={CITY_LABELS}>
+```
+
+Keyboard: `Enter` or `Space` toggles the popup, arrows open it while closed and rove the panel without committing, `Enter` commits the focused option, `Escape` closes and returns focus to the trigger. Dismissal by outside press returns focus the same way.
+
+### Sizes
+
+Sizes: `xs`, `sm`, `md`, `lg`, `xl`, `xxl`, default `lg` — carried by the trigger:
+
+```tsx
+<Select labels={CITY_LABELS} size="sm">
+```
+
+### Variants
+
+Variants: `filled`, `outlined`, default `outlined`:
+
+```tsx
+<Select labels={CITY_LABELS} variant="outlined">
+```
+
+### Color Variants
+
+Colors: `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info`, default `primary` — carried by the trigger text, indicator, and caret, while the popup stays neutral:
+
+```tsx
+<Select labels={CITY_LABELS} color="error">
+```
+
+## Next Steps
+
+- [Button](/docs/widgets/button) — The one-state trigger: for actions that fire instead of choosing.
+- [Toggle](/docs/widgets/toggle) — A two-state button for on/off beside the select's one-of-many.

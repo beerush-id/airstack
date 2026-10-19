@@ -1,10 +1,7 @@
+import { isEmpty } from '@airlib/core';
 import type { AriaOptions, AriaProps, BaseElement, DetachFn } from '../../types.js';
-import {
-  PopupTriggerAria,
-  type PopupTriggerAttributes,
-  type PopupTriggerOptions,
-} from '../popup/trigger.js';
-import type { ComboboxAria, ComboboxProps } from './combobox.js';
+import { PopupTriggerAria, type PopupTriggerAttributes, type PopupTriggerOptions } from '../popup/trigger.js';
+import type { ComboboxAria } from './combobox.js';
 
 /**
  * Reactive input properties for the Combobox text input.
@@ -19,6 +16,11 @@ export interface ComboboxInputProps extends AriaProps {
    * Whether this input is disabled from user interaction.
    */
   disabled?: boolean;
+
+  /**
+   * Optional placeholder text.
+   */
+  placeholder?: string;
 }
 
 export interface ComboboxInputOptions extends PopupTriggerOptions {}
@@ -39,7 +41,7 @@ export interface ComboboxInputAttributes<E extends BaseElement = HTMLElement> ex
  */
 export class ComboboxInputAria<E extends BaseElement = HTMLElement> extends PopupTriggerAria<
   E,
-  ComboboxProps,
+  ComboboxInputProps,
   ComboboxInputAttributes<E>,
   ComboboxInputOptions
 > {
@@ -80,7 +82,7 @@ export class ComboboxInputAria<E extends BaseElement = HTMLElement> extends Popu
   public constructor(props: ComboboxInputProps = {}, options: AriaOptions = { native: true }) {
     super(props as never, options as never);
 
-    this.omittedAttrs.push('aria-autocomplete');
+    this.omittedAttrs.push('aria-autocomplete', 'placeholder');
     this.update();
   }
 
@@ -97,14 +99,19 @@ export class ComboboxInputAria<E extends BaseElement = HTMLElement> extends Popu
         type: 'text',
         value: this.query || this.label || this.text || this.value,
         required: this.host?.properties.required,
+        placeholder: this.properties.placeholder,
       });
     } else {
       Object.assign(attrs, {
         'aria-required': this.host?.properties.required ? 'true' : 'false',
+        'aria-placeholder': this.properties.placeholder,
       });
     }
 
-    attrs['aria-autocomplete'] = 'list';
+    Object.assign(attrs, {
+      'aria-autocomplete': 'list',
+      'data-placeholder-visible': isEmpty(this.host?.label),
+    });
 
     return attrs;
   }

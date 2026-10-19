@@ -1,0 +1,47 @@
+@layer utility {
+  .aui-state-layer,
+  .aui-action {
+    position: relative;
+  }
+
+  .aui-state-layer::before,
+  .aui-action::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    transition-property: opacity, background-color;
+    transition-duration: var(--duration-short);
+    transition-timing-function: var(--ease-standard);
+    background-color: var(--aui-state-layer-color, var(--color-on-surface));
+  }
+
+  .aui-state-layer:hover::before,
+  .aui-action:hover::before {
+    opacity: var(--tone-hover-strength);
+  }
+
+  .aui-state-layer:focus-visible::before,
+  .aui-action:focus-visible::before {
+    opacity: var(--tone-focus-strength);
+  }
+
+  .aui-state-layer:active::before,
+  .aui-action:active::before {
+    opacity: var(--tone-pressed-strength);
+  }
+
+  .aui-disabled,
+  .aui-state-layer:disabled,
+  .aui-state-layer[aria-disabled='true'],
+  .aui-action:disabled,
+  .aui-action[aria-disabled='true'] {
+    cursor: not-allowed;
+    background-color: var(--color-disabled-bg);
+    color: var(--color-disabled-fg);
+    border-color: transparent;
+    --aui-state-layer-color: transparent;
+  }
+}

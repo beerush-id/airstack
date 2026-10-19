@@ -1,0 +1,360 @@
+@layer theme {
+  :root {
+    color-scheme: light dark;
+
+    /* Primary color of the app. */
+    --seed-color: #6750a4;
+
+    /* Adjust color up on light mode, down on dark mode */
+    --light-up: light-dark(rgb(255 255 255), rgb(10 10 10));
+    /* Adjust color down on light mode, up on dark mode */
+    --light-down: light-dark(rgb(0 0 0), rgb(240 240 240));
+
+    --icon-font:
+      'Material Symbols Outlined', 'Material Symbols Rounded', 'Material Symbols Sharp', sans-serif;
+    --icon-weight: normal;
+
+    /* Configuration tokens: single-knob tuning below the seed. */
+    --tone-elevation-lowest: 0%;
+    --tone-elevation-low: 4%;
+    --tone-elevation-container: 6%;
+    --tone-elevation-high: 8%;
+    --tone-elevation-highest: 10%;
+
+    --tone-hover-strength: 8%;
+    --tone-focus-strength: 12%;
+    --tone-pressed-strength: 15%;
+    --tone-muted-strength: 38%;
+    --tone-faint-strength: 12%;
+    --tone-on-strength: 5%;
+    --tone-container-strength: 18%;
+
+    /* Color tokens where state and variants derive from. */
+    /* Base colors: accent colors */
+    --color-primary: light-dark(
+      oklch(from var(--seed-color) 45% 0.15 h),
+      oklch(from var(--seed-color) 80% 0.15 h)
+    );
+    --color-on-primary: color-mix(
+      in oklch,
+      var(--color-primary) var(--tone-on-strength),
+      var(--light-up)
+    );
+    --color-secondary: light-dark(
+      oklch(from var(--seed-color) 50% calc(c * 0.3) h),
+      oklch(from var(--seed-color) 80% calc(c * 0.3) h)
+    );
+    --color-on-secondary: color-mix(
+      in oklch,
+      var(--color-secondary) var(--tone-on-strength),
+      var(--light-up)
+    );
+    --color-tertiary: light-dark(
+      oklch(from var(--seed-color) 45% calc(c * 0.8) calc(h + 60)),
+      oklch(from var(--seed-color) 80% calc(c * 0.8) calc(h + 60))
+    );
+    --color-on-tertiary: color-mix(
+      in oklch,
+      var(--color-tertiary) var(--tone-on-strength),
+      var(--light-up)
+    );
+
+    /* Base colors: status colors */
+    --color-error: light-dark(#b3261e, #f2b8b5);
+    --color-on-error: color-mix(
+      in oklch,
+      var(--color-error) var(--tone-on-strength),
+      var(--light-up)
+    );
+    --color-warning: light-dark(#8e5400ff, #faab3fff);
+    --color-on-warning: color-mix(
+      in oklch,
+      var(--color-warning) var(--tone-on-strength),
+      var(--light-up)
+    );
+    --color-success: light-dark(#067132ff, #5dc879ff);
+    --color-on-success: color-mix(
+      in oklch,
+      var(--color-success) var(--tone-on-strength),
+      var(--light-up)
+    );
+    --color-info: light-dark(#1580e6ff, #82d3ff);
+    --color-on-info: color-mix(
+      in oklch,
+      var(--color-info) var(--tone-on-strength),
+      var(--light-up)
+    );
+
+    /* Base colors: surface colors */
+    --color-surface: light-dark(
+      oklch(from var(--seed-color) 98% 0.01 h),
+      oklch(from var(--seed-color) 16% 0.02 h)
+    );
+    --color-on-surface: color-mix(
+      in oklch,
+      var(--color-surface) var(--tone-on-strength),
+      var(--light-down)
+    );
+    --color-ghost-surface: var(--color-surface);
+
+    /* Container Colors */
+    --color-primary-container: color-mix(
+      in oklch,
+      var(--color-primary) var(--tone-container-strength),
+      var(--light-up)
+    );
+    --color-on-primary-container: color-mix(
+      in oklch,
+      var(--color-primary-container) 30%,
+      var(--light-down)
+    );
+    --color-secondary-container: color-mix(
+      in oklch,
+      var(--color-secondary) var(--tone-container-strength),
+      var(--light-up)
+    );
+    --color-on-secondary-container: color-mix(
+      in oklch,
+      var(--color-secondary-container) 30%,
+      var(--light-down)
+    );
+    --color-tertiary-container: color-mix(
+      in oklch,
+      var(--color-tertiary) var(--tone-container-strength),
+      var(--light-up)
+    );
+    --color-on-tertiary-container: color-mix(
+      in oklch,
+      var(--color-tertiary-container) 30%,
+      var(--light-down)
+    );
+
+    /* Flips need one fixed-ratio branch each (no tokens): a scheme flip can't come from a single mix. */
+    --color-inverse-surface: light-dark(
+      color-mix(in oklch, var(--color-surface) 20%, black),
+      color-mix(in oklch, var(--color-surface) 10%, white)
+    );
+    --color-inverse-on-surface: light-dark(
+      color-mix(in oklch, var(--color-inverse-surface) 10%, white),
+      color-mix(in oklch, var(--color-inverse-surface) 22%, black)
+    );
+    --color-inverse-primary: light-dark(
+      color-mix(in oklch, var(--color-primary) 35%, white),
+      color-mix(in oklch, var(--color-primary) 55%, black)
+    );
+
+    --color-surface-lowest: color-mix(
+      in oklch,
+      var(--color-on-surface) var(--tone-elevation-lowest),
+      var(--light-up)
+    );
+    --color-surface-low: color-mix(
+      in oklch,
+      var(--color-on-surface) var(--tone-elevation-low),
+      var(--light-up)
+    );
+    --color-surface-container: color-mix(
+      in srgb,
+      var(--color-on-surface) var(--tone-elevation-container),
+      var(--color-surface)
+    );
+    --color-surface-high: color-mix(
+      in srgb,
+      var(--color-on-surface) var(--tone-elevation-high),
+      var(--color-surface)
+    );
+    --color-surface-highest: color-mix(
+      in srgb,
+      var(--color-on-surface) var(--tone-elevation-highest),
+      var(--color-surface)
+    );
+
+    /* Backwards compatibility aliases */
+    --color-surface-container-lowest: var(--color-surface-lowest);
+    --color-surface-container-low: var(--color-surface-low);
+    --color-surface-container-high: var(--color-surface-high);
+    --color-surface-container-highest: var(--color-surface-highest);
+    --color-surface-variant: light-dark(
+      color-mix(in oklch, var(--color-surface) 95%, black),
+      color-mix(in oklch, var(--color-surface) 75%, white)
+    );
+    --color-on-surface-variant: light-dark(
+      color-mix(in oklch, var(--color-surface) 30%, black),
+      color-mix(in oklch, var(--color-surface) 25%, white)
+    );
+
+    --color-outline: light-dark(
+      color-mix(in oklch, var(--color-surface) 50%, black),
+      color-mix(in oklch, var(--color-surface) 50%, white)
+    );
+    --color-outline-variant: light-dark(
+      color-mix(in oklch, var(--color-surface) 80%, black),
+      color-mix(in oklch, var(--color-surface) 85%, white)
+    );
+
+    --color-error-container: color-mix(
+      in oklch,
+      var(--color-error) var(--tone-container-strength),
+      var(--light-up)
+    );
+    --color-on-error-container: color-mix(
+      in oklch,
+      var(--color-error-container) 30%,
+      var(--light-down)
+    );
+
+    --color-success-container: color-mix(
+      in oklch,
+      var(--color-success) var(--tone-container-strength),
+      var(--light-up)
+    );
+    --color-on-success-container: color-mix(
+      in oklch,
+      var(--color-success-container) 30%,
+      var(--light-down)
+    );
+
+    --color-warning-container: color-mix(
+      in oklch,
+      var(--color-warning) var(--tone-container-strength),
+      var(--light-up)
+    );
+    --color-on-warning-container: color-mix(
+      in oklch,
+      var(--color-warning-container) 30%,
+      var(--light-down)
+    );
+
+    --color-info-container: color-mix(
+      in oklch,
+      var(--color-info) var(--tone-container-strength),
+      var(--light-up)
+    );
+    --color-on-info-container: color-mix(
+      in oklch,
+      var(--color-info-container) 30%,
+      var(--light-down)
+    );
+
+    --color-scrim: oklch(0% 0 0);
+    --color-shadow: oklch(0% 0 0);
+    --color-overlay-container: light-dark(oklch(0% 0 0 / 0.5), oklch(0% 0 0 / 0.75));
+
+    --spacing: 0.25rem;
+
+    --spacing-xs: calc(var(--spacing) * 1);
+    --spacing-sm: calc(var(--spacing) * 2);
+    --spacing-md: calc(var(--spacing) * 4);
+    --spacing-lg: calc(var(--spacing) * 6);
+    --spacing-xl: calc(var(--spacing) * 8);
+    --spacing-xxl: calc(var(--spacing) * 12);
+
+    --size-xs: calc(var(--spacing) * 6);
+    --size-sm: calc(var(--spacing) * 8);
+    --size-md: calc(var(--spacing) * 10);
+    --size-lg: calc(var(--spacing) * 12);
+    --size-xl: calc(var(--spacing) * 14);
+    --size-xxl: calc(var(--spacing) * 16);
+
+    --radius-base: var(--spacing);
+    --radius-none: 0;
+    --radius-xs: var(--radius-base);
+    --radius-sm: calc(var(--radius-base) * 2);
+    --radius-md: calc(var(--radius-base) * 3);
+    --radius-lg: calc(var(--radius-base) * 4);
+    --radius-lg-increased: calc(var(--radius-base) * 5);
+    --radius-xl: calc(var(--radius-base) * 7);
+    --radius-xl-increased: calc(var(--radius-base) * 8);
+    --radius-xxl: calc(var(--radius-base) * 12);
+    --radius-full: 9999px;
+
+    --color-disabled-bg: color-mix(
+      in srgb,
+      var(--color-on-surface) var(--tone-faint-strength),
+      transparent
+    );
+    --color-disabled-fg: color-mix(
+      in srgb,
+      var(--color-on-surface) var(--tone-muted-strength),
+      transparent
+    );
+    --color-disabled-border: color-mix(
+      in srgb,
+      var(--color-on-surface) var(--tone-faint-strength),
+      transparent
+    );
+
+    --focus-ring-width: 3px;
+    --focus-ring-offset: 2px;
+
+    --z-index-elevated: 1;
+    --z-index-dropdown: 10;
+    --z-index-sticky: 20;
+    --z-index-fixed: 40;
+    --z-index-modal: 50;
+    --z-index-popover: 100;
+    --z-index-toast: 200;
+
+    --shadow-base: 0.0625rem;
+    --elevation-0: none;
+    --elevation-1:
+      0 var(--shadow-base) calc(var(--shadow-base) * 2) 0 rgba(0, 0, 0, 0.3),
+      0 var(--shadow-base) calc(var(--shadow-base) * 3) var(--shadow-base) rgba(0, 0, 0, 0.15);
+    --elevation-2:
+      0 var(--shadow-base) calc(var(--shadow-base) * 2) 0 rgba(0, 0, 0, 0.3),
+      0 calc(var(--shadow-base) * 2) calc(var(--shadow-base) * 6) calc(var(--shadow-base) * 2)
+      rgba(0, 0, 0, 0.15);
+    --elevation-3:
+      0 var(--shadow-base) calc(var(--shadow-base) * 3) 0 rgba(0, 0, 0, 0.3),
+      0 calc(var(--shadow-base) * 4) calc(var(--shadow-base) * 8) calc(var(--shadow-base) * 3)
+      rgba(0, 0, 0, 0.15);
+    --elevation-4:
+      0 calc(var(--shadow-base) * 2) calc(var(--shadow-base) * 3) 0 rgba(0, 0, 0, 0.3),
+      0 calc(var(--shadow-base) * 6) calc(var(--shadow-base) * 10) calc(var(--shadow-base) * 4)
+      rgba(0, 0, 0, 0.15);
+    --elevation-5:
+      0 calc(var(--shadow-base) * 4) calc(var(--shadow-base) * 4) 0 rgba(0, 0, 0, 0.3),
+      0 calc(var(--shadow-base) * 8) calc(var(--shadow-base) * 12) calc(var(--shadow-base) * 6)
+      rgba(0, 0, 0, 0.15);
+
+    --duration-short: 200ms;
+    --duration-medium: 300ms;
+    --duration-long: 500ms;
+    --ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+    --ease-emphasized-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
+    --ease-emphasized-accelerate: cubic-bezier(0.3, 0, 0.8, 0.15);
+    --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+    --ease-standard-decelerate: cubic-bezier(0, 0, 0, 1);
+    --ease-standard-accelerate: cubic-bezier(0.3, 0, 1, 1);
+
+    --font-sans: 'Noto Sans', system-ui, sans-serif;
+    --font-mono: 'Roboto Mono', Menlo, Monaco, 'Courier New', monospace;
+    --font-serif: 'Roboto Serif', Georgia, Cambria, 'Times New Roman', Times, serif;
+    --font-brand: var(--font-sans);
+    --font-base: 1rem;
+    --font-label-lg-size: calc(var(--font-base) * 0.875);
+    --font-label-lg-weight: 500;
+    --font-label-lg-tracking: calc(var(--font-base) * 0.00625);
+    --font-label-lg-line-height: calc(var(--font-base) * 1.25);
+    --font-label-md-size: calc(var(--font-base) * 0.75);
+    --font-label-md-weight: 500;
+    --font-label-md-tracking: calc(var(--font-base) * 0.03125);
+    --font-label-md-line-height: var(--font-base);
+    --font-label-sm-size: calc(var(--font-base) * 0.6875);
+    --font-label-sm-weight: 500;
+    --font-label-sm-tracking: calc(var(--font-base) * 0.03125);
+    --font-label-sm-line-height: var(--font-base);
+    --font-title-sm-size: calc(var(--font-base) * 0.875);
+    --font-title-sm-weight: 500;
+    --font-title-sm-tracking: calc(var(--font-base) * 0.00625);
+    --font-title-sm-line-height: calc(var(--font-base) * 1.25);
+    --font-title-md-size: var(--font-base);
+    --font-title-md-weight: 500;
+    --font-title-md-tracking: calc(var(--font-base) * 0.009375);
+    --font-title-md-line-height: calc(var(--font-base) * 1.5);
+    --font-title-lg-size: calc(var(--font-base) * 1.375);
+    --font-title-lg-weight: 400;
+    --font-title-lg-tracking: 0;
+    --font-title-lg-line-height: calc(var(--font-base) * 1.75);
+  }
+}

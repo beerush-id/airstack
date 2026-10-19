@@ -53,15 +53,14 @@ describe('Combobox - Coverage', () => {
     it('prefers the authored map and falls back to an empty one', () =>
       scope.run(() => {
         component().run(() => {
-          const authored = buildCombobox(
-            { id: 'cb-authored', valueMap: { a: 'Alpha' } } as ComboboxProps,
-            [{ value: 'a', text: 'Alpha' }],
-          );
-          expect(authored.combobox.valueMap).toEqual({ a: 'Alpha' });
+          const authored = buildCombobox({ id: 'cb-authored', options: { a: 'Alpha' } } as ComboboxProps, [
+            { value: 'a', text: 'Alpha' },
+          ]);
+          expect(authored.combobox.labels).toEqual({ a: 'Alpha' });
           authored.cleanup();
 
           const empty = buildCombobox({ id: 'cb-empty' }, [{ value: 'b', text: 'Beta' }]);
-          expect(empty.combobox.valueMap).toEqual({});
+          expect(empty.combobox.labels).toEqual({});
           empty.cleanup();
         });
       }));

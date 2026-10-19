@@ -3,13 +3,7 @@ import { shadow } from '@airlib/core/browser';
 import { selectionGroup } from '../../selection.js';
 import type { AriaEvent, AriaEventHandler, BaseElement, DetachFn } from '../../types.js';
 import { listboxCtx, type ListboxProps } from '../listbox.js';
-import {
-  PopupAria,
-  type PopupCloseEvent,
-  popupCtx,
-  type PopupOpenEvent,
-  type PopupProps,
-} from '../popup/popup.js';
+import { PopupAria, type PopupCloseEvent, popupCtx, type PopupOpenEvent, type PopupProps } from '../popup/popup.js';
 import { SelectPanelAria, type SelectPanelProps } from './panel.js';
 import { SelectTriggerAria, type SelectTriggerOptions, type SelectTriggerProps } from './trigger.js';
 
@@ -36,6 +30,11 @@ export interface SelectBaseProps extends PopupProps {
    * Called after the popup closes, through every dismissal path.
    */
   onclose?: AriaEventHandler<SelectCloseEvent>;
+
+  /**
+   * Custom labels for the select element to map values to.
+   */
+  options?: Record<AnyType, AnyType>;
 }
 
 /**
@@ -102,14 +101,19 @@ export class SelectAria<E extends BaseElement = HTMLElement> extends PopupAria<E
     this.properties.value = value;
   }
 
+  public get labels() {
+    return this.properties.options ?? this.valueMap;
+  }
+
   /**
    * Label of the current choice(s).
    */
   public get label() {
     const value = this.properties.value;
     const values = Array.isArray(value) ? value : [value];
+    const labels = this.labels;
     return values
-      .map((key) => this.valueMap?.[key as string])
+      .map((key) => labels[key as string])
       .filter(Boolean)
       .join(', ');
   }
@@ -131,7 +135,7 @@ export class SelectAria<E extends BaseElement = HTMLElement> extends PopupAria<E
 
   public constructor(
     props: SelectProps = {},
-    public valueMap: Record<string, AnyType> = {}
+    public valueMap: Record<AnyType, AnyType> = {}
   ) {
     super(props, {
       name: 'select',
@@ -140,7 +144,7 @@ export class SelectAria<E extends BaseElement = HTMLElement> extends PopupAria<E
       panelRole: 'listbox',
     });
 
-    this.omittedAttrs.push('value', 'query', 'multiple', 'required', 'text');
+    this.omittedAttrs.push('value', 'query', 'labels', 'multiple', 'required', 'text');
 
     popupCtx.set(this as never);
     listboxCtx.set(this.properties as ListboxProps);

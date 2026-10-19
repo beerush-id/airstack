@@ -1,0 +1,75 @@
+{
+  "type": "module",
+  "name": "@airlib/react-aui",
+  "version": "2.2.0",
+  "description": "Reactive and declarative React headless components built on AirLib.",
+  "keywords": ["react", "form", "validation", "zod", "reactive", "airlib", "anchor", "typescript"],
+  "author": "Nanang Mahdaen El Agung <mahdaen@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/beerush-id/airstack.git"
+  },
+  "bugs": {
+    "url": "https://github.com/beerush-id/airstack/issues"
+  },
+  "sideEffects": false,
+  "types": "./dist/index.d.ts",
+  "module": "./dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./components": {
+      "types": "./dist/components/index.d.ts",
+      "import": "./dist/components/index.js"
+    },
+    "./utils": {
+      "types": "./dist/hooks/index.d.ts",
+      "import": "./dist/hooks/index.js"
+    },
+    "./widgets": {
+      "types": "./dist/widgets/index.d.ts",
+      "import": "./dist/widgets/index.js"
+    }
+  },
+  "files": ["dist"],
+  "directories": {
+    "dist": "dist"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "catalog:",
+    "@testing-library/react": "catalog:",
+    "@testing-library/user-event": "catalog:",
+    "@types/bun": "catalog:",
+    "jsdom": "catalog:",
+    "publint": "catalog:",
+    "rimraf": "catalog:",
+    "tsdown": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  },
+  "dependencies": {
+    "@airlib/aria": "workspace:*",
+    "@airlib/aui": "workspace:*",
+    "@airlib/react": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "catalog:lib",
+    "react-dom": "catalog:lib",
+    "typescript": "catalog:lib"
+  },
+  "scripts": {
+    "dev": "rimraf dist && tsdown --watch ./src",
+    "clean": "rimraf dist",
+    "build": "bun run clean && tsdown && publint",
+    "prepublish": "bun run format && bun run build",
+    "format": "biome format --write",
+    "test:run": "rimraf coverage && vitest --run",
+    "test:preview": "rimraf coverage && vitest --run && vite preview --outDir coverage"
+  },
+  "license": "MIT"
+}

@@ -1,0 +1,244 @@
+@import '../base/index.css';
+@import '../theme/index.css';
+@import '../utilities/action.css';
+@import '../utilities/size.css';
+@import '../utilities/variant.css';
+@import '../utilities/color-variant.css';
+@import '../utilities/focus.css';
+@import '../utilities/touch.css';
+@import '../utilities/state.css';
+
+@layer component {
+  :root {
+    /* Box metrics (height, padding, gap, radius, type) live in the shared
+     * control rule in utilities/action.css. Only icon sizing stays here. */
+    --aui-button-icon-padding-x: calc(var(--spacing) * 4);
+    --aui-button-icon-size: calc(var(--spacing) * 4.5);
+
+    --aui-button-icon-padding-x-xs: calc(var(--spacing) * 2);
+    --aui-button-icon-size-xs: calc(var(--spacing) * 3.5);
+
+    --aui-button-icon-padding-x-sm: calc(var(--spacing) * 2.5);
+    --aui-button-icon-size-sm: calc(var(--spacing) * 4);
+
+    --aui-button-icon-padding-x-md: calc(var(--spacing) * 4);
+    --aui-button-icon-size-md: calc(var(--spacing) * 4.5);
+
+    --aui-button-icon-padding-x-lg: calc(var(--spacing) * 5.5);
+    --aui-button-icon-size-lg: calc(var(--spacing) * 5);
+
+    --aui-button-icon-padding-x-xl: calc(var(--spacing) * 7);
+    --aui-button-icon-size-xl: calc(var(--spacing) * 6);
+
+    --aui-button-icon-padding-x-xxl: calc(var(--spacing) * 8);
+    --aui-button-icon-size-xxl: calc(var(--spacing) * 7);
+
+    --aui-button-filled-bg: var(--color-primary);
+    --aui-button-filled-fg: var(--color-on-primary);
+    --aui-button-filled-state: var(--color-on-primary);
+
+    --aui-button-elevated-bg: var(--color-surface-container-low);
+    --aui-button-elevated-fg: var(--color-primary);
+    --aui-button-elevated-state: var(--color-primary);
+
+    --aui-button-tonal-bg: var(--color-secondary-container);
+    --aui-button-tonal-fg: var(--color-on-secondary-container);
+    --aui-button-tonal-state: var(--color-on-secondary-container);
+
+    --aui-button-outlined-bg: transparent;
+    --aui-button-outlined-fg: var(--color-primary);
+    --aui-button-outlined-border: var(--color-outline);
+    --aui-button-outlined-border-focus: var(--color-primary);
+    --aui-button-outlined-state: var(--color-primary);
+
+    --aui-button-text-bg: transparent;
+    --aui-button-text-fg: var(--color-primary);
+    --aui-button-text-state: var(--color-primary);
+
+    --aui-button-selected-bg: var(--color-secondary-container, var(--color-primary-container));
+    --aui-button-selected-fg: var(
+      --color-on-secondary-container,
+      var(--color-on-primary-container)
+    );
+    --aui-button-selected-state: var(
+      --color-on-secondary-container,
+      var(--color-on-primary-container)
+    );
+  }
+
+  .aui-button-filled {
+    background-color: var(--aui-button-filled-bg);
+    color: var(--aui-button-filled-fg);
+    --aui-state-layer-color: var(--aui-button-filled-state);
+  }
+
+  .aui-button-elevated {
+    background-color: var(--aui-button-elevated-bg);
+    color: var(--aui-button-elevated-fg);
+    --aui-state-layer-color: var(--aui-button-elevated-state);
+  }
+
+  .aui-button-tonal {
+    background-color: var(--aui-button-tonal-bg);
+    color: var(--aui-button-tonal-fg);
+    --aui-state-layer-color: var(--aui-button-tonal-state);
+  }
+
+  .aui-button-outlined {
+    background-color: var(--aui-button-outlined-bg);
+    color: var(--aui-button-outlined-fg);
+    border-width: var(--shadow-base, 1px);
+    border-style: solid;
+    border-color: var(--aui-button-outlined-border);
+    --aui-state-layer-color: var(--aui-button-outlined-state);
+  }
+
+  .aui-button-outlined:focus-visible:not(:disabled, [aria-disabled='true']) {
+    border-color: var(--aui-button-outlined-border-focus);
+  }
+
+  .aui-button-text {
+    background-color: var(--aui-button-text-bg);
+    color: var(--aui-button-text-fg);
+    padding-inline: calc(var(--aui-control-padding-x) * 0.5);
+    --aui-state-layer-color: var(--aui-button-text-state);
+  }
+
+  .aui-button-primary {
+    --aui-button-filled-bg: var(--color-primary);
+    --aui-button-filled-fg: var(--color-on-primary);
+    --aui-button-filled-state: var(--color-on-primary);
+    --aui-button-tonal-bg: var(--color-primary-container);
+    --aui-button-tonal-fg: var(--color-on-primary-container);
+    --aui-button-tonal-state: var(--color-on-primary-container);
+    --aui-button-outlined-fg: var(--color-primary);
+    --aui-button-outlined-border-focus: var(--color-primary);
+    --aui-button-outlined-state: var(--color-primary);
+    --aui-button-text-fg: var(--color-primary);
+    --aui-button-text-state: var(--color-primary);
+  }
+
+  .aui-button-secondary {
+    --aui-button-filled-bg: var(--color-secondary);
+    --aui-button-filled-fg: var(--color-on-secondary);
+    --aui-button-filled-state: var(--color-on-secondary);
+    --aui-button-tonal-bg: var(--color-secondary-container);
+    --aui-button-tonal-fg: var(--color-on-secondary-container);
+    --aui-button-tonal-state: var(--color-on-secondary-container);
+    --aui-button-outlined-fg: var(--color-secondary);
+    --aui-button-outlined-border-focus: var(--color-secondary);
+    --aui-button-outlined-state: var(--color-secondary);
+    --aui-button-text-fg: var(--color-secondary);
+    --aui-button-text-state: var(--color-secondary);
+  }
+
+  .aui-button-tertiary {
+    --aui-button-filled-bg: var(--color-tertiary);
+    --aui-button-filled-fg: var(--color-on-tertiary);
+    --aui-button-filled-state: var(--color-on-tertiary);
+    --aui-button-tonal-bg: var(--color-tertiary-container);
+    --aui-button-tonal-fg: var(--color-on-tertiary-container);
+    --aui-button-tonal-state: var(--color-on-tertiary-container);
+    --aui-button-outlined-fg: var(--color-tertiary);
+    --aui-button-outlined-border-focus: var(--color-tertiary);
+    --aui-button-outlined-state: var(--color-tertiary);
+    --aui-button-text-fg: var(--color-tertiary);
+    --aui-button-text-state: var(--color-tertiary);
+  }
+
+  .aui-button-error {
+    --aui-button-filled-bg: var(--color-error);
+    --aui-button-filled-fg: var(--color-on-error);
+    --aui-button-filled-state: var(--color-on-error);
+    --aui-button-tonal-bg: var(--color-error-container);
+    --aui-button-tonal-fg: var(--color-on-error-container);
+    --aui-button-tonal-state: var(--color-on-error-container);
+    --aui-button-outlined-fg: var(--color-error);
+    --aui-button-outlined-border-focus: var(--color-error);
+    --aui-button-outlined-state: var(--color-error);
+    --aui-button-text-fg: var(--color-error);
+    --aui-button-text-state: var(--color-error);
+  }
+
+  .aui-button-success {
+    --aui-button-filled-bg: var(--color-success);
+    --aui-button-filled-fg: var(--color-on-success);
+    --aui-button-filled-state: var(--color-on-success);
+    --aui-button-tonal-bg: var(--color-success-container);
+    --aui-button-tonal-fg: var(--color-on-success-container);
+    --aui-button-tonal-state: var(--color-on-success-container);
+    --aui-button-outlined-fg: var(--color-success);
+    --aui-button-outlined-border-focus: var(--color-success);
+    --aui-button-outlined-state: var(--color-success);
+    --aui-button-text-fg: var(--color-success);
+    --aui-button-text-state: var(--color-success);
+  }
+
+  .aui-button-warning {
+    --aui-button-filled-bg: var(--color-warning);
+    --aui-button-filled-fg: var(--color-on-warning);
+    --aui-button-filled-state: var(--color-on-warning);
+    --aui-button-tonal-bg: var(--color-warning-container);
+    --aui-button-tonal-fg: var(--color-on-warning-container);
+    --aui-button-tonal-state: var(--color-on-warning-container);
+    --aui-button-outlined-fg: var(--color-warning);
+    --aui-button-outlined-border-focus: var(--color-warning);
+    --aui-button-outlined-state: var(--color-warning);
+    --aui-button-text-fg: var(--color-warning);
+    --aui-button-text-state: var(--color-warning);
+  }
+
+  .aui-button-info {
+    --aui-button-filled-bg: var(--color-info);
+    --aui-button-filled-fg: var(--color-on-info);
+    --aui-button-filled-state: var(--color-on-info);
+    --aui-button-tonal-bg: var(--color-info-container);
+    --aui-button-tonal-fg: var(--color-on-info-container);
+    --aui-button-tonal-state: var(--color-on-info-container);
+    --aui-button-outlined-fg: var(--color-info);
+    --aui-button-outlined-border-focus: var(--color-info);
+    --aui-button-outlined-state: var(--color-info);
+    --aui-button-text-fg: var(--color-info);
+    --aui-button-text-state: var(--color-info);
+  }
+
+  .aui-button-xs {
+    --aui-button-icon-padding-x: var(--aui-button-icon-padding-x-xs);
+    --aui-button-icon-size: var(--aui-button-icon-size-xs);
+  }
+
+  .aui-button-sm {
+    --aui-button-icon-padding-x: var(--aui-button-icon-padding-x-sm);
+    --aui-button-icon-size: var(--aui-button-icon-size-sm);
+  }
+
+  .aui-button-md {
+    --aui-button-icon-padding-x: var(--aui-button-icon-padding-x-md);
+    --aui-button-icon-size: var(--aui-button-icon-size-md);
+  }
+
+  .aui-button-lg {
+    --aui-button-icon-padding-x: var(--aui-button-icon-padding-x-lg);
+    --aui-button-icon-size: var(--aui-button-icon-size-lg);
+  }
+
+  .aui-button-xl {
+    --aui-button-icon-padding-x: var(--aui-button-icon-padding-x-xl);
+    --aui-button-icon-size: var(--aui-button-icon-size-xl);
+  }
+
+  .aui-button-xxl {
+    --aui-button-icon-padding-x: var(--aui-button-icon-padding-x-xxl);
+    --aui-button-icon-size: var(--aui-button-icon-size-xxl);
+  }
+
+  /* Disabled must live in the component layer: utility-layer state rules
+   * can never override component-layer variant backgrounds. */
+  .aui-button:disabled,
+  .aui-button[aria-disabled='true'] {
+    background-color: var(--color-disabled-bg);
+    color: var(--color-disabled-fg);
+    border-color: transparent;
+    --aui-state-layer-color: transparent;
+  }
+}

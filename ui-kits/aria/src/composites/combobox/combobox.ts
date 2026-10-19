@@ -1,15 +1,9 @@
 import { $symbol, type AnyType, effect, untrack } from '@airlib/core';
 import { shadow } from '@airlib/core/browser';
 import { selectionGroup } from '../../selection.js';
-import type { AriaEvent, AriaEventHandler, BaseElement, DetachFn } from '../../types.js';
+import type { AriaEvent, AriaEventHandler, BaseElement } from '../../types.js';
 import { listboxCtx, type ListboxProps } from '../listbox.js';
-import {
-  PopupAria,
-  type PopupCloseEvent,
-  popupCtx,
-  type PopupOpenEvent,
-  type PopupProps,
-} from '../popup/popup.js';
+import { PopupAria, type PopupCloseEvent, popupCtx, type PopupOpenEvent, type PopupProps } from '../popup/popup.js';
 import { ComboboxInputAria, type ComboboxInputOptions, type ComboboxInputProps } from './input.js';
 import { ComboboxPanelAria, type ComboboxPanelProps } from './panel.js';
 
@@ -51,9 +45,9 @@ interface ComboboxBaseProps extends PopupProps {
   onchange?: AriaEventHandler<ComboboxChangeEvent>;
 
   /**
-   * Map of option values to their labels.
+   * Custom labels for the combobox element to map values to.
    */
-  valueMap?: Record<AnyType, AnyType>;
+  options?: Record<AnyType, AnyType>;
 }
 
 /**
@@ -139,9 +133,8 @@ export class ComboboxAria<E extends BaseElement = HTMLElement> extends PopupAria
     return !!this.properties.multiple;
   }
 
-  public get valueMap() {
-    /* istanbul ignore next */
-    return this.properties.valueMap ?? this.__valueMap ?? {};
+  public get labels() {
+    return this.properties.options ?? this.valueMap;
   }
 
   /**
@@ -150,8 +143,9 @@ export class ComboboxAria<E extends BaseElement = HTMLElement> extends PopupAria
   public get label() {
     const value = this.properties.value;
     const values = Array.isArray(value) ? value : [value];
+    const labels = this.labels;
     return values
-      .map((key) => this.valueMap[key as string])
+      .map((key) => labels[key as string])
       .filter(Boolean)
       .join(', ');
   }
@@ -170,7 +164,10 @@ export class ComboboxAria<E extends BaseElement = HTMLElement> extends PopupAria
     this.properties.text = value;
   }
 
-  public constructor(props: ComboboxProps = {}, valueMap: Record<AnyType, AnyType> = {}) {
+  public constructor(
+    props: ComboboxProps = {},
+    private valueMap: Record<AnyType, AnyType> = {}
+  ) {
     super(props, {
       name: 'combobox',
       symbol: COMBOBOX_SYMBOL,
@@ -178,7 +175,6 @@ export class ComboboxAria<E extends BaseElement = HTMLElement> extends PopupAria
       panelRole: 'listbox',
     });
 
-    this.__valueMap = valueMap;
     this.omittedAttrs.push('value', 'query', 'multiple', 'required', 'text', 'valueMap');
 
     popupCtx.set(this as never);
@@ -249,6 +245,4 @@ export class ComboboxAria<E extends BaseElement = HTMLElement> extends PopupAria
       .join(', ');
     this.assign({ query: '', text });
   }
-
-  private readonly __valueMap?: Record<AnyType, AnyType>;
 }

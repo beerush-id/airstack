@@ -1,8 +1,18 @@
 import { getAbortSignal } from './context.js';
+import { IRPC_PACKET_TYPE } from './enum.js';
 import { HandlerError, ResolveError } from './error.js';
 import type { IRPCPackage } from './package.js';
 import { RemoteState } from './state.js';
-import type { IRPCData, IRPCInputs, IRPCOutput, IRPCParseResult, IRPCResponse, IRPCSubRequest } from './types.js';
+import { IRPC_STORE } from './store.js';
+import type {
+  IRPCData,
+  IRPCInputs,
+  IRPCOutput,
+  IRPCPacketError,
+  IRPCParseResult,
+  IRPCResponse,
+  IRPCSubRequest,
+} from './types.js';
 
 /**
  * Resolver class for handling IRPC requests
@@ -40,7 +50,37 @@ export class IRPCResolver {
    * @returns A promise that resolves to an IRPC response with either the result or an error
    */
   public async resolve(): Promise<IRPCResponse> {
-    const { id, name, args } = this.req;
+    const { id, name, args, type, callId } = this.req;
+
+    if (type === IRPC_PACKET_TYPE.ASK || type === IRPC_PACKET_TYPE.REPLY) {
+      let activeStream = undefined;
+
+      for (const router of IRPC_STORE.routers) {
+        const found = router.streams.get(callId!);
+        if (found) {
+          activeStream = found;
+          break;
+        }
+      }
+
+      if (!activeStream) {
+        return { id, name, result: undefined };
+      }
+
+      if (type === IRPC_PACKET_TYPE.REPLY) {
+        const [data, error] = args as [unknown, IRPCPacketError | undefined];
+        activeStream.resolveQuery(id, data, error);
+        return { id, name, result: undefined };
+      }
+
+      try {
+        const [queryType, ...queryArgs] = args as [string, ...unknown[]];
+        const result = await activeStream.answerQuery(queryType, queryArgs);
+        return { id, name, result };
+      } catch (error) {
+        return { id, name, error: HandlerError.failed(error as Error).json() };
+      }
+    }
 
     // Check if the requested method exists in the module
     if (!this.spec) {

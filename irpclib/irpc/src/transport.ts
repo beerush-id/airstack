@@ -70,6 +70,65 @@ export class IRPCTransport {
     const { timeout, maxRetries, retryMode, retryDelay } = { ...this.config, ...config };
 
     const call = new IRPCCall(this, payload, { timeout, maxRetries, retryMode, retryDelay }, reader, spec);
+    const childCalls = new Set<IRPCCall>();
+
+    reader.bindAsk(async (type, askArgs) => {
+      const askPayload: IRPCPayload = {
+        name: spec.name,
+        args: [type, ...askArgs],
+        package: spec.package,
+        type: IRPC_PACKET_TYPE.ASK,
+        callId: call.id,
+      };
+      const askCall = new IRPCCall(this, askPayload, { timeout, maxRetries, retryMode, retryDelay }, undefined, spec);
+      childCalls.add(askCall);
+      this.schedule(askCall);
+
+      try {
+        return await askCall.reader;
+      } finally {
+        childCalls.delete(askCall);
+      }
+    });
+
+    reader.bindReply((queryId, data, error) => {
+      const replyReader = new IRPCReader<IRPCData>(queryId);
+      const replyPayload: IRPCPayload = {
+        name: spec.name,
+        args: [data, error as unknown as IRPCData],
+        package: spec.package,
+        type: IRPC_PACKET_TYPE.REPLY,
+        callId: call.id,
+      };
+      const replyCall = new IRPCCall(
+        this,
+        replyPayload,
+        { timeout, maxRetries, retryMode, retryDelay },
+        replyReader,
+        spec
+      );
+      childCalls.add(replyCall);
+      this.schedule(replyCall);
+      replyReader.finally(() => {
+        childCalls.delete(replyCall);
+      });
+    });
+
+    const cleanupChildren = () => {
+      if (!childCalls.size) return;
+      for (const child of Array.from(childCalls)) {
+        this.queue.delete(child);
+        child.reader.close();
+      }
+      childCalls.clear();
+    };
+
+    const prevOnClose = reader.onClose;
+    reader.onClose = () => {
+      cleanupChildren();
+      prevOnClose?.();
+    };
+    reader.finally(cleanupChildren).catch(() => {});
 
     if (spec.stream || spec.standalone) {
       this.dispatch([call], spec.standalone)

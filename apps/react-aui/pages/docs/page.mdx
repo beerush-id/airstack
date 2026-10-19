@@ -1,0 +1,38 @@
+---
+title: React Maui Docs
+description: Material React components built on AirLib Headless Kits — installation, imports, and the component index.
+---
+
+# React Maui
+
+React declarations over AirLib Headless Kits, presentation from Material native CSS. Headless Kits own behavior and accessibility; `@airlib/react-aui` declares structure and class composition; `@airlib/aui` supplies tokens and stylesheets. Components stay operable without CSS; CSS is always optional.
+
+## Installation
+
+```bash
+npm install @airlib/react-aui @airlib/aui
+```
+
+React and AirLib are peers — your app provides `react`, `react-dom`, and `@airlib/react` at supported versions.
+
+Load either the full library or individual component styles:
+
+```tsx
+import '@airlib/aui';
+```
+
+```tsx
+import '@airlib/aui/widgets/button.css';
+```
+
+Both modes produce equivalent presentation. Each component stylesheet brings its own base, token, and utility dependencies — a selective import never needs a hidden full-library import.
+
+## Components
+
+### Widgets
+
+- [Button](/docs/widgets/button) — Action trigger with safe form defaults, six sizes, five variants, and seven colors.
+- [Toggle](/docs/widgets/toggle) — Two-state button with pressed announcement, six sizes, three variants, and seven colors.
+- [Select](/docs/widgets/select) — Collapsible option list with trigger, popup panel, and options, in single or multiple mode.
+
+More groups and components will appear here as their slices land.

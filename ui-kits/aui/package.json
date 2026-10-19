@@ -1,0 +1,57 @@
+{
+  "type": "module",
+  "name": "@airlib/aui",
+  "version": "2.0.0",
+  "description": "Aria Headless Component Library CSS Theme",
+  "keywords": ["aria", "design-system", "css", "theme", "air-stack"],
+  "author": "Nanang Mahdaen El Agung <mahdaen@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/beerush-id/airstack.git"
+  },
+  "bugs": {
+    "url": "https://github.com/beerush-id/airstack/issues"
+  },
+  "sideEffects": ["*.css"],
+  "exports": {
+    ".": "./src/index.css",
+    "./bundle": "./dist/index.css",
+    "./utils": {
+      "types": "./dist/utils.d.ts",
+      "development": "./src/utils.ts",
+      "import": "./dist/utils.js",
+      "default": "./dist/utils.js"
+    },
+    "./*": "./src/*"
+  },
+  "files": ["src", "dist"],
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@airlib/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "catalog:",
+    "jsdom": "catalog:",
+    "publint": "catalog:",
+    "rimraf": "catalog:",
+    "tsdown": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "typescript": "catalog:lib"
+  },
+  "scripts": {
+    "dev": "rimraf dist && tsdown --watch ./src",
+    "clean": "rimraf dist",
+    "build": "bun run clean && tsdown && publint",
+    "build:css": "tsdown -c tsdown.css.config.ts",
+    "prepublish": "bun run format && bun run build",
+    "format": "biome format --write",
+    "test:run": "rimraf coverage && vitest --run",
+    "test:preview": "rimraf coverage && vitest --run && vite preview --outDir coverage"
+  },
+  "license": "MIT"
+}

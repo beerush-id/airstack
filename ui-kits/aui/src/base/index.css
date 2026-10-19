@@ -1,0 +1,2 @@
+/* Canonical cascade order shared by every import mode. */
+@layer theme, base, component, utility, reduced-motion;

@@ -11,7 +11,10 @@ import {
 import { getAbortSignal } from './context.js';
 import { IRPC_STATUS } from './enum.js';
 import { IRPC_ERROR_TYPE, IRPCError } from './error.js';
-import type { IRPCReadable, IRPCStatus, StreamConstructor } from './types.js';
+import type { IRPCData, IRPCQueryMap, IRPCReadable, IRPCStatus, StreamConstructor } from './types.js';
+
+export type IRPCAskBridge = (type: string, args: IRPCData[]) => Promise<unknown>;
+export type IRPCAnswerFn = (...args: never[]) => unknown;
 
 /**
  * A reactive state wrapper that implements the standard Promise interface.
@@ -21,13 +24,19 @@ import type { IRPCReadable, IRPCStatus, StreamConstructor } from './types.js';
  * 2. For reactive environments, it exposes an `.subscribe()` method to react to intermediate data mutations.
  *
  * @template T - The type of data held by the state.
+ * @template Q - The duplex query map type for bi-directional ask/answer operations.
  */
-export class RemoteState<T> extends Promise<T> {
+export class RemoteState<T, Q extends IRPCQueryMap = IRPCQueryMap> extends Promise<T> {
   readonly #state: IRPCReadable<T>;
   readonly #accept: (value: T) => void;
   readonly #reject: (error: Error) => void;
 
   #pipes = new Set<StateUnsubscribe>();
+  #answers = new Map<string, IRPCAnswerFn>();
+  #answerBridge?: IRPCAskBridge;
+  #inflightAsks = new Set<(value?: undefined) => void>();
+  #askQueue: Array<{ type: string; args: IRPCData[]; resolve: (v: unknown) => void; reject: (e: Error) => void }> = [];
+  #askBridge?: IRPCAskBridge;
   #closed = false;
   #locked?: this['then'];
 
@@ -226,12 +235,122 @@ export class RemoteState<T> extends Promise<T> {
   }
 
   /**
+   * Sends a duplex query to the remote peer and resolves with its answer.
+   * Resolves to `undefined` if the state is closed or the remote peer did not register an answer handler.
+   *
+   * @param type - The query identifier.
+   * @param args - Arguments for the query handler.
+   * @returns A Promise resolving to the remote peer's answer or `undefined`.
+   */
+  public ask<K extends keyof Q & string>(
+    type: K,
+    ...args: Parameters<Q[K]>
+  ): Promise<Awaited<ReturnType<Q[K]>> | undefined> {
+    if (this.#closed) return Promise.resolve(undefined);
+
+    if (this.#askBridge) {
+      return this.#dispatchAsk(type, args as IRPCData[]) as Promise<Awaited<ReturnType<Q[K]>> | undefined>;
+    }
+
+    return new Promise((resolve, reject) => {
+      this.#askQueue.push({
+        type,
+        args: args as IRPCData[],
+        resolve: resolve as (v: unknown) => void,
+        reject,
+      });
+    });
+  }
+
+  #dispatchAsk(type: string, args: IRPCData[]): Promise<unknown> {
+    return new Promise((resolve, reject) => {
+      const cancel = () => {
+        this.#inflightAsks.delete(cancel);
+        resolve(undefined);
+      };
+
+      this.#inflightAsks.add(cancel);
+
+      this.#askBridge!(type, args).then(
+        (res) => {
+          this.#inflightAsks.delete(cancel);
+          resolve(res);
+        },
+        (err) => {
+          this.#inflightAsks.delete(cancel);
+          reject(err);
+        }
+      );
+    });
+  }
+
+  /**
+   * Registers a handler to answer a specific duplex query type from the remote peer.
+   *
+   * @param type - The query identifier to handle.
+   * @param handler - The callback invoked when the remote peer asks this query type.
+   * @returns The current instance for chaining.
+   */
+  public answer<K extends keyof Q & string>(
+    type: K,
+    handler: (...args: Parameters<Q[K]>) => ReturnType<Q[K]> | Promise<Awaited<ReturnType<Q[K]>>>
+  ): this {
+    this.#answers.set(type, handler as IRPCAnswerFn);
+    return this;
+  }
+
+  /**
+   * Binds an outbound ask bridge and flushes any queued queries.
+   *
+   * @param bridge - The transport/stream bridge that dispatches outbound queries.
+   */
+  public bindAsk(bridge: IRPCAskBridge) {
+    this.#askBridge = bridge;
+
+    if (this.#askQueue.length) {
+      const pending = this.#askQueue.splice(0, this.#askQueue.length);
+
+      for (const item of pending) {
+        this.#dispatchAsk(item.type, item.args).then(item.resolve, item.reject);
+      }
+    }
+  }
+
+  /**
+   * Binds a fallback answer bridge to delegate incoming queries to a target state.
+   *
+   * @param bridge - The target answer dispatcher.
+   */
+  public bindAnswer(bridge: IRPCAskBridge) {
+    this.#answerBridge = bridge;
+  }
+
+  /**
+   * Executes the registered answer handler for an incoming duplex query.
+   * Returns `undefined` if no handler is registered for the given type.
+   *
+   * @param type - The incoming query identifier.
+   * @param args - The arguments provided by the remote caller.
+   * @returns The handler's result or `undefined`.
+   */
+  public async dispatchAnswer(type: string, args: unknown[]): Promise<unknown> {
+    const handler = this.#answers.get(type);
+    if (typeof handler === 'function') {
+      return await (handler as (...a: unknown[]) => unknown)(...args);
+    }
+    if (this.#answerBridge) {
+      return await this.#answerBridge(type, args as IRPCData[]);
+    }
+    return undefined;
+  }
+
+  /**
    * Pipes all state mutations from this instance to a target RemoteState.
    *
    * @param target - The destination RemoteState to receive the updates.
    * @returns The current instance for chaining.
    */
-  public pipeTo(target: RemoteState<T>) {
+  public pipeTo(target: RemoteState<T, Q>) {
     this.subscribe((_, event) => {
       if (event.type === 'init') {
         anchor.assign(target.state, this.state);
@@ -248,6 +367,20 @@ export class RemoteState<T> extends Promise<T> {
    * Destroys the reactive state bindings.
    */
   protected destroy() {
+    if (this.#askQueue.length) {
+      const pending = this.#askQueue.splice(0, this.#askQueue.length);
+      for (const item of pending) {
+        item.resolve(undefined);
+      }
+    }
+
+    if (this.#inflightAsks.size) {
+      for (const cancel of Array.from(this.#inflightAsks)) {
+        cancel();
+      }
+      this.#inflightAsks.clear();
+    }
+
     if (this.resumable) return;
 
     for (const unsubscribe of this.#pipes) {
@@ -277,8 +410,11 @@ export class RemoteState<T> extends Promise<T> {
  * @param seed - An optional initial value to prime the state payload inherently.
  * @returns A fully active RemoteState inherently bound to the callbacks executing natively.
  */
-export function stream<T>(construct: StreamConstructor<T>, seed?: T) {
-  const state = new RemoteState<T>(seed);
+export function stream<T, Q extends IRPCQueryMap = IRPCQueryMap>(
+  construct: StreamConstructor<T, Q>,
+  seed?: NoInfer<T>
+): RemoteState<T, Q> {
+  const state = new RemoteState<T, Q>(seed);
   const abortSignal = getAbortSignal();
 
   const accept = ((...values: [T]) => {

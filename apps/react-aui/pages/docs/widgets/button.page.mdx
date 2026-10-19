@@ -1,0 +1,143 @@
+---
+title: Maui Button
+description: Action trigger with safe form defaults, six sizes, five variants, and seven colors.
+---
+
+# Maui Button
+
+A button is the simplest thing on a page until it sits inside a form: forget `type="button"` and every click submits it. Button gives you safe form defaults on a real `<button>` — a click never submits unless you set `type="submit"` — plus disabled handling that screen readers announce as disabled.
+
+Styling is optional. Without Material CSS the Button stays a correct, operable button; with it, the same markup gets the Material treatment through either the full-library or the selective import.
+
+```tsx executable={hidden} module
+import { DemoControl } from '@/components/DemoControl.js';
+```
+
+:::interactive[Button demo]
+
+```tsx
+import { Button } from '@airlib/react-aui';
+import { mutable, setup, $bind } from '@airlib/react';
+
+const ButtonDemo = setup(() => {
+  const state = mutable({ count: 0, size: 'md', variant: 'filled', color: 'primary', disabled: false });
+
+  return () => (
+    <div className="demo-button">
+      <div className="demo-button-row">
+        <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} variant={$bind(state, 'variant')} disabled={$bind(state, 'disabled')} />
+      </div>
+      <div className="demo-button-row">
+        <Button
+          size={state.size}
+          variant={state.variant}
+          color={state.color}
+          disabled={state.disabled}
+          onClick={() => {
+            state.count += 1;
+          }}
+        >
+          Clicks: {state.count}
+        </Button>
+      </div>
+    </div>
+  );
+}, 'ButtonDemo');
+```
+
+```html
+<ButtonDemo />
+```
+
+<ButtonDemo />
+
+:::
+
+## Usage
+
+```tsx
+import { Button } from '@airlib/react-aui';
+import '@airlib/aui/widgets/button.css';
+
+export const SaveAction = () => <Button>Save</Button>;
+```
+
+For the full library instead of the selective import, load `import '@airlib/aui';`. Both modes look the same.
+
+### Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `type` | `'button'`, `'submit'`, `'reset'` | `'button'` | What a click does in a form. Leave it and a click never submits. |
+| `disabled` | `boolean` | `false` | Locks the button and announces it as disabled. |
+| `size` | `xs`, `sm`, `md`, `lg`, `xl`, `xxl` | `'lg'` | Explicit props win; otherwise the configured default applies. |
+| `variant` | `filled`, `elevated`, `tonal`, `outlined`, `text` | `'filled'` | Same precedence as `size`. |
+| `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | Same precedence as `size`. |
+| `className` | `string` | — | Added alongside the built-in classes by default; replaces them in replacement mode. |
+| `children` | `ReactNode` | — | Button label. |
+| `ref` | `Ref<HTMLButtonElement>` | — | Access to the underlying button element. |
+
+Set app-wide defaults once instead of repeating props on every button:
+
+```tsx
+import { configure } from '@airlib/react-aui';
+
+configure({ button: { size: 'sm' } });
+
+// Renders small without passing size every time
+<Button>Save</Button>
+```
+
+Your own classes are added next to the built-in ones:
+
+```tsx
+// class="maui-action maui-button maui-button-sm maui-button-filled maui-button-primary my-btn"
+<Button className="my-btn">Save</Button>
+```
+
+Replacement mode renders only your classes — the button keeps working exactly the same:
+
+```tsx
+import { configure } from '@airlib/react-aui';
+
+configure({ overrides: true });
+
+// class="my-btn"
+<Button className="my-btn">Save</Button>
+```
+
+Keyboard: `Tab` focuses the button, `Space` activates on key-up, `Enter` activates on key-down. Disabled buttons stay out of the way and go silent to neither sighted nor screen-reader users — they are announced as disabled.
+
+### Sizes
+
+Sizes: `xs`, `sm`, `md`, `lg`, `xl`, `xxl`, default `lg`:
+
+```tsx
+<Button size="sm">Compact</Button>
+<Button size="lg">Spacious</Button>
+```
+
+### Variants
+
+Variants: `filled`, `elevated`, `tonal`, `outlined`, `text`, default `filled`:
+
+```tsx
+<Button variant="filled">High emphasis</Button>
+<Button variant="tonal">Medium emphasis</Button>
+<Button variant="outlined">Medium emphasis, bordered</Button>
+<Button variant="text">Low emphasis</Button>
+```
+
+### Color Variants
+
+Colors: `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info`, default `primary`:
+
+```tsx
+<Button color="error">Delete</Button>
+<Button variant="tonal" color="success">Saved</Button>
+```
+
+## Next Steps
+
+- [Toggle](/docs/widgets/toggle) — A button that keeps its state: for on/off controls instead of fire-and-forget actions.
+- [Select](/docs/widgets/select) — Collapse several choices behind one trigger instead of spreading buttons across the page.

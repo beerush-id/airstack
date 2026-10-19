@@ -271,7 +271,7 @@ const DemoCitiesOption = setup<DemoCitiesOptionProps>((props) => {
 aria<E extends BaseElement = HTMLElement>(
   role: 'combobox',
   props?: ComboboxProps,
-  valueMap?: Record<string, string>
+  labels?: Record<string, string>
 ): ComboboxAria<E>
 ```
 
@@ -346,7 +346,7 @@ _What you pass in. The props object stays live — change a value on it and the 
 - **open** _boolean, optional_: Popup visibility, read and write through `combobox.open`.
 - **disabled** _boolean, optional_: Locks typing, opening, traversal, and committing across the **whole composite**.
 - **required** _boolean, optional_: With nothing selected, the first option to mount claims the selection.
-- **valueMap** _Record&lt;string, string&gt;, optional_: Option values to their labels, used to name the current choice.
+- **labels** _Record&lt;string, string&gt;, optional_: Option values to their labels, used to name the current choice.
 - **id** _string, optional_: Generated as `combobox-<n>` when you leave it out; the panel derives `{id}-panel`.
 - **onopen** / **onclose** _(event: CustomEvent&lt;true | false&gt;) =&gt; void, optional_: The popup's open and close edges, through every dismissal path.
 - **oninput** _(event: CustomEvent&lt;string | undefined&gt;) =&gt; void, optional_: The typed query, and the option value as traversal moves the cursor.
@@ -359,7 +359,7 @@ _What you read or write on the instance afterwards._
 - **value** _string | string[] | null | undefined, read and write_: The committed selection.
 - **query** _string, read and write_: The filter text.
 - **text** _string, read and write_: The label the field shows while you are not filtering, published from the committed options' rendered text.
-- **label** _string_: The current choice named through `valueMap`.
+- **label** _string_: The current choice named through `labels`.
 - **open** _boolean, read and write_: Whether the popup is open.
 - **multiple** _boolean_: Whether several options may be selected at once.
 
@@ -576,7 +576,7 @@ interface SingleComboboxProps {
   required?: boolean;
   multiple?: false;
   value?: string | null;
-  valueMap?: Record<string, string>;
+  labels?: Record<string, string>;
   onopen?: (event: CustomEvent<true>) => void;
   onclose?: (event: CustomEvent<false>) => void;
   oninput?: (event: CustomEvent<string | undefined>) => void;
@@ -591,7 +591,7 @@ interface MultipleComboboxProps {
   required?: boolean;
   multiple: true;
   value?: string[];
-  valueMap?: Record<string, string>;
+  labels?: Record<string, string>;
   onopen?: (event: CustomEvent<true>) => void;
   onclose?: (event: CustomEvent<false>) => void;
   oninput?: (event: CustomEvent<string | undefined>) => void;
@@ -609,7 +609,7 @@ declare class ComboboxAria {
   get open(): boolean;
   set open(value: boolean);
   get multiple(): boolean;
-  get valueMap(): Record<string, string>;
+  get labels(): Record<string, string>;
 
   input(props?: ComboboxInputProps, options?: ComboboxInputOptions): ComboboxInputAria;
   panel(props?: ComboboxPanelProps): ComboboxPanelAria;

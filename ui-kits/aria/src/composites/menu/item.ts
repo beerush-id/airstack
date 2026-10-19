@@ -200,8 +200,8 @@ export interface MenuItemRadioAttributes<E extends BaseElement = HTMLButtonEleme
  */
 export class MenuItemRadioAria<
   E extends BaseElement = HTMLButtonElement,
-  T extends Primitive = Primitive,
-> extends RadioAria<E, MenuItemRadioProps<T>, MenuItemRadioAttributes<E>, MenuItemOptions> {
+  P extends MenuItemRadioProps = MenuItemRadioProps,
+> extends RadioAria<E, P, MenuItemRadioAttributes<E>, MenuItemOptions> {
   /**
    * Enclosing menu orchestrator discovered from ambient context.
    */
@@ -218,8 +218,8 @@ export class MenuItemRadioAria<
    * @param props - User-provided radio item properties.
    * @param options - User-provided item options.
    */
-  public constructor(props: MenuItemRadioProps<T>, options: MenuItemOptions = { native: false }) {
-    super(props, options);
+  public constructor(props: MenuItemRadioProps, options: MenuItemOptions = { native: false }) {
+    super(props as never, options);
 
     this.host = menuCtx.get();
     this.omittedAttrs.push('value', 'name', 'checked', 'onchange', 'aria-checked', 'role');
