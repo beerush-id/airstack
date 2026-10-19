@@ -1,6 +1,7 @@
 import { type AnyRoute, classx, For, Link, mutable, Show, Slot, setup } from '@airlib/react';
 import type { ComponentProps, ReactNode } from 'react';
 import docsRoute from '../pages/(docs)/route.js';
+import ariaRoute from '../pages/aria/route.js';
 import postsRoute from '../pages/posts/route.js';
 import releasesRoute from '../pages/releases/route.js';
 import rootRoute from '../pages/route.js';
@@ -9,6 +10,10 @@ import { LogoText } from './LogoText.js';
 import { Search } from './Search.js';
 
 const navs = [
+  {
+    text: 'Headless Kits',
+    route: ariaRoute,
+  },
   {
     text: 'Docs',
     route: docsRoute,
