@@ -1,6 +1,6 @@
 @layer theme {
   :root {
-    --aui-state-layer-color: var(--color-scrim);
+    --aui-state-layer-color: var(--light-up);
   }
 
   .aui-control,

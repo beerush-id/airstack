@@ -13,7 +13,8 @@ Styling is optional. Without Material CSS the Button stays a correct, operable b
 
 ```tsx
 import { Button } from '@airlib/react-aui';
-import { mutable, setup, $bind } from '@airlib/react';
+import { HelpIcon } from '@airlib/react-aui/icons';
+import { mutable, setup, $bind, Snippet } from '@airlib/react';
 import { DemoControl } from '@/components/DemoControl.js';
 
 const ButtonDemo = setup(() => {
@@ -22,18 +23,54 @@ const ButtonDemo = setup(() => {
   return () => (
     <div className="demo-button">
       <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} variant={$bind(state, 'variant')} disabled={$bind(state, 'disabled')} />
-      <div className="aui-card flex-col items-center justify-center p-xl">
-        <Button
-          size={state.size}
-          variant={state.variant}
-          color={state.color}
-          disabled={state.disabled}
-          onClick={() => {
-            state.count += 1;
-          }}
-        >
-          Clicks: {state.count}
-        </Button>
+      <div className="aui-card flex gap-md items-center justify-center p-xl">
+        <Snippet>
+          {() => (
+            <Button
+              size={state.size}
+              variant={state.variant}
+              color={state.color}
+              disabled={state.disabled}
+              onClick={() => {
+                state.count += 1;
+              }}
+            >
+              Clicks: {state.count}
+            </Button>
+          )}
+        </Snippet>
+        <Snippet>
+          {() => (
+            <Button
+              size={state.size}
+              variant={state.variant}
+              color={state.color}
+              disabled={state.disabled}
+              onClick={() => {
+                state.count += 1;
+              }}
+            >
+              <HelpIcon />
+              <span>Clicks: {state.count}</span>
+            </Button>
+          )}
+        </Snippet>
+        <Snippet>
+          {() => (
+            <Button
+              size={state.size}
+              variant={state.variant}
+              color={state.color}
+              disabled={state.disabled}
+              onClick={() => {
+                state.count += 1;
+              }}
+              className="aui-control-icon"
+            >
+              <HelpIcon />
+            </Button>
+          )}
+        </Snippet>
       </div>
     </div>
   );

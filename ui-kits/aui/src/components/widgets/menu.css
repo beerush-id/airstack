@@ -13,6 +13,15 @@
 }
 
 @layer component {
+  @keyframes menu-pop-up {
+    from {
+      transform: translateY(calc(var(--spacing-sm) * -1));
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+
   .aui-menu-panel {
     display: flex;
     flex-direction: column;
@@ -25,7 +34,7 @@
       flip-inline,
       flip-block flip-inline;
     position-try-order: normal;
-    min-width: anchor-size(width);
+    min-width: calc(var(--spacing) * 40);
     margin-block: var(--aui-menu-panel-gap);
     background: var(--aui-menu-panel-bg);
     border-radius: var(--aui-menu-panel-radius);
@@ -33,6 +42,7 @@
     padding-inline: var(--aui-menu-panel-padding-x);
     overflow-y: auto;
     box-shadow: var(--elevation-3);
+    animation: menu-pop-up var(--duration-medium) var(--ease-emphasized-decelerate) forwards;
 
     &:not([open]) {
       display: none;
@@ -50,6 +60,7 @@
   }
 
   .aui-menu-item {
+    --aui-state-layer-color: var(--aui-menu-item-bg);
     display: flex;
     gap: var(--aui-control-gap);
     align-items: center;

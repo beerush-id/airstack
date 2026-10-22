@@ -12,7 +12,8 @@ Styling is optional. Without Material CSS the Toggle stays a correct, operable t
 :::interactive[Toggle demo]
 
 ```tsx
-import { Select, SelectOption, SelectPanel, SelectTrigger, Toggle } from '@airlib/react-aui';
+import { Toggle } from '@airlib/react-aui';
+import { HelpIcon } from '@airlib/react-aui/icons';
 import { $bind, mutable, setup, Snippet } from '@airlib/react';
 import { DemoControl } from '@/components/DemoControl.js';
 
@@ -22,16 +23,48 @@ const ToggleDemo = setup(() => {
   return () => (
     <div className="demo-button">
       <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} variant={$bind(state, 'variant')} disabled={$bind(state, 'disabled')} />
-      <div className="aui-card flex-col items-center justify-center p-xl">
-        <Toggle
-          size={state.size}
-          variant={state.variant}
-          color={state.color}
-          pressed={$bind(state, 'pressed')}
-          disabled={state.disabled}
-        >
-          <Snippet>{() => state.pressed ? 'Pressed' : 'Not pressed'}</Snippet>
-        </Toggle>
+      <div className="aui-card flex gap-md items-center justify-center p-xl">
+        <Snippet>
+          {() => (
+            <Toggle
+              size={state.size}
+              variant={state.variant}
+              color={state.color}
+              disabled={state.disabled}
+              pressed={$bind(state, 'pressed')}
+            >
+              {state.pressed ? 'Pressed' : 'Unpressed'}
+            </Toggle>
+          )}
+        </Snippet>
+        <Snippet>
+          {() => (
+            <Toggle
+              size={state.size}
+              variant={state.variant}
+              color={state.color}
+              disabled={state.disabled}
+              pressed={$bind(state, 'pressed')}
+            >
+              <HelpIcon />
+              <span>{state.pressed ? 'Pressed' : 'Unpressed'}</span>
+            </Toggle>
+          )}
+        </Snippet>
+        <Snippet>
+          {() => (
+            <Toggle
+              size={state.size}
+              variant={state.variant}
+              color={state.color}
+              disabled={state.disabled}
+              pressed={$bind(state, 'pressed')}
+              className="aui-control-icon"
+            >
+              <HelpIcon />
+            </Toggle>
+          )}
+        </Snippet>
       </div>
     </div>
   );

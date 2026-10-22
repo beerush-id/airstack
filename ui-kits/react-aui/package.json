@@ -24,6 +24,10 @@
       "types": "./dist/components/index.d.ts",
       "import": "./dist/components/index.js"
     },
+    "./icons": {
+      "types": "./dist/icons/index.d.ts",
+      "import": "./dist/icons/index.js"
+    },
     "./utils": {
       "types": "./dist/hooks/index.d.ts",
       "import": "./dist/hooks/index.js"

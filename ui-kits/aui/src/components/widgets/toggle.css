@@ -1,5 +1,5 @@
 @layer component {
-  .aui-control.aui-toggle {
+  .aui-control.aui-toggle:not(:disabled, [aria-disabled='true']) {
     --aui-control-outline-color: transparent;
     color: var(--aui-control-bg);
     background-color: color-mix(
@@ -7,6 +7,10 @@
       var(--aui-control-bg) var(--tone-elevation-low),
       var(--light-up)
     );
+
+    &:not([aria-pressed='true']) {
+      --aui-state-layer-color: var(--aui-control-bg);
+    }
 
     &[aria-pressed='true'] {
       color: var(--aui-control-fg);
