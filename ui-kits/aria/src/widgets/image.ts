@@ -322,6 +322,10 @@ export class ImageFallbackAria<
 > extends Aria<E, T, A, O> {
   private readonly host?: ImageAria;
 
+  public get initial() {
+    return initialsOf(this.host?.properties.alt ?? '');
+  }
+
   public constructor(props: Partial<T> = {}, options: O = {} as O) {
     super(props, options);
     this.host = resolveImageHost(this.scope);
@@ -351,3 +355,11 @@ export class ImageFallbackAria<
     } as A;
   }
 }
+
+const initialsOf = (label: string) => {
+  const words = label.toUpperCase().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return '';
+  const [word] = words;
+  const letters = [word[0], words.length === 1 ? word[1] : words[1]?.[0]];
+  return letters.filter(Boolean).join('');
+};

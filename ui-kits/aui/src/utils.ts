@@ -224,7 +224,13 @@ export const $families = resolveFamilies;
 /* ----------------------------- */
 export type MauiConfig = typeof DEFAULT_CONFIG & {
   button?: ComponentStyles;
+  switch?: ComponentStyles;
   toggle?: ComponentStyles;
+  link?: ComponentStyles;
+  divider?: ComponentStyles;
+  image?: ComponentStyles;
+  imageContent?: ComponentStyles;
+  imageFallback?: ComponentStyles;
   select?: ComponentStyles;
   selectPanel?: ComponentStyles;
   selectOption?: ComponentStyles;
@@ -233,7 +239,15 @@ export type MauiConfig = typeof DEFAULT_CONFIG & {
 
 export const AUI_CLASS = {
   BUTTON: branded('button'),
+  SWITCH: branded('switch'),
+  SWITCH_THUMB: branded('switch-thumb'),
+  SWITCH_TRACK: branded('switch-track'),
   TOGGLE: branded('toggle'),
+  LINK: branded('link'),
+  DIVIDER: branded('divider'),
+  IMAGE: branded('image'),
+  IMAGE_CONTENT: branded('image-content'),
+  IMAGE_FALLBACK: branded('image-fallback'),
   SELECT: branded('select'),
   CONTROL: branded('control'),
   MENU_ITEM: branded('menu-item'),

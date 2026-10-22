@@ -33,6 +33,7 @@
     --air-mdx-bg-inner: var(--color-surface-lowest);
     --air-mdx-code-bg: var(--color-surface-low);
     --air-mdx-code-text: var(--color-on-surface);
+    --air-mdx-border: var(--color-surface-container);
     --air-mdx-font: var(--font-sans), system-ui, sans-serif;
     --air-mdx-font-mono: var(--font-mono), ui-monospace, monospace;
 
@@ -165,13 +166,7 @@
     font-size: var(--font-label-lg-size);
   }
 
-  /* M3 expressive demo cards: tonal surface, soft border, no shadow. */
-  .air-interactive {
-    border: 1px solid var(--color-outline-variant);
-  }
-
   .air-interactive-icon {
-    color: var(--color-primary);
   }
 
   .air-interactive-title {

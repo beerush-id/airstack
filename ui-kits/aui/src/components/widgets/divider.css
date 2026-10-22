@@ -1,0 +1,47 @@
+@layer component {
+  .aui-divider {
+    --aui-divider-color: var(--color-outline);
+    --aui-divider-thickness: 1px;
+
+    flex: none;
+    display: block;
+    inline-size: 100%;
+    block-size: var(--aui-divider-thickness);
+    border: 0;
+    background-color: var(--aui-divider-color);
+  }
+
+  .aui-divider[aria-orientation='vertical'] {
+    inline-size: var(--aui-divider-thickness);
+    block-size: auto;
+    align-self: stretch;
+  }
+
+  .aui-divider-primary {
+    --aui-divider-color: var(--color-primary);
+  }
+
+  .aui-divider-secondary {
+    --aui-divider-color: var(--color-secondary);
+  }
+
+  .aui-divider-tertiary {
+    --aui-divider-color: var(--color-tertiary);
+  }
+
+  .aui-divider-info {
+    --aui-divider-color: var(--color-info);
+  }
+
+  .aui-divider-error {
+    --aui-divider-color: var(--color-error);
+  }
+
+  .aui-divider-success {
+    --aui-divider-color: var(--color-success);
+  }
+
+  .aui-divider-warning {
+    --aui-divider-color: var(--color-warning);
+  }
+}

@@ -1,0 +1,172 @@
+---
+title: AUI Image
+nav: Image
+nav-priority: 200
+description: Image loading coordinator with an accessible fallback, a read-only lifecycle status, and a decorative mode that leaves the accessibility tree.
+---
+
+# AUI Image
+
+An Image owns one source and keeps exactly one of its two compound parts on screen. While the source loads, the fallback stays visible and holds the accessible name; once the content settles, the content becomes the `img` and the placeholder withdraws. An empty `alt` marks the source decorative and takes the whole unit out of the accessibility tree: no role, no label, and hidden placeholders.
+
+Styling is optional. Without AUI CSS the Image stays a correct, operable image with a text placeholder; with it, the same markup gets the AUI treatment through the full library.
+
+:::interactive[Image demo]
+
+```tsx
+import { Image, Select, Toggle } from '@airlib/react-aui';
+import { COLOR_LABELS } from '@airlib/aui/utils';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import avatar from '@/assets/avatar.jpeg?asset&sizes=128';
+
+const IMAGE_STATUS_LABELS: Record<string, string> = {
+  idle: 'Idle',
+  loading: 'Loading',
+  loaded: 'Loaded',
+  error: 'Error',
+};
+
+const ImageDemo = setup(() => {
+  const state = mutable({ broken: false, color: undefined, status: 'idle' });
+
+  return () => (
+    <div className="demo-button">
+      <div className="flex gap-xs w-full">
+        <Select size="sm" placeholder="Color" options={COLOR_LABELS} value={$bind(state, 'color')} />
+        <div className="flex-1"></div>
+        <Toggle size="sm" pressed={$bind(state, 'broken')}>
+          {() => (state.broken ? 'Working source' : 'Broken source')}
+        </Toggle>
+      </div>
+      <div className="aui-card flex gap-lg items-center p-xl">
+        <Image
+          src={state.broken ? '/missing.png' : avatar.src}
+          alt="Signed-in member"
+          color={state.color || undefined}
+          onchange={(event) => (state.status = event.detail)}
+        />
+        <span>Status:&nbsp;<Snippet>{() => <strong>{IMAGE_STATUS_LABELS[state.status]}</strong>}</Snippet></span>
+      </div>
+    </div>
+  );
+}, 'ImageDemo');
+```
+
+```html
+<ImageDemo />
+```
+
+<ImageDemo />
+
+:::
+
+## Usage
+
+Drop the Image where a source should appear. With no children, it projects the whole unit itself — a content `<img>` from `src` and an empty fallback frame carrying the accessible name:
+
+```tsx
+import { Image } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/image.css';
+
+export const Record = () => <Image src="/team/ana.png" alt="Ana Duarte" />;
+```
+
+Name the parts yourself when the placeholder needs anything other than the initial letters of `alt`:
+
+```tsx
+import { Image, ImageContent, ImageFallback } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/image.css';
+
+export const Record = () => (
+  <Image src="/team/ana.png" alt="Ana Duarte">
+    <ImageFallback>AD</ImageFallback>
+    <ImageContent />
+  </Image>
+);
+```
+
+Fill the fallback with initials, a skeleton, or an icon — it carries the shared label while it is the active representation, and it hides both ways once the content settles. Settling swaps the roles: the `<img>` grows `role="img"` and the accessible name, while the placeholder becomes hidden:
+
+```tsx
+<Image src="/team/ana.png" alt="Ana Duarte">
+  <ImageFallback>…</ImageFallback>
+  <ImageContent />
+</Image>
+```
+
+A decorative source keeps the same parts on screen but withdraws the whole unit: `alt=""`, no roles, and every piece `aria-hidden`:
+
+```tsx
+<Image src="/pattern.png" alt="">
+  <ImageFallback>…</ImageFallback>
+  <ImageContent />
+</Image>
+```
+
+The lifecycle is read-only. `status` reports `idle`, `loading`, `loaded`, or `error` and is a channel for reads — assigning it never drives loading; only `src` changes open a new lifecycle, and every source change invalidates older async results:
+
+```tsx
+const state = mutable({ status: 'idle' });
+
+<Image src="/profile.png" alt="Profile" status={$bind(state, 'status')} />
+```
+
+`onchange` receives the same transitions as an event, so you can react without a binding:
+
+```tsx
+<Image src="/profile.png" alt="Profile" onchange={(event) => setShadow(event.detail !== 'loaded')} />
+```
+
+### Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `src` | `string` | — | The source URL. Absent commits `idle`; every change opens a fresh lifecycle. |
+| `alt` | `string` | — (required) | The shared label. An empty string marks the source decorative. |
+| `status` | `Bindable<'idle' \| 'loading' \| 'loaded' \| 'error'>` | `'idle'` | Read-only lifecycle channel; assigning never drives loading. |
+| `onchange` | `(event: CustomEvent<'idle' \| 'loading' \| 'loaded' \| 'error'>) => void` | — | Fired after each status transition. |
+| `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | — | Opt-in family color. Without it the frame stays neutral. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `children` | `ImageContent`, `ImageFallback` | the parts | The compound parts; without children the coordinator renders both, with the fallback holding the initials of `alt`. |
+| `ref` | `Ref<HTMLDivElement>` | — | Access to the underlying container element. |
+
+### Compound Parts
+
+The two parts are separate components so you can name the visual placeholder; on their own they project their own source and label, but inside the coordinator they take theirs:
+
+| Part | Element | Notes |
+| --- | --- | --- |
+| [`ImageContent`](/docs/widgets/image) | `<img>` | The loaded representation. Hidden from assistive technology until it is the active representation. |
+| [`ImageFallback`](/docs/widgets/image) | `<div>` | The placeholder representation. Carries the shared label while active; `aria-hidden` once the content settles. |
+
+Set app-wide defaults once instead of repeating props on every image:
+
+```tsx
+import { configure } from '@airlib/react-aui';
+
+configure({ image: { color: 'info' } });
+```
+
+Your own classes are added next to the built-in ones:
+
+```tsx
+// class="aui-image aui-image-info my-frame"
+<Image src="/logo.png" alt="Logo" color="info" className="my-frame">…</Image>
+```
+
+To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+
+### Color Variants
+
+Colors: `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info`, no default — the frame is neutral until a color is passed:
+
+```tsx
+<Image src="/logo.png" alt="Logo" color="secondary">…</Image>
+<Image src="/logo.png" alt="Logo" color="error">…</Image>
+```
+
+## Next Steps
+
+- [Divider](/docs/widgets/divider) — A structural boundary that separates regions without carrying a value.
+- [Button](/docs/widgets/button) — A command trigger for actions that fire in place rather than representing media.
+- [Switch](/docs/widgets/switch) — An on/off setting control for states that live on the page.

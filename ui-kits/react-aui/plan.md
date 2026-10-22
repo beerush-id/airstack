@@ -20,6 +20,13 @@ AUI stands for Aria User Interface and is the design language of the AirLib kits
 - Every component registers its fallbacks with `register(role, defaults)` and composes classes with the shared resolver, passing its own role and registered defaults. No component carries a private resolver.
 - Main config stays lean: per-role slots are type-only (`button?: ComponentStyles`), not inlined growing objects, so users can override globally (`sizeMap`/`brand`/`overrides`) or per role (`auiConfig.button`) without bloating the main entry.
 
+## 0.1 Delivered status (verified on disk 2026-10-22)
+
+- DONE: `Button` slice + shared contract — `react-aui/src/widgets/Button.tsx`, `widgets/index.ts`, `src/index.ts`, `src/config.ts`, `src/utils/common.ts` (empty), `test/widgets/Button.test.tsx`, `aui/src/utils.ts` (SIZES/COLORS/VARIANTS + resolver), `aui/test/utils.test.ts`, `aui/src/index.css` (`theme, base, component, utility, reduced-motion`), `theme/index.css`, `utilities/{size,variant,color-variant}.css`, `components/widgets/{control,button}.css`, `docs/widgets/button.page.mdx`.
+- DONE beyond Task 1: `Link`, `Toggle`, `Divider`, `Image`, `Switch` (`src/widgets/`, `test/widgets/`, `components/widgets/*.css`, `docs/widgets/*.page.mdx`); `Select` + parts (`src/composites/Select.tsx`, `components/widgets/select.css`, `docs/widgets/select.page.mdx`, `test/widgets/Select.test.tsx`); full `utilities/` set (`layout, spacing, text, touch` extra); `base/{index,focus,reset}.css`; `icons/` (~25 icons); metadata-driven `docs/nav.ts`; substantive `docs/theming.page.mdx` (~447 lines).
+- PARTIAL: Task 2 docs shell — navigation + theming done, `getting-started.page.mdx` still a stub (frontmatter + `# Getting Started` only).
+- TODO: `toggle-group`, `header/main/footer/section/sidebar`, `navigation/breadcrumb/toolbar/pagination`, text/field inputs, `checkbox/radio/slider` + groups, `form/file-picker`, `option/selection/listbox/combobox` (only `select` done), disclosures/tabs, overlays/menus, feedback, dates, structured data, multi-part layout. Unplanned extras on disk (`components/{card,icon,state}.css`, `components/widgets/menu.css`, `icons/`) are reused styling dependencies, not new public scope.
+
 ## 1. Scope and boundaries
 
 | Location | Responsibility |
@@ -42,7 +49,7 @@ AUI stands for Aria User Interface and is the design language of the AirLib kits
 - If the allowed documentation does not establish an API contract, ask for clarification; do not infer internals or dig into dependencies.
 - Request a scope extension if implementation requires changes to unrelated app files; this does not waive the dependency-reading prohibition.
 - Do not perform Git operations, publish packages, or delete existing files/artifacts.
-- Strictly no dev/build commands, including indirect invocation through scripts or hooks. The dev server is always running and builds automatically; use that server and its generated outputs. Do not start, restart, or replace it, and do not inspect processes to verify its stated status.
+- Dev server always running on port 6173. Strictly no dev/build commands, including indirect invocation through scripts or hooks. The dev server is always running and builds automatically; use that server and its generated outputs. Do not start, restart, or replace it, and do not inspect processes to verify its stated status.
 - Preserve existing work; integrate into the current packages rather than replacing their scaffolds.
 - No magic strings: give repeated/domain-significant strings named constants. Keep constants local when not reused across modules; export and reuse a single definition when shared. Do not scatter class names, variant names, or configuration keys across declarations and resolvers.
 - No clarification comments in code, ever. Comments must carry non-obvious meaning only (why a decision exists, how to consume an opt-in entrypoint) — never restate what the code already says. The only comments that belong in code are JSDoc on public API.
@@ -191,14 +198,14 @@ The references below are candidate mappings from the ARIA reference stylesheets 
 
 | Delivery batch | Source topics | Reference stylesheet / treatment |
 | --- | --- | --- |
-| First complete slice | `button` | `components/widgets/button.css`; required focus, touch, and state primitives. |
-| Actions | `link`, `toggle`, `toggle-group` | Link, button, button-group, and segmented-button references as applicable. |
-| Content and landmarks | `divider`, `image`, `header`, `main`, `footer`, `section`, `sidebar` | Divider, page, app-bar, and side-sheet references where appropriate; avoid invented visuals for semantic-only wrappers. |
+| First complete slice — DONE | `button` | `components/widgets/button.css`; required focus, touch, and state primitives. |
+| Actions — PARTIAL (link, toggle done; toggle-group TODO) | `link`, `toggle`, `toggle-group` | Link, button, button-group, and segmented-button references as applicable. |
+| Content and landmarks — PARTIAL (divider, image done; header/main/footer/section/sidebar TODO) | `divider`, `image`, `header`, `main`, `footer`, `section`, `sidebar` | Divider, page, app-bar, and side-sheet references where appropriate; avoid invented visuals for semantic-only wrappers. |
 | Navigation | `navigation`, `breadcrumb`, `toolbar`, `pagination` | Navigation layouts and toolbar; derive missing treatments from shared tokens. |
 | Text and field composition | `field`, `text-input`, `search-input`, `code-input`, `number-stepper` | Field, text-field, textarea, and search-bar references; adapt to the source's actual inputs and parts. |
-| Choice controls | `checkbox`, `checkbox-group`, `radio`, `radio-group`, `switch`, `slider` | Corresponding control styles and token-based group layouts. |
+| Choice controls — PARTIAL (switch done; checkbox/radio/slider/groups TODO) | `checkbox`, `checkbox-group`, `radio`, `radio-group`, `switch`, `slider` | Corresponding control styles and token-based group layouts. |
 | Forms and files | `form`, `file-picker` | Compose existing controls; add only the missing form/file-specific presentation. |
-| Collection selection | `option`, `selection`, `listbox`, `select`, `combobox` | List, select, field, and menu references where structurally applicable. |
+| Collection selection — PARTIAL (select done; option/selection/listbox/combobox TODO) | `option`, `selection`, `listbox`, `select`, `combobox` | List, select, field, and menu references where structurally applicable. |
 | Disclosure and tabs | `disclosure`, `accordion`, `tabs` | Collapsible, accordion, and tabs references. |
 | Overlays and menus | `popover`, `tooltip`, `dialog`, `confirm`, `menu`, `context-menu` | Overlay utilities, tooltip, dialog, and menu references; preserve the headless lifecycle. |
 | Feedback | `announcer`, `progress`, `meter`, `toast` | Progress and snackbar references; preserve live-region semantics and distinguish progress from a meter. |
@@ -233,7 +240,7 @@ Apply this procedure to the CSS dependencies of each delivered component rather 
 
 ## 7. Implementation tasks
 
-### Task 1: Deliver Button and the shared presentation contract
+### Task 1: Deliver Button and the shared presentation contract — DONE (verified on disk 2026-10-22)
 
 **Files:** `ui-kits/react-aui/src/index.ts`, `ui-kits/react-aui/src/config.ts`, `ui-kits/react-aui/src/widgets/index.ts`, `ui-kits/react-aui/src/widgets/Button.tsx`, `ui-kits/react-aui/test/widgets/Button.test.tsx`, `ui-kits/react-aui/src/utils/common.ts`, `ui-kits/aui/test/utils.test.ts`, `ui-kits/aui/src/utils.ts`, `ui-kits/aui/src/index.css`, `ui-kits/aui/src/theme/index.css`, `ui-kits/aui/src/utilities/size.css`, `ui-kits/aui/src/utilities/variant.css`, `ui-kits/aui/src/utilities/color-variant.css`, `ui-kits/aui/src/components/widgets/control.css`, `ui-kits/aui/src/components/widgets/button.css`, both package manifests/exports, and `apps/react-aui/pages/docs/widgets/button.page.mdx`.
 
@@ -241,27 +248,27 @@ Apply this procedure to the CSS dependencies of each delivered component rather 
 
 **Produces:** Public `Button` and `ButtonProps`, configurable fallbacks, default-additive `classx` composition, shared AUI size/variant/color vocabulary and utilities, a self-contained Button stylesheet, and documentation/demo coverage under the matching `widgets` group.
 
-- [ ] Define shared presentation constants/types and the configurable fallback contract in AUI utilities; expose React AUI configuration using those definitions with `overrides: false` as the default.
-- [ ] Record the native host, ref forwarding contract, supported props, utility classes, component classes, and token mappings using only allowed skills and the Headless Kits documentation.
-- [ ] Identify controller-mutated props from the documented contract and type each as `Bindable<T>` where applicable; do not infer mutation behavior from dependency source.
-- [ ] Keep Button-only strings in local named constants and export shared class/presentation constants from their owning module.
-- [ ] Write regression cases for a non-submitting default Button inside a form, explicit submit behavior, disabled activation, children, event forwarding, and consumer ref access.
-- [ ] Add composition tests for configured fallbacks when props are absent, explicit props taking precedence, additive custom classes, replacement classes, and overrides enabled without a consumer class (generated classes retained).
-- [ ] Test the small-Button class sequence `['aui-control', 'aui-button', 'aui-control-sm']` plus the applicable variant/color-variant classes, without depending on HTML class order for cascade precedence.
-- [ ] Run those cases and confirm they fail for the missing behavior rather than a broken test setup.
-- [ ] Implement and test the shared `resolveRoleClass` / `$class` resolver with `classx`, named class constants, configured fallbacks, and additive/replacement modes.
-- [ ] Declare Button using the documented `setup` / `aria` pattern and `className={$families(['aui-control', 'aui-button'], props, auiConfig.button)}`. Keep generated attributes/tokens intact and retain Headless Kit behavior in both class modes.
-- [ ] Establish the `theme`, `base`, `component`, `utility`, `reduced-motion` cascade order. Convert required tokens and extract shared action, size, variant, color-variant, focus, touch, and state rules into the appropriate layers.
-- [ ] Keep Button CSS limited to unique structure and token mappings. Replace fixed presentation values with token references and native calculations; use CSS selectors for presentation state instead of JavaScript conditions.
-- [ ] Wire selective CSS, the CSS barrel, and the isolated `@airlib/aui/utils` JavaScript/types export. Retain CSS side effects without importing styles through utilities.
-- [ ] Write the Button page in this order: Overview, Interactive demo, Usage (Properties, Sizes, Variants, Color Variants), and Next Steps.
-- [ ] Build the interactive demo with real React AUI controls for size, variant, color variant, fallback configuration, and class override mode. Bind controls to the rendered Button's props/configuration and use only the shipped AUI treatment for the component preview.
-- [ ] Demonstrate additive custom classes, replacement classes, disabled/form behavior, and token overrides within the documented demo/usage sections.
-- [ ] Verify live configuration changes, unstyled behavior, selective-import presentation, barrel presentation, keyboard activation, focus visibility, and light/dark rendering.
+- [x] Define shared presentation constants/types and the configurable fallback contract in AUI utilities; expose React AUI configuration using those definitions with `overrides: false` as the default.
+- [x] Record the native host, ref forwarding contract, supported props, utility classes, component classes, and token mappings using only allowed skills and the Headless Kits documentation.
+- [x] Identify controller-mutated props from the documented contract and type each as `Bindable<T>` where applicable; do not infer mutation behavior from dependency source. (N/A for Button per §11.1 — no controller-mutated props; applied to Toggle/Switch/Select/Image where delivered.)
+- [x] Keep Button-only strings in local named constants and export shared class/presentation constants from their owning module.
+- [x] Write regression cases for a non-submitting default Button inside a form, explicit submit behavior, disabled activation, children, event forwarding, and consumer ref access.
+- [x] Add composition tests for configured fallbacks when props are absent, explicit props taking precedence, additive custom classes, replacement classes, and overrides enabled without a consumer class (generated classes retained).
+- [x] Test the small-Button class sequence `['aui-control', 'aui-button', 'aui-control-sm']` plus the applicable variant/color-variant classes, without depending on HTML class order for cascade precedence.
+- [x] Run those cases and confirm they fail for the missing behavior rather than a broken test setup.
+- [x] Implement and test the shared `resolveRoleClass` / `$class` resolver with `classx`, named class constants, configured fallbacks, and additive/replacement modes.
+- [x] Declare Button using the documented `setup` / `aria` pattern and `className={$families(['aui-control', 'aui-button'], props, auiConfig.button)}`. Keep generated attributes/tokens intact and retain Headless Kit behavior in both class modes.
+- [x] Establish the `theme`, `base`, `component`, `utility`, `reduced-motion` cascade order. Convert required tokens and extract shared action, size, variant, color-variant, focus, touch, and state rules into the appropriate layers.
+- [x] Keep Button CSS limited to unique structure and token mappings. Replace fixed presentation values with token references and native calculations; use CSS selectors for presentation state instead of JavaScript conditions.
+- [x] Wire selective CSS, the CSS barrel, and the isolated `@airlib/aui/utils` JavaScript/types export. Retain CSS side effects without importing styles through utilities.
+- [x] Write the Button page in this order: Overview, Interactive demo, Usage (Properties, Sizes, Variants, Color Variants), and Next Steps.
+- [x] Build the interactive demo with real React AUI controls for size, variant, color variant, fallback configuration, and class override mode. Bind controls to the rendered Button's props/configuration and use only the shipped AUI treatment for the component preview.
+- [x] Demonstrate additive custom classes, replacement classes, disabled/form behavior, and token overrides within the documented demo/usage sections.
+- [x] Verify live configuration changes, unstyled behavior, selective-import presentation, barrel presentation, keyboard activation, focus visibility, and light/dark rendering.
 
 **Acceptance:** Button composes props and configurable fallbacks with `classx`; default mode adds consumer classes, while `config.overrides === true` replaces generated classes with a supplied consumer class and keeps them when none is supplied. Headless behavior remains intact. CSS imports are optional, both styled import modes agree, and AUI utility imports work without React or CSS side effects.
 
-### Task 2: Establish the documentation shell and integration guide
+### Task 2: Establish the documentation shell and integration guide — PARTIAL (nav + theming done, getting-started stub remains)
 
 **Files:** `apps/react-aui/pages/docs/getting-started.page.mdx`, `apps/react-aui/pages/docs/nav.ts`, and `apps/react-aui/pages/docs/theming.page.mdx`.
 
@@ -283,7 +290,7 @@ Apply this procedure to the CSS dependencies of each delivered component rather 
 
 **Acceptance:** Readers can install the packages, select an import mode, use Button, and customize its theme without consulting source files or requiring Tailwind.
 
-### Task 3: Deliver the remaining component groups
+### Task 3: Deliver the remaining component groups — IN PROGRESS (Link/Toggle/Divider/Image/Switch/Select done; remainder TODO)
 
 **Files:** The per-topic React declarations/tests, CSS entrypoints, public barrels, and MDX pages defined in Sections 4 and 5.
 

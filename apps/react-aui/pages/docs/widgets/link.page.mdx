@@ -1,0 +1,147 @@
+---
+title: AUI Link
+nav: Link
+nav-priority: 160
+description: Destination trigger on a real anchor with disabled cancellation and the current-page mark.
+---
+
+# AUI Link
+
+A link names a destination and takes you there when you activate it. It stays a real `<a>`, so the browser keeps its own activation — `Enter`, middle-click, and new-tab gestures all work on their own. What the Link adds is state an anchor can't hold on its own: a disabled link that keeps its destination readable while cancelling the click, and the current-page mark for the page you are on.
+
+Styling is optional. Without AUI CSS the Link stays a correct, operable anchor; with it, the same markup gets the AUI treatment through the full library.
+
+:::interactive[Link demo]
+
+```tsx
+import { Link, Select, Toggle } from '@airlib/react-aui';
+import { COLOR_LABELS } from '@airlib/aui/utils';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+
+const LinkDemo = setup(() => {
+  const state = mutable({ color: 'primary', current: false, disabled: false });
+  const block = (event: { preventDefault: () => void }) => event.preventDefault();
+
+  return () => (
+    <div className="demo-button">
+      <div className="flex gap-xs w-full">
+        <Select size="sm" placeholder="Color" options={COLOR_LABELS} value={$bind(state, 'color')} />
+        <div className="flex-1"></div>
+        <Toggle size="sm" pressed={$bind(state, 'current')}>
+          {() => (state.current ? 'Marked' : 'Mark current')}
+        </Toggle>
+        <Toggle size="sm" pressed={$bind(state, 'disabled')}>
+          {() => (state.disabled ? 'Set Enabled' : 'Set Disabled')}
+        </Toggle>
+      </div>
+      <div className="aui-card flex flex-col gap-lg items-start justify-center p-xl">
+        <Snippet>
+          {() => (
+            <Link
+              href="/docs/widgets/link"
+              color={state.color}
+              current={state.current}
+              disabled={state.disabled}
+              onClick={block}
+            >
+              This guide
+            </Link>
+          )}
+        </Snippet>
+        <Snippet>
+          {() => (
+            <Link
+              href="/docs/widgets/button"
+              color={state.color}
+              disabled={state.disabled}
+              onClick={block}
+            >
+              Component reference
+            </Link>
+          )}
+        </Snippet>
+      </div>
+    </div>
+  );
+}, 'LinkDemo');
+```
+
+```html
+<LinkDemo />
+```
+
+<LinkDemo />
+
+:::
+
+## Usage
+
+Give the link a destination, and keep the navigation or leave it to the browser:
+
+```tsx
+import { Link } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/link.css';
+
+export const Reference = () => <Link href="/docs/widgets/button">Button</Link>;
+```
+
+By default, the click stays with the browser: the anchor navigates, modifier-click and middle-click open a new tab, and your own `onClick` still runs. App-wide routers intercept that click in their usual way.
+
+Disabling does not remove the link — the `href` stays on the element, clicks are cancelled, the link leaves the tab order, and screen readers announce it as unavailable:
+
+```tsx
+<Link href="/account/billing" disabled>Billing portal</Link>
+```
+
+Mark the page you are on with `current`; it renders the current-page chip and announces `aria-current="page"`:
+
+```tsx
+<Link href="/docs/widgets/link" current>This guide</Link>
+```
+
+### Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `href` | `string` | — | The destination. Kept on the element while disabled. |
+| `target` | `string` | — | Browsing context, such as `_blank`. |
+| `disabled` | `boolean` | `false` | Locks the link: clicks are cancelled, it leaves the tab order, and it is announced as disabled. |
+| `current` | `boolean` | `false` | Forces the current-page mark; announced through `aria-current="page"`. |
+| `page` | `number` | — | Commits a position into an enclosing pagination when one is present; inert otherwise. |
+| `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | Link color. Explicit props win; otherwise the configured default applies. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `ref` | `Ref<HTMLAnchorElement>` | — | Access to the underlying anchor element. |
+
+`Enter` activates the link and `Space` does nothing on purpose — `Space` belongs to buttons and keeps scrolling the page. A disabled link is parked outside the tab order.
+
+Set app-wide defaults once instead of repeating props on every link:
+
+```tsx
+import { configure } from '@airlib/react-aui';
+
+configure({ link: { color: 'secondary' } });
+```
+
+Your own classes are added next to the built-in ones:
+
+```tsx
+// class="aui-link aui-link-secondary my-link"
+<Link href="/docs" color="secondary" className="my-link">Docs</Link>
+```
+
+To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+
+### Color Variants
+
+Colors: `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info`, default `primary`:
+
+```tsx
+<Link href="/docs/legal" color="secondary">Legal</Link>
+<Link href="/docs/legal" color="info">Legal</Link>
+```
+
+## Next Steps
+
+- [Button](/docs/widgets/button) — A command trigger for actions that fire in place rather than navigating.
+- [Toggle](/docs/widgets/toggle) — A two-state button that announces pressed instead of navigating.
+- [Switch](/docs/widgets/switch) — An on/off setting control for states that live on the page.

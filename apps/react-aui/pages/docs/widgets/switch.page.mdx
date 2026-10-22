@@ -1,0 +1,149 @@
+---
+title: AUI Switch
+nav: Switch
+nav-priority: 170
+description: Binary on/off control with a track and thumb, six sizes, and seven colors.
+---
+
+# AUI Switch
+
+A switch holds one setting on or off and keeps it: Wi-Fi, notifications, dark mode. It differs from a [Toggle](/docs/widgets/toggle) in what it announces — a switch reads as checked or unchecked, a toggle as pressed or not — so reach for the switch when the state is a setting rather than an action.
+
+Styling is optional. Without AUI CSS the Switch stays a correct, operable `switch` button; with it, the same markup gets the AUI treatment through the full library.
+
+:::interactive[Switch demo]
+
+```tsx
+import { Switch } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { DemoControl } from '@/components/DemoControl.js';
+
+const SwitchDemo = setup(() => {
+  const state = mutable({ wifi: true, bluetooth: false, size: 'md', color: 'primary', disabled: false });
+
+  return () => (
+    <div className="demo-button">
+      <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} disabled={$bind(state, 'disabled')} />
+      <div className="aui-card flex gap-xl items-center justify-center p-xl">
+        <Snippet>
+          {() => (
+            <label className="flex items-center gap-sm">
+              <span>Wi-Fi</span>
+              <Switch
+                label="Wi-Fi"
+                checked={$bind(state, 'wifi')}
+                size={state.size}
+                color={state.color}
+                disabled={state.disabled}
+              />
+            </label>
+          )}
+        </Snippet>
+        <Snippet>
+          {() => (
+            <label className="flex items-center gap-sm">
+              <span>Bluetooth</span>
+              <Switch
+                checked={$bind(state, 'bluetooth')}
+                size={state.size}
+                color={state.color}
+                disabled={state.disabled}
+              />
+            </label>
+          )}
+        </Snippet>
+      </div>
+    </div>
+  );
+}, 'SwitchDemo');
+```
+
+```html
+<SwitchDemo />
+```
+
+<SwitchDemo />
+
+:::
+
+## Usage
+
+A switch is the track and thumb only — it carries no text of its own. Name it from the label you show beside it with `aria-labelledby`, or with `aria-label` when the label is not on screen:
+
+```tsx
+import { Switch } from '@airlib/react-aui';
+import { $bind, mutable } from '@airlib/react';
+import '@airlib/aui/components/widgets/switch.css';
+
+const settings = mutable({ wifi: true });
+
+export const WifiSetting = () => (
+  <div className="flex items-center gap-sm">
+    <span id="wifi-label">Wi-Fi</span>
+    <Switch aria-labelledby="wifi-label" checked={$bind(settings, 'wifi')} />
+  </div>
+);
+```
+
+A switch is off until `checked` says otherwise. Every click, `Space`, or `Enter` inverts it, writes the bound value back, and announces the new state through `aria-checked`. The track color follows the setting: neutral while off, the chosen color while on.
+
+For an uncontrolled switch, leave `checked` out and read the state from `onchange`:
+
+```tsx
+<Switch aria-label="Notifications" onchange={(event) => console.log(event.detail)} />
+```
+
+### Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `checked` | `Bindable<boolean>` | `false` | Whether the setting is on. Bind it to read and write the state from outside. |
+| `disabled` | `boolean` | `false` | Locks the switch; clicks, keys, and writes are refused while locked. |
+| `onchange` | `(event: CustomEvent<boolean>) => void` | — | Fires after each real flip with the new state in `detail`; silent when nothing changes. |
+| `size` | `xs`, `sm`, `md`, `lg`, `xl`, `xxl` | `'md'` | Explicit props win; otherwise the configured default applies. |
+| `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | Track and thumb color while the switch is on. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `aria-label` | `string` | — | Accessible name when no visible label is on the page. |
+| `aria-labelledby` | `string` | — | Id of the visible label beside the switch. |
+| `ref` | `Ref<HTMLButtonElement>` | — | Access to the underlying button element. |
+
+Set app-wide defaults once instead of repeating props on every switch:
+
+```tsx
+import { configure } from '@airlib/react-aui';
+
+configure({ switch: { size: 'sm' } });
+```
+
+Your own classes are added next to the built-in ones:
+
+```tsx
+// class="aui-control aui-control-md aui-control-primary aui-switch aui-switch-md aui-switch-primary my-switch"
+<Switch aria-label="Dark mode" className="my-switch" />
+```
+
+To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+
+Keyboard: `Tab` focuses the switch, `Space` flips it on key-up, `Enter` on key-down. A locked switch is announced as disabled.
+
+### Sizes
+
+Sizes: `xs`, `sm`, `md`, `lg`, `xl`, `xxl`, default `md` — the track scales with the control height:
+
+```tsx
+<Switch size="sm" aria-label="Compact" />
+```
+
+### Colors
+
+Colors: `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info`, default `primary` — applied to the track and thumb while the switch is on:
+
+```tsx
+<Switch color="success" aria-label="Connected" />
+```
+
+## Next Steps
+
+- [Toggle](/docs/widgets/toggle) — A two-state button that announces pressed instead of checked.
+- [Divider](/docs/widgets/divider) — The structural boundary that separates grouped settings without a tab stop.
+- [Button](/docs/widgets/button) — The one-state action control.

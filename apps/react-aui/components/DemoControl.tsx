@@ -6,7 +6,7 @@ import type { ReactNode } from 'react';
 export type DemoControlProps = {
   size: Bindable<Size>;
   color: Bindable<Color>;
-  variant: Bindable<Variant>;
+  variant?: Bindable<Variant>;
   disabled: Bindable<boolean>;
   children?: ReactNode;
 };
@@ -16,7 +16,7 @@ export const DemoControl = template<DemoControlProps>(
     <div className="flex gap-xs w-full">
       <Select size="sm" placeholder="Size" options={SIZE_LABELS} value={$bind(props, 'size')} />
       <Select size="sm" placeholder="Color" options={COLOR_LABELS} value={$bind(props, 'color')} />
-      <Select size="sm" placeholder="Variant" options={VARIANT_LABELS} value={$bind(props, 'variant')} />
+      {props.variant && <Select size="sm" placeholder="Variant" options={VARIANT_LABELS} value={$bind(props, 'variant')} />}
       <div className="flex-1"></div>
       <Toggle size="sm" pressed={$bind(props, 'disabled')}>
         {() => (props.disabled ? 'Set Enabled' : 'Set Disabled')}

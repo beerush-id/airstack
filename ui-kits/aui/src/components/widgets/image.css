@@ -1,0 +1,74 @@
+@layer component {
+  .aui-image {
+    position: relative;
+    display: block;
+    /* The frame owns its geometry: whichever part is on screen fills the box,
+       so a hidden content img can never collapse the fallback to zero. */
+    inline-size: var(--aui-image-size, 2.5rem);
+    aspect-ratio: 1;
+    overflow: hidden;
+    flex: none;
+    border-radius: var(--radius-sm);
+  }
+
+  .aui-image-content {
+    display: block;
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: cover;
+    border-radius: inherit;
+  }
+
+  .aui-image-content[aria-hidden='true'],
+  .aui-image-fallback[aria-hidden='true'] {
+    display: none;
+  }
+
+  .aui-image-fallback {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--aui-fallback-bg, var(--color-surface-container));
+    color: var(--aui-fallback-fg, var(--color-on-surface-variant));
+    font-weight: 600;
+    border-radius: inherit;
+  }
+
+  .aui-image-primary {
+    --aui-fallback-bg: var(--color-primary-container);
+    --aui-fallback-fg: var(--color-on-primary-container);
+  }
+
+  .aui-image-secondary {
+    --aui-fallback-bg: var(--color-secondary-container);
+    --aui-fallback-fg: var(--color-on-secondary-container);
+  }
+
+  .aui-image-tertiary {
+    --aui-fallback-bg: var(--color-tertiary-container);
+    --aui-fallback-fg: var(--color-on-tertiary-container);
+  }
+
+  .aui-image-error {
+    --aui-fallback-bg: var(--color-error-container);
+    --aui-fallback-fg: var(--color-on-error-container);
+  }
+
+  .aui-image-success {
+    --aui-fallback-bg: var(--color-success-container);
+    --aui-fallback-fg: var(--color-on-success-container);
+  }
+
+  .aui-image-warning {
+    --aui-fallback-bg: var(--color-warning-container);
+    --aui-fallback-fg: var(--color-on-warning-container);
+  }
+
+  .aui-image-info {
+    --aui-fallback-bg: var(--color-info-container);
+    --aui-fallback-fg: var(--color-on-info-container);
+  }
+
+}

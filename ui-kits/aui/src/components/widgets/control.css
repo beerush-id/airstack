@@ -59,6 +59,7 @@
     font-weight: 600;
     line-height: var(--font-label-lg-line-height);
     letter-spacing: var(--font-label-lg-tracking);
+    user-select: none;
 
     transition-duration: var(--duration-short);
     transition-timing-function: var(--ease-emphasized);
@@ -256,5 +257,15 @@
     font-size: var(--font-title-lg-size);
     line-height: var(--font-title-lg-line-height);
     letter-spacing: var(--font-title-lg-tracking);
+  }
+
+  label:has(
+    input:not(:disabled),
+    button:not(:disabled),
+    [aria-pressed]:not([aria-disabled='true']),
+    [aria-checked]:not([aria-selected='true'])
+  ) {
+    cursor: pointer;
+    user-select: none;
   }
 }

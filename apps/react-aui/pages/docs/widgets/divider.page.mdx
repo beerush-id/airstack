@@ -1,0 +1,132 @@
+---
+title: AUI Divider
+nav: Divider
+nav-priority: 190
+description: Structural boundary on a real element with the separator role, an opt-in rule color, and horizontal or vertical axes.
+---
+
+# AUI Divider
+
+A divider marks where one part of a layout ends and the next begins. It compiles the `separator` role on your element, so screen readers hear the boundary in a split layout, and it announces the axis only when it departs from the horizontal default. It owns no focus and no value: the tab key passes straight over it, and it can never be mistaken for a range control.
+
+Styling is optional. Without AUI CSS the Divider stays a correct, operable separator; with it, the same markup gets the AUI treatment through the full library.
+
+:::interactive[Divider demo]
+
+```tsx
+import { Divider, Select, Toggle } from '@airlib/react-aui';
+import { COLOR_LABELS } from '@airlib/aui/utils';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+
+const DividerDemo = setup(() => {
+  const state = mutable({ vertical: false, color: undefined });
+
+  return () => (
+    <div className="demo-button">
+      <div className="flex gap-xs w-full">
+        <Select size="sm" placeholder="Color" options={COLOR_LABELS} value={$bind(state, 'color')} />
+        <div className="flex-1"></div>
+        <Toggle size="sm" pressed={$bind(state, 'vertical')}>
+          {() => (state.vertical ? 'Vertical axis' : 'Horizontal axis')}
+        </Toggle>
+      </div>
+      <div className="aui-card flex flex-col gap-lg justify-center p-xl">
+        <span>Layers<br /><small>24 items, grouped by page</small></span>
+        <Snippet>
+          {() =>
+            state.vertical ? (
+              <Divider color={state.color || undefined} orientation="vertical" />
+            ) : (
+              <Divider color={state.color || undefined} />
+            )
+          }
+        </Snippet>
+        <span>Assets<br /><small>8 symbols shared with the team</small></span>
+      </div>
+      <div className="aui-card flex gap-lg items-stretch p-xl">
+        <span>Preview</span>
+        <Snippet>
+          {() => <Divider color={state.color || undefined} orientation="vertical" />}
+        </Snippet>
+        <span>Inspector<br /><small>Padding, radius, and fill</small></span>
+      </div>
+    </div>
+  );
+}, 'DividerDemo');
+```
+
+```html
+<DividerDemo />
+```
+
+<DividerDemo />
+
+:::
+
+## Usage
+
+Drop the divider between sections, and let the axis follow the layout:
+
+```tsx
+import { Divider } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/divider.css';
+
+export const Panel = () => (
+  <div className="flex flex-col gap-lg">
+    <div>Layers</div>
+    <Divider />
+    <div>Assets</div>
+  </div>
+);
+```
+
+The rule runs horizontally until `orientation` says otherwise. Between side-by-side panes the vertical rule stretches to the row height; the axis is the only thing announced, and only when it departs from the default:
+
+```tsx
+<div className="flex items-stretch gap-lg">
+  <div>Preview</div>
+  <Divider orientation="vertical" />
+  <div>Inspector</div>
+</div>
+```
+
+A divider never takes a tab stop and never carries a value, in either direction: no `tabindex`, and no `aria-value*` attributes, so a split in your layout can't be mistaken for a control.
+
+### Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `orientation` | `'horizontal'`, `'vertical'` | `'horizontal'` | The axis the rule runs along. Announced only when vertical, because horizontal is what a separator is assumed to be. |
+| `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | — | Opt-in rule color. Without it the rule stays on the neutral outline token. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `ref` | `Ref<HTMLDivElement>` | — | Access to the underlying element. |
+
+The neutral default is deliberate: a color prop that colored every rule by default would repaint whole layouts, so the tint arrives only when requested:
+
+```tsx
+<Divider color="success" />
+```
+
+Your own classes are added next to the built-in ones:
+
+```tsx
+// class="aui-divider aui-divider-error my-rule"
+<Divider color="error" className="my-rule" />
+```
+
+To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+
+### Color Variants
+
+Colors: `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info`, no default — the rule is neutral until a color is passed:
+
+```tsx
+<Divider color="secondary" />
+<Divider color="error" />
+```
+
+## Next Steps
+
+- [Button](/docs/widgets/button) — A command trigger for actions that fire in place rather than dividing space.
+- [Switch](/docs/widgets/switch) — An on/off setting control for states that live on the page.
+- [Select](/docs/widgets/select) — An option list collapsed behind a trigger.
