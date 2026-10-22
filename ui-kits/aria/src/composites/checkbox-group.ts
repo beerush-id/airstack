@@ -78,7 +78,7 @@ export class CheckboxGroupAria<
 
     checkboxGroupCtx.set(this as unknown as CheckboxGroupAria);
     selectionGroup.set(this.properties as Record<string, unknown>);
-    this.omittedAttrs.push('value');
+    this.omittedAttrs.push('value', 'onchange');
     this.update();
   }
 
