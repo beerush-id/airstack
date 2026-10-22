@@ -19,7 +19,7 @@ const TOGGLE_ROLE = 'toggle';
 const toggleStyles: ComponentStyles = {
   size: SIZES.MD,
   color: COLORS.PRIMARY,
-  variant: VARIANTS.OUTLINED,
+  variant: VARIANTS.FILLED,
 };
 
 register('toggle', toggleStyles);
