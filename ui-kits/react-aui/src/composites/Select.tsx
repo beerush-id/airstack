@@ -67,12 +67,11 @@ register('selectTrigger', selectStyles);
 
 export const Select = setup<SelectProps, SelectSlots>((props, slots) => {
   const select = aria(SELECT_ROLE, props as AnyType);
-  const className = () => $families(AUI_CLASS.SELECT, props, auiConfig.select);
 
   return () => {
     if (isObjectLike(props.options)) {
       return (
-        <div ref={select.ref} {...select.restProps(OMIT_KEYS)} className={className()}>
+        <>
           <Slot for={() => slots.button?.(select.value)}>
             <SelectTrigger
               size={props.size}
@@ -93,10 +92,11 @@ export const Select = setup<SelectProps, SelectSlots>((props, slots) => {
               )}
             </For>
           </SelectPanel>
-        </div>
+        </>
       );
     }
 
+    const className = () => $families(AUI_CLASS.SELECT, props, auiConfig.select);
     return (
       <div ref={select.ref} {...select.restProps(OMIT_KEYS)} className={className()}>
         {renderDynamic(props.children, select)}
