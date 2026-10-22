@@ -166,14 +166,8 @@ export function configure(input: Partial<MauiConfig>): MauiConfig {
   return auiConfig;
 }
 
-export function resetConfig(): MauiConfig {
-  Object.assign(auiConfig, DEFAULT_CONFIG);
-  return auiConfig;
-}
-
 export function register(key: keyof MauiConfig, styles: ComponentStyles) {
   auiConfig[key as never] = styles as never;
-  DEFAULT_CONFIG[key as never] = styles as never;
   return auiConfig;
 }
 

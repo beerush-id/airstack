@@ -9,8 +9,8 @@ import { ArrowDown } from '../icons/index.js';
 export type SelectValue = AuiPrimitive | AuiPrimitive[];
 
 export type SelectSlots = {
-  button: (value?: AuiPrimitive | AuiPrimitive[]) => ReactNode;
   option: (key: string, value: AuiPrimitive) => ReactNode;
+  trigger: (value?: AuiPrimitive | AuiPrimitive[]) => ReactNode;
 };
 
 export type SelectProps = ComponentStyles & {
@@ -72,23 +72,21 @@ export const Select = setup<SelectProps, SelectSlots>((props, slots) => {
     if (isObjectLike(props.options)) {
       return (
         <>
-          <Slot for={() => slots.button?.(select.value)}>
-            <SelectTrigger
-              size={props.size}
-              color={props.color}
-              variant={props.variant}
-              label={props.label}
-              placeholder={props.placeholder}
-            />
-          </Slot>
+          <SelectTrigger
+            size={props.size}
+            color={props.color}
+            variant={props.variant}
+            label={props.label}
+            placeholder={props.placeholder}
+          >
+            {() => <Slot for={() => slots.trigger?.(select.value)}>{select.label || props.placeholder}</Slot>}
+          </SelectTrigger>
           <SelectPanel size={props.size} color={props.color} variant={props.variant}>
             <For each={() => Object.entries(props.options!)}>
               {([key, value]) => (
-                <Slot for={() => slots.option?.(key, value)}>
-                  <SelectOption size={props.size} color={props.color} variant={props.variant} value={key}>
-                    {value}
-                  </SelectOption>
-                </Slot>
+                <SelectOption size={props.size} color={props.color} variant={props.variant} value={key}>
+                  <Slot for={() => slots.option?.(key, value)}>{value}</Slot>
+                </SelectOption>
               )}
             </For>
           </SelectPanel>
