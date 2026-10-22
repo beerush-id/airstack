@@ -1,0 +1,12 @@
+@layer component {
+  .aui-toolbar {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--spacing) * 2);
+  }
+
+  .aui-toolbar[aria-orientation='vertical'] {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

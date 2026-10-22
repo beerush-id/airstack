@@ -1,0 +1,176 @@
+---
+title: AUI Slider
+nav: Slider
+nav-priority: 169
+description: A number you point at, with a pill thumb riding a pill track.
+---
+
+# AUI Slider
+
+A slider is a number you point at. The track owns the bounds and the stepping, and each thumb claims an endpoint in creation order — one number makes the track itself the focusable slider, a low/high pair hands the role to each thumb. The thumb publishes its stand as `--aria-slider-thumb-offset`, so it positions itself from CSS and never from a ratio computed in JavaScript.
+
+Styling is optional. Without AUI CSS the Slider stays a correct, operable control; with it, the same markup gets the pill track and pill thumb treatment through the full library.
+
+:::interactive[Slider demo]
+
+```tsx
+import { Slider, SliderThumb } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { DemoControl } from '@/components/DemoControl.js';
+
+const SliderDemo = setup(() => {
+  const state = mutable({ 
+    volume: 30,
+    budgets: [250, 750],
+    size: 'sm',
+    color: 'primary',
+    disabled: false 
+  });
+
+  return () => (
+    <div className="demo-button">
+      <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} disabled={$bind(state, 'disabled')} />
+      <div className="aui-card flex gap-md items-center justify-center p-xl">
+        <div className="flex-1 flex-col gap-md">
+        <Snippet>
+          {() => (
+            <Slider
+              value={$bind(state, 'volume')}
+              min={0}
+              max={100}
+              step={1}
+              size={state.size}
+              color={state.color}
+              disabled={state.disabled}
+            />
+          )}
+        </Snippet>
+        <Snippet>
+          {() => (
+            <Slider
+              value={$bind(state, 'budgets')}
+              min={0}
+              max={1000}
+              step={1}
+              size={state.size}
+              color={state.color}
+              disabled={state.disabled}
+            />
+          )}
+        </Snippet>
+        </div>
+        <Snippet>
+          {() => (
+            <Slider
+              value={$bind(state, 'volume')}
+              min={0}
+              max={100}
+              step={1}
+              size={state.size}
+              color={state.color}
+              disabled={state.disabled}
+              orientation="vertical"
+            />
+          )}
+        </Snippet>
+        <Snippet>
+          {() => (
+            <Slider
+              value={$bind(state, 'budgets')}
+              min={0}
+              max={1000}
+              step={1}
+              size={state.size}
+              color={state.color}
+              disabled={state.disabled}
+              orientation="vertical"
+            />
+          )}
+        </Snippet>
+      </div>
+      <Snippet>
+        {() => (
+          <p>
+            Volume: {JSON.stringify(state.volume)}, Budgets: {JSON.stringify(state.budgets)}
+          </p>
+        )}
+      </Snippet>
+    </div>
+  );
+}, 'SliderDemo');
+```
+
+```html
+<SliderDemo />
+```
+
+<SliderDemo />
+
+:::
+
+## Usage
+
+```tsx
+import { Slider, SliderThumb } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/slider.css';
+
+export const Volume = () => (
+  <Slider value={30} min={0} max={100} step={5}>
+    <SliderThumb />
+  </Slider>
+);
+```
+
+For the full library — tokens, base defaults, every component, and the utilities — load `import '@airlib/aui';` instead. A lone component stylesheet carries only that component's rules.
+
+### Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `value` | `Bindable<number \| [number, number]>` | — | The current number, or the low/high pair of a range. Every write is clamped, snapped, and ordered. |
+| `min` | `number` | `0` | The inclusive lower bound. |
+| `max` | `number` | `100` | The inclusive upper bound. |
+| `step` | `number` | `1` | The arrow-key increment, snapped from `min`. |
+| `page` | `number` | `10` | How far `PageUp` and `PageDown` travel. |
+| `orientation` | `'horizontal'`, `'vertical'` | `'horizontal'` | The axis the slider steps along. |
+| `valuetext` | `string`, `(val: number) => string` | — | What the value is announced as; without it assistive tech reads the bare number. |
+| `disabled` | `boolean` | `false` | Locks stepping and dragging, and takes the control out of the tab order. |
+| `size` | `xs`, `sm`, `md`, `lg`, `xl`, `xxl` | `'md'` | Explicit props win; otherwise the configured default applies. |
+| `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | Same precedence as `size`. |
+| `oninput` | `(event: CustomEvent<...>) => void` | — | Fires with the live value after every step and drag move. |
+| `onchange` | `(event: CustomEvent<...>) => void` | — | Fires with the committed value when the interaction ends. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `children` | `ReactNode` | — | Thumb endpoints, claimed in creation order; extra static content renders inside the track. |
+| `ref` | `Ref<HTMLDivElement>` | — | Access to the underlying track element. |
+
+Set app-wide defaults once instead of repeating props on every slider:
+
+```tsx
+import { configure } from '@airlib/react-aui';
+
+configure({ slider: { size: 'sm' } });
+
+// Renders small without passing size every time
+<Slider value={30}>
+  <SliderThumb />
+</Slider>;
+```
+
+Your own classes are added next to the built-in ones:
+
+```tsx
+// class="aui-slider aui-slider-md aui-slider-primary my-slider"
+<Slider value={30} className="my-slider">
+  <SliderThumb />
+</Slider>
+```
+
+To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+
+Keyboard: `ArrowRight` / `ArrowUp` step up by `step`, `ArrowLeft` / `ArrowDown` step down. `PageUp` / `PageDown` travel by `page`, `Home` / `End` jump to the bounds. On a range each thumb answers the keys itself and neither crosses its sibling; `Tab` moves between the two thumbs.
+
+## Next Steps
+
+- [Switch](/docs/widgets/switch) — A binary control announcing as on-off instead of a number.
+- [Checkbox](/docs/widgets/checkbox) — Independent marks with their own tab stops.
+- [Select](/docs/widgets/select) — A bounded choice folded into a closed control.

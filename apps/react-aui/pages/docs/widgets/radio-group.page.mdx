@@ -1,0 +1,122 @@
+---
+title: AUI Radio Group
+nav: Radio Group
+nav-priority: 168
+description: One shared answer across many options, with arrows that move and commit in one step.
+---
+
+# AUI Radio Group
+
+A radio group holds one shared answer across many options. Selecting one takes the slot from whichever option held it, the arrow keys walk the options while committing in the same step, and one flag locks every member. Members join by declaring a `value` on a [Radio](/docs/widgets/radio).
+
+Styling is optional. Without AUI CSS the RadioGroup stays a correct, operable group; with it, the same markup gets the AUI treatment through the full library.
+
+:::interactive[Radio group demo]
+
+```tsx
+import { Radio, RadioGroup } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { DemoControl } from '@/components/DemoControl.js';
+
+const RadioGroupDemo = setup(() => {
+  const state = mutable({
+    plan: 'pro' as string,
+    size: 'md',
+    color: 'primary',
+    disabled: false,
+  });
+
+  return () => (
+    <div className="demo-button">
+      <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} disabled={$bind(state, 'disabled')} />
+      <div className="aui-card flex gap-md items-center justify-center p-xl">
+        <Snippet>
+          {() => (
+            <RadioGroup
+              name="plan"
+              size={state.size}
+              color={state.color}
+              value={$bind(state, 'plan')}
+              disabled={state.disabled}
+            >
+              <Radio value="starter">Starter</Radio>
+              <Radio value="pro">Pro</Radio>
+              <Radio value="team">Team</Radio>
+            </RadioGroup>
+          )}
+        </Snippet>
+      </div>
+      <Snippet>
+        {() => (
+          <p>
+            Plan: {JSON.stringify(state.plan)}
+          </p>
+        )}
+      </Snippet>
+    </div>
+  );
+}, 'RadioGroupDemo');
+```
+
+```html
+<RadioGroupDemo />
+```
+
+<RadioGroupDemo />
+
+:::
+
+## Usage
+
+```tsx
+import { Radio, RadioGroup } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/radio-group.css';
+import '@airlib/aui/components/widgets/radio.css';
+
+export const Plan = () => (
+  <RadioGroup name="plan" value="pro">
+    <Radio value="starter">Starter</Radio>
+    <Radio value="pro">Pro</Radio>
+    <Radio value="team">Team</Radio>
+  </RadioGroup>
+);
+```
+
+The group stylesheet carries only the container; each member gets its treatment from `radio.css`. For the full library — tokens, base defaults, every component, and the utilities — load `import '@airlib/aui';` instead.
+
+### Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `value` | `Bindable<string \| number>` | — | The token of the option in the slot. Selecting a member writes it back here. |
+| `name` | `string` | — | The field name members report under; each member falls back to it. |
+| `orientation` | `'vertical'`, `'horizontal'` | `'vertical'` | Which arrow keys walk the options, compiled to `aria-orientation`. |
+| `size` | `xs`, `sm`, `md`, `lg`, `xl`, `xxl` | — | Reaches every member without its own; a member prop wins. |
+| `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | — | Same inheritance as `size`. |
+| `required` | `boolean` | `false` | Compiles `aria-required`; announces the constraint without blocking submission. |
+| `invalid` | `boolean`, `'grammar'`, `'spelling'` | — | Marks the group invalid, compiled to `aria-invalid`. |
+| `disabled` | `boolean` | `false` | Locks every member at once. |
+| `id` | `string` | — | The group's identifier in the DOM, generated when omitted. |
+| `onchange` | `(event: CustomEvent<string \| number>) => void` | — | Runs with the new shared value in `detail` whenever the slot moves. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `children` | `ReactNode` | — | Member radios; each joins by declaring a `value`. |
+| `ref` | `Ref<HTMLDivElement>` | — | Access to the underlying group element. |
+
+Size and color live on the group and reach every member — keep the set uniform, set them once on the group:
+
+```tsx
+<RadioGroup name="plan" value={plan} size="sm" color="success">
+  <Radio value="starter">Starter</Radio>
+  <Radio value="pro">Pro</Radio>
+</RadioGroup>
+```
+
+To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+
+Keyboard: `ArrowDown` / `ArrowUp` walk a vertical group and `ArrowRight` / `ArrowLeft` a horizontal one — moving focus commits the option in the same step, wrapping at both ends. `Home` / `End` jump to the first or last enabled option and select it. `Tab` enters at the option in the slot and leaves in one step; `Space` selects the focused option.
+
+## Next Steps
+
+- [Radio](/docs/widgets/radio) — The single option behind every member.
+- [Checkbox Group](/docs/widgets/checkbox-group) — Independent boxes holding one committed set.
+- [Toggle Group](/docs/widgets/toggle-group) — Pressed buttons in a set, single or multiple.

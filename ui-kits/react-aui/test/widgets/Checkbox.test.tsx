@@ -48,6 +48,21 @@ describe('Checkbox', () => {
     });
   });
 
+  it('writes bound indeterminate back to false on activation', async () => {
+    destroy = await runApp(async () => {
+      const state = mutable({ mixed: true });
+      render(<Checkbox indeterminate={$bind(state, 'mixed')}>Select all topics</Checkbox>);
+      const box = screen.getByRole('checkbox', { name: 'Select all topics' }) as HTMLInputElement;
+      expect(box.indeterminate).toBe(true);
+      await act(async () => {
+        await userEvent.click(box);
+      });
+      expect(state.mixed).toBe(false);
+      expect(box.indeterminate).toBe(false);
+      expect(box.checked).toBe(true);
+    });
+  });
+
   it('stays inert while disabled', async () => {
     destroy = await runApp(async () => {
       let changes = 0;

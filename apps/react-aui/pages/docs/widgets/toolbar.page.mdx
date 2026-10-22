@@ -1,0 +1,117 @@
+---
+title: AUI Toolbar
+nav: Toolbar
+nav-priority: 202
+description: Named strip owning arrow travel across its controls.
+---
+
+# AUI Toolbar
+
+A toolbar is one control made of many: undo, redo, formatting, and send, announced together under one name. It names the strip for assistive technology, moves focus along its axis with the arrows, wraps at both ends, and passes straight through a nested group instead of stopping at its edge — while activation stays with each control.
+
+Styling is optional. Without AUI CSS the Toolbar stays a correct `toolbar` landmark; with it, the same markup gets the AUI treatment.
+
+:::interactive[Toolbar demo]
+
+```tsx
+import { Button, Toolbar, Toggle } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+
+const ToolbarDemo = setup(() => {
+  const state = mutable({ vertical: false, locked: false });
+
+  return () => (
+    <div className="demo-button">
+      <div className="flex gap-xs w-full">
+        <div className="flex-1"></div>
+        <Toggle size="sm" pressed={$bind(state, 'vertical')}>
+          {() => (state.vertical ? 'Vertical axis' : 'Horizontal axis')}
+        </Toggle>
+        <Toggle size="sm" pressed={$bind(state, 'locked')}>
+          {() => (state.locked ? 'Unlock strip' : 'Lock strip')}
+        </Toggle>
+      </div>
+      <div className="aui-card flex flex-col gap-lg justify-center p-xl">
+        <Snippet>
+          {() => (
+            <Toolbar
+              label="Comment actions"
+              orientation={state.vertical ? 'vertical' : 'horizontal'}
+              disabled={state.locked}
+            >
+              <Button size="sm">Undo</Button>
+              <Button size="sm" disabled>Redo</Button>
+              <Button size="sm">Send</Button>
+            </Toolbar>
+          )}
+        </Snippet>
+      </div>
+    </div>
+  );
+}, 'ToolbarDemo');
+```
+
+```html
+<ToolbarDemo />
+```
+
+<ToolbarDemo />
+
+:::
+
+## Usage
+
+Place any focusable controls inside — buttons, links, inputs, toggles. Membership is read from the DOM on every key press, so controls added later are picked up without wiring:
+
+```tsx
+import { Button, Toolbar } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/toolbar.css';
+
+export const Actions = () => (
+  <Toolbar label="Comment actions">
+    <Button>Undo</Button>
+    <Button disabled>Redo</Button>
+    <Button>Send</Button>
+  </Toolbar>
+);
+```
+
+Run the strip vertically when the layout does:
+
+```tsx
+<Toolbar label="Formatting" orientation="vertical">
+  <Button>Bold</Button>
+  <Button>Italic</Button>
+</Toolbar>
+```
+
+Locking the strip stops it from claiming any keystroke; the controls inside stay enabled and activatable. There is no toolbar-item role — any enabled control inside participates by being there, and the toolbar never presses anything on its own.
+
+### Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `label` | `string` | — | Strip name, compiled to `aria-label`. |
+| `orientation` | `'horizontal'`, `'vertical'` | `'horizontal'` | Axis the arrows travel, compiled to `aria-orientation`. Only one axis is claimed. |
+| `disabled` | `boolean` | `false` | Locks the strip: it claims no keystroke. Controls inside stay focusable. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `ref` | `Ref<HTMLDivElement>` | — | Access to the underlying strip element. |
+
+`ArrowRight` / `ArrowLeft` move across a horizontal strip and wrap; `ArrowDown` / `ArrowUp` do the same vertically. `Home` / `End` jump to the ends. `Space` / `Enter` belong to the focused control. A nested toggle or radio group defers its own arrows to the strip, so travel walks through its members instead of stopping at the edge.
+
+Your own classes are added next to the built-in ones:
+
+```tsx
+// class="aui-toolbar my-strip"
+<Toolbar label="Actions" className="my-strip">
+  <Button>Go</Button>
+</Toolbar>
+```
+
+To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+
+## Next Steps
+
+- [Button](/docs/widgets/button) — The one-state trigger most toolbar members are.
+- [Toggle Group](/docs/widgets/toggle-group) — Several pressed buttons over one shared value inside a toolbar.
+- [Link](/docs/widgets/link) — Destinations that participate as controls when placed inside.

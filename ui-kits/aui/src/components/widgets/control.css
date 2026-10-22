@@ -144,7 +144,6 @@
   }
 
   .aui-control-outlined {
-    --focus-ring-offset: 4px;
     --aui-control-outline-color: var(--aui-control-bg);
     border-width: 1px;
 

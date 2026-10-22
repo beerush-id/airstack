@@ -1,0 +1,126 @@
+---
+title: AUI Navigation
+nav: Navigation
+nav-priority: 200
+description: Named landmark holding one tab stop across its links with vertical arrow travel.
+---
+
+# AUI Navigation
+
+A navigation group is the run of links every page repeats — a sidebar, a section index, a settings menu. It names the landmark so it can be jumped to, holds one tab stop instead of one per link, and roves across the links with the vertical arrows while leaving activation to the links themselves.
+
+Styling is optional. Without AUI CSS the Navigation stays a correct landmark; with it, the same markup gets the AUI treatment through the full library.
+
+:::interactive[Navigation demo]
+
+```tsx
+import { Link, Navigation, Toggle } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+
+const NavigationDemo = setup(() => {
+  const state = mutable({ disabledBilling: true });
+  const block = (event: { preventDefault: () => void }) => event.preventDefault();
+
+  return () => (
+    <div className="demo-button">
+      <div className="flex gap-xs w-full">
+        <div className="flex-1"></div>
+        <Toggle size="sm" pressed={$bind(state, 'disabledBilling')}>
+          {() => (state.disabledBilling ? 'Billing disabled' : 'Billing enabled')}
+        </Toggle>
+      </div>
+      <div className="aui-card flex flex-col gap-lg justify-center p-xl">
+        <Snippet>
+          {() => (
+            <Navigation label="Project sections">
+              <Link href="#overview" current onClick={block}>Overview</Link>
+              <Link href="#members" onClick={block}>Members</Link>
+              <Link href="#billing" disabled={state.disabledBilling} onClick={block}>Billing</Link>
+            </Navigation>
+          )}
+        </Snippet>
+      </div>
+    </div>
+  );
+}, 'NavigationDemo');
+```
+
+```html
+<NavigationDemo />
+```
+
+<NavigationDemo />
+
+:::
+
+## Usage
+
+Name the landmark and place ordinary links inside. The links keep their own navigation, activation, and current-page mark:
+
+```tsx
+import { Link, Navigation } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/navigation.css';
+
+export const Sections = () => (
+  <Navigation label="Project sections">
+    <Link href="#overview" current>Overview</Link>
+    <Link href="#members">Members</Link>
+    <Link href="#billing">Billing</Link>
+  </Navigation>
+);
+```
+
+Point at existing text instead of naming inline when the name already lives on the page:
+
+```tsx
+<Navigation labelledby="sections-heading">
+  <Link href="#overview" current>Overview</Link>
+  <Link href="#members">Members</Link>
+</Navigation>
+```
+
+A disabled link keeps its `href` so it stays discoverable, announces `aria-disabled`, and is stepped over by every direction of travel:
+
+```tsx
+<Navigation label="Project sections">
+  <Link href="#archived" disabled>Archived</Link>
+</Navigation>
+```
+
+### Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `label` | `string` | — | Landmark name, compiled to `aria-label`. Give every navigation on the page its own name. |
+| `labelledby` | `string` | — | ID of an element that already names the landmark, compiled to `aria-labelledby`. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `ref` | `Ref<HTMLElement>` | — | Access to the underlying landmark element. |
+
+No controller-mutated props: `label` stays live — change it and the landmark follows. Links own `current`, `disabled`, and activation; the group never writes selection on your behalf.
+
+`ArrowDown` / `ArrowUp` move to the next / previous enabled link and wrap at both ends. `Home` / `End` jump to the ends. `Enter` belongs to the focused link, which navigates itself. `Tab` leaves the group from its single stop.
+
+Set app-wide defaults once instead of repeating props:
+
+```tsx
+import { configure } from '@airlib/react-aui';
+
+configure({ navigation: { className: 'my-nav' } });
+```
+
+Your own classes are added next to the built-in ones:
+
+```tsx
+// class="aui-navigation my-nav"
+<Navigation label="Sections" className="my-nav">
+  <Link href="#a">A</Link>
+</Navigation>
+```
+
+To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+
+## Next Steps
+
+- [Link](/docs/widgets/link) — Destinations and the current-page mark inside the group.
+- [Breadcrumb](/docs/widgets/breadcrumb) — The same rover locked horizontal over a trail of ancestors.
+- [Pagination](/docs/widgets/pagination) — The same rover over a page list with a held position.

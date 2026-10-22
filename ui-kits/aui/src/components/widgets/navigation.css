@@ -1,0 +1,7 @@
+@layer component {
+  .aui-navigation {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing) * 2);
+  }
+}

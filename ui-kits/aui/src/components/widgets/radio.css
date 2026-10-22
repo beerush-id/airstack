@@ -1,0 +1,159 @@
+@layer theme {
+  :root {
+    --aui-radio-gap: calc(var(--spacing) * 2.5);
+    --aui-radio-box-size: calc(var(--spacing) * 4.5);
+    --aui-radio-box-size-xs: calc(var(--spacing) * 3.5);
+    --aui-radio-box-size-sm: calc(var(--spacing) * 4);
+    --aui-radio-box-size-md: calc(var(--spacing) * 4.5);
+    --aui-radio-box-size-lg: calc(var(--spacing) * 5.5);
+    --aui-radio-box-size-xl: calc(var(--spacing) * 6.5);
+    --aui-radio-box-size-xxl: calc(var(--spacing) * 8);
+    --aui-radio-box-dot-scale: 0.45;
+    --aui-radio-box-bg: var(--color-surface-container);
+    --aui-radio-box-border: var(--color-outline);
+    --aui-radio-box-active-border: var(--color-primary);
+    --aui-radio-box-active-dot: var(--color-primary);
+  }
+}
+
+@layer component {
+  .aui-radio {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--aui-radio-gap);
+    cursor: pointer;
+  }
+
+  .aui-radio:has(.aui-radio-box:disabled) {
+    cursor: not-allowed;
+  }
+
+  .aui-radio-box {
+    appearance: none;
+    flex: none;
+    inline-size: var(--aui-radio-box-size);
+    block-size: var(--aui-radio-box-size);
+    margin: 0;
+    display: inline-grid;
+    place-items: center;
+    border-radius: var(--radius-full);
+    background-color: var(--aui-radio-box-bg);
+    box-shadow: inset 0 0 0 1px var(--aui-radio-box-border);
+    cursor: pointer;
+    forced-color-adjust: auto;
+    transition:
+      background-color var(--duration-short) var(--ease-emphasized),
+      box-shadow var(--duration-short) var(--ease-emphasized);
+  }
+
+  .aui-radio-box::after {
+    content: '';
+    inline-size: calc(var(--aui-radio-box-size) * var(--aui-radio-box-dot-scale));
+    block-size: calc(var(--aui-radio-box-size) * var(--aui-radio-box-dot-scale));
+    border-radius: var(--radius-full);
+    background-color: transparent;
+    transform: scale(0);
+    transition:
+      transform var(--duration-short) var(--ease-emphasized),
+      background-color var(--duration-short) var(--ease-emphasized);
+  }
+
+  .aui-radio-box:hover:not(:disabled) {
+    box-shadow: inset 0 0 0 1px var(--aui-radio-box-active-border);
+  }
+
+  .aui-radio-box:hover:not(:disabled)::after {
+    background-color: color-mix(in srgb, var(--aui-radio-box-active-dot) 25%, transparent);
+    transform: scale(1);
+  }
+
+  .aui-radio-box:checked {
+    box-shadow: inset 0 0 0 1px var(--aui-radio-box-active-border);
+  }
+
+  .aui-radio-box:checked::after {
+    background-color: var(--aui-radio-box-active-dot);
+    transform: scale(1);
+  }
+
+  .aui-radio-box:hover:not(:disabled):checked::after {
+    background-color: var(--aui-radio-box-active-dot);
+  }
+
+  .aui-radio-box:disabled {
+    background-color: var(--color-disabled-bg);
+    box-shadow: inset 0 0 0 1px var(--color-disabled-border);
+    cursor: not-allowed;
+  }
+
+  .aui-radio-box:disabled::after {
+    background-color: transparent;
+    transform: scale(0);
+  }
+
+  .aui-radio-box-xs {
+    --aui-radio-box-size: var(--aui-radio-box-size-xs);
+  }
+
+  .aui-radio-box-sm {
+    --aui-radio-box-size: var(--aui-radio-box-size-sm);
+  }
+
+  .aui-radio-box-md {
+    --aui-radio-box-size: var(--aui-radio-box-size-md);
+  }
+
+  .aui-radio-box-lg {
+    --aui-radio-box-size: var(--aui-radio-box-size-lg);
+  }
+
+  .aui-radio-box-xl {
+    --aui-radio-box-size: var(--aui-radio-box-size-xl);
+  }
+
+  .aui-radio-box-xxl {
+    --aui-radio-box-size: var(--aui-radio-box-size-xxl);
+  }
+
+  .aui-radio-box-primary {
+    --focus-ring-color: var(--color-primary);
+    --aui-radio-box-active-border: var(--color-primary);
+    --aui-radio-box-active-dot: var(--color-primary);
+  }
+
+  .aui-radio-box-secondary {
+    --focus-ring-color: var(--color-secondary);
+    --aui-radio-box-active-border: var(--color-secondary);
+    --aui-radio-box-active-dot: var(--color-secondary);
+  }
+
+  .aui-radio-box-tertiary {
+    --focus-ring-color: var(--color-tertiary);
+    --aui-radio-box-active-border: var(--color-tertiary);
+    --aui-radio-box-active-dot: var(--color-tertiary);
+  }
+
+  .aui-radio-box-error {
+    --focus-ring-color: var(--color-error);
+    --aui-radio-box-active-border: var(--color-error);
+    --aui-radio-box-active-dot: var(--color-error);
+  }
+
+  .aui-radio-box-success {
+    --focus-ring-color: var(--color-success);
+    --aui-radio-box-active-border: var(--color-success);
+    --aui-radio-box-active-dot: var(--color-success);
+  }
+
+  .aui-radio-box-warning {
+    --focus-ring-color: var(--color-warning);
+    --aui-radio-box-active-border: var(--color-warning);
+    --aui-radio-box-active-dot: var(--color-warning);
+  }
+
+  .aui-radio-box-info {
+    --focus-ring-color: var(--color-info);
+    --aui-radio-box-active-border: var(--color-info);
+    --aui-radio-box-active-dot: var(--color-info);
+  }
+}

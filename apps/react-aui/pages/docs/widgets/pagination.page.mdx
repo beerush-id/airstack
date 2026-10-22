@@ -1,0 +1,130 @@
+---
+title: AUI Pagination
+nav: Pagination
+nav-priority: 203
+description: Named page run holding position with one tab stop on the current page.
+---
+
+# AUI Pagination
+
+A run of page links has to behave as one control. It names the run as a landmark, holds a single tab stop on the current page, travels only the enabled links with the arrows, and keeps a page position that previous and next step from — while every page stays an ordinary link with its own `href`.
+
+:::interactive[Pagination demo]
+
+```tsx
+import { Button, Link, Pagination, Toggle } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+
+const pages = [1, 2, 3, 4, 5];
+
+const PaginationDemo = setup(() => {
+  const state = mutable({ page: 2, total: 5, disableThree: false });
+  const block = (event: { preventDefault: () => void }) => event.preventDefault();
+
+  return () => (
+    <div className="demo-button">
+      <div className="flex gap-xs w-full">
+        <div className="flex-1"></div>
+        <Toggle size="sm" pressed={$bind(state, 'disableThree')}>
+          {() => (state.disableThree ? 'Page 3 disabled' : 'Page 3 enabled')}
+        </Toggle>
+      </div>
+      <div className="aui-card flex gap-lg items-center justify-center p-xl">
+        <Snippet>
+          {() => (
+            <Pagination label="Search results pages" page={$bind(state, 'page')} total={state.total}>
+              {pages.map((page) => (
+                <Link
+                  key={page}
+                  href={`#page-${page}`}
+                  page={page}
+                  current={state.page === page}
+                  disabled={state.disableThree && page === 3}
+                  onClick={block}
+                >
+                  {page}
+                </Link>
+              ))}
+            </Pagination>
+          )}
+        </Snippet>
+      </div>
+      <span>Page {state.page} of {state.total}</span>
+    </div>
+  );
+}, 'PaginationDemo');
+```
+
+```html
+<PaginationDemo />
+```
+
+<PaginationDemo />
+
+:::
+
+## Usage
+
+Bind the position and mark the current page so the single tab stop lands where the reader is:
+
+```tsx
+import { Link, Pagination } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/pagination.css';
+
+export const Results = () => (
+  <Pagination label="Search results pages" page={2} total={5}>
+    <Link href="#page-1" page={1}>1</Link>
+    <Link href="#page-2" page={2} current>2</Link>
+    <Link href="#page-3" page={3}>3</Link>
+  </Pagination>
+);
+```
+
+Step from your own previous/next controls using the controller's guards. A page link carrying `page` commits that number into the run when it activates; a middle-click never commits:
+
+```tsx
+import { Pagination } from '@airlib/react-aui';
+import { $bind, mutable, setup } from '@airlib/react';
+
+const Results = setup(() => {
+  const state = mutable({ page: 2 });
+
+  return () => (
+    <Pagination label="Results" page={$bind(state, 'page')} total={5}>
+      <button type="button" onClick={() => (state.page -= 1)}>Previous</button>
+      <button type="button" onClick={() => (state.page += 1)}>Next</button>
+    </Pagination>
+  );
+}, 'Results');
+```
+
+Leave `total` out while the last page is unknown: forward stepping does nothing and `canForward` stays false until the bound arrives.
+
+### Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `label` | `string` | `'Pagination'` | Landmark name, compiled to `aria-label`. |
+| `page` | `Bindable<number>` | `1` | Current position. Writing it moves the run; page links write it on activation. |
+| `total` | `number` | — | Last position. Absent means the forward bound is unknown. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `ref` | `Ref<HTMLElement>` | — | Access to the underlying landmark element. |
+
+`page` stays live — change it and the run follows. `ArrowRight` / `ArrowLeft` travel the enabled links and wrap. `Home` / `End` land on the first and last enabled link. `Tab` enters at the current page and leaves from it.
+
+Your own classes are added next to the built-in ones:
+
+```tsx
+// class="aui-pagination my-pager"
+<Pagination label="Results" page={2} total={5} className="my-pager">
+  <Link href="#p1" page={1}>1</Link>
+</Pagination>
+```
+
+To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+
+## Next Steps
+
+- [Link](/docs/widgets/link) — Page links carrying `href`, `page`, and the current mark.
+- [Breadcrumb](/docs/widgets/breadcrumb) — The same single-stop travel over a trail of ancestors.
+- [Navigation](/docs/widgets/navigation) — The same rover running vertically over menus.

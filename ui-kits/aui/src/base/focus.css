@@ -1,6 +1,8 @@
 @layer base {
   .aui-control,
+  .aui-focusable,
   .aui-menu-item {
+    outline-style: solid;
     outline-width: var(--focus-ring-width);
     outline-offset: var(--focus-ring-offset);
     outline-color: transparent;

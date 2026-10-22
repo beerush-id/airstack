@@ -1,0 +1,225 @@
+@layer theme {
+  :root {
+    --aui-slider-height: var(--aui-control-height, calc(var(--spacing) * 11));
+    --aui-slider-radius: var(--radius-lg);
+    --aui-slider-track-bg: var(--color-surface-highest);
+    --aui-slider-active-bg: var(--color-primary);
+    --aui-slider-active-fg: var(--color-on-primary);
+  }
+}
+
+@layer component {
+  .aui-slider {
+    display: flex;
+    position: relative;
+    border-radius: var(--aui-slider-radius);
+    overflow: hidden;
+    cursor: pointer;
+    touch-action: none;
+    user-select: none;
+
+    color: var(--color-on-surface);
+    background-color: var(--aui-slider-track-bg);
+    font-variant-numeric: tabular-nums;
+    transition-duration: var(--duration-short);
+    transition-timing-function: var(--ease-standard);
+    transition-property: background;
+
+    &:hover,
+    &:focus-visible {
+      background-color: color-mix(in oklch, var(--aui-slider-track-bg) 95%, var(--light-down));
+    }
+
+    &::before {
+      content: '';
+      display: block;
+      position: absolute;
+      inset: 0;
+      background-color: var(--aui-slider-active-bg);
+      z-index: 0;
+    }
+  }
+
+  .aui-slider[aria-disabled='true'] {
+    background-color: var(--color-disabled-bg);
+    cursor: not-allowed;
+
+    &::before {
+      background-color: color-mix(in oklch, var(--color-disabled-bg) 90%, var(--light-down));
+    }
+  }
+
+  .aui-slider-thumb {
+    --focus-ring-offset: -4px;
+    position: absolute;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--aui-slider-radius);
+    border: none;
+    aspect-ratio: 1;
+    color: var(--aui-slider-active-fg);
+    background-color: var(--aui-slider-active-bg);
+    transition-duration: var(--duration-short);
+    transition-timing-function: var(--ease-standard);
+    transition-property: background;
+
+    &:not(:disabled, [aria-disabled='true']) {
+      cursor: grab;
+    }
+
+    &:hover:not(:disabled, [aria-disabled='true']) {
+      background-color: color-mix(in oklch, var(--aui-slider-active-bg) 90%, var(--light-up));
+    }
+
+    &:disabled,
+    &[aria-disabled='true'] {
+      color: var(--color-disabled-fg);
+      background-color: color-mix(in oklch, var(--color-disabled-bg) 90%, var(--light-down));
+    }
+  }
+
+  .aui-slider[aria-orientation='horizontal'] {
+    block-size: var(--aui-slider-height);
+    inline-size: 100%;
+    align-items: center;
+    justify-content: space-between;
+    padding-inline: var(--spacing-md);
+
+    &::before {
+      width: var(--aria-slider-start, 0);
+    }
+
+    .aui-slider-thumb {
+      top: 0;
+      left: var(--aria-slider-start, 0);
+      translate: -50%;
+      height: 100%;
+      rotate: 90deg;
+    }
+
+    &[role='group'] {
+      &::before {
+        left: var(--aria-slider-start, 0);
+        width: calc(100% - (100% - var(--aria-slider-end, 0)) - var(--aria-slider-start, 0));
+      }
+
+      .aui-slider-thumb:last-of-type {
+        translate: -50% 0;
+        left: var(--aria-slider-end, 100%);
+      }
+    }
+  }
+
+  .aui-slider[aria-orientation='vertical'] {
+    flex-shrink: 0;
+    inline-size: var(--aui-slider-height);
+    block-size: 100%;
+    min-block-size: calc(var(--aui-slider-height) * 4);
+    flex-direction: column-reverse;
+    padding-block: var(--spacing-md);
+
+    &::before {
+      height: var(--aria-slider-start, 0);
+      top: unset;
+      bottom: 0;
+    }
+
+    .aui-slider-thumb {
+      left: 0;
+      bottom: var(--aria-slider-start, 0);
+      width: var(--aui-slider-height);
+      translate: 0 50%;
+    }
+
+    &[role='group'] {
+      &::before {
+        bottom: var(--aria-slider-start, 0);
+        height: calc(100% - (100% - var(--aria-slider-end, 0)) - var(--aria-slider-start, 0));
+      }
+
+      .aui-slider-thumb:last-of-type {
+        bottom: var(--aria-slider-end, 100%);
+      }
+    }
+  }
+
+  .aui-slider-xs {
+    --aui-slider-radius: var(--radius-xs);
+    --aui-slider-height: var(--aui-control-height-xs);
+  }
+
+  .aui-slider-sm {
+    --aui-slider-radius: var(--radius-sm);
+    --aui-slider-height: var(--aui-control-height-sm);
+  }
+
+  .aui-slider-md {
+    --aui-slider-radius: var(--radius-md);
+    --aui-slider-height: var(--aui-control-height-md);
+  }
+
+  .aui-slider-lg {
+    --aui-slider-radius: var(--radius-lg);
+    --aui-slider-height: var(--aui-control-height-lg);
+  }
+
+  .aui-slider-xl {
+    --aui-slider-radius: var(--radius-xl);
+    --aui-slider-height: var(--aui-control-height-xl);
+  }
+
+  .aui-slider-xxl {
+    --aui-slider-radius: var(--radius-xxl);
+    --aui-slider-height: var(--aui-control-height-xxl);
+  }
+
+  .aui-slider-primary {
+    --focus-ring-color: var(--color-primary);
+    --aui-slider-track-bg: var(--color-primary-container);
+    --aui-slider-active-bg: var(--color-primary);
+    --aui-slider-active-fg: var(--color-on-primary);
+  }
+
+  .aui-slider-secondary {
+    --focus-ring-color: var(--color-secondary);
+    --aui-slider-track-bg: var(--color-secondary-container);
+    --aui-slider-active-bg: var(--color-secondary);
+    --aui-slider-active-fg: var(--color-on-secondary);
+  }
+
+  .aui-slider-tertiary {
+    --focus-ring-color: var(--color-tertiary);
+    --aui-slider-track-bg: var(--color-tertiary-container);
+    --aui-slider-active-bg: var(--color-tertiary);
+    --aui-slider-active-fg: var(--color-on-tertiary);
+  }
+
+  .aui-slider-error {
+    --focus-ring-color: var(--color-error);
+    --aui-slider-track-bg: var(--color-error-container);
+    --aui-slider-active-bg: var(--color-error);
+    --aui-slider-active-fg: var(--color-on-error);
+  }
+
+  .aui-slider-success {
+    --focus-ring-color: var(--color-success);
+    --aui-slider-track-bg: var(--color-success-container);
+    --aui-slider-active-bg: var(--color-success);
+    --aui-slider-active-fg: var(--color-on-success);
+  }
+
+  .aui-slider-warning {
+    --focus-ring-color: var(--color-warning);
+    --aui-slider-track-bg: var(--color-warning-container);
+    --aui-slider-active-bg: var(--color-warning);
+    --aui-slider-active-fg: var(--color-on-warning);
+  }
+
+  .aui-slider-info {
+    --focus-ring-color: var(--color-info);
+    --aui-slider-track-bg: var(--color-info-container);
+    --aui-slider-active-bg: var(--color-info);
+    --aui-slider-active-fg: var(--color-on-info);
+  }
+}

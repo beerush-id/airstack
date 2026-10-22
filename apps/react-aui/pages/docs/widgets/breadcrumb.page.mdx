@@ -1,0 +1,110 @@
+---
+title: AUI Breadcrumb
+nav: Breadcrumb
+nav-priority: 201
+description: Trail of ancestor links with one tab stop and decorative separators.
+---
+
+# AUI Breadcrumb
+
+A breadcrumb is the trail of links back up a hierarchy — Docs / Aria / Breadcrumb. It names the landmark, hides the separators from everyone who listens, keeps the whole trail at one tab stop on the current crumb, and lets the arrow keys travel the crumbs while activation stays with the links.
+
+:::interactive[Breadcrumb demo]
+
+```tsx
+import { Breadcrumb, BreadcrumbSeparator, Link, Toggle } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+
+const BreadcrumbDemo = setup(() => {
+  const state = mutable({ disabledStepper: true });
+  const block = (event: { preventDefault: () => void }) => event.preventDefault();
+
+  return () => (
+    <div className="demo-button">
+      <div className="flex gap-xs w-full">
+        <div className="flex-1"></div>
+        <Toggle size="sm" pressed={$bind(state, 'disabledStepper')}>
+          {() => (state.disabledStepper ? 'Stepper disabled' : 'Stepper enabled')}
+        </Toggle>
+      </div>
+      <div className="aui-card flex flex-col gap-lg justify-center p-xl">
+        <Snippet>
+          {() => (
+            <Breadcrumb label="Documentation trail">
+              <Link href="#docs" onClick={block}>Docs</Link>
+              <BreadcrumbSeparator />
+              <Link href="#docs-aria" onClick={block}>Aria</Link>
+              <BreadcrumbSeparator />
+              <Link href="#docs-aria-stepper" disabled={state.disabledStepper} onClick={block}>Stepper</Link>
+              <BreadcrumbSeparator />
+              <Link href="#docs-aria-breadcrumb" current onClick={block}>Breadcrumb</Link>
+            </Breadcrumb>
+          )}
+        </Snippet>
+      </div>
+    </div>
+  );
+}, 'BreadcrumbDemo');
+```
+
+```html
+<BreadcrumbDemo />
+```
+
+<BreadcrumbDemo />
+
+:::
+
+## Usage
+
+Mark the terminal crumb current so the single tab stop lands where the reader already is:
+
+```tsx
+import { Breadcrumb, BreadcrumbSeparator, Link } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/breadcrumb.css';
+
+export const Trail = () => (
+  <Breadcrumb label="Documentation trail">
+    <Link href="#docs">Docs</Link>
+    <BreadcrumbSeparator />
+    <Link href="#docs-aria">Aria</Link>
+    <BreadcrumbSeparator />
+    <Link href="#docs-aria-breadcrumb" current>Breadcrumb</Link>
+  </Breadcrumb>
+);
+```
+
+Separators are decorative only — seen, never announced. Render your own glyph between crumbs; it compiles `role="separator"` with `aria-hidden="true"` and takes no part in travel:
+
+```tsx
+<BreadcrumbSeparator>/</BreadcrumbSeparator>
+```
+
+With no crumb marked current, every crumb parks at `-1` and `Tab` never enters the trail — the arrows still reach it. With a disabled crumb, travel passes over it in every direction and the tab order skips it too.
+
+### Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `label` | `string` | `'Breadcrumbs'` | Landmark name, compiled to `aria-label`. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `ref` | `Ref<HTMLElement>` | — | Access to the underlying landmark element. |
+
+`ArrowRight` / `ArrowLeft` move to the next / previous enabled crumb and wrap at both ends. `Home` / `End` jump to the ends. `Enter` belongs to the focused link.
+
+Your own classes are added next to the built-in ones:
+
+```tsx
+// class="aui-breadcrumb my-trail"
+<Breadcrumb label="Trail" className="my-trail">
+  <Link href="#a">A</Link>
+</Breadcrumb>
+```
+
+To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+
+## Next Steps
+
+- [Link](/docs/widgets/link) — Destinations, disabled lockout, and the current-page mark behind each crumb.
+- [Navigation](/docs/widgets/navigation) — The same roving landmark running vertically over menus and side trails.
+- [Pagination](/docs/widgets/pagination) — The same single-stop travel over a page list with a held position.

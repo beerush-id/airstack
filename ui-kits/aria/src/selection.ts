@@ -323,7 +323,7 @@ export abstract class SelectionAria<
           group.value.splice(index, 1);
         }
       } else if (group.value === value) {
-        delete group.value;
+        group.value = undefined;
       }
     } else {
       this.stateProps[this.stateKey] = false;

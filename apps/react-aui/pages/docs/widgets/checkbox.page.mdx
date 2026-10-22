@@ -34,7 +34,7 @@ const CheckboxDemo = setup(() => {
               size={state.size}
               color={state.color}
               disabled={state.disabled}
-              indeterminate={state.indeterminate}
+              indeterminate={$bind(state, 'indeterminate')}
               checked={$bind(state, 'checked')}
             >
               Weekly digest

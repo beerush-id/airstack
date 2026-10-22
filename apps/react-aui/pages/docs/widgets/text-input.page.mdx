@@ -1,0 +1,133 @@
+---
+title: AUI Text Input
+nav: Text Input
+nav-priority: 211
+description: Live string control with caret-safe binding and commit signal.
+---
+
+# AUI Text Input
+
+A text field is the one control you mostly should not redraw. It keeps one live string in both directions without yanking the caret, projects required, invalid, and readonly onto whichever host you chose, and tells your code when the text actually commits — leaving typing, selection, and autocomplete to the browser. `SearchInput` is the same live string with the searchbox role and search type.
+
+Styling is optional. Without AUI CSS the input stays a correct, operable field; with it, the same markup gets the AUI treatment.
+
+:::interactive[Text input demo]
+
+```tsx
+import { TextInput, SearchInput, Toggle } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+
+const TextDemo = setup(() => {
+  const state = mutable({ name: 'Ada Lovelace', query: '', disabled: false, invalid: false });
+
+  return () => (
+    <div className="demo-button">
+      <div className="flex gap-xs w-full">
+        <div className="flex-1"></div>
+        <Toggle size="sm" pressed={$bind(state, 'disabled')}>
+          {() => (state.disabled ? 'Enabled' : 'Disabled')}
+        </Toggle>
+        <Toggle size="sm" pressed={$bind(state, 'invalid')}>
+          {() => (state.invalid ? 'Valid' : 'Invalid')}
+        </Toggle>
+      </div>
+      <div className="aui-card flex flex-col gap-lg justify-center p-xl">
+        <Snippet>
+          {() => (
+            <TextInput
+              label="Display name"
+              placeholder="Ada"
+              value={$bind(state, 'name')}
+              disabled={state.disabled}
+              invalid={state.invalid}
+            />
+          )}
+        </Snippet>
+        <Snippet>
+          {() => (
+            <SearchInput
+              label="Search docs"
+              placeholder="Search"
+              value={$bind(state, 'query')}
+              disabled={state.disabled}
+            />
+          )}
+        </Snippet>
+        <span>Name: {state.name || '—'}</span>
+      </div>
+    </div>
+  );
+}, 'TextDemo');
+```
+
+```html
+<TextDemo />
+```
+
+<TextDemo />
+
+:::
+
+## Usage
+
+Bind the live value; typing copies into props instead of rewriting the element, so the caret stays where the user put it. Commit arrives through `onchange` on blur (native) with the committed text in `detail`:
+
+```tsx
+import { TextInput } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/text-input.css';
+
+export const Name = () => (
+  <TextInput label="Display name" placeholder="Ada" />
+);
+```
+
+Use the search face for queries — same contract, searchbox role and search type:
+
+```tsx
+import { SearchInput } from '@airlib/react-aui';
+
+export const Query = () => (
+  <SearchInput label="Search docs" placeholder="Search" />
+);
+```
+
+Take the multiline path through `kind` on a custom host, or render your own `textarea` host with the same controller. Invalid projects exactly as the browser states it; readonly keeps the field reachable while refusing every key.
+
+### Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `value` | `Bindable<string>` | `''` | Live text, both directions. Seeded once; never rewritten per keystroke. |
+| `kind` | `'text'`, `'password'`, `'search'`, `'email'`, `'tel'`, `'url'` | — | Selects the native type behavior and the custom-host role. |
+| `multiline` | `boolean` | `false` | Compiles `aria-multiline` on custom hosts. |
+| `readonly` | `boolean` | `false` | Reachable but immutable; refuses every key. |
+| `disabled` | `boolean` | `false` | Out of the tab order; commits stop. |
+| `required` | `boolean` | `false` | Required indicator, projected as the browser states it. |
+| `invalid` | `boolean`, `'grammar'`, `'spelling'` | `false` | Failure state, projected to `aria-invalid`. |
+| `placeholder` | `string` | — | Hint text. |
+| `label` | `string` | — | Accessible name, compiled to `aria-label`. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `ref` | `Ref<HTMLInputElement>` | — | Access to the underlying input element. |
+
+Set app-wide defaults once instead of repeating props:
+
+```tsx
+import { configure } from '@airlib/react-aui';
+
+configure({ textInput: { className: 'my-input' } });
+```
+
+Your own classes are added next to the built-in ones:
+
+```tsx
+// class="aui-text-input my-input"
+<TextInput label="Name" placeholder="Ada" className="my-input" />
+```
+
+To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+
+## Next Steps
+
+- [Field](/docs/widgets/field) — The namespace wrapping this control with label, helper, and failure.
+- [Number Stepper](/docs/widgets/number-stepper) — The clamped-number sibling for stepped values.
+- [Select](/docs/widgets/select) — The coordinated-list sibling for choosing from options.

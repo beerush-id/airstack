@@ -1,0 +1,114 @@
+---
+title: AUI Number Stepper
+nav: Number Stepper
+nav-priority: 212
+description: Discrete number clamped to bounds with arrow and page stepping.
+---
+
+# AUI Number Stepper
+
+A number you step rather than type. Every write clamps to the bounds — keys, typing, your own assignment, a parent narrowing the range — and the control announces its value, limits, and units while leaving the caret keys to the browser.
+
+Styling is optional. Without AUI CSS the stepper stays a correct, operable number; with it, the same markup gets the AUI treatment.
+
+:::interactive[Number stepper demo]
+
+```tsx
+import { NumberStepper, Toggle } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+
+const StepperDemo = setup(() => {
+  const state = mutable({ guests: 2, disabled: false, readonly: false });
+
+  return () => (
+    <div className="demo-button">
+      <div className="flex gap-xs w-full">
+        <div className="flex-1"></div>
+        <Toggle size="sm" pressed={$bind(state, 'disabled')}>
+          {() => (state.disabled ? 'Enabled' : 'Disabled')}
+        </Toggle>
+        <Toggle size="sm" pressed={$bind(state, 'readonly')}>
+          {() => (state.readonly ? 'Writable' : 'Readonly')}
+        </Toggle>
+      </div>
+      <div className="aui-card flex flex-col gap-lg justify-center p-xl">
+        <Snippet>
+          {() => (
+            <NumberStepper
+              min={1}
+              max={8}
+              step={1}
+              value={$bind(state, 'guests')}
+              disabled={state.disabled}
+              readonly={state.readonly}
+              aria-label="Guests"
+            />
+          )}
+        </Snippet>
+        <span>Guests: {state.guests}</span>
+      </div>
+    </div>
+  );
+}, 'StepperDemo');
+```
+
+```html
+<StepperDemo />
+```
+
+<StepperDemo />
+
+:::
+
+## Usage
+
+Set bounds once; every write clamps to them. On a native input the browser keeps its own spinner and typing; on a custom host the controller compiles the spinbutton role and polyfills the keys itself:
+
+```tsx
+import { NumberStepper } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/text-input.css';
+
+export const Guests = () => (
+  <NumberStepper min={1} max={8} value={2} aria-label="Guests" />
+);
+```
+
+Step by fives across a wider range, or lock the field while keeping it reachable:
+
+```tsx
+<NumberStepper min={0} max={60} step={5} value={10} aria-label="Nights" />
+<NumberStepper min={0} max={4} value={0} readonly aria-label="Extra beds" />
+<NumberStepper min={0} max={2} value={0} disabled aria-label="Suite upgrade" />
+```
+
+### Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `value` | `Bindable<number>` | `min ?? 0` | Current value, clamped to bounds on every write. |
+| `min` | `number` | — | Lower bound; absent means unbounded below. |
+| `max` | `number` | — | Upper bound; absent means unbounded above. |
+| `step` | `number` | `1` | Increment per arrow keystroke; page keys scale from it. |
+| `valuetext` | `string` | — | Human-readable value announcement. |
+| `readonly` | `boolean` | `false` | Reachable but refuses every key. |
+| `disabled` | `boolean` | `false` | Out of the tab order. |
+| `required` | `boolean` | `false` | Required indicator. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `ref` | `Ref<HTMLInputElement>` | — | Access to the underlying input element. |
+
+Arrows step by one, page keys step by page, `Home` / `End` jump to the bounds. A readonly field stays reachable and announces while refusing change; a disabled field leaves the tab order.
+
+Your own classes are added next to the built-in ones:
+
+```tsx
+// class="aui-number-stepper my-stepper"
+<NumberStepper min={1} max={8} value={2} aria-label="Guests" className="my-stepper" />
+```
+
+To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+
+## Next Steps
+
+- [Field](/docs/widgets/field) — The namespace wrapping this control with label and failure.
+- [Text Input](/docs/widgets/text-input) — The free-string sibling for typed values.
+- [Slider](/docs/widgets/slider) — The point-at sibling for choosing from a track.

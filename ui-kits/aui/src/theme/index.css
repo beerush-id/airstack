@@ -269,7 +269,7 @@
     --size-xl: calc(var(--spacing) * 14);
     --size-xxl: calc(var(--spacing) * 16);
 
-    --radius-base: var(--spacing);
+    --radius-base: calc(var(--spacing) * 1.25);
     --radius-none: 0;
     --radius-xs: var(--radius-base);
     --radius-sm: calc(var(--radius-base) * 2);
@@ -280,24 +280,24 @@
     --radius-full: 9999px;
 
     --color-disabled-bg: color-mix(
-      in srgb,
+      in oklch,
       var(--color-on-surface) var(--tone-faint-strength),
-      transparent
+      var(--light-up)
     );
     --color-disabled-fg: color-mix(
-      in srgb,
+      in oklch,
       var(--color-on-surface) var(--tone-muted-strength),
-      transparent
+      var(--light-up)
     );
     --color-disabled-border: color-mix(
-      in srgb,
+      in oklch,
       var(--color-on-surface) var(--tone-faint-strength),
-      transparent
+      var(--light-up)
     );
 
     --focus-ring-style: solid;
     --focus-ring-width: 2px;
-    --focus-ring-offset: 3px;
+    --focus-ring-offset: 2px;
     --focus-ring-color: var(--color-primary);
 
     --z-index-elevated: 1;

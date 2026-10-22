@@ -2,14 +2,14 @@ import { aria } from '@airlib/aria';
 import { AUI_CLASS, COLORS, register, SIZES } from '@airlib/aui/utils';
 import { type Bindable, renderDynamic, setup } from '@airlib/react';
 import type { ReactNode } from 'react';
-import { $families, auiConfig, type AuiPrimitive, type AuiProps, type ComponentStyles, OMIT_KEYS } from '../config.js';
+import { $families, type AuiPrimitive, type AuiProps, auiConfig, type ComponentStyles, OMIT_KEYS } from '../config.js';
 import { checkboxGroupProps } from './CheckboxGroup.js';
 
 export type CheckboxValue = AuiPrimitive;
 
 export interface CheckboxProps extends Omit<AuiProps<'input'>, 'variant' | 'type' | 'value'> {
   checked?: Bindable<boolean>;
-  indeterminate?: boolean;
+  indeterminate?: Bindable<boolean>;
   disabled?: boolean;
   required?: boolean;
   invalid?: boolean | 'grammar' | 'spelling';

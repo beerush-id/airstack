@@ -235,14 +235,34 @@ export class SliderAria<
   }
 
   /**
+   * Endpoint position as a percentage along the declared range, matching the
+   * numeric content of the published offset variable.
+   */
+  public get offsets(): number[] {
+    const span = this.max - this.min;
+    if (span <= 0) return [];
+
+    const offsets = Array.isArray(this.value) ? this.value : [this.value];
+    return offsets.map((endpoint = 0) => Number((((endpoint - this.min) / span) * 100).toFixed(4)));
+  }
+
+  /**
    * Computes the HTML, ARIA, and event handler attributes for the slider track.
    *
    * @returns Slider attributes dictionary
    */
   protected override createAttributes(): A {
+    const [start, end] = this.offsets;
+    const attrs = Object.assign(super.createAttributes(), {
+      style: {
+        '--aria-slider-start': `${start ?? 0}%`,
+        '--aria-slider-end': end ? `${end}%` : undefined,
+      },
+    });
+
     if (this.isNative) {
       const current = this.value;
-      return Object.assign(super.createAttributes(), {
+      return Object.assign(attrs, {
         type: 'range',
         min: this.min,
         max: this.max,
@@ -253,18 +273,21 @@ export class SliderAria<
       }) as A;
     }
 
+    Object.assign(attrs, {
+      'aria-disabled': ariaBoolean(this.disabled),
+      'aria-orientation': this.orientation,
+    });
+
     if (!this.isDual) {
       const current = this.value as number;
       const text = this.properties.valuetext;
-      return Object.assign(super.createAttributes(), {
+      return Object.assign(attrs, {
         role: 'slider' as const,
         tabindex: this.disabled ? -1 : 0,
-        'aria-disabled': ariaBoolean(this.disabled),
         'aria-valuenow': current,
         'aria-valuemin': this.min,
         'aria-valuemax': this.max,
         'aria-valuetext': typeof text === 'function' ? text(current) : text,
-        'aria-orientation': this.orientation,
         onkeydown: this.handleTrackKeyDown,
         onkeyup: this.handleTrackKeyUp,
         onblur: this.handleTrackBlur,
@@ -272,7 +295,7 @@ export class SliderAria<
       }) as A;
     }
 
-    return Object.assign(super.createAttributes(), {
+    return Object.assign(attrs, {
       role: 'group' as const,
       onpointerdown: this.handleTrackPointerDown,
     }) as A;

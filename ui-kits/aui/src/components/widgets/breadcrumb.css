@@ -1,0 +1,12 @@
+@layer component {
+  .aui-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--spacing) * 2);
+  }
+
+  .aui-breadcrumb-separator {
+    color: var(--color-outline);
+    user-select: none;
+  }
+}

@@ -1,0 +1,127 @@
+---
+title: AUI Radio
+nav: Radio
+nav-priority: 167
+description: One answer out of several on a native input, named by its wrapping label.
+---
+
+# AUI Radio
+
+A radio is one answer out of several. The label wraps a native input and the name text, so activating the text takes the slot and the control joins forms. It is select-only: re-activating the holder commits nothing, and the slot moves only when another option takes it or the shared group value changes.
+
+Styling is optional. Without AUI CSS the Radio stays a correct, operable native input; with it, the same markup gets the AUI treatment through the full library.
+
+:::interactive[Radio demo]
+
+```tsx
+import { Radio } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { DemoControl } from '@/components/DemoControl.js';
+
+const RadioDemo = setup(() => {
+  const state = mutable({ checked: false, size: 'md', color: 'primary', disabled: false });
+
+  return () => (
+    <div className="demo-button">
+      <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} disabled={$bind(state, 'disabled')} />
+      <div className="aui-card flex gap-md items-center justify-center p-xl">
+        <Snippet>
+          {() => (
+            <Radio
+              value="pro"
+              size={state.size}
+              color={state.color}
+              disabled={state.disabled}
+              checked={$bind(state, 'checked')}
+            >
+              Pro plan
+            </Radio>
+          )}
+        </Snippet>
+      </div>
+    </div>
+  );
+}, 'RadioDemo');
+```
+
+```html
+<RadioDemo />
+```
+
+<RadioDemo />
+
+:::
+
+## Usage
+
+```tsx
+import { Radio } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/radio.css';
+
+export const ProPlan = () => <Radio value="pro">Pro plan</Radio>;
+```
+
+For the full library — tokens, base defaults, every component, and the utilities — load `import '@airlib/aui';` instead. A lone component stylesheet carries only that component's rules.
+
+### Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `checked` | `Bindable<boolean>` | `false` | Whether this option holds the slot. Bind it to read and write the state from outside. |
+| `value` | `string`, `number` | — | Group membership token; inside a group the slot is derived from the shared value instead. |
+| `disabled` | `boolean` | `false` | Locks the option; clicks, keys, and writes commit nothing. |
+| `required` | `boolean` | `false` | Asks for a selection before the form is accepted. |
+| `invalid` | `boolean`, `'grammar'`, `'spelling'` | — | Marks the field invalid, and says what kind of wrong it is. |
+| `name` | `string` | — | The field name the option reports under; falls back to the group name inside a group. |
+| `size` | `xs`, `sm`, `md`, `lg`, `xl`, `xxl` | `'md'` | Explicit props win; otherwise the configured default applies. |
+| `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | Same precedence as `size`. |
+| `onchange` | `(event: CustomEvent<...>) => void` | — | Fires when the slot really moves; inside a group it carries the shared value in `detail`. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `children` | `ReactNode` | — | The name text beside the option. |
+| `ref` | `Ref<HTMLInputElement>` | — | Access to the underlying input element. |
+
+Set app-wide defaults once instead of repeating props on every option:
+
+```tsx
+import { configure } from '@airlib/react-aui';
+
+configure({ radio: { size: 'sm' } });
+
+// Renders small without passing size every time
+<Radio value="pro">Pro plan</Radio>;
+```
+
+Your own classes are added next to the built-in ones:
+
+```tsx
+// class="aui-radio-box aui-radio-box-md aui-radio-box-primary my-box"
+<Radio value="pro" className="my-box">Pro plan</Radio>
+```
+
+To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+
+Keyboard: `Tab` reaches the option, `Space` takes the slot on key-up. Re-activating the holder commits nothing and fires no event. A locked option is announced as disabled.
+
+### Sizes
+
+Sizes: `xs`, `sm`, `md`, `lg`, `xl`, `xxl`, default `md`:
+
+```tsx
+<Radio value="starter" size="sm">Compact</Radio>
+<Radio value="pro" size="lg">Spacious</Radio>
+```
+
+### Color Variants
+
+Colors: `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info`, default `primary`. The color draws the ring and dot of a selected option:
+
+```tsx
+<Radio value="pro" color="error">Delete everything</Radio>
+<Radio value="team" color="success">Sync photos</Radio>
+```
+
+## Next Steps
+
+- [Radio Group](/docs/widgets/radio-group) — Several options holding one shared answer, arrows included.
+- [Checkbox](/docs/widgets/checkbox) — Independent marks, and the undecided state between them.
+- [Switch](/docs/widgets/switch) — The same two states announcing as an on-off setting.

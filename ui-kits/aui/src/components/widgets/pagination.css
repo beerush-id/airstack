@@ -1,0 +1,7 @@
+@layer component {
+  .aui-pagination {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--spacing) * 2);
+  }
+}

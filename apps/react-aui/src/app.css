@@ -5,7 +5,7 @@
 
 @layer theme {
   :root {
-    --seed-color: #0090ff;
+    --seed-color: #b0004c;
     --seed-dark-color: #fbd049;
     /*--color-primary: light-dark(#f4641b, #fbd049);*/
   }

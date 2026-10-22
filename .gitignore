@@ -76,3 +76,4 @@ bun.lock
 .wrangler
 .freebuff
 /bench
+/agos

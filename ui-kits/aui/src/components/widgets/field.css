@@ -1,0 +1,23 @@
+@layer component {
+  .aui-field {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing) * 2);
+  }
+
+  .aui-field-label {
+    font-weight: 500;
+  }
+
+  .aui-field-control {
+    width: 100%;
+  }
+
+  .aui-field-description {
+    color: var(--color-on-surface-variant);
+  }
+
+  .aui-field-error {
+    color: var(--color-error);
+  }
+}

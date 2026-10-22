@@ -229,6 +229,10 @@ export type MauiConfig = typeof DEFAULT_CONFIG & {
   toggleGroup?: ComponentStyles;
   checkbox?: ComponentStyles;
   checkboxGroup?: ComponentStyles;
+  radio?: ComponentStyles;
+  radioGroup?: ComponentStyles;
+  slider?: ComponentStyles;
+  sliderThumb?: ComponentStyles;
   header?: ComponentStyles;
   main?: ComponentStyles;
   footer?: ComponentStyles;
@@ -243,9 +247,23 @@ export type MauiConfig = typeof DEFAULT_CONFIG & {
   selectPanel?: ComponentStyles;
   selectOption?: ComponentStyles;
   selectTrigger?: ComponentStyles;
+  navigation?: ComponentStyles;
+  breadcrumb?: ComponentStyles;
+  breadcrumbSeparator?: ComponentStyles;
+  toolbar?: ComponentStyles;
+  pagination?: ComponentStyles;
+  field?: ComponentStyles;
+  fieldLabel?: ComponentStyles;
+  fieldControl?: ComponentStyles;
+  fieldDescription?: ComponentStyles;
+  fieldError?: ComponentStyles;
+  textInput?: ComponentStyles;
+  searchInput?: ComponentStyles;
+  numberStepper?: ComponentStyles;
 };
 
 export const AUI_CLASS = {
+  FOCUSABLE: branded('focusable'),
   BUTTON: branded('button'),
   SWITCH: branded('switch'),
   SWITCH_THUMB: branded('switch-thumb'),
@@ -256,6 +274,12 @@ export const AUI_CLASS = {
   CHECKBOX_LABEL: branded('checkbox-label'),
   CHECKBOX_BOX: branded('checkbox-box'),
   CHECKBOX_GROUP: branded('checkbox-group'),
+  RADIO: branded('radio'),
+  RADIO_LABEL: branded('radio-label'),
+  RADIO_BOX: branded('radio-box'),
+  RADIO_GROUP: branded('radio-group'),
+  SLIDER: branded('slider'),
+  SLIDER_THUMB: branded('slider-thumb'),
   HEADER: branded('header'),
   MAIN: branded('main'),
   FOOTER: branded('footer'),
@@ -275,4 +299,17 @@ export const AUI_CLASS = {
   SELECT_PLACEHOLDER: branded('select-placeholder'),
   SELECT_TRIGGER: branded('select-trigger'),
   SELECT_OPTION: branded('select-option'),
+  NAVIGATION: branded('navigation'),
+  BREADCRUMB: branded('breadcrumb'),
+  BREADCRUMB_SEPARATOR: branded('breadcrumb-separator'),
+  TOOLBAR: branded('toolbar'),
+  PAGINATION: branded('pagination'),
+  FIELD: branded('field'),
+  FIELD_LABEL: branded('field-label'),
+  FIELD_CONTROL: branded('field-control'),
+  FIELD_DESCRIPTION: branded('field-description'),
+  FIELD_ERROR: branded('field-error'),
+  TEXT_INPUT: branded('text-input'),
+  SEARCH_INPUT: branded('search-input'),
+  NUMBER_STEPPER: branded('number-stepper'),
 };
