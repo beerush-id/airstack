@@ -1,5 +1,7 @@
+/* Canonical cascade order shared by every import mode. */
+@layer theme, base, component, utility, reduced-motion;
+
 @import './base/index.css';
 @import './theme/index.css';
-@import './default.css';
-@import './widgets/index.css';
+@import './components/index.css';
 @import './utilities/index.css';

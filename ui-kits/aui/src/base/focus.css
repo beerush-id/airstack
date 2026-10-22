@@ -1,0 +1,12 @@
+@layer base {
+  .aui-control,
+  .aui-menu-item {
+    outline-width: var(--focus-ring-width);
+    outline-offset: var(--focus-ring-offset);
+    outline-color: transparent;
+  }
+
+  :focus-visible {
+    outline-color: color-mix(in oklch, var(--focus-ring-color) 75%, var(--light-up));
+  }
+}

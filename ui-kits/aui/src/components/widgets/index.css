@@ -1,3 +1,5 @@
+@import './control.css';
+@import './menu.css';
 @import './button.css';
 @import './toggle.css';
 @import './select.css';

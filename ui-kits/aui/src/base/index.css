@@ -1,2 +1,2 @@
-/* Canonical cascade order shared by every import mode. */
-@layer theme, base, component, utility, reduced-motion;
+@import './reset.css';
+@import './focus.css';

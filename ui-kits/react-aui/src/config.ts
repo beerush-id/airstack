@@ -28,4 +28,4 @@ export type AuiProps<T extends keyof JSX.IntrinsicElements | JSXElementConstruct
 
 export type AuiPrimitive = string | number | undefined;
 
-export const OMIT_KEYS = ['label', 'options', 'children', 'className', 'size', 'variant', 'color'];
+export const OMIT_KEYS = ['label', 'options', 'children', 'className', 'size', 'variant', 'color', 'placeholder'];

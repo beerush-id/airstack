@@ -9,25 +9,20 @@ A button is the simplest thing on a page until it sits inside a form: forget `ty
 
 Styling is optional. Without Material CSS the Button stays a correct, operable button; with it, the same markup gets the Material treatment through either the full-library or the selective import.
 
-```tsx executable={hidden} module
-import { DemoControl } from '@/components/DemoControl.js';
-```
-
 :::interactive[Button demo]
 
 ```tsx
 import { Button } from '@airlib/react-aui';
 import { mutable, setup, $bind } from '@airlib/react';
+import { DemoControl } from '@/components/DemoControl.js';
 
 const ButtonDemo = setup(() => {
   const state = mutable({ count: 0, size: 'md', variant: 'filled', color: 'primary', disabled: false });
 
   return () => (
     <div className="demo-button">
-      <div className="demo-button-row">
-        <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} variant={$bind(state, 'variant')} disabled={$bind(state, 'disabled')} />
-      </div>
-      <div className="demo-button-row">
+      <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} variant={$bind(state, 'variant')} disabled={$bind(state, 'disabled')} />
+      <div className="aui-card flex-col items-center justify-center p-xl">
         <Button
           size={state.size}
           variant={state.variant}

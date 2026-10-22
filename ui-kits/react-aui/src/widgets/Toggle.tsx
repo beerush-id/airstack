@@ -1,8 +1,8 @@
 import { aria } from '@airlib/aria';
-import { COLORS, MAUI_CLASS, register, SIZES, VARIANTS } from '@airlib/aui/utils';
+import { AUI_CLASS, COLORS, register, SIZES, VARIANTS } from '@airlib/aui/utils';
 import { type Bindable, renderDynamic, setup } from '@airlib/react';
 import type { ReactNode } from 'react';
-import { $class, auiConfig, type AuiPrimitive, type AuiProps, type ComponentStyles, OMIT_KEYS } from '../config.js';
+import { $families, auiConfig, type AuiPrimitive, type AuiProps, type ComponentStyles, OMIT_KEYS } from '../config.js';
 
 export type ToggleValue = AuiPrimitive;
 
@@ -17,10 +17,9 @@ export type ToggleProps = AuiProps<'button'> & {
 const TOGGLE_ROLE = 'toggle';
 
 const toggleStyles: ComponentStyles = {
-  size: SIZES.LG,
+  size: SIZES.MD,
   color: COLORS.PRIMARY,
   variant: VARIANTS.OUTLINED,
-  className: [MAUI_CLASS.ACTION, MAUI_CLASS.TOGGLE],
 };
 
 register('toggle', toggleStyles);
@@ -31,13 +30,10 @@ register('toggle', toggleStyles);
  */
 export const Toggle = setup<ToggleProps>((props) => {
   const toggle = aria<HTMLButtonElement, AuiPrimitive>(TOGGLE_ROLE, props);
+  const className = () => $families([AUI_CLASS.CONTROL, AUI_CLASS.TOGGLE], props, auiConfig.toggle);
 
   return () => (
-    <button
-      ref={toggle.ref}
-      {...toggle.restProps([...OMIT_KEYS])}
-      className={$class(TOGGLE_ROLE, props, auiConfig.toggle)}
-    >
+    <button ref={toggle.ref} {...toggle.restProps([...OMIT_KEYS])} className={className()}>
       {renderDynamic(props.children, toggle.pressed)}
     </button>
   );

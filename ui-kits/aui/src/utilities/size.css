@@ -6,6 +6,13 @@
     --aui-segment-outer-radius: calc((var(--aui-segment-size) / 2) - var(--spacing));
   }
 
+  .w-full {
+    width: 100%;
+  }
+  .h-full {
+    height: 100%;
+  }
+
   .aui-segment-base {
     border-radius: var(--aui-segment-outer-radius);
   }

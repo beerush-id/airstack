@@ -1,0 +1,104 @@
+@layer theme {
+  :root {
+    --aui-state-layer-color: var(--color-scrim);
+  }
+
+  .aui-control,
+  .aui-state-layer {
+    --pointer-x: 0;
+    --pointer-y: 0;
+  }
+
+  @keyframes state-ripple {
+    from {
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      top: var(--pointer-y);
+      left: var(--pointer-x);
+      transform: translate3d(-50%, -50%, 0);
+      opacity: var(--tone-pressed-strength);
+    }
+    to {
+      width: 512px;
+      height: 512px;
+      opacity: var(--tone-pressed-strength);
+      border-radius: 50%;
+      top: var(--pointer-y);
+      left: var(--pointer-x);
+      transform: translate3d(-50%, -50%, 0);
+    }
+  }
+}
+
+@layer component {
+  .aui-state-layer,
+  .aui-control,
+  .aui-menu-item {
+    position: relative;
+
+    &:active {
+      overflow: hidden;
+    }
+
+    &:active::after {
+      animation: state-ripple 7s var(--ease-emphasized-decelerate) forwards;
+    }
+  }
+
+  .aui-state-layer::before,
+  .aui-menu-item::before,
+  .aui-control::before,
+  .aui-state-layer::after,
+  .aui-menu-item::after,
+  .aui-control::after {
+    content: '';
+    inset: 0;
+    opacity: 0;
+    position: absolute;
+    z-index: -1;
+    pointer-events: none;
+    border-radius: inherit;
+    background-color: var(--aui-state-layer-color);
+  }
+
+  .aui-state-layer::before,
+  .aui-menu-item::before,
+  .aui-control::before {
+    transition-property: opacity, background-color;
+    transition-duration: var(--duration-short);
+    transition-timing-function: var(--ease-standard);
+  }
+
+  .aui-state-layer:hover::before,
+  .aui-menu-item:hover::before,
+  .aui-control:hover::before {
+    opacity: var(--tone-hover-strength);
+  }
+
+  .aui-state-layer:focus-visible::before,
+  .aui-menu-item:focus-visible::before,
+  .aui-control:focus-visible::before {
+    opacity: var(--tone-focus-strength);
+  }
+
+  .aui-state-layer:active::before,
+  .aui-menu-item:active::before,
+  .aui-control:active::before {
+    opacity: var(--tone-pressed-strength);
+  }
+
+  .aui-disabled,
+  .aui-state-layer:disabled,
+  .aui-state-layer[aria-disabled='true'],
+  .aui-menu-item:disabled,
+  .aui-menu-item[aria-disabled='true'],
+  .aui-control:disabled,
+  .aui-control[aria-disabled='true'] {
+    cursor: not-allowed;
+    background-color: var(--color-disabled-bg);
+    color: var(--color-disabled-fg);
+    border-color: transparent;
+    --aui-state-layer-color: transparent;
+  }
+}

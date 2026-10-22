@@ -5,7 +5,8 @@
 
 @layer theme {
   :root {
-    /* --seed-color: #ffa200; */
+    --seed-color: #0090ff;
+    --seed-dark-color: #fbd049;
     /*--color-primary: light-dark(#f4641b, #fbd049);*/
   }
 
@@ -34,6 +35,27 @@
     --air-mdx-code-text: var(--color-on-surface);
     --air-mdx-font: var(--font-sans), system-ui, sans-serif;
     --air-mdx-font-mono: var(--font-mono), ui-monospace, monospace;
+
+    .air-mdx-sidebar-children {
+      padding-inline: 0.75rem;
+
+      .air-mdx-sidebar-link {
+        padding-inline-start: 1.75rem;
+      }
+    }
+
+    .air-mdx-sidebar-link {
+      width: 100%;
+
+      &:hover {
+        background-color: var(--color-surface-container);
+      }
+
+      &.active {
+        color: var(--color-on-primary);
+        background-color: var(--color-primary);
+      }
+    }
   }
 
   .air-mdx-main {

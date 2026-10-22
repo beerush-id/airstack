@@ -14,81 +14,15 @@ Styling is optional. Without Material CSS the Toggle stays a correct, operable t
 ```tsx
 import { Select, SelectOption, SelectPanel, SelectTrigger, Toggle } from '@airlib/react-aui';
 import { $bind, mutable, setup, Snippet } from '@airlib/react';
-
-const SIZE_LABELS = {
-  xs: 'Extra small',
-  sm: 'Small',
-  md: 'Medium',
-  lg: 'Large',
-  xl: 'Extra large',
-  xxl: 'Extra extra large',
-};
-
-const VARIANT_LABELS = {
-  filled: 'Filled',
-  tonal: 'Tonal',
-  outlined: 'Outlined',
-};
-
-const COLOR_LABELS = {
-  primary: 'Primary',
-  secondary: 'Secondary',
-  tertiary: 'Tertiary',
-  error: 'Error',
-  success: 'Success',
-  warning: 'Warning',
-  info: 'Info',
-};
+import { DemoControl } from '@/components/DemoControl.js';
 
 const ToggleDemo = setup(() => {
-  const state = mutable({ pressed: false, size: 'md', variant: 'outlined', color: 'primary', disabled: false });
+  const state = mutable({ pressed: false, size: 'md', variant: 'filled', color: 'primary', disabled: false });
 
   return () => (
     <div className="demo-button">
-      <div className="demo-button-row">
-        <span className="demo-control">
-          <span>Size</span>
-          <Select labels={SIZE_LABELS} value={$bind(state, 'size')}>
-          <SelectTrigger />
-          <SelectPanel>
-            <SelectOption value="xs">Extra small</SelectOption>
-            <SelectOption value="sm">Small</SelectOption>
-            <SelectOption value="md">Medium</SelectOption>
-            <SelectOption value="lg">Large</SelectOption>
-            <SelectOption value="xl">Extra large</SelectOption>
-            <SelectOption value="xxl">Extra extra large</SelectOption>
-          </SelectPanel>
-        </Select>
-        </span>
-        <span className="demo-control">
-          <span>Variant</span>
-          <Select labels={VARIANT_LABELS} value={$bind(state, 'variant')}>
-          <SelectTrigger />
-          <SelectPanel>
-            <SelectOption value="filled">Filled</SelectOption>
-            <SelectOption value="tonal">Tonal</SelectOption>
-            <SelectOption value="outlined">Outlined</SelectOption>
-          </SelectPanel>
-        </Select>
-        </span>
-        <span className="demo-control">
-          <span>Color</span>
-          <Select labels={COLOR_LABELS} value={$bind(state, 'color')}>
-          <SelectTrigger />
-          <SelectPanel>
-            <SelectOption value="primary">Primary</SelectOption>
-            <SelectOption value="secondary">Secondary</SelectOption>
-            <SelectOption value="tertiary">Tertiary</SelectOption>
-            <SelectOption value="error">Error</SelectOption>
-            <SelectOption value="success">Success</SelectOption>
-            <SelectOption value="warning">Warning</SelectOption>
-            <SelectOption value="info">Info</SelectOption>
-          </SelectPanel>
-        </Select>
-        </span>
-        <Toggle pressed={$bind(state, 'disabled')}>Disable preview</Toggle>
-      </div>
-      <div className="demo-button-row">
+      <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} variant={$bind(state, 'variant')} disabled={$bind(state, 'disabled')} />
+      <div className="aui-card flex-col items-center justify-center p-xl">
         <Toggle
           size={state.size}
           variant={state.variant}

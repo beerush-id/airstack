@@ -1,0 +1,40 @@
+@layer theme {
+  :root {
+    --aui-icon-size: 24px;
+    --aui-icon-line-height: 1;
+  }
+}
+
+@layer component {
+  .aui-icon {
+    font-family: var(--icon-font), serif;
+    font-weight: var(--icon-weight);
+    font-style: normal;
+    font-size: var(--aui-icon-size); /* 24px default */
+    line-height: var(--aui-icon-line-height);
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-smoothing: antialiased;
+    /* Universal Sizing for both Font and SVG forms */
+    width: var(--aui-icon-size);
+    height: var(--aui-icon-size);
+    fill: currentColor;
+
+    transition-property: color, fill, stroke, background-color, transform;
+    transition-duration: var(--duration-short);
+    transition-timing-function: var(--ease-standard);
+
+    /* Target nested SVGs (e.g., <span class="air-icon"><svg /></span>) */
+    & > svg {
+      width: 100%;
+      height: 100%;
+      fill: currentColor;
+    }
+  }
+}

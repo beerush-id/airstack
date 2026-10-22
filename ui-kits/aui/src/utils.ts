@@ -95,10 +95,28 @@ export const COLOR_LABELS = {
   tertiary: 'Tertiary',
 };
 
+export const ICON_CONFIGS = {
+  fill: 'currentColor',
+  className: 'aui-icon',
+};
+
+export const ICON_SIZE = {
+  xs: 8,
+  sm: 16,
+  md: 24,
+  lg: 32,
+  xl: 48,
+  xxl: 64,
+  icon: 256,
+  thumbnail: 128,
+};
+
 const DEFAULT_CONFIG = {
+  icon: ICON_CONFIGS,
   brand: 'aui',
   sizeMap: SIZE_MAP,
   colorMap: COLOR_MAP,
+  iconSize: ICON_SIZE,
   overrides: false,
   variantMap: VARIANT_MAP,
 };
@@ -109,19 +127,19 @@ export const auiConfig: MauiConfig = { ...DEFAULT_CONFIG };
 export function resolveSize(role: string, size?: Size, fallback?: Size): string | undefined {
   const key = size ?? fallback;
   if (!key || !auiConfig.sizeMap?.[key]) return;
-  return branded(`${role}-${key}`);
+  return `${role}-${key}`;
 }
 
 export function resolveVariant(role: string, variant?: Variant, fallback?: Variant): string | undefined {
   const key = variant ?? fallback;
   if (!key || !auiConfig.variantMap?.[key]) return;
-  return branded(`${role}-${key}`);
+  return `${role}-${key}`;
 }
 
 export function resolveColor(role: string, color?: Color, fallback?: Color): string | undefined {
   const key = color ?? fallback;
   if (!key || !auiConfig.colorMap?.[key]) return;
-  return branded(`${role}-${key}`);
+  return `${role}-${key}`;
 }
 
 export function branded(name: string) {
@@ -161,14 +179,18 @@ export function register(key: keyof MauiConfig, styles: ComponentStyles) {
 
 /**
  * Compose the Maui classes for a component.
- *
- * The replacement flag lives in the global config, not in the caller and
- * not in the fallback values: when `auiConfig.overrides === true` only
- * the consumer class is emitted (nothing generated, no restoration when it
- * is absent). Otherwise explicit props resolve over fallback defaults and
- * compose additively with the consumer class.
+ * When `auiConfig.overrides === true` only the consumer class is emitted
  */
-export function resolveClass(role: string, props: ComponentStyles, defaults?: ComponentStyles): string {
+export function resolveClass(props: ComponentStyles, ...defaults: ClassInput[]) {
+  if (auiConfig.overrides && props.className) {
+    return classx(props.className);
+  }
+  return classx(defaults, props.className);
+}
+
+export const $class = resolveClass;
+
+export function resolveRoleClass(role: string, props: ComponentStyles, defaults?: ComponentStyles): string {
   if (auiConfig.overrides && props.className) {
     return classx(props.className);
   }
@@ -180,7 +202,29 @@ export function resolveClass(role: string, props: ComponentStyles, defaults?: Co
   return classx(defaults?.className, size, variant, color, props.className);
 }
 
-export const $class = resolveClass;
+export function resolveFamilies(tokens: string | string[], props: ComponentStyles, defaults?: ComponentStyles) {
+  if (!Array.isArray(tokens)) {
+    tokens = [tokens];
+  }
+
+  if (auiConfig.overrides && props.className) {
+    return classx(props.className);
+  }
+
+  const roleClasses = tokens.map((r) => resolveFamily(r, props, defaults));
+  return classx(roleClasses, defaults?.className, props.className);
+}
+
+export function resolveFamily(token: string, props: ComponentStyles, defaults?: ComponentStyles): string {
+  return classx([
+    token,
+    resolveSize(token, props.size, defaults?.size),
+    resolveColor(token, props.color, defaults?.color),
+    resolveVariant(token, props.variant, defaults?.variant),
+  ]);
+}
+
+export const $families = resolveFamilies;
 
 /* -- ADDITIONAL DECLARATIONS -- */
 /* ----------------------------- */
@@ -188,16 +232,18 @@ export type MauiConfig = typeof DEFAULT_CONFIG & {
   button?: ComponentStyles;
   toggle?: ComponentStyles;
   select?: ComponentStyles;
-  selectTrigger?: ComponentStyles;
   selectPanel?: ComponentStyles;
   selectOption?: ComponentStyles;
+  selectTrigger?: ComponentStyles;
 };
 
-export const MAUI_CLASS = {
-  ACTION: branded('action'),
+export const AUI_CLASS = {
   BUTTON: branded('button'),
   TOGGLE: branded('toggle'),
   SELECT: branded('select'),
+  CONTROL: branded('control'),
+  MENU_ITEM: branded('menu-item'),
+  MENU_PANEL: branded('menu-panel'),
   SELECT_CARET: branded('select-caret'),
   SELECT_PANEL: branded('select-panel'),
   SELECT_PLACEHOLDER: branded('select-placeholder'),

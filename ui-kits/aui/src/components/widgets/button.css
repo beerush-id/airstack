@@ -1,0 +1,11 @@
+@layer theme {
+  :root {
+    --aui-button-height: var(--spacing-xxl);
+  }
+}
+
+@layer component {
+  .aui-button {
+    display: inline-flex;
+  }
+}

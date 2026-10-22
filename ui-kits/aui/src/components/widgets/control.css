@@ -1,0 +1,245 @@
+@layer theme {
+  :root {
+    --aui-control-bg: var(--color-surface-container);
+    --aui-control-fg: var(--color-on-surface);
+    --aui-control-radius: var(--radius-lg);
+    --aui-control-outline-color: transparent;
+
+    --aui-control-height: calc(var(--spacing) * 11);
+    --aui-control-padding-x: calc(var(--spacing) * 6);
+    --aui-control-gap: calc(var(--spacing) * 2);
+
+    --aui-control-height-xs: calc(var(--spacing) * 7);
+    --aui-control-padding-x-xs: calc(var(--spacing) * 2);
+    --aui-control-gap-xs: var(--spacing);
+
+    --aui-control-height-sm: calc(var(--spacing) * 9);
+    --aui-control-padding-x-sm: calc(var(--spacing) * 4);
+    --aui-control-gap-sm: calc(var(--spacing) * 1.5);
+
+    --aui-control-height-md: calc(var(--spacing) * 11);
+    --aui-control-padding-x-md: calc(var(--spacing) * 6);
+    --aui-control-gap-md: calc(var(--spacing) * 2);
+
+    --aui-control-height-lg: calc(var(--spacing) * 13);
+    --aui-control-padding-x-lg: calc(var(--spacing) * 8);
+    --aui-control-gap-lg: calc(var(--spacing) * 2.5);
+
+    --aui-control-height-xl: calc(var(--spacing) * 15);
+    --aui-control-padding-x-xl: calc(var(--spacing) * 10);
+    --aui-control-gap-xl: calc(var(--spacing) * 3);
+
+    --aui-control-height-xxl: calc(var(--spacing) * 17);
+    --aui-control-padding-x-xxl: calc(var(--spacing) * 12);
+    --aui-control-gap-xxl: calc(var(--spacing) * 3.5);
+  }
+}
+
+@layer component {
+  .aui-control {
+    gap: var(--aui-control-gap);
+    display: inline-flex;
+    align-items: center;
+    block-size: var(--aui-control-height);
+    padding-block: 0;
+    padding-inline: var(--aui-control-padding-x);
+    border-width: 0;
+    border-style: solid;
+    border-color: var(--aui-control-outline-color);
+    border-radius: var(--aui-control-radius);
+    position: relative;
+    z-index: 0;
+
+    color: var(--aui-control-fg);
+    background-color: var(--aui-control-bg);
+    forced-color-adjust: auto;
+
+    font-family: var(--font-brand, system-ui), serif;
+    font-size: var(--font-label-lg-size);
+    font-weight: 600;
+    line-height: var(--font-label-lg-line-height);
+    letter-spacing: var(--font-label-lg-tracking);
+
+    transition-duration: var(--duration-short);
+    transition-timing-function: var(--ease-emphasized);
+    transition-property: background-color, outline-color, color, border-color, border-width;
+
+    &:focus-visible {
+      z-index: 1;
+    }
+
+    &:has(.aui-icon:last-child) {
+      padding-inline-end: calc(var(--aui-control-padding-x) / 2);
+    }
+
+    & > .aui-icon:last-child {
+      margin-inline-start: var(--aui-control-gap);
+    }
+
+    &[aria-expanded='true'] .aui-icon:last-child {
+      transform: rotate(180deg);
+    }
+  }
+
+  .aui-control-primary {
+    --focus-ring-color: var(--color-primary);
+  }
+  .aui-control-secondary {
+    --focus-ring-color: var(--color-secondary);
+  }
+  .aui-control-tertiary {
+    --focus-ring-color: var(--color-tertiary);
+  }
+
+  .aui-control-info {
+    --focus-ring-color: var(--color-info);
+  }
+  .aui-control-error {
+    --focus-ring-color: var(--color-error);
+  }
+  .aui-control-success {
+    --focus-ring-color: var(--color-success);
+  }
+  .aui-control-warning {
+    --focus-ring-color: var(--color-warning);
+  }
+
+  .aui-control-text,
+  .aui-control-outlined {
+    color: var(--aui-control-bg);
+    background-color: transparent;
+  }
+
+  .aui-control-text:hover {
+    background-color: color-mix(
+      in oklch,
+      var(--aui-control-bg) var(--tone-elevation-low),
+      var(--light-up)
+    );
+  }
+
+  .aui-control-tonal {
+    color: var(--aui-control-bg);
+    background-color: color-mix(
+      in oklch,
+      var(--aui-control-bg) var(--tone-elevation-low),
+      var(--light-up)
+    );
+  }
+
+  .aui-control-outlined {
+    --focus-ring-offset: 4px;
+    --aui-control-outline-color: var(--color-primary);
+    border-width: 1px;
+
+    &:hover {
+      color: var(--aui-control-fg);
+      background-color: var(--aui-control-bg);
+    }
+  }
+
+  .aui-control-elevated {
+    box-shadow: var(--elevation-3);
+  }
+
+  .aui-control-primary {
+    --aui-control-bg: var(--color-primary);
+    --aui-control-fg: var(--color-on-primary);
+  }
+
+  .aui-control-secondary {
+    --aui-control-bg: var(--color-secondary);
+    --aui-control-fg: var(--color-on-secondary);
+  }
+
+  .aui-control-tertiary {
+    --aui-control-bg: var(--color-tertiary);
+    --aui-control-fg: var(--color-on-tertiary);
+  }
+
+  .aui-control-info {
+    --aui-control-bg: var(--color-info);
+    --aui-control-fg: var(--color-on-info);
+  }
+
+  .aui-control-error {
+    --aui-control-bg: var(--color-error);
+    --aui-control-fg: var(--color-on-error);
+  }
+
+  .aui-control-success {
+    --aui-control-bg: var(--color-success);
+    --aui-control-fg: var(--color-on-success);
+  }
+
+  .aui-control-warning {
+    --aui-control-bg: var(--color-warning);
+    --aui-control-fg: var(--color-on-warning);
+  }
+
+  .aui-control-xs {
+    --aui-control-radius: var(--radius-xs);
+    --aui-control-height: var(--aui-control-height-xs);
+    --aui-control-padding-x: var(--aui-control-padding-x-xs);
+    --aui-control-gap: var(--aui-control-gap-xs);
+    --aui-icon-size: calc(var(--size-xs) * 0.65);
+    font-size: var(--font-label-sm-size);
+    line-height: var(--font-label-sm-line-height);
+    letter-spacing: var(--font-label-sm-tracking);
+  }
+
+  .aui-control-sm {
+    --aui-control-radius: var(--radius-sm);
+    --aui-control-height: var(--aui-control-height-sm);
+    --aui-control-padding-x: var(--aui-control-padding-x-sm);
+    --aui-control-gap: var(--aui-control-gap-sm);
+    --aui-icon-size: calc(var(--size-sm) * 0.65);
+    font-size: var(--font-label-md-size);
+    line-height: var(--font-label-md-line-height);
+    letter-spacing: var(--font-label-md-tracking);
+  }
+
+  .aui-control-md {
+    --aui-control-radius: var(--radius-md);
+    --aui-control-height: var(--aui-control-height-md);
+    --aui-control-padding-x: var(--aui-control-padding-x-md);
+    --aui-control-gap: var(--aui-control-gap-md);
+    --aui-icon-size: calc(var(--size-md) * 0.65);
+    font-size: var(--font-label-lg-size);
+    line-height: var(--font-label-lg-line-height);
+    letter-spacing: var(--font-label-lg-tracking);
+  }
+
+  .aui-control-lg {
+    --aui-control-radius: var(--radius-lg);
+    --aui-control-height: var(--aui-control-height-lg);
+    --aui-control-padding-x: var(--aui-control-padding-x-lg);
+    --aui-control-gap: var(--aui-control-gap-lg);
+    --aui-icon-size: calc(var(--size-lg) * 0.65);
+    font-size: var(--font-title-sm-size);
+    line-height: var(--font-title-sm-line-height);
+    letter-spacing: var(--font-title-sm-tracking);
+  }
+
+  .aui-control-xl {
+    --aui-control-radius: var(--radius-xl);
+    --aui-control-height: var(--aui-control-height-xl);
+    --aui-control-padding-x: var(--aui-control-padding-x-xl);
+    --aui-control-gap: var(--aui-control-gap-xl);
+    --aui-icon-size: calc(var(--size-xl) * 0.65);
+    font-size: var(--font-title-md-size);
+    line-height: var(--font-title-md-line-height);
+    letter-spacing: var(--font-title-md-tracking);
+  }
+
+  .aui-control-xxl {
+    --aui-control-radius: var(--radius-xl);
+    --aui-control-height: var(--aui-control-height-xxl);
+    --aui-control-padding-x: var(--aui-control-padding-x-xxl);
+    --aui-control-gap: var(--aui-control-gap-xxl);
+    --aui-icon-size: calc(var(--size-xl) * 0.65);
+    font-size: var(--font-title-lg-size);
+    line-height: var(--font-title-lg-line-height);
+    letter-spacing: var(--font-title-lg-tracking);
+  }
+}

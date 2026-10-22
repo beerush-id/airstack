@@ -1,0 +1,16 @@
+@layer component {
+  .aui-control.aui-toggle {
+    --aui-control-outline-color: transparent;
+    color: var(--aui-control-bg);
+    background-color: color-mix(
+      in oklch,
+      var(--aui-control-bg) var(--tone-elevation-low),
+      var(--light-up)
+    );
+
+    &[aria-pressed='true'] {
+      color: var(--aui-control-fg);
+      background-color: var(--aui-control-bg);
+    }
+  }
+}

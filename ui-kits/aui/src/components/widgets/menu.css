@@ -1,0 +1,121 @@
+@layer theme {
+  :root {
+    --aui-menu-panel-bg: var(--color-surface-container);
+    --aui-menu-panel-radius: var(--radius-lg);
+    --aui-menu-panel-gap: var(--spacing-xs);
+    --aui-menu-panel-padding-x: var(--spacing-xs);
+    --aui-menu-panel-padding-y: var(--spacing-xs);
+
+    --aui-menu-item-bg: var(--color-primary);
+    --aui-menu-item-fg: var(--color-on-primary);
+    --aui-menu-item-radius: var(--radius-xs);
+  }
+}
+
+@layer component {
+  .aui-menu-panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--aui-menu-panel-gap);
+    position: fixed;
+    z-index: 1;
+    position-area: bottom span-right;
+    position-try-fallbacks:
+      flip-block,
+      flip-inline,
+      flip-block flip-inline;
+    position-try-order: normal;
+    min-width: anchor-size(width);
+    margin-block: var(--aui-menu-panel-gap);
+    background: var(--aui-menu-panel-bg);
+    border-radius: var(--aui-menu-panel-radius);
+    padding-block: var(--aui-menu-panel-padding-y);
+    padding-inline: var(--aui-menu-panel-padding-x);
+    overflow-y: auto;
+    box-shadow: var(--elevation-3);
+
+    &:not([open]) {
+      display: none;
+    }
+
+    .aui-menu-item:first-child {
+      border-start-start-radius: calc(var(--aui-menu-panel-radius) * 0.75);
+      border-start-end-radius: calc(var(--aui-menu-panel-radius) * 0.75);
+    }
+
+    .aui-menu-item:last-child {
+      border-end-start-radius: calc(var(--aui-menu-panel-radius) * 0.75);
+      border-end-end-radius: calc(var(--aui-menu-panel-radius) * 0.75);
+    }
+  }
+
+  .aui-menu-item {
+    display: flex;
+    gap: var(--aui-control-gap);
+    align-items: center;
+    block-size: var(--aui-control-height);
+    padding-block: 0;
+    padding-inline: calc(var(--aui-control-padding-x) * 0.85);
+    cursor: pointer;
+    border-radius: var(--aui-menu-item-radius);
+    transition-duration: var(--duration-short);
+    transition-timing-function: var(--ease-emphasized);
+    transition-property: background-color, color, border-radius;
+
+    &[aria-current='true'],
+    &[aria-selected='true'] {
+      color: var(--aui-menu-item-fg);
+      background: var(--aui-menu-item-bg);
+    }
+  }
+
+  .aui-menu-item-xs {
+    --aui-control-height: var(--aui-control-height-xs);
+    --aui-control-padding-x: var(--aui-control-padding-x-xs);
+    --aui-control-gap: var(--aui-control-gap-xs);
+    font-size: var(--font-label-sm-size);
+    font-weight: var(--font-label-sm-weight);
+    line-height: var(--font-label-sm-line-height);
+    letter-spacing: var(--font-label-sm-tracking);
+  }
+
+  .aui-menu-item-sm {
+    --aui-control-height: var(--aui-control-height-sm);
+    --aui-control-padding-x: var(--aui-control-padding-x-sm);
+    --aui-control-gap: var(--aui-control-gap-sm);
+    font-size: var(--font-label-md-size);
+    font-weight: var(--font-label-md-weight);
+    line-height: var(--font-label-md-line-height);
+    letter-spacing: var(--font-label-md-tracking);
+  }
+
+  .aui-menu-item-lg {
+    --aui-control-height: var(--aui-control-height-lg);
+    --aui-control-padding-x: var(--aui-control-padding-x-lg);
+    --aui-control-gap: var(--aui-control-gap-lg);
+    font-size: var(--font-title-sm-size);
+    font-weight: var(--font-title-sm-weight);
+    line-height: var(--font-title-sm-line-height);
+    letter-spacing: var(--font-title-sm-tracking);
+  }
+
+  .aui-menu-item-xl {
+    --aui-control-height: var(--aui-control-height-xl);
+    --aui-control-padding-x: var(--aui-control-padding-x-xl);
+    --aui-control-gap: var(--aui-control-gap-xl);
+    font-size: var(--font-title-md-size);
+    font-weight: var(--font-title-md-weight);
+    line-height: var(--font-title-md-line-height);
+    letter-spacing: var(--font-title-md-tracking);
+  }
+
+  .aui-menu-item-xxl {
+    --aui-control-height: var(--aui-control-height-xxl);
+    --aui-control-padding-x: var(--aui-control-padding-x-xxl);
+    --aui-control-gap: var(--aui-control-gap-xxl);
+    font-size: var(--font-title-lg-size);
+    font-weight: var(--font-title-lg-weight);
+    line-height: var(--font-title-lg-line-height);
+    letter-spacing: var(--font-title-lg-tracking);
+  }
+}

@@ -13,7 +13,8 @@ Styling is optional. Without Material CSS the Select stays a correct, operable c
 
 ```tsx
 import { Select, SelectOption, SelectPanel, SelectTrigger, Toggle } from '@airlib/react-aui';
-import { $bind, mutable, setup } from '@airlib/react';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { DemoControl } from '@/components/DemoControl.js';
 
 const CITY_LABELS = {
   ams: 'Amsterdam',
@@ -22,40 +23,6 @@ const CITY_LABELS = {
   dub: 'Dublin',
   vil: 'Vilnius',
 };
-
-const SIZE_LABELS = {
-  xs: 'Extra small',
-  sm: 'Small',
-  md: 'Medium',
-  lg: 'Large',
-  xl: 'Extra large',
-  xxl: 'Extra extra large',
-};
-
-const VARIANT_LABELS = {
-  filled: 'Filled',
-  outlined: 'Outlined',
-};
-
-const COLOR_LABELS = {
-  primary: 'Primary',
-  secondary: 'Secondary',
-  tertiary: 'Tertiary',
-  error: 'Error',
-  success: 'Success',
-  warning: 'Warning',
-  info: 'Info',
-};
-
-const CityOptions = () => (
-  <>
-    <SelectOption value="ams">Amsterdam</SelectOption>
-    <SelectOption value="ber">Berlin</SelectOption>
-    <SelectOption value="cop">Copenhagen</SelectOption>
-    <SelectOption value="dub">Dublin</SelectOption>
-    <SelectOption value="vil">Vilnius</SelectOption>
-  </>
-);
 
 const SelectDemo = setup(() => {
   const state = mutable({
@@ -69,82 +36,35 @@ const SelectDemo = setup(() => {
 
   return () => (
     <div className="demo-button">
-      <div className="demo-button-row">
-        <span className="demo-control">
-          <span>Size</span>
-          <Select labels={SIZE_LABELS} value={$bind(state, 'size')}>
-          <SelectTrigger />
-          <SelectPanel>
-            <SelectOption value="xs">Extra small</SelectOption>
-            <SelectOption value="sm">Small</SelectOption>
-            <SelectOption value="md">Medium</SelectOption>
-            <SelectOption value="lg">Large</SelectOption>
-            <SelectOption value="xl">Extra large</SelectOption>
-            <SelectOption value="xxl">Extra extra large</SelectOption>
-          </SelectPanel>
-        </Select>
-        </span>
-        <span className="demo-control">
-          <span>Variant</span>
-          <Select labels={VARIANT_LABELS} value={$bind(state, 'variant')}>
-          <SelectTrigger />
-          <SelectPanel>
-            <SelectOption value="filled">Filled</SelectOption>
-            <SelectOption value="outlined">Outlined</SelectOption>
-          </SelectPanel>
-        </Select>
-        </span>
-        <span className="demo-control">
-          <span>Color</span>
-          <Select labels={COLOR_LABELS} value={$bind(state, 'color')}>
-          <SelectTrigger />
-          <SelectPanel>
-            <SelectOption value="primary">Primary</SelectOption>
-            <SelectOption value="secondary">Secondary</SelectOption>
-            <SelectOption value="tertiary">Tertiary</SelectOption>
-            <SelectOption value="error">Error</SelectOption>
-            <SelectOption value="success">Success</SelectOption>
-            <SelectOption value="warning">Warning</SelectOption>
-            <SelectOption value="info">Info</SelectOption>
-          </SelectPanel>
-        </Select>
-        </span>
-        <Toggle pressed={$bind(state, 'disabled')}>Disable previews</Toggle>
-      </div>
-      <div className="demo-button-row">
-        <span className="demo-control">
-          <span>Departure</span>
-          <Select
-          labels={CITY_LABELS}
-          value={$bind(state, 'city')}
-          size={state.size}
-          variant={state.variant}
-          color={state.color}
-          disabled={state.disabled}
-        >
-          <SelectTrigger />
-          <SelectPanel>
-            <CityOptions />
-          </SelectPanel>
-        </Select>
-        </span>
-        <span className="demo-control">
-          <span>Stops</span>
-          <Select
-          labels={CITY_LABELS}
-          value={$bind(state, 'stops')}
-          multiple
-          size={state.size}
-          variant={state.variant}
-          color={state.color}
-          disabled={state.disabled}
-        >
-          <SelectTrigger />
-          <SelectPanel>
-            <CityOptions />
-          </SelectPanel>
-        </Select>
-        </span>
+      <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} variant={$bind(state, 'variant')} disabled={$bind(state, 'disabled')} />
+      <div className="aui-card flex gap-md items-center justify-center p-xl">
+        <Snippet>
+          {() => (
+            <Select
+              options={CITY_LABELS}
+              value={$bind(state, 'city')}
+              size={state.size}
+              variant={state.variant}
+              color={state.color}
+              disabled={state.disabled}
+              placeholder="Select city"
+            />
+          )}
+        </Snippet>
+        <Snippet>
+          {() => (
+            <Select
+              options={CITY_LABELS}
+              multiple
+              value={$bind(state, 'stops')}
+              size={state.size}
+              variant={state.variant}
+              color={state.color}
+              disabled={state.disabled}
+              placeholder="Select stops"
+            />
+          )}
+        </Snippet>
       </div>
     </div>
   );

@@ -11,12 +11,18 @@ export type DemoControlProps = {
   children?: ReactNode;
 };
 
-export const DemoControl = template<DemoControlProps>((props) => (
-  <div className="demo-controls">
-    <Select label="Size" options={SIZE_LABELS} value={'x'} />
-    <Select label="Color" options={COLOR_LABELS} value={$bind(props, 'color')} />
-    <Select label="Variant" options={VARIANT_LABELS} value={$bind(props, 'variant')} />
-    <Toggle pressed={$bind(props, 'disabled')}>{() => (props.disabled ? 'Set Enabled' : 'Set Disabled')}</Toggle>
-    {props.children}
-  </div>
-));
+export const DemoControl = template<DemoControlProps>(
+  (props) => (
+    <div className="flex gap-xs w-full">
+      <Select size="sm" placeholder="Size" options={SIZE_LABELS} value={$bind(props, 'size')} />
+      <Select size="sm" placeholder="Color" options={COLOR_LABELS} value={$bind(props, 'color')} />
+      <Select size="sm" placeholder="Variant" options={VARIANT_LABELS} value={$bind(props, 'variant')} />
+      <div className="flex-1"></div>
+      <Toggle size="sm" pressed={$bind(props, 'disabled')}>
+        {() => (props.disabled ? 'Set Enabled' : 'Set Disabled')}
+      </Toggle>
+      {props.children}
+    </div>
+  ),
+  'DemoControl'
+);

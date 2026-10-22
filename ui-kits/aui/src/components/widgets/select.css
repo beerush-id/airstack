@@ -1,0 +1,5 @@
+@layer component {
+  .aui-select-panel {
+    position-area: bottom span-left;
+  }
+}

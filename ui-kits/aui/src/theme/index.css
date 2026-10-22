@@ -4,6 +4,7 @@
 
     /* Primary color of the app. */
     --seed-color: #6750a4;
+    --seed-dark-color: #6750a4;
 
     /* Adjust color up on light mode, down on dark mode */
     --light-up: light-dark(rgb(255 255 255), rgb(10 10 10));
@@ -33,7 +34,7 @@
     /* Base colors: accent colors */
     --color-primary: light-dark(
       oklch(from var(--seed-color) 45% 0.15 h),
-      oklch(from var(--seed-color) 80% 0.15 h)
+      oklch(from var(--seed-dark-color) 80% 0.15 h)
     );
     --color-on-primary: color-mix(
       in oklch,
@@ -42,7 +43,7 @@
     );
     --color-secondary: light-dark(
       oklch(from var(--seed-color) 50% calc(c * 0.3) h),
-      oklch(from var(--seed-color) 80% calc(c * 0.3) h)
+      oklch(from var(--seed-dark-color) 80% calc(c * 0.3) h)
     );
     --color-on-secondary: color-mix(
       in oklch,
@@ -51,7 +52,7 @@
     );
     --color-tertiary: light-dark(
       oklch(from var(--seed-color) 45% calc(c * 0.8) calc(h + 60)),
-      oklch(from var(--seed-color) 80% calc(c * 0.8) calc(h + 60))
+      oklch(from var(--seed-dark-color) 80% calc(c * 0.8) calc(h + 60))
     );
     --color-on-tertiary: color-mix(
       in oklch,
@@ -60,25 +61,37 @@
     );
 
     /* Base colors: status colors */
-    --color-error: light-dark(#b3261e, #f2b8b5);
+    --color-error: light-dark(
+      oklch(from var(--seed-color) 0.5 0.25 28),
+      oklch(from var(--seed-dark-color) 0.8 0.15 21)
+    );
     --color-on-error: color-mix(
       in oklch,
       var(--color-error) var(--tone-on-strength),
       var(--light-up)
     );
-    --color-warning: light-dark(#8e5400ff, #faab3fff);
+    --color-warning: light-dark(
+      oklch(from var(--seed-color) 0.75 0.18 80),
+      oklch(from var(--seed-dark-color) 0.8 0.18 75)
+    );
     --color-on-warning: color-mix(
       in oklch,
       var(--color-warning) var(--tone-on-strength),
       var(--light-up)
     );
-    --color-success: light-dark(#067132ff, #5dc879ff);
+    --color-success: light-dark(
+      oklch(from var(--seed-color) 0.5 0.18 150),
+      oklch(from var(--seed-dark-color) 0.75 0.15 150)
+    );
     --color-on-success: color-mix(
       in oklch,
       var(--color-success) var(--tone-on-strength),
       var(--light-up)
     );
-    --color-info: light-dark(#1580e6ff, #82d3ff);
+    --color-info: light-dark(
+      oklch(from var(--seed-color) 0.6 0.18 230),
+      oklch(from var(--seed-dark-color) 0.8 0.15 220)
+    );
     --color-on-info: color-mix(
       in oklch,
       var(--color-info) var(--tone-on-strength),
@@ -88,7 +101,7 @@
     /* Base colors: surface colors */
     --color-surface: light-dark(
       oklch(from var(--seed-color) 98% 0.01 h),
-      oklch(from var(--seed-color) 16% 0.02 h)
+      oklch(from var(--seed-dark-color) 16% 0.02 h)
     );
     --color-on-surface: color-mix(
       in oklch,
@@ -262,10 +275,8 @@
     --radius-sm: calc(var(--radius-base) * 2);
     --radius-md: calc(var(--radius-base) * 3);
     --radius-lg: calc(var(--radius-base) * 4);
-    --radius-lg-increased: calc(var(--radius-base) * 5);
-    --radius-xl: calc(var(--radius-base) * 7);
-    --radius-xl-increased: calc(var(--radius-base) * 8);
-    --radius-xxl: calc(var(--radius-base) * 12);
+    --radius-xl: calc(var(--radius-base) * 5);
+    --radius-xxl: calc(var(--radius-base) * 6);
     --radius-full: 9999px;
 
     --color-disabled-bg: color-mix(
@@ -284,8 +295,10 @@
       transparent
     );
 
-    --focus-ring-width: 3px;
-    --focus-ring-offset: 2px;
+    --focus-ring-style: solid;
+    --focus-ring-width: 2px;
+    --focus-ring-offset: 3px;
+    --focus-ring-color: var(--color-primary);
 
     --z-index-elevated: 1;
     --z-index-dropdown: 10;
@@ -297,25 +310,16 @@
 
     --shadow-base: 0.0625rem;
     --elevation-0: none;
-    --elevation-1:
-      0 var(--shadow-base) calc(var(--shadow-base) * 2) 0 rgba(0, 0, 0, 0.3),
-      0 var(--shadow-base) calc(var(--shadow-base) * 3) var(--shadow-base) rgba(0, 0, 0, 0.15);
-    --elevation-2:
-      0 var(--shadow-base) calc(var(--shadow-base) * 2) 0 rgba(0, 0, 0, 0.3),
-      0 calc(var(--shadow-base) * 2) calc(var(--shadow-base) * 6) calc(var(--shadow-base) * 2)
-      rgba(0, 0, 0, 0.15);
-    --elevation-3:
-      0 var(--shadow-base) calc(var(--shadow-base) * 3) 0 rgba(0, 0, 0, 0.3),
-      0 calc(var(--shadow-base) * 4) calc(var(--shadow-base) * 8) calc(var(--shadow-base) * 3)
-      rgba(0, 0, 0, 0.15);
-    --elevation-4:
-      0 calc(var(--shadow-base) * 2) calc(var(--shadow-base) * 3) 0 rgba(0, 0, 0, 0.3),
-      0 calc(var(--shadow-base) * 6) calc(var(--shadow-base) * 10) calc(var(--shadow-base) * 4)
-      rgba(0, 0, 0, 0.15);
-    --elevation-5:
-      0 calc(var(--shadow-base) * 4) calc(var(--shadow-base) * 4) 0 rgba(0, 0, 0, 0.3),
-      0 calc(var(--shadow-base) * 8) calc(var(--shadow-base) * 12) calc(var(--shadow-base) * 6)
-      rgba(0, 0, 0, 0.15);
+    --elevation-1: 0 var(--shadow-base) calc(var(--shadow-base) * 2) 0
+      light-dark(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.75));
+    --elevation-2: 0 var(--shadow-base) calc(var(--shadow-base) * 4) 0
+      light-dark(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.75));
+    --elevation-3: 0 var(--shadow-base) calc(var(--shadow-base) * 6) 0
+      light-dark(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.75));
+    --elevation-4: 0 var(--shadow-base) calc(var(--shadow-base) * 8) 0
+      light-dark(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.75));
+    --elevation-5: 0 var(--shadow-base) calc(var(--shadow-base) * 10) 0
+      light-dark(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.75));
 
     --duration-short: 200ms;
     --duration-medium: 300ms;
@@ -327,9 +331,10 @@
     --ease-standard-decelerate: cubic-bezier(0, 0, 0, 1);
     --ease-standard-accelerate: cubic-bezier(0.3, 0, 1, 1);
 
-    --font-sans: 'Noto Sans', system-ui, sans-serif;
-    --font-mono: 'Roboto Mono', Menlo, Monaco, 'Courier New', monospace;
-    --font-serif: 'Roboto Serif', Georgia, Cambria, 'Times New Roman', Times, serif;
+    --font-sans: 'Geist', 'Noto Sans', system-ui, sans-serif;
+    --font-mono: 'Geist Mono', 'Roboto Mono', Menlo, Monaco, 'Courier New', monospace;
+    --font-serif:
+      'Playful Display', 'Roboto Serif', Georgia, Cambria, 'Times New Roman', Times, serif;
     --font-brand: var(--font-sans);
     --font-base: 1rem;
     --font-label-lg-size: calc(var(--font-base) * 0.875);
