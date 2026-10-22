@@ -1,13 +1,13 @@
 ---
-title: Maui Button
+title: AUI Button
 description: Action trigger with safe form defaults, six sizes, five variants, and seven colors.
 ---
 
-# Maui Button
+# AUI Button
 
 A button is the simplest thing on a page until it sits inside a form: forget `type="button"` and every click submits it. Button gives you safe form defaults on a real `<button>` — a click never submits unless you set `type="submit"` — plus disabled handling that screen readers announce as disabled.
 
-Styling is optional. Without Material CSS the Button stays a correct, operable button; with it, the same markup gets the Material treatment through either the full-library or the selective import.
+Styling is optional. Without AUI CSS the Button stays a correct, operable button; with it, the same markup gets the AUI treatment through the full library.
 
 :::interactive[Button demo]
 
@@ -89,12 +89,12 @@ const ButtonDemo = setup(() => {
 
 ```tsx
 import { Button } from '@airlib/react-aui';
-import '@airlib/aui/widgets/button.css';
+import '@airlib/aui/components/widgets/button.css';
 
 export const SaveAction = () => <Button>Save</Button>;
 ```
 
-For the full library instead of the selective import, load `import '@airlib/aui';`. Both modes look the same.
+For the full library — tokens, base defaults, every component, and the utilities — load `import '@airlib/aui';` instead. A lone component stylesheet carries only that component's rules.
 
 ### Properties
 
@@ -102,10 +102,10 @@ For the full library instead of the selective import, load `import '@airlib/aui'
 | --- | --- | --- | --- |
 | `type` | `'button'`, `'submit'`, `'reset'` | `'button'` | What a click does in a form. Leave it and a click never submits. |
 | `disabled` | `boolean` | `false` | Locks the button and announces it as disabled. |
-| `size` | `xs`, `sm`, `md`, `lg`, `xl`, `xxl` | `'lg'` | Explicit props win; otherwise the configured default applies. |
+| `size` | `xs`, `sm`, `md`, `lg`, `xl`, `xxl` | `'md'` | Explicit props win; otherwise the configured default applies. |
 | `variant` | `filled`, `elevated`, `tonal`, `outlined`, `text` | `'filled'` | Same precedence as `size`. |
 | `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | Same precedence as `size`. |
-| `className` | `string` | — | Added alongside the built-in classes by default; replaces them in replacement mode. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
 | `children` | `ReactNode` | — | Button label. |
 | `ref` | `Ref<HTMLButtonElement>` | — | Access to the underlying button element. |
 
@@ -123,26 +123,17 @@ configure({ button: { size: 'sm' } });
 Your own classes are added next to the built-in ones:
 
 ```tsx
-// class="maui-action maui-button maui-button-sm maui-button-filled maui-button-primary my-btn"
+// class="aui-control aui-control-md aui-control-primary aui-control-filled aui-button aui-button-md aui-button-primary aui-button-filled my-btn"
 <Button className="my-btn">Save</Button>
 ```
 
-Replacement mode renders only your classes — the button keeps working exactly the same:
-
-```tsx
-import { configure } from '@airlib/react-aui';
-
-configure({ overrides: true });
-
-// class="my-btn"
-<Button className="my-btn">Save</Button>
-```
+To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
 
 Keyboard: `Tab` focuses the button, `Space` activates on key-up, `Enter` activates on key-down. Disabled buttons stay out of the way and go silent to neither sighted nor screen-reader users — they are announced as disabled.
 
 ### Sizes
 
-Sizes: `xs`, `sm`, `md`, `lg`, `xl`, `xxl`, default `lg`:
+Sizes: `xs`, `sm`, `md`, `lg`, `xl`, `xxl`, default `md`:
 
 ```tsx
 <Button size="sm">Compact</Button>

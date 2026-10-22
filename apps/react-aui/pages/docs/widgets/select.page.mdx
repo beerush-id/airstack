@@ -1,13 +1,13 @@
 ---
-title: Maui Select
+title: AUI Select
 description: Collapsible option list with trigger, popup panel, and options — single or multiple, six sizes, two variants, and seven colors.
 ---
 
-# Maui Select
+# AUI Select
 
 A select is an option list collapsed behind a trigger: closed it shows one value, open it offers every choice. Country pickers, per-page counts, and city departures are all selects — anywhere a list would eat the layout it sits behind a button instead.
 
-Styling is optional. Without Material CSS the Select stays a correct, operable combobox; with it, the same markup gets the Material treatment through either the full-library or the selective import.
+Styling is optional. Without AUI CSS the Select stays a correct, operable combobox; with it, the same markup gets the AUI treatment through the full library.
 
 :::interactive[Select demo]
 
@@ -81,15 +81,75 @@ const SelectDemo = setup(() => {
 
 ## Usage
 
+### Options
+
+Most selects are a token-to-text map. Pass `options` and Select renders the trigger and one option per entry for you, with no wrapper element of its own — the parts land as siblings, the way a native select behaves:
+
 ```tsx
-import { Select, SelectOption, SelectPanel, SelectTrigger } from '@airlib/react-aui';
-import '@airlib/aui/widgets/select.css';
+import { Select } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/select.css';
 
 const CITY_LABELS = { ams: 'Amsterdam', ber: 'Berlin' };
 
 export const DeparturePicker = () => (
-  <Select labels={CITY_LABELS} value="ams">
-    <SelectTrigger />
+  <Select options={CITY_LABELS} value="ams" placeholder="Choose a departure" />
+);
+```
+
+`size`, `variant`, `color`, `label`, and `placeholder` pass straight through to the trigger and panel. The trigger shows the chosen option's text, and the `placeholder` while nothing is chosen. For richer trigger or row content, use the `trigger` and `option` slots.
+
+Because this mode renders no wrapper, `className` is not applied and `ref` has no root to point at — use manual composition when you need a handle on the root.
+
+### Slots
+
+When the label alone won't do — a city code in front of the name, an airport name under it — supply the content through the `trigger` and `option` slots. Select keeps the button, the caret, the rows, and their keyboard behavior; you supply what renders inside them:
+
+```tsx
+import { Select } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/select.css';
+
+const CITY_LABELS: Record<string, string> = { ams: 'Amsterdam', ber: 'Berlin', cop: 'Copenhagen' };
+
+export const DeparturePicker = ({ city }: { city?: string }) => (
+  <Select options={CITY_LABELS} value={city} label="Departure">
+    <Select.Snippet for="trigger">
+      {(value) =>
+        typeof value === 'string' ? (
+          <span className="city">
+            <span className="city-code">{value.toUpperCase()}</span> {CITY_LABELS[value]}
+          </span>
+        ) : (
+          'Choose a city'
+        )
+      }
+    </Select.Snippet>
+    <Select.Snippet for="option">
+      {(key, value) => (
+        <span className="city">
+          <span className="city-code">{key.toUpperCase()}</span> {value}
+        </span>
+      )}
+    </Select.Snippet>
+  </Select>
+);
+```
+
+- **`trigger`** receives the current value — a token, an array under `multiple`, or `undefined` before the first choice — and renders inside the trigger. `label` remains the field name above it; render the empty state from the slot.
+- **`option`** receives the entry's token and label and renders inside that row; selection and commit behave as they do without it.
+
+Both slots apply to `options` mode; manual composition passes its content as children to `SelectTrigger` and `SelectOption`.
+
+### Manual composition
+
+Reach for the parts when a row needs its own markup — an icon, a second line, mixed content:
+
+```tsx
+import { Select, SelectOption, SelectPanel, SelectTrigger } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/select.css';
+
+export const DeparturePicker = () => (
+  <Select value="ams">
+    <SelectTrigger placeholder="Choose a departure" />
     <SelectPanel>
       <SelectOption value="ams">Amsterdam</SelectOption>
       <SelectOption value="ber">Berlin</SelectOption>
@@ -98,9 +158,11 @@ export const DeparturePicker = () => (
 );
 ```
 
-For the full library instead of the selective import, load `import '@airlib/aui';`. Both modes look the same.
+This mode renders a root wrapper that carries the `aui-select` classes along with your `className` and `ref`. Size, variant, and color are yours to set on the parts; Select only forwards them for you in `options` mode. The trigger shows its `children` when you pass any, otherwise its `placeholder` — pass a function child such as `{(trigger) => trigger.value}` when you want it to render the current choice.
 
-The `labels` map turns tokens into trigger text — without it the trigger has nothing to show. A commit in single mode closes the popup; in `multiple` mode it stays open so a picker that takes several values never slams shut mid-choice.
+For the full library — tokens, base defaults, every component, and the utilities — load `import '@airlib/aui';` instead. A lone component stylesheet carries only that component's rules.
+
+Options render their children, so the text inside `<SelectOption>` is what a reader picks. A commit in single mode closes the popup; in `multiple` mode it stays open so a picker that takes several values never slams shut mid-choice.
 
 ### Properties
 
@@ -113,16 +175,18 @@ Select (root) holds the value and the popup visibility:
 | `multiple` | `boolean` | `false` | Takes an array `value`; commits keep the popup open. |
 | `disabled` | `boolean` | `false` | Locks toggling and committing across the whole select. |
 | `required` | `boolean` | `false` | Declares a non-empty selection requirement. |
-| `labels` | `Record<string, string>` | — | Token-to-label map the trigger reads at creation. |
-| `size` | `xs`, `sm`, `md`, `lg`, `xl`, `xxl` | `'lg'` | Explicit props win; otherwise the configured default applies. |
-| `variant` | `filled`, `outlined` | `'outlined'` | Same precedence as `size`. |
+| `label` | `string` | — | Options mode only — field label rendered inside the trigger, above its text. |
+| `placeholder` | `string` | — | Options mode only — trigger text shown while nothing is chosen; in manual mode set it on `SelectTrigger`. |
+| `options` | `Record<string, string \| number>` | — | Renders a trigger and one option per entry, with no wrapper element. |
+| `size` | `xs`, `sm`, `md`, `lg`, `xl`, `xxl` | `'md'` | Explicit props win; in options mode it is forwarded to the trigger and panel. |
+| `variant` | `filled`, `outlined` | `'filled'` | Same precedence and forwarding as `size`. |
 | `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | Same precedence as `size`; drives the trigger text, indicator, and caret. |
 | `onchange` | `(event: CustomEvent<...>) => void` | — | Fires with the whole value once a member commit reaches the root. |
-| `className` | `string` | — | Added alongside the built-in classes by default; replaces them in replacement mode. |
-| `children` | `ReactNode` | — | Trigger, panel, and options. |
-| `ref` | `Ref<HTMLDivElement>` | — | Access to the root element. |
+| `className` | `string` | — | Manual mode only — added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `children` | `ReactNode` | — | Manual mode only — trigger, panel, and options. |
+| `ref` | `Ref<HTMLDivElement>` | — | In manual mode it points at the root wrapper; options mode has no root to attach it to. |
 
-SelectTrigger (combobox face), SelectPanel (popup listbox), and SelectOption (selection member) take `id`, `disabled` where applicable, `value` (options only, required), `className`, and children. Options render their children as the row content; the trigger renders the current choice from `labels`.
+In manual mode the parts take their own props: SelectTrigger (combobox face) accepts `label`, `placeholder`, `disabled`, `className`, and children; SelectPanel (popup listbox) accepts `id`, `className`, and children; SelectOption (selection member) adds `value` (required) and `disabled`. Options render their children as the row content.
 
 Set app-wide defaults once instead of repeating props on every select:
 
@@ -135,37 +199,28 @@ configure({ select: { size: 'sm' } });
 Your own classes are added next to the built-in ones:
 
 ```tsx
-// class="maui-select maui-select-lg maui-select-outlined maui-select-primary my-select"
-<Select className="my-select" labels={CITY_LABELS}>
+// class="aui-select aui-select-md aui-select-primary aui-select-filled my-select"
+<Select className="my-select">
 ```
 
-Replacement mode renders only your classes — the select keeps working exactly the same:
-
-```tsx
-import { configure } from '@airlib/react-aui';
-
-configure({ overrides: true });
-
-// class="my-select"
-<Select className="my-select" labels={CITY_LABELS}>
-```
+To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
 
 Keyboard: `Enter` or `Space` toggles the popup, arrows open it while closed and rove the panel without committing, `Enter` commits the focused option, `Escape` closes and returns focus to the trigger. Dismissal by outside press returns focus the same way.
 
 ### Sizes
 
-Sizes: `xs`, `sm`, `md`, `lg`, `xl`, `xxl`, default `lg` — carried by the trigger:
+Sizes: `xs`, `sm`, `md`, `lg`, `xl`, `xxl`, default `md` — carried by the trigger:
 
 ```tsx
-<Select labels={CITY_LABELS} size="sm">
+<Select options={CITY_LABELS} size="sm" />
 ```
 
 ### Variants
 
-Variants: `filled`, `outlined`, default `outlined`:
+Variants: `filled`, `outlined`, default `filled`:
 
 ```tsx
-<Select labels={CITY_LABELS} variant="outlined">
+<Select options={CITY_LABELS} variant="outlined" />
 ```
 
 ### Color Variants
@@ -173,7 +228,7 @@ Variants: `filled`, `outlined`, default `outlined`:
 Colors: `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info`, default `primary` — carried by the trigger text, indicator, and caret, while the popup stays neutral:
 
 ```tsx
-<Select labels={CITY_LABELS} color="error">
+<Select options={CITY_LABELS} color="error" />
 ```
 
 ## Next Steps

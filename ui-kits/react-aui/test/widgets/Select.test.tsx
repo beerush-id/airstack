@@ -3,19 +3,19 @@ import { $bind, mutable } from '@airlib/react';
 import { render, screen, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import React, { act } from 'react';
-import { afterEach, describe, expect, it } from 'vitest';
-import { configure, resetConfig } from '../../src/config.js';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { configure } from '../../src/config.js';
 import { Select, SelectOption, SelectPanel, SelectTrigger } from '../../src/index.js';
-import { runApp } from '../setup.js';
+import { restoreConfig, runApp, snapshotConfig } from '../setup.js';
 
 let destroy: StateUnsubscribe | undefined;
 
-const LABELS = { red: 'Red', green: 'Green', blue: 'Blue' };
+const TRIGGER_PLACEHOLDER = 'Choose a value';
 
 function BasicSelect(props: { disabled?: boolean }) {
   return (
-    <Select labels={LABELS} disabled={props.disabled}>
-      <SelectTrigger />
+    <Select disabled={props.disabled}>
+      <SelectTrigger placeholder={TRIGGER_PLACEHOLDER} />
       <SelectPanel>
         <SelectOption value="red">Red</SelectOption>
         <SelectOption value="green">Green</SelectOption>
@@ -25,14 +25,16 @@ function BasicSelect(props: { disabled?: boolean }) {
   );
 }
 
+beforeEach(snapshotConfig);
+
 afterEach(() => {
   destroy?.();
+  restoreConfig();
 });
 
 describe('Select', () => {
-  it('starts closed with fallback trigger text and opens on activation', async () => {
+  it('starts closed showing the trigger placeholder and opens on activation', async () => {
     destroy = await runApp(async () => {
-      resetConfig();
       render(<BasicSelect />);
       const trigger = screen.getByRole('combobox');
       expect(trigger.textContent).toContain('Choose a value');
@@ -44,12 +46,11 @@ describe('Select', () => {
     });
   });
 
-  it('commits an option and shows its label on the trigger', async () => {
+  it('commits an option, closes, and marks it selected on reopen', async () => {
     destroy = await runApp(async () => {
-      resetConfig();
       let committed: unknown;
       render(
-        <Select labels={LABELS} onchange={(event) => (committed = event.detail)}>
+        <Select onchange={(event) => (committed = event.detail)}>
           <SelectTrigger />
           <SelectPanel>
             <SelectOption value="green">Green</SelectOption>
@@ -65,16 +66,18 @@ describe('Select', () => {
       });
       expect(committed).toBe('green');
       expect(trigger.getAttribute('aria-expanded')).toBe('false');
-      expect(trigger.textContent).toContain('Green');
+      await act(async () => {
+        await userEvent.click(trigger);
+      });
+      expect(screen.getByRole('option', { name: 'Green' }).getAttribute('aria-selected')).toBe('true');
     });
   });
 
   it('binds value two-way with the controller', async () => {
     destroy = await runApp(async () => {
-      resetConfig();
       const state = mutable({ color: '' });
       render(
-        <Select labels={LABELS} value={$bind(state, 'color')}>
+        <Select value={$bind(state, 'color')}>
           <SelectTrigger />
           <SelectPanel>
             <SelectOption value="blue">Blue</SelectOption>
@@ -94,7 +97,6 @@ describe('Select', () => {
 
   it('closes an open single select on Escape', async () => {
     destroy = await runApp(async () => {
-      resetConfig();
       render(<BasicSelect />);
       const trigger = screen.getByRole('combobox');
       await act(async () => {
@@ -110,7 +112,6 @@ describe('Select', () => {
 
   it('stays shut while disabled', async () => {
     destroy = await runApp(async () => {
-      resetConfig();
       render(<BasicSelect disabled />);
       const trigger = screen.getByRole('combobox');
       await act(async () => {
@@ -122,10 +123,9 @@ describe('Select', () => {
 
   it('forwards consumer ref to the root', async () => {
     destroy = await runApp(async () => {
-      resetConfig();
       const ref = React.createRef<HTMLDivElement>();
       render(
-        <Select ref={ref} labels={LABELS}>
+        <Select ref={ref}>
           <SelectTrigger />
           <SelectPanel>
             <SelectOption value="red">Red</SelectOption>
@@ -142,12 +142,14 @@ describe('Select', () => {
       configure({ select: { size: 'sm', variant: 'outlined', color: 'error' } });
       const { unmount } = render(<BasicSelect />);
       expect(screen.getByRole('combobox').closest('.aui-select')?.className).toBe(
-        'aui-select aui-select-sm aui-select-outlined aui-select-error'
+        'aui-select aui-select-sm aui-select-error aui-select-outlined'
       );
-      expect(screen.getByRole('combobox').className).toBe('aui-action aui-select-trigger');
+      expect(screen.getByRole('combobox').className).toBe(
+        'aui-control aui-control-sm aui-control-error aui-control-outlined aui-select-trigger aui-select-trigger-sm aui-select-trigger-error aui-select-trigger-outlined'
+      );
       unmount();
       render(
-        <Select labels={LABELS} size="lg" variant="filled" color="info">
+        <Select size="lg" variant="filled" color="info">
           <SelectTrigger />
           <SelectPanel>
             <SelectOption value="red">Red</SelectOption>
@@ -155,17 +157,15 @@ describe('Select', () => {
         </Select>
       );
       expect(screen.getByRole('combobox').closest('.aui-select')?.className).toBe(
-        'aui-select aui-select-lg aui-select-filled aui-select-info'
+        'aui-select aui-select-lg aui-select-info aui-select-filled'
       );
-      resetConfig();
     });
   });
 
   it('supports additive and replacement class modes', async () => {
     destroy = await runApp(async () => {
-      resetConfig();
       const { unmount } = render(
-        <Select labels={LABELS} className="my-select">
+        <Select className="my-select">
           <SelectTrigger />
           <SelectPanel>
             <SelectOption value="red">Red</SelectOption>
@@ -178,7 +178,7 @@ describe('Select', () => {
       unmount();
       configure({ overrides: true });
       render(
-        <Select labels={LABELS} className="only-me">
+        <Select className="only-me">
           <SelectTrigger />
           <SelectPanel>
             <SelectOption value="red">Red</SelectOption>
@@ -186,7 +186,6 @@ describe('Select', () => {
         </Select>
       );
       expect(screen.getByRole('combobox').closest('.only-me')?.className).toBe('only-me');
-      resetConfig();
     });
   });
 });

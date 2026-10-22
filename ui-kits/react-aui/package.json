@@ -29,8 +29,8 @@
       "import": "./dist/icons/index.js"
     },
     "./utils": {
-      "types": "./dist/hooks/index.d.ts",
-      "import": "./dist/hooks/index.js"
+      "types": "./dist/utils/index.d.ts",
+      "import": "./dist/utils/index.js"
     },
     "./widgets": {
       "types": "./dist/widgets/index.d.ts",

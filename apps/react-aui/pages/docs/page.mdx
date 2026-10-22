@@ -1,11 +1,11 @@
 ---
-title: React Maui Docs
-description: Material React components built on AirLib Headless Kits — installation, imports, and the component index.
+title: React AUI Docs
+description: AUI React components built on AirLib Headless Kits — installation, imports, and the component index.
 ---
 
-# React Maui
+# React AUI
 
-React declarations over AirLib Headless Kits, presentation from Material native CSS. Headless Kits own behavior and accessibility; `@airlib/react-aui` declares structure and class composition; `@airlib/aui` supplies tokens and stylesheets. Components stay operable without CSS; CSS is always optional.
+React declarations over AirLib Headless Kits, presentation from AUI native CSS. Headless Kits own behavior and accessibility; `@airlib/react-aui` declares structure and class composition; `@airlib/aui` supplies tokens and stylesheets. Components stay operable without CSS; CSS is always optional.
 
 ## Installation
 
@@ -13,7 +13,7 @@ React declarations over AirLib Headless Kits, presentation from Material native 
 npm install @airlib/react-aui @airlib/aui
 ```
 
-React and AirLib are peers — your app provides `react`, `react-dom`, and `@airlib/react` at supported versions.
+`react`, `react-dom`, and `typescript` are peer dependencies, so your app supplies them. The AirLib packages — `@airlib/react`, `@airlib/aria`, and `@airlib/aui` — install as dependencies.
 
 Load either the full library or individual component styles:
 
@@ -22,10 +22,10 @@ import '@airlib/aui';
 ```
 
 ```tsx
-import '@airlib/aui/widgets/button.css';
+import '@airlib/aui/components/widgets/button.css';
 ```
 
-Both modes produce equivalent presentation. Each component stylesheet brings its own base, token, and utility dependencies — a selective import never needs a hidden full-library import.
+`@airlib/aui` loads the whole system: theme tokens, base defaults, every component family, and the utilities. An individual stylesheet such as `components/widgets/button.css` carries only that component's own rules, so it gives you the component's structure without the tokens and utilities the full library supplies.
 
 ## Components
 

@@ -5,19 +5,19 @@ description: Tokens, CSS layers, shared size/variant/color vocabulary, utilities
 
 # Theming
 
-Material supplies the look, React supplies the structure. Every component works without CSS; add `import '@airlib/aui'` for the full library or `import '@airlib/aui/widgets/button.css'` for a single component. Both modes look the same because each component stylesheet brings its own base, token, and utility dependencies.
+AUI supplies the look, React supplies the structure. Every component works without CSS; add `import '@airlib/aui'` for the full library, or `import '@airlib/aui/components/widgets/button.css'` for one component's own rules. The full library brings the theme tokens, base defaults, component families, and utilities that make a component look finished.
 
 Selective imports never pull unrelated component families, and CSS never loads through JavaScript utilities — `import { configure } from '@airlib/react-aui'` and `import { SIZES } from '@airlib/aui/utils'` carry types and configuration only.
 
 ## Layers
 
-Cascade order is fixed once in `base`:
+Cascade order is declared once, in the library entry stylesheet:
 
 ```css
-@layer base, utility, component;
+@layer theme, base, component, utility, reduced-motion;
 ```
 
-`base` owns tokens and defaults, `utility` owns reusable concerns (`maui-action`, spacing, layout, text, size, variant, color-variant, focus, touch, state), `component` owns only unique structure and token mappings like `.maui-button`. HTML class order never decides precedence.
+`theme` holds every design token, `base` ships the element defaults and the keyboard focus ring, `component` owns each component's structure and token mappings (`.aui-control`, `.aui-button`), and `utility` ships the spacing, layout, text, size, and touch helpers plus `.aui-action`. Utilities come last so a helper can refine a component rule; HTML class order never decides precedence.
 
 ## Tokens
 
@@ -30,7 +30,7 @@ Primitive tokens live once in `theme`, components reference them through semanti
 }
 ```
 
-Override any `--color-*`, `--spacing`, radius, or component token such as `--maui-control-radius` from your own stylesheet or inline style. Spacing derives with `calc(var(--spacing) * 4)`, colors shift with `color-mix(in srgb, var(--color-primary) 90%, white)`. Light and dark ship together via `light-dark()` and `color-scheme: light dark`.
+Override any `--color-*`, `--spacing`, radius, or component token such as `--aui-control-radius` from your own stylesheet or inline style. Spacing derives with `calc(var(--spacing) * 4)`, colors shift with `color-mix(in srgb, var(--color-primary) 90%, white)`. Light and dark ship together via `light-dark()` and `color-scheme: light dark`.
 
 ## Sizes, variants, colors
 
@@ -42,7 +42,7 @@ import { Button } from '@airlib/react-aui';
 <Button size="sm" variant="tonal" color="success">Saved</Button>
 ```
 
-Sizes `xs`–`xxl` default `lg`, variants `filled`, `elevated`, `tonal`, `outlined`, `text` default `filled`, colors `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` default `primary`. Explicit props win; otherwise the configured fallback applies:
+Sizes `xs`–`xxl` default `md`, variants `filled`, `elevated`, `tonal`, `outlined`, `text` default `filled`, colors `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` default `primary`. Explicit props win; otherwise the configured fallback applies:
 
 ```tsx
 import { configure } from '@airlib/react-aui';
@@ -268,7 +268,7 @@ const TypeDemo = () => (
     </div>
     <div className="demo-type-row">
       <span className="demo-type-token">--font-sans / --font-serif / --font-mono / --font-brand</span>
-      <span style={{ fontFamily: 'var(--font-sans)' }}>Sans — Material supplies the look.</span>
+      <span style={{ fontFamily: 'var(--font-sans)' }}>Sans — AUI supplies the look.</span>
       <span style={{ fontFamily: 'var(--font-serif)' }}>Serif — React supplies the structure.</span>
       <span style={{ fontFamily: 'var(--font-mono)' }}>Mono — tokens live once in theme.</span>
     </div>
@@ -427,24 +427,19 @@ const TextUtilitiesDemo = () => (
 
 ## Overrides
 
-Your classes add next to the built-in ones by default:
-
-```tsx
-<Button className="my-btn">Save</Button>
-```
-
-Replacement mode emits only your classes — behavior, refs, events, and accessibility stay intact:
+Your classes add next to the built-in ones by default. With `overrides` set once, a supplied `className` replaces them across every component:
 
 ```tsx
 import { configure } from '@airlib/react-aui';
 
 configure({ overrides: true });
+
+// class="my-btn"
+<Button className="my-btn">Save</Button>
 ```
+
+Behavior, refs, events, and accessibility are unchanged.
 
 ## Global defaults
 
-Component imports never reset the page. Opt in explicitly when you want the page defaults:
-
-```tsx
-import '@airlib/aui/default.css';
-```
+`@airlib/aui` includes the base layer, so the full-library import brings the element defaults along with the components. A single component stylesheet brings none of them — no tokens, no base defaults, no utilities — so pair it with what you load yourself, or use the full library.

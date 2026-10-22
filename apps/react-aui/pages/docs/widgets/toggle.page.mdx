@@ -1,13 +1,13 @@
 ---
-title: Maui Toggle
+title: AUI Toggle
 description: Two-state button with pressed announcement, six sizes, three variants, and seven colors.
 ---
 
-# Maui Toggle
+# AUI Toggle
 
 A toggle is a button that keeps its state: pressed or not, announced as such, and flipped by every activation. Formatting bars, favorite stars, and mute switches are all toggles — anywhere a control stays on after you let go.
 
-Styling is optional. Without Material CSS the Toggle stays a correct, operable two-state button; with it, the same markup gets the Material treatment through either the full-library or the selective import.
+Styling is optional. Without AUI CSS the Toggle stays a correct, operable two-state button; with it, the same markup gets the AUI treatment through the full library.
 
 :::interactive[Toggle demo]
 
@@ -83,25 +83,25 @@ const ToggleDemo = setup(() => {
 
 ```tsx
 import { Toggle } from '@airlib/react-aui';
-import '@airlib/aui/widgets/toggle.css';
+import '@airlib/aui/components/widgets/toggle.css';
 
 export const BoldControl = () => <Toggle>Bold</Toggle>;
 ```
 
-For the full library instead of the selective import, load `import '@airlib/aui';`. Both modes look the same.
+For the full library — tokens, base defaults, every component, and the utilities — load `import '@airlib/aui';` instead. A lone component stylesheet carries only that component's rules.
 
 ### Properties
 
 | Prop | Type | Default | Notes |
 | --- | --- | --- | --- |
 | `pressed` | `Bindable<boolean>` | `false` | Whether the toggle is pressed. Bind it to read and write the state from outside. |
-| `value` | `string`, `number`, `boolean` | — | Group membership token; a member derives `pressed` from the shared group value instead. |
+| `value` | `string`, `number` | — | Group membership token; a member derives `pressed` from the shared group value instead. |
 | `disabled` | `boolean` | `false` | Locks the toggle; clicks, keys, and writes are refused while locked. |
-| `size` | `xs`, `sm`, `md`, `lg`, `xl`, `xxl` | `'lg'` | Explicit props win; otherwise the configured default applies. |
-| `variant` | `filled`, `tonal`, `outlined` | `'outlined'` | Same precedence as `size`. |
+| `size` | `xs`, `sm`, `md`, `lg`, `xl`, `xxl` | `'md'` | Explicit props win; otherwise the configured default applies. |
+| `variant` | `filled`, `tonal`, `outlined` | `'filled'` | Same precedence as `size`. |
 | `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | Same precedence as `size`. |
 | `onchange` | `(event: CustomEvent<...>) => void` | — | Fires after each real flip with the new state in `detail`; silent when nothing changes. |
-| `className` | `string` | — | Added alongside the built-in classes by default; replaces them in replacement mode. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
 | `children` | `ReactNode` | — | Toggle label. |
 | `ref` | `Ref<HTMLButtonElement>` | — | Access to the underlying button element. |
 
@@ -119,26 +119,17 @@ configure({ toggle: { size: 'sm' } });
 Your own classes are added next to the built-in ones:
 
 ```tsx
-// class="maui-action maui-toggle maui-toggle-lg maui-toggle-outlined maui-toggle-primary my-toggle"
+// class="aui-control aui-control-md aui-control-primary aui-control-filled aui-toggle aui-toggle-md aui-toggle-primary aui-toggle-filled my-toggle"
 <Toggle className="my-toggle">Bold</Toggle>
 ```
 
-Replacement mode renders only your classes — the toggle keeps working exactly the same:
-
-```tsx
-import { configure } from '@airlib/react-aui';
-
-configure({ overrides: true });
-
-// class="my-toggle"
-<Toggle className="my-toggle">Bold</Toggle>
-```
+To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
 
 Keyboard: `Tab` focuses the toggle, `Space` flips on key-up, `Enter` flips on key-down. The pressed state is announced through `aria-pressed`, and a locked toggle is announced as disabled.
 
 ### Sizes
 
-Sizes: `xs`, `sm`, `md`, `lg`, `xl`, `xxl`, default `lg`:
+Sizes: `xs`, `sm`, `md`, `lg`, `xl`, `xxl`, default `md`:
 
 ```tsx
 <Toggle size="sm">Compact</Toggle>
@@ -147,7 +138,7 @@ Sizes: `xs`, `sm`, `md`, `lg`, `xl`, `xxl`, default `lg`:
 
 ### Variants
 
-Variants: `filled`, `tonal`, `outlined`, default `outlined`. A pressed toggle always takes the solid base color for its color (unpressed stays neutral surface):
+Variants: `filled`, `tonal`, `outlined`, default `filled`. A pressed toggle takes its color as a solid background with the matching on-color text; unpressed stays a light tint of that color:
 
 ```tsx
 <Toggle variant="filled">High emphasis</Toggle>
