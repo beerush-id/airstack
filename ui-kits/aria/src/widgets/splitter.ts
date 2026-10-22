@@ -105,7 +105,7 @@ export class SplitterAria<
   private dirty = false;
 
   public constructor(props: Partial<T> = {}, options: O = {} as O) {
-    super(props, options);
+    super(props, { ...options, clickable: true });
 
     this.omittedAttrs.push(
       'oninput',

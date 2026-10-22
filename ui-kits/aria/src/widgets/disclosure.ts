@@ -1,4 +1,4 @@
-import { $symbol, createContext, uIndex } from '@airlib/core';
+import { $symbol, type AnyType, createContext, uIndex } from '@airlib/core';
 import { Aria } from '../core.js';
 import type {
   AriaAttributes,
@@ -65,6 +65,7 @@ export interface DisclosureTriggerOptions extends AriaOptions {
    * @default true
    */
   native?: boolean;
+  disabled?: boolean;
 }
 
 /**
@@ -211,8 +212,10 @@ export class DisclosureAria<
  */
 export class DisclosureTriggerAria<
   E extends BaseElement = HTMLButtonElement,
-  O extends DisclosureTriggerOptions = DisclosureTriggerOptions,
-> extends Aria<E, AriaProps, DisclosureTriggerAttributes<E>, O> {
+  P extends DisclosureTriggerOptions = DisclosureTriggerOptions,
+  A extends DisclosureTriggerAttributes<E> = DisclosureTriggerAttributes<E>,
+  O extends DisclosureOptions = DisclosureOptions,
+> extends Aria<E, P, A, O> {
   /**
    * Unique controller instance identifier used as pair namespace without a coordinator.
    */
@@ -220,12 +223,13 @@ export class DisclosureTriggerAria<
 
   private readonly disclosure: DisclosureAria | null = disclosureCtx.get() ?? null;
 
-  private spaceArmed = false;
+  public spaceArmed = false;
 
-  public constructor(props: AriaProps = {}, options: O = {} as O) {
-    super(props, {
+  public constructor(props: DisclosureTriggerOptions = {}, options: O = {} as O) {
+    super(props as AnyType, {
       native: true,
       ...options,
+      clickable: true,
     });
 
     this.omittedAttrs.push('id', 'disabled', 'aria-expanded', 'aria-controls', 'aria-disabled');
@@ -264,7 +268,7 @@ export class DisclosureTriggerAria<
   /**
    * Computes the HTML, ARIA, and event handler attributes for the trigger.
    */
-  protected override createAttributes(): DisclosureTriggerAttributes<E> {
+  protected override createAttributes() {
     const isDisabled = this.disabled;
     const parentId = this.parentId;
     const attrs: Record<string, unknown> = {
@@ -283,7 +287,7 @@ export class DisclosureTriggerAria<
       attrs.tabindex = isDisabled ? -1 : 0;
     }
 
-    return Object.assign(super.createAttributes(), attrs) as DisclosureTriggerAttributes<E>;
+    return Object.assign(super.createAttributes(), attrs);
   }
 
   private readonly handleClick = (event: MouseEvent): void => {
@@ -325,8 +329,7 @@ const ALLOW_KEYS = [' ', 'Enter'];
 export class DisclosurePanelAria<E extends BaseElement = HTMLElement> extends Aria<
   E,
   AriaProps,
-  DisclosurePanelAttributes<E>,
-  AriaOptions
+  DisclosurePanelAttributes<E>
 > {
   /**
    * Unique controller instance identifier used as pair namespace without a coordinator.

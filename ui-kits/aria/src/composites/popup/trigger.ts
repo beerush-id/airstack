@@ -1,6 +1,6 @@
 import { Aria } from '../../core.js';
 import type { AriaAttributes, AriaOptions, AriaProps, BaseElement } from '../../types.js';
-import { popupCtx, PopupAria } from './popup.js';
+import { PopupAria, popupCtx } from './popup.js';
 
 export interface PopupTriggerProps extends AriaProps {
   /**
@@ -48,7 +48,7 @@ export class PopupTriggerAria<
    */
   /* istanbul ignore next */
   public constructor(props: Partial<PopupTriggerProps> = {}, options: AriaOptions = { native: true }) {
-    super(props as never, options as never);
+    super(props as never, { ...options, clickable: true } as never);
 
     this.host = popupCtx.get();
     this.omittedAttrs.push(

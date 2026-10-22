@@ -77,7 +77,7 @@ export class MenuItemAria<E extends BaseElement = HTMLButtonElement> extends But
    * @param options - User-provided item options.
    */
   public constructor(props: MenuItemProps = {}, options: MenuItemOptions = { native: true }) {
-    super(props, options as ButtonOptions);
+    super(props, { ...options, clickable: true } as ButtonOptions);
 
     this.host = menuCtx.get();
     this.omittedAttrs.push('name', 'oncommand', 'role', 'tabindex', 'aria-disabled');
@@ -158,7 +158,7 @@ export class MenuItemCheckboxAria<E extends BaseElement = HTMLButtonElement> ext
    * @param options - User-provided item options.
    */
   public constructor(props: MenuItemCheckboxProps = {}, options: MenuItemOptions = { native: false }) {
-    super(props, options);
+    super(props, { ...options, clickable: true });
 
     this.host = menuCtx.get();
     this.omittedAttrs.push('checked', 'name', 'value', 'onchange', 'aria-checked', 'role');
@@ -219,7 +219,7 @@ export class MenuItemRadioAria<
    * @param options - User-provided item options.
    */
   public constructor(props: MenuItemRadioProps, options: MenuItemOptions = { native: false }) {
-    super(props as never, options);
+    super(props as never, { ...options, clickable: true });
 
     this.host = menuCtx.get();
     this.omittedAttrs.push('value', 'name', 'checked', 'onchange', 'aria-checked', 'role');

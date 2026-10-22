@@ -46,7 +46,7 @@ export class MenuButtonAria<E extends BaseElement = HTMLButtonElement> extends P
    * @param options - User-provided trigger options.
    */
   public constructor(props: Partial<MenuButtonProps> = {}, options: AriaOptions = { native: true }) {
-    super(props, options);
+    super(props, { ...options, clickable: true });
     this.host = menuCtx.get();
     this.update();
   }

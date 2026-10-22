@@ -1,6 +1,6 @@
 import type { AriaOptions, AriaProps } from '../../types.js';
 import { DialogCloseAria, type DialogCloseAttributes } from '../dialog/close.js';
-import { type ConfirmAria, type ConfirmEvent, confirmCtx } from './confirm.js';
+import { type ConfirmAria, confirmCtx, type ConfirmEvent } from './confirm.js';
 
 /**
  * Compiled HTML and ARIA attributes for a Confirm action button.
@@ -14,7 +14,7 @@ export class ConfirmActionAria<E extends HTMLElement = HTMLElement> extends Dial
   public confirm?: ConfirmAria;
 
   public constructor(props: Partial<AriaProps> = {}, options: AriaOptions = { native: true }) {
-    super(props, options);
+    super(props, { ...options, clickable: true });
     this.confirm = confirmCtx.get();
   }
 

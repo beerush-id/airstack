@@ -434,7 +434,7 @@ describe('Grid - Coverage & Boundary Tests', () => {
             gridEl.appendChild(el);
             return { c, el };
           });
-          expect(press(cell.el, ' ').defaultPrevented).toBe(false);
+          expect(press(cell.el, ' ').defaultPrevented).toBe(true);
           cell.el.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', bubbles: true, cancelable: true }));
           cell.c.destroy();
           const live = component().run(() => {

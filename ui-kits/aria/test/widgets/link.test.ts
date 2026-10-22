@@ -1,6 +1,6 @@
 import { createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it, vi } from 'vitest';
-import { aria, type LinkAria, type LinkProps, linkCtx } from '../../src/index.js';
+import { aria, type LinkAria, linkCtx, type LinkProps } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 describe('Link - Contract Specifications', () => {
@@ -167,7 +167,7 @@ describe('Link - Contract Specifications', () => {
           const enter = new KeyboardEvent('keydown', { key: 'Enter', cancelable: true, bubbles: true });
           el.dispatchEvent(enter);
 
-          expect(enter.defaultPrevented).toBe(false);
+          expect(enter.defaultPrevented).toBe(true);
           expect(clickSpy).not.toHaveBeenCalled();
         });
       }));

@@ -173,7 +173,7 @@ export abstract class SelectionAria<
   }
 
   public constructor(props: Partial<T> = {}, options: O = {} as O) {
-    super(props, { clickable: options?.allowKeys, ...options });
+    super(props, { clickable: options?.allowKeys ?? true, ...options });
 
     const role = this.options.role ?? 'item';
     this.id = `${role}-${uIndex($symbol(role), true)}`;

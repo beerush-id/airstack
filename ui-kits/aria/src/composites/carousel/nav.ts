@@ -69,7 +69,7 @@ export class CarouselNavAria<
   }
 
   public constructor(props: Partial<AriaProps> = {}, options?: AriaOptions) {
-    super(props, options);
+    super(props, { ...options, clickable: true });
     this.omittedAttrs.push('label', 'direction');
     this.on('click', this.activate);
     this.update();

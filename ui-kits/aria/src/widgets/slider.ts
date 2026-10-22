@@ -422,12 +422,7 @@ export class SliderAria<
  *
  * @template E - Target Element type (defaults to HTMLElement)
  */
-export class SliderThumbAria<E extends BaseElement = HTMLElement> extends Aria<
-  E,
-  AriaProps,
-  SliderThumbAttributes<E>,
-  AriaOptions
-> {
+export class SliderThumbAria<E extends BaseElement = HTMLElement> extends Aria<E, AriaProps, SliderThumbAttributes<E>> {
   private readonly slider: SliderAria | null = sliderCtx.get() ?? null;
 
   private readonly index: number;

@@ -105,7 +105,7 @@ describe('Disclosure - Contract Specifications', () => {
             bubbles: true,
           });
           triggerEl.dispatchEvent(enter);
-          expect(enter.defaultPrevented).toBe(false);
+          expect(enter.defaultPrevented).toBe(true);
           expect(props.expanded).toBe(true);
 
           disclosure.destroy();

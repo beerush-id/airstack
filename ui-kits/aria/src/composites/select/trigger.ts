@@ -72,14 +72,14 @@ export class SelectTriggerAria<E extends BaseElement = HTMLElement> extends Popu
    * @param options - User-provided trigger options.
    */
   public constructor(props: Partial<SelectTriggerProps> = {}, options: AriaOptions = { native: true }) {
-    super(props, options);
+    super(props, { ...options, clickable: true });
     this.omittedAttrs.push('value', 'text', 'placeholder');
     this.update();
   }
 
   protected override createAttributes(): SelectTriggerAttributes<E> {
     return Object.assign(super.createAttributes(), {
-      'data-placeholder': this.properties.placeholder,
+      'aria-placeholder': this.properties.placeholder,
       'data-placeholder-visible': isEmpty(this.host?.label),
     });
   }

@@ -19,7 +19,7 @@ export class DatePickerNav<E extends BaseElement = HTMLElement> extends Aria<E, 
   }
 
   public constructor(props: DatePickerNavProps = {}) {
-    super(props);
+    super(props, { clickable: true });
     this.picker = datePickerCtx.get();
     this.omittedAttrs.push('direction');
     this.on('click', this.handleClick);

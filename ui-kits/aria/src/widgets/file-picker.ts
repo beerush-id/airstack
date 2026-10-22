@@ -89,7 +89,7 @@ export class FilePickerAria<
 > extends Aria<E, T, A, O> {
   private picker: HTMLInputElement | null = null;
 
-  private spaceArmed = false;
+  public spaceArmed = false;
 
   public constructor(props: Partial<T> = {}, options: O = {} as O) {
     super(props, {

@@ -52,7 +52,7 @@ export class CarouselPlayerAria<
   }
 
   public constructor(props: Partial<AriaProps> = {}, options: AriaOptions = {}) {
-    super(props, { native: true, ...options });
+    super(props, { native: true, ...options, clickable: true });
     this.omittedAttrs.push('aria-label', 'aria-controls', 'label', 'playingLabel');
     this.on('click', this.handleToggle);
     this.update();

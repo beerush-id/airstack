@@ -79,6 +79,7 @@ export class AccordionButtonAria<
       ...options,
       role: 'button',
       valueKey: 'name',
+      clickable: true,
     });
     this.omittedAttrs.push('aria-expanded', 'aria-controls');
     this.update();

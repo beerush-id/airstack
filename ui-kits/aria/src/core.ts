@@ -397,6 +397,24 @@ export class Aria<
         e.stopPropagation();
       }
     });
+
+    this.on('pointerdown', (e) => {
+      if (self.disabled) {
+        return;
+      }
+
+      const { top = 0, left = 0 } = self.element?.getBoundingClientRect?.() ?? {};
+      self.element?.style.setProperty('--pointer-x', `${e.clientX - left}px`);
+      self.element?.style.setProperty('--pointer-y', `${e.clientY - top}px`);
+    });
+
+    this.on('pointerup', () => {
+      if (self.disabled) {
+        return;
+      }
+      self.element?.style.removeProperty('--pointer-x');
+      self.element?.style.removeProperty('--pointer-y');
+    });
   }
 
   /**

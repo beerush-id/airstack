@@ -1,7 +1,7 @@
 import { $static, effect } from '@airlib/core';
 import { SelectionAria, type SelectionAttributes, type SelectionOptions } from '../../selection.js';
 import type { AriaProps, BaseElement } from '../../types.js';
-import { gridCtx, type GridAria } from './grid.js';
+import { gridCtx } from './grid.js';
 
 export interface GridCellProps extends AriaProps {
   name?: string;
@@ -49,6 +49,7 @@ export class GridCellAria<
       valueKey: 'name',
       allowKeys: ['Enter'],
       deferredKey: true,
+      clickable: true,
     } as SelectionOptions);
 
     this.omittedAttrs.push(

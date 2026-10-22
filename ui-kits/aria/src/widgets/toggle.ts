@@ -70,6 +70,7 @@ export class ToggleAria<
       ...options,
       role: 'button',
       key: 'pressed',
+      clickable: true,
     });
 
     this.markActionable();

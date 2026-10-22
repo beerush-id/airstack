@@ -25,7 +25,7 @@ export class ToastCloseAria<E extends BaseElement = HTMLButtonElement> extends A
   protected toast = toastCtx.get();
 
   public constructor(props: Partial<AriaProps> = {}, options: AriaOptions = { native: true }) {
-    super(props, options);
+    super(props, { ...options, clickable: true });
     this.omittedAttrs.push('id', 'role', 'type', 'disabled', 'tabindex', 'aria-disabled', 'ondismiss');
     this.update();
   }

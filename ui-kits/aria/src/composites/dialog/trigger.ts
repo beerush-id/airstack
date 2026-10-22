@@ -1,5 +1,5 @@
 import { Aria } from '../../core.js';
-import type { AriaAttributes, AriaOptions, AriaProps, BaseElement } from '../../types.js';
+import type { AriaAttributes, AriaOptions, AriaProps } from '../../types.js';
 import { type DialogAria, dialogCtx } from './dialog.js';
 
 /**
@@ -30,7 +30,7 @@ export class DialogTriggerAria<E extends HTMLElement = HTMLElement> extends Aria
   }
 
   public constructor(props: Partial<AriaProps> = {}, options: AriaOptions = { native: true }) {
-    super(props, options);
+    super(props, { ...options, clickable: true });
     this.dialog = dialogCtx.get();
     this.omittedAttrs.push(
       'id',

@@ -94,6 +94,7 @@ export class CarouselPickerAria<
       role: 'radio',
       valueKey: 'name',
       required: true,
+      clickable: true,
     });
 
     this.omittedAttrs.push('label', 'aria-controls');

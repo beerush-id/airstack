@@ -14,7 +14,7 @@ export class ConfirmCancelAria<E extends HTMLElement = HTMLElement> extends Dial
   public confirm?: ConfirmAria;
 
   public constructor(props: Partial<AriaProps> = {}, options: AriaOptions = { native: true }) {
-    super(props, options);
+    super(props, { ...options, clickable: true });
     this.confirm = confirmCtx.get();
   }
 

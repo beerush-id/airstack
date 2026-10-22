@@ -76,6 +76,7 @@ export class LinkAria<
     super(props, {
       native: true,
       ...options,
+      clickable: true,
     });
 
     this.markActionable();

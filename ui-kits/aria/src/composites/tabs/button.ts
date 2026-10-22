@@ -84,6 +84,7 @@ export class TabButtonAria<
       role: ROLE_TAB,
       valueKey: 'name',
       required: true,
+      clickable: true,
     });
     this.omittedAttrs.push('aria-controls');
     this.update();

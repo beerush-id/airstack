@@ -59,6 +59,7 @@ export class DatePickerBase<
       symbol: DATE_PICKER_SYMBOL,
       panelRole: 'dialog',
       triggerRole: 'combobox',
+      clickable: true,
     });
 
     this.omittedAttrs.push('value', 'year', 'month', 'locales', 'min', 'max', 'activeDate', 'oninput');

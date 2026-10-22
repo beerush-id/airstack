@@ -55,7 +55,7 @@ export class ReorderHandleAria<
   }
 
   public constructor(props: Partial<T> = {}, options?: O) {
-    super(props, { native: true, ...options } as O);
+    super(props, { native: true, ...options, clickable: true } as O);
 
     this.cleanups.add(() => this.closeDrag?.());
     this.omittedAttrs.push(

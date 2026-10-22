@@ -360,7 +360,7 @@ describe('Reorder - Composite Specifications', () => {
           const handle = items[0].handleEl;
           handle.focus();
 
-          expect(press(handle, 'Enter').defaultPrevented).toBe(false);
+          expect(press(handle, 'Enter').defaultPrevented).toBe(true);
           expect(props.active).toBeUndefined();
           expect(props.preview).toBeUndefined();
 

@@ -8,7 +8,7 @@ export class DatePickerTriggerAria<E extends BaseElement = HTMLElement> extends 
   PopupTriggerAttributes<E>
 > {
   public constructor(props: AriaProps = {}, options: AriaOptions = { native: true }) {
-    super(props as never, options as never);
+    super(props as never, { ...options, clickable: true });
     this.update();
   }
 }

@@ -13,7 +13,7 @@ export class ConfirmTriggerAria<E extends HTMLElement = HTMLElement> extends Dia
   public confirm?: ConfirmAria;
 
   public constructor(props: Partial<AriaProps> = {}, options: AriaOptions = { native: true }) {
-    super(props, options);
+    super(props, { ...options, clickable: true });
     this.confirm = confirmCtx.get();
   }
 
