@@ -1,4 +1,4 @@
-import { createLifecycle, mutable } from '@airlib/core';
+import { type AnyType, createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it } from 'vitest';
 import { aria, type ReorderProps } from '../../src/index.js';
 import { bind, component } from '../utils.js';
@@ -57,7 +57,7 @@ describe('Reorder - Composite Specifications', () => {
           const props = mutable<ReorderProps>({
             label: 'Pipeline stages',
             value: ['build', 'test', 'deploy'],
-            oninput: (e) => inputs.push([...e.detail]),
+            oninput: (e) => inputs.push([...(e.detail as AnyType)]),
           });
           const { listEl, items, cleanup } = buildReorder(props, [
             { value: 'build', label: 'Build' },
@@ -162,7 +162,7 @@ describe('Reorder - Composite Specifications', () => {
           const canceled: string[] = [];
           const props = mutable<ReorderProps>({
             value: ['a', 'b', 'c'],
-            oncancel: (e) => canceled.push(e.detail),
+            oncancel: (e) => canceled.push(e.detail as AnyType),
           });
           const { items, cleanup } = buildReorder(props, [
             { value: 'a', label: 'First' },
@@ -235,9 +235,9 @@ describe('Reorder - Composite Specifications', () => {
           const cancels: string[] = [];
           const props = mutable<ReorderProps>({
             value: ['a', 'b', 'c'],
-            oninput: (e) => inputs.push([...e.detail]),
-            onchange: (e) => commits.push([...e.detail]),
-            oncancel: (e) => cancels.push(e.detail),
+            oninput: (e) => inputs.push([...(e.detail as AnyType)]),
+            onchange: (e) => commits.push([...e.detail] as AnyType),
+            oncancel: (e) => cancels.push(e.detail as AnyType),
           });
           const { items, cleanup } = buildReorder(props, [
             { value: 'a', label: 'A' },
@@ -307,7 +307,7 @@ describe('Reorder - Composite Specifications', () => {
           const commits: string[][] = [];
           const props = mutable<ReorderProps>({
             value: ['one', 'two', 'three'],
-            onchange: (e) => commits.push([...e.detail]),
+            onchange: (e) => commits.push([...(e.detail as AnyType)]),
           });
           const { listEl, items, cleanup } = buildReorder(props, [
             { value: 'one', label: 'One' },

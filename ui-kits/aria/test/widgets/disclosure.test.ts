@@ -1,6 +1,6 @@
-import { createLifecycle, mutable } from '@airlib/core';
+import { type AnyType, createLifecycle, mutable } from '@airlib/core';
 import { afterAll, describe, expect, it, vi } from 'vitest';
-import { aria, type DisclosureEvent, type DisclosureProps } from '../../src/index.js';
+import { aria, type DisclosureProps } from '../../src/index.js';
 import { bind, component } from '../utils.js';
 
 describe('Disclosure - Contract Specifications', () => {
@@ -143,8 +143,8 @@ describe('Disclosure - Contract Specifications', () => {
           // Each address points at the other element, and nothing else answers to it
           expect(panelEl.id).toBe(controls);
           expect(triggerEl.id).toBe(labelledby);
-          expect(document.getElementById(controls)).toBe(panelEl);
-          expect(document.getElementById(labelledby)).toBe(triggerEl);
+          expect(document.getElementById(controls as AnyType)).toBe(panelEl);
+          expect(document.getElementById(labelledby as AnyType)).toBe(triggerEl);
 
           // The addresses survive the state they were derived beside
           triggerEl.click();
@@ -205,7 +205,7 @@ describe('Disclosure - Contract Specifications', () => {
 
           const seen: Array<{ detail: unknown; bubbles: boolean }> = [];
           host.addEventListener('toggle', (event) =>
-            seen.push({ detail: (event as DisclosureEvent).detail, bubbles: event.bubbles })
+            seen.push({ detail: (event as AnyType).detail, bubbles: event.bubbles })
           );
 
           const onDocument = vi.fn();
