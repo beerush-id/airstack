@@ -88,19 +88,19 @@ describe('Toggle', () => {
 
   it('uses configured fallbacks and explicit props win', async () => {
     destroy = await runApp(async () => {
-      configure({ toggle: { size: 'sm', variant: 'tonal', color: 'error' } });
+      configure({ toggle: { size: 'sm', color: 'error' } });
       const { unmount } = render(<Toggle>Fallback</Toggle>);
       expect(screen.getByRole('button', { name: 'Fallback' }).className).toBe(
-        'aui-control aui-control-sm aui-control-error aui-control-tonal aui-toggle aui-toggle-sm aui-toggle-error aui-toggle-tonal'
+        'aui-control aui-control-sm aui-control-error aui-toggle aui-toggle-sm aui-toggle-error'
       );
       unmount();
       render(
-        <Toggle size="lg" variant="outlined" color="info">
+        <Toggle size="lg" color="info">
           Explicit
         </Toggle>
       );
       expect(screen.getByRole('button', { name: 'Explicit' }).className).toBe(
-        'aui-control aui-control-lg aui-control-info aui-control-outlined aui-toggle aui-toggle-lg aui-toggle-info aui-toggle-outlined'
+        'aui-control aui-control-lg aui-control-info aui-toggle aui-toggle-lg aui-toggle-info'
       );
     });
   });

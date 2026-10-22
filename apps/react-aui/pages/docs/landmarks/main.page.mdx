@@ -1,0 +1,86 @@
+---
+title: AUI Main
+nav: Main
+nav-priority: 220
+description: Primary content on a real main element with the main role and an opt-in accessible name.
+---
+
+# AUI Main
+
+The primary content needs one addressable home so skip links and landmark lists can find it. The main compiles `main` onto a real `<main>` and adds a name only when set.
+
+Styling is optional. Without AUI CSS the Main stays a correct, operable landmark; with it, the same markup gets the AUI treatment through the full library.
+
+:::interactive[Main demo]
+
+```tsx
+import { Main, Toggle } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+
+const MainDemo = setup(() => {
+  const state = mutable({ named: false });
+
+  return () => (
+    <div className="demo-button">
+      <Toggle pressed={$bind(state, 'named')}>
+        {() => (state.named ? 'Named' : 'Unnamed')}
+      </Toggle>
+      <div className="aui-card flex gap-md items-center justify-center p-xl">
+        <Snippet>
+          {() => (
+            <Main id="content" label={state.named ? 'Content' : undefined}>
+              <p>Primary content lives here.</p>
+            </Main>
+          )}
+        </Snippet>
+      </div>
+    </div>
+  );
+}, 'MainDemo');
+```
+
+```html
+<MainDemo />
+```
+
+<MainDemo />
+
+:::
+
+## Usage
+
+```tsx
+import { Main } from '@airlib/react-aui';
+import '@airlib/aui/components/landmarks/main.css';
+
+export const Content = () => (
+  <Main id="content">
+    <p>Primary content lives here.</p>
+  </Main>
+);
+```
+
+For the full library — tokens, base defaults, every component, and the utilities — load `import '@airlib/aui';` instead. The landmark stylesheet carries no visuals; the native host supplies the semantics.
+
+### Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `label` | `string` | — | The name screen readers announce, compiled to `aria-label`. Omitted when absent. |
+| `labelledby` | `string` | — | The ID of an element that provides the name, compiled to `aria-labelledby`. |
+| `id` | `string` | — | Your hook for the skip link; point it here and the browser jumps to this fragment. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `children` | `ReactNode` | — | The primary content of the document. |
+| `ref` | `Ref<HTMLElement>` | — | Access to the underlying main element. |
+
+Set, change, or clear `label` or `labelledby` and the projection follows. Both props compile to their `aria-*` counterparts only and never leak onto the host as plain attributes.
+
+To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+
+Keyboard: none. The main takes no tab stop and claims no keys; a form or link inside keeps its own behavior.
+
+## Next Steps
+
+- [Header](/docs/landmarks/header) — The banner landmark the main sits below.
+- [Footer](/docs/landmarks/footer) — The contentinfo landmark the main sits above.
+- [Section](/docs/landmarks/section) — Named regions inside the primary content.

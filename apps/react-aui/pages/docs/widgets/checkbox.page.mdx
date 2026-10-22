@@ -1,0 +1,131 @@
+---
+title: AUI Checkbox
+nav: Checkbox
+nav-priority: 165
+description: Yes-no box with an undecided state on a native input, named by its wrapping label.
+---
+
+# AUI Checkbox
+
+A checkbox is a yes-no you can also leave undecided. The label wraps a native input and the name text, so activating the text marks the box and the control joins forms. The glyph keys off the state the browser reports — checked, indeterminate, or neither.
+
+Styling is optional. Without AUI CSS the Checkbox stays a correct, operable native input; with it, the same markup gets the AUI treatment through the full library.
+
+:::interactive[Checkbox demo]
+
+```tsx
+import { Checkbox, Toggle } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { DemoControl } from '@/components/DemoControl.js';
+
+const CheckboxDemo = setup(() => {
+  const state = mutable({ checked: false, indeterminate: false, size: 'md', color: 'primary', disabled: false });
+
+  return () => (
+    <div className="demo-button">
+      <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} disabled={$bind(state, 'disabled')} />
+      <Toggle pressed={$bind(state, 'indeterminate')}>
+        {() => (state.indeterminate ? 'Undecided' : 'Decided')}
+      </Toggle>
+      <div className="aui-card flex gap-md items-center justify-center p-xl">
+        <Snippet>
+          {() => (
+            <Checkbox
+              size={state.size}
+              color={state.color}
+              disabled={state.disabled}
+              indeterminate={state.indeterminate}
+              checked={$bind(state, 'checked')}
+            >
+              Weekly digest
+            </Checkbox>
+          )}
+        </Snippet>
+      </div>
+    </div>
+  );
+}, 'CheckboxDemo');
+```
+
+```html
+<CheckboxDemo />
+```
+
+<CheckboxDemo />
+
+:::
+
+## Usage
+
+```tsx
+import { Checkbox } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/checkbox.css';
+
+export const WeeklyDigest = () => <Checkbox>Weekly digest</Checkbox>;
+```
+
+For the full library — tokens, base defaults, every component, and the utilities — load `import '@airlib/aui';` instead. A lone component stylesheet carries only that component's rules.
+
+### Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `checked` | `Bindable<boolean>` | `false` | Whether the box is marked. Bind it to read and write the state from outside. |
+| `indeterminate` | `boolean` | `false` | The undecided state. It outranks `checked` for the announcement, and the next activation settles it into a marked box. |
+| `value` | `string`, `number` | — | Group membership token; a member derives `checked` from the shared group value instead. |
+| `disabled` | `boolean` | `false` | Locks the box; clicks, keys, and writes commit nothing. |
+| `required` | `boolean` | `false` | Asks for the box to be marked before the form is accepted. |
+| `invalid` | `boolean`, `'grammar'`, `'spelling'` | — | Marks the field invalid, and says what kind of wrong it is. |
+| `name` | `string` | — | The field name the box reports under when it submits with a form. |
+| `size` | `xs`, `sm`, `md`, `lg`, `xl`, `xxl` | `'md'` | Explicit props win; otherwise the configured default applies. |
+| `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | Same precedence as `size`. |
+| `onchange` | `(event: CustomEvent<...>) => void` | — | Fires when the state really flips with the new state in `detail`; inside a group it carries the shared value instead. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `children` | `ReactNode` | — | The name text beside the box. |
+| `ref` | `Ref<HTMLInputElement>` | — | Access to the underlying input element. |
+
+Set app-wide defaults once instead of repeating props on every box:
+
+```tsx
+import { configure } from '@airlib/react-aui';
+
+configure({ checkbox: { size: 'sm' } });
+
+// Renders small without passing size every time
+<Checkbox>Save</Checkbox>;
+```
+
+Your own classes are added next to the built-in ones:
+
+```tsx
+// class="aui-checkbox-box aui-checkbox-box-md aui-checkbox-box-primary my-box"
+<Checkbox className="my-box">Save</Checkbox>
+```
+
+To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+
+Keyboard: `Tab` reaches the box, `Space` marks or unmarks it on key-up. The state is announced through the native input; a locked box is announced as disabled.
+
+### Sizes
+
+Sizes: `xs`, `sm`, `md`, `lg`, `xl`, `xxl`, default `md`:
+
+```tsx
+<Checkbox size="sm">Compact</Checkbox>
+<Checkbox size="lg">Spacious</Checkbox>
+```
+
+### Color Variants
+
+Colors: `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info`, default `primary`. The color fills a marked box with its matching on-color glyph:
+
+```tsx
+<Checkbox color="error">Delete everything</Checkbox>
+<Checkbox color="success">Sync photos</Checkbox>
+```
+
+## Next Steps
+
+- [Checkbox Group](/docs/widgets/checkbox-group) — Several boxes holding one committed set, each toggling on its own.
+- [Switch](/docs/widgets/switch) — The same two states announcing as an on-off setting.
+- [Toggle](/docs/widgets/toggle) — A two-state button, pressed rather than checked.

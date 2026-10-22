@@ -2,6 +2,92 @@
 title: Getting Started
 nav: Getting Started
 nav-priority: 100
+description: Install the packages, pick an import mode, and find your component.
 ---
 
 # Getting Started
+
+Three layers, three jobs. AirLib Headless Kits (`@airlib/aria`) own behavior, keyboard handling, and accessibility. `@airlib/react-aui` declares structure and class composition on top of them. `@airlib/aui` supplies tokens and native CSS. Every component works without CSS; styles are always optional.
+
+## Installation
+
+```bash
+npm install @airlib/react-aui @airlib/aui
+```
+
+`react`, `react-dom`, and `typescript` are peer dependencies, so your app supplies them. The AirLib packages — `@airlib/react`, `@airlib/aria`, and `@airlib/aui` — arrive as dependencies.
+
+## Import modes
+
+Load the full library or a single component's styles:
+
+```tsx
+import { Button } from '@airlib/react-aui';
+import '@airlib/aui';
+```
+
+```tsx
+import { Button } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/button.css';
+```
+
+The full import brings theme tokens, base defaults, every component family, and the utilities. A single-component stylesheet carries only that component's own rules. Both modes agree visually; the CSS cascade order (`theme`, `base`, `component`, `utility`, `reduced-motion`) is declared once in the library entry so import order never decides precedence.
+
+Configuration and vocabulary carry no styles. Importing them never loads CSS:
+
+```tsx
+import { configure } from '@airlib/react-aui';
+import { SIZES } from '@airlib/aui/utils';
+```
+
+## Shared vocabulary
+
+One vocabulary across every component: `size` (`xs`–`xxl`, default `md`), `variant` (`filled`, `elevated`, `tonal`, `outlined`, `text`, default `filled`), `color` (`primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info`, default `primary`):
+
+```tsx
+import { Button } from '@airlib/react-aui';
+
+<Button size="sm" variant="tonal" color="success">Saved</Button>
+```
+
+Explicit props win; otherwise the configured fallback applies:
+
+```tsx
+import { configure } from '@airlib/react-aui';
+
+configure({ button: { size: 'sm' } });
+```
+
+Your own classes sit alongside the built-in ones by default. To replace the built-in classes with yours, turn on `overrides` as shown in [Theming](/docs/theming). Tokens, layers, and overrides all live there.
+
+## Components
+
+### Widgets
+
+- [Button](/docs/widgets/button) — Action trigger with safe form defaults, six sizes, five variants, and seven colors.
+- [Toggle](/docs/widgets/toggle) — Two-state button with pressed announcement, six sizes, and seven colors.
+- [Link](/docs/widgets/link) — Destination trigger on a real anchor with disabled cancellation and the current-page mark.
+- [Switch](/docs/widgets/switch) — Binary on/off control with a track and thumb, six sizes, and seven colors.
+- [Divider](/docs/widgets/divider) — Structural boundary on a real element with the separator role, an opt-in rule color, and horizontal or vertical axes.
+- [Image](/docs/widgets/image) — Image loading coordinator with an accessible fallback, a read-only lifecycle status, and a decorative mode that leaves the accessibility tree.
+- [Checkbox](/docs/widgets/checkbox) — Yes-no box with an undecided state on a native input, named by its wrapping label.
+- [Checkbox Group](/docs/widgets/checkbox-group) — One committed set of checked values across many boxes, each toggling on its own.
+
+### Composites
+
+- [Select](/docs/widgets/select) — Collapsible option list with trigger, popup panel, and options, in single or multiple mode.
+
+### Landmarks
+
+- [Header](/docs/landmarks/header) — Document header on a real header element with the banner role and an opt-in accessible name.
+- [Main](/docs/landmarks/main) — Primary content on a real main element with the main role and an opt-in accessible name.
+- [Footer](/docs/landmarks/footer) — Document footer on a real footer element with the contentinfo role and an opt-in accessible name.
+- [Section](/docs/landmarks/section) — Named page region on a real section element with the region role published only while named.
+- [Sidebar](/docs/landmarks/sidebar) — Supporting content on a real aside element with the complementary role and an opt-in accessible name.
+
+More groups and components appear here as their slices land.
+
+## Next Steps
+
+- [Theming](/docs/theming) — Tokens, layers, the shared vocabulary, overrides, and selective imports.
+- [Button](/docs/widgets/button) — The first component to try: safe form defaults with six sizes, five variants, and seven colors.

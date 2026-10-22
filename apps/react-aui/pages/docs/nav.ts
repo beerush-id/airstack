@@ -1,7 +1,8 @@
 import type { NavItem } from '@airlib/react/mdx';
+import landmarksMeta from '@airlib-cache/metadata/docs/landmarks/index.js';
 import widgetsMeta from '@airlib-cache/metadata/docs/widgets/index.js';
-import { OverviewIcon, StyleIcon, WidgetsIcon } from '../../components/index.js';
-import { docsIndexRoute, docsThemingRoute } from './route.js';
+import { GettingStartedIcon, GridViewIcon, OverviewIcon, StyleIcon, WidgetsIcon } from '../../components/index.js';
+import { docsGettingStartedRoute, docsIndexRoute, docsThemingRoute } from './route.js';
 
 interface MetaEntry {
   path: string;
@@ -33,11 +34,17 @@ function toNavItems(entries: MetaEntry[]): NavItem[] {
 
 export const navs: NavItem[] = [
   { icon: OverviewIcon, text: 'Overview', route: docsIndexRoute },
+  { icon: GettingStartedIcon, text: 'Getting Started', route: docsGettingStartedRoute },
   { icon: StyleIcon, text: 'Theming', route: docsThemingRoute },
   { separator: true },
   {
     icon: WidgetsIcon,
     text: 'Widgets',
     items: toNavItems(widgetsMeta),
+  },
+  {
+    icon: GridViewIcon,
+    text: 'Landmarks',
+    items: toNavItems(landmarksMeta),
   },
 ];

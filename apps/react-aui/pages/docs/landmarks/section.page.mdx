@@ -1,0 +1,86 @@
+---
+title: AUI Section
+nav: Section
+nav-priority: 240
+description: Named page region on a real section element with the region role published only while named.
+---
+
+# AUI Section
+
+A long page is reached through the landmark list, and a section joins that list only when it carries a name. The section compiles `region` onto a real `<section>` while named and withdraws the role when the name is cleared.
+
+Styling is optional. Without AUI CSS the Section stays a correct, operable landmark; with it, the same markup gets the AUI treatment through the full library.
+
+:::interactive[Section demo]
+
+```tsx
+import { Section, Toggle } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+
+const SectionDemo = setup(() => {
+  const state = mutable({ named: true });
+
+  return () => (
+    <div className="demo-button">
+      <Toggle pressed={$bind(state, 'named')}>
+        {() => (state.named ? 'Named' : 'Unnamed')}
+      </Toggle>
+      <div className="aui-card flex gap-md items-center justify-center p-xl">
+        <Snippet>
+          {() => (
+            <Section label={state.named ? 'Billing' : undefined}>
+              <span>Invoices move to the new ledger on 1 November.</span>
+            </Section>
+          )}
+        </Snippet>
+      </div>
+    </div>
+  );
+}, 'SectionDemo');
+```
+
+```html
+<SectionDemo />
+```
+
+<SectionDemo />
+
+:::
+
+## Usage
+
+```tsx
+import { Section } from '@airlib/react-aui';
+import '@airlib/aui/components/landmarks/section.css';
+
+export const Billing = () => (
+  <Section label="Billing">
+    <span>Invoices move to the new ledger on 1 November.</span>
+  </Section>
+);
+```
+
+For the full library — tokens, base defaults, every component, and the utilities — load `import '@airlib/aui';` instead. The landmark stylesheet carries no visuals; the native host supplies the semantics.
+
+### Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `label` | `string` | — | The name the landmark list announces, compiled to `aria-label`. Either name prop publishes the section. |
+| `labelledby` | `string` | — | The ID of an element that carries that name, compiled to `aria-labelledby`. |
+| `id` | `string` | — | Your hook for fragment links; the controller compiles no identifier. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `children` | `ReactNode` | — | The section body; one part usually carries the `labelledby` name. |
+| `ref` | `Ref<HTMLElement>` | — | Access to the underlying section element. |
+
+Either name prop publishes the section; clearing both withdraws `region` and drops it from the landmark list. Both props compile to their `aria-*` counterparts only and never leak onto the host as plain attributes.
+
+To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+
+Keyboard: none. The section takes no tab stop and claims no keys; the name props stay live, so renaming re-announces through the landmark list.
+
+## Next Steps
+
+- [Header](/docs/landmarks/header) — The banner landmark sections sit below.
+- [Main](/docs/landmarks/main) — The primary content sections usually divide.
+- [Sidebar](/docs/landmarks/sidebar) — Supporting content that never belongs to a section.

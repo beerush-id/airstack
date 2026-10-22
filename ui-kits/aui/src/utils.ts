@@ -226,6 +226,14 @@ export type MauiConfig = typeof DEFAULT_CONFIG & {
   button?: ComponentStyles;
   switch?: ComponentStyles;
   toggle?: ComponentStyles;
+  toggleGroup?: ComponentStyles;
+  checkbox?: ComponentStyles;
+  checkboxGroup?: ComponentStyles;
+  header?: ComponentStyles;
+  main?: ComponentStyles;
+  footer?: ComponentStyles;
+  section?: ComponentStyles;
+  sidebar?: ComponentStyles;
   link?: ComponentStyles;
   divider?: ComponentStyles;
   image?: ComponentStyles;
@@ -243,6 +251,16 @@ export const AUI_CLASS = {
   SWITCH_THUMB: branded('switch-thumb'),
   SWITCH_TRACK: branded('switch-track'),
   TOGGLE: branded('toggle'),
+  TOGGLE_GROUP: branded('toggle-group'),
+  CHECKBOX: branded('checkbox'),
+  CHECKBOX_LABEL: branded('checkbox-label'),
+  CHECKBOX_BOX: branded('checkbox-box'),
+  CHECKBOX_GROUP: branded('checkbox-group'),
+  HEADER: branded('header'),
+  MAIN: branded('main'),
+  FOOTER: branded('footer'),
+  SECTION: branded('section'),
+  SIDEBAR: branded('sidebar'),
   LINK: branded('link'),
   DIVIDER: branded('divider'),
   IMAGE: branded('image'),

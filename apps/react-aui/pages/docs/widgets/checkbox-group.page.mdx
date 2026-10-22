@@ -1,0 +1,118 @@
+---
+title: AUI Checkbox Group
+nav: Checkbox Group
+nav-priority: 166
+description: One committed set of checked values across many boxes, each toggling on its own.
+---
+
+# AUI Checkbox Group
+
+A checkbox group holds one set of checked values across many boxes. Each box toggles on its own while the group names the set and locks every member with one flag. Members join by declaring a `value` on a [Checkbox](/docs/widgets/checkbox).
+
+Styling is optional. Without AUI CSS the CheckboxGroup stays a correct, operable group; with it, the same markup gets the AUI treatment through the full library.
+
+:::interactive[Checkbox group demo]
+
+```tsx
+import { Checkbox, CheckboxGroup } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { DemoControl } from '@/components/DemoControl.js';
+
+const CheckboxGroupDemo = setup(() => {
+  const state = mutable({
+    channels: ['email'] as string[],
+    size: 'md',
+    color: 'primary',
+    disabled: false,
+  });
+
+  return () => (
+    <div className="demo-button">
+      <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} disabled={$bind(state, 'disabled')} />
+      <div className="aui-card flex gap-md items-center justify-center p-xl">
+        <Snippet>
+          {() => (
+            <CheckboxGroup
+              label="Notification channels"
+              size={state.size}
+              color={state.color}
+              value={$bind(state, 'channels')}
+              disabled={state.disabled}
+            >
+              <Checkbox value="email">Email</Checkbox>
+              <Checkbox value="sms">SMS</Checkbox>
+              <Checkbox value="push" size="lg">Push</Checkbox>
+            </CheckboxGroup>
+          )}
+        </Snippet>
+      </div>
+      <Snippet>
+        {() => (
+          <p>
+            Channels: {JSON.stringify(state.channels)}
+          </p>
+        )}
+      </Snippet>
+    </div>
+  );
+}, 'CheckboxGroupDemo');
+```
+
+```html
+<CheckboxGroupDemo />
+```
+
+<CheckboxGroupDemo />
+
+:::
+
+## Usage
+
+```tsx
+import { Checkbox, CheckboxGroup } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/checkbox-group.css';
+import '@airlib/aui/components/widgets/checkbox.css';
+
+export const Channels = () => (
+  <CheckboxGroup label="Notification channels" value={['email']}>
+    <Checkbox value="email">Email</Checkbox>
+    <Checkbox value="sms">SMS</Checkbox>
+  </CheckboxGroup>
+);
+```
+
+The group stylesheet carries only the container; each member gets its treatment from `checkbox.css`. For the full library — tokens, base defaults, every component, and the utilities — load `import '@airlib/aui';` instead.
+
+### Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `value` | `Bindable<string[]>` | `[]` | The checked values. Checking a member adds its token, unchecking removes it. |
+| `size` | `xs`, `sm`, `md`, `lg`, `xl`, `xxl` | — | Reaches every member without its own; a member prop wins. |
+| `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | — | Same inheritance as `size`. |
+| `label` | `string` | — | The name of the grouping, compiled to `aria-label`. |
+| `disabled` | `boolean` | `false` | Locks every member at once. |
+| `id` | `string` | — | The group's identifier in the DOM, generated when omitted. |
+| `onchange` | `(event: CustomEvent<string[]>) => void` | — | Runs with the committed set in `detail` after every member toggle. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `children` | `ReactNode` | — | Member checkboxes; each joins by declaring a `value`. |
+| `ref` | `Ref<HTMLDivElement>` | — | Access to the underlying group element. |
+
+Size and color live on the group and reach every member — keep the set uniform, set them once on the group:
+
+```tsx
+<CheckboxGroup label="Channels" value={channels} size="sm" color="success">
+  <Checkbox value="email">Email</Checkbox>
+  <Checkbox value="sms">SMS</Checkbox>
+</CheckboxGroup>
+```
+
+To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+
+Keyboard: `Tab` walks the enabled boxes in order — every box keeps its own tab stop, no roving focus, no claimed arrows. `Space` toggles the focused box.
+
+## Next Steps
+
+- [Checkbox](/docs/widgets/checkbox) — The single box behind every member, undecided state included.
+- [Toggle Group](/docs/widgets/toggle-group) — Pressed buttons in a set, single or multiple.
+- [Select](/docs/widgets/select) — The same multi-value set behind a dropdown.

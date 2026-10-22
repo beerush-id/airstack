@@ -23,9 +23,10 @@ AUI stands for Aria User Interface and is the design language of the AirLib kits
 ## 0.1 Delivered status (verified on disk 2026-10-22)
 
 - DONE: `Button` slice + shared contract — `react-aui/src/widgets/Button.tsx`, `widgets/index.ts`, `src/index.ts`, `src/config.ts`, `src/utils/common.ts` (empty), `test/widgets/Button.test.tsx`, `aui/src/utils.ts` (SIZES/COLORS/VARIANTS + resolver), `aui/test/utils.test.ts`, `aui/src/index.css` (`theme, base, component, utility, reduced-motion`), `theme/index.css`, `utilities/{size,variant,color-variant}.css`, `components/widgets/{control,button}.css`, `docs/widgets/button.page.mdx`.
-- DONE beyond Task 1: `Link`, `Toggle`, `Divider`, `Image`, `Switch` (`src/widgets/`, `test/widgets/`, `components/widgets/*.css`, `docs/widgets/*.page.mdx`); `Select` + parts (`src/composites/Select.tsx`, `components/widgets/select.css`, `docs/widgets/select.page.mdx`, `test/widgets/Select.test.tsx`); full `utilities/` set (`layout, spacing, text, touch` extra); `base/{index,focus,reset}.css`; `icons/` (~25 icons); metadata-driven `docs/nav.ts`; substantive `docs/theming.page.mdx` (~447 lines).
-- PARTIAL: Task 2 docs shell — navigation + theming done, `getting-started.page.mdx` still a stub (frontmatter + `# Getting Started` only).
-- TODO: `toggle-group`, `header/main/footer/section/sidebar`, `navigation/breadcrumb/toolbar/pagination`, text/field inputs, `checkbox/radio/slider` + groups, `form/file-picker`, `option/selection/listbox/combobox` (only `select` done), disclosures/tabs, overlays/menus, feedback, dates, structured data, multi-part layout. Unplanned extras on disk (`components/{card,icon,state}.css`, `components/widgets/menu.css`, `icons/`) are reused styling dependencies, not new public scope.
+- DONE beyond Task 1: `Link`, `Toggle`, `ToggleGroup`, `Divider`, `Image`, `Switch`, `Checkbox`, `CheckboxGroup` (`src/widgets/`, `test/widgets/`, `components/widgets/*.css`, `docs/widgets/*.page.mdx`); `Header/Main/Footer/Section/Sidebar` (`src/landmarks/`, `test/landmarks/`, `components/landmarks/*.css` entrypoints without invented visuals, `docs/landmarks/*.page.mdx`, `Landmarks` nav section); `Select` + parts (`src/composites/Select.tsx`, `components/widgets/select.css`, `docs/widgets/select.page.mdx`, `test/widgets/Select.test.tsx`); full `utilities/` set (`layout, spacing, text, touch` extra); `base/{index,focus,reset}.css`; `icons/` (~25 icons); metadata-driven `docs/nav.ts`; substantive `docs/theming.page.mdx` (~447 lines).
+- DONE (content): Task 2 docs shell — `getting-started.page.mdx` now carries installation, import modes, shared vocabulary, grouped index, and next steps; metadata-driven `docs/nav.ts` + substantive `docs/theming.page.mdx` retained; `docs/page.mdx` index lists all delivered widgets + Select. Browser verification (grouped URLs, reloads, keyboard, narrow-screen, overflow) still unverified.
+- Contract update (2026-10-22): `Toggle` exposes size + color only (no variant — tests and docs match); `ToggleGroup` and `CheckboxGroup` accept size/color and lend them to members without their own. Group demos show the live shared value inside `Snippet` (no parent re-render for the readout); ToggleGroup style members use formatting glyphs.
+- TODO: `navigation/breadcrumb/toolbar/pagination`, text/field inputs, `radio`/`radio-group` + `slider` (`checkbox` pair done), `form/file-picker`, `option/selection/listbox/combobox` (only `select` done), disclosures/tabs, overlays/menus, feedback, dates, structured data, multi-part layout. Unplanned extras on disk (`components/{card,icon,state}.css`, `components/widgets/menu.css`, `icons/`) are reused styling dependencies, not new public scope.
 
 ## 1. Scope and boundaries
 
@@ -199,11 +200,11 @@ The references below are candidate mappings from the ARIA reference stylesheets 
 | Delivery batch | Source topics | Reference stylesheet / treatment |
 | --- | --- | --- |
 | First complete slice — DONE | `button` | `components/widgets/button.css`; required focus, touch, and state primitives. |
-| Actions — PARTIAL (link, toggle done; toggle-group TODO) | `link`, `toggle`, `toggle-group` | Link, button, button-group, and segmented-button references as applicable. |
-| Content and landmarks — PARTIAL (divider, image done; header/main/footer/section/sidebar TODO) | `divider`, `image`, `header`, `main`, `footer`, `section`, `sidebar` | Divider, page, app-bar, and side-sheet references where appropriate; avoid invented visuals for semantic-only wrappers. |
+| Actions — DONE (link, toggle, toggle-group) | `link`, `toggle`, `toggle-group` | Link, button, button-group, and segmented-button references as applicable. |
+| Content and landmarks — DONE (divider, image, header, main, footer, section, sidebar) | `divider`, `image`, `header`, `main`, `footer`, `section`, `sidebar` | Divider, page, app-bar, and side-sheet references where appropriate; avoid invented visuals for semantic-only wrappers. |
 | Navigation | `navigation`, `breadcrumb`, `toolbar`, `pagination` | Navigation layouts and toolbar; derive missing treatments from shared tokens. |
 | Text and field composition | `field`, `text-input`, `search-input`, `code-input`, `number-stepper` | Field, text-field, textarea, and search-bar references; adapt to the source's actual inputs and parts. |
-| Choice controls — PARTIAL (switch done; checkbox/radio/slider/groups TODO) | `checkbox`, `checkbox-group`, `radio`, `radio-group`, `switch`, `slider` | Corresponding control styles and token-based group layouts. |
+| Choice controls — PARTIAL (switch, checkbox pair done; radio/radio-group/slider TODO) | `checkbox`, `checkbox-group`, `radio`, `radio-group`, `switch`, `slider` | Corresponding control styles and token-based group layouts. |
 | Forms and files | `form`, `file-picker` | Compose existing controls; add only the missing form/file-specific presentation. |
 | Collection selection — PARTIAL (select done; option/selection/listbox/combobox TODO) | `option`, `selection`, `listbox`, `select`, `combobox` | List, select, field, and menu references where structurally applicable. |
 | Disclosure and tabs | `disclosure`, `accordion`, `tabs` | Collapsible, accordion, and tabs references. |
@@ -268,7 +269,7 @@ Apply this procedure to the CSS dependencies of each delivered component rather 
 
 **Acceptance:** Button composes props and configurable fallbacks with `classx`; default mode adds consumer classes, while `config.overrides === true` replaces generated classes with a supplied consumer class and keeps them when none is supplied. Headless behavior remains intact. CSS imports are optional, both styled import modes agree, and AUI utility imports work without React or CSS side effects.
 
-### Task 2: Establish the documentation shell and integration guide — PARTIAL (nav + theming done, getting-started stub remains)
+### Task 2: Establish the documentation shell and integration guide — DONE (content; browser verification pending)
 
 **Files:** `apps/react-aui/pages/docs/getting-started.page.mdx`, `apps/react-aui/pages/docs/nav.ts`, and `apps/react-aui/pages/docs/theming.page.mdx`.
 
@@ -290,7 +291,7 @@ Apply this procedure to the CSS dependencies of each delivered component rather 
 
 **Acceptance:** Readers can install the packages, select an import mode, use Button, and customize its theme without consulting source files or requiring Tailwind.
 
-### Task 3: Deliver the remaining component groups — IN PROGRESS (Link/Toggle/Divider/Image/Switch/Select done; remainder TODO)
+### Task 3: Deliver the remaining component groups — IN PROGRESS (Actions + Content/landmarks + Checkbox pair done; remainder TODO)
 
 **Files:** The per-topic React declarations/tests, CSS entrypoints, public barrels, and MDX pages defined in Sections 4 and 5.
 

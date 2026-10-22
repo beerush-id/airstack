@@ -1,0 +1,132 @@
+---
+title: AUI Toggle Group
+nav: Toggle Group
+nav-priority: 155
+description: One shared value behind several pressed buttons, with arrow travel, a single tab stop, and cascaded disablement.
+---
+
+# AUI Toggle Group
+
+Several pressed buttons are one control: bold, italic, and underline belong to a single value, and a set of alignment buttons belongs to another. The group holds the pressed state in one place, moves focus with the arrows without pressing anything, leaves one tab stop in the page order, and lets its `disabled` reach every member.
+
+A member joins by declaring a `value` on a [Toggle](/docs/widgets/toggle). A toggle without one stays standalone, which is how a utility button can sit in the same strip without becoming a candidate.
+
+Styling is optional. Without AUI CSS the ToggleGroup stays a correct, operable group; with it, the same markup gets the AUI treatment through the full library.
+
+:::interactive[Toggle group demo]
+
+```tsx
+import { Toggle, ToggleGroup } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { DemoControl } from '@/components/DemoControl.js';
+
+const ToggleGroupDemo = setup(() => {
+  const state = mutable({
+    style: ['bold'] as string[],
+    align: 'left' as string | string[],
+    size: 'sm',
+    color: 'primary',
+    disabled: false,
+  });
+
+  return () => (
+    <div className="demo-button">
+      <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} disabled={$bind(state, 'disabled')} />
+      <div className="aui-card flex gap-md items-center justify-center p-xl">
+        <Snippet>
+          {() => (
+            <ToggleGroup size={state.size} color={state.color} multiple value={$bind(state, 'style')} disabled={state.disabled}>
+              <Toggle value="bold" aria-label="Bold"><span style={{ fontWeight: 800 }}>B</span></Toggle>
+              <Toggle value="italic" aria-label="Italic"><span style={{ fontStyle: 'italic' }}>I</span></Toggle>
+              <Toggle value="underline" aria-label="Underline"><span style={{ textDecoration: 'underline' }}>U</span></Toggle>
+            </ToggleGroup>
+          )}
+        </Snippet>
+        <Snippet>
+          {() => (
+            <ToggleGroup size={state.size} color={state.color} value={$bind(state, 'align')} disabled={state.disabled}>
+              <Toggle value="left">Left</Toggle>
+              <Toggle value="center">Center</Toggle>
+              <Toggle value="right">Right</Toggle>
+            </ToggleGroup>
+          )}
+        </Snippet>
+      </div>
+      <Snippet>
+        {() => (
+          <p>
+            Style: {JSON.stringify(state.style)} · Align: {JSON.stringify(state.align)}
+          </p>
+        )}
+      </Snippet>
+    </div>
+  );
+}, 'ToggleGroupDemo');
+```
+
+```html
+<ToggleGroupDemo />
+```
+
+<ToggleGroupDemo />
+
+:::
+
+## Usage
+
+```tsx
+import { Toggle, ToggleGroup } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/toggle-group.css';
+import '@airlib/aui/components/widgets/toggle.css';
+
+export const ParagraphStyle = () => (
+  <ToggleGroup multiple value={['bold']}>
+    <Toggle value="bold">Bold</Toggle>
+    <Toggle value="italic">Italic</Toggle>
+    <Toggle value="underline">Underline</Toggle>
+  </ToggleGroup>
+);
+```
+
+The group stylesheet carries only the container; each member gets its treatment from `toggle.css`. For the full library — tokens, base defaults, every component, and the utilities — load `import '@airlib/aui';` instead.
+
+### Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `value` | `Bindable<string \| string[]>` | — | The shared selection: one token in single mode, an array with `multiple`. Pressing the pressed member clears it. |
+| `multiple` | `boolean` | `false` | Keeps several members pressed at once; a single-select group holds one token. |
+| `size` | `xs`, `sm`, `md`, `lg`, `xl`, `xxl` | `'sm'` | Reaches every member without its own; a member prop wins. |
+| `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | Same inheritance as `size`. |
+| `disabled` | `boolean` | `false` | Locks every member and drops the group out of the tab order. |
+| `onchange` | `(event: CustomEvent<...>) => void` | — | Runs for the member's bubbling change; `detail` is the shared value, `null` when cleared. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `children` | `ReactNode` | — | Member toggles; each joins by declaring a `value`. |
+| `ref` | `Ref<HTMLDivElement>` | — | Access to the underlying group element. |
+
+Set an app-wide default once instead of repeating it on every group:
+
+```tsx
+import { configure } from '@airlib/react-aui';
+
+configure({ toggleGroup: { className: 'my-groups' } });
+```
+
+Size and color live on the group and reach every member — keep the strip uniform, set them once on the group:
+
+```tsx
+<ToggleGroup value={align} size="sm" color="success">
+  <Toggle value="left">Left</Toggle>
+  <Toggle value="center">Center</Toggle>
+</ToggleGroup>
+```
+
+To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+
+Keyboard: `ArrowRight` / `ArrowDown` moves to the next enabled member, `ArrowLeft` / `ArrowUp` to the previous, `Home` / `End` to the ends — travel only, never a commit. `Space` and `Enter` belong to the focused member. `Tab` leaves through the pressed member; with the single value cleared there is no tab stop until something is pressed again.
+
+## Next Steps
+
+- [Toggle](/docs/widgets/toggle) — The two-state button every member is built from.
+- [Select](/docs/widgets/select) — A single choice collapsed behind a trigger instead of spread across a strip.
+- [Switch](/docs/widgets/switch) — Independent on/off settings that keep a tab stop each instead of sharing one value.

@@ -2,6 +2,9 @@
 @import './menu.css';
 @import './button.css';
 @import './toggle.css';
+@import './toggle-group.css';
+@import './checkbox.css';
+@import './checkbox-group.css';
 @import './link.css';
 @import './divider.css';
 @import './image.css';

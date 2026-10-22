@@ -2,12 +2,12 @@
 title: AUI Toggle
 nav: Toggle
 nav-priority: 150
-description: Two-state button with pressed announcement, six sizes, three variants, and seven colors.
+description: Two-state button with pressed announcement, six sizes, and seven colors.
 ---
 
 # AUI Toggle
 
-A toggle is a button that keeps its state: pressed or not, announced as such, and flipped by every activation. Formatting bars, favorite stars, and mute switches are all toggles — anywhere a control stays on after you let go.
+A toggle is a button that keeps its state: pressed or not, announced as such, and flipped by every activation. Formatting bars, favorite stars, and mute switches are all toggles — anywhere a control stays on after you let go. A pressed toggle takes its color as a solid background with the matching on-color text; unpressed stays a light tint of that color.
 
 Styling is optional. Without AUI CSS the Toggle stays a correct, operable two-state button; with it, the same markup gets the AUI treatment through the full library.
 
@@ -20,17 +20,16 @@ import { $bind, mutable, setup, Snippet } from '@airlib/react';
 import { DemoControl } from '@/components/DemoControl.js';
 
 const ToggleDemo = setup(() => {
-  const state = mutable({ pressed: false, size: 'md', variant: 'filled', color: 'primary', disabled: false });
+  const state = mutable({ pressed: false, size: 'md', color: 'primary', disabled: false });
 
   return () => (
     <div className="demo-button">
-      <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} variant={$bind(state, 'variant')} disabled={$bind(state, 'disabled')} />
+      <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} disabled={$bind(state, 'disabled')} />
       <div className="aui-card flex gap-md items-center justify-center p-xl">
         <Snippet>
           {() => (
             <Toggle
               size={state.size}
-              variant={state.variant}
               color={state.color}
               disabled={state.disabled}
               pressed={$bind(state, 'pressed')}
@@ -43,7 +42,6 @@ const ToggleDemo = setup(() => {
           {() => (
             <Toggle
               size={state.size}
-              variant={state.variant}
               color={state.color}
               disabled={state.disabled}
               pressed={$bind(state, 'pressed')}
@@ -57,7 +55,6 @@ const ToggleDemo = setup(() => {
           {() => (
             <Toggle
               size={state.size}
-              variant={state.variant}
               color={state.color}
               disabled={state.disabled}
               pressed={$bind(state, 'pressed')}
@@ -100,7 +97,6 @@ For the full library — tokens, base defaults, every component, and the utiliti
 | `value` | `string`, `number` | — | Group membership token; a member derives `pressed` from the shared group value instead. |
 | `disabled` | `boolean` | `false` | Locks the toggle; clicks, keys, and writes are refused while locked. |
 | `size` | `xs`, `sm`, `md`, `lg`, `xl`, `xxl` | `'md'` | Explicit props win; otherwise the configured default applies. |
-| `variant` | `filled`, `tonal`, `outlined` | `'filled'` | Same precedence as `size`. |
 | `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | Same precedence as `size`. |
 | `onchange` | `(event: CustomEvent<...>) => void` | — | Fires after each real flip with the new state in `detail`; silent when nothing changes. |
 | `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
@@ -138,26 +134,18 @@ Sizes: `xs`, `sm`, `md`, `lg`, `xl`, `xxl`, default `md`:
 <Toggle size="lg">Spacious</Toggle>
 ```
 
-### Variants
-
-Variants: `filled`, `tonal`, `outlined`, default `filled`. A pressed toggle takes its color as a solid background with the matching on-color text; unpressed stays a light tint of that color:
-
-```tsx
-<Toggle variant="filled">High emphasis</Toggle>
-<Toggle variant="tonal">Medium emphasis</Toggle>
-```
-
 ### Color Variants
 
 Colors: `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info`, default `primary`:
 
 ```tsx
 <Toggle color="error">Alarmed</Toggle>
-<Toggle variant="tonal" color="success">Synced</Toggle>
+<Toggle color="success">Synced</Toggle>
 ```
 
 ## Next Steps
 
+- [Toggle Group](/docs/widgets/toggle-group) — Several toggles sharing one value, with arrow travel and a single tab stop.
 - [Button](/docs/widgets/button) — The one-state trigger this is built beside: for actions that fire and forget.
 - [Link](/docs/widgets/link) — A trigger that navigates instead of acting, with disabled cancellation and the current-page mark.
 - [Divider](/docs/widgets/divider) — The structural boundary to place between sections instead of an empty margin rule.
