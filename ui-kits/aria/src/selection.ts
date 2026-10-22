@@ -416,7 +416,7 @@ export abstract class SelectionAria<
    * @returns Teardown callback to unbind the label listener, or void if native or unbound
    */
   protected override attach(): DetachFn | void {
-    if (!this.isNative) {
+    if (!this.isNative && !['BUTTON', 'INPUT'].includes(this.element!.tagName)) {
       return bindLabel(this.element!);
     }
   }

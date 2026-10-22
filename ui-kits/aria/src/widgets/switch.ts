@@ -1,4 +1,4 @@
-import { SelectionAria, type SelectionAttributes, type SelectionOptions } from '../selection.js';
+import { SelectionAria, type SelectionAttributes } from '../selection.js';
 import type { AriaEvent, AriaEventHandler, AriaOptions, AriaProps, BaseElement, Primitive } from '../types.js';
 
 /**
@@ -76,7 +76,7 @@ export class SwitchAria<
   T extends SwitchProps = SwitchProps,
   A extends SwitchAttributes<E> = SwitchAttributes<E>,
   O extends SwitchOptions = SwitchOptions,
-> extends SelectionAria<E, T, A, SelectionOptions> {
+> extends SelectionAria<E, T, A> {
   public constructor(props: Partial<T> = {}, options: O = {} as O) {
     super(props, {
       native: false,
