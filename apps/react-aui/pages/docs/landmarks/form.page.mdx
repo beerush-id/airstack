@@ -1,0 +1,94 @@
+---
+title: AUI Form
+nav: Form
+nav-priority: 240
+description: Named form landmark on a real form element with submission left to you.
+---
+
+# AUI Form
+
+A page can hold a checkout, a filter panel, and a comment box at the same time, and none of them becomes a landmark until it carries an accessible name. The Form compiles `role="form"` only while `label` or `labelledby` names it, and withdraws it the moment the name goes.
+
+Styling is optional. Without AUI CSS the Form stays a correct, operable landmark; with it, the same markup gets the AUI treatment through the full library. The landmark stylesheet carries no visuals; the native host supplies the semantics.
+
+:::interactive[Form demo]
+
+```tsx
+import { Form, Toggle } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+
+const FormDemo = setup(() => {
+  const state = mutable({ named: true });
+
+  return () => (
+    <div className="demo-button">
+      <Toggle pressed={$bind(state, 'named')}>
+        {() => (state.named ? 'Named' : 'Unnamed')}
+      </Toggle>
+      <div className="aui-card flex flex-col gap-md items-stretch justify-center p-xl">
+        <Snippet>
+          {() => (
+            <Form label={state.named ? 'Shipping address' : undefined}>
+              <span>Where should it go?</span>
+            </Form>
+          )}
+        </Snippet>
+      </div>
+    </div>
+  );
+}, 'FormDemo');
+```
+
+```html
+<FormDemo />
+```
+
+<FormDemo />
+
+:::
+
+## Usage
+
+```tsx
+import { Form } from '@airlib/react-aui';
+import '@airlib/aui/components/landmarks/form.css';
+
+export const CheckoutForm = () => (
+  <Form label="Shipping address">
+    <span>Where should it go?</span>
+  </Form>
+);
+```
+
+For the full library — tokens, base defaults, every component, and the utilities — load `import '@airlib/aui';` instead.
+
+Name the task, not the element. "Shipping address" is what a screen reader announces in the landmark list. An unnamed `Form` renders a plain `<form>` with no `role`, so it never pollutes the landmark list. Reference by `labelledby` when the heading already sits outside the form:
+
+```tsx
+<Form labelledby="pay-title">fields</Form>
+```
+
+Submission stays yours. No `action`, `method`, or submit interception is compiled; controls inside keep their own identity and still participate in `FormData`.
+
+### Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `label` | `string` | — | The name screen readers announce, compiled to `aria-label`. The landmark exists only while this or `labelledby` is set. |
+| `labelledby` | `string` | — | The ID of an element that provides the name, compiled to `aria-labelledby`. |
+| `id` | `string` | — | Your hook for fragment links; the controller compiles no identifier. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `children` | `ReactNode` | — | Fields, triggers, and headings inside the form. |
+| `ref` | `Ref<HTMLFormElement>` | — | Access to the underlying form element. |
+
+Set, change, or clear `label` or `labelledby` and the projection follows. Both props compile to their `aria-*` counterparts only and never leak onto the host as plain attributes.
+
+To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+
+Keyboard: none. The form takes no focus and claims no keys; the fields and triggers inside keep their own behavior.
+
+## Next Steps
+
+- [Section](/docs/landmarks/section) — The other landmark that exists only when it is named.
+- [Field](/docs/widgets/field) — The unit that binds a label, a control, and its failure message inside the form.
+- [FilePicker](/docs/widgets/file-picker) — The trigger that opens the system picker from inside a form without submitting it.

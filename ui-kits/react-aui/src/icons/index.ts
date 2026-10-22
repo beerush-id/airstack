@@ -17,6 +17,7 @@ export * from './LightMode.js';
 export * from './MaximizeIcon.js';
 export * from './Minimize.js';
 export * from './Mouse.js';
+export * from './Remove.js';
 export * from './Restore.js';
 export * from './Search.js';
 export * from './Settings.js';

@@ -1,0 +1,125 @@
+---
+title: AUI Listbox
+nav: Listbox
+nav-priority: 350
+description: Inline option list with coordinated selection and full keyboard travel.
+---
+
+# AUI Listbox
+
+A listbox is the option list that never leaves the page. It keeps traversal and selection apart, matches a typed prefix over the option text, and carries single and multiple selection through one value. Each `ListboxOption` derives its selected mark from the container instead of holding a private copy.
+
+Styling is optional. Without AUI CSS the Listbox stays a correct, operable listbox; with it, the same markup gets the AUI treatment through the full library.
+
+:::interactive[Listbox demo]
+
+```tsx
+import { Listbox, ListboxOption, Toggle } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+
+const ListboxDemo = setup(() => {
+  const state = mutable({ multiple: false, disabled: false });
+
+  return () => (
+    <div className="demo-button">
+      <div className="flex gap-xs w-full">
+        <Toggle size="sm" pressed={$bind(state, 'multiple')}>
+          {() => (state.multiple ? 'Multiple' : 'Single')}
+        </Toggle>
+        <Toggle size="sm" pressed={$bind(state, 'disabled')}>
+          {() => (state.disabled ? 'Set Enabled' : 'Set Disabled')}
+        </Toggle>
+      </div>
+      <div className="aui-card flex flex-col gap-md items-stretch justify-center p-xl">
+        <Snippet>
+          {() => (
+            <Listbox
+              label="Delivery speed"
+              multiple={state.multiple}
+              disabled={state.disabled}
+            >
+              <ListboxOption value="standard">Standard</ListboxOption>
+              <ListboxOption value="express">Express</ListboxOption>
+              <ListboxOption value="overnight" disabled>O-right</ListboxOption>
+            </Listbox>
+          )}
+        </Snippet>
+      </div>
+    </div>
+  );
+}, 'ListboxDemo');
+```
+
+```html
+<ListboxDemo />
+```
+
+<ListboxDemo />
+
+:::
+
+## Usage
+
+```tsx
+import { Listbox, ListboxOption } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/listbox.css';
+
+export const Delivery = () => (
+  <Listbox label="Delivery speed" value="express">
+    <ListboxOption value="standard">Standard</ListboxOption>
+    <ListboxOption value="express">Express</ListboxOption>
+    <ListboxOption value="overnight" disabled>O-right</ListboxOption>
+  </Listbox>
+);
+```
+
+Moving the cursor commits nothing. Walk the list with arrow keys or a typed prefix, then press `Space`, `Enter`, or click once to commit — and press it again on the committed option to release the value, unless `required` refuses.
+
+Selection is derived, not stored. Writing `value` from outside re-derives every option at once and announces nothing. A disabled container withdraws its tab stop and cascades the lockout to every option.
+
+For several selections at once, declare the array archetype:
+
+```tsx
+<Listbox label="Order updates" multiple value={['email']}>
+  <ListboxOption value="email">Email</ListboxOption>
+  <ListboxOption value="sms">Text message</ListboxOption>
+</Listbox>
+```
+
+An option is a member of a group, not a widget of its own — the shared selection foundation behind `Button`, `Checkbox`, `Radio`, `Switch`, and `Tabs` coordinates through the same ambient group contract without a separate `Selection` component.
+
+### Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `id` | `string` | — | Container identifier, generated as `listbox-<n>` when omitted. Every option id derives from it. |
+| `label` | `string` | — | Accessible name, compiled as `aria-label`. A list without one is unidentifiable. |
+| `value` | `Bindable<string \| string[] \| null>` | — | The selection — a token, `null` while nothing is selected, or an array once `multiple` is set. |
+| `multiple` | `boolean` | `false` | Switches to the array archetype where `value` is an array and `onchange` carries that array. |
+| `required` | `boolean` | `false` | Compiles `aria-required` and refuses releasing the last selected option. |
+| `disabled` | `boolean` | `false` | Withdraws the tab stop, cascades to every option, and claims no key. |
+| `oninput` | `(event: CustomEvent<string>) => void` | — | Fires from the option that takes the cursor, with that value in `detail`. |
+| `onchange` | `(event: CustomEvent<string \| string[]>) => void` | — | Fires after a commit, with the whole value in `detail`. Copy the array if you keep it. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `ref` | `Ref<HTMLDivElement>` | — | Access to the underlying listbox element. |
+
+`ListboxOption` props:
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `value` | `string` | — | Required. The token the group measures itself against. |
+| `selected` | `Bindable<boolean>` | — | Hint that this option is the one; inside a group it writes the group's value at mount. |
+| `disabled` | `boolean` | `false` | Locks this option; the container's `disabled` reaches every option the same way. |
+| `onchange` | `(event: CustomEvent<boolean>) => void` | — | Fires when a commit by this option really moves the selection. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `ref` | `Ref<HTMLDivElement>` | — | Access to the underlying option element. |
+
+To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+
+Keyboard: `Tab` enters the container then each selected option; arrows move the cursor, `Home`/`End` jump, printable characters typeahead, `Space`/`Enter` commits.
+
+## Next Steps
+
+- [Select](/docs/widgets/select) — The same list collapsed behind a trigger and a popup.
+- [RadioGroup](/docs/widgets/radio-group) — Always-visible choices where every member is its own tab stop.
+- [Field](/docs/widgets/field) — The unit that binds a label, a control, and its failure message.

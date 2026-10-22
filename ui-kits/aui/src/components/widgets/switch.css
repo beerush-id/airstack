@@ -1,95 +1,68 @@
+@layer theme {
+  :root {
+    --aui-switch-gap: calc(var(--spacing) * 1.5);
+    --aui-switch-size: calc(var(--aui-control-height) * 0.68);
+  }
+}
+
 @layer component {
   .aui-control.aui-switch {
-    --aui-switch-track-block: calc(var(--aui-control-height) * 0.58);
-    --aui-switch-track-inline: calc(var(--aui-control-height) * 1.12);
-    --aui-switch-thumb-size: calc(var(--aui-switch-track-block) - (var(--spacing) * 1));
-    --aui-switch-thumb-inset: calc((var(--aui-switch-track-block) - var(--aui-switch-thumb-size)) / 2);
-
-    block-size: auto;
+    flex: none;
+    flex-shrink: 0;
+    block-size: var(--aui-switch-size);
+    inline-size: calc(var(--aui-switch-size) * 1.8);
     padding: 0;
     border-radius: var(--radius-full);
-    background-color: transparent;
-  }
-
-  .aui-control.aui-switch::before,
-  .aui-control.aui-switch::after {
-    display: none;
-  }
-
-  .aui-control.aui-switch:disabled,
-  .aui-control.aui-switch[aria-disabled='true'] {
-    background-color: transparent;
-  }
-
-  .aui-switch-track {
-    position: relative;
-    display: block;
-    flex: none;
-    inline-size: var(--aui-switch-track-inline);
-    block-size: var(--aui-switch-track-block);
-    border-radius: var(--radius-full);
-    background-color: var(--color-surface-container);
-    box-shadow: inset 0 0 0 1px var(--color-outline);
+    background-color: var(--color-surface-highest);
     transition: background-color var(--duration-short) var(--ease-emphasized);
+
+    &:hover:not(:disabled, [aria-disabled='true']) .aui-switch-thumb {
+      box-shadow: 0 0 0 calc(var(--spacing) * 3)
+        color-mix(in oklch, var(--aui-control-bg) 12%, transparent);
+    }
   }
 
   .aui-switch-thumb {
-    position: absolute;
-    inset-block-start: var(--aui-switch-thumb-inset);
-    inset-inline-start: var(--aui-switch-thumb-inset);
-    inline-size: var(--aui-switch-thumb-size);
-    block-size: var(--aui-switch-thumb-size);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: calc(var(--aui-switch-size) - var(--aui-switch-gap));
+    margin-block: calc(var(--aui-switch-gap) / 2);
+    margin-inline-end: calc(var(--aui-switch-gap) / 2);
+    margin-inline-start: calc(var(--aui-switch-gap) / 2);
+    aspect-ratio: 1;
     border-radius: 50%;
-    background-color: var(--color-outline);
-    transition:
-      transform var(--duration-short) var(--ease-emphasized),
-      background-color var(--duration-short) var(--ease-emphasized);
-  }
-
-  .aui-switch-track::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background-color: var(--aui-state-layer-color);
-    opacity: 0;
-    transition: opacity var(--duration-short) var(--ease-standard);
-  }
-
-  .aui-switch:hover .aui-switch-track::before {
-    opacity: var(--tone-hover-strength);
-  }
-
-  .aui-switch:focus-visible .aui-switch-track::before {
-    opacity: var(--tone-focus-strength);
-  }
-
-  .aui-switch:active .aui-switch-track::before {
-    opacity: var(--tone-pressed-strength);
-  }
-
-  .aui-switch[aria-checked='true'] .aui-switch-track {
+    color: var(--aui-control-fg);
     background-color: var(--aui-control-bg);
-    box-shadow: none;
+    transition-duration: var(--duration-short);
+    transition-timing-function: var(--ease-emphasized);
+    transition-property: margin-inline-start, background-color, box-shadow;
+    box-shadow: 0 0 0 0 transparent;
+
+    & > .aui-icon {
+      width: calc(var(--aui-icon-size) * 0.6);
+      height: calc(var(--aui-icon-size) * 0.6);
+    }
+  }
+
+  .aui-switch[aria-checked='true'] {
+    background-color: var(--aui-control-bg);
   }
 
   .aui-switch[aria-checked='true'] .aui-switch-thumb {
+    color: var(--aui-control-bg);
     background-color: var(--aui-control-fg);
-    transform: translateX(
-      calc(
-        var(--aui-switch-track-inline) - var(--aui-switch-thumb-size) - (var(--aui-switch-thumb-inset) * 2)
-      )
-    );
+    margin-inline-start: auto;
   }
 
-  .aui-switch:disabled .aui-switch-track,
-  .aui-switch[aria-disabled='true'] .aui-switch-track {
+  .aui-switch:disabled,
+  .aui-switch[aria-disabled='true'] {
     background-color: var(--color-disabled-bg);
-    box-shadow: inset 0 0 0 1px var(--color-disabled-border);
   }
 
   .aui-switch:disabled .aui-switch-thumb,
   .aui-switch[aria-disabled='true'] .aui-switch-thumb {
+    color: var(--color-disabled-bg);
     background-color: var(--color-disabled-fg);
   }
 }

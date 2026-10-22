@@ -78,12 +78,17 @@
       color: var(--aui-menu-item-fg);
       background: var(--aui-menu-item-bg);
     }
+
+    & > .aui-icon {
+      margin-inline-start: auto;
+    }
   }
 
   .aui-menu-item-xs {
     --aui-control-height: var(--aui-control-height-xs);
     --aui-control-padding-x: var(--aui-control-padding-x-xs);
     --aui-control-gap: var(--aui-control-gap-xs);
+    --aui-icon-size: calc(var(--size-xs) * 0.55);
     font-size: var(--font-label-sm-size);
     font-weight: var(--font-label-sm-weight);
     line-height: var(--font-label-sm-line-height);
@@ -94,6 +99,7 @@
     --aui-control-height: var(--aui-control-height-sm);
     --aui-control-padding-x: var(--aui-control-padding-x-sm);
     --aui-control-gap: var(--aui-control-gap-sm);
+    --aui-icon-size: calc(var(--size-sm) * 0.55);
     font-size: var(--font-label-md-size);
     font-weight: var(--font-label-md-weight);
     line-height: var(--font-label-md-line-height);
@@ -104,6 +110,7 @@
     --aui-control-height: var(--aui-control-height-lg);
     --aui-control-padding-x: var(--aui-control-padding-x-lg);
     --aui-control-gap: var(--aui-control-gap-lg);
+    --aui-icon-size: calc(var(--size-lg) * 0.55);
     font-size: var(--font-title-sm-size);
     font-weight: var(--font-title-sm-weight);
     line-height: var(--font-title-sm-line-height);
@@ -114,6 +121,7 @@
     --aui-control-height: var(--aui-control-height-xl);
     --aui-control-padding-x: var(--aui-control-padding-x-xl);
     --aui-control-gap: var(--aui-control-gap-xl);
+    --aui-icon-size: calc(var(--size-xl) * 0.55);
     font-size: var(--font-title-md-size);
     font-weight: var(--font-title-md-weight);
     line-height: var(--font-title-md-line-height);
@@ -124,6 +132,7 @@
     --aui-control-height: var(--aui-control-height-xxl);
     --aui-control-padding-x: var(--aui-control-padding-x-xxl);
     --aui-control-gap: var(--aui-control-gap-xxl);
+    --aui-icon-size: calc(var(--size-xxl) * 0.55);
     font-size: var(--font-title-lg-size);
     font-weight: var(--font-title-lg-weight);
     line-height: var(--font-title-lg-line-height);

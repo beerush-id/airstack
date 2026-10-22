@@ -22,6 +22,9 @@ const paginationRoute = route.route('/pagination');
 const fieldRoute = route.route('/field');
 const textInputRoute = route.route('/text-input');
 const numberStepperRoute = route.route('/number-stepper');
+const filePickerRoute = route.route('/file-picker');
+const listboxRoute = route.route('/listbox');
+const comboboxRoute = route.route('/combobox');
 /** AirLib managed */
 
 export const widgetsRoute = route;
@@ -45,5 +48,8 @@ export const widgetsPaginationRoute = paginationRoute;
 export const widgetsFieldRoute = fieldRoute;
 export const widgetsTextInputRoute = textInputRoute;
 export const widgetsNumberStepperRoute = numberStepperRoute;
+export const widgetsFilePickerRoute = filePickerRoute;
+export const widgetsListboxRoute = listboxRoute;
+export const widgetsComboboxRoute = comboboxRoute;
 
 export default widgetsRoute;

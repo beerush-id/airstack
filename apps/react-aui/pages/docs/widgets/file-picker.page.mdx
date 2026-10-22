@@ -1,0 +1,154 @@
+---
+title: AUI FilePicker
+nav: FilePicker
+nav-priority: 262
+description: File trigger on a real button that bridges to a hidden native input.
+---
+
+# AUI FilePicker
+
+A file picker is a button that opens something you do not control. It bridges activation to a real `<input type="file">`, keeps `accept`, `multiple`, and `capture` in sync with it, reports the chosen files and a dismissal, and stays inert while disabled.
+
+Styling is optional. Without AUI CSS the FilePicker stays a correct, operable button; with it, the same markup gets the AUI treatment through the shared control treatment.
+
+:::interactive[FilePicker demo]
+
+```tsx
+import { FilePicker, Select, Toggle } from '@airlib/react-aui';
+import { COLOR_LABELS } from '@airlib/aui/utils';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+
+const FilePickerDemo = setup(() => {
+  const state = mutable({ color: 'primary', disabled: false, multiple: true });
+  const noop = () => {};
+
+  return () => (
+    <div className="demo-button">
+      <div className="flex gap-xs w-full">
+        <Select size="sm" placeholder="Color" options={COLOR_LABELS} value={$bind(state, 'color')} />
+        <div className="flex-1"></div>
+        <Toggle size="sm" pressed={$bind(state, 'multiple')}>
+          {() => (state.multiple ? 'Multiple' : 'Single')}
+        </Toggle>
+        <Toggle size="sm" pressed={$bind(state, 'disabled')}>
+          {() => (state.disabled ? 'Set Enabled' : 'Set Disabled')}
+        </Toggle>
+      </div>
+      <div className="aui-card flex flex-col gap-lg items-start justify-center p-xl">
+        <Snippet>
+          {() => (
+            <FilePicker
+              color={state.color}
+              multiple={state.multiple}
+              disabled={state.disabled}
+              accept="image/*"
+              onchange={noop}
+              oncancel={noop}
+            >
+              Choose images
+            </FilePicker>
+          )}
+        </Snippet>
+      </div>
+    </div>
+  );
+}, 'FilePickerDemo');
+```
+
+```html
+<FilePickerDemo />
+```
+
+<FilePickerDemo />
+
+:::
+
+## Usage
+
+Give the trigger a name, and keep the filters on the hidden input where they belong:
+
+```tsx
+import { FilePicker } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/file-picker.css';
+
+export const Attachments = () => (
+  <FilePicker accept="image/*" multiple onchange={(event) => upload(event.detail)}>
+    Choose images
+  </FilePicker>
+);
+```
+
+`accept`, `multiple`, and `capture` never land on the trigger — the controller publishes them onto the hidden input before each opening. The trigger is never a form field: a native host compiles `type="button"`, so pressing it cannot submit the form around it.
+
+A dismissal is a real signal. Closing the dialog without choosing fires `cancel`, so an optimistic "uploading…" state can be released instead of hanging:
+
+```tsx
+<FilePicker oncancel={() => stopSpinner()}>Choose</FilePicker>
+```
+
+Disabling locks the dialog: every activation is refused and the trigger leaves the tab order on a custom host.
+
+### Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `accept` | `string` | — | The types the dialog offers, forwarded to the hidden input. Left out, everything is offered. |
+| `multiple` | `boolean` | `false` | Whether more than one file can be chosen in one go. |
+| `capture` | `'user'`, `'environment'` | — | Asks a mobile device for the camera instead of the gallery. |
+| `disabled` | `boolean` | `false` | Keeps the dialog closed and locks the trigger. |
+| `onchange` | `(event: CustomEvent<File[]>) => void` | — | Called with the files that were chosen. |
+| `oncancel` | `(event: CustomEvent<void>) => void` | — | Called when the dialog closes with nothing chosen. |
+| `size` | `xs`, `sm`, `md`, `lg`, `xl`, `xxl` | `'md'` | Trigger size. Explicit props win; otherwise the configured default applies. |
+| `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | Trigger color. Explicit props win; otherwise the configured default applies. |
+| `variant` | `filled`, `elevated`, `tonal`, `outlined`, `text` | `'filled'` | Trigger variant. Explicit props win; otherwise the configured default applies. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `ref` | `Ref<HTMLButtonElement>` | — | Access to the underlying trigger element. |
+
+`Enter` opens on keydown and `Space` opens on keyup; `Tab` reaches an enabled trigger. A disabled trigger leaves the tab order.
+
+Set app-wide defaults once instead of repeating props on every trigger:
+
+```tsx
+import { configure } from '@airlib/react-aui';
+
+configure({ filePicker: { color: 'secondary' } });
+```
+
+Your own classes are added next to the built-in ones:
+
+```tsx
+// class="aui-control aui-file-picker aui-control-secondary my-picker"
+<FilePicker color="secondary" className="my-picker">Choose</FilePicker>
+```
+
+To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+
+### Sizes
+
+Sizes: `xs`, `sm`, `md`, `lg`, `xl`, `xxl`, default `md`:
+
+```tsx
+<FilePicker size="sm">Choose</FilePicker>
+```
+
+### Variants
+
+Variants: `filled`, `elevated`, `tonal`, `outlined`, `text`, default `filled`:
+
+```tsx
+<FilePicker variant="outlined">Choose</FilePicker>
+```
+
+### Color Variants
+
+Colors: `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info`, default `primary`:
+
+```tsx
+<FilePicker color="secondary">Choose</FilePicker>
+```
+
+## Next Steps
+
+- [Button](/docs/widgets/button) — The command trigger this face borrows its mechanics from.
+- [Form](/docs/landmarks/form) — The landmark that groups fields and triggers for submission.
+- [Field](/docs/widgets/field) — The unit that binds a label, a control, and its failure message.

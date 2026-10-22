@@ -7,6 +7,7 @@ const mainRoute = route.route('/main');
 const footerRoute = route.route('/footer');
 const sectionRoute = route.route('/section');
 const sidebarRoute = route.route('/sidebar');
+const formRoute = route.route('/form');
 /** AirLib managed */
 
 export const landmarksRoute = route;
@@ -15,5 +16,6 @@ export const landmarksMainRoute = mainRoute;
 export const landmarksFooterRoute = footerRoute;
 export const landmarksSectionRoute = sectionRoute;
 export const landmarksSidebarRoute = sidebarRoute;
+export const landmarksFormRoute = formRoute;
 
 export default landmarksRoute;

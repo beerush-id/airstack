@@ -1,11 +1,14 @@
-import { aria } from '@airlib/aria';
+import { aria, type SwitchAria } from '@airlib/aria';
 import { AUI_CLASS, COLORS, register, SIZES } from '@airlib/aui/utils';
-import { type Bindable, setup } from '@airlib/react';
+import { type Bindable, renderDynamic, setup } from '@airlib/react';
+import type { ReactNode } from 'react';
 import { $families, type AuiPrimitive, type AuiProps, auiConfig, type ComponentStyles, OMIT_KEYS } from '../config.js';
+import { CheckIcon, RemoveIcon } from '../icons/index.js';
 
 export type SwitchProps = AuiProps<'button'> & {
   checked?: Bindable<boolean>;
   disabled?: boolean;
+  children?: ReactNode | ((ctrl: SwitchAria) => ReactNode);
   onchange?: (event: CustomEvent<boolean>) => void;
 };
 
@@ -29,8 +32,14 @@ export const Switch = setup<SwitchProps>((props) => {
 
   return () => (
     <button ref={control.ref} {...control.restProps(OMIT_KEYS)} className={className()}>
-      <span className={AUI_CLASS.SWITCH_TRACK} aria-hidden="true">
-        <span className={AUI_CLASS.SWITCH_THUMB} />
+      <span className={AUI_CLASS.SWITCH_THUMB}>
+        {props.children && renderDynamic(props.children, control)}
+        {!props.children && (
+          <>
+            {!control.checked && <RemoveIcon />}
+            {control.checked && <CheckIcon />}
+          </>
+        )}
       </span>
     </button>
   );

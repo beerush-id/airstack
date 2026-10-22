@@ -2,8 +2,8 @@ import { $symbol, type AnyType, effect, untrack } from '@airlib/core';
 import { shadow } from '@airlib/core/browser';
 import { selectionGroup } from '../../selection.js';
 import type { AriaEvent, AriaEventHandler, BaseElement } from '../../types.js';
-import { listboxCtx, type ListboxProps } from '../listbox.js';
-import { PopupAria, type PopupCloseEvent, popupCtx, type PopupOpenEvent, type PopupProps } from '../popup/popup.js';
+import { type ListboxProps, listboxCtx } from '../listbox.js';
+import { PopupAria, type PopupCloseEvent, type PopupOpenEvent, type PopupProps, popupCtx } from '../popup/popup.js';
 import { ComboboxInputAria, type ComboboxInputOptions, type ComboboxInputProps } from './input.js';
 import { ComboboxPanelAria, type ComboboxPanelProps } from './panel.js';
 
@@ -236,8 +236,6 @@ export class ComboboxAria<E extends BaseElement = HTMLElement> extends PopupAria
   }
 
   public captureChange() {
-    if (!this.element) return;
-
     const panel = shadow.getElementById(this.panelId);
     const selected = panel?.querySelectorAll('[aria-selected="true"]');
     const text = Array.from(selected ?? [])

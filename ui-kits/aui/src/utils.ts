@@ -260,6 +260,14 @@ export type MauiConfig = typeof DEFAULT_CONFIG & {
   textInput?: ComponentStyles;
   searchInput?: ComponentStyles;
   numberStepper?: ComponentStyles;
+  form?: ComponentStyles;
+  filePicker?: ComponentStyles;
+  listbox?: ComponentStyles;
+  listboxOption?: ComponentStyles;
+  combobox?: ComponentStyles;
+  comboboxInput?: ComponentStyles;
+  comboboxPanel?: ComponentStyles;
+  comboboxOption?: ComponentStyles;
 };
 
 export const AUI_CLASS = {
@@ -312,4 +320,12 @@ export const AUI_CLASS = {
   TEXT_INPUT: branded('text-input'),
   SEARCH_INPUT: branded('search-input'),
   NUMBER_STEPPER: branded('number-stepper'),
+  FORM: branded('form'),
+  FILE_PICKER: branded('file-picker'),
+  LISTBOX: branded('listbox'),
+  LISTBOX_OPTION: branded('listbox-option'),
+  COMBOBOX: branded('combobox'),
+  COMBOBOX_INPUT: branded('combobox-input'),
+  COMBOBOX_PANEL: branded('combobox-panel'),
+  COMBOBOX_OPTION: branded('combobox-option'),
 };

@@ -1,12 +1,13 @@
 import { aria, type OptionAria, type SelectAria, type SelectPanelAria, type SelectTriggerAria } from '@airlib/aria';
 import { AUI_CLASS, COLORS, register, SIZES, VARIANTS } from '@airlib/aui/utils';
-import { type AnyType, type Bindable, For, renderDynamic, setup, shadowPortal, Slot } from '@airlib/react';
+import { type AnyType, type Bindable, For, renderDynamic, Slot, setup, shadowPortal } from '@airlib/react';
 import { isObjectLike } from '@airlib/react/core';
 import type { ReactNode } from 'react';
-import { $families, auiConfig, type AuiPrimitive, type AuiProps, type ComponentStyles, OMIT_KEYS } from '../config.js';
-import { ArrowDown } from '../icons/index.js';
+import { $families, type AuiPrimitive, type AuiProps, auiConfig, type ComponentStyles, OMIT_KEYS } from '../config.js';
+import { ArrowDown, CheckIcon } from '../icons/index.js';
 
 export type SelectValue = AuiPrimitive | AuiPrimitive[];
+export type SelectItem = { key: string; label?: string };
 
 export type SelectSlots = {
   option: (key: string, value: AuiPrimitive) => ReactNode;
@@ -22,7 +23,7 @@ export type SelectProps = ComponentStyles & {
   required?: boolean;
   placeholder?: string;
 
-  options?: Record<string, AuiPrimitive>;
+  options?: Array<SelectItem> | Record<string, AuiPrimitive>;
   children?: ReactNode | ((instance: SelectAria) => ReactNode);
 
   onopen?: (event: CustomEvent<boolean>) => void;
@@ -136,6 +137,7 @@ export const SelectOption = setup<SelectOptionProps>((props) => {
   return () => (
     <div ref={option.ref} {...option.restProps(OMIT_KEYS)} className={className()}>
       {renderDynamic(props.children, option)}
+      {option.selected && <CheckIcon />}
     </div>
   );
 }, 'SelectOption');

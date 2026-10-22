@@ -15,5 +15,6 @@ export * from './Breadcrumb.js';
 export * from './Toolbar.js';
 export * from './Pagination.js';
 export * from './Field.js';
+export * from './FilePicker.js';
 export * from './TextInput.js';
 export * from './NumberStepper.js';

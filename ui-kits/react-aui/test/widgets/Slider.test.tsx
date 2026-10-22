@@ -102,7 +102,7 @@ describe('Slider', () => {
         </Slider>
       );
       expect(screen.getByRole('slider').className).toBe(
-        'aui-slider aui-slider-sm aui-slider-error'
+        'aui-slider aui-slider-sm aui-slider-error aui-focusable'
       );
       unmount();
       render(
@@ -111,7 +111,7 @@ describe('Slider', () => {
         </Slider>
       );
       expect(screen.getByRole('slider').className).toBe(
-        'aui-slider aui-slider-lg aui-slider-info'
+        'aui-slider aui-slider-lg aui-slider-info aui-focusable'
       );
     });
   });

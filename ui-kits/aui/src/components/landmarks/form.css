@@ -1,0 +1,1 @@
+/* Landmarks carry no visual treatment; the native host supplies semantics. This entrypoint exists so the component is importable on its own. Named forms compile role="form"; unnamed forms stay plain containers (see demo dashed treatment, docs-only). */

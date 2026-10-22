@@ -1,0 +1,47 @@
+@layer component {
+  .aui-combobox {
+    display: block;
+  }
+
+  .aui-combobox-input {
+    width: 100%;
+    text-overflow: ellipsis;
+
+    &::placeholder {
+      color: var(--color-on-surface-variant);
+      opacity: 0.8;
+    }
+
+    &:hover:not(:disabled):not([aria-disabled='true']) {
+      border-color: var(--color-outline-variant);
+    }
+
+    &:focus {
+      border-color: var(--color-on-surface);
+    }
+
+    &:focus-visible {
+      outline: var(--focus-ring-width) var(--focus-ring-style) var(--focus-ring-color);
+      outline-offset: var(--focus-ring-offset);
+    }
+
+    &:disabled,
+    &[aria-disabled='true'] {
+      opacity: 0.6;
+      pointer-events: none;
+    }
+  }
+
+  .aui-combobox-panel {
+    width: anchor-size(width);
+    max-width: calc(100dvw - calc(var(--spacing) * 4));
+    max-height: min(calc(var(--spacing) * 72), 60dvh);
+    overflow: auto;
+    overscroll-behavior: contain;
+    box-shadow: var(--elevation-3);
+  }
+
+  .aui-combobox-option {
+    scroll-margin-block: var(--spacing);
+  }
+}

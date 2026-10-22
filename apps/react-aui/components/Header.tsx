@@ -1,9 +1,21 @@
-import { type AnyRoute, For, Link, mutable, setup, Show } from '@airlib/react';
+import { $bind, type AnyRoute, For, Link, mutable, Show, setup } from '@airlib/react';
+import { Switch } from '@airlib/react-aui';
+import { DarkModeIcon, LightModeIcon } from '@airlib/react-aui/icons';
 import type { ComponentProps } from 'react';
 import docsRoute from '../pages/docs/route.js';
 import rootRoute from '../pages/route.js';
 
 const navs = [{ text: 'Docs', route: docsRoute }];
+
+const ThemeSwitch = setup(() => {
+  const darkMode = mutable(false);
+
+  return () => (
+    <div data-theme={darkMode.value ? 'dark' : null}>
+      <Switch checked={$bind(darkMode)}>{(ctrl) => (ctrl.checked ? <DarkModeIcon /> : <LightModeIcon />)}</Switch>
+    </div>
+  );
+}, 'ThemeSwitch');
 
 const Header = setup<ComponentProps<'header'>>((props) => {
   const state = mutable({ open: false });
@@ -39,6 +51,7 @@ const Header = setup<ComponentProps<'header'>>((props) => {
             {() => <span aria-hidden="true">✕</span>}
           </Show>
         </button>
+        <ThemeSwitch />
       </div>
 
       <Show when={() => state.open}>
