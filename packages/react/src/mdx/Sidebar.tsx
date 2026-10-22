@@ -7,8 +7,8 @@ import {
   For,
   Link,
   mutable,
-  Show,
   setup,
+  Show,
   template,
   uIndex,
   uiRouterCtx,
@@ -20,7 +20,7 @@ const SIDEBAR_NODE_INDEX = Symbol.for('air.mdx.sidebar.node');
 export interface NavItem {
   text?: string;
   href?: string;
-  icon?: () => ReactNode;
+  icon?: (props?: AnyType) => ReactNode;
   route?: AnyType;
   items?: NavItem[];
   title?: string;
