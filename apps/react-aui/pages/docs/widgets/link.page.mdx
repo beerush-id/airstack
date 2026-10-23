@@ -17,6 +17,7 @@ Styling is optional. Without AUI CSS the Link stays a correct, operable anchor; 
 import { Link, Select, Toggle } from '@airlib/react-aui';
 import { COLOR_LABELS } from '@airlib/aui/utils';
 import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { GlassStage } from '@/components/GlassStage.js';
 
 const LinkDemo = setup(() => {
   const state = mutable({ color: 'primary', current: false, disabled: false });
@@ -36,29 +37,31 @@ const LinkDemo = setup(() => {
       </div>
       <Snippet>
         {() => (
-          <div className="aui-card flex flex-col gap-lg items-start justify-center p-xl">
-            <Snippet>
-              {() => (
-                <Link
-                  href="/docs/widgets/link"
-                  color={state.color}
-                  current={state.current}
-                  disabled={state.disabled}
-                  onClick={block}
-                >
-                  This guide
-                </Link>
-              )}
-            </Snippet>
-            <Link
-              href="/docs/widgets/button"
-              color={state.color}
-              disabled={state.disabled}
-              onClick={block}
-            >
-              Component reference
-            </Link>
-          </div>
+          <GlassStage>
+            <div className="flex flex-col gap-lg items-start justify-center">
+              <Snippet>
+                {() => (
+                  <Link
+                    href="/docs/widgets/link"
+                    color={state.color}
+                    current={state.current}
+                    disabled={state.disabled}
+                    onClick={block}
+                  >
+                    This guide
+                  </Link>
+                )}
+              </Snippet>
+              <Link
+                href="/docs/widgets/button"
+                color={state.color}
+                disabled={state.disabled}
+                onClick={block}
+              >
+                Component reference
+              </Link>
+            </div>
+          </GlassStage>
         )}
       </Snippet>
     </div>

@@ -67,8 +67,20 @@
   .fg-surface-low {
     color: var(--color-surface-low);
   }
-  .fg-surface-container {
-    color: var(--color-surface-container);
+  .fg-container-lowest {
+    color: var(--color-container-lowest);
+  }
+  .fg-container-low {
+    color: var(--color-container-low);
+  }
+  .fg-container {
+    color: var(--color-container);
+  }
+  .fg-container-high {
+    color: var(--color-container-high);
+  }
+  .fg-container-highest {
+    color: var(--color-container-highest);
   }
   .fg-surface-high {
     color: var(--color-surface-high);

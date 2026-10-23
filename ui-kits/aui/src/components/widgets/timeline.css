@@ -1,0 +1,230 @@
+@import './item.css';
+
+/*
+ * A composition laid out in time. One second is `--aui-timeline-zoom` wide, so a clip's place
+ * and length, the ticks, and the playhead all come from seconds times the zoom. Track headers
+ * stay put while the lanes scroll sideways; the ruler stays on top while they scroll down.
+ * Each lane wears its role color: pictures for video and image, a waveform for audio, words for
+ * text.
+ */
+@layer theme {
+  :root {
+    --aui-timeline-header: 9rem;
+    --aui-timeline-ruler: 2rem;
+    --aui-timeline-lane: 3.25rem;
+    --aui-timeline-bg: var(--color-surface-low);
+    --aui-timeline-radius: var(--radius-lg);
+    --aui-timeline-rule: color-mix(in oklch, var(--color-outline-variant) 70%, transparent);
+  }
+}
+
+@layer component {
+  .aui-timeline {
+    overflow: auto;
+    border-radius: var(--aui-timeline-radius);
+    background-color: var(--aui-timeline-bg);
+    color: var(--color-on-surface);
+    font-size: var(--font-label-md-size);
+  }
+
+  .aui-timeline-body {
+    display: grid;
+    grid-template-columns:
+      var(--aui-timeline-header)
+      calc(var(--aui-timeline-length, 0) * var(--aui-timeline-zoom) + var(--spacing-xl));
+    grid-template-rows: var(--aui-timeline-ruler) auto;
+    min-inline-size: 100%;
+  }
+
+  .aui-timeline-corner {
+    position: sticky;
+    inset-inline-start: 0;
+    inset-block-start: 0;
+    z-index: 3;
+    background-color: var(--aui-timeline-bg);
+    border-block-end: 1px solid var(--aui-timeline-rule);
+  }
+
+  /* Ticks each second, a time every few; the playhead's handle rides on it. */
+  .aui-timeline-ruler {
+    position: sticky;
+    inset-block-start: 0;
+    z-index: 2;
+    background-color: var(--aui-timeline-bg);
+    /* Major ticks where the times are, minor ticks each second between them. */
+    background-image:
+      repeating-linear-gradient(
+        to right,
+        color-mix(in oklch, var(--color-on-surface-variant) 55%, transparent) 0 1px,
+        transparent 1px calc(var(--aui-timeline-zoom) * var(--aui-timeline-every, 1))
+      ),
+      repeating-linear-gradient(to right, var(--aui-timeline-rule) 0 1px, transparent 1px var(--aui-timeline-zoom));
+    background-size:
+      100% 55%,
+      100% 25%;
+    background-position: bottom left;
+    background-repeat: no-repeat;
+    border-block-end: 1px solid var(--aui-timeline-rule);
+    cursor: pointer;
+    touch-action: none;
+    outline: none;
+
+    &::after {
+      content: '';
+      position: absolute;
+      inset-block-end: 0;
+      inset-inline-start: calc(var(--aria-timeline-progress, 0) * var(--aui-timeline-length, 0) * var(--aui-timeline-zoom));
+      inline-size: 12px;
+      block-size: 60%;
+      translate: -50% 0;
+      border-radius: var(--radius-xs) var(--radius-xs) var(--radius-full) var(--radius-full);
+      background-color: var(--color-primary);
+    }
+
+    &:focus-visible::after {
+      box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring-color);
+    }
+  }
+
+  .aui-timeline-tick {
+    position: absolute;
+    inset-block-start: var(--spacing-xs);
+    inset-inline-start: calc(var(--aui-timeline-at) * var(--aui-timeline-zoom));
+    padding-inline-start: var(--spacing-xs);
+    color: var(--color-on-surface-variant);
+    font-size: var(--font-label-sm-size);
+    font-variant-numeric: tabular-nums;
+    pointer-events: none;
+  }
+
+  .aui-timeline-headers {
+    position: sticky;
+    inset-inline-start: 0;
+    z-index: 1;
+    display: grid;
+    grid-auto-rows: var(--aui-timeline-lane);
+    background-color: var(--aui-timeline-bg);
+  }
+
+  .aui-timeline-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding-inline: var(--spacing-sm);
+    border-block-end: 1px solid var(--aui-timeline-rule);
+    color: var(--color-on-surface-variant);
+    font-size: var(--font-label-sm-size);
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+
+    & > .aui-icon {
+      --aui-icon-size: 1rem;
+    }
+  }
+
+  .aui-timeline-lanes {
+    position: relative;
+    display: grid;
+    grid-auto-rows: var(--aui-timeline-lane);
+    outline: none;
+  }
+
+  .aui-timeline-lane {
+    position: relative;
+    border-block-end: 1px solid var(--aui-timeline-rule);
+
+    /* Every other lane a shade apart, so long rows stay easy to follow. */
+    &:nth-child(even) {
+      background-color: color-mix(in oklch, var(--color-on-surface) 2.5%, transparent);
+    }
+  }
+
+  .aui-timeline-clip {
+    position: absolute;
+    inset-block: var(--spacing-xs);
+    inset-inline-start: calc(var(--aui-timeline-start) * var(--aui-timeline-zoom));
+    inline-size: calc(var(--aui-timeline-span) * var(--aui-timeline-zoom) - 2px);
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    padding-inline: var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    background-color: color-mix(in oklch, var(--aui-item-bg) 78%, var(--aui-timeline-bg));
+    /* A light along the top edge, so a clip reads as a piece laid on its lane. */
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18);
+    color: var(--aui-item-fg);
+    font-size: var(--font-label-md-size);
+    cursor: pointer;
+    user-select: none;
+    outline: none;
+    transition-property: box-shadow, filter;
+    transition-duration: var(--duration-short);
+    transition-timing-function: var(--ease-emphasized);
+
+    &:hover {
+      filter: brightness(1.06);
+    }
+
+    &[aria-selected='true'] {
+      box-shadow:
+        inset 0 0 0 2px var(--aui-item-fg),
+        0 0 0 2px var(--aui-item-bg);
+    }
+
+    &:focus-visible {
+      box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring-color);
+    }
+
+    /* Pictures repeat along a video or image clip like a filmstrip, the name over a soft shade. */
+    &:is([data-type='video'], [data-type='image']) {
+      background-image:
+        linear-gradient(to right, color-mix(in oklch, var(--aui-item-bg) 85%, transparent) 0 7rem, transparent 10rem),
+        var(--aui-timeline-thumbnail, none);
+      background-size:
+        100% 100%,
+        auto 100%;
+      background-repeat: no-repeat, repeat-x;
+    }
+
+    /* A waveform along an audio clip, in the lane's color, drawn from the clip's own strip. */
+    &[data-type='audio'] {
+      background-color: color-mix(in oklch, var(--aui-item-bg) 22%, var(--aui-timeline-bg));
+      color: var(--color-on-surface);
+
+      &::before {
+        content: '';
+        position: absolute;
+        inset: 18% 0;
+        background-color: var(--aui-item-bg);
+        mask: var(--aui-timeline-wave) repeat-x left center / 160px 100%;
+        opacity: 0.75;
+      }
+    }
+  }
+
+  .aui-timeline-clip-name {
+    position: relative;
+    overflow: hidden;
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .aui-timeline-clip[data-type='audio'] > .aui-timeline-clip-name {
+    padding: 0 var(--spacing-xs);
+    border-radius: var(--radius-xs);
+    background-color: color-mix(in oklch, var(--aui-timeline-bg) 80%, transparent);
+  }
+
+  .aui-timeline-playhead {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: calc(var(--aui-timeline-time, 0) * var(--aui-timeline-zoom));
+    z-index: 1;
+    inline-size: 2px;
+    translate: -50% 0;
+    background-color: var(--color-primary);
+    pointer-events: none;
+  }
+}

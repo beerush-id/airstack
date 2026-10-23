@@ -14,34 +14,83 @@ Styling is optional. Without AUI CSS the Toolbar stays a correct `toolbar` landm
 :::interactive[Toolbar demo]
 
 ```tsx
-import { Button, Toolbar, Toggle } from '@airlib/react-aui';
+import { Button, Divider, Toggle, ToggleGroup, Toolbar } from '@airlib/react-aui';
+import {
+  CommentIcon,
+  FormatAlignCenterIcon,
+  FormatAlignLeftIcon,
+  FormatAlignRightIcon,
+  FormatBoldIcon,
+  FormatItalicIcon,
+  FormatUnderlinedIcon,
+  LinkIcon,
+} from '@airlib/react-aui/icons';
 import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { DemoControl } from '@/components/DemoControl.js';
 
 const ToolbarDemo = setup(() => {
-  const state = mutable({ vertical: false, locked: false });
+  const state = mutable({
+    style: ['bold'] as string[],
+    align: 'left',
+    size: 'sm',
+    color: 'primary',
+    variant: 'tonal',
+    vertical: false,
+    locked: false,
+  });
 
   return () => (
     <div className="demo-button">
-      <div className="flex gap-xs w-full">
-        <div className="flex-1"></div>
+      <DemoControl
+        size={$bind(state, 'size')}
+        color={$bind(state, 'color')}
+        variant={$bind(state, 'variant')}
+        disabled={$bind(state, 'locked')}
+      >
         <Toggle size="sm" pressed={$bind(state, 'vertical')}>
-          {() => (state.vertical ? 'Vertical axis' : 'Horizontal axis')}
+          {() => (state.vertical ? 'Vertical' : 'Horizontal')}
         </Toggle>
-        <Toggle size="sm" pressed={$bind(state, 'locked')}>
-          {() => (state.locked ? 'Unlock strip' : 'Lock strip')}
-        </Toggle>
-      </div>
-      <div className="aui-card flex flex-col gap-lg justify-center p-xl">
+      </DemoControl>
+      <div className="demo-stage w-full flex justify-center">
         <Snippet>
           {() => (
             <Toolbar
-              label="Comment actions"
+              label="Text formatting"
+              color={state.color}
+              variant={state.variant}
               orientation={state.vertical ? 'vertical' : 'horizontal'}
               disabled={state.locked}
             >
-              <Button size="sm">Undo</Button>
-              <Button size="sm" disabled>Redo</Button>
-              <Button size="sm">Send</Button>
+              <ToggleGroup label="Style" size={state.size} color={state.color} multiple value={$bind(state, 'style')}>
+                <Toggle value="bold" aria-label="Bold" className="aui-control-icon">
+                  <FormatBoldIcon />
+                </Toggle>
+                <Toggle value="italic" aria-label="Italic" className="aui-control-icon">
+                  <FormatItalicIcon />
+                </Toggle>
+                <Toggle value="underline" aria-label="Underline" className="aui-control-icon">
+                  <FormatUnderlinedIcon />
+                </Toggle>
+              </ToggleGroup>
+              <Divider orientation={state.vertical ? 'horizontal' : 'vertical'} inset />
+              <ToggleGroup label="Alignment" size={state.size} color={state.color} value={$bind(state, 'align')}>
+                <Toggle value="left" aria-label="Align left" className="aui-control-icon">
+                  <FormatAlignLeftIcon />
+                </Toggle>
+                <Toggle value="center" aria-label="Align center" className="aui-control-icon">
+                  <FormatAlignCenterIcon />
+                </Toggle>
+                <Toggle value="right" aria-label="Align right" className="aui-control-icon">
+                  <FormatAlignRightIcon />
+                </Toggle>
+              </ToggleGroup>
+              <Divider orientation={state.vertical ? 'horizontal' : 'vertical'} inset />
+              <Button size={state.size} color={state.color} variant="text" className="aui-control-icon" aria-label="Insert link">
+                <LinkIcon />
+              </Button>
+              <Button size={state.size} color={state.color} variant="text" className="aui-control-icon" aria-label="Add comment">
+                <CommentIcon />
+              </Button>
             </Toolbar>
           )}
         </Snippet>
@@ -87,6 +136,30 @@ Run the strip vertically when the layout does:
 
 Locking the strip stops it from claiming any keystroke; the controls inside stay enabled and activatable. There is no toolbar-item role — any enabled control inside participates by being there, and the toolbar never presses anything on its own.
 
+### Groups on one strip
+
+An editor's toolbar is rarely one row of buttons: the text styles, the alignment, and the odd action each form a group. Put the groups in the toolbar as they are — a [Toggle Group](/docs/widgets/toggle-group) for each set of choices, plain buttons for actions — and set them apart with an inset vertical [Divider](/docs/widgets/divider). Arrow travel crosses every group in one pass:
+
+```tsx
+<Toolbar label="Text formatting" variant="tonal">
+  <ToggleGroup label="Style" multiple value={$bind(doc, 'style')}>
+    <Toggle value="bold">Bold</Toggle>
+    <Toggle value="italic">Italic</Toggle>
+  </ToggleGroup>
+  <Divider orientation="vertical" inset />
+  <ToggleGroup label="Alignment" value={$bind(doc, 'align')}>
+    <Toggle value="left">Left</Toggle>
+    <Toggle value="center">Center</Toggle>
+  </ToggleGroup>
+  <Divider orientation="vertical" inset />
+  <Button variant="text">Link</Button>
+</Toolbar>
+```
+
+### Strip variants
+
+The strip is bare by default — the controls stand on whatever holds them. Give it a `variant` when it should read as one bar: `filled` sits it on the container surface, `tonal` tints it with its `color`, `outlined` rings it, `elevated` lifts it, and `glass` makes it the shared [glass](/docs/theming#glass) for a toolbar floating over content. On any strip with a surface, the toggle groups inside drop their own tracks and share the strip's.
+
 ### Properties
 
 | Prop | Type | Default | Notes |
@@ -94,6 +167,8 @@ Locking the strip stops it from claiming any keystroke; the controls inside stay
 | `label` | `string` | — | Strip name, compiled to `aria-label`. |
 | `orientation` | `'horizontal'`, `'vertical'` | `'horizontal'` | Axis the arrows travel, compiled to `aria-orientation`. Only one axis is claimed. |
 | `disabled` | `boolean` | `false` | Locks the strip: it claims no keystroke. Controls inside stay focusable. |
+| `variant` | `text`, `filled`, `tonal`, `outlined`, `elevated`, `glass` | `'text'` | The strip's surface; `text` has none. |
+| `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | Tints the `tonal` and `outlined` strips. |
 | `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
 | `ref` | `Ref<HTMLDivElement>` | — | Access to the underlying strip element. |
 

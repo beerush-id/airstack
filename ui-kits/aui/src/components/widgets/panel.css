@@ -1,11 +1,14 @@
+@import './glass.css';
+
 /*
  * Shared floating surface: the glass sheet every popup sits on — menus,
- * select and combobox lists, popovers, the date picker calendar.
- * Components add only their placement and inner layout.
+ * select and combobox lists, popovers, the date picker calendar. The glass
+ * itself is the shared frame (`glass.css` lists `.aui-panel` with it); the
+ * panel tunes its density, corner, and lift. Components add only their
+ * placement and inner layout.
  */
 @layer theme {
   :root {
-    --aui-panel-bg: var(--color-surface-container);
     --aui-panel-accent: var(--color-primary);
     --aui-panel-on-accent: var(--color-on-primary);
     --aui-panel-radius: var(--radius-lg);
@@ -55,14 +58,13 @@
     position-try-order: normal;
     min-width: calc(var(--spacing) * 40);
     margin-block: var(--aui-panel-gap);
-    background: color-mix(in oklch, var(--aui-panel-bg) 80%, transparent);
-    border: 1px solid light-dark(rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.1));
-    backdrop-filter: blur(var(--size-sm));
-    border-radius: var(--aui-panel-radius);
+    /* Dense glass, so the rows on it read over whatever sits behind. */
+    --aui-glass-tint: 80%;
+    --aui-glass-radius: var(--aui-panel-radius);
+    --aui-glass-shadow: var(--elevation-3);
     padding-block: var(--aui-panel-padding-y);
     padding-inline: var(--aui-panel-padding-x);
     overflow-y: auto;
-    box-shadow: var(--elevation-3);
     animation: aui-panel-pop var(--duration-medium) var(--ease-emphasized-decelerate) forwards;
 
     .aui-item:first-child {

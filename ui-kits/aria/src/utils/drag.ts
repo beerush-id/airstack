@@ -46,6 +46,13 @@ export interface DragConstraints {
   snapThreshold?: number;
 
   /**
+   * Space, in pixels, left between the box and a target it snaps against
+   * face to face (its bottom to a dock's top). Edges that line up with each
+   * other and centers stay flush. Defaults to 1.
+   */
+  snapGap?: number;
+
+  /**
    * Locks movement to one axis.
    */
   axis?: 'x' | 'y';
@@ -72,11 +79,26 @@ export interface DragSizeLimits {
 }
 
 /**
- * Vertical (`xs`) and horizontal (`ys`) lines a dragged box snaps to, in client coordinates.
+ * One side of something along an axis: its start edge (left/top), its end
+ * edge (right/bottom), or its center line.
+ */
+export type DragSide = 'start' | 'end' | 'center';
+
+/**
+ * A line a dragged box snaps to, in client coordinates, and which side of
+ * its element it is — so a box meeting it face to face can keep a gap.
+ */
+export interface DragSnapLine {
+  at: number;
+  side: DragSide;
+}
+
+/**
+ * Vertical (`xs`) and horizontal (`ys`) lines a dragged box snaps to.
  */
 export interface DragSnapLines {
-  xs: number[];
-  ys: number[];
+  xs: DragSnapLine[];
+  ys: DragSnapLine[];
 }
 
 /**
@@ -88,11 +110,20 @@ export interface DragFrame {
   lines: DragSnapLines;
   grid: { x: number; y: number };
   threshold: number;
+  gap: number;
   mode: DragSnapMode;
   axis?: 'x' | 'y';
 }
 
 const DEFAULT_THRESHOLD = 8;
+const DEFAULT_GAP = 1;
+
+/**
+ * Elements that attract every dragged box without being listed in `snap`:
+ * mark persistent furniture — a dock, a toolbar, a sidebar — with
+ * `data-snap-target`.
+ */
+export const SNAP_TARGET_SELECTOR = '[data-snap-target]';
 
 /**
  * Measures the bounds and snap lines for a box about to move, relative to the
@@ -118,7 +149,8 @@ export function measureDragFrame(
     pushLines(lines, bounds, mode);
   }
 
-  const selectors = typeof constraints.snap === 'string' ? [constraints.snap] : (constraints.snap ?? []);
+  const own = typeof constraints.snap === 'string' ? [constraints.snap] : (constraints.snap ?? []);
+  const selectors = [...own, SNAP_TARGET_SELECTOR];
   for (const selector of selectors) {
     for (const element of Array.from(document.querySelectorAll<HTMLElement>(selector))) {
       if (element === target || target.contains(element) || element.contains(target)) continue;
@@ -135,6 +167,7 @@ export function measureDragFrame(
       y: typeof grid === 'number' ? grid : (grid?.y ?? 0),
     },
     threshold: constraints.snapThreshold ?? DEFAULT_THRESHOLD,
+    gap: constraints.snapGap ?? DEFAULT_GAP,
     mode,
     axis: constraints.axis,
   };
@@ -159,10 +192,10 @@ export function moveBox(start: DragBox, dx: number, dy: number, frame: DragFrame
   next.y = snapToGrid(next.y, frame.grid.y, frame.bounds?.top);
 
   if (frame.axis !== 'y') {
-    next.x += nearestOffset(spanPoints(next.x, next.width, frame.mode), frame.lines.xs, frame.threshold);
+    next.x += nearestOffset(spanPoints(next.x, next.width, frame.mode), frame.lines.xs, frame);
   }
   if (frame.axis !== 'x') {
-    next.y += nearestOffset(spanPoints(next.y, next.height, frame.mode), frame.lines.ys, frame.threshold);
+    next.y += nearestOffset(spanPoints(next.y, next.height, frame.mode), frame.lines.ys, frame);
   }
 
   if (frame.bounds) {
@@ -206,19 +239,19 @@ export function resizeBox(
   const b = frame.bounds;
 
   if (edge.includes('e')) {
-    right = settle(right + dx, frame.grid.x, b?.left, frame.lines.xs, frame.threshold);
+    right = settle(right + dx, 'end', frame.grid.x, b?.left, frame.lines.xs, frame);
     right = clamp(right, left + minW, Math.min(left + maxW, b ? b.right : Number.POSITIVE_INFINITY));
   }
   if (edge.includes('w')) {
-    left = settle(left + dx, frame.grid.x, b?.left, frame.lines.xs, frame.threshold);
+    left = settle(left + dx, 'start', frame.grid.x, b?.left, frame.lines.xs, frame);
     left = clamp(left, Math.max(right - maxW, b ? b.left : Number.NEGATIVE_INFINITY), right - minW);
   }
   if (edge.includes('s')) {
-    bottom = settle(bottom + dy, frame.grid.y, b?.top, frame.lines.ys, frame.threshold);
+    bottom = settle(bottom + dy, 'end', frame.grid.y, b?.top, frame.lines.ys, frame);
     bottom = clamp(bottom, top + minH, Math.min(top + maxH, b ? b.bottom : Number.POSITIVE_INFINITY));
   }
   if (edge.includes('n')) {
-    top = settle(top + dy, frame.grid.y, b?.top, frame.lines.ys, frame.threshold);
+    top = settle(top + dy, 'start', frame.grid.y, b?.top, frame.lines.ys, frame);
     top = clamp(top, Math.max(bottom - maxH, b ? b.top : Number.NEGATIVE_INFINITY), bottom - minH);
   }
 
@@ -238,9 +271,16 @@ export function snapToGrid(value: number, step: number, origin = 0): number {
   return origin + Math.round((value - origin) / step) * step;
 }
 
-function settle(value: number, step: number, origin: number | undefined, lines: number[], threshold: number): number {
+function settle(
+  value: number,
+  side: DragSide,
+  step: number,
+  origin: number | undefined,
+  lines: DragSnapLine[],
+  frame: DragFrame
+): number {
   const gridded = snapToGrid(value, step, origin);
-  return gridded + nearestOffset([gridded], lines, threshold);
+  return gridded + nearestOffset([{ at: gridded, side }], lines, frame);
 }
 
 function resolveBounds(target: HTMLElement, bounds?: DragBounds, fallback?: HTMLElement): DOMRect | undefined {
@@ -257,31 +297,46 @@ function resolveBounds(target: HTMLElement, bounds?: DragBounds, fallback?: HTML
 
 function pushLines(lines: DragSnapLines, rect: DOMRect | DOMRectReadOnly, mode: DragSnapMode): void {
   if (mode !== 'center') {
-    lines.xs.push(rect.left, rect.right);
-    lines.ys.push(rect.top, rect.bottom);
+    lines.xs.push({ at: rect.left, side: 'start' }, { at: rect.right, side: 'end' });
+    lines.ys.push({ at: rect.top, side: 'start' }, { at: rect.bottom, side: 'end' });
   }
   if (mode !== 'edge') {
-    lines.xs.push(rect.left + rect.width / 2);
-    lines.ys.push(rect.top + rect.height / 2);
+    lines.xs.push({ at: rect.left + rect.width / 2, side: 'center' });
+    lines.ys.push({ at: rect.top + rect.height / 2, side: 'center' });
   }
 }
 
-function spanPoints(start: number, size: number, mode: DragSnapMode): number[] {
-  if (mode === 'edge') return [start, start + size];
-  if (mode === 'center') return [start + size / 2];
-  return [start, start + size / 2, start + size];
+function spanPoints(start: number, size: number, mode: DragSnapMode): DragSnapLine[] {
+  const startEdge: DragSnapLine = { at: start, side: 'start' };
+  const endEdge: DragSnapLine = { at: start + size, side: 'end' };
+  const center: DragSnapLine = { at: start + size / 2, side: 'center' };
+  if (mode === 'edge') return [startEdge, endEdge];
+  if (mode === 'center') return [center];
+  return [startEdge, center, endEdge];
 }
 
-function nearestOffset(points: number[], lines: number[], threshold: number): number {
+/**
+ * Where a point should land against a line: on it when the two line up
+ * (same side, or centers), or `gap` away when they meet face to face (the
+ * box's end against a target's start, or its start against a target's end).
+ */
+function landing(point: DragSnapLine, line: DragSnapLine, gap: number): number {
+  if (point.side === 'end' && line.side === 'start') return line.at - gap;
+  if (point.side === 'start' && line.side === 'end') return line.at + gap;
+  return line.at;
+}
+
+function nearestOffset(points: DragSnapLine[], lines: DragSnapLine[], frame: DragFrame): number {
   let best = 0;
-  let bestDistance = threshold;
+  let bestDistance = frame.threshold;
 
   for (const point of points) {
     for (const line of lines) {
-      const distance = Math.abs(line - point);
+      const offset = landing(point, line, frame.gap) - point.at;
+      const distance = Math.abs(offset);
       if (distance <= bestDistance) {
         bestDistance = distance;
-        best = line - point;
+        best = offset;
       }
     }
   }

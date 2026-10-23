@@ -15,9 +15,10 @@ Settings pages, product details, dashboards: when several panels share one spot 
 :::interactive[Tabs demo]
 
 ```tsx
-import { Tabs, Toggle } from '@airlib/react-aui';
+import { Readout, Tabs, Toggle } from '@airlib/react-aui';
 import { $bind, mutable, setup, Snippet } from '@airlib/react';
 import { DemoControl } from '@/components/DemoControl.js';
+import { GlassStage } from '@/components/GlassStage.js';
 
 const SECTIONS = { account: 'Account', security: 'Security', notifications: 'Notifications' };
 
@@ -30,7 +31,7 @@ const PANELS = {
 const TabsDemo = setup(() => {
   const state = mutable({
     current: 'account',
-    size: 'md',
+    size: 'sm',
     color: 'primary',
     variant: 'filled',
     vertical: false,
@@ -49,7 +50,7 @@ const TabsDemo = setup(() => {
           {() => (state.vertical ? 'Vertical' : 'Horizontal')}
         </Toggle>
       </DemoControl>
-      <div className="aui-card flex p-xl">
+      <GlassStage>
         <Snippet>
           {() => (
             <Tabs
@@ -66,8 +67,8 @@ const TabsDemo = setup(() => {
             </Tabs>
           )}
         </Snippet>
-      </div>
-      <Snippet>{() => <span>Open tab: {state.current}</span>}</Snippet>
+      </GlassStage>
+      <Snippet>{() => <Readout label="Open tab" value={SECTIONS[state.current]} />}</Snippet>
     </div>
   );
 }, 'TabsDemo');
@@ -161,7 +162,7 @@ import { TabButton, TabList, TabPanel, Tabs } from '@airlib/react-aui';
 
 `size`, `color`, and `variant` on `Tabs` reach the strip and every tab; a tab's own prop still wins. See [Theming](/docs/theming#style-a-composite-once).
 
-The variant decides how the open tab stands out as the selection glides between tabs: `filled` fills it with the color, `tonal` tints it, `outlined` rings it, `elevated` lifts it off the strip, and `text` drops the strip for a sliding underline.
+The variant decides how the open tab stands out as the selection glides between tabs: `filled` fills it with the color, `tonal` tints it, `outlined` rings it, `elevated` lifts it off the strip, `text` drops the strip for a sliding underline, and `glass` makes the strip the shared [glass](/docs/theming#glass) for tabs floating over other content, with the open tab tinted.
 
 ### Properties
 
@@ -174,9 +175,9 @@ The variant decides how the open tab stands out as the selection glides between 
 | `value` | `Bindable<string>` | first tab | The `name` of the open tab. Bind it to read or change the open tab from outside. |
 | `orientation` | `'horizontal'`, `'vertical'` | `'horizontal'` | Whether the strip runs across or down, and which arrow keys travel it. |
 | `disabled` | `boolean` | `false` | Locks switching across the whole group. |
-| `size` | `xs`–`xxl` | `'md'` | Reaches the strip and every tab. |
+| `size` | `xs`–`xxl` | `'sm'` | Reaches the strip and every tab. |
 | `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | The color of the open tab. |
-| `variant` | `filled`, `tonal`, `outlined`, `elevated`, `text` | `'filled'` | How the open tab stands out. |
+| `variant` | `filled`, `tonal`, `outlined`, `elevated`, `text`, `glass` | `'filled'` | How the open tab stands out. |
 | `onchange` | `(event: CustomEvent<string>) => void` | — | A different tab opened; `detail` is its `name`. Use it to save or track the choice. |
 | `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
 

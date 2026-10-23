@@ -86,6 +86,16 @@ import {
   GridRowHeaderAria,
   ListboxAria,
   type ListboxProps,
+  GalleryAria,
+  type GalleryProps,
+  ImageSegmentsAria,
+  type ImageSegmentsProps,
+  ImageViewerAria,
+  type ImageViewerProps,
+  StageAria,
+  type StageProps,
+  TimelineRulerAria,
+  type TimelineRulerProps,
   MenuAria,
   MenubarAria,
   type MenubarProps,
@@ -141,6 +151,12 @@ import {
   TabPanelAria,
   type TabPanelProps,
   type TabProps,
+  TimePickerAria,
+  type TimePickerOptions,
+  type TimePickerProps,
+  TimeSegmentAria,
+  type TimeSegmentOptions,
+  type TimeSegmentProps,
   ToastAria,
   ToastCloseAria,
   type ToastProps,
@@ -156,11 +172,21 @@ import {
   TreeItemAria,
   type TreeItemProps,
   type TreeProps,
+  TreeToggleAria,
 } from './composites/index.js';
 import {
+  DesktopWidgetAria,
+  type DesktopWidgetProps,
+  DesktopWidgetsAria,
+  type DesktopWidgetsProps,
+  DockAria,
+  type DockProps,
+  DockRegionAria,
+  type DockRegionProps,
   WindowAria,
   WindowCloseAria,
   WindowDesktopAria,
+  type WindowDesktopProps,
   WindowDragAria,
   WindowMaximizeAria,
   WindowMinimizeAria,
@@ -216,6 +242,9 @@ import {
   ImageContentAria,
   ImageFallbackAria,
   type ImageProps,
+  LabelAria,
+  type LabelOptions,
+  type LabelProps,
   LinkAria,
   type LinkOptions,
   type LinkProps,
@@ -259,6 +288,8 @@ import {
   TooltipAria,
   type TooltipOptions,
   type TooltipProps,
+  FullscreenToggleAria,
+  type FullscreenToggleProps,
 } from './widgets/index.js';
 
 export * from './composites/index.js';
@@ -332,6 +363,25 @@ export function aria<E extends BaseElement = HTMLElement>(
 ): CheckboxGroupAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement>(role: 'listbox', props?: ListboxProps): ListboxAria<E>;
+export function aria<E extends BaseElement = HTMLElement>(role: 'gallery', props?: GalleryProps): GalleryAria<E>;
+export function aria<E extends BaseElement = SVGSVGElement>(
+  role: 'image-segments',
+  props?: ImageSegmentsProps
+): ImageSegmentsAria<E>;
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'image-viewer',
+  props?: ImageViewerProps
+): ImageViewerAria<E>;
+export function aria<E extends BaseElement = HTMLElement>(role: 'stage', props?: StageProps): StageAria<E>;
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'timeline-ruler',
+  props?: TimelineRulerProps
+): TimelineRulerAria<E>;
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'fullscreen-toggle',
+  props?: FullscreenToggleProps,
+  options?: AriaOptions
+): FullscreenToggleAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement>(role: 'grid', props?: GridProps): GridAria<E>;
 
@@ -432,6 +482,18 @@ export function aria<E extends BaseElement = HTMLElement>(
   props?: DateRangePickerProps,
   options?: DatePickerOptions
 ): DateRangePickerAria<E>;
+
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'time-picker',
+  props?: TimePickerProps,
+  options?: TimePickerOptions
+): TimePickerAria<E>;
+
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'time-segment',
+  props?: TimeSegmentProps,
+  options?: TimeSegmentOptions
+): TimeSegmentAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement>(
   role: 'select',
@@ -541,6 +603,12 @@ export function aria<E extends BaseElement = HTMLElement>(
 
 export function aria<E extends BaseElement = HTMLElement>(role: 'divider', props?: DividerProps): DividerAria<E>;
 
+export function aria<E extends BaseElement = HTMLLabelElement>(
+  role: 'label',
+  props?: LabelProps,
+  options?: LabelOptions
+): LabelAria<E>;
+
 export function aria<E extends HTMLElement = HTMLElement>(role: 'dialog', props?: DialogProps): DialogAria<E>;
 
 export function aria<E extends HTMLElement = HTMLElement>(
@@ -550,7 +618,11 @@ export function aria<E extends HTMLElement = HTMLElement>(
 
 export function aria<E extends HTMLElement = HTMLElement>(role: 'dialog-close', props?: AriaProps): DialogCloseAria<E>;
 
-export function aria<E extends HTMLElement = HTMLElement>(role: 'dialog-panel', props?: AriaProps): DialogPanelAria<E>;
+export function aria<E extends HTMLElement = HTMLElement>(
+  role: 'dialog-panel',
+  props?: AriaProps,
+  options?: AriaOptions
+): DialogPanelAria<E>;
 
 export function aria<E extends HTMLElement = HTMLElement>(role: 'dialog-title', props?: AriaProps): DialogTitleAria<E>;
 
@@ -568,7 +640,8 @@ export function aria<E extends HTMLElement = HTMLElement>(
 
 export function aria<E extends HTMLElement = HTMLElement>(
   role: 'confirm-panel',
-  props?: AriaProps
+  props?: AriaProps,
+  options?: AriaOptions
 ): ConfirmPanelAria<E>;
 
 export function aria<E extends HTMLElement = HTMLElement>(
@@ -804,6 +877,7 @@ export function aria<E extends BaseElement = HTMLElement>(
 export function aria<E extends BaseElement = HTMLElement>(role: 'tree', props?: TreeProps): TreeAria<E>;
 export function aria<E extends BaseElement = HTMLElement>(role: 'tree-item', props?: TreeItemProps): TreeItemAria<E>;
 export function aria<E extends BaseElement = HTMLElement>(role: 'tree-group', props?: TreeGroupProps): TreeGroupAria<E>;
+export function aria<E extends BaseElement = HTMLElement>(role: 'tree-toggle', props?: AriaProps): TreeToggleAria<E>;
 export function aria<E extends BaseElement = HTMLElement>(role: 'reorder', props?: ReorderProps): ReorderAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement>(
@@ -818,9 +892,29 @@ export function aria<E extends BaseElement = HTMLButtonElement>(
 
 export function aria<E extends BaseElement = HTMLElement>(
   role: 'window-desktop',
-  props?: AriaProps,
+  props?: WindowDesktopProps,
   options?: AriaOptions
 ): WindowDesktopAria<E>;
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'desktop-widgets',
+  props?: DesktopWidgetsProps,
+  options?: AriaOptions
+): DesktopWidgetsAria<E>;
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'desktop-widget',
+  props?: DesktopWidgetProps,
+  options?: AriaOptions
+): DesktopWidgetAria<E>;
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'dock',
+  props?: DockProps,
+  options?: AriaOptions
+): DockAria<E>;
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'dock-region',
+  props?: DockRegionProps,
+  options?: AriaOptions
+): DockRegionAria<E>;
 export function aria<E extends HTMLElement = HTMLElement>(
   role: 'window',
   props?: WindowProps,
@@ -877,6 +971,8 @@ export function aria(role: string, init?: unknown, options?: unknown): unknown {
       return new MeterAria(init as never, options as never);
     case 'divider':
       return new DividerAria(init as never, options as never);
+    case 'label':
+      return new LabelAria(init as never, options as never);
     case 'dialog':
       return new DialogAria(init as never, options as never);
     case 'dialog-trigger':
@@ -949,6 +1045,18 @@ export function aria(role: string, init?: unknown, options?: unknown): unknown {
       return new CheckboxGroupAria(init as never);
     case 'listbox':
       return new ListboxAria(init as never);
+    case 'gallery':
+      return new GalleryAria(init as never);
+    case 'image-segments':
+      return new ImageSegmentsAria(init as never);
+    case 'image-viewer':
+      return new ImageViewerAria(init as never);
+    case 'stage':
+      return new StageAria(init as never);
+    case 'timeline-ruler':
+      return new TimelineRulerAria(init as never);
+    case 'fullscreen-toggle':
+      return new FullscreenToggleAria(init as never, options as never);
     case 'grid':
       return new GridAria(init as never);
     case 'treegrid':
@@ -982,6 +1090,10 @@ export function aria(role: string, init?: unknown, options?: unknown): unknown {
       return new DatePickerAria(init as never, options as never);
     case 'date-range-picker':
       return new DateRangePickerAria(init as never, options as never);
+    case 'time-picker':
+      return new TimePickerAria(init as never, options as never);
+    case 'time-segment':
+      return new TimeSegmentAria(init as never, options as never);
     case 'date-picker-input':
       return new DatePickerInputAria(init as never, options as never);
     case 'date-picker-trigger':
@@ -1059,6 +1171,8 @@ export function aria(role: string, init?: unknown, options?: unknown): unknown {
       return new TreeItemAria(init as never);
     case 'tree-group':
       return new TreeGroupAria(init as never);
+    case 'tree-toggle':
+      return new TreeToggleAria(init as never);
     case 'reorder':
       return new ReorderAria(init as never);
     case 'reorder-item':
@@ -1067,6 +1181,14 @@ export function aria(role: string, init?: unknown, options?: unknown): unknown {
       return new ReorderHandleAria(init as never, options as never);
     case 'window-desktop':
       return new WindowDesktopAria(init as never, options as never);
+    case 'desktop-widgets':
+      return new DesktopWidgetsAria(init as never, options as never);
+    case 'desktop-widget':
+      return new DesktopWidgetAria(init as never, options as never);
+    case 'dock':
+      return new DockAria(init as never, options as never);
+    case 'dock-region':
+      return new DockRegionAria(init as never, options as never);
     case 'window':
       return new WindowAria(init as never, options as never);
     case 'window-drag':

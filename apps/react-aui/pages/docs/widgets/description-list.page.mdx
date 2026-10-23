@@ -1,0 +1,124 @@
+---
+title: AUI Description List
+nav: Description List
+nav-priority: 456
+description: Facts about one thing as label and value — when, where, who — beside each other or stacked, announced as a description list.
+keywords: [React description list, key value list, details list, dl dt dd, React AUI description list, accessible details]
+---
+
+# AUI Description List
+
+A booking confirmation, an order summary, a file's details: facts about one thing, each a label and its value. Laid out with divs, they read to a screen reader as loose text, with nothing tying "Room 4" to "Where". Laid out with `<dl>`, they pair up — but then every screen needs the same column alignment and the same fallback for narrow widths.
+
+**AUI Description List** gives you the paired markup and the layout together. Hand it the facts as data, and pick whether labels sit beside their values or above them.
+
+:::interactive[Description list demo]
+
+```tsx
+import { DescriptionList, ToggleGroup, Toggle } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { GlassStage } from '@/components/GlassStage.js';
+
+const DescriptionListDemo = setup(() => {
+  const state = mutable({ layout: 'inline' as 'inline' | 'stacked' });
+
+  return () => (
+    <div className="demo-button">
+      <ToggleGroup required value={$bind(state, 'layout')} aria-label="Layout">
+        <Toggle value="inline">Inline</Toggle>
+        <Toggle value="stacked">Stacked</Toggle>
+      </ToggleGroup>
+      <Snippet>
+        {() => (
+          <GlassStage>
+            <DescriptionList
+              layout={state.layout}
+              items={[
+                { label: 'When', value: 'Tue, Oct 27 · 9:00–9:30' },
+                { label: 'Where', value: 'Room 4, second floor' },
+                { label: 'Organizer', value: 'Maya Chen' },
+              ]}
+            />
+          </GlassStage>
+        )}
+      </Snippet>
+    </div>
+  );
+}, 'DescriptionListDemo');
+```
+
+```html
+<DescriptionListDemo />
+```
+
+<DescriptionListDemo />
+
+:::
+
+## Usage
+
+### Facts as data
+
+Pass the facts in order as `items`, each a `label` and a `value`:
+
+```tsx
+import { DescriptionList } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/data-display.css';
+
+<DescriptionList
+  items={[
+    { label: 'Order', value: '#2041' },
+    { label: 'Placed', value: 'Oct 24, 2026' },
+    { label: 'Ships to', value: 'Jl. Sudirman 12, Jakarta' },
+  ]}
+/>
+```
+
+Each label is announced with its own value. Because the facts are data, the same list can come from your API, a form's draft, or an assistant's answer without any markup of its own.
+
+The stylesheet carries the [List](/docs/widgets/list), Description List, and [Stat](/docs/widgets/stat) together.
+
+### Beside or above
+
+`layout` picks how a label meets its value:
+
+- `inline` (default) — labels in one column, values beside them. Good for short values in a wide space.
+- `stacked` — each label above its value. Good for long values, narrow panels, and phones.
+
+```tsx
+<DescriptionList layout="stacked" items={shippingDetails} />
+```
+
+### Something else inside
+
+Children go inside the list, after the facts — a note about them, a link to the full record, an action:
+
+```tsx
+<DescriptionList items={orderFacts}>
+  <Link href="/orders/2041">View the full order</Link>
+</DescriptionList>
+```
+
+### Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `items` | `{ label: string, value: string }[]` | — | The facts, in order. |
+| `layout` | `'inline'`, `'stacked'` | `'inline'` | Labels beside their values, or above them. |
+| `size` / `color` | shared vocabulary | `'md'` / `'primary'` | |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `children` | `ReactNode` | — | Anything else the list holds, after the facts. |
+
+Set app-wide defaults once:
+
+```tsx
+import { configure } from '@airlib/react-aui';
+
+configure({ descriptionList: { className: 'details' } });
+```
+
+## Next Steps
+
+- [List](/docs/widgets/list) — Many things in rows, rather than facts about one.
+- [Stat](/docs/widgets/stat) — One number that matters most, with how it moved.
+- [Card](/docs/widgets/card) — A surface to group the facts with a title and actions.

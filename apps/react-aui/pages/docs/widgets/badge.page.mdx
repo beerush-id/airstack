@@ -19,6 +19,7 @@ import { Badge, Button } from '@airlib/react-aui';
 import { HelpIcon } from '@airlib/react-aui/icons';
 import { $bind, mutable, setup, Snippet } from '@airlib/react';
 import { DemoControl } from '@/components/DemoControl.js';
+import { GlassStage } from '@/components/GlassStage.js';
 
 const BadgeDemo = setup(() => {
   const state = mutable({ unread: 3, size: 'md', color: 'error', disabled: false });
@@ -28,24 +29,26 @@ const BadgeDemo = setup(() => {
       <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} />
       <Snippet>
         {() => (
-          <div className="aui-card flex gap-xl items-center justify-center p-xl">
-            <Button variant="tonal" size={state.size} onClick={() => (state.unread += 1)}>
-              Inbox
-              <Snippet>
-                {() => <Badge count={state.unread} label={`${state.unread} unread messages`} color={state.color} />}
-              </Snippet>
-            </Button>
-            <Button variant="tonal" size={state.size} className="aui-control-icon" aria-label="Help">
-              <HelpIcon />
-              <Badge dot label="New activity" color={state.color} />
-            </Button>
-            <Badge size={state.size} color={state.color} variant="tonal">
-              Beta
-            </Badge>
-            <Button variant="text" onClick={() => (state.unread = 0)}>
-              Mark all read
-            </Button>
-          </div>
+          <GlassStage>
+            <div className="flex gap-xl items-center justify-center">
+              <Button variant="tonal" size={state.size} onClick={() => (state.unread += 1)}>
+                Inbox
+                <Snippet>
+                  {() => <Badge count={state.unread} label={`${state.unread} unread messages`} color={state.color} />}
+                </Snippet>
+              </Button>
+              <Button variant="tonal" size={state.size} className="aui-control-icon" aria-label="Help">
+                <HelpIcon />
+                <Badge dot label="New activity" color={state.color} />
+              </Button>
+              <Badge size={state.size} color={state.color} variant="tonal">
+                Beta
+              </Badge>
+              <Button variant="text" onClick={() => (state.unread = 0)}>
+                Mark all read
+              </Button>
+            </div>
+          </GlassStage>
         )}
       </Snippet>
     </div>
@@ -133,4 +136,4 @@ configure({ badge: { color: 'error', size: 'sm' } });
 
 - [Avatar](/docs/widgets/avatar) — The picture a presence dot usually sits on.
 - [Button](/docs/widgets/button) — The most common element to put a count on.
-- [Toast](/docs/widgets/toast) — For news that deserves a message, not just a number.
+- [Toast](/docs/composites/toast) — For news that deserves a message, not just a number.

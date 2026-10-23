@@ -1,17 +1,24 @@
 @import './button.css';
+@import './glass.css';
+@import './glint.css';
 
 /*
- * Shared modal sheet: the scrim, the centred surface, its heading and its
- * explanation — worn by Dialog and Confirm alike. Buttons placed straight in
- * the sheet line up as its action row; anything else takes a full line.
+ * Shared modal sheet, worn by Dialog, Confirm, and Drawer alike: a window over
+ * the page. Its frame is glass like every floating surface and catches the
+ * pointer's light; its content sits on a solid surface inside the frame
+ * (`glass.css` lists both). On the surface, buttons placed straight in line up
+ * as its action row, and anything else takes a full line.
  */
 @layer theme {
   :root {
-    --aui-modal-bg: var(--color-surface-container-high);
     --aui-modal-fg: var(--color-on-surface);
     --aui-modal-radius: var(--radius-xl);
+    /* The frame's rim around the content surface: the glass inset a window's frame leaves around its panels. */
+    --aui-modal-frame: var(--aui-glass-inset);
     --aui-modal-padding: var(--spacing-lg);
     --aui-modal-gap: var(--spacing-md);
+    /* The room above the action row: the foot stands apart from what it acts on. */
+    --aui-modal-actions-gap: calc(var(--aui-modal-gap) * 1.5);
     --aui-modal-max-width: calc(var(--spacing) * 140);
     --aui-modal-scrim: color-mix(in oklch, var(--color-scrim) 32%, transparent);
   }
@@ -29,13 +36,16 @@
     }
   }
 
-  .aui-modal:has(> .aui-modal-panel[aria-modal='true']:not([hidden]))::before {
-    content: '';
+  /* The layer beside an open sheet, between it and the page; it dims the page only while the sheet is modal. */
+  .aui-modal-scrim {
     position: fixed;
     inset: 0;
     z-index: calc(var(--z-index-modal) - 1);
-    background: var(--aui-modal-scrim);
     pointer-events: none;
+
+    &:has(+ .aui-modal-panel[aria-modal='true']:not([hidden])) {
+      background: var(--aui-modal-scrim);
+    }
   }
 
   .aui-modal-panel {
@@ -43,26 +53,26 @@
     inset: 0;
     z-index: var(--z-index-modal);
     display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    align-items: center;
-    align-content: flex-start;
-    gap: var(--aui-modal-gap) var(--spacing-sm);
+    flex-direction: column;
     margin: auto;
     inline-size: min(100% - (var(--spacing-md) * 2), var(--aui-modal-max-width));
     block-size: fit-content;
     max-block-size: calc(100dvh - (var(--spacing-md) * 2));
-    overflow-y: auto;
-    padding: var(--aui-modal-padding);
-    background-color: var(--aui-modal-bg);
-    color: var(--aui-modal-fg);
-    border-radius: var(--aui-modal-radius);
-    box-shadow: var(--elevation-4);
+    padding: var(--aui-modal-frame);
+    /* The frame lifts highest of all; the content surface inside carries the reading. */
+    --aui-glass-fg: var(--aui-modal-fg);
+    --aui-glass-radius: var(--aui-modal-radius);
+    --aui-glass-shadow: var(--elevation-4);
+    /*
+     * The content's corners, as a window's panels take theirs: the frame's minus its rim and 1px
+     * edge, so the two stay concentric; where the frame's corner is square, a small rounding of its own.
+     */
+    --aui-modal-content-edge-radius: calc(var(--aui-modal-frame) * 2);
+    --aui-modal-content-radius: max(
+      calc(var(--aui-modal-radius) - var(--aui-modal-frame) - 1px),
+      var(--aui-modal-content-edge-radius)
+    );
     animation: aui-modal-enter var(--duration-medium) var(--ease-emphasized-decelerate);
-
-    & > :not(.aui-control) {
-      flex-basis: 100%;
-    }
 
     &[hidden] {
       display: none;
@@ -71,6 +81,28 @@
     &:focus-visible {
       outline: var(--focus-ring-width) var(--focus-ring-style) var(--focus-ring-color);
       outline-offset: calc(var(--focus-ring-offset) * -1);
+    }
+  }
+
+  .aui-modal-content {
+    display: flex;
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: center;
+    align-content: flex-start;
+    gap: var(--aui-modal-gap) var(--spacing-sm);
+    min-block-size: 0;
+    overflow-y: auto;
+    padding: var(--aui-modal-padding);
+    border-radius: var(--aui-modal-content-radius);
+
+    & > :not(.aui-control) {
+      flex-basis: 100%;
+    }
+
+    & > .aui-control {
+      margin-block-start: calc(var(--aui-modal-actions-gap) - var(--aui-modal-gap));
     }
   }
 

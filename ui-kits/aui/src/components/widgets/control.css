@@ -1,9 +1,17 @@
 @layer theme {
   :root {
-    --aui-control-bg: var(--color-surface-container);
+    --aui-control-bg: var(--color-container);
     --aui-control-fg: var(--color-on-surface);
     --aui-control-radius: var(--radius-lg);
     --aui-control-outline-color: transparent;
+
+    /*
+     * Hover halo for small grab-and-toggle targets (slider and switch thumbs, checkbox, radio):
+     * a ring a share of the control's height wide, tinted by its role.
+     */
+    --aui-halo-scale: 0.27;
+    --aui-halo-strength: 12%;
+    --aui-halo-shade: 10%;
 
     --aui-control-height: calc(var(--spacing) * 11);
     --aui-control-padding-x: calc(var(--spacing) * 6);
@@ -63,23 +71,35 @@
 
     transition-duration: var(--duration-short);
     transition-timing-function: var(--ease-emphasized);
-    transition-property: background-color, outline-color, color, border-color, border-width;
+    transition-property: background-color, outline-color, color, border-color, border-width, var(--aui-state-transitions);
 
     &:focus-visible {
       z-index: 1;
     }
 
-    & > .aui-icon:first-child {
+    /*
+     * An icon leads or trails its label span: nothing but icons before it, or after it. A lone
+     * icon is neither, so it keeps the control's own padding, and neither is an icon between
+     * two parts — a date range's arrow. Text beside an icon goes in a span, since bare text
+     * isn't a sibling the selectors can see. The checks weigh nothing, so a part that places its
+     * own icon — a select's caret pushed to the end — still wins.
+     */
+    & > .aui-icon:first-of-type:where(:not(:last-child):not(:not(.aui-icon) ~ *)) {
       margin-inline-start: calc((var(--aui-control-padding-x) / 2) * -1);
       margin-inline-end: calc(var(--aui-control-gap) / 2);
     }
 
-    & > .aui-icon:last-child {
+    & > .aui-icon:last-of-type:where(:not(:first-child):not(:has(~ :not(.aui-icon)))) {
       margin-inline-start: calc(var(--aui-control-gap) / 2);
       margin-inline-end: calc((var(--aui-control-padding-x) / 2) * -1);
     }
 
-    &:is(.aui-control-icon) {
+    /*
+     * A control holding nothing but an icon is square, without asking; text beside an icon sits in a
+     * span. The discovery weighs nothing, so a part that sizes its own icon button still wins.
+     */
+    &.aui-control-icon,
+    &:where(:has(> .aui-icon:only-child)) {
       margin: 0;
       padding: 0;
       width: var(--aui-control-height);
@@ -92,7 +112,7 @@
       }
     }
 
-    &[aria-expanded='true'] .aui-icon:last-child {
+    &[aria-expanded='true'] > .aui-icon:last-of-type:where(:not(:first-child):not(:has(~ :not(.aui-icon)))) {
       transform: rotate(180deg);
     }
   }
@@ -112,6 +132,30 @@
     border-width: 1px;
     color: var(--aui-control-bg);
     background-color: transparent;
+  }
+
+  /*
+   * Glass: the frosted pane windows and the dock sit on, for a control floating over other content.
+   * The role color tints the pane and inks what's on it. Every glass surface sets
+   * `--aui-glass-backdrop: none` for what's inside it, so a glass control on glass keeps its tint
+   * but not a second blur, which would only muddy it. Asked for less transparency, it turns solid.
+   */
+  .aui-control-glass {
+    --aui-control-outline-color: var(--aui-glass-edge, transparent);
+    border-width: 1px;
+    color: var(--aui-control-bg);
+    background-color: color-mix(
+      in oklch,
+      color-mix(in oklch, var(--aui-control-bg) 12%, var(--aui-glass-bg, var(--color-container-low)))
+        var(--aui-glass-tint, 55%),
+      transparent
+    );
+    backdrop-filter: var(--aui-glass-backdrop, blur(var(--aui-glass-blur, var(--size-sm))) saturate(1.4));
+
+    @media (prefers-reduced-transparency: reduce) {
+      background-color: color-mix(in oklch, var(--aui-control-bg) 12%, var(--aui-glass-bg, var(--color-container-low)));
+      backdrop-filter: none;
+    }
   }
 
   .aui-control-primary {
@@ -226,7 +270,7 @@
     input:not(:disabled),
     button:not(:disabled),
     [aria-pressed]:not([aria-disabled='true']),
-    [aria-checked]:not([aria-selected='true'])
+    [aria-checked]:not([aria-selected='true'], [aria-disabled='true'])
   ) {
     cursor: pointer;
     user-select: none;

@@ -17,6 +17,23 @@
       text-align: start;
     }
 
+    /* When the face is filled, the label stays as the trigger's name but leaves the view. */
+    & > .aui-select-placeholder[data-visually-hidden='true'] {
+      position: absolute;
+      inline-size: 1px;
+      block-size: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+
+    /* A filled face with a glyph lines the glyph up with its words. */
+    & > .aui-select-value:has(> .aui-icon) {
+      display: inline-flex;
+      align-items: center;
+      gap: calc(var(--aui-control-gap) / 2);
+    }
+
     /* "+2": how many more are chosen, kept whole beside the cut text. */
     & > .aui-select-count {
       flex: none;

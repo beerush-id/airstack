@@ -16,6 +16,7 @@
   "exports": {
     ".": "./src/index.css",
     "./bundle": "./dist/index.css",
+    "./bundle/desktop": "./dist/desktop.css",
     "./utils": {
       "types": "./dist/utils.d.ts",
       "development": "./src/utils.ts",

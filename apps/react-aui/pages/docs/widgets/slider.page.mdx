@@ -14,9 +14,10 @@ Styling is optional. Without AUI CSS the Slider stays a correct, operable contro
 :::interactive[Slider demo]
 
 ```tsx
-import { Slider, SliderThumb } from '@airlib/react-aui';
+import { Readout, Slider, SliderThumb } from '@airlib/react-aui';
 import { $bind, mutable, setup, Snippet } from '@airlib/react';
 import { DemoControl } from '@/components/DemoControl.js';
+import { GlassStage } from '@/components/GlassStage.js';
 
 const SliderDemo = setup(() => {
   const state = mutable({ 
@@ -32,8 +33,28 @@ const SliderDemo = setup(() => {
       <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} disabled={$bind(state, 'disabled')} />
       <Snippet>
         {() => (
-          <div className="aui-card flex gap-md items-center justify-center p-xl">
-            <div className="flex-1 flex-col gap-md">
+          <GlassStage>
+            <div className="flex gap-md items-center justify-center">
+              <div className="flex-1 flex-col gap-md">
+                <Slider
+                  value={$bind(state, 'volume')}
+                  min={0}
+                  max={100}
+                  step={1}
+                  size={state.size}
+                  color={state.color}
+                  disabled={state.disabled}
+                />
+                <Slider
+                  value={$bind(state, 'budgets')}
+                  min={0}
+                  max={1000}
+                  step={1}
+                  size={state.size}
+                  color={state.color}
+                  disabled={state.disabled}
+                />
+              </div>
               <Slider
                 value={$bind(state, 'volume')}
                 min={0}
@@ -42,6 +63,7 @@ const SliderDemo = setup(() => {
                 size={state.size}
                 color={state.color}
                 disabled={state.disabled}
+                orientation="vertical"
               />
               <Slider
                 value={$bind(state, 'budgets')}
@@ -51,36 +73,18 @@ const SliderDemo = setup(() => {
                 size={state.size}
                 color={state.color}
                 disabled={state.disabled}
+                orientation="vertical"
               />
             </div>
-            <Slider
-              value={$bind(state, 'volume')}
-              min={0}
-              max={100}
-              step={1}
-              size={state.size}
-              color={state.color}
-              disabled={state.disabled}
-              orientation="vertical"
-            />
-            <Slider
-              value={$bind(state, 'budgets')}
-              min={0}
-              max={1000}
-              step={1}
-              size={state.size}
-              color={state.color}
-              disabled={state.disabled}
-              orientation="vertical"
-            />
-          </div>
+          </GlassStage>
         )}
       </Snippet>
       <Snippet>
         {() => (
-          <p>
-            Volume: {JSON.stringify(state.volume)}, Budgets: {JSON.stringify(state.budgets)}
-          </p>
+          <div className="flex flex-wrap gap-lg">
+            <Readout label="Volume" value={state.volume} />
+            <Readout label="Budgets" value={state.budgets} />
+          </div>
         )}
       </Snippet>
     </div>
@@ -123,7 +127,7 @@ For the full library — tokens, base defaults, every component, and the utiliti
 | `orientation` | `'horizontal'`, `'vertical'` | `'horizontal'` | The axis the slider steps along. |
 | `valuetext` | `string`, `(val: number) => string` | — | What the value is announced as; without it assistive tech reads the bare number. |
 | `disabled` | `boolean` | `false` | Locks stepping and dragging, and takes the control out of the tab order. |
-| `size` | `xs`, `sm`, `md`, `lg`, `xl`, `xxl` | `'md'` | Explicit props win; otherwise the configured default applies. |
+| `size` | `xs`, `sm`, `md`, `lg`, `xl`, `xxl` | `'sm'` | Explicit props win; otherwise the configured default applies. |
 | `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | Same precedence as `size`. |
 | `oninput` | `(event: CustomEvent<...>) => void` | — | Fires with the live value after every step and drag move. |
 | `onchange` | `(event: CustomEvent<...>) => void` | — | Fires with the committed value when the interaction ends. |
@@ -161,4 +165,4 @@ Keyboard: `ArrowRight` / `ArrowUp` step up by `step`, `ArrowLeft` / `ArrowDown` 
 
 - [Switch](/docs/widgets/switch) — A binary control announcing as on-off instead of a number.
 - [Checkbox](/docs/widgets/checkbox) — Independent marks with their own tab stops.
-- [Select](/docs/widgets/select) — A bounded choice folded into a closed control.
+- [Select](/docs/composites/select) — A bounded choice folded into a closed control.

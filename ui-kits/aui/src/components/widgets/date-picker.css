@@ -115,6 +115,13 @@
     inline-size: max-content;
   }
 
+  /* Drawn in place, the calendar is a block of whatever holds it: no surface, no float, no padding of its own. */
+  .aui-date-picker-inline {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+  }
+
   /*
    * The grid decides the calendar's width; the header claims none of its own
    * (zero basis, full minimum), so its steppers land over the first and last

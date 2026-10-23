@@ -1,6 +1,6 @@
 import { aria } from '@airlib/aria';
 import { AUI_CLASS, register } from '@airlib/aui/utils';
-import { $static, type AnyType, type Bindable, setup } from '@airlib/react';
+import { $static, type AnyType, type Bindable, setup, teleport } from '@airlib/react';
 import type { ReactNode } from 'react';
 import { $families, auiConfig, type ComponentStyles, OMIT_KEYS } from '../config.js';
 import type { OverlayTriggerMode, OverlayXDirection, OverlayYDirection, PopoverRole } from './overlay.js';
@@ -35,9 +35,13 @@ export const Popover = setup<PopoverProps>((props) => {
   const popover = aria(POPOVER_ROLE, props as AnyType, { popupRole });
   const className = () => $families([AUI_CLASS.PANEL, AUI_CLASS.POPOVER], props, auiConfig.popover);
 
-  return () => (
-    <div ref={popover.ref} {...popover.restProps(OMIT_KEYS)} className={className()}>
-      {props.children}
-    </div>
-  );
+  // Teleported to the page while open, so no ancestor's overflow, stacking, or containing block can trap it.
+  return () => {
+    if (!popover.open) return null;
+    return teleport(
+      <div ref={popover.ref} {...popover.restProps(OMIT_KEYS)} className={className()}>
+        {props.children}
+      </div>
+    );
+  };
 }, 'Popover');

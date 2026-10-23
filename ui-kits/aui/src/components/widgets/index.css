@@ -24,6 +24,7 @@
 @import './divider.css';
 @import './image.css';
 @import './avatar.css';
+@import './app-icon.css';
 @import './switch.css';
 @import './select.css';
 @import './navigation.css';
@@ -31,10 +32,17 @@
 @import './toolbar.css';
 @import './pagination.css';
 @import './field.css';
+@import './label.css';
 @import './text-input.css';
 @import './code-input.css';
 @import './file-picker.css';
 @import './listbox.css';
+@import './gallery.css';
+@import './image-viewer.css';
+@import './segments.css';
+@import './composer.css';
+@import './stage.css';
+@import './timeline.css';
 @import './combobox.css';
 @import './chip.css';
 @import './tag-input.css';
@@ -46,8 +54,6 @@
 @import './dialog.css';
 @import './confirm.css';
 @import './drawer.css';
-@import './window.css';
-@import './dock.css';
 @import './command-palette.css';
 @import './context-menu.css';
 @import './announcer.css';
@@ -62,3 +68,6 @@
 @import './carousel.css';
 @import './stepper.css';
 @import './splitter.css';
+@import './markdown.css';
+@import './time-picker.css';
+@import './data-display.css';

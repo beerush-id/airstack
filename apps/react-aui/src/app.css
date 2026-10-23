@@ -1,7 +1,9 @@
-@layer theme, base, mdx, demo, component, utility, reduced-motion;
+@layer reset, mdx, demo, aui, theme, base, component, utility, reduced-motion;
 
+@import '@airlib/aui/base/reset.css' layer(reset);
 @import '@airlib/react/mdx/default.css' layer(mdx);
 @import '@airlib/aui/index.css';
+@import '@airlib/aui/desktop.css';
 
 @layer theme {
   :root {
@@ -10,8 +12,13 @@
     /*--color-primary: light-dark(#f4641b, #fbd049);*/
   }
 
-  :root:has([data-theme='dark']) {
+  /* The theme switch's choice; without one, the page follows the system. */
+  :root[data-theme='dark'] {
     color-scheme: only dark;
+  }
+
+  :root[data-theme='light'] {
+    color-scheme: only light;
   }
 }
 
@@ -33,7 +40,7 @@
     --air-mdx-bg-inner: var(--color-surface-lowest);
     --air-mdx-code-bg: var(--color-surface-low);
     --air-mdx-code-text: var(--color-on-surface);
-    --air-mdx-border: var(--color-surface-container);
+    --air-mdx-border: var(--color-surface-high);
     --air-mdx-font: var(--font-sans), system-ui, sans-serif;
     --air-mdx-font-mono: var(--font-mono), ui-monospace, monospace;
 
@@ -50,7 +57,7 @@
       border-radius: var(--radius-sm);
 
       &:hover {
-        background-color: var(--color-surface-container);
+        background-color: var(--color-container);
       }
 
       &.active {
@@ -94,11 +101,33 @@
   }
 
   .docs-header-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm);
     font-size: var(--font-title-md-size);
     font-weight: var(--font-title-md-weight);
     letter-spacing: var(--font-title-md-tracking);
     text-decoration: none;
     color: var(--color-on-surface);
+  }
+
+  /* The mark, painted from the primary tokens so it follows the theme's seed and scheme. */
+  .brand-logo {
+    flex: none;
+    inline-size: 1.75em;
+    block-size: 1.75em;
+  }
+
+  .brand-logo-frame {
+    fill: var(--color-primary-container);
+  }
+
+  .brand-logo-surface {
+    fill: var(--color-primary);
+  }
+
+  .brand-logo-ripple {
+    fill: var(--color-on-primary);
   }
 
   .docs-header-nav {
@@ -157,7 +186,7 @@
     }
 
     .docs-header-toggle:hover {
-      background: var(--color-surface-container-high);
+      background: var(--color-container-high);
     }
   }
 
@@ -245,7 +274,7 @@
     gap: calc(var(--spacing) * 4);
     padding: calc(var(--spacing) * 2) calc(var(--spacing) * 4);
     border-radius: var(--radius-md);
-    background: var(--color-surface-container-low);
+    background: var(--color-container-low);
   }
 
   .demo-spacing-row + .demo-spacing-row {
@@ -285,7 +314,7 @@
     min-inline-size: 0;
     min-block-size: calc(var(--spacing) * 24);
     padding: calc(var(--spacing) * 3);
-    background: var(--color-surface-container-low);
+    background: var(--color-container-low);
     border: 1px solid var(--color-outline-variant);
     color: var(--color-on-surface-variant);
     font-family: var(--font-mono);
@@ -297,7 +326,7 @@
     display: flex;
     flex-direction: column;
     border-radius: var(--radius-md);
-    background: var(--color-surface-container-lowest);
+    background: var(--color-surface-lowest);
     border: 1px solid var(--color-outline-variant);
     overflow: hidden;
   }
@@ -319,6 +348,46 @@
     color: var(--color-primary);
   }
 
+  /* Utility demos: one labelled row per utility, tinted tiles show the effect. */
+  .demo-util {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+    padding: var(--spacing-lg);
+  }
+
+  .demo-util-row {
+    display: grid;
+    grid-template-columns: minmax(calc(var(--spacing) * 32), auto) 1fr;
+    align-items: center;
+    gap: var(--spacing-md);
+  }
+
+  .demo-util-stage {
+    min-inline-size: 0;
+    border-radius: var(--radius-md);
+    background-color: var(--color-surface-high);
+  }
+
+  /* The tinted area a padding or margin utility creates. */
+  .demo-util-space {
+    border-radius: var(--radius-md);
+    background-color: color-mix(in oklch, var(--color-primary) 16%, var(--color-surface-high));
+  }
+
+  .demo-util-tile {
+    display: grid;
+    place-items: center;
+    min-block-size: calc(var(--spacing) * 10);
+    min-inline-size: calc(var(--spacing) * 10);
+    padding-inline: var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    background-color: var(--color-primary-container);
+    color: var(--color-on-primary-container);
+    font-size: var(--font-label-md-size);
+    font-weight: 500;
+  }
+
   .demo-elevation-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -337,7 +406,7 @@
     min-inline-size: 0;
     min-block-size: calc(var(--spacing) * 24);
     padding: calc(var(--spacing) * 3);
-    background: var(--color-surface-container-low);
+    background: var(--color-container-low);
     color: var(--color-on-surface-variant);
     border-radius: var(--radius-lg);
     font-family: var(--font-mono);
@@ -369,7 +438,7 @@
     flex: 1;
     min-inline-size: 0;
     block-size: calc(var(--spacing) * 8);
-    background: var(--color-surface-container-high);
+    background: var(--color-container-high);
     border-radius: var(--radius-full);
     overflow: hidden;
   }
@@ -396,6 +465,37 @@
 
 /* Living showcase: shared by the docs overview and the landing page. */
 @layer demo {
+  .demo-desktop {
+    block-size: calc(var(--spacing) * 110);
+    padding: 0;
+  }
+
+  /* A neutral backdrop, a few steps darker than the page, for demos whose own surface is the point — a card's, say. */
+  .demo-stage {
+    padding: var(--spacing-xl);
+    border-radius: var(--radius-xl);
+    background-color: var(--color-surface-high);
+
+    /* A card narrowed by its demo — a form's reading width — sits in the middle of the stage. */
+    & > .aui-card {
+      margin-inline: auto;
+    }
+  }
+
+  /* A window-like glass frame holding panes, each concentric with its corners. */
+  .demo-window {
+    display: flex;
+    padding: var(--spacing-sm);
+  }
+
+  .demo-pane {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: calc(var(--aui-glass-radius) - var(--spacing-sm));
+  }
+
+
   .showcase {
     display: flex;
     flex-direction: column;
@@ -452,8 +552,8 @@
   .landing {
     display: flex;
     flex-direction: column;
-    gap: calc(var(--spacing) * 20);
-    max-inline-size: 72rem;
+    gap: calc(var(--spacing) * 36);
+    max-inline-size: 84rem;
     margin-inline: auto;
     padding: calc(var(--spacing) * 16) var(--spacing-md) calc(var(--spacing) * 24);
   }
@@ -464,6 +564,19 @@
     align-items: center;
     gap: var(--spacing-lg);
     text-align: center;
+
+    & .landing-ctas {
+      justify-content: center;
+    }
+  }
+
+  .landing-pill {
+    padding: var(--spacing-xs) var(--spacing-md);
+    border-radius: var(--radius-full);
+    background-color: color-mix(in oklch, var(--color-primary) var(--tone-container-strength), transparent);
+    color: var(--color-primary);
+    font-size: var(--font-label-lg-size);
+    font-weight: 500;
   }
 
   .landing-eyebrow {
@@ -476,9 +589,8 @@
 
   .landing-title {
     margin: 0;
-    max-inline-size: 16ch;
     font-family: var(--font-brand, var(--font-sans));
-    font-size: clamp(2.5rem, 6vw, 4.5rem);
+    font-size: clamp(2.75rem, 6vw, 4.75rem);
     font-weight: 700;
     line-height: 1.05;
     letter-spacing: -0.02em;
@@ -487,17 +599,16 @@
 
   .landing-lead {
     margin: 0;
-    max-inline-size: 52ch;
+    max-inline-size: 58ch;
     color: var(--color-on-surface-variant);
-    font-size: var(--font-title-sm-size);
-    line-height: 1.5;
+    font-size: clamp(1.0625rem, 1.6vw, 1.25rem);
+    line-height: 1.55;
     text-wrap: pretty;
   }
 
   .landing-ctas {
     display: flex;
     flex-wrap: wrap;
-    justify-content: center;
     gap: var(--spacing-sm);
     text-decoration: none;
 
@@ -509,44 +620,36 @@
   .landing-install {
     padding: var(--spacing-sm) var(--spacing-md);
     border-radius: var(--radius-sm);
-    background: var(--color-surface-container);
+    background: var(--color-container);
     font-family: var(--font-mono);
     font-size: var(--font-label-lg-size);
     user-select: all;
   }
 
-  .landing-section {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-lg);
-  }
-
   .landing-heading {
     margin: 0;
-    font-size: var(--font-title-lg-size);
-    font-weight: var(--font-title-lg-weight);
+    font-family: var(--font-brand, var(--font-sans));
+    font-size: clamp(1.75rem, 3.2vw, 2.5rem);
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
     text-wrap: balance;
   }
 
-  .landing-subheading {
-    margin: 0;
-    max-inline-size: 60ch;
-    color: var(--color-on-surface-variant);
-  }
-
-  .landing-cards {
+  /* What AUI gives you, at a glance: one card per promise. */
+  .landing-pillars {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
     gap: var(--spacing-md);
   }
 
-  .landing-card {
+  .landing-pillar {
     display: flex;
     flex-direction: column;
     gap: var(--spacing-sm);
     padding: var(--spacing-lg);
 
-    & h3 {
+    & h2 {
       margin: 0;
       font-size: var(--font-title-sm-size);
       font-weight: var(--font-title-sm-weight);
@@ -556,14 +659,126 @@
       margin: 0;
       color: var(--color-on-surface-variant);
     }
+  }
 
+  /* A claim beside the live demo that proves it; every other row puts the demo first. */
+  .landing-feature {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    align-items: center;
+    gap: calc(var(--spacing) * 12);
+
+    @media (width < 64rem) {
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--spacing-xl);
+    }
+  }
+
+  @media (width >= 64rem) {
+    .landing-feature-flip {
+      grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+
+      & > .landing-feature-text {
+        order: 2;
+      }
+    }
+  }
+
+  .landing-feature-text {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+
+    & p {
+      margin: 0;
+      color: var(--color-on-surface-variant);
+      line-height: 1.6;
+    }
+  }
+
+  .landing-feature-demo {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    min-inline-size: 0;
+  }
+
+  .landing-more {
+    color: var(--color-primary);
+    font-weight: 500;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  /* An app beside a chat with its agent; on narrow screens the chat drops below. */
+  .landing-duo {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+    align-items: start;
+    gap: var(--spacing-lg);
+  }
+
+  /* The demo app carries its own theme: its tokens resolve against its own color scheme. */
+  .landing-app {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-lg);
+    background-color: var(--color-surface);
+    color: var(--color-on-surface);
+    transition: background-color var(--duration-medium) var(--ease-emphasized);
+
+    &[data-theme='dark'] {
+      color-scheme: only dark;
+    }
+
+    &[data-theme='light'] {
+      color-scheme: only light;
+    }
+  }
+
+  .landing-app-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-sm);
+  }
+
+  /* Each message is its own glass card: yours on the end side, the agent's reply on the start. */
+  .landing-chat {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+
+    & p {
+      margin: 0;
+    }
+  }
+
+  .landing-chat-user {
+    align-self: flex-end;
+    max-inline-size: 85%;
+  }
+
+  /* An invitation to check the claim yourself, under its demo. */
+  .landing-proof {
+    margin: 0;
+    color: var(--color-on-surface-variant);
+    font-size: var(--font-label-lg-size);
   }
 }
 
 /* Site footer. */
 @layer demo {
   .site-footer {
-    background: var(--color-surface-container);
+    background: var(--color-surface-lowest);
     color: var(--color-on-surface-variant);
     font-size: var(--font-label-lg-size);
 

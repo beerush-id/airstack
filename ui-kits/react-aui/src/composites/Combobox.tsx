@@ -55,6 +55,10 @@ export type ComboboxInputProps = AuiFieldProps<'input'> & {
   label?: string;
   disabled?: boolean;
   placeholder?: string;
+  /** Whether the field shows the chosen labels while not filtering; off when chips already show them. */
+  echo?: boolean;
+  /** What the panel lines up with: the input, or the shell around it (`'parent'`). */
+  anchor?: 'self' | 'parent';
   children?: (input: ComboboxRef) => ReactNode;
 };
 

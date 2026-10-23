@@ -18,6 +18,7 @@ import { Button } from '@airlib/react-aui';
 import { HelpIcon } from '@airlib/react-aui/icons';
 import { mutable, setup, $bind, Snippet } from '@airlib/react';
 import { DemoControl } from '@/components/DemoControl.js';
+import { GlassStage } from '@/components/GlassStage.js';
 
 const ButtonDemo = setup(() => {
   const state = mutable({ count: 0, size: 'md', variant: 'filled', color: 'primary', disabled: false });
@@ -27,45 +28,47 @@ const ButtonDemo = setup(() => {
       <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} variant={$bind(state, 'variant')} disabled={$bind(state, 'disabled')} />
       <Snippet>
         {() => (
-          <div className="aui-card flex gap-md items-center justify-center p-xl">
-            <Button
-              size={state.size}
-              variant={state.variant}
-              color={state.color}
-              disabled={state.disabled}
-              onClick={() => {
-                state.count += 1;
-              }}
-            >
-              Clicks: <Snippet>{() => state.count}</Snippet>
-            </Button>
-            <Button
-              size={state.size}
-              variant={state.variant}
-              color={state.color}
-              disabled={state.disabled}
-              onClick={() => {
-                state.count += 1;
-              }}
-            >
-              <HelpIcon />
-              <span>
+          <GlassStage>
+            <div className="flex gap-md items-center justify-center">
+              <Button
+                size={state.size}
+                variant={state.variant}
+                color={state.color}
+                disabled={state.disabled}
+                onClick={() => {
+                  state.count += 1;
+                }}
+              >
                 Clicks: <Snippet>{() => state.count}</Snippet>
-              </span>
-            </Button>
-            <Button
-              size={state.size}
-              variant={state.variant}
-              color={state.color}
-              disabled={state.disabled}
-              onClick={() => {
-                state.count += 1;
-              }}
-              className="aui-control-icon"
-            >
-              <HelpIcon />
-            </Button>
-          </div>
+              </Button>
+              <Button
+                size={state.size}
+                variant={state.variant}
+                color={state.color}
+                disabled={state.disabled}
+                onClick={() => {
+                  state.count += 1;
+                }}
+              >
+                <HelpIcon />
+                <span>
+                  Clicks: <Snippet>{() => state.count}</Snippet>
+                </span>
+              </Button>
+              <Button
+                size={state.size}
+                variant={state.variant}
+                color={state.color}
+                disabled={state.disabled}
+                onClick={() => {
+                  state.count += 1;
+                }}
+                className="aui-control-icon"
+              >
+                <HelpIcon />
+              </Button>
+            </div>
+          </GlassStage>
         )}
       </Snippet>
     </div>
@@ -99,7 +102,7 @@ For the full library — tokens, base defaults, every component, and the utiliti
 | `type` | `'button'`, `'submit'`, `'reset'` | `'button'` | What a click does in a form. Leave it and a click never submits. |
 | `disabled` | `boolean` | `false` | Locks the button and announces it as disabled. |
 | `size` | `xs`, `sm`, `md`, `lg`, `xl`, `xxl` | `'md'` | Explicit props win; otherwise the configured default applies. |
-| `variant` | `filled`, `elevated`, `tonal`, `outlined`, `text` | `'filled'` | Same precedence as `size`. |
+| `variant` | `filled`, `elevated`, `tonal`, `outlined`, `text`, `glass` | `'filled'` | Same precedence as `size`. |
 | `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | Same precedence as `size`. |
 | `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
 | `children` | `ReactNode` | — | Button label. |
@@ -138,14 +141,17 @@ Sizes: `xs`, `sm`, `md`, `lg`, `xl`, `xxl`, default `md`:
 
 ### Variants
 
-Variants: `filled`, `elevated`, `tonal`, `outlined`, `text`, default `filled`:
+Variants: `filled`, `elevated`, `tonal`, `outlined`, `text`, `glass`, default `filled`:
 
 ```tsx
 <Button variant="filled">High emphasis</Button>
 <Button variant="tonal">Medium emphasis</Button>
 <Button variant="outlined">Medium emphasis, bordered</Button>
 <Button variant="text">Low emphasis</Button>
+<Button variant="glass">Over a wallpaper or an image</Button>
 ```
+
+`glass` is a frosted pane tinted by the color, for a button floating over other content: a desktop, a photo, a video. On another glass surface — a window, the dock, a popup — it keeps its tint and edge but skips a second blur, and when people ask for less transparency it turns solid.
 
 ### Color Variants
 
@@ -161,4 +167,4 @@ Colors: `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info
 - [Link](/docs/widgets/link) — A trigger that navigates instead of acting, with disabled cancellation and the current-page mark.
 - [Toggle](/docs/widgets/toggle) — A button that keeps its state: for on/off controls instead of fire-and-forget actions.
 - [Divider](/docs/widgets/divider) — The structural boundary to place between sections instead of an empty margin rule.
-- [Select](/docs/widgets/select) — Collapse several choices behind one trigger instead of spreading buttons across the page.
+- [Select](/docs/composites/select) — Collapse several choices behind one trigger instead of spreading buttons across the page.

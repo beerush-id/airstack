@@ -1,0 +1,137 @@
+@import './image.css';
+@import './item.css';
+
+/*
+ * Tiles that wrap into rows, each a picture with an optional caption. A tile tints with its role
+ * color on hover, and while picked it keeps the tint plus a ring and a check, so several picked
+ * tiles still read apart. The picture's corners stay concentric with the tile's.
+ */
+@layer theme {
+  :root {
+    --aui-gallery-gap: var(--spacing-sm);
+    --aui-gallery-tile: 10rem;
+    --aui-gallery-ratio: 1;
+    --aui-gallery-radius: var(--radius-md);
+    --aui-gallery-padding: var(--spacing-xs);
+  }
+}
+
+@layer component {
+  .aui-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--aui-gallery-tile)), 1fr));
+    gap: var(--aui-gallery-gap);
+    outline: none;
+  }
+
+  .aui-gallery-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    min-inline-size: 0;
+    padding: var(--aui-gallery-padding);
+    border-radius: var(--aui-gallery-radius);
+    color: var(--color-on-surface);
+    cursor: pointer;
+    user-select: none;
+    outline: none;
+    transition-property: background-color, box-shadow;
+    transition-duration: var(--duration-short);
+    transition-timing-function: var(--ease-emphasized);
+
+    &:hover:not([aria-disabled='true']) {
+      background-color: color-mix(in oklch, var(--aui-item-bg) var(--tone-hover-strength), transparent);
+    }
+
+    &:focus-visible {
+      box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring-color);
+    }
+
+    &[aria-selected='true'] {
+      background-color: color-mix(in oklch, var(--aui-item-bg) var(--tone-container-strength), transparent);
+      box-shadow: inset 0 0 0 2px var(--aui-item-bg);
+    }
+
+    &[aria-selected='true']:focus-visible {
+      box-shadow:
+        inset 0 0 0 2px var(--aui-item-bg),
+        0 0 0 var(--focus-ring-width) var(--focus-ring-color);
+    }
+
+    &[aria-disabled='true'] {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+
+    /* The check sits on the picture's corner, inside the tile's padding. */
+    & > .aui-icon {
+      --aui-icon-size: 1rem;
+      position: absolute;
+      inset-block-start: calc(var(--aui-gallery-padding) + var(--spacing-xs));
+      inset-inline-end: calc(var(--aui-gallery-padding) + var(--spacing-xs));
+      inline-size: calc(var(--aui-icon-size) + var(--spacing-xs));
+      block-size: calc(var(--aui-icon-size) + var(--spacing-xs));
+      padding: calc(var(--spacing-xs) / 2);
+      border-radius: var(--radius-full);
+      background-color: var(--aui-item-bg);
+      color: var(--aui-item-fg);
+      box-shadow: var(--elevation-1);
+    }
+  }
+
+  .aui-gallery-media {
+    --aui-image-size: 100%;
+    aspect-ratio: var(--aui-gallery-ratio);
+    border-radius: max(calc(var(--aui-gallery-radius) - var(--aui-gallery-padding)), var(--radius-xs));
+
+    /* The picture eases in a little under the pointer, inside its own corners. */
+    & > .aui-image-content {
+      transition: scale var(--duration-medium) var(--ease-emphasized);
+    }
+  }
+
+  .aui-gallery-item:hover:not([aria-disabled='true']) > .aui-gallery-media > .aui-image-content {
+    scale: 1.04;
+  }
+
+  /* The check keeps a ring of the tile's own surface, so it holds up on a bright picture. */
+  .aui-gallery-item[aria-selected='true'] > .aui-icon {
+    box-shadow:
+      0 0 0 2px var(--color-surface-lowest),
+      var(--elevation-1);
+  }
+
+  .aui-gallery-caption {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: var(--spacing-sm);
+    padding-inline: var(--spacing-xs);
+    padding-block-end: var(--spacing-xs);
+  }
+
+  .aui-gallery-caption-title {
+    grid-column: 1;
+    overflow: hidden;
+    font-size: var(--font-label-lg-size);
+    font-weight: 500;
+    line-height: var(--font-label-lg-line-height);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .aui-gallery-caption-description {
+    grid-column: 1;
+    color: var(--color-on-surface-variant);
+    font-size: var(--font-label-md-size);
+    line-height: var(--font-label-md-line-height);
+  }
+
+  .aui-gallery-caption-meta {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    color: var(--color-on-surface-variant);
+    font-size: var(--font-label-md-size);
+    line-height: var(--font-label-lg-line-height);
+  }
+}

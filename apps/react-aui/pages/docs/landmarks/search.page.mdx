@@ -18,15 +18,18 @@ Styling is optional. Without AUI CSS the Search stays a correct, operable landma
 ```tsx
 import { Button, Search } from '@airlib/react-aui';
 import { setup } from '@airlib/react';
+import { GlassStage } from '@/components/GlassStage.js';
 
 const SearchDemo = setup(
   () => (
-    <div className="aui-card flex flex-col gap-lg p-xl">
-      <Search label="Documentation">
-        <input type="search" aria-label="Search documentation" placeholder="Search documentation" />
-        <Button size="sm">Search</Button>
-      </Search>
-    </div>
+    <GlassStage>
+      <div className="flex flex-col gap-lg">
+        <Search label="Documentation">
+          <input type="search" aria-label="Search documentation" placeholder="Search documentation" />
+          <Button size="sm">Search</Button>
+        </Search>
+      </div>
+    </GlassStage>
   ),
   'SearchDemo'
 );

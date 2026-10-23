@@ -2,6 +2,7 @@ import { $static, $symbol, effect, type StyleInput, uIndex } from '@airlib/core'
 import { withEvents } from '@airlib/core/browser';
 import { Aria } from '../core.js';
 import type { AriaAttributes, AriaEvent, AriaEventHandler, AriaOptions, AriaProps, DetachFn } from '../types.js';
+import { triggerAnchorName } from '../utils/overlay.js';
 
 const POPOVER_SYMBOL = $symbol('popover');
 const FOCUSABLE_SELECTOR = ['button', '[href]', 'input', 'select', 'textarea', '[tabindex]']
@@ -498,7 +499,7 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
         ...this.createTriggerAttributes(),
         style: this.open
           ? ({
-              anchorName: `--${this.anchorPrefix}-anchor-${this.id}`,
+              anchorName: triggerAnchorName(`--${this.anchorPrefix}-anchor-${this.id}`),
             } as StyleInput)
           : undefined,
       };

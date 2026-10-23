@@ -17,6 +17,7 @@ Styling is optional. Without AUI CSS the Radio stays a correct, operable native 
 import { Radio } from '@airlib/react-aui';
 import { $bind, mutable, setup, Snippet } from '@airlib/react';
 import { DemoControl } from '@/components/DemoControl.js';
+import { GlassStage } from '@/components/GlassStage.js';
 
 const RadioDemo = setup(() => {
   const state = mutable({ checked: false, size: 'md', color: 'primary', disabled: false });
@@ -24,21 +25,23 @@ const RadioDemo = setup(() => {
   return () => (
     <div className="demo-button">
       <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} disabled={$bind(state, 'disabled')} />
-      <div className="aui-card flex gap-md items-center justify-center p-xl">
-        <Snippet>
-          {() => (
-            <Radio
-              value="pro"
-              size={state.size}
-              color={state.color}
-              disabled={state.disabled}
-              checked={$bind(state, 'checked')}
-            >
-              Pro plan
-            </Radio>
-          )}
-        </Snippet>
-      </div>
+      <GlassStage style={{ maxInlineSize: '20rem' }}>
+        <div className="flex gap-md items-center justify-center">
+          <Snippet>
+            {() => (
+              <Radio
+                value="pro"
+                size={state.size}
+                color={state.color}
+                disabled={state.disabled}
+                checked={$bind(state, 'checked')}
+              >
+                Pro plan
+              </Radio>
+            )}
+          </Snippet>
+        </div>
+      </GlassStage>
     </div>
   );
 }, 'RadioDemo');

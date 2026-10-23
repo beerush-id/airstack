@@ -17,6 +17,7 @@ import { Button, EmptyState } from '@airlib/react-aui';
 import { SearchIcon } from '@airlib/react-aui/icons';
 import { $bind, mutable, setup, Snippet } from '@airlib/react';
 import { DemoControl } from '@/components/DemoControl.js';
+import { GlassStage } from '@/components/GlassStage.js';
 
 const EmptyStateDemo = setup(() => {
   const state = mutable({ size: 'md', color: 'primary', disabled: false });
@@ -24,7 +25,7 @@ const EmptyStateDemo = setup(() => {
   return () => (
     <div className="demo-button">
       <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} disabled={$bind(state, 'disabled')} />
-      <div className="aui-card">
+      <GlassStage>
         <Snippet>
           {() => (
             <EmptyState
@@ -44,7 +45,7 @@ const EmptyStateDemo = setup(() => {
             </EmptyState>
           )}
         </Snippet>
-      </div>
+      </GlassStage>
     </div>
   );
 }, 'EmptyStateDemo');

@@ -124,6 +124,12 @@ export class ListboxAria<
   protected selector = OPTION_SELECTOR.join(',');
   protected enabledSelector = ENABLED_OPTION_SELECTOR;
 
+  /**
+   * Whether options wrap into visual rows, like a grid of tiles: the arrows then move by reading
+   * order and by row instead of along one line.
+   */
+  protected flow = false;
+
   public get id() {
     return this.properties.id;
   }
@@ -212,7 +218,7 @@ export class ListboxAria<
   private readonly handleKeyDown = (event: KeyboardEvent): void => {
     if (this.disabled || event.defaultPrevented || this.parentRover) return;
 
-    if (handleRovingKey(this.element, event, { selector: this.enabledSelector, manual: true })) return;
+    if (handleRovingKey(this.element, event, { selector: this.enabledSelector, manual: true, flow: this.flow })) return;
 
     if (ACTIVATION_KEYS.includes(event.key)) {
       const target = this.focusedOption() ?? this.enabledOptions()[0];

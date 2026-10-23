@@ -1,0 +1,176 @@
+---
+title: AUI Time Picker
+nav: Time Picker
+nav-priority: 359
+description: Ask for a time of day — a field that opens hour, minute, and AM/PM segments, on the user's own clock, with a value that always reads HH:MM.
+keywords: [React time picker, accessible time picker, time input React, time field, hour minute picker, AUI time picker]
+---
+
+# AUI Time Picker
+
+Meetings, delivery windows, reminders, opening hours: every one of them asks for a time of day. A plain text field leaves people guessing the format, and a native time input looks different in every browser and gives you no say over its parts. Behind both sits the same chore — half the world reads `2:30 PM`, the other half `14:30`, and your code still needs one value it can store and compare.
+
+**Time Picker** gives you one field that opens the time as segments — hour, minute, and AM/PM on a 12-hour clock — each stepped by keys, the wheel, or a drag, and typed into directly. It shows the user's clock, and hands your code `HH:MM` on a 24-hour clock either way.
+
+:::interactive[Time picker demo]
+
+```tsx
+import { Readout, TimePicker, Toggle } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { GlassStage } from '@/components/GlassStage.js';
+
+const TimePickerDemo = setup(() => {
+  const state = mutable({ time: '09:30', disabled: false });
+
+  return () => (
+    <div className="demo-button">
+      <div className="flex gap-xs w-full flex-wrap">
+        <Toggle size="sm" pressed={$bind(state, 'disabled')}>
+          {() => (state.disabled ? 'Locked' : 'Unlocked')}
+        </Toggle>
+        <div className="flex-1"></div>
+        <Snippet>{() => <Readout label="Time" value={state.time} empty="No time yet" />}</Snippet>
+      </div>
+      <GlassStage style={{ maxInlineSize: '20rem' }}>
+        <div className="flex flex-col gap-lg">
+          <Snippet>
+            {() => (
+              <TimePicker
+                label="Pickup time"
+                placeholder="Choose a time"
+                labels={{ hour: 'Hour', minute: 'Minute', period: 'AM or PM' }}
+                step={15}
+                value={$bind(state, 'time')}
+                disabled={state.disabled}
+              />
+            )}
+          </Snippet>
+        </div>
+      </GlassStage>
+    </div>
+  );
+}, 'TimePickerDemo');
+```
+
+```html
+<TimePickerDemo />
+```
+
+<TimePickerDemo />
+
+:::
+
+## Usage
+
+### Ask for a time
+
+Bind the value and name the picker; it renders one field, shaped like a [Select](/docs/composites/select) trigger, and the segments open from it:
+
+```tsx
+import { TimePicker } from '@airlib/react-aui';
+import { $bind, mutable, setup } from '@airlib/react';
+import '@airlib/aui/components/widgets/time-picker.css';
+
+export const PickupTime = setup(() => {
+  const order = mutable({ pickupAt: '' });
+
+  return () => (
+    <TimePicker
+      label="Pickup time"
+      placeholder="Choose a time"
+      labels={{ hour: 'Hour', minute: 'Minute', period: 'AM or PM' }}
+      value={$bind(order, 'pickupAt')}
+    />
+  );
+}, 'PickupTime');
+```
+
+You supply:
+
+- `value` — the time as `HH:MM` on a 24-hour clock (`'14:30'`), whatever clock the segments show. Empty until a segment is set; setting one fills the others from the start of their lists, so the value is always a whole time.
+- `label` — the picker's accessible name, for the field and the segments.
+- `placeholder` — what the field shows before a time is set.
+- `labels` — names for the segments, shown as captions under them and read with each: `hour`, `minute`, and `period` on a 12-hour clock. Nothing is named for you; every word comes from you, in your users' language.
+
+The field shows the time formatted for the user's locale — `2:30 PM` or `14:30` — so it reads naturally while your code keeps one format.
+
+### The user's clock
+
+The segments follow the locale's clock: a 12-hour locale gets hour, minute, and an AM/PM segment named in its own words; a 24-hour locale gets hour and minute. Set `hourCycle` when your product decides instead, and `locales` when the page's language isn't the user's:
+
+```tsx
+<TimePicker label="Departure" hourCycle={24} locales={['de-DE']} value={$bind(trip, 'departsAt')} />
+```
+
+Either way the value stays `HH:MM` on a 24-hour clock. `hourCycle`, `locales`, and `step` are read once, when the picker is created.
+
+### Only some minutes
+
+When a schedule only takes quarter hours, or slots start every five minutes, set `step` to the minutes between them. Arrows, the wheel, and a drag stay on the step; typing still takes any minute, since what people type is what they mean:
+
+```tsx
+<TimePicker label="Appointment" step={15} labels={{ hour: 'Hour', minute: 'Minute', period: 'AM or PM' }} value={$bind(booking, 'startsAt')} />
+```
+
+A value off the step — typed, or `'10:07'` from your data — shows as it is; the next step moves it to the nearest one in that direction.
+
+### A time in place
+
+When the time is the question — a step in a booking flow, an assistant asking when to meet — the field is one click too many. Add `inline` and the picker draws only the segments, with no field and no popup:
+
+```tsx
+<TimePicker inline label="Meeting time" labels={{ hour: 'Hour', minute: 'Minute', period: 'AM or PM' }} value={$bind(meeting, 'time')} />
+```
+
+`inline` is read once, when the picker is created.
+
+### Know when it changed
+
+Bind `value` when your state should follow the picker. For a step that should happen once per change — saving a draft, checking a slot is free — use `onchange`, which runs with the new value each time a segment changes it:
+
+```tsx
+<TimePicker label="Pickup time" value={$bind(order, 'pickupAt')} onchange={(event) => checkSlot(event.detail)} />
+```
+
+Setting `value` from your code fires nothing.
+
+## Style it once
+
+`size`, `variant`, and `color` follow the shared vocabulary and reach both the field and the segments. Set `--aui-time-picker-segment-width`, `--aui-time-picker-segment-height`, and `--aui-time-picker-segment-font` for larger or smaller segments. Set app-wide defaults once:
+
+```tsx
+import { configure } from '@airlib/react-aui';
+
+configure({ timePicker: { variant: 'tonal' } });
+```
+
+## Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `value` | `Bindable<string>` | — | The time, `HH:MM` on a 24-hour clock. |
+| `label` | `string` | — | The picker's accessible name. |
+| `placeholder` | `string` | — | What the field shows before a time is set. |
+| `labels` | `{ hour, minute, period }` | — | Names and captions for the segments. |
+| `hourCycle` | `12`, `24` | the locale's | A 12-hour clock with AM/PM, or a 24-hour one. Read once. |
+| `locales` | `string[]` | — | Languages for the AM/PM names and the field's text. Read once. |
+| `step` | `number` | `1` | Minutes between the minute segment's steps. Read once. |
+| `inline` | `boolean` | `false` | Draws only the segments, with no field or popup. Read once. |
+| `disabled` | `boolean` | `false` | Locks the field and every segment. |
+| `size` | `xs`–`xxl` | `'md'` | Field and segment size. |
+| `variant` | `filled`, `tonal`, `outlined` | `'filled'` | The field's and segments' surface. |
+| `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | |
+| `onchange` | `(event: CustomEvent<string>) => void` | — | With the new value, each time a segment changes it. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+
+## Keyboard
+
+Each segment is a tab stop. `ArrowUp` / `ArrowDown` step it and wrap at either end, `PageUp` / `PageDown` move a quarter of its list — 15 minutes, 6 hours of a day — and `Home` / `End` go to its first and last value. `ArrowLeft` / `ArrowRight` move between segments.
+
+Typing sets a segment: `9` sets 09, `1` then `2` sets 12, and focus moves on once another digit could only overflow it. In the AM/PM segment, `a` and `p` pick the half of the day. With a segment focused, the wheel steps it; dragging a segment up or down steps it too, on touch as well.
+
+## Next Steps
+
+- [Date Picker](/docs/composites/date-picker) — The date to go with the time.
+- [Field](/docs/widgets/field) — Add a visible label, help text, and an error message.
+- [Select](/docs/composites/select) — When the times are a short, fixed list of slots.

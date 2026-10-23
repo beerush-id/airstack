@@ -3,7 +3,7 @@ import { AUI_CLASS, register } from '@airlib/aui/utils';
 import { $static, type AnyType, type Bindable, renderDynamic, setup } from '@airlib/react';
 import type { ReactNode } from 'react';
 import { $families, auiConfig, type FieldStyles, OMIT_KEYS } from '../config.js';
-import { ArrowRight } from '../icons/index.js';
+import { ArrowRightAlt } from '../icons/index.js';
 import {
   type DatePickerGrid,
   type DatePickerLabels,
@@ -31,6 +31,8 @@ export type DateRangePickerProps = FieldStyles & {
   disabled?: boolean;
   required?: boolean;
   grid?: DatePickerGrid;
+  /** Draws the calendar in place, always showing, with no field or popup: picking both ends sets the value and closes nothing. */
+  inline?: boolean;
   labels?: DatePickerLabels;
   children?: ReactNode | ((picker: DateRangePickerAria) => ReactNode);
   oninput?: (event: CustomEvent<string>) => void;
@@ -51,32 +53,35 @@ register('dateRangePicker', {});
  */
 export const DateRangePicker = setup<DateRangePickerProps>((props) => {
   const grid = $static(() => props.grid);
-  const picker = aria(DATE_RANGE_PICKER_ROLE, props as AnyType, { grid });
+  const inline = $static(() => !!props.inline);
+  const picker = aria(DATE_RANGE_PICKER_ROLE, props as AnyType, { grid, inline });
   const className = () =>
     $families(AUI_CLASS.DATE_RANGE_PICKER, { className: props.className }, auiConfig.dateRangePicker);
 
   datePickerScope.provide(props);
   datePickerView.set(picker as AnyType);
 
+  const calendar = () => (
+    <DatePickerCalendar>
+      <DatePickerHeader previousLabel={props.labels?.previous} nextLabel={props.labels?.next} yearLabel={props.labels?.year} />
+    </DatePickerCalendar>
+  );
+
   return () => (
-    <div ref={picker.ref} {...picker.restProps([...OMIT_KEYS, 'placeholder', 'labels'])} className={className()}>
+    <div ref={picker.ref} {...picker.restProps([...OMIT_KEYS, 'placeholder', 'labels', 'inline'])} className={className()}>
       {props.children ? (
         renderDynamic(props.children, picker)
+      ) : inline ? (
+        calendar()
       ) : (
         <>
           <DatePickerField>
             <DatePickerInput slot="start" placeholder={props.placeholder} aria-label={props.labels?.start} />
-            <ArrowRight className={AUI_CLASS.DATE_PICKER_SEPARATOR} aria-hidden="true" />
+            <ArrowRightAlt className={AUI_CLASS.DATE_PICKER_SEPARATOR} aria-hidden="true" />
             <DatePickerInput slot="end" placeholder={props.placeholder} aria-label={props.labels?.end} />
             <DatePickerTrigger aria-label={props.labels?.open} />
           </DatePickerField>
-          <DatePickerCalendar>
-            <DatePickerHeader
-              previousLabel={props.labels?.previous}
-              nextLabel={props.labels?.next}
-              yearLabel={props.labels?.year}
-            />
-          </DatePickerCalendar>
+          {calendar()}
         </>
       )}
     </div>

@@ -1,6 +1,6 @@
 import { aria } from '@airlib/aria';
 import { AUI_CLASS, COLORS, register, SIZES } from '@airlib/aui/utils';
-import { $bind, type AnyType, type Bindable, effect, For, mutable, Slot, setup } from '@airlib/react';
+import { $bind, type AnyType, type Bindable, effect, For, mutable, Show, Slot, setup } from '@airlib/react';
 import { LIVE_KEYBOARD } from '@airlib/react/browser';
 import { derived } from '@airlib/react/core';
 import type { ReactNode } from 'react';
@@ -31,6 +31,7 @@ export type CommandPaletteProps = ComponentStyles & {
 type CommandSearchProps = {
   query?: Bindable<string>;
   value?: Bindable<string | undefined>;
+  text?: Bindable<string>;
   open?: Bindable<boolean>;
   children?: ReactNode;
   onchange?: (event: CustomEvent<string | string[] | undefined>) => void;
@@ -48,7 +49,6 @@ const LIST_CLASS = 'aui-command-palette-list';
 const GROUP_CLASS = 'aui-command-palette-group';
 const GROUP_LABEL_CLASS = 'aui-command-palette-group-label';
 const ITEM_CLASS = 'aui-command-palette-item';
-const HINT_CLASS = 'aui-command-palette-hint';
 const EMPTY_CLASS = 'aui-command-palette-empty';
 const SEARCH_OMIT = [...OMIT_KEYS, 'query', 'value', 'open'];
 
@@ -84,7 +84,7 @@ function toGroups(entries: CommandEntry[]): Array<{ name?: string; entries: Comm
  * `oncommand` and closes the sheet.
  */
 export const CommandPalette = setup<CommandPaletteProps, CommandPaletteSlots>((props, slots) => {
-  const state = mutable({ query: '', value: undefined as string | undefined, list: true });
+  const state = mutable({ query: '', value: undefined as string | undefined, text: '', list: true });
   const groups = derived(() => toGroups((props.items ?? []).filter((entry) => matches(entry, state.query))));
 
   paletteScope.provide(props);
@@ -102,6 +102,7 @@ export const CommandPalette = setup<CommandPaletteProps, CommandPaletteSlots>((p
     state.list = true;
     state.query = '';
     state.value = undefined;
+    state.text = '';
   };
 
   const run = (event: CustomEvent<string | string[] | undefined>) => {
@@ -123,6 +124,7 @@ export const CommandPalette = setup<CommandPaletteProps, CommandPaletteSlots>((p
         <CommandSearch
           query={$bind(state, 'query')}
           value={$bind(state, 'value')}
+          text={$bind(state, 'text')}
           open={$bind(state, 'list')}
           onchange={run}
           onclose={close}
@@ -142,7 +144,7 @@ export const CommandPalette = setup<CommandPaletteProps, CommandPaletteSlots>((p
                       <CommandRow value={entry.name} disabled={entry.disabled}>
                         <Slot for={() => slots.item?.(entry)}>
                           <span>{entry.label ?? entry.name}</span>
-                          {entry.hint && <kbd className={HINT_CLASS}>{entry.hint}</kbd>}
+                          {entry.hint && <kbd className={AUI_CLASS.ITEM_HINT} data-hint={entry.hint} />}
                         </Slot>
                       </CommandRow>
                     )}
@@ -150,9 +152,10 @@ export const CommandPalette = setup<CommandPaletteProps, CommandPaletteSlots>((p
                 </div>
               )}
             </For>
-            {groups.value.length === 0 && slots.empty && (
-              <div className={EMPTY_CLASS}>{slots.empty(state.query)}</div>
-            )}
+            {/* Its own boundary: reading the matches here would re-render the palette on every keystroke. */}
+            <Show when={() => groups.value.length === 0 && slots.empty}>
+              {() => <div className={EMPTY_CLASS}>{slots.empty?.(state.query)}</div>}
+            </Show>
           </CommandList>
         </CommandSearch>
       </DialogPanel>

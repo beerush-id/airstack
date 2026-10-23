@@ -1,0 +1,229 @@
+@import './window.css';
+@import '../widgets/glass.css';
+
+/*
+ * Widgets on the desktop: tiles on a grid laid over the desktop, beneath the
+ * windows, on the same glass. The desktop stays put; only the widgets'
+ * layer scrolls once they outgrow it, running edge to edge so the last row
+ * rests above the dock and scrolls on beneath its glass.
+ */
+/* How many columns the layer lays out: worked out on the layer, inherited by its widgets as a plain number. */
+@property --desktop-widgets-columns {
+  syntax: '<integer>';
+  inherits: true;
+  initial-value: 1;
+}
+
+@layer theme {
+  :root {
+    /* One grid cell; a widget spans one to three each way. */
+    --aui-desktop-widget-cell: calc(var(--spacing) * 40);
+    --aui-desktop-widget-gap: var(--spacing-md);
+    --aui-desktop-widget-inset: var(--spacing-lg);
+    /* How much surface color a widget's glass lays over the desktop: as much as an answer's, so text on it reads. */
+    --aui-desktop-widget-tint: 75%;
+    --aui-desktop-clock-size: calc(var(--spacing) * 12);
+    /* A glow in the opposite tone round a bare widget's ink, so it reads over any wallpaper. */
+    --aui-desktop-widget-halo: light-dark(rgba(255, 255, 255, 0.75), rgba(0, 0, 0, 0.6));
+  }
+}
+
+@layer component {
+  /*
+   * The layer takes no pointer itself, so pressing the empty desktop still releases the windows;
+   * the widgets take it, and scrolling over them scrolls the layer.
+   */
+  .aui-desktop-widgets {
+    position: absolute;
+    inset: 0;
+    z-index: calc(var(--aui-window-z) - 1);
+    box-sizing: border-box;
+    /*
+     * A grid of cells across the whole width, centered as a whole, so every cell has a fixed place
+     * to move a widget to. Rows come as widgets need them: each at least a cell, growing with a
+     * widget that needs more, like a note as it fills.
+     */
+    display: grid;
+    /*
+     * How many columns fit across the desktop, less the layer's padding, kept odd so there is always
+     * one middle column — 1- and 3-wide widgets then center exactly. It is worked out from the
+     * desktop's width, so it is right from the very first paint, a server render included.
+     */
+    --desktop-widgets-fit: round(
+      down,
+      (100cqi - var(--aui-desktop-widget-inset) * 2 + var(--aui-desktop-widget-gap)) /
+        (var(--aui-desktop-widget-cell) + var(--aui-desktop-widget-gap)),
+      1
+    );
+    --desktop-widgets-columns: calc(round(down, (var(--desktop-widgets-fit) - 1) / 2, 1) * 2 + 1);
+    grid-template-columns: repeat(var(--desktop-widgets-columns), var(--aui-desktop-widget-cell));
+    grid-auto-rows: minmax(var(--aui-desktop-widget-cell), auto);
+    grid-auto-flow: row dense;
+    align-content: start;
+    justify-content: safe center;
+    gap: var(--aui-desktop-widget-gap);
+    padding: var(--aui-desktop-widget-inset);
+    /* Room above the first row for the widgets' shadows, which the layer's scroll edge would cut. */
+    padding-block-start: calc(var(--aui-desktop-widget-inset) * 2);
+    /* The last row rests one gap above the dock, which publishes its height as it grows. */
+    padding-block-end: calc(
+      var(--aui-dock-offset, 0px) + var(--aui-dock-block-size, 0px) + var(--aui-desktop-widget-gap)
+    );
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    pointer-events: none;
+  }
+
+  /*
+   * A widget sits where its `--widget-column` and `--widget-row` put it; without them, in the middle
+   * column of the layer, taking the next free row, so unplaced widgets stack down the middle.
+   */
+  .aui-desktop-widget {
+    --widget-span-x: 1;
+    --widget-span-y: 1;
+    grid-column: var(
+        --widget-column,
+        calc(round(down, (var(--desktop-widgets-columns, 1) - var(--widget-span-x)) / 2, 1) + 1)
+      )
+      / span var(--widget-span-x);
+    grid-row: var(--widget-row, auto) / span var(--widget-span-y);
+    position: relative;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    min-inline-size: 0;
+    min-block-size: 0;
+    padding: var(--spacing-md);
+    border-radius: var(--aui-window-radius);
+    color: var(--aui-window-fg);
+    pointer-events: auto;
+    /* A glass widget's pane is the shared glass (`aui-glass-frame`), tinted more so text on it reads. */
+    --aui-glass-tint: var(--aui-desktop-widget-tint);
+    --aui-glass-radius: var(--aui-window-radius);
+    --aui-glass-shadow: var(--aui-window-shadow);
+
+    /* `data-span` is cells across by down, up to three each way: `2x1`, `3x2`, … */
+    &[data-span^='2x'] {
+      --widget-span-x: 2;
+    }
+
+    &[data-span^='3x'] {
+      --widget-span-x: 3;
+    }
+
+    &[data-span$='x2'] {
+      --widget-span-y: 2;
+    }
+
+    &[data-span$='x3'] {
+      --widget-span-y: 3;
+    }
+
+    /* Moved by the pointer, it follows it over the other widgets, lifted like the window in front. */
+    &[data-dragging='true'] {
+      z-index: 1;
+      translate: var(--drag-move-x, 0px) var(--drag-move-y, 0px);
+      --aui-glass-shadow: var(--aui-window-shadow-active);
+      cursor: grabbing;
+      user-select: none;
+    }
+
+    /* Focused itself, to move with the arrows, it shows the controls' ring. */
+    &:focus-visible {
+      outline: var(--focus-ring-width) var(--focus-ring-style)
+        color-mix(in oklch, var(--focus-ring-color) 75%, var(--light-up));
+      outline-offset: var(--focus-ring-offset);
+    }
+
+    /* Bare: straight on the desktop, no glass pane — for something that reads on its own, like the clock. Its ink keeps a halo, so a wallpaper never swallows it. */
+    &[data-bare='true'] {
+      text-shadow:
+        0 0 var(--spacing-md) var(--aui-desktop-widget-halo),
+        0 1px 2px var(--aui-desktop-widget-halo);
+    }
+  }
+
+  /* A label, not content: pressing or dragging over it never selects it. */
+  .aui-desktop-widget-title {
+    margin: 0;
+    user-select: none;
+    color: var(--color-on-surface-variant);
+    font-size: var(--font-label-md-size);
+    line-height: var(--font-label-md-line-height);
+    letter-spacing: var(--font-label-md-tracking);
+    font-weight: var(--font-label-md-weight);
+  }
+
+  /* The time large and light, the date below it, both centered in the tile, its title too. */
+  .aui-desktop-widget:has(> .aui-desktop-clock) {
+    text-align: center;
+  }
+
+  .aui-desktop-clock {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-xxs, 2px);
+    margin: 0;
+  }
+
+  .aui-desktop-clock-time {
+    font-size: var(--aui-desktop-clock-size);
+    font-weight: 300;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+
+  .aui-desktop-clock-date {
+    color: var(--color-on-surface-variant);
+    font-size: var(--font-title-sm-size);
+    line-height: var(--font-title-sm-line-height);
+  }
+
+  /*
+   * The note's tile is built like a window: the title on the glass, the text on a solid panel
+   * one bar inset from the tile's edges, its corners concentric with the tile's.
+   */
+  .aui-desktop-widget:has(> .aui-desktop-notes-input) {
+    gap: var(--aui-window-bar-inset);
+    padding: var(--aui-window-bar-inset);
+    /* It grows with the note up to two cells, then the note scrolls. */
+    max-block-size: calc(var(--aui-desktop-widget-cell) * 2 + var(--aui-desktop-widget-gap));
+
+    /* In line with the note's text below it, with room above and below on the glass. */
+    & > .aui-desktop-widget-title {
+      padding: var(--spacing-sm) var(--spacing-md);
+    }
+  }
+
+  .aui-desktop-notes-input {
+    flex: 1 1 auto;
+    min-block-size: 0;
+    margin: 0;
+    padding: var(--spacing-sm) var(--spacing-md);
+    field-sizing: content;
+    resize: none;
+    border: none;
+    outline: none;
+    /* A solid glass surface (`aui-glass-surface`), lifting off the glass the way a window's panels do. */
+    border-radius: calc(var(--aui-window-radius) - var(--aui-window-bar-inset) - 1px);
+    font: inherit;
+    line-height: 1.5;
+
+    &::placeholder {
+      color: var(--color-on-surface-variant);
+    }
+  }
+
+  /* With the note focused, the tile shows the focus ring the field would: the controls' own ring. */
+  .aui-desktop-widget:has(.aui-desktop-notes-input:focus-visible) {
+    outline: var(--focus-ring-width) var(--focus-ring-style)
+      color-mix(in oklch, var(--focus-ring-color) 75%, var(--light-up));
+    outline-offset: var(--focus-ring-offset);
+  }
+}

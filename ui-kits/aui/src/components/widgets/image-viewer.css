@@ -1,0 +1,156 @@
+@import './button.css';
+@import './glass.css';
+
+/*
+ * One image fit to a dark stage, with a glass toolbar floating over its lower edge and the
+ * caption under it. The image is moved and magnified by the variables its controller publishes,
+ * so zooming never reflows the page. In full screen the stage fills the screen and the toolbar
+ * stays where it was, over the image.
+ */
+@layer theme {
+  :root {
+    --aui-image-viewer-bg: oklch(0.16 0 0);
+    --aui-image-viewer-radius: var(--radius-lg);
+    --aui-image-viewer-ratio: 4 / 3;
+  }
+}
+
+@layer component {
+  .aui-image-viewer {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    outline: none;
+
+    &:focus-visible > .aui-image-viewer-stage {
+      box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring-color);
+    }
+
+    &[data-zoomed='true'] > .aui-image-viewer-stage {
+      cursor: grab;
+    }
+
+    &[data-zoomed='true'] > .aui-image-viewer-stage:active {
+      cursor: grabbing;
+    }
+
+    /* Full screen, the browser's or the fallback's: the stage fills it, the caption hides. */
+    &:fullscreen,
+    &[data-fullscreen='true'] {
+      gap: 0;
+      background-color: var(--aui-image-viewer-bg);
+
+      & > .aui-image-viewer-stage {
+        flex: 1;
+        aspect-ratio: auto;
+        border-radius: 0;
+      }
+
+      & > .aui-image-viewer-caption {
+        display: none;
+      }
+    }
+
+    /* The fallback sits in the top layer as a popover; undo a popover's own box. */
+    &[data-fullscreen='true'] {
+      position: fixed;
+      inset: 0;
+      inline-size: 100%;
+      block-size: 100%;
+      max-inline-size: none;
+      max-block-size: none;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      color: inherit;
+    }
+  }
+
+  .aui-image-viewer-stage {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    aspect-ratio: var(--aui-image-viewer-ratio);
+    border-radius: var(--aui-image-viewer-radius);
+    background-color: var(--aui-image-viewer-bg);
+    touch-action: none;
+  }
+
+  .aui-image-viewer-image {
+    max-inline-size: 100%;
+    max-block-size: 100%;
+    object-fit: contain;
+    user-select: none;
+    transform: translate(var(--aria-viewer-x, 0), var(--aria-viewer-y, 0)) scale(var(--aria-viewer-zoom, 1));
+    transition: transform var(--duration-short) var(--ease-emphasized);
+  }
+
+  .aui-image-viewer[data-zoomed='true'] .aui-image-viewer-image {
+    transition: none;
+  }
+
+  /*
+   * The toolbar sits over the picture, so it reads on the dark side of the glass whatever the
+   * theme: it takes the dark scheme, and the shared glass and its text resolve to their dark values.
+   */
+  .aui-image-viewer-toolbar {
+    --aui-glass-radius: var(--radius-full);
+    color-scheme: only dark;
+    position: absolute;
+    inset-block-end: var(--spacing-md);
+    inset-inline-start: 50%;
+    translate: -50% 0;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xxs, 2px);
+    padding: var(--spacing-xs);
+    color: var(--color-on-surface);
+
+    & > .aui-button {
+      color: var(--color-on-surface);
+    }
+
+    & > .aui-button:disabled {
+      opacity: 0.38;
+    }
+  }
+
+  /* The zoom readout between the zoom buttons. */
+  .aui-image-viewer-zoom {
+    min-inline-size: 5ch;
+    font-size: var(--font-label-sm-size);
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+    opacity: 0.8;
+  }
+
+  /* A hairline between the stepping and the zooming. */
+  .aui-image-viewer-sep {
+    inline-size: 1px;
+    block-size: 1.25em;
+    margin-inline: var(--spacing-xs);
+    background-color: color-mix(in oklch, currentColor 25%, transparent);
+  }
+
+  /* While the caption shows, the toolbar floats over the stage, not over the caption. */
+  .aui-image-viewer:has(> .aui-image-viewer-caption):not(:fullscreen, [data-fullscreen='true']) > .aui-image-viewer-toolbar {
+    inset-block-end: calc(var(--spacing-md) + var(--spacing-sm) + 1lh);
+  }
+
+  .aui-image-viewer-count {
+    min-inline-size: 4ch;
+    padding-inline: var(--spacing-xs);
+    font-size: var(--font-label-md-size);
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+  }
+
+  .aui-image-viewer-caption {
+    margin: 0;
+    color: var(--color-on-surface-variant);
+    font-size: var(--font-label-lg-size);
+  }
+}

@@ -15,9 +15,10 @@ keywords: [React disclosure, show hide React, collapsible section, expand collap
 :::interactive[Disclosure demo]
 
 ```tsx
-import { Disclosure } from '@airlib/react-aui';
+import { Disclosure, Readout } from '@airlib/react-aui';
 import { $bind, mutable, setup, Snippet } from '@airlib/react';
 import { DemoControl } from '@/components/DemoControl.js';
+import { GlassStage } from '@/components/GlassStage.js';
 
 const DisclosureDemo = setup(() => {
   const state = mutable({ open: true, size: 'md', color: 'primary', disabled: false });
@@ -27,23 +28,25 @@ const DisclosureDemo = setup(() => {
       <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} disabled={$bind(state, 'disabled')} />
       <Snippet>
         {() => (
-          <div className="aui-card flex flex-col gap-md p-xl">
-            <Disclosure
-              label="Shipping details"
-              expanded={$bind(state, 'open')}
-              size={state.size}
-              color={state.color}
-              disabled={state.disabled}
-            >
-              Arrives in 2–3 business days, tracked door to door.
-            </Disclosure>
-            <Disclosure label="Return policy" size={state.size} color={state.color} disabled={state.disabled}>
-              Send it back within 30 days for a full refund.
-            </Disclosure>
-          </div>
+          <GlassStage>
+            <div className="flex flex-col gap-md">
+              <Disclosure
+                label="Shipping details"
+                expanded={$bind(state, 'open')}
+                size={state.size}
+                color={state.color}
+                disabled={state.disabled}
+              >
+                Arrives in 2–3 business days, tracked door to door.
+              </Disclosure>
+              <Disclosure label="Return policy" size={state.size} color={state.color} disabled={state.disabled}>
+                Send it back within 30 days for a full refund.
+              </Disclosure>
+            </div>
+          </GlassStage>
         )}
       </Snippet>
-      <Snippet>{() => <span>Shipping details: {state.open ? 'open' : 'closed'}</span>}</Snippet>
+      <Snippet>{() => <Readout label="Shipping details" value={state.open ? 'Open' : 'Closed'} />}</Snippet>
     </div>
   );
 }, 'DisclosureDemo');
@@ -152,4 +155,4 @@ Keyboard: the header is a regular stop in the tab order; `Enter` or `Space` open
 
 - [Accordion](/docs/widgets/accordion) — Several sections stacked, one at a time or several open.
 - [Tabs](/docs/widgets/tabs) — Sections that swap in one spot instead of hiding.
-- [Dialog](/docs/widgets/dialog) — When the extra content should cover the page instead of pushing it down.
+- [Dialog](/docs/composites/dialog) — When the extra content should cover the page instead of pushing it down.

@@ -16,6 +16,7 @@ Styling is optional. Without AUI CSS the Main stays a correct, operable landmark
 ```tsx
 import { Main, Toggle } from '@airlib/react-aui';
 import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { GlassStage } from '@/components/GlassStage.js';
 
 const MainDemo = setup(() => {
   const state = mutable({ named: false });
@@ -25,15 +26,17 @@ const MainDemo = setup(() => {
       <Toggle pressed={$bind(state, 'named')}>
         {() => (state.named ? 'Named' : 'Unnamed')}
       </Toggle>
-      <div className="aui-card flex gap-md items-center justify-center p-xl">
-        <Snippet>
-          {() => (
-            <Main id="content" label={state.named ? 'Content' : undefined}>
-              <p>Primary content lives here.</p>
-            </Main>
-          )}
-        </Snippet>
-      </div>
+      <GlassStage>
+        <div className="flex gap-md items-center justify-center">
+          <Snippet>
+            {() => (
+              <Main id="content" label={state.named ? 'Content' : undefined}>
+                <p>Primary content lives here.</p>
+              </Main>
+            )}
+          </Snippet>
+        </div>
+      </GlassStage>
     </div>
   );
 }, 'MainDemo');

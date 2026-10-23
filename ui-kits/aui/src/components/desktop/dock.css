@@ -1,0 +1,839 @@
+@import '../widgets/button.css';
+@import '../widgets/toolbar.css';
+@import '../widgets/spinner.css';
+@import '../widgets/app-icon.css';
+@import '../widgets/toast.css';
+@import '../widgets/glass.css';
+@import './window.css';
+
+/*
+ * The dock floats centered just above the bottom edge of its desktop (or the
+ * viewport), above every window, on the same glass as the windows. The prompt
+ * is a pill that grows with its text; running apps are app icons with a dot
+ * under the one in front.
+ */
+@layer theme {
+  :root {
+    --aui-dock-gap: var(--spacing-sm);
+    --aui-dock-padding: var(--spacing-sm);
+    --aui-dock-offset: calc(var(--spacing) * 1);
+    --aui-dock-prompt-width: calc(var(--spacing) * 80);
+    --aui-dock-prompt-lines: 6;
+    --aui-dock-prompt-inset: calc(var(--spacing) * 1);
+    --aui-launcher-icon-size: calc(var(--spacing) * 18);
+    /* The answers above the dock: how wide the stack is at least, and how much of the one before the newest peeks above it. */
+    --aui-dock-widgets-width: calc(var(--spacing) * 120);
+    /* How wide the stack may grow for a wide answer: a readable line, and never past the screen's edges. */
+    --aui-dock-widgets-max-width: min(calc(var(--spacing) * 240), calc(100dvi - var(--aui-dock-offset) * 2));
+    /* How much surface color an answer's glass lays over what's behind: more than a window's, so text on it reads. */
+    --aui-dock-widget-tint: 75%;
+    /* How long an open stack waits after the pointer leaves before it closes, and how long a quiet stack stays before it fades away. */
+    --aui-dock-widgets-close-delay: var(--duration-medium);
+    --aui-dock-widgets-idle: 6s;
+    /* The pill a sleeping stack leaves just above the dock, saying answers are there; pointing within its reach wakes the stack. */
+    --aui-dock-widgets-cue-reach: calc(var(--spacing) * 3);
+    --aui-dock-widgets-cue-width: calc(var(--spacing) * 12);
+    --aui-dock-widgets-cue-height: calc(var(--spacing) * 1.5);
+    --aui-dock-widgets-cue-color: light-dark(
+      color-mix(in oklch, var(--aui-window-bg) 85%, transparent),
+      rgba(255, 255, 255, 0.45)
+    );
+    /*
+     * The busy prompt's lights: their color, the arc each spans as they circle the edge, how far
+     * and how strongly their glow reaches past it, and the laps the orb's two layers turn on (the
+     * glow shares the slower one).
+     */
+    --aui-dock-busy-color: var(--color-primary);
+    --aui-dock-busy-arc: 120deg;
+    --aui-dock-busy-glow: calc(var(--spacing) * 1.5);
+    --aui-dock-busy-glow-opacity: 0.5;
+    --aui-dock-busy-lap: 2s;
+    --aui-dock-busy-glow-lap: 3s;
+  }
+}
+
+/* Registered so the lights' angle animates instead of jumping from one end of the turn to the other. */
+@property --aui-dock-busy-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes aui-dock-busy {
+  to {
+    --aui-dock-busy-angle: 360deg;
+  }
+}
+
+@keyframes aui-dock-orb-breathe {
+  from {
+    scale: 0.88;
+  }
+}
+
+@layer component {
+  .aui-dock {
+    anchor-name: --aui-dock;
+    position: fixed;
+    inset-inline: 0;
+    inset-block-end: var(--aui-dock-offset);
+    z-index: calc(var(--aui-window-z) + 1000);
+    display: flex;
+    align-items: flex-end;
+    gap: var(--aui-dock-gap);
+    box-sizing: border-box;
+    inline-size: max-content;
+    max-inline-size: calc(100% - var(--aui-dock-offset) * 2);
+    margin-inline: auto;
+    padding: var(--aui-dock-padding);
+    /* Its pane is the shared glass (`aui-glass-frame`): a pill, lifted above the windows. */
+    --aui-glass-radius: calc(var(--aui-control-height) / 2 + var(--aui-dock-padding));
+    --aui-glass-shadow: var(--elevation-3);
+  }
+
+  .aui-desktop > .aui-dock {
+    position: absolute;
+  }
+
+  /*
+   * The front window's options float above the dock: centered on the prompt they're sent with,
+   * resting on the dock's top edge with a gap below. The wrapper holds the gap so the height it
+   * publishes includes it, and only the pane inside takes the pointer.
+   */
+  .aui-dock-float {
+    position: fixed;
+    position-anchor: --aui-dock-prompt;
+    bottom: anchor(--aui-dock top);
+    justify-self: anchor-center;
+    z-index: calc(var(--aui-window-z) + 1000);
+    box-sizing: border-box;
+    max-inline-size: calc(100dvi - var(--aui-dock-offset) * 2);
+    /* The same distance as the dock keeps from the screen's edge. */
+    padding-block-end: var(--aui-dock-offset);
+    pointer-events: none;
+    transition-property: opacity, translate;
+    transition-duration: var(--duration-medium);
+    transition-timing-function: var(--ease-emphasized-decelerate, var(--ease-emphasized));
+
+    @starting-style {
+      opacity: 0;
+      translate: 0 var(--spacing-sm);
+    }
+  }
+
+  .aui-desktop > .aui-dock-float {
+    position: absolute;
+  }
+
+  /* Its own glass pane, shaped like the dock, with the glass's standard rim around the surface, as a window has. */
+  .aui-dock-float-frame {
+    --aui-glass-radius: calc(var(--aui-control-height) / 2 + var(--aui-dock-padding));
+    --aui-glass-shadow: var(--elevation-3);
+    padding: var(--aui-glass-inset);
+    pointer-events: auto;
+  }
+
+  /*
+   * The solid surface the window's options sit on, corners concentric with the pane's. Its content
+   * keeps to one line, widening the pane up to the screen's edge, and it grows as tall as its
+   * content up to half the screen. The app draws what's inside.
+   */
+  .aui-dock-extensions {
+    box-sizing: border-box;
+    max-block-size: 50dvh;
+    overflow: auto;
+    padding: var(--aui-glass-inset);
+    border-radius: max(calc(var(--aui-glass-radius) - var(--aui-glass-inset) - 1px), var(--radius-sm));
+
+    & .aui-toolbar-options {
+      flex-wrap: nowrap;
+    }
+  }
+
+  /*
+   * The prompt: a field pill as tall as a control, with the voice and send
+   * buttons inside its end, one inset from every edge. It grows upward with
+   * its text; the buttons stay on the last line. The front window's options
+   * center on it.
+   */
+  .aui-dock-prompt {
+    anchor-name: --aui-dock-prompt;
+    display: flex;
+    align-items: flex-end;
+    gap: var(--spacing-xs);
+    box-sizing: border-box;
+    inline-size: min(var(--aui-dock-prompt-width), 60vw);
+    min-inline-size: 0;
+    min-block-size: var(--aui-control-height);
+    padding: var(--aui-dock-prompt-inset);
+    padding-inline-start: var(--spacing-md);
+    background-color: color-mix(in oklch, var(--color-surface-lowest) 70%, transparent);
+    border-radius: calc(var(--aui-control-height) / 2);
+
+    /* A leading spinner takes a button-sized slot, so the text starts after it. */
+    &:has(> .aui-spinner) {
+      position: relative;
+      padding-inline-start: var(--aui-dock-prompt-inset);
+
+      /*
+       * While busy, two soft lights of the role color circle the pill half a turn apart as a
+       * blurred glow outside its edge. The lights fill the pill and a band around it, blur out
+       * into a clear border beyond, and the pill itself is masked away so the glass stays clear;
+       * the blur happens before the mask, which is why the band and border sit outside the pill.
+       */
+      &::before {
+        content: '';
+        position: absolute;
+        inset: calc(var(--aui-dock-busy-glow) * -4);
+        padding: var(--aui-dock-busy-glow);
+        border: calc(var(--aui-dock-busy-glow) * 3) solid transparent;
+        border-radius: calc(var(--aui-control-height) / 2 + var(--aui-dock-busy-glow) * 4);
+        corner-shape: inherit;
+        pointer-events: none;
+        background: conic-gradient(
+            from var(--aui-dock-busy-angle),
+            transparent 0deg,
+            var(--aui-dock-busy-color) calc(var(--aui-dock-busy-arc) / 2),
+            transparent var(--aui-dock-busy-arc),
+            transparent 180deg,
+            var(--aui-dock-busy-color) calc(180deg + var(--aui-dock-busy-arc) / 2),
+            transparent calc(180deg + var(--aui-dock-busy-arc))
+          )
+          padding-box;
+        mask:
+          linear-gradient(#000 0 0) content-box,
+          linear-gradient(#000 0 0);
+        mask-composite: exclude;
+        filter: blur(var(--aui-dock-busy-glow));
+        opacity: calc(var(--aui-dock-busy-glow-opacity)*0.8);
+        animation: aui-dock-busy var(--aui-dock-busy-glow-lap) linear infinite;
+        transition: opacity var(--duration-medium) var(--ease-standard);
+
+        @starting-style {
+          opacity: 0;
+        }
+      }
+    }
+
+    /* The voice and send buttons, and the busy spinner: round slots sized to sit inside the pill. */
+    & > .aui-control,
+    & > .aui-spinner {
+      flex: none;
+      box-sizing: border-box;
+      inline-size: calc(var(--aui-control-height) - var(--aui-dock-prompt-inset) * 2);
+      block-size: calc(var(--aui-control-height) - var(--aui-dock-prompt-inset) * 2);
+      border-radius: var(--radius-full);
+      --aui-icon-size: calc(var(--aui-control-height) * 0.42);
+    }
+
+    /*
+     * The busy spinner is an orb: lights in the role color and its neighboring hues swirl inside
+     * it, two layers turning against each other on their own laps, while it
+     * breathes. The layers are round and blurred, so its edge fades instead of cutting, and it
+     * glows in its own colors past that edge.
+     */
+    & > .aui-spinner {
+      /* Smaller than a button slot and centered in the pill's rounded end, with the glow's reach kept clear before the text. */
+      --aui-dock-orb-size: calc(var(--aui-control-height) * 0.6);
+      --aui-dock-orb-glow: calc(var(--aui-control-height) * 0.15);
+      position: relative;
+      isolation: isolate;
+      inline-size: var(--aui-dock-orb-size);
+      block-size: var(--aui-dock-orb-size);
+      margin: calc((var(--aui-control-height) - var(--aui-dock-orb-size)) / 2 - var(--aui-dock-prompt-inset));
+      margin-inline-end: calc(
+        (var(--aui-control-height) - var(--aui-dock-orb-size)) / 2 - var(--aui-dock-prompt-inset) + var(--aui-dock-orb-glow)
+      );
+      filter: drop-shadow(0 0 var(--aui-dock-orb-glow) color-mix(in oklch, var(--aui-dock-busy-color) 60%, transparent));
+      animation: aui-dock-orb-breathe var(--aui-dock-busy-lap) var(--ease-standard) infinite alternate;
+
+      & > svg {
+        display: none;
+      }
+
+      &::before,
+      &::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        filter: blur(calc(var(--aui-control-height) * 0.08));
+        animation: aui-spinner-turn var(--aui-dock-busy-lap) linear infinite;
+      }
+
+      /* The lower layer also carries the orb's body, a tint of the role color the lights swirl in. */
+      &::before {
+        background:
+          radial-gradient(circle at 30% 35%, var(--aui-dock-busy-color), transparent 60%),
+          radial-gradient(circle at 70% 70%, oklch(from var(--aui-dock-busy-color) l c calc(h - 70)), transparent 60%),
+          color-mix(in oklch, var(--aui-dock-busy-color) 30%, var(--color-surface-lowest));
+      }
+
+      &::after {
+        background:
+          radial-gradient(circle at 70% 30%, oklch(from var(--aui-dock-busy-color) l c calc(h - 35)), transparent 60%),
+          radial-gradient(
+            circle at 30% 70%,
+            oklch(from var(--aui-dock-busy-color) calc(l + 0.2) c h),
+            transparent 60%
+          );
+        animation-duration: var(--aui-dock-busy-glow-lap);
+        animation-direction: reverse;
+      }
+    }
+
+    /* The mic stays quiet until voice is on; then it takes the role's tint. */
+    & > .aui-toggle:not([aria-pressed='true']) {
+      background-color: transparent;
+      border-color: transparent;
+      box-shadow: none;
+      color: var(--color-on-surface-variant);
+    }
+
+    /*
+     * While the assistant speaks, the mic takes the role color and rings outward like a voice,
+     * inviting a press to talk over it. Without motion, the ring holds still.
+     */
+    & > .aui-toggle[data-speaking='true'] {
+      color: var(--aui-dock-busy-color);
+      animation: aui-dock-speaking var(--aui-dock-speaking-lap, 1.4s) var(--ease-standard) infinite;
+
+      @media (prefers-reduced-motion: reduce) {
+        animation: none;
+        box-shadow: 0 0 0 3px color-mix(in oklch, var(--aui-dock-busy-color) 35%, transparent);
+      }
+    }
+  }
+
+  @keyframes aui-dock-speaking {
+    from {
+      box-shadow: 0 0 0 0 color-mix(in oklch, var(--aui-dock-busy-color) 45%, transparent);
+    }
+
+    to {
+      box-shadow: 0 0 0 calc(var(--aui-control-height) * 0.22) transparent;
+    }
+  }
+
+  /* Heard, not seen: says once that speaking started. */
+  .aui-dock-status {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .aui-dock-input {
+    flex: 1 1 auto;
+    box-sizing: border-box;
+    min-inline-size: 0;
+    min-block-size: calc(var(--aui-control-height) - var(--aui-dock-prompt-inset) * 2);
+    max-block-size: calc(var(--aui-dock-prompt-lines) * 1lh);
+    padding: calc((var(--aui-control-height) - var(--aui-dock-prompt-inset) * 2 - 1lh) / 2) 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    line-height: var(--font-body-md-line-height, 1.5);
+    resize: none;
+    field-sizing: content;
+    outline: none;
+
+    &::placeholder {
+      color: var(--color-on-surface-variant);
+    }
+  }
+
+  /* The start button: a quiet round icon, as tall as the prompt. */
+  .aui-dock-start {
+    flex: none;
+    border-radius: var(--radius-full);
+    color: var(--color-on-surface-variant);
+  }
+
+  /* The launcher's dialog wraps the start button; as a flex item it adds no line box, so the button sits level with the prompt. */
+  .aui-dock-launch {
+    display: flex;
+    flex: none;
+  }
+
+  /*
+   * The launcher opens above the dock, anchored to the whole bar rather than
+   * the start button: at least as wide as the dock and several dock-heights
+   * tall, on the same glass. It rises out of the dock when it opens.
+   */
+  .aui-launcher {
+    position: fixed;
+    position-anchor: --aui-dock;
+    position-area: top center;
+    z-index: calc(var(--aui-window-z) + 1001);
+    box-sizing: border-box;
+    inline-size: anchor-size(width);
+    min-inline-size: min(calc(var(--spacing) * 120), calc(100dvi - var(--aui-dock-offset) * 2));
+    max-inline-size: calc(100dvi - var(--aui-dock-offset) * 2);
+    min-block-size: calc(anchor-size(height) * 4);
+    max-block-size: calc(100dvb - anchor-size(height) - var(--aui-dock-offset) * 3);
+    margin: 0 0 var(--aui-dock-gap);
+    overflow: auto;
+    padding: var(--spacing-lg);
+    /* A window of its own: the shared glass (`aui-glass-frame`), lifted above the windows. */
+    --aui-glass-radius: var(--aui-window-radius);
+    --aui-glass-shadow: var(--elevation-4);
+    transform-origin: bottom center;
+    transition-property: opacity, scale, translate, display;
+    transition-duration: var(--duration-medium);
+    transition-timing-function: var(--ease-emphasized-decelerate);
+    transition-behavior: allow-discrete;
+
+    @starting-style {
+      opacity: 0;
+      scale: 0.96;
+      translate: 0 var(--spacing-md);
+    }
+
+    &[hidden] {
+      display: none;
+      opacity: 0;
+      scale: 0.96;
+      translate: 0 var(--spacing-md);
+    }
+  }
+
+  /*
+   * The answers above the dock: a stack centered on the bar, at least as wide as it, standing on
+   * the desktop's bottom edge and as tall as the desktop, newest nearest the prompt. The dock sits
+   * over its foot, so older answers scroll up from beneath the dock's glass. It scrolls from the
+   * bottom, so a new answer lands in view. Only the answers' area takes the pointer; the space
+   * around it belongs to the windows behind. Over the windows by default, or beneath them on the
+   * desktop. It carries no mask or opacity: either would make it the backdrop the widgets' glass
+   * blurs, so each widget fades itself instead.
+   */
+  .aui-dock-widgets {
+    /*
+     * The widgets cast the front window's shadow, which reaches past any scroller's edge. The stack
+     * reserves that reach as padding at its sides and gives it back with negative margins, so the
+     * shadow draws inside its clip while the widgets stay put; the padding lets the pointer through.
+     */
+    --aui-dock-widgets-shadow-room: calc(var(--shadow-base) * 52);
+    /*
+     * The foot the dock stands in: the dock's offset from the edge and its height, which the dock
+     * publishes as it grows. The list's bottom edge sits right on the dock's top, so the pointer
+     * never falls through between them; the list's own padding keeps the gap.
+     */
+    --aui-dock-widgets-dock-room: calc(
+      var(--aui-dock-offset) + var(--aui-dock-block-size, 0px) + var(--aui-dock-float-block-size, 0px)
+    );
+    position: fixed;
+    position-anchor: --aui-dock;
+    position-area: span-all center;
+    align-self: end;
+    z-index: calc(var(--aui-window-z) + 999);
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column-reverse;
+    /* As wide as the answers need: at least the dock or the stack's own width, at most its max width. */
+    inline-size: max-content;
+    min-inline-size: calc(
+      max(anchor-size(width), min(var(--aui-dock-widgets-width), calc(100dvi - var(--aui-dock-offset) * 2))) +
+        var(--aui-dock-widgets-shadow-room) * 2
+    );
+    max-inline-size: calc(var(--aui-dock-widgets-max-width) + var(--aui-dock-widgets-shadow-room) * 2);
+    max-block-size: 100%;
+    margin: 0 calc(var(--aui-dock-widgets-shadow-room) * -1);
+    /* Room for the shadows on every side but the foot, where the dock stands. */
+    padding: var(--aui-dock-widgets-shadow-room) var(--aui-dock-widgets-shadow-room) var(--aui-dock-widgets-dock-room);
+    overflow-y: auto;
+    scrollbar-width: none;
+    pointer-events: none;
+
+    &[data-layer='below'] {
+      z-index: calc(var(--aui-window-z) - 1);
+    }
+
+    &:not(:has(.aui-dock-widget)) {
+      display: none;
+    }
+  }
+
+  .aui-desktop > .aui-dock-widgets {
+    position: absolute;
+  }
+
+  /*
+   * The launcher opens in the same place, so the answers step aside while it is open. The
+   * launcher itself is drawn outside the dock, so its open start button is what tells.
+   */
+  .aui-dock:has(.aui-dock-launch [aria-expanded='true']) ~ .aui-dock-widgets {
+    visibility: hidden;
+  }
+
+  /*
+   * The list holds the pointer over the answers' whole area — between them too — so moving among
+   * them never closes the stack, and pointing at an idle stack's empty-looking area wakes it.
+   */
+  .aui-dock-widgets-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--aui-dock-gap);
+    /* Room for the widgets' shadows inside the stack's scroll edge; below, the dock's gap. */
+    padding: var(--spacing-md) var(--spacing-md) var(--aui-dock-gap);
+    pointer-events: auto;
+  }
+
+  /*
+   * A widget is a pane of the window's glass holding whatever the answer composed. It rises in and
+   * announces itself.
+   */
+  .aui-toast.aui-dock-widget {
+    --aui-toast-bg: var(--aui-window-content-bg);
+    --aui-toast-fg: var(--aui-window-fg);
+    --aui-toast-action: var(--aui-item-bg, var(--color-primary));
+    position: relative;
+    box-sizing: border-box;
+    align-items: stretch;
+    min-inline-size: 0;
+    max-inline-size: none;
+    padding: var(--aui-window-bar-inset);
+    corner-shape: inherit;
+    pointer-events: auto;
+    /* Its pane is the shared glass (`aui-glass-frame`), tinted more so text on it reads, lifted like the window in front. */
+    --aui-glass-tint: var(--aui-dock-widget-tint);
+    --aui-glass-radius: var(--aui-window-radius);
+    --aui-glass-shadow: var(--aui-window-shadow-active);
+  }
+
+  /*
+   * Idle: after a quiet spell the answers fade away, so they show what is going on without sitting
+   * over the work the whole time. Only new activity — an answer added or changing — counts: it
+   * flips the stack's `data-activity`, which swaps each part's timer for its twin and so starts the
+   * count over. Each widget fades itself, so its glass keeps blurring on the way out, and stops
+   * taking the pointer once gone.
+   *
+   * Pointing at the stack or moving focus into it wakes it without touching the timers: an overlay
+   * animation layers the awake state above them. Leaving swaps it for a hold that keeps the awake
+   * state for the close delay, then gives way to whatever the timer says — still showing if the
+   * answer is fresh, gone at once if the stack had gone idle. A widget waiting on the user keeps the
+   * stack awake.
+   */
+  .aui-dock-widgets {
+    --aui-dock-widget-timer: aui-dock-widget-idle;
+    --aui-dock-widgets-list-timer: aui-dock-widgets-asleep;
+    --aui-dock-widgets-wake-timer: aui-dock-widgets-wake;
+    --aui-dock-widgets-cue-timer: aui-dock-widgets-cue;
+
+    &[data-activity='odd'] {
+      --aui-dock-widget-timer: aui-dock-widget-idle-twin;
+      --aui-dock-widgets-list-timer: aui-dock-widgets-asleep-twin;
+      --aui-dock-widgets-wake-timer: aui-dock-widgets-wake-twin;
+      --aui-dock-widgets-cue-timer: aui-dock-widgets-cue-twin;
+    }
+  }
+
+  /* The entrance comes last so it wins while it plays, and fills nothing after, so the timer shows through. */
+  .aui-toast.aui-dock-widget {
+    animation:
+      var(--aui-dock-widget-timer) var(--duration-long, 600ms) var(--ease-standard) var(--aui-dock-widgets-idle) forwards,
+      aui-dock-widget-hold 0s var(--aui-dock-widgets-close-delay) backwards,
+      aui-toast-enter var(--duration-medium) var(--ease-emphasized-decelerate) backwards;
+  }
+
+  :is(
+      .aui-dock-widgets:is(:hover, :focus-within, :has(.aui-dock-widget-important)),
+      .aui-dock:has(.aui-dock-prompt:hover) ~ .aui-dock-widgets
+    )
+    .aui-toast.aui-dock-widget {
+    animation:
+      var(--aui-dock-widget-timer) var(--duration-long, 600ms) var(--ease-standard) var(--aui-dock-widgets-idle) forwards,
+      aui-dock-widget-wake 0s forwards,
+      aui-toast-enter var(--duration-medium) var(--ease-emphasized-decelerate) backwards;
+  }
+
+  /*
+   * Asleep, the answers' area lets the pointer through to the windows. Only the pill left above
+   * the dock wakes it, along with a little room around the pill so it needs no aiming.
+   */
+  .aui-dock-widgets-list {
+    animation:
+      var(--aui-dock-widgets-list-timer) 0s var(--aui-dock-widgets-idle) forwards,
+      aui-dock-widgets-pointer-on-hold 0s var(--aui-dock-widgets-close-delay) backwards;
+  }
+
+  .aui-dock-widgets::before {
+    content: '';
+    position: absolute;
+    inset-block-end: var(--aui-dock-widgets-dock-room);
+    inset-inline-start: 50%;
+    translate: -50% 0;
+    inline-size: calc(var(--aui-dock-widgets-cue-width) + var(--aui-dock-widgets-cue-reach) * 2);
+    block-size: calc(var(--aui-dock-widgets-cue-height) + var(--aui-dock-widgets-cue-reach) + var(--aui-dock-offset));
+    pointer-events: none;
+    animation:
+      var(--aui-dock-widgets-wake-timer) 0s var(--aui-dock-widgets-idle) forwards,
+      aui-dock-widgets-pointer-off-hold 0s var(--aui-dock-widgets-close-delay) backwards;
+  }
+
+  /*
+   * The pill sits on the list's bottom edge, one dock offset above the dock — the same gap the
+   * dock keeps from the edge of the screen. It is a chip of the dock's glass with its edge and a
+   * soft lift, so it reads on a dark wallpaper and a light one.
+   */
+  .aui-dock-widgets::after {
+    content: '';
+    position: absolute;
+    inset-block-end: calc(var(--aui-dock-widgets-dock-room) + var(--aui-dock-offset));
+    inset-inline-start: 50%;
+    translate: -50% 0;
+    inline-size: var(--aui-dock-widgets-cue-width);
+    block-size: var(--aui-dock-widgets-cue-height);
+    border-radius: var(--radius-full);
+    background-color: var(--aui-dock-widgets-cue-color);
+    /* Its glass edge, then a lift dark enough to part it from a window's glass beneath. */
+    box-shadow:
+      0 0 0 1px var(--aui-window-edge),
+      0 calc(var(--shadow-base) * 2) calc(var(--shadow-base) * 6) light-dark(rgba(0, 0, 0, 0.28), rgba(0, 0, 0, 0.6)),
+      0 0 calc(var(--shadow-base) * 2) light-dark(rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.45));
+    pointer-events: none;
+    opacity: 0;
+    animation:
+      var(--aui-dock-widgets-cue-timer) var(--duration-long, 600ms) var(--ease-standard) var(--aui-dock-widgets-idle) forwards,
+      aui-dock-widgets-cue-return var(--duration-long, 600ms) var(--ease-standard) var(--aui-dock-widgets-close-delay) backwards;
+  }
+
+  /*
+   * Awake, the list takes the pointer, the wake area steps aside, and the pill hides — over the
+   * timers, never in place of them. Pointing at the prompt wakes the stack too, without opening it.
+   */
+  .aui-dock-widgets:is(:hover, :focus-within, :has(.aui-dock-widget-important)),
+  .aui-dock:has(.aui-dock-prompt:hover) ~ .aui-dock-widgets {
+    & .aui-dock-widgets-list {
+      animation:
+        var(--aui-dock-widgets-list-timer) 0s var(--aui-dock-widgets-idle) forwards,
+        aui-dock-widgets-pointer-on 0s forwards;
+    }
+
+    &::before {
+      animation:
+        var(--aui-dock-widgets-wake-timer) 0s var(--aui-dock-widgets-idle) forwards,
+        aui-dock-widgets-pointer-off 0s forwards;
+    }
+
+    &::after {
+      animation:
+        var(--aui-dock-widgets-cue-timer) var(--duration-long, 600ms) var(--ease-standard) var(--aui-dock-widgets-idle) forwards,
+        aui-dock-widgets-cue-hide 0s forwards;
+    }
+  }
+
+  /*
+   * The awake overlays: each sets its state at once. A fade would start from what the timer says,
+   * so coming back during a hold would replay it from hidden — a flash.
+   */
+  @keyframes aui-dock-widget-wake {
+    to {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  }
+
+  @keyframes aui-dock-widgets-pointer-on {
+    to {
+      pointer-events: auto;
+    }
+  }
+
+  @keyframes aui-dock-widgets-pointer-off {
+    to {
+      pointer-events: none;
+    }
+  }
+
+  @keyframes aui-dock-widgets-cue-hide {
+    to {
+      opacity: 0;
+    }
+  }
+
+  /* The holds after leaving: each keeps the awake state through its delay, then gives way to what the timer says. */
+  @keyframes aui-dock-widget-hold {
+    from {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  }
+
+  @keyframes aui-dock-widgets-pointer-on-hold {
+    from {
+      pointer-events: auto;
+    }
+  }
+
+  @keyframes aui-dock-widgets-pointer-off-hold {
+    from {
+      pointer-events: none;
+    }
+  }
+
+  @keyframes aui-dock-widgets-cue-return {
+    from {
+      opacity: 0;
+    }
+  }
+
+  /* The timers. */
+  @keyframes aui-dock-widgets-cue {
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes aui-dock-widgets-cue-twin {
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes aui-dock-widgets-asleep {
+    to {
+      pointer-events: none;
+    }
+  }
+
+  @keyframes aui-dock-widgets-asleep-twin {
+    to {
+      pointer-events: none;
+    }
+  }
+
+  @keyframes aui-dock-widgets-wake {
+    to {
+      pointer-events: auto;
+    }
+  }
+
+  @keyframes aui-dock-widgets-wake-twin {
+    to {
+      pointer-events: auto;
+    }
+  }
+
+  @keyframes aui-dock-widget-idle {
+    to {
+      opacity: 0;
+      pointer-events: none;
+    }
+  }
+
+  @keyframes aui-dock-widget-idle-twin {
+    to {
+      opacity: 0;
+      pointer-events: none;
+    }
+  }
+
+  /* The answer sits right on the glass, its parts — text and widgets — in a column. */
+  .aui-dock-widget-content {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    min-inline-size: 0;
+    padding: var(--spacing-md);
+  }
+
+
+
+  /*
+   * At rest only the newest answer shows; the one before it holds its place, faded out. Pointing at
+   * the stack, or moving the keyboard into it, opens it to the
+   * `visible` count. Older ones step out of view — not dismissed — and come back as newer ones
+   * leave. A widget waiting on the user always stays.
+   */
+  .aui-dock-widgets:is(:hover, :has(:focus-visible)) {
+    &[data-visible='1'] .aui-dock-widget:nth-last-child(n + 2 of :not(.aui-dock-widget-important)),
+    &[data-visible='2'] .aui-dock-widget:nth-last-child(n + 3 of :not(.aui-dock-widget-important)),
+    &[data-visible='3'] .aui-dock-widget:nth-last-child(n + 4 of :not(.aui-dock-widget-important)),
+    &[data-visible='4'] .aui-dock-widget:nth-last-child(n + 5 of :not(.aui-dock-widget-important)),
+    &[data-visible='5'] .aui-dock-widget:nth-last-child(n + 6 of :not(.aui-dock-widget-important)),
+    &[data-visible='6'] .aui-dock-widget:nth-last-child(n + 7 of :not(.aui-dock-widget-important)) {
+      display: none;
+    }
+  }
+
+  .aui-dock-widgets:not(:hover, :has(:focus-visible)) {
+    /*
+     * Closing waits a beat after the pointer leaves, so passing off the edge doesn't flicker it;
+     * opening is immediate.
+     */
+    & .aui-dock-widget {
+      transition:
+        display 0s var(--aui-dock-widgets-close-delay) allow-discrete,
+        opacity var(--duration-medium) var(--ease-standard) var(--aui-dock-widgets-close-delay);
+    }
+
+    & .aui-dock-widget:nth-last-child(n + 3 of :not(.aui-dock-widget-important)) {
+      display: none;
+    }
+
+    /*
+     * The answer before the newest keeps its place but fades out: nothing is clipped, and the
+     * stack keeps its height, so opening it shifts nothing. Pointing at the empty spot opens it.
+     */
+    & .aui-dock-widget:nth-last-child(2 of :not(.aui-dock-widget-important)) {
+      opacity: 0;
+    }
+  }
+
+  /* The apps wrap into as many columns as fit; each is a captioned app icon. */
+  .aui-launcher-apps {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(calc(var(--aui-launcher-icon-size) + var(--spacing) * 10), 1fr));
+    align-content: start;
+    gap: var(--spacing-sm);
+
+    & > .aui-app-icon {
+      --aui-app-icon-size: var(--aui-launcher-icon-size);
+      justify-self: center;
+    }
+  }
+
+  /* The running apps keep apart from the prompt, so the two read as separate groups. */
+  .aui-dock-tasks {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--spacing-xs);
+    margin-inline-start: var(--aui-dock-gap);
+
+    &:empty {
+      display: none;
+    }
+  }
+
+  /* Every app icon in the dock — the launcher's or a running app's — lifts on hover. */
+  .aui-dock .aui-app-icon:hover:not(:disabled) {
+    translate: 0 calc(var(--spacing-xs) * -1);
+    scale: 1.08;
+  }
+
+  /* A running app has a dot under it that turns to the role's color for the app in front. */
+  .aui-dock-task {
+    position: relative;
+
+    &::after {
+      content: '';
+      position: absolute;
+      inset-block-end: calc(var(--aui-dock-padding) * -0.75);
+      inset-inline: 0;
+      margin-inline: auto;
+      inline-size: 4px;
+      block-size: 4px;
+      border-radius: var(--radius-full);
+      background-color: var(--color-on-surface-variant);
+    }
+
+    &[aria-pressed='true']::after {
+      background-color: var(--color-primary);
+    }
+  }
+}

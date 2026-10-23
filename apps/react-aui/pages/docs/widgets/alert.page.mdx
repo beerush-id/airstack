@@ -18,6 +18,7 @@ Styling is optional. Without AUI CSS the Alert is still a readable, announced me
 import { Alert, Button } from '@airlib/react-aui';
 import { $bind, mutable, setup, Show, Snippet } from '@airlib/react';
 import { DemoControl } from '@/components/DemoControl.js';
+import { GlassStage } from '@/components/GlassStage.js';
 
 const AlertDemo = setup(() => {
   const state = mutable({ size: 'md', color: 'warning', open: true });
@@ -25,31 +26,33 @@ const AlertDemo = setup(() => {
   return () => (
     <div className="demo-button">
       <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} />
-      <div className="aui-card flex flex-col gap-md p-xl">
-        <Snippet>
-          {() => (
-            <Alert
-              title="Your trial ends in 3 days"
-              description="Add a payment method to keep your projects running."
-              size={state.size}
-              color={state.color}
-              open={$bind(state, 'open')}
-              dismissable
-              dismissLabel="Hide trial notice"
-            >
-              <Alert.Snippet for="actions">{() => <Button size="sm" variant="tonal" color={state.color}>Add payment</Button>}</Alert.Snippet>
-            </Alert>
-          )}
-        </Snippet>
-        <Snippet>
-          {() => (
-            <Alert color="success" variant="filled" size={state.size} title="Changes saved" description="Everyone on the team sees the new schedule." />
-          )}
-        </Snippet>
-        <Show when={() => !state.open}>
-          {() => <Button size="sm" variant="text" onClick={() => (state.open = true)}>Show the trial notice again</Button>}
-        </Show>
-      </div>
+      <GlassStage>
+        <div className="flex flex-col gap-md">
+          <Snippet>
+            {() => (
+              <Alert
+                title="Your trial ends in 3 days"
+                description="Add a payment method to keep your projects running."
+                size={state.size}
+                color={state.color}
+                open={$bind(state, 'open')}
+                dismissable
+                dismissLabel="Hide trial notice"
+              >
+                <Alert.Snippet for="actions">{() => <Button size="sm" variant="tonal" color={state.color}>Add payment</Button>}</Alert.Snippet>
+              </Alert>
+            )}
+          </Snippet>
+          <Snippet>
+            {() => (
+              <Alert color="success" variant="filled" size={state.size} title="Changes saved" description="Everyone on the team sees the new schedule." />
+            )}
+          </Snippet>
+          <Show when={() => !state.open}>
+            {() => <Button size="sm" variant="text" onClick={() => (state.open = true)}>Show the trial notice again</Button>}
+          </Show>
+        </div>
+      </GlassStage>
     </div>
   );
 }, 'AlertDemo');
@@ -146,6 +149,6 @@ Keyboard: the alert itself takes no focus. Its actions and close button sit in t
 
 ## Next Steps
 
-- [Toast](/docs/widgets/toast) — A message that appears briefly and leaves on its own, instead of staying in the page.
+- [Toast](/docs/composites/toast) — A message that appears briefly and leaves on its own, instead of staying in the page.
 - [Announcer](/docs/widgets/announcer) — Announce a change to screen readers with nothing shown on screen.
-- [Confirm](/docs/widgets/confirm) — Ask a question that must be answered before going on.
+- [Confirm](/docs/composites/confirm) — Ask a question that must be answered before going on.

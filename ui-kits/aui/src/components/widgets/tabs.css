@@ -1,5 +1,6 @@
 @import './control.css';
 @import './item.css';
+@import './glass.css';
 
 /*
  * Tab triggers ride the shared control for size, color, and type; the strip
@@ -99,6 +100,25 @@
     box-shadow: var(--elevation-1);
   }
 
+  /* For a strip floating over other content: its track is the shared glass (`aui-glass-frame`), lifted. */
+  .aui-tab-list-glass {
+    --aui-glass-radius: calc(var(--radius-md) + var(--aui-tab-list-padding));
+    --aui-glass-shadow: var(--elevation-3);
+  }
+
+  /* The triggers are text on the glass track, not glass panes of their own; the open one takes the role's tint. */
+  .aui-tab-button.aui-tab-button-glass {
+    --aui-control-outline-color: transparent;
+    border-width: 0;
+    background-color: transparent;
+    backdrop-filter: none;
+
+    &[aria-selected='true'] {
+      color: var(--aui-control-bg);
+      background-color: color-mix(in oklch, var(--aui-control-bg) var(--tone-container-strength), var(--light-up));
+    }
+  }
+
   .aui-tab-button-text {
     border-radius: 0;
 
@@ -150,12 +170,14 @@
     }
 
     .aui-tab-list > .aui-tab-button[aria-selected='true'] {
-      anchor-name: --aui-tab-open;
+      --aria-anchor-name: --aui-tab-open;
+      anchor-name: var(--aria-anchor-name);
       background-color: transparent;
       box-shadow: none;
     }
 
-    .aui-tab-list-tonal::before {
+    .aui-tab-list-tonal::before,
+    .aui-tab-list-glass::before {
       background-color: color-mix(in oklch, var(--aui-item-bg) var(--tone-container-strength), var(--light-up));
     }
 

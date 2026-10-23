@@ -1,14 +1,15 @@
-import { aria } from '@airlib/aria';
+import { aria, type CheckboxAria } from '@airlib/aria';
 import { AUI_CLASS, COLORS, register, SIZES } from '@airlib/aui/utils';
 import { type Bindable, renderDynamic, setup } from '@airlib/react';
 import type { ReactNode } from 'react';
 import { $families, auiConfig, type AuiPrimitive, type AuiProps, type ComponentStyles, OMIT_KEYS } from '../config.js';
+import { CheckIcon, CheckIndeterminateIcon } from '../icons/index.js';
 
 import { checkboxGroupScope } from './context.js';
 
 export type CheckboxValue = AuiPrimitive;
 
-export interface CheckboxProps extends Omit<AuiProps<'input'>, 'variant' | 'type' | 'value'> {
+export interface CheckboxProps extends Omit<AuiProps<'span'>, 'variant'> {
   checked?: Bindable<boolean>;
   indeterminate?: Bindable<boolean>;
   disabled?: boolean;
@@ -16,7 +17,8 @@ export interface CheckboxProps extends Omit<AuiProps<'input'>, 'variant' | 'type
   invalid?: boolean | 'grammar' | 'spelling';
   name?: string;
   value?: CheckboxValue;
-  children?: ReactNode | ((checked?: boolean) => ReactNode);
+  /** A custom glyph in place of the check and indeterminate icons. */
+  children?: ReactNode | ((ctrl: CheckboxAria) => ReactNode);
   oninput?: (event: CustomEvent<boolean>) => void;
   onchange?: (event: CustomEvent<boolean | CheckboxValue[]>) => void;
 }
@@ -31,28 +33,27 @@ const checkboxStyles: ComponentStyles = {
 register('checkbox', checkboxStyles);
 
 /**
- * Yes-no box that can also sit undecided. A native input wrapped in
- * a label, so the name text marks the box and the control joins
- * forms; the controller drives checked, indeterminate, disabled,
- * and required on the input itself. The glyph keys off the state
- * the browser reports — checked, indeterminate, or neither.
+ * Yes-no box that can also sit undecided. The box is the control: a click, or
+ * `Space` with it focused, toggles it, and it shows the library's check or
+ * indeterminate icon for the state it reports. It carries no text: wrap it in a
+ * `Label`, which names it and activates it on click, or give it `aria-label`.
+ * Its value lives in your bound state, not in a native form field.
  */
 export const Checkbox = setup<CheckboxProps>((props) => {
   const styles = checkboxGroupScope.inherit(props);
-  const checkbox = aria(CHECKBOX_ROLE, props);
-  const className = () => $families(AUI_CLASS.CHECKBOX_BOX, styles, auiConfig.checkbox);
+  // A custom host, since a native input can't hold the library's icons.
+  const checkbox = aria<HTMLSpanElement>(CHECKBOX_ROLE, props as never, { native: false });
+  const className = () => $families(AUI_CLASS.CHECKBOX, styles, auiConfig.checkbox);
 
   return () => (
-    <label className={AUI_CLASS.CHECKBOX}>
-      <input
-        ref={checkbox.ref}
-        {...checkbox.restProps([...OMIT_KEYS])}
-        type="checkbox"
-        name={props.name}
-        value={props.value}
-        className={className()}
-      />
-      <span className={AUI_CLASS.CHECKBOX_LABEL}>{renderDynamic(props.children, checkbox.checked)}</span>
-    </label>
+    <span ref={checkbox.ref} {...checkbox.restProps([...OMIT_KEYS, 'name', 'value'])} className={className()}>
+      {props.children && renderDynamic(props.children, checkbox)}
+      {!props.children && (
+        <>
+          <CheckIcon />
+          <CheckIndeterminateIcon />
+        </>
+      )}
+    </span>
   );
 }, 'Checkbox');

@@ -13,9 +13,10 @@ Every form field needs the same four pieces — a label, the control, a hint, an
 :::interactive[Field demo]
 
 ```tsx
-import { Field, FieldControl, FieldDescription, FieldError, FieldLabel, Toggle } from '@airlib/react-aui';
+import { Field, FieldControl, FieldDescription, FieldError, FieldLabel, Readout, Toggle } from '@airlib/react-aui';
 import { $bind, mutable, setup, Snippet } from '@airlib/react';
 import { DemoControl } from '@/components/DemoControl.js';
+import { GlassStage } from '@/components/GlassStage.js';
 
 const FieldDemo = setup(() => {
   const state = mutable({ value: '', touched: false, size: 'md', color: 'primary', disabled: false });
@@ -27,28 +28,30 @@ const FieldDemo = setup(() => {
           {() => (state.touched ? 'Touched' : 'Untouched')}
         </Toggle>
       </DemoControl>
-      <div className="aui-card flex flex-col gap-lg justify-center p-xl">
-        <Snippet>
-          {() => (
-            <Field
-              placeholder="you@example.com"
-              required
-              value={$bind(state, 'value')}
-              touched={$bind(state, 'touched')}
-              invalid={!state.value.includes('@')}
-              size={state.size}
-              color={state.color}
-              disabled={state.disabled}
-            >
-              <FieldLabel>Work email</FieldLabel>
-              <FieldControl />
-              <FieldDescription>We send a sign-in link to this address.</FieldDescription>
-              <FieldError>Enter a valid email address to continue.</FieldError>
-            </Field>
-          )}
-        </Snippet>
-        <Snippet>{() => <span>Value: {state.value || '—'}</span>}</Snippet>
-      </div>
+      <GlassStage style={{ maxInlineSize: '20rem' }}>
+        <div className="flex flex-col gap-lg justify-center">
+          <Snippet>
+            {() => (
+              <Field
+                placeholder="you@example.com"
+                required
+                value={$bind(state, 'value')}
+                touched={$bind(state, 'touched')}
+                invalid={!state.value.includes('@')}
+                size={state.size}
+                color={state.color}
+                disabled={state.disabled}
+              >
+                <FieldLabel>Work email</FieldLabel>
+                <FieldControl />
+                <FieldDescription>We send a sign-in link to this address.</FieldDescription>
+                <FieldError>Enter a valid email address to continue.</FieldError>
+              </Field>
+            )}
+          </Snippet>
+          <Snippet>{() => <Readout label="Value" value={state.value} empty="Empty" />}</Snippet>
+        </div>
+      </GlassStage>
     </div>
   );
 }, 'FieldDemo');
@@ -149,4 +152,4 @@ The control is the only focusable piece; typing and selection are the browser's 
 
 - [Text Input](/docs/widgets/text-input) — A standalone text field bound to your state.
 - [Number Stepper](/docs/widgets/number-stepper) — A number field that stays within bounds.
-- [Select](/docs/widgets/select) — Pick a value from a list.
+- [Select](/docs/composites/select) — Pick a value from a list.

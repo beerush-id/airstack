@@ -71,6 +71,19 @@ export interface OverlayLifecycleOptions {
 }
 
 /**
+ * The anchor names a trigger wears while its overlay is open: the overlay's
+ * own, plus any its styles declare in `--aria-anchor-name`. Written inline,
+ * the overlay's name would otherwise replace an anchor the page gave the same
+ * element — the pressed member a toggle group's indicator glides to.
+ *
+ * @param own - The overlay's anchor name, a dashed ident.
+ * @returns The `anchor-name` value for the trigger.
+ */
+export function triggerAnchorName(own: string): string {
+  return `${own}, var(--aria-anchor-name, --aria-no-anchor)`;
+}
+
+/**
  * Manages the DOM lifecycle, focus trapping, light-dismiss, and focus restoration
  * for an overlay element across modal and non-modal states.
  *

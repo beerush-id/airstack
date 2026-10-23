@@ -16,7 +16,7 @@ Styling is optional. Without AUI CSS the Splitter stays a correct, operable sepa
 :::interactive[Splitter demo]
 
 ```tsx
-import { Splitter } from '@airlib/react-aui';
+import { Readout, Splitter } from '@airlib/react-aui';
 import { $bind, mutable, setup, Snippet } from '@airlib/react';
 
 const SplitterDemo = setup(() => {
@@ -26,14 +26,14 @@ const SplitterDemo = setup(() => {
     <div className="demo-button">
       <div className="flex gap-xs w-full flex-wrap">
         <div className="flex-1"></div>
-        <Snippet>{() => <span>{state.split}%</span>}</Snippet>
+        <Snippet>{() => <Readout label="Preview width" value={`${state.split}%`} />}</Snippet>
       </div>
-      <div className="aui-card p-lg">
-        <div className="flex" style={{ blockSize: '160px' }}>
+      <div className="demo-stage w-full">
+        <div className="aui-glass-frame demo-window" style={{ blockSize: '180px' }}>
           <Snippet>
             {() => (
               <div
-                className="aui-card flex items-center justify-center"
+                className="aui-glass-panel demo-pane"
                 style={
                   {
                     '--demo-split': `${((state.split - 10) / (90 - 10)) * 100}%`,
@@ -51,8 +51,9 @@ const SplitterDemo = setup(() => {
             min={10}
             max={90}
             orientation="vertical"
+            seam
           />
-          <div className="aui-card flex flex-1 items-center justify-center">Inspector</div>
+          <div className="aui-glass-surface demo-pane flex-1">Inspector</div>
         </div>
       </div>
     </div>
@@ -121,6 +122,14 @@ The handle publishes its position as `--aria-splitter-offset` on itself, as a pe
 </div>
 ```
 
+### Between separate panels
+
+When the panes are panels of their own with a gap between them — a sidebar and a body on a window, a canvas and an inspector on a card — a line in the gap would only repeat the edges already there. Add `seam`: the handle keeps the panels `--aui-splitter-gap` apart, draws no line, and lets the resize cursor show it, with the focus ring when the keyboard reaches it:
+
+```tsx
+<Splitter label="Sidebar width" value={$bind(state, 'sidebar')} min={20} max={50} orientation="vertical" seam />
+```
+
 ### Events
 
 | Event | Fires when | Detail |
@@ -148,6 +157,7 @@ A press that commits nothing is silent.
 | `orientation` | `'horizontal'`, `'vertical'` | `'horizontal'` | The announced axis and the drag axis. |
 | `disabled` | `boolean` | `false` | Refuses keys and drags; leaves the tab order. |
 | `label` | `string` | — | The handle's accessible name. |
+| `seam` | `boolean` | `false` | Sits in the gap between two separate panels, with no line; the cursor shows it. |
 | `oninput` / `onchange` | `(event: CustomEvent<number>) => void` | — | The committed position at each edge. |
 | `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
 | `ref` | `Ref<HTMLDivElement>` | — | Access to the handle element. |

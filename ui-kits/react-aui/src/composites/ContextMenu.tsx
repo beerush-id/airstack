@@ -35,33 +35,32 @@ register('contextMenu', {});
 register('contextMenuPanel', { size: SIZES.MD, color: COLORS.PRIMARY });
 
 /**
- * Surface that turns a secondary click or the keyboard shortcut into an
- * anchored panel. It compiles no role; the menu role lives on the panel.
- * With `items` the children are the target and the panel is rendered for
- * you, one row per entry; the `item` slot refines each row.
+ * The commands of the part it is placed in. Put it inside a Button, an Image,
+ * a row: a secondary click or the keyboard shortcut on that part opens the
+ * menu there, and each command bubbles to that part's `oncommand`. It renders
+ * nothing of its own but the panel. With `items` the panel is rendered for
+ * you, one row per entry, and the `item` slot refines each row; without it,
+ * the children are a `ContextMenuPanel` of your own rows.
  */
 export const ContextMenu = setup<ContextMenuProps, ContextMenuSlots>((props, slots) => {
-  const menu = aria(CONTEXT_MENU_ROLE, props as AnyType);
-  const className = () => $families(AUI_CLASS.CONTEXT_MENU, props, auiConfig.contextMenu);
+  aria(CONTEXT_MENU_ROLE, props as AnyType);
 
   menuScope.provide(menuScope.inherit(props));
 
-  return () => (
-    <div ref={menu.ref} {...menu.restProps([...OMIT_KEYS, 'items'])} className={className()}>
-      {props.children}
-      {hasEntries(props.items) && (
-        <ContextMenuPanel>
-          <For each={() => toEntries(props.items)}>
-            {(entry) => (
-              <MenuItem name={entry.name} disabled={entry.disabled}>
-                <Slot for={() => slots.item?.(entry)}>{entry.label ?? entry.name}</Slot>
-              </MenuItem>
-            )}
-          </For>
-        </ContextMenuPanel>
-      )}
-    </div>
-  );
+  return () =>
+    hasEntries(props.items) ? (
+      <ContextMenuPanel>
+        <For each={() => toEntries(props.items)}>
+          {(entry) => (
+            <MenuItem name={entry.name} disabled={entry.disabled}>
+              <Slot for={() => slots.item?.(entry)}>{entry.label ?? entry.name}</Slot>
+            </MenuItem>
+          )}
+        </For>
+      </ContextMenuPanel>
+    ) : (
+      props.children
+    );
 }, 'ContextMenu');
 
 /**

@@ -10,7 +10,7 @@ export type AvatarEntry = { alt: string; src?: string };
 
 export type AvatarProps = Omit<ComponentProps<'div'>, 'color' | 'className' | 'children'> &
   Omit<ComponentStyles, 'variant'> & {
-    /** Picture to show; while it loads or if it fails, the initials of `alt` show instead. */
+    /** Picture to show, painting as it arrives; if it fails, the initials of `alt` show instead. */
     src?: string;
     /** Who or what this is. Names the avatar for screen readers and seeds the initials. */
     alt: string;
@@ -45,8 +45,8 @@ register('avatarGroup', {});
 const avatarScope = createStyleScope();
 
 /**
- * A person or entity as a round picture, with their initials while the
- * picture loads or when there is none. Inside an `AvatarGroup` it follows
+ * A person or entity as a round picture, with their initials when the
+ * picture fails or there is none. Inside an `AvatarGroup` it follows
  * the group's size and color. Children sit on the avatar — a status dot, a
  * count — and never replace the picture.
  */

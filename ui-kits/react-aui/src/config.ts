@@ -24,6 +24,8 @@ export type AuiProps<T extends keyof JSX.IntrinsicElements | JSXElementConstruct
     style?: StyleInput;
     variant?: Variant;
     className?: ClassInput;
+    /** A command run on this part — by the context menu it hosts, or one inside it — with the command's name. */
+    oncommand?: (event: CustomEvent<string>) => void;
   };
 
 /** Built-in fallbacks every field-like part registers; copy it per key so `configure()` never leaks across parts. */

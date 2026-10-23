@@ -26,6 +26,4 @@ Head.config(() => {
 
 Aria.translate(JSXTranslator);
 
-export default (({ url }) => {
-  return <UIRouter router={router} root={RootLayout} url={url} />;
-}) satisfies AppEntry;
+export default (({ url }) => <UIRouter router={router} root={RootLayout} url={url} />) satisfies AppEntry;

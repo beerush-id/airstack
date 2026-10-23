@@ -17,6 +17,7 @@ Styling is optional. Without AUI CSS the Switch stays a correct, operable `switc
 import { Switch } from '@airlib/react-aui';
 import { $bind, mutable, setup, Snippet } from '@airlib/react';
 import { DemoControl } from '@/components/DemoControl.js';
+import { GlassStage } from '@/components/GlassStage.js';
 
 const SwitchDemo = setup(() => {
   const state = mutable({ wifi: true, bluetooth: false, size: 'md', color: 'primary', disabled: false });
@@ -26,27 +27,29 @@ const SwitchDemo = setup(() => {
       <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} disabled={$bind(state, 'disabled')} />
       <Snippet>
         {() => (
-          <div className="aui-card flex gap-xl items-center justify-center p-xl">
-            <label className="flex items-center gap-sm">
-              <span>Wi-Fi</span>
-              <Switch
-                label="Wi-Fi"
-                checked={$bind(state, 'wifi')}
-                size={state.size}
-                color={state.color}
-                disabled={state.disabled}
-              />
-            </label>
-            <label className="flex items-center gap-sm">
-              <span>Bluetooth</span>
-              <Switch
-                checked={$bind(state, 'bluetooth')}
-                size={state.size}
-                color={state.color}
-                disabled={state.disabled}
-              />
-            </label>
-          </div>
+          <GlassStage style={{ maxInlineSize: '24rem' }}>
+            <div className="flex gap-xl items-center justify-center">
+              <label className="flex items-center gap-sm">
+                <span>Wi-Fi</span>
+                <Switch
+                  label="Wi-Fi"
+                  checked={$bind(state, 'wifi')}
+                  size={state.size}
+                  color={state.color}
+                  disabled={state.disabled}
+                />
+              </label>
+              <label className="flex items-center gap-sm">
+                <span>Bluetooth</span>
+                <Switch
+                  checked={$bind(state, 'bluetooth')}
+                  size={state.size}
+                  color={state.color}
+                  disabled={state.disabled}
+                />
+              </label>
+            </div>
+          </GlassStage>
         )}
       </Snippet>
     </div>

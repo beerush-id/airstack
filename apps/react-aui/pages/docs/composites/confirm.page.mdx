@@ -1,0 +1,218 @@
+---
+title: AUI Confirm
+nav: Confirm
+nav-priority: 303
+description: Ask a yes-or-no question that must be answered before anything irreversible happens — a title, a description, and two labeled answers; Escape and outside clicks never decide for the user.
+keywords: [React confirm dialog, confirmation modal, are you sure dialog, React alert dialog, delete confirmation, ARIA alertdialog]
+---
+
+# AUI Confirm
+
+Deleting a project, publishing to production, leaving with unsaved changes — some actions deserve one deliberate "yes" first. That question has to stop everything else, start on the safe answer, and never be answered by a stray `Escape` or a click on the backdrop.
+
+**AUI Confirm** is that question. Give it a title, a description, and the two answers; it tells you which one was picked.
+
+:::interactive[Confirm demo]
+
+```tsx
+import { Badge, Button, Confirm, EmptyState, Readout } from '@airlib/react-aui';
+import { mutable, setup, Snippet } from '@airlib/react';
+import { GlassStage } from '@/components/GlassStage.js';
+
+// The publish question depends on where the project stands.
+const PUBLISHING = {
+  draft: {
+    label: 'Publish',
+    title: 'Publish Lisbon offsite?',
+    description: 'Everyone with the link sees it right away.',
+    actionLabel: 'Publish',
+    cancelLabel: 'Not yet',
+  },
+  live: {
+    label: 'Unpublish',
+    title: 'Take Lisbon offsite offline?',
+    description: 'People with the link lose access until you publish it again.',
+    actionLabel: 'Unpublish',
+    cancelLabel: 'Keep it live',
+  },
+};
+
+const ConfirmDemo = setup(() => {
+  const project = mutable({ live: false, deleted: false, last: '' });
+  const publishing = () => PUBLISHING[project.live ? 'live' : 'draft'];
+  const answer = (outcome) => () => (project.last = outcome);
+
+  return () => (
+    <div className="demo-button">
+      <GlassStage>
+        <Snippet>
+          {() =>
+            project.deleted ? (
+              <EmptyState title="No projects" description="Lisbon offsite and its 12 notebooks are gone for good.">
+                <Button variant="tonal" onClick={() => Object.assign(project, { deleted: false, live: false, last: '' })}>
+                  Reset the demo
+                </Button>
+              </EmptyState>
+            ) : (
+              <div className="flex flex-col gap-lg">
+                <div className="flex items-center gap-md">
+                  <div className="flex flex-col gap-xs flex-1">
+                    <div className="text-title-sm">Lisbon offsite</div>
+                    <div>12 notebooks · edited 2 hours ago</div>
+                  </div>
+                  <Badge color={project.live ? 'success' : 'secondary'}>{project.live ? 'Live' : 'Draft'}</Badge>
+                </div>
+                <div className="flex flex-wrap gap-sm justify-end">
+                  <Confirm
+                    label="Delete"
+                    title="Delete Lisbon offsite?"
+                    description="All 12 notebooks in it are removed for good. This can't be undone."
+                    actionLabel="Delete project"
+                    cancelLabel="Keep project"
+                    color="error"
+                    onconfirm={() => Object.assign(project, { deleted: true, last: 'Project deleted' })}
+                    oncancel={answer('Project kept')}
+                  />
+                  <Confirm
+                    label={publishing().label}
+                    title={publishing().title}
+                    description={publishing().description}
+                    actionLabel={publishing().actionLabel}
+                    cancelLabel={publishing().cancelLabel}
+                    onconfirm={() =>
+                      Object.assign(project, { live: !project.live, last: project.live ? 'Unpublished' : 'Published' })
+                    }
+                    oncancel={answer(project.live ? 'Still live' : 'Still a draft')}
+                  />
+                </div>
+              </div>
+            )
+          }
+        </Snippet>
+      </GlassStage>
+      <Snippet>{() => <Readout label="Outcome" value={project.last} empty="Nothing decided yet" />}</Snippet>
+    </div>
+  );
+}, 'ConfirmDemo');
+```
+
+```html
+<ConfirmDemo />
+```
+
+<ConfirmDemo />
+
+:::
+
+## Usage
+
+### Ask the question
+
+Pass `label` for the button that asks, `title` for the question, and name both answers. Act on `onconfirm`:
+
+```tsx
+import { Confirm } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/confirm.css';
+
+export const DeleteProject = ({ onDelete }: { onDelete: () => void }) => (
+  <Confirm
+    label="Delete project"
+    title="Delete this project?"
+    description="Every notebook in it is removed for good."
+    actionLabel="Delete"
+    cancelLabel="Keep project"
+    color="error"
+    onconfirm={onDelete}
+  />
+);
+```
+
+- **`actionLabel`** names the yes. Name it after what it does — "Delete", "Publish" — in your app's language.
+- **`cancelLabel`** names the no. Focus starts here, so pressing `Enter` by reflex never commits the risky answer.
+- **`color`** reaches the ask button and the yes — `color="error"` marks a destructive action. The no stays quiet whatever the color, so declining never looks like the risky answer.
+- Extra content (a checklist, a summary) goes in as children, under the description.
+
+### Keep it open when the answer can't go through
+
+Both answers close the question unless you stop them. Call `event.preventDefault()` in `onconfirm` — for example when the server rejects the delete — and the question stays up:
+
+```tsx
+<Confirm
+  title="Delete this project?"
+  label="Delete project"
+  actionLabel="Delete"
+  cancelLabel="Keep project"
+  onconfirm={(event) => {
+    if (!canDelete) event.preventDefault();
+  }}
+/>
+```
+
+### Ask from your code
+
+Leave out `label` and bind `open` when the question comes from somewhere else — closing a tab with unsaved changes, a keyboard shortcut:
+
+```tsx
+<Confirm open={$bind(editor, 'askToLeave')} title="Leave without saving?" actionLabel="Leave" cancelLabel="Stay" onconfirm={leave} />
+```
+
+The `trigger` slot replaces the ask button's content when it needs an icon or richer label.
+
+### Build it from parts
+
+Compose the parts when the sheet's layout is yours to invent:
+
+```tsx
+import { Confirm, ConfirmAction, ConfirmCancel, ConfirmDescription, ConfirmPanel, ConfirmTitle, ConfirmTrigger } from '@airlib/react-aui';
+
+<Confirm onconfirm={publish} color="tertiary">
+  <ConfirmTrigger>Publish changes</ConfirmTrigger>
+  <ConfirmPanel>
+    <ConfirmTitle>Publish to production?</ConfirmTitle>
+    <ConfirmDescription>Readers see the new version immediately.</ConfirmDescription>
+    <ConfirmCancel>Cancel</ConfirmCancel>
+    <ConfirmAction>Publish</ConfirmAction>
+  </ConfirmPanel>
+</Confirm>
+```
+
+Buttons placed straight in the sheet line up as its action row.
+
+### Style it once
+
+`size` and `color` on `Confirm` reach the ask button and the yes; the no keeps its quieter look. See [Style a composite once](/docs/theming#style-a-composite-once).
+
+### Properties
+
+`Confirm`:
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `title` | `string` | — | Renders the question for you, headed by this title. |
+| `label` | `string` | — | Text of the button that asks. Omit it to ask from code. |
+| `description` | `string` | — | What the yes commits, under the title. |
+| `actionLabel` | `string` | — | The yes. |
+| `cancelLabel` | `string` | — | The no; it receives focus first. |
+| `onconfirm` / `oncancel` | `(event: CustomEvent<void>) => void` | — | Called on each answer; `preventDefault()` keeps the question open. |
+| `open` | `Bindable<boolean>` | `false` | Whether the question is showing. |
+| `onopen` / `onclose` | `(event: CustomEvent<void>) => void` | — | Called after it opens or closes. |
+| `size` / `color` / `variant` | shared vocabulary | `md` / `primary` / `filled` | Reach the ask button and the yes. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `children` | `ReactNode` | — | Extra content with `title`; the parts without it. |
+
+Slot (with `title`): `trigger()` for the ask button's content.
+
+Parts: `ConfirmTrigger`, `ConfirmPanel`, `ConfirmTitle`, `ConfirmDescription`, `ConfirmCancel`, `ConfirmAction`. Each takes `className` and the style props; the buttons also take `disabled`.
+
+### Keyboard
+
+- Focus starts on the no.
+- `Tab` and `Shift + Tab` stay inside the question.
+- `Escape` and clicks outside do nothing: only the two answers close it.
+- Focus returns to the ask button when it closes.
+
+## Next Steps
+
+- [Dialog](/docs/composites/dialog) — A sheet for input or detail that can be dismissed.
+- [Toast](/docs/composites/toast) — Confirm that the action went through.
+- [Button](/docs/widgets/button) — The action itself, when it doesn't need a question.

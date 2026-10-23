@@ -1,5 +1,7 @@
-import { $symbol, createContext } from '@airlib/core';
+import { $symbol, createContext, type StyleInput } from '@airlib/core';
+import type { Aria } from '../../core.js';
 import type { BaseElement } from '../../types.js';
+import { triggerAnchorName } from '../../utils/overlay.js';
 import {
   MenuAria,
   type MenuCloseEvent,
@@ -35,22 +37,29 @@ export const contextMenuCtx = createContext<ContextMenuAria>();
 const CONTEXT_MENU_SYMBOL = $symbol('context-menu');
 
 /**
- * Host surface and coordinator for context menus.
+ * Coordinator for a context menu, which belongs to the part it is placed in.
  *
- * Listens for `contextmenu` and `Shift + F10` / `ContextMenu` keyboard shortcuts
- * on the host surface, captures anchor coordinates into the panel's custom
- * properties, and composes the Menu coordinator contract.
+ * It finds that part — its host — in its own scope, and never renders an element
+ * of its own: it listens for `contextmenu` and `Shift + F10` / `ContextMenu` on
+ * the host's element, anchors the panel there, and lets every command bubble to
+ * the host's `oncommand`. A context menu with no host has nothing to act on and
+ * stays inert.
  *
  * @template E - Target Element type (defaults to HTMLElement)
  */
 export class ContextMenuAria<E extends BaseElement = HTMLElement> extends MenuAria<E> {
   /**
-   * Captured pointer X coordinate.
+   * The part this menu belongs to: the scope it was placed in.
+   */
+  public readonly target?: Aria;
+
+  /**
+   * Captured pointer X coordinate, from the host's top-left.
    */
   public anchorX?: number;
 
   /**
-   * Captured pointer Y coordinate.
+   * Captured pointer Y coordinate, from the host's top-left.
    */
   public anchorY?: number;
 
@@ -61,49 +70,64 @@ export class ContextMenuAria<E extends BaseElement = HTMLElement> extends MenuAr
     super(props);
     this.options.name = 'context-menu';
     this.options.symbol = CONTEXT_MENU_SYMBOL;
+    this.target = this.scope as Aria | undefined;
 
     contextMenuCtx.set(this as never);
 
-    this.on('contextmenu', (event: MouseEvent) => {
-      if (this.disabled) return;
-      event.preventDefault();
+    if (!this.target) {
+      console.warn('[ARIA] A context menu has no part to belong to; place it inside the part it acts on.');
+      return;
+    }
 
-      const { top, left } = this.element!.getBoundingClientRect();
-      this.anchorX = event.clientX - left;
-      this.anchorY = event.clientY - top;
-
-      this.open = true;
-    });
-
-    this.on('keydown', (event: KeyboardEvent) => {
-      if (this.disabled) return;
-
-      const isF10 = event.key === 'F10' && event.shiftKey;
-      const isContextMenu = event.key === 'ContextMenu';
-
-      if (isF10 || isContextMenu) {
-        event.preventDefault();
-
-        const { top: anchorTop, left: anchorLeft } = this.element!.getBoundingClientRect();
-        const { top, left, height, width } = (event.target as HTMLElement).getBoundingClientRect();
-        this.anchorX = left + width / 2 - anchorLeft;
-        this.anchorY = top + height - anchorTop;
-
-        this.open = true;
-      }
-    });
-  }
-
-  protected override createAttributes() {
-    return Object.assign(super.createAttributes(), {
+    const release = this.target.refine(() => ({
       'aria-haspopup': this.open ? 'menu' : undefined,
       'aria-expanded': this.open ? 'true' : undefined,
       'aria-controls': this.open ? this.panelId : undefined,
-      style: {
-        anchorName: `--popover-anchor-${this.id}`,
-      },
-    });
+      style: { anchorName: triggerAnchorName(`--popover-anchor-${this.id}`) } as StyleInput,
+      oncontextmenu: this.handleContextMenu,
+      onkeydown: this.handleKeyDown,
+    }));
+    this.cleanups.add(() => release(true));
   }
+
+  /**
+   * Opens the menu at the pointer.
+   *
+   * @param event - The host's `contextmenu` event.
+   */
+  protected handleContextMenu = (event: MouseEvent): void => {
+    const host = this.target?.element;
+    if (this.disabled || !host) return;
+    event.preventDefault();
+    // A menu nested deeper in the host owns the event; the host's own menu stays shut.
+    event.stopPropagation();
+
+    const { top, left } = host.getBoundingClientRect();
+    this.anchorX = event.clientX - left;
+    this.anchorY = event.clientY - top;
+
+    this.open = true;
+  };
+
+  /**
+   * Opens the menu under the focused element on `Shift + F10` or the context-menu key.
+   *
+   * @param event - The host's `keydown` event.
+   */
+  protected handleKeyDown = (event: KeyboardEvent): void => {
+    const host = this.target?.element;
+    if (this.disabled || !host) return;
+    if (!(event.key === 'F10' && event.shiftKey) && event.key !== 'ContextMenu') return;
+    event.preventDefault();
+    event.stopPropagation();
+
+    const { top: hostTop, left: hostLeft } = host.getBoundingClientRect();
+    const { top, left, height, width } = (event.target as HTMLElement).getBoundingClientRect();
+    this.anchorX = left + width / 2 - hostLeft;
+    this.anchorY = top + height - hostTop;
+
+    this.open = true;
+  };
 
   /**
    * Creates a paired ContextMenuPanelAria instance.

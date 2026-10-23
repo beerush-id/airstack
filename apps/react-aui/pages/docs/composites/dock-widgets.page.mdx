@@ -1,0 +1,212 @@
+---
+title: AUI Dock Widgets
+nav: Dock Widgets
+nav-priority: 305
+description: Show an assistant's answers above the dock — text that streams in as markdown, widgets that arrive whole, and questions that wait on the user — stacked, announced, and out of the way when quiet.
+keywords: [AI assistant UI, streaming answer, chat response widget, agent UI, generative UI, React AUI dock widgets]
+---
+
+# AUI Dock Widgets
+
+An assistant's answer isn't a message you show once. Its words arrive a few at a time, a card or a form lands in the middle of them, and sometimes it ends with a question the person has to answer before anything else happens. Building that by hand means a chat log that re-renders on every word, controls that lose their state when the text above them grows, and a pile of old answers covering the windows people are working in.
+
+**Dock Widgets** is where those answers live: a stack above the [Dock](/docs/composites/window#a-dock), newest nearest the prompt. You add an answer when it starts and keep writing to it as it arrives; only the part that changed is drawn again. Old answers tuck behind the newest, and when nothing has happened for a while the stack fades away until it's needed.
+
+:::interactive[Dock widgets demo]
+
+```tsx
+import { Button } from '@airlib/react-aui';
+import { Desktop, Dock, DockWidgets, dockWidget } from '@airlib/react-aui/desktop';
+import { setup } from '@airlib/react';
+
+const REPLY = 'Your **Friday** is clear after lunch, and the venue has confirmed the room for thirty people.';
+
+const AnswerDemo = setup(() => {
+  // Words arrive a few at a time; a widget lands whole once the words are done.
+  const stream = () => {
+    const answer = dockWidget.add({ children: [] });
+    answer.data.children.push({ type: 'text', text: '' });
+    const words = answer.data.children[answer.data.children.length - 1] as { type: 'text'; text: string };
+    const parts = REPLY.split(' ');
+    let count = 0;
+    const timer = setInterval(() => {
+      words.text = parts.slice(0, ++count).join(' ');
+      if (count < parts.length) return;
+      clearInterval(timer);
+      answer.data.children.push({
+        type: 'widget',
+        role: 'stat',
+        props: { label: 'Guests', value: 30, change: '+6 since Monday', trend: 'up' },
+      });
+    }, 80);
+  };
+
+  const ask = () => {
+    dockWidget.add({ important: true, children: [{ type: 'text', text: 'Should I book the room for **Friday**?' }] });
+  };
+
+  return () => (
+    <div className="flex flex-col gap-sm">
+      <div className="flex flex-wrap gap-xs">
+        <Button size="sm" onClick={stream}>
+          Stream an answer
+        </Button>
+        <Button size="sm" variant="tonal" onClick={ask}>
+          Ask a question
+        </Button>
+        <Button size="sm" variant="text" onClick={() => dockWidget.clear()}>
+          Clear
+        </Button>
+      </div>
+      <Desktop className="demo-desktop">
+        <Dock label="Dock" promptLabel="Ask the assistant" />
+        <DockWidgets label="Assistant" closeLabel="Dismiss" />
+      </Desktop>
+    </div>
+  );
+}, 'AnswerDemo');
+```
+
+```html
+<AnswerDemo />
+```
+
+<AnswerDemo />
+
+:::
+
+Stream a few answers, then point at the stack to open it. Wait a moment without touching anything and it fades to a pill above the dock; point at the pill or the prompt to bring it back. A question stays until you dismiss it.
+
+## Usage
+
+### Show the stack
+
+Put a `DockWidgets` in the `Desktop` right after the `Dock`:
+
+```tsx
+import { Desktop, Dock, DockWidgets, WindowHost } from '@airlib/react-aui/desktop';
+import '@airlib/aui/desktop.css';
+
+<Desktop>
+  <WindowHost closeLabel="Close" />
+  <Dock label="Dock" promptLabel="Ask the assistant" onsubmit={(event) => ask(event.detail)} />
+  <DockWidgets label="Assistant" closeLabel="Dismiss" />
+</Desktop>
+```
+
+- `label` — names the stack for screen readers, e.g. "Assistant"; with it the stack is a landmark people can jump to.
+- `closeLabel` — names each answer's close button, which floats on its corner. Without it answers have none, and they leave when your code dismisses them.
+
+The stack shares the dock's `Tab` loop, so people move between the prompt and an answer's controls without leaving. Only the answers themselves take the pointer; the space around them belongs to the windows behind.
+
+### Stream an answer in
+
+Add an answer when the assistant starts replying, then push its parts to `data.children` as they arrive:
+
+```ts
+import { dockWidget } from '@airlib/react-aui/desktop';
+
+const answer = dockWidget.add({ children: [] });
+
+// Words: a text part, written to as they arrive.
+answer.data.children.push({ type: 'text', text: '' });
+const words = answer.data.children[0];
+for await (const chunk of reply.stream) words.text += chunk;
+
+// A widget: UI described as data, added whole once it is complete.
+answer.data.children.push({
+  type: 'widget',
+  role: 'stat',
+  props: { label: 'Unread', value: 12, change: '+4 since yesterday', trend: 'up' },
+});
+```
+
+- A **text** part is markdown. As its `text` grows, only the block the new words land in is drawn again — see [Markdown](/docs/markdown).
+- A **widget** part is a node of [UI from data](/docs/dynamic): a `role`, plain `props`, live `bindings` to your app's state, and `children`. Add it once it is complete; a widget already showing keeps its state while more parts arrive after it.
+
+Text parts draw with the markdown renderer, so install its packages — `unified`, `remark-parse`, `remark-gfm`, `remark-math`, and `temml` — alongside the desktop.
+
+### Draw an answer your own way
+
+When an answer isn't text and widgets — a live chart, a list your app keeps updating — give `add` your own `data` and a `render` that draws it. Writing to the widget's `data` redraws only what reads the part that changed:
+
+```tsx
+const upload = dockWidget.add({
+  data: { file: 'Q4-report.pdf', sent: 0 },
+  render: ({ widget }) => () => (
+    <Progress label={`Uploading ${widget.data.file}`} value={widget.data.sent} max={100} />
+  ),
+});
+
+upload.data.sent = 40;
+```
+
+### An answer that waits on the user
+
+Mark an answer `important` when it asks something — a choice, a confirmation, a form to fill. It never leaves on its own and keeps the stack showing until it's answered or dismissed:
+
+```ts
+const question = dockWidget.add({ children: [], important: true });
+```
+
+`critical` interrupts screen readers at once instead of waiting their turn; save it for what can't wait.
+
+### Dismiss answers
+
+Every `add` returns the answer: `dismiss()` takes it away when it no longer matters, and `dockWidget.clear()` takes all of them. `dockWidget.entries` holds the answers showing, by id, oldest first.
+
+A conversation can run long, so only the latest answers stay: past `dockWidget.limit` (1000 by default), each new answer dismisses the oldest. Adding or dismissing one never redraws the others. Set the limit to what your answers weigh, such as `dockWidget.limit = 200` for answers heavy with tables and math.
+
+Whether answers leave on their own is the user's choice, not the assistant's. `autoDismiss` is off by default, so nothing goes before it's read; pass the milliseconds from your user's settings to turn it on. An `important` answer never leaves on its own either way:
+
+```tsx
+<DockWidgets label="Assistant" closeLabel="Dismiss" autoDismiss={settings.answersLeave ? 20000 : false} />
+```
+
+### How the stack behaves
+
+- **Newest first.** The newest answer shows in full; the one before it keeps its place above, faded out, so opening the stack moves nothing. Pointing at the stack opens it to show every answer in view; it closes again a moment after the pointer leaves, so moving across the gaps between answers doesn't snap it shut.
+- **All of them when open.** Pointing at the stack shows every answer, and it scrolls once they outgrow the screen, newest nearest the dock. Set `visible` to cap how many an open stack shows; older ones then move out of view until newer ones are dismissed.
+- **Quiet when idle.** After a quiet spell the stack fades away and leaves a small pill just above the dock. A new or changing answer, pointing at the pill, or focus moving into the stack brings it back. An `important` answer keeps it showing.
+- **Over or under the windows.** `layer` puts the stack over the windows like the dock (`'above'`, the default), or on the desktop beneath them (`'below'`).
+
+## Style it once
+
+Each answer is the windows' glass with more of the surface color laid over it, so text on it reads over any wallpaper. Tune the stack with:
+
+- `--aui-dock-widgets-width` — the stack's least width.
+- `--aui-dock-widget-tint` — how much surface color covers the glass, `75%` by default.
+- `--aui-dock-widgets-close-delay` — how long an open stack waits after the pointer leaves.
+- `--aui-dock-widgets-idle` — how long a quiet stack stays before it fades, `6s` by default.
+- `--aui-dock-widgets-cue-width`, `--aui-dock-widgets-cue-height`, `--aui-dock-widgets-cue-color`, `--aui-dock-widgets-cue-reach` — the pill a sleeping stack leaves, and how close the pointer must come to wake it.
+
+## Properties
+
+`DockWidgets`:
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `label` | `string` | — | Names the stack; with it the stack is a landmark. |
+| `closeLabel` | `string` | — | Names each answer's close button; without it, answers have none. |
+| `autoDismiss` | `number \| false` | `false` | Milliseconds before an answer leaves on its own — the user's choice. |
+| `visible` | `number` | — | Caps how many answers an open stack shows; without it, all of them. |
+| `layer` | `'above'`, `'below'` | `'above'` | Over the windows, or on the desktop beneath them. |
+| `size` | shared size | `md` | Sizes every answer. |
+
+`dockWidget.add(options)`:
+
+| Option | Type | Notes |
+| --- | --- | --- |
+| `children` | `DockWidgetPart[]` | The answer's parts so far: `{ type: 'text', text }` or `{ type: 'widget', role, props?, bindings?, children? }`. Push more to `data.children`. |
+| `data` / `render` | `D` / `({ widget }) => () => ReactNode` | Your own data, live on `widget.data`, and how it draws. Use instead of `children`. |
+| `important` | `boolean` | Waits on the user: never leaves on its own, keeps the stack showing. |
+| `critical` | `boolean` | Interrupts screen readers at once. |
+
+`DockWidget` draws one answer; `DockWidgets` uses it for each, and you only need it when composing a stack of your own.
+
+## Next Steps
+
+- [UI from data](/docs/dynamic) — The nodes a widget part is made of, and binding them to your app.
+- [Markdown](/docs/markdown) — How text parts are drawn as they stream in.
+- [Window](/docs/composites/window) — The desktop, the dock, and the windows the stack sits over.
+- [Toast](/docs/composites/toast) — For news from your app, rather than answers from the assistant.

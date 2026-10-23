@@ -1,0 +1,160 @@
+---
+title: AUI Listbox
+nav: Listbox
+nav-priority: 350
+description: Show a list of options that stays on the page — pass your options and get single or multiple selection, typeahead, and keyboard travel.
+keywords: [React listbox, accessible list selection, selectable list React, multi select list, AUI listbox]
+---
+
+# AUI Listbox
+
+A listbox is a list of choices that stays visible — a delivery speed, a set of labels to apply, an item in a side panel. People see every option at once and pick one or several. **Listbox** gives you the rows, the selected marks, typeahead, and arrow-key travel from one call with your options.
+
+:::interactive[Listbox demo]
+
+```tsx
+import { Listbox, Toggle } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { GlassStage } from '@/components/GlassStage.js';
+
+const SPEEDS = [
+  { key: 'standard', label: 'Standard — 3 to 5 days' },
+  { key: 'express', label: 'Express — next day' },
+  { key: 'pickup', label: 'Pick up in store' },
+];
+
+const ListboxDemo = setup(() => {
+  const state = mutable({ multiple: false, disabled: false, speed: 'standard' });
+
+  return () => (
+    <div className="demo-button">
+      <div className="flex gap-xs w-full">
+        <Toggle size="sm" pressed={$bind(state, 'multiple')}>
+          {() => (state.multiple ? 'Multiple' : 'Single')}
+        </Toggle>
+        <Toggle size="sm" pressed={$bind(state, 'disabled')}>
+          {() => (state.disabled ? 'Set Enabled' : 'Set Disabled')}
+        </Toggle>
+      </div>
+      <GlassStage style={{ maxInlineSize: '20rem' }}>
+        <div className="flex flex-col gap-md items-stretch justify-center">
+          <Snippet>
+            {() => (
+              <Listbox
+                label="Delivery speed"
+                options={SPEEDS}
+                value={$bind(state, 'speed')}
+                multiple={state.multiple}
+                disabled={state.disabled}
+              />
+            )}
+          </Snippet>
+        </div>
+      </GlassStage>
+    </div>
+  );
+}, 'ListboxDemo');
+```
+
+```html
+<ListboxDemo />
+```
+
+<ListboxDemo />
+
+:::
+
+## Usage
+
+### Pass your options
+
+```tsx
+import { Listbox } from '@airlib/react-aui';
+import { $bind, mutable, setup } from '@airlib/react';
+import '@airlib/aui/components/widgets/listbox.css';
+
+const LABELS = { bug: 'Bug', design: 'Design', docs: 'Docs' };
+
+export const LabelPicker = setup(() => {
+  const issue = mutable({ labels: ['bug'] });
+
+  return () => <Listbox label="Labels" multiple options={LABELS} value={$bind(issue, 'labels')} />;
+}, 'LabelPicker');
+```
+
+You supply:
+
+- `options` — a `{ key: label }` map or an array of `{ key, label }` entries, the same shape [Select](/docs/composites/select) and [Combobox](/docs/composites/combobox) take.
+- `value` — the chosen key, or an array of keys with `multiple`.
+- `label` — the list's accessible name.
+
+### Change what a row shows
+
+```tsx
+<Listbox label="Labels" options={LABELS} value={$bind(issue, 'labels')} multiple>
+  <Listbox.Snippet for="option">
+    {(entry) => (
+      <span>
+        <span className={`dot dot-${entry.key}`} /> {entry.label}
+      </span>
+    )}
+  </Listbox.Snippet>
+</Listbox>
+```
+
+The `option` slot receives the entry (`{ key, label }`) and renders inside that row; the selected mark stays.
+
+### Compose the parts
+
+When rows need their own props — a disabled row, rows from several sources — write them out:
+
+```tsx
+import { Listbox, ListboxOption } from '@airlib/react-aui';
+
+<Listbox label="Delivery speed" value={$bind(order, 'speed')}>
+  <ListboxOption value="standard">Standard</ListboxOption>
+  <ListboxOption value="express">Express</ListboxOption>
+  <ListboxOption value="overnight" disabled>
+    Overnight (unavailable)
+  </ListboxOption>
+</Listbox>
+```
+
+## Style it once
+
+Set `size` and `color` on `Listbox` and every row follows; a row's own prop still wins. See [Styling a composite](/docs/theming#style-a-composite-once).
+
+## Properties
+
+### Listbox
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `options` | `{ [key]: label }`, `Array<{ key, label? }>` | — | Renders one row per entry. |
+| `value` | `Bindable<string \| string[] \| null>` | — | The chosen key, or keys with `multiple`. |
+| `multiple` | `boolean` | `false` | Allows several choices. |
+| `label` | `string` | — | The list's accessible name. |
+| `disabled` | `boolean` | `false` | Locks every row. |
+| `required` | `boolean` | `false` | A choice must stay selected. |
+| `size` | `xs`–`xxl` | `'md'` | Row height and type. |
+| `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | Selected rows and focus. |
+| `oninput` | `(event: CustomEvent<string>) => void` | — | As the keyboard moves through rows. |
+| `onchange` | `(event: CustomEvent<string \| string[]>) => void` | — | After a person changes the selection. |
+
+### ListboxOption
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `value` | `string` | — | Required. The key this row stands for. |
+| `disabled` | `boolean` | `false` | Skipped by the keyboard and cannot be chosen. |
+| `children` | `ReactNode` | — | The row content. |
+
+## Keyboard
+
+`Tab` reaches the list once. Arrows move between rows without choosing; `Space` or `Enter` chooses; typing jumps to the next row starting with those letters. `Home` and `End` go to the first and last row.
+
+## Next Steps
+
+- [Select](/docs/composites/select) — The same choices behind a trigger, when space is tight.
+- [Checkbox Group](/docs/widgets/checkbox-group) — Several independent yes/no choices.
+- [Radio Group](/docs/widgets/radio-group) — One choice from a short list, each with its own control.

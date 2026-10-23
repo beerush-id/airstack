@@ -4,7 +4,7 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "dev": "vite --port 6173",
+    "dev": "vite --port 8173",
     "build": "bun run build:client && bun run build:server",
     "build:client": "vite build --outDir dist/client",
     "build:server": "vite build --ssr --outDir dist/server",
@@ -21,6 +21,7 @@
     "@irpclib/http": "workspace:*",
     "@irpclib/irpc": "workspace:*",
     "@irpclib/ws": "workspace:*",
+    "gsap": "catalog:lib",
     "react": "catalog:app",
     "react-dom": "catalog:app"
   },

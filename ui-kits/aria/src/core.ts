@@ -26,7 +26,7 @@ import { applyAttributes, normalizeAttrs } from './utils/attributes.js';
 /**
  * Non-DOM controller input tokens stripped from DOM assignment and JSX spreads.
  */
-export const OMITTED_ATTRIBUTES = ['ref', 'manual', 'multiple', 'movable', 'orientation', 'invalid'];
+export const OMITTED_ATTRIBUTES = ['ref', 'manual', 'multiple', 'movable', 'orientation', 'invalid', 'oncommand'];
 
 /**
  * Core library-managed attributes common across all interactive Aria controllers.
@@ -268,6 +268,10 @@ export class Aria<
     if (options.clickable) {
       this.protectClickable();
     }
+
+    if (options.trackPointer) {
+      this.trackPointer();
+    }
   }
 
   /**
@@ -353,9 +357,10 @@ export class Aria<
 
     const props = {} as T;
 
-    for (const [key, value] of Object.entries(this.properties)) {
+    // Read only the values kept, so a template spreading these never reads the omitted ones.
+    for (const key of Object.keys(this.properties)) {
       if (!omitted.has(key)) {
-        props[key as keyof T] = value as T[keyof T];
+        props[key as keyof T] = this.properties[key as keyof T];
       }
     }
 
@@ -398,23 +403,74 @@ export class Aria<
       }
     });
 
+    // A tracked element already writes on pointerdown, and keeps its position after release.
+    if (this.options.trackPointer) return;
+
     this.on('pointerdown', (e) => {
       if (self.disabled) {
         return;
       }
-
-      const { top = 0, left = 0 } = self.element?.getBoundingClientRect?.() ?? {};
-      self.element?.style.setProperty('--pointer-x', `${e.clientX - left}px`);
-      self.element?.style.setProperty('--pointer-y', `${e.clientY - top}px`);
+      this.writePointer(e);
     });
 
-    this.on('pointerup', () => {
-      if (self.disabled) {
+    // The press keeps its position past release, so its effect fades where it landed; a key press has no position.
+    this.on('keydown', (e) => {
+      if (!keys.includes(e.key)) {
         return;
       }
-      self.element?.style.removeProperty('--pointer-x');
-      self.element?.style.removeProperty('--pointer-y');
+      for (const name of POINTER_VARS) {
+        (self.element as HTMLElement | undefined)?.style.removeProperty(name);
+      }
     });
+  }
+
+  /** The pointer event waiting for the next frame to be written, if any. */
+  private pendingPointer?: PointerEvent;
+  private pointerFrame = 0;
+
+  /**
+   * Follows the pointer over the element: moves are written at most once a
+   * frame, and a press is written at once — touch has no hover, and the
+   * press must land exactly where it happened.
+   */
+  protected trackPointer() {
+    this.on('pointermove', (e) => {
+      this.pendingPointer = e;
+      if (this.pointerFrame) return;
+      this.pointerFrame = requestAnimationFrame(() => {
+        this.pointerFrame = 0;
+        if (this.pendingPointer) this.writePointer(this.pendingPointer);
+      });
+    });
+
+    this.on('pointerdown', (e) => this.writePointer(e));
+  }
+
+  /**
+   * Writes where a pointer event sits on the element as CSS variables, and
+   * drops any move still waiting for its frame.
+   *
+   * @param event - The pointer event to place.
+   */
+  protected writePointer(event: PointerEvent) {
+    const element = this.element as HTMLElement | undefined;
+    this.pendingPointer = undefined;
+    if (this.pointerFrame) {
+      cancelAnimationFrame(this.pointerFrame);
+      this.pointerFrame = 0;
+    }
+    if (!element?.style) return;
+
+    const rect = element.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    const angle = (Math.atan2(y - rect.height / 2, x - rect.width / 2) * 180) / Math.PI;
+
+    element.style.setProperty('--pointer-x', `${x}px`);
+    element.style.setProperty('--pointer-y', `${y}px`);
+    element.style.setProperty('--pointer-fx', String(rect.width ? x / rect.width : 0));
+    element.style.setProperty('--pointer-fy', String(rect.height ? y / rect.height : 0));
+    element.style.setProperty('--pointer-angle', `${(angle + 360) % 360}deg`);
   }
 
   /**
@@ -488,7 +544,9 @@ export class Aria<
   }
 
   /**
-   * Captures the `input` and `change` event and forwards it as-is to the `oninput` and `onchange` callback.
+   * Captures the `input`, `change`, and `command` events and forwards each as-is to the
+   * `oninput`, `onchange`, and `oncommand` callback. A command bubbles through every scope,
+   * so the part a menu acts on hears it, and so does anything around that part.
    * @param event - The AriaEvent to capture
    */
   protected capture(event: AriaEvent): void {
@@ -499,6 +557,9 @@ export class Aria<
     }
     if (event.type === 'change') {
       this.properties.onchange?.(event as never);
+    }
+    if (event.type === 'command') {
+      (this.properties as AriaProps).oncommand?.(event as CustomEvent<string>);
     }
   }
 
@@ -665,3 +726,4 @@ export class Aria<
 }
 
 const DEFAULT_ALLOW_KEYS = [' ', 'Enter'];
+const POINTER_VARS = ['--pointer-x', '--pointer-y', '--pointer-fx', '--pointer-fy', '--pointer-angle'];

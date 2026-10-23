@@ -5,3 +5,4 @@ export const sliderScope = createStyleScope();
 export const toggleGroupScope = createStyleScope();
 export const radioGroupScope = createStyleScope<ComponentStyles & { name?: string }>();
 export const checkboxGroupScope = createStyleScope();
+export const listScope = createStyleScope();

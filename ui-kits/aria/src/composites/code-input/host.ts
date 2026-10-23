@@ -60,6 +60,12 @@ export interface CodeInputProps extends AriaProps {
   readonly?: boolean;
 
   /**
+   * Whether the characters are hidden as they are entered, for secrets such as a PIN. Masked
+   * cells are password fields and turn the one-time-code autofill off.
+   */
+  masked?: boolean;
+
+  /**
    * Accessible label announced for the group and used to derive cell labels.
    */
   label?: string;
@@ -150,6 +156,13 @@ export class CodeInputAria<
   }
 
   /**
+   * Whether the characters are hidden as they are entered.
+   */
+  public get masked(): boolean {
+    return !!this.properties.masked;
+  }
+
+  /**
    * Active tab-stop cell index: the currently focused cell, or before focus
    * the first unfilled cell (clamped to the last cell when full).
    */
@@ -179,6 +192,7 @@ export class CodeInputAria<
       'kind',
       'disabled',
       'readonly',
+      'masked',
       'label',
       'oninput',
       'onchange',

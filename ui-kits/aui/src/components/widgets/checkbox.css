@@ -1,144 +1,155 @@
+@import './control.css';
+
 @layer theme {
   :root {
-    --aui-checkbox-gap: calc(var(--spacing) * 2.5);
-    --aui-checkbox-box-size: calc(var(--spacing) * 4.5);
-    --aui-checkbox-box-size-xs: calc(var(--spacing) * 3.5);
-    --aui-checkbox-box-size-sm: calc(var(--spacing) * 4);
-    --aui-checkbox-box-size-md: calc(var(--spacing) * 4.5);
-    --aui-checkbox-box-size-lg: calc(var(--spacing) * 5.5);
-    --aui-checkbox-box-size-xl: calc(var(--spacing) * 6.5);
-    --aui-checkbox-box-size-xxl: calc(var(--spacing) * 8);
-    --aui-checkbox-box-radius: var(--radius-xs);
-    --aui-checkbox-box-bg: var(--color-surface-container);
-    --aui-checkbox-box-border: var(--color-outline);
-    --aui-checkbox-box-active-bg: var(--color-primary);
-    --aui-checkbox-box-active-fg: var(--color-on-primary);
+    /* The box is half a control's height at each size, so it sits level with the buttons and fields beside it. */
+    --aui-checkbox-size: calc(var(--aui-control-height-md) * 0.5);
+    --aui-checkbox-size-xs: calc(var(--aui-control-height-xs) * 0.5);
+    --aui-checkbox-size-sm: calc(var(--aui-control-height-sm) * 0.5);
+    --aui-checkbox-size-md: calc(var(--aui-control-height-md) * 0.5);
+    --aui-checkbox-size-lg: calc(var(--aui-control-height-lg) * 0.5);
+    --aui-checkbox-size-xl: calc(var(--aui-control-height-xl) * 0.5);
+    --aui-checkbox-size-xxl: calc(var(--aui-control-height-xxl) * 0.5);
+    --aui-checkbox-radius: var(--radius-xs);
+    --aui-checkbox-bg: var(--color-container);
+    --aui-checkbox-border: var(--color-outline);
+    --aui-checkbox-active-bg: var(--color-primary);
+    --aui-checkbox-active-fg: var(--color-on-primary);
   }
 }
 
+/*
+ * The checkbox is the box. The state it reports (`aria-checked`, `true` or `mixed`) fills it and
+ * shows the library's check or indeterminate icon inside it; its text lives beside it.
+ */
 @layer component {
   .aui-checkbox {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--aui-checkbox-gap);
-    cursor: pointer;
-  }
-
-  .aui-checkbox:has(.aui-checkbox-box:disabled) {
-    cursor: not-allowed;
-  }
-
-  .aui-checkbox-box {
-    appearance: none;
-    flex: none;
-    inline-size: var(--aui-checkbox-box-size);
-    block-size: var(--aui-checkbox-box-size);
-    margin: 0;
     display: inline-grid;
     place-items: center;
-    border-radius: var(--aui-checkbox-box-radius);
-    background-color: var(--aui-checkbox-box-bg);
-    box-shadow: inset 0 0 0 1px var(--aui-checkbox-box-border);
-    color: var(--aui-checkbox-box-active-fg);
-    font-size: calc(var(--aui-checkbox-box-size) * 0.6);
-    font-weight: 700;
-    line-height: 1;
+    flex: none;
+    box-sizing: border-box;
+    inline-size: var(--aui-checkbox-size);
+    block-size: var(--aui-checkbox-size);
+    border-radius: var(--aui-checkbox-radius);
+    background-color: var(--aui-checkbox-bg);
+    box-shadow: inset 0 0 0 1px var(--aui-checkbox-border);
+    color: var(--aui-checkbox-active-fg);
     cursor: pointer;
+    outline: none;
+    user-select: none;
     forced-color-adjust: auto;
+    /* The icons fill most of the box, through the icon's own size. */
+    --aui-icon-size: calc(var(--aui-checkbox-size) * 0.85);
     transition:
       background-color var(--duration-short) var(--ease-emphasized),
       box-shadow var(--duration-short) var(--ease-emphasized);
+
+    & > svg {
+      grid-area: 1 / 1;
+      opacity: 0;
+      scale: 0.6;
+      transition:
+        opacity var(--duration-short) var(--ease-emphasized),
+        scale var(--duration-short) var(--ease-emphasized);
+    }
   }
 
-  .aui-checkbox-box:hover:not(:disabled) {
-    box-shadow: inset 0 0 0 1px var(--aui-checkbox-box-active-bg);
+  /* The box is half a control tall, so the halo measures from twice its size. */
+  .aui-checkbox:hover:not([aria-disabled='true']) {
+    box-shadow:
+      inset 0 0 0 1px var(--aui-checkbox-active-bg),
+      0 0 0 calc(var(--aui-checkbox-size) * 2 * var(--aui-halo-scale))
+        color-mix(in oklch, var(--aui-checkbox-active-bg) var(--aui-halo-strength), black var(--aui-halo-shade));
   }
 
-  .aui-checkbox-box:checked,
-  .aui-checkbox-box:indeterminate {
-    background-color: var(--aui-checkbox-box-active-bg);
+  .aui-checkbox:is([aria-checked='true'], [aria-checked='mixed']) {
+    background-color: var(--aui-checkbox-active-bg);
     box-shadow: none;
   }
 
-  .aui-checkbox-box:checked::after {
-    content: '✓';
+  .aui-checkbox[aria-checked='true'] > :first-child,
+  .aui-checkbox[aria-checked='mixed'] > :last-child {
+    opacity: 1;
+    scale: 1;
   }
 
-  .aui-checkbox-box:indeterminate::after {
-    content: '−';
-  }
-
-  .aui-checkbox-box:disabled {
+  .aui-checkbox[aria-disabled='true'] {
     background-color: var(--color-disabled-bg);
     box-shadow: inset 0 0 0 1px var(--color-disabled-border);
     color: var(--color-disabled-fg);
     cursor: not-allowed;
   }
 
-
-  .aui-checkbox-box-xs {
-    --aui-checkbox-box-size: var(--aui-checkbox-box-size-xs);
+  /* The controls' own ring, clear of the box. */
+  .aui-checkbox:focus-visible {
+    outline: var(--focus-ring-width) var(--focus-ring-style)
+      color-mix(in oklch, var(--focus-ring-color) 75%, var(--light-up));
+    outline-offset: var(--focus-ring-offset);
   }
 
-  .aui-checkbox-box-sm {
-    --aui-checkbox-box-size: var(--aui-checkbox-box-size-sm);
+  .aui-checkbox-xs {
+    --aui-checkbox-size: var(--aui-checkbox-size-xs);
   }
 
-  .aui-checkbox-box-md {
-    --aui-checkbox-box-size: var(--aui-checkbox-box-size-md);
+  .aui-checkbox-sm {
+    --aui-checkbox-size: var(--aui-checkbox-size-sm);
   }
 
-  .aui-checkbox-box-lg {
-    --aui-checkbox-box-size: var(--aui-checkbox-box-size-lg);
+  .aui-checkbox-md {
+    --aui-checkbox-size: var(--aui-checkbox-size-md);
   }
 
-  .aui-checkbox-box-xl {
-    --aui-checkbox-box-size: var(--aui-checkbox-box-size-xl);
+  .aui-checkbox-lg {
+    --aui-checkbox-size: var(--aui-checkbox-size-lg);
   }
 
-  .aui-checkbox-box-xxl {
-    --aui-checkbox-box-size: var(--aui-checkbox-box-size-xxl);
+  .aui-checkbox-xl {
+    --aui-checkbox-size: var(--aui-checkbox-size-xl);
   }
 
-  .aui-checkbox-box-primary {
+  .aui-checkbox-xxl {
+    --aui-checkbox-size: var(--aui-checkbox-size-xxl);
+  }
+
+  .aui-checkbox-primary {
     --focus-ring-color: var(--color-primary);
-    --aui-checkbox-box-active-bg: var(--color-primary);
-    --aui-checkbox-box-active-fg: var(--color-on-primary);
+    --aui-checkbox-active-bg: var(--color-primary);
+    --aui-checkbox-active-fg: var(--color-on-primary);
   }
 
-  .aui-checkbox-box-secondary {
+  .aui-checkbox-secondary {
     --focus-ring-color: var(--color-secondary);
-    --aui-checkbox-box-active-bg: var(--color-secondary);
-    --aui-checkbox-box-active-fg: var(--color-on-secondary);
+    --aui-checkbox-active-bg: var(--color-secondary);
+    --aui-checkbox-active-fg: var(--color-on-secondary);
   }
 
-  .aui-checkbox-box-tertiary {
+  .aui-checkbox-tertiary {
     --focus-ring-color: var(--color-tertiary);
-    --aui-checkbox-box-active-bg: var(--color-tertiary);
-    --aui-checkbox-box-active-fg: var(--color-on-tertiary);
+    --aui-checkbox-active-bg: var(--color-tertiary);
+    --aui-checkbox-active-fg: var(--color-on-tertiary);
   }
 
-  .aui-checkbox-box-error {
+  .aui-checkbox-error {
     --focus-ring-color: var(--color-error);
-    --aui-checkbox-box-active-bg: var(--color-error);
-    --aui-checkbox-box-active-fg: var(--color-on-error);
+    --aui-checkbox-active-bg: var(--color-error);
+    --aui-checkbox-active-fg: var(--color-on-error);
   }
 
-  .aui-checkbox-box-success {
+  .aui-checkbox-success {
     --focus-ring-color: var(--color-success);
-    --aui-checkbox-box-active-bg: var(--color-success);
-    --aui-checkbox-box-active-fg: var(--color-on-success);
+    --aui-checkbox-active-bg: var(--color-success);
+    --aui-checkbox-active-fg: var(--color-on-success);
   }
 
-  .aui-checkbox-box-warning {
+  .aui-checkbox-warning {
     --focus-ring-color: var(--color-warning);
-    --aui-checkbox-box-active-bg: var(--color-warning);
-    --aui-checkbox-box-active-fg: var(--color-on-warning);
+    --aui-checkbox-active-bg: var(--color-warning);
+    --aui-checkbox-active-fg: var(--color-on-warning);
   }
 
-  .aui-checkbox-box-info {
+  .aui-checkbox-info {
     --focus-ring-color: var(--color-info);
-    --aui-checkbox-box-active-bg: var(--color-info);
-    --aui-checkbox-box-active-fg: var(--color-on-info);
+    --aui-checkbox-active-bg: var(--color-info);
+    --aui-checkbox-active-fg: var(--color-on-info);
   }
 }

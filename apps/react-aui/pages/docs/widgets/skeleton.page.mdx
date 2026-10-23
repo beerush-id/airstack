@@ -2,41 +2,59 @@
 title: AUI Skeleton
 nav: Skeleton
 nav-priority: 480
-description: Show the shape of content while it loads — text lines, avatar circles, and media blocks that keep the layout still and stop shimmering for reduced motion.
-keywords: [React skeleton loader, loading placeholder, skeleton screen, shimmer loading, content placeholder]
+description: Show the shape of content while it loads by marking the region busy — your real layout turns into placeholder shapes and fills in when the data arrives, with nothing swapped or remounted.
+keywords: [React skeleton loader, loading placeholder, skeleton screen, shimmer loading, aria-busy, content placeholder]
 ---
 
 # AUI Skeleton
 
-When content takes a moment, a spinner tells people to wait but not what is coming, and the page jumps when it lands. A skeleton draws the content's shape in advance — the lines of text, the avatar, the picture — so the layout holds still and the wait feels shorter.
+When content takes a moment, a spinner tells people to wait but not what is coming, and the page jumps when it lands. A skeleton draws the content's shape in advance — the lines of text, the avatar, the button — so the layout holds still and the wait feels shorter.
+
+**In AUI a skeleton is a state, not a component.** Mark the region that is loading with `aria-busy="true"` and keep rendering your real layout. While it is busy, text that has no data yet becomes a bar, avatars and images become discs and blocks, and controls keep their size but lose their content. When the data arrives, flip `aria-busy` off and the same elements fill in — there is no second layout to keep in sync and nothing to remount.
 
 :::interactive[Skeleton demo]
 
 ```tsx
-import { Card, Skeleton } from '@airlib/react-aui';
+import { Avatar, Button, Toggle } from '@airlib/react-aui';
 import { $bind, mutable, setup, Snippet } from '@airlib/react';
-import { DemoControl } from '@/components/DemoControl.js';
+import { GlassStage } from '@/components/GlassStage.js';
+
+const TRIP = {
+  title: 'Lisbon offsite',
+  owner: 'Maya Chen',
+  summary: 'Three days by the river: workshops in the morning, the old town after lunch, and dinner together every night.',
+};
 
 const SkeletonDemo = setup(() => {
-  const state = mutable({ size: 'md' });
+  const state = mutable({ loading: true });
+  const trip = () => (state.loading ? undefined : TRIP);
 
   return () => (
-    <div className="demo-button">
-      <DemoControl size={$bind(state, 'size')} />
-      <Snippet>
-        {() => (
-          <Card aria-busy="true" aria-label="Loading trip">
-            <div className="flex items-center gap-md">
-              <Skeleton shape="circle" size={state.size} />
-              <div className="flex-1">
-                <Skeleton size={state.size} style={{ inlineSize: '40%' }} />
+    <div className="flex-col gap-md p-lg">
+      <div className="flex-row">
+        <Toggle size="sm" pressed={$bind(state, 'loading')}>
+          Loading
+        </Toggle>
+      </div>
+      <GlassStage>
+        <Snippet>
+          {() => (
+            <div className="flex-col gap-md" role="group" aria-label="Trip" aria-busy={state.loading}>
+              <div className="flex-row items-center gap-md">
+                <Avatar alt={trip()?.owner ?? ''} />
+                <div className="flex-col gap-xs" style={{ flex: 1 }}>
+                  <div className="aui-skeleton text-title-sm">{trip()?.title}</div>
+                  <div className="aui-skeleton text-label-sm">{trip()?.owner}</div>
+                </div>
               </div>
+              <div className="aui-skeleton-lines" style={{ '--aui-skeleton-lines': 2 }}>
+                {trip()?.summary}
+              </div>
+              <Button>View trip</Button>
             </div>
-            <Skeleton shape="rect" size={state.size} />
-            <Skeleton lines={3} size={state.size} />
-          </Card>
-        )}
-      </Snippet>
+          )}
+        </Snippet>
+      </GlassStage>
     </div>
   );
 }, 'SkeletonDemo');
@@ -50,46 +68,75 @@ const SkeletonDemo = setup(() => {
 
 :::
 
+Turn **Loading** off: the same card fills in, and nothing moves. Nothing in it changed except the data and one attribute.
+
 ## Usage
 
-Draw the shapes of what is loading, in the same layout the real content will use:
+### Mark the region busy
+
+Render your layout from the data you have — empty while it loads — and tie `aria-busy` to the loading state:
 
 ```tsx
-import { Skeleton } from '@airlib/react-aui';
 import '@airlib/aui/components/widgets/skeleton.css';
 
-export const ProfileLoading = () => (
-  <div aria-busy="true" aria-label="Loading profile">
-    <Skeleton shape="circle" />
-    <Skeleton lines={2} />
-  </div>
-);
+const trip = getTrip.with(() => [props.id]);
+
+<Snippet>
+  {() => (
+    <Card aria-busy={trip.status === 'pending'} aria-label="Trip">
+      <Avatar alt={trip.data?.owner ?? ''} />
+      <h3>{trip.data?.title}</h3>
+      <p className="aui-skeleton-lines">{trip.data?.summary}</p>
+      <Button>View trip</Button>
+    </Card>
+  )}
+</Snippet>
 ```
 
-- **`shape="text"`** (default) — one bar the height of a line of text; with `lines`, a paragraph whose last line ends early.
-- **`shape="circle"`** — an avatar-sized disc.
-- **`shape="rect"`** — a block for an image or chart; size it with `style` or a class.
+While busy, these become placeholders:
 
-Skeletons are hidden from screen readers. Mark the region that is loading with `aria-busy="true"` and a name, so assistive tech knows to wait and announces the real content when it arrives. Width is yours: set `inline-size` on a text bar to match the line it stands in for.
+- **Text with nothing in it yet** — headings, paragraphs, list items, labels — becomes one bar, part of the width.
+- **Avatars and images** become discs and blocks of their own size.
+- **Controls** — buttons, fields, selects — keep their size and lose their content, and can't be pressed.
+- **Anything you mark** with `aui-skeleton`, for an element of your own that should read as a placeholder.
 
-The shimmer stops when people ask their system to reduce motion; the shapes stay.
+`aria-busy` also tells screen readers to wait and to announce the region once it is done, so the visual placeholder and the accessible state come from the same attribute.
+
+### A paragraph still to come
+
+An empty paragraph is one bar. Give it `aui-skeleton-lines` to stand in for several lines, and set how many with `--aui-skeleton-lines` (3 by default). The class keeps that many lines reserved after loading too, so text that arrives shorter never pulls the layout up — set it to the lines the text usually takes:
+
+```tsx
+<p className="aui-skeleton-lines" style={{ '--aui-skeleton-lines': 5 }}>
+  {post.data?.body}
+</p>
+```
+
+### Lists of unknown length
+
+Until the data arrives you don't know how many rows there will be. Render a few empty ones with the same row component inside the busy region; they become placeholders the same way, and they match the real rows because they are the real rows:
+
+```tsx
+<ul aria-busy={orders.status === 'pending'} aria-label="Recent orders">
+  <For each={() => orders.data ?? [{}, {}, {}]}>
+    {(order) => <OrderRow order={order} />}
+  </For>
+</ul>
+```
 
 ### Style it once
 
-`size` follows the shared scale: text bars take that size's line height, circles take that size's control height. See [Theming](/docs/theming).
+| Token | Default | What it sets |
+| --- | --- | --- |
+| `--aui-skeleton-fill` | on-surface at 10% | The placeholder color; reads on any surface. |
+| `--aui-skeleton-shine` | on-surface at 4% | The shimmer passing across it. |
+| `--aui-skeleton-width` | `60%` | How wide an empty line of text stands in as. |
+| `--aui-skeleton-lines` | `3` | How many lines `aui-skeleton-lines` draws. |
 
-## Properties
-
-| Prop | Type | Default | Notes |
-| --- | --- | --- | --- |
-| `shape` | `'text'`, `'circle'`, `'rect'` | `'text'` | The shape to draw. |
-| `lines` | `number` | `1` | Number of text bars; `shape="text"` only. |
-| `size` | `xs`–`xxl` | `'md'` | Bar height and circle diameter. |
-| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
-| `style` | `CSSProperties` | — | Width and height for a specific placeholder. |
+The shimmer is decoration: it stops when people ask for reduced motion.
 
 ## Next Steps
 
-- [Spinner](/docs/widgets/spinner) — When there is no layout to hold, only a wait.
-- [Progress](/docs/widgets/progress) — When you know how much is left.
-- [Empty State](/docs/widgets/empty-state) — When the content arrives and there is none.
+- [Spinner](/docs/widgets/spinner) — When you can't draw the shape of what is coming.
+- [Empty State](/docs/widgets/empty-state) — What to show once loading ends with nothing to show.
+- [Card](/docs/widgets/card) — A common region to mark busy.

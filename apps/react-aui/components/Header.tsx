@@ -1,21 +1,11 @@
-import { $bind, type AnyRoute, For, Link, mutable, Show, setup } from '@airlib/react';
-import { Switch } from '@airlib/react-aui';
-import { DarkModeIcon, LightModeIcon } from '@airlib/react-aui/icons';
+import { type AnyRoute, For, Link, mutable, Show, setup } from '@airlib/react';
 import type { ComponentProps } from 'react';
 import docsRoute from '../pages/docs/route.js';
 import rootRoute from '../pages/route.js';
+import { Logo } from './Logo.js';
+import { ThemeSwitch } from './ThemeSwitch.js';
 
 const navs = [{ text: 'Docs', route: docsRoute }];
-
-const ThemeSwitch = setup(() => {
-  const darkMode = mutable(false);
-
-  return () => (
-    <div data-theme={darkMode.value ? 'dark' : null}>
-      <Switch checked={$bind(darkMode)}>{(ctrl) => (ctrl.checked ? <DarkModeIcon /> : <LightModeIcon />)}</Switch>
-    </div>
-  );
-}, 'ThemeSwitch');
 
 const Header = setup<ComponentProps<'header'>>((props) => {
   const state = mutable({ open: false });
@@ -28,7 +18,8 @@ const Header = setup<ComponentProps<'header'>>((props) => {
     <header className="docs-header">
       <div className="docs-header-inner">
         <Link to={rootRoute} className="docs-header-brand" aria-label="React AUI home" onClick={close}>
-          React AUI
+          <Logo />
+          <span>React AUI</span>
         </Link>
         <nav className="docs-header-nav" aria-label="Primary">
           <For each={() => navs}>

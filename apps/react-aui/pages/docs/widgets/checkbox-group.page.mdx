@@ -14,9 +14,12 @@ Styling is optional. Without AUI CSS the CheckboxGroup stays a correct, operable
 :::interactive[Checkbox group demo]
 
 ```tsx
-import { Checkbox, CheckboxGroup } from '@airlib/react-aui';
+import { Checkbox, CheckboxGroup, Label, Readout } from '@airlib/react-aui';
 import { $bind, mutable, setup, Snippet } from '@airlib/react';
 import { DemoControl } from '@/components/DemoControl.js';
+import { GlassStage } from '@/components/GlassStage.js';
+
+const CHANNELS = { email: 'Email', sms: 'SMS', push: 'Push' };
 
 const CheckboxGroupDemo = setup(() => {
   const state = mutable({
@@ -29,28 +32,34 @@ const CheckboxGroupDemo = setup(() => {
   return () => (
     <div className="demo-button">
       <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} disabled={$bind(state, 'disabled')} />
-      <div className="aui-card flex gap-md items-center justify-center p-xl">
-        <Snippet>
-          {() => (
-            <CheckboxGroup
-              label="Notification channels"
-              size={state.size}
-              color={state.color}
-              value={$bind(state, 'channels')}
-              disabled={state.disabled}
-            >
-              <Checkbox value="email">Email</Checkbox>
-              <Checkbox value="sms">SMS</Checkbox>
-              <Checkbox value="push">Push</Checkbox>
-            </CheckboxGroup>
-          )}
-        </Snippet>
-      </div>
+      <GlassStage style={{ maxInlineSize: '20rem' }}>
+        <div className="flex gap-md items-center justify-center">
+          <Snippet>
+            {() => (
+              <CheckboxGroup
+                label="Notification channels"
+                size={state.size}
+                color={state.color}
+                value={$bind(state, 'channels')}
+                disabled={state.disabled}
+              >
+                <Label label="Email">
+                  <Checkbox value="email" />
+                </Label>
+                <Label label="SMS">
+                  <Checkbox value="sms" />
+                </Label>
+                <Label label="Push">
+                  <Checkbox value="push" />
+                </Label>
+              </CheckboxGroup>
+            )}
+          </Snippet>
+        </div>
+      </GlassStage>
       <Snippet>
         {() => (
-          <p>
-            Channels: {JSON.stringify(state.channels)}
-          </p>
+          <Readout label="Channels" value={state.channels.map((channel) => CHANNELS[channel])} />
         )}
       </Snippet>
     </div>
@@ -69,19 +78,24 @@ const CheckboxGroupDemo = setup(() => {
 ## Usage
 
 ```tsx
-import { Checkbox, CheckboxGroup } from '@airlib/react-aui';
+import { Checkbox, CheckboxGroup, Label } from '@airlib/react-aui';
 import '@airlib/aui/components/widgets/checkbox-group.css';
 import '@airlib/aui/components/widgets/checkbox.css';
+import '@airlib/aui/components/widgets/label.css';
 
 export const Channels = () => (
   <CheckboxGroup label="Notification channels" value={['email']}>
-    <Checkbox value="email">Email</Checkbox>
-    <Checkbox value="sms">SMS</Checkbox>
+    <Label label="Email">
+      <Checkbox value="email" />
+    </Label>
+    <Label label="SMS">
+      <Checkbox value="sms" />
+    </Label>
   </CheckboxGroup>
 );
 ```
 
-The group stylesheet carries only the container; each member gets its treatment from `checkbox.css`. For the full library — tokens, base defaults, every component, and the utilities — load `import '@airlib/aui';` instead.
+Each member is a box only, so wrap it in a `Label` for its text, the same way as a lone [Checkbox](/docs/widgets/checkbox). The group stylesheet carries only the container; each member gets its treatment from `checkbox.css`. For the full library — tokens, base defaults, every component, and the utilities — load `import '@airlib/aui';` instead.
 
 ### Properties
 
@@ -95,15 +109,15 @@ The group stylesheet carries only the container; each member gets its treatment 
 | `id` | `string` | — | The group's identifier in the DOM, generated when omitted. |
 | `onchange` | `(event: CustomEvent<string[]>) => void` | — | Runs with the committed set in `detail` after every member toggle. |
 | `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
-| `children` | `ReactNode` | — | Member checkboxes; each joins by declaring a `value`. |
+| `children` | `ReactNode` | — | Member checkboxes and their labels; each box joins by declaring a `value`. |
 | `ref` | `Ref<HTMLDivElement>` | — | Access to the underlying group element. |
 
 Size and color live on the group and reach every member — keep the set uniform, set them once on the group:
 
 ```tsx
 <CheckboxGroup label="Channels" value={channels} size="sm" color="success">
-  <Checkbox value="email">Email</Checkbox>
-  <Checkbox value="sms">SMS</Checkbox>
+  <Checkbox value="email" aria-label="Email" />
+  <Checkbox value="sms" aria-label="SMS" />
 </CheckboxGroup>
 ```
 
@@ -115,4 +129,4 @@ Keyboard: `Tab` walks the enabled boxes in order — every box keeps its own tab
 
 - [Checkbox](/docs/widgets/checkbox) — The single box behind every member, undecided state included.
 - [Toggle Group](/docs/widgets/toggle-group) — Pressed buttons in a set, single or multiple.
-- [Select](/docs/widgets/select) — The same multi-value set behind a dropdown.
+- [Select](/docs/composites/select) — The same multi-value set behind a dropdown.

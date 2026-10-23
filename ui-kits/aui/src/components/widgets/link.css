@@ -45,17 +45,15 @@
     outline-offset: var(--focus-ring-offset);
   }
 
+  /*
+   * A link is text, so it marks the page you're on the way text does — weight and a solid
+   * underline — never a fill, which would make it read as a control.
+   */
   .aui-link[aria-current='page'] {
-    padding-inline: calc(var(--spacing) * 2);
-    margin-inline: calc(var(--spacing) * -2);
-    border-radius: var(--radius-sm);
-    background-color: color-mix(in oklch, currentColor var(--tone-hover-strength), transparent);
     font-weight: 600;
-    text-decoration-line: none;
-  }
-
-  .aui-link[aria-current='page']:hover:not([aria-disabled='true']) {
-    background-color: color-mix(in oklch, currentColor var(--tone-pressed-strength), transparent);
+    text-decoration-color: currentColor;
+    text-decoration-thickness: 2px;
+    cursor: default;
   }
 
   .aui-link:hover:not([aria-disabled='true']) {

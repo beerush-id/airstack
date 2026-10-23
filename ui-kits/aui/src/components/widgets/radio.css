@@ -1,15 +1,18 @@
+@import './control.css';
+
 @layer theme {
   :root {
     --aui-radio-gap: calc(var(--spacing) * 2.5);
-    --aui-radio-box-size: calc(var(--spacing) * 4.5);
-    --aui-radio-box-size-xs: calc(var(--spacing) * 3.5);
-    --aui-radio-box-size-sm: calc(var(--spacing) * 4);
-    --aui-radio-box-size-md: calc(var(--spacing) * 4.5);
-    --aui-radio-box-size-lg: calc(var(--spacing) * 5.5);
-    --aui-radio-box-size-xl: calc(var(--spacing) * 6.5);
-    --aui-radio-box-size-xxl: calc(var(--spacing) * 8);
+    /* The circle is half a control's height at each size, so it sits level with the buttons and fields beside it. */
+    --aui-radio-box-size: calc(var(--aui-control-height-md) * 0.5);
+    --aui-radio-box-size-xs: calc(var(--aui-control-height-xs) * 0.5);
+    --aui-radio-box-size-sm: calc(var(--aui-control-height-sm) * 0.5);
+    --aui-radio-box-size-md: calc(var(--aui-control-height-md) * 0.5);
+    --aui-radio-box-size-lg: calc(var(--aui-control-height-lg) * 0.5);
+    --aui-radio-box-size-xl: calc(var(--aui-control-height-xl) * 0.5);
+    --aui-radio-box-size-xxl: calc(var(--aui-control-height-xxl) * 0.5);
     --aui-radio-box-dot-scale: 0.45;
-    --aui-radio-box-bg: var(--color-surface-container);
+    --aui-radio-box-bg: var(--color-container);
     --aui-radio-box-border: var(--color-outline);
     --aui-radio-box-active-border: var(--color-primary);
     --aui-radio-box-active-dot: var(--color-primary);
@@ -37,6 +40,8 @@
     display: inline-grid;
     place-items: center;
     border-radius: var(--radius-full);
+    /* A radio is a circle, never the theme's squircle. */
+    corner-shape: unset;
     background-color: var(--aui-radio-box-bg);
     box-shadow: inset 0 0 0 1px var(--aui-radio-box-border);
     cursor: pointer;
@@ -46,11 +51,21 @@
       box-shadow var(--duration-short) var(--ease-emphasized);
   }
 
+  /* The controls' own ring, clear of the circle. */
+  .aui-radio-box:focus-visible {
+    outline: var(--focus-ring-width) var(--focus-ring-style)
+      color-mix(in oklch, var(--focus-ring-color) 75%, var(--light-up));
+    outline-offset: var(--focus-ring-offset);
+  }
+
   .aui-radio-box::after {
+    /* The gap around the dot snaps to whole pixels, so the dot sits on the pixel grid and stays round. */
+    --aui-radio-box-dot-gap: round(calc(var(--aui-radio-box-size) * (1 - var(--aui-radio-box-dot-scale)) / 2), 1px);
     content: '';
-    inline-size: calc(var(--aui-radio-box-size) * var(--aui-radio-box-dot-scale));
-    block-size: calc(var(--aui-radio-box-size) * var(--aui-radio-box-dot-scale));
+    inline-size: calc(var(--aui-radio-box-size) - var(--aui-radio-box-dot-gap) * 2);
+    block-size: calc(var(--aui-radio-box-size) - var(--aui-radio-box-dot-gap) * 2);
     border-radius: var(--radius-full);
+    corner-shape: unset;
     background-color: transparent;
     transform: scale(0);
     transition:
@@ -58,12 +73,17 @@
       background-color var(--duration-short) var(--ease-emphasized);
   }
 
+  /* The circle is half a control tall, so the halo measures from twice its size. */
   .aui-radio-box:hover:not(:disabled) {
-    box-shadow: inset 0 0 0 1px var(--aui-radio-box-active-border);
+    box-shadow:
+      inset 0 0 0 1px var(--aui-radio-box-active-border),
+      0 0 0 calc(var(--aui-radio-box-size) * 2 * var(--aui-halo-scale))
+        color-mix(in oklch, var(--aui-radio-box-active-dot) var(--aui-halo-strength), black var(--aui-halo-shade));
   }
 
   .aui-radio-box:hover:not(:disabled)::after {
-    background-color: color-mix(in srgb, var(--aui-radio-box-active-dot) 25%, transparent);
+    /* A preview of the dot, mixed into the circle's own fill so it stays opaque. */
+    background-color: color-mix(in oklch, var(--aui-radio-box-active-dot) 25%, var(--aui-radio-box-bg));
     transform: scale(1);
   }
 
@@ -89,6 +109,12 @@
   .aui-radio-box:disabled::after {
     background-color: transparent;
     transform: scale(0);
+  }
+
+  /* A locked choice still shows which one it is, in the disabled ink. */
+  .aui-radio-box:disabled:checked::after {
+    background-color: var(--color-disabled-fg);
+    transform: scale(1);
   }
 
   .aui-radio-box-xs {

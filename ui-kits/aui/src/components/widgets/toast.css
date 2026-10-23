@@ -30,6 +30,40 @@
     }
   }
 
+  /*
+   * The corner notifications gather in, above everything a desktop shows, newest nearest the
+   * corner's edge. Only the toasts take the pointer.
+   */
+  .aui-toast-host {
+    position: fixed;
+    z-index: max(var(--z-index-toast), calc(var(--aui-window-z, 0) + 1100));
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--spacing-sm);
+    inset-block-start: var(--spacing-lg);
+    inset-inline-end: var(--spacing-lg);
+    pointer-events: none;
+
+    & > .aui-toast {
+      pointer-events: auto;
+    }
+
+    &[data-placement$='start'] {
+      align-items: flex-start;
+      inset-inline: var(--spacing-lg) auto;
+    }
+
+    &[data-placement^='bottom'] {
+      flex-direction: column-reverse;
+      inset-block: auto var(--spacing-lg);
+    }
+
+    &:empty {
+      display: none;
+    }
+  }
+
   .aui-toast {
     display: flex;
     align-items: center;
@@ -104,10 +138,14 @@
     --aui-toast-action: var(--color-warning);
   }
 
+  /* A labelled close sits at the toast's end, with the same room there as above and below it. */
+  .aui-toast > .aui-toast-close {
+    margin-inline: auto calc(var(--aui-toast-padding-block) - var(--aui-toast-padding-inline));
+  }
+
   .aui-toast-close {
     --aui-state-layer-color: var(--aui-toast-action);
     flex: none;
-    margin-inline-start: auto;
 
     /*
      * The toast surface is inverse, so the button tints toward its own action
@@ -116,5 +154,50 @@
     &.aui-button-text:hover:not(:disabled, [aria-disabled='true']) {
       background-color: color-mix(in oklch, var(--aui-toast-action) var(--tone-hover-strength), var(--aui-toast-bg));
     }
+  }
+
+  /*
+   * A glyph-only close keeps off the content: a small round button straddling the top-end corner,
+   * shown while the toast is pointed at or holds focus, and always where there is no pointer to
+   * hover with. A labelled close stays in line, at the end. `.aui-toast-floating` lends the same
+   * corner button to parts that aren't toasts — a widget above the dock.
+   */
+  :is(.aui-toast, .aui-toast-floating) {
+    position: relative;
+
+    & > .aui-toast-close.aui-control-icon {
+      --aui-icon-size: calc(var(--aui-control-height) * 0.36);
+      position: absolute;
+      inset-block-start: 0;
+      inset-inline-end: 0;
+      translate: 35% -35%;
+      inline-size: calc(var(--aui-control-height) * 0.66);
+      block-size: calc(var(--aui-control-height) * 0.66);
+      margin: 0;
+      padding: 0;
+      color: var(--aui-toast-fg);
+      background-color: color-mix(in oklch, var(--aui-toast-bg) 92%, var(--aui-toast-fg));
+      border-radius: var(--radius-full);
+      box-shadow: var(--elevation-2);
+      /* Scaled away rather than hidden, so the keyboard still reaches it, and focusing it brings it out. */
+      scale: 0;
+      transition-property: scale, background-color, var(--aui-state-transitions);
+      transition-duration: var(--duration-short);
+      transition-timing-function: var(--ease-emphasized);
+    }
+
+    &:is(:hover, :focus-within) > .aui-toast-close.aui-control-icon {
+      scale: 1;
+    }
+
+    @media (hover: none) {
+      & > .aui-toast-close.aui-control-icon {
+        scale: 1;
+      }
+    }
+  }
+
+  :dir(rtl) :is(.aui-toast, .aui-toast-floating) > .aui-toast-close.aui-control-icon {
+    translate: -35% -35%;
   }
 }

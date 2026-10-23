@@ -1,0 +1,98 @@
+@import './input.css';
+@import './panel.css';
+@import './select.css';
+
+/*
+ * A time of day as large segments — hour, minute, and AM/PM on a 12-hour clock. Each segment
+ * is the field surface at display size.
+ */
+@layer theme {
+  :root {
+    --aui-time-picker-segment-width: calc(var(--spacing) * 24);
+    --aui-time-picker-segment-height: calc(var(--spacing) * 18);
+    --aui-time-picker-segment-font: calc(var(--font-base) * 2.75);
+    --aui-time-picker-gap: var(--spacing-sm);
+  }
+}
+
+@layer component {
+  .aui-time-picker {
+    display: inline-flex;
+    min-inline-size: 0;
+  }
+
+  /* The field is Select's trigger — a button that opens a panel — wide enough for any time. */
+  .aui-time-picker-field {
+    min-inline-size: calc(var(--spacing) * 32);
+  }
+
+  /* The popup sizes to the segments, past the popover's reading width, and opens from the field as Select's panel does. */
+  .aui-popover.aui-time-picker-panel {
+    max-inline-size: none;
+    position-area: bottom span-left;
+
+    &[data-popover-y='above'] {
+      position-area: top span-left;
+    }
+  }
+
+  .aui-time-picker-input {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--aui-time-picker-gap);
+
+    .aui-popover > & {
+      padding: var(--spacing-xs);
+    }
+  }
+
+  .aui-time-picker-slot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-xs);
+  }
+
+  /*
+   * A segment scrubs on a vertical drag, so the page neither scrolls nor selects under it. Its text
+   * is never edited in place, so it shows no caret.
+   */
+  .aui-time-picker-segment.aui-input {
+    inline-size: var(--aui-time-picker-segment-width);
+    block-size: var(--aui-time-picker-segment-height);
+    padding: 0;
+    font-size: var(--aui-time-picker-segment-font);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    text-align: center;
+    caret-color: transparent;
+    cursor: ns-resize;
+    touch-action: none;
+    user-select: none;
+
+    /* An input ignores user-select; focusing it by Tab still selects its text, so the selection never shows. */
+    &::selection {
+      background-color: transparent;
+      color: inherit;
+    }
+  }
+
+  /* The period reads as a word, so it sits smaller in its segment. */
+  .aui-time-picker-segment.aui-time-picker-period {
+    font-size: calc(var(--aui-time-picker-segment-font) / 2);
+  }
+
+  .aui-time-picker-caption {
+    color: var(--color-on-surface-variant);
+    text-align: center;
+    font-size: var(--font-label-sm-size);
+  }
+
+  .aui-time-picker-separator {
+    display: flex;
+    align-items: center;
+    block-size: var(--aui-time-picker-segment-height);
+    font-size: var(--aui-time-picker-segment-font);
+    line-height: 1;
+  }
+}

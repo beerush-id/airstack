@@ -1,6 +1,7 @@
 @import './modal.css';
 @import './input.css';
 @import './item.css';
+@import './glass.css';
 
 /*
  * A command palette is the shared modal sheet, set high on the page, holding
@@ -18,13 +19,27 @@
 @layer component {
   .aui-command-palette {
     --aui-modal-max-width: var(--aui-command-palette-width);
-    --aui-item-radius: var(--radius-sm);
+    --aui-command-palette-padding: var(--spacing-sm);
+    /*
+     * The sheet is the shared glass (`aui-glass-frame`) with the modal's corner, so it takes on
+     * whatever color the palette wears instead of a container tint that would clash with it.
+     */
+    --aui-glass-radius: var(--aui-modal-radius);
+    /* Denser than the shared glass: a list of commands to read, over a page dimmed behind it. */
+    --aui-glass-tint: 80%;
+    --aui-command-palette-edge: 1px;
+    /* The field and the rows sit one edge and one padding in from the sheet's, so their corners follow its. */
+    --aui-command-palette-inner-radius: max(
+      calc(var(--aui-modal-radius) - var(--aui-command-palette-edge) - var(--aui-command-palette-padding)),
+      0px
+    );
+    --aui-item-radius: var(--aui-command-palette-inner-radius);
     flex-direction: column;
     flex-wrap: nowrap;
     align-items: stretch;
     gap: var(--spacing-sm);
     margin-block: var(--aui-command-palette-offset) auto;
-    padding: var(--spacing-sm);
+    padding: var(--aui-command-palette-padding);
 
     /* The sheet is a column here, so its children size to content instead of a full line. */
     & > * {
@@ -49,16 +64,43 @@
     min-block-size: 0;
   }
 
+  /* The field and the rows grow tall enough to hold the sheet's concentric corner rather than flattening it. */
+  .aui-command-palette-input {
+    --aui-control-radius: var(--aui-command-palette-inner-radius);
+    block-size: max(var(--aui-control-height), calc(var(--aui-command-palette-inner-radius) * 2));
+  }
+
+  .aui-item.aui-command-palette-item {
+    block-size: max(var(--aui-control-height), calc(var(--aui-command-palette-inner-radius) * 2));
+  }
+
+  /*
+   * The list scrolls, so it would clip a row's focus ring at its edges. It reaches into the sheet's
+   * padding by the ring's width and offset and pads that back, so the rows stay concentric with the
+   * sheet and the ring has room inside the scroll area.
+   */
   .aui-command-palette-list {
+    --aui-command-palette-ring-room: calc(var(--focus-ring-width) + var(--focus-ring-offset));
     display: flex;
     flex-direction: column;
     gap: 2px;
     max-block-size: var(--aui-command-palette-list-height);
+    margin: calc(var(--aui-command-palette-ring-room) * -1);
+    padding: var(--aui-command-palette-ring-room);
     overflow-y: auto;
     overscroll-behavior: contain;
+    border-radius: calc(var(--aui-command-palette-inner-radius) + var(--aui-command-palette-ring-room));
+    outline: none;
 
     &[hidden] {
       display: none;
+    }
+
+    /* Reached by Tab, the list wears the controls' ring, drawn inside so the sheet never clips it. */
+    &:focus-visible {
+      outline: var(--focus-ring-width) var(--focus-ring-style)
+        color-mix(in oklch, var(--focus-ring-color) 75%, var(--light-up));
+      outline-offset: calc(var(--focus-ring-width) * -1);
     }
   }
 
@@ -77,21 +119,7 @@
     letter-spacing: var(--font-label-md-tracking);
   }
 
-  .aui-command-palette-hint {
-    margin-inline-start: auto;
-    padding-inline: var(--spacing-xs);
-    border-radius: var(--radius-xs);
-    background-color: var(--color-surface-container-high);
-    color: var(--color-on-surface-variant);
-    font-family: var(--font-mono);
-    font-size: var(--font-label-sm-size);
-  }
 
-  /* On the highlighted row the hint takes the row's ink so it never sinks into the fill. */
-  .aui-command-palette-item[aria-selected='true'] > .aui-command-palette-hint {
-    background-color: transparent;
-    color: inherit;
-  }
 
   .aui-command-palette-empty {
     padding: var(--spacing-lg);

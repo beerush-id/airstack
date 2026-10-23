@@ -1,0 +1,660 @@
+@import '../widgets/button.css';
+@import '../widgets/popover.css';
+@import '../widgets/splitter.css';
+@import '../widgets/glint.css';
+@import '../widgets/glass.css';
+
+/*
+ * A window is a raised surface positioned by the CSS variables its controller
+ * emits (`--window-x/y/width/height/z` and the size limits). Inside a desktop
+ * it is positioned in the desktop; on its own it is fixed to the viewport.
+ * The window in front lifts higher; maximized fills its area; minimized is
+ * put away. Resize grips are invisible strips along the edges and corners.
+ *
+ * `glass` (default) is the same frosted sheet as menus and popovers; `solid`
+ * is opaque. Opening and restoring grow the window in, minimizing shrinks it
+ * away, and maximizing glides its geometry — except while it is being dragged,
+ * where it follows the pointer exactly.
+ */
+@layer theme {
+  :root {
+    /* The window's glass is the shared glass; these names follow it. */
+    --aui-window-bg: var(--aui-glass-bg);
+    --aui-window-fg: var(--aui-glass-fg);
+    --aui-window-radius: var(--radius-xxl);
+    --aui-window-bar-inset: var(--aui-glass-inset);
+    /* The toolbar's height; a sidebar's items start below the same line. */
+    --aui-window-toolbar-size: calc(var(--spacing) * 11);
+    /* The highlight along a floating toolbar's lower edge, and the shadow it casts, once content scrolls beneath it. */
+    --aui-window-toolbar-edge: light-dark(rgba(0, 0, 0, 0.08), rgba(255, 255, 255, 0.12));
+    --aui-window-toolbar-shadow: 0 calc(var(--shadow-base) * 4) calc(var(--shadow-base) * 8)
+      calc(var(--shadow-base) * -4) light-dark(rgba(0, 0, 0, 0.16), rgba(0, 0, 0, 0.5));
+    --aui-window-glass-tint: var(--aui-glass-tint);
+    --aui-window-glass-blur: var(--aui-glass-blur);
+    /* Background windows sit low; the window in front lifts well clear of the rest. */
+    --aui-window-shadow: var(--elevation-2);
+    --aui-window-shadow-active:
+      0 calc(var(--shadow-base) * 12) calc(var(--shadow-base) * 40)
+        light-dark(rgba(0, 0, 0, 0.22), rgba(0, 0, 0, 0.65)),
+      0 calc(var(--shadow-base) * 2) calc(var(--shadow-base) * 8) light-dark(rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.5));
+    --aui-window-edge: var(--aui-glass-edge);
+    --aui-window-z: 100;
+    --aui-window-grip: calc(var(--spacing) * 1.5);
+    --aui-window-corner: calc(var(--spacing) * 3);
+    --aui-window-default-width: calc(var(--spacing) * 120);
+    --aui-window-default-height: calc(var(--spacing) * 80);
+    /* A sidebar keeps this width; the content panel is the solid surface beside it. */
+    --aui-window-sidebar-width: calc(var(--spacing) * 60);
+    --aui-window-content-bg: var(--aui-glass-surface-bg);
+    --aui-window-panel-tint: var(--aui-glass-panel-tint);
+    --aui-window-panel-shadow: var(--aui-glass-lift);
+    /* The corners where a sidebar panel and a content panel meet. */
+    --aui-window-seam-radius: calc(var(--aui-window-bar-inset) * 4);
+    /* Desktop wallpaper: an image (`url(…)`) or any background image; the dark one shows in a dark color scheme. */
+    --aui-desktop-wallpaper: none;
+    --aui-desktop-wallpaper-dark: none;
+    /* Beneath any wallpaper, and all there is without one: a quiet canvas with a dot grid. */
+    --aui-desktop-canvas-bg: color-mix(in oklch, var(--color-primary-container) 25%, var(--color-surface));
+    --aui-desktop-canvas-dot: color-mix(in oklch, var(--color-on-primary-container) 18%, transparent);
+    --aui-desktop-canvas-dot-size: 1px;
+    --aui-desktop-canvas-gap: calc(var(--spacing) * 6);
+  }
+}
+
+@layer component {
+  .aui-desktop {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    /* What sits on the desktop can size itself by the desktop's width, like the widgets' grid. */
+    container-type: inline-size;
+    min-block-size: calc(var(--spacing) * 100);
+    background-color: var(--aui-desktop-canvas-bg);
+    background-image: radial-gradient(
+      circle,
+      var(--aui-desktop-canvas-dot) var(--aui-desktop-canvas-dot-size),
+      transparent calc(var(--aui-desktop-canvas-dot-size) + 0.5px)
+    );
+    background-size: var(--aui-desktop-canvas-gap) var(--aui-desktop-canvas-gap);
+    background-position: center;
+
+    /* The wallpaper sits behind the windows in two layers: light below, dark above; the canvas shows where it doesn't cover. */
+    &::before,
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      background-size: cover;
+      background-position: center;
+      border-radius: inherit;
+      corner-shape: inherit;
+    }
+
+    &::before {
+      background-image: var(--aui-desktop-wallpaper);
+    }
+
+    /* Shown only in a dark color scheme: `light-dark()` only resolves colors, so it drives a mask, not the image. */
+    &::after {
+      background-image: var(--aui-desktop-wallpaper-dark);
+      mask-image: linear-gradient(light-dark(transparent, black), light-dark(transparent, black));
+    }
+  }
+
+  .aui-window {
+    position: fixed;
+    inset-inline-start: var(--window-x, calc(50% - var(--window-width, var(--aui-window-default-width)) / 2));
+    inset-block-start: var(--window-y, calc(50% - var(--window-height, var(--aui-window-default-height)) / 2));
+    z-index: calc(var(--aui-window-z) + var(--window-z, 0));
+    /* A row: the optional sidebar, then the body. Its bare glass moves it, so it takes no touch panning itself. */
+    display: flex;
+    box-sizing: border-box;
+    touch-action: none;
+    inline-size: var(--window-width, var(--aui-window-default-width));
+    block-size: var(--window-height, var(--aui-window-default-height));
+    min-inline-size: var(--window-min-width, calc(var(--spacing) * 50));
+    min-block-size: var(--window-min-height, calc(var(--spacing) * 24));
+    max-inline-size: var(--window-max-width, none);
+    max-block-size: var(--window-max-height, none);
+    /* Its frame is the shared glass (`aui-glass-frame`), rounded as the window is now and lifted as it stands. */
+    --aui-glass-radius: var(--aui-window-frame-radius);
+    --aui-glass-shadow: var(--aui-window-shadow);
+    /*
+     * The window sizes its own glint: half its longest side, whatever its size. It has an explicit
+     * size, so being a size container costs it nothing, and its glint layers measure it through it.
+     */
+    container-type: size;
+    --aui-glint-size: calc(max(100cqi, 100cqb) / 2);
+    /* The radius the window draws right now: the theme's, or none while maximized. Inner panels follow it. */
+    --aui-window-frame-radius: var(--aui-window-radius);
+    /*
+     * The panels' corners: the window's minus the bar inset and its 1px edge, so they stay
+     * concentric; maximized, they keep a small rounding of their own.
+     */
+    --aui-window-panel-radius: max(
+      calc(var(--aui-window-frame-radius) - var(--aui-window-bar-inset) - 1px),
+      calc(var(--aui-window-bar-inset) * 2)
+    );
+    transition-property:
+      box-shadow, opacity, scale, translate, display, inset-inline-start, inset-block-start, inline-size, block-size,
+      border-radius;
+    transition-duration: var(--duration-medium);
+    transition-timing-function: var(--ease-emphasized);
+    transition-behavior: allow-discrete;
+
+    /* Opening, and coming back from minimized, grow the window in. */
+    @starting-style {
+      opacity: 0;
+      scale: 0.96;
+    }
+
+    /* The controls' own ring. */
+    &:focus-visible {
+      outline: var(--focus-ring-width) var(--focus-ring-style)
+        color-mix(in oklch, var(--focus-ring-color) 75%, var(--light-up));
+      outline-offset: var(--focus-ring-offset);
+    }
+
+    &[data-active='true'] {
+      --aui-glass-shadow: var(--aui-window-shadow-active);
+    }
+
+    /* Only the start edges and size change, so maximize and restore glide between them. */
+    /* The reserves are the room a dock takes at the top or bottom of the area, so a maximized window stops short of it. */
+    &[data-maximized='true'] {
+      inset-inline-start: 0;
+      inset-block-start: var(--window-reserve-top, 0px);
+      inline-size: 100%;
+      block-size: calc(100% - var(--window-reserve-top, 0px) - var(--window-reserve-bottom, 0px));
+      max-inline-size: none;
+      max-block-size: none;
+      --aui-window-frame-radius: 0px;
+    }
+
+    &[hidden] {
+      display: none;
+      opacity: 0;
+      scale: 0.96;
+    }
+
+    /* Minimizing shrinks the window down and away before it leaves the layout. */
+    &[data-minimized='true'] {
+      display: none;
+      opacity: 0;
+      scale: 0.9;
+      translate: 0 calc(var(--spacing) * 6);
+    }
+
+    /* While dragging, nothing inside should select or catch the pointer, and geometry follows the pointer with no easing. */
+    &[data-interaction] {
+      transition-property: box-shadow;
+      user-select: none;
+
+      & :is(.aui-window-content, .aui-window-sidebar) {
+        pointer-events: none;
+      }
+    }
+  }
+
+  .aui-desktop > .aui-window {
+    position: absolute;
+  }
+
+  /* A solid window is its glass made opaque: full tint, no edge, no blur. Its sidebar panels turn solid surfaces too. */
+  .aui-window-solid {
+    --aui-glass-tint: 100%;
+    --aui-glass-edge: transparent;
+    --aui-glass-filter: none;
+
+    & .aui-window-sidebar-panel {
+      --aui-glass-bg: var(--aui-glass-surface-bg);
+      --aui-glass-panel-tint: 100%;
+    }
+  }
+
+  /*
+   * The toolbar floats over the top of the content panel on a glass of its own: content scrolls
+   * under it, blurred and tinted with the panel's color, so the title and buttons always read.
+   * One inset above, below, and after the buttons, so the last button sits evenly in the panel's
+   * corner. In a body of your own, it is an ordinary strip.
+   */
+  .aui-window-toolbar {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: var(--spacing-xs);
+    box-sizing: border-box;
+    min-block-size: var(--aui-window-toolbar-size);
+    padding-block: var(--aui-window-bar-inset);
+    padding-inline: var(--spacing-md) var(--aui-window-bar-inset);
+    user-select: none;
+
+    /*
+     * Its top corners are the content panel's, beside a sidebar panel too; it rounds below as well,
+     * so it reads as a bar resting on the content. The window's backdrop filter bounds what this one
+     * sees, which is exactly the content scrolling beneath it.
+     */
+    .aui-window-body > & {
+      position: absolute;
+      z-index: 1;
+      inset-block-start: var(--aui-window-bar-inset);
+      inset-inline: var(--aui-window-bar-inset);
+      background-color: color-mix(in oklch, var(--aui-window-content-bg) var(--aui-window-panel-tint), transparent);
+      backdrop-filter: blur(var(--aui-window-glass-blur)) saturate(1.4);
+      border-start-start-radius: var(--aui-window-panel-radius);
+      border-start-end-radius: var(--aui-window-panel-radius);
+      /* Its lower corners round like a seam, held short enough to fit the bar's height under the upper ones. */
+      border-end-start-radius: min(
+        var(--aui-window-seam-radius),
+        calc(var(--aui-window-toolbar-size) - var(--aui-window-panel-radius))
+      );
+      border-end-end-radius: min(
+        var(--aui-window-seam-radius),
+        calc(var(--aui-window-toolbar-size) - var(--aui-window-panel-radius))
+      );
+      corner-shape: inherit;
+      transition: border-radius var(--duration-medium) var(--ease-emphasized);
+
+      .aui-window:has(> .aui-window-sidebar > .aui-window-sidebar-panel) & {
+        border-start-start-radius: var(--aui-window-seam-radius);
+      }
+    }
+
+    &[data-movable='true'] {
+      cursor: grab;
+    }
+
+    .aui-window[data-interaction='move'] & {
+      cursor: grabbing;
+    }
+  }
+
+  .aui-window-title {
+    flex: 1 1 auto;
+    min-inline-size: 0;
+    margin: 0;
+    overflow: hidden;
+    font-size: var(--font-title-sm-size);
+    font-weight: var(--font-title-sm-weight);
+    line-height: var(--font-title-sm-line-height);
+    letter-spacing: var(--font-title-sm-tracking);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+
+    /* The window in front reads at full strength; the rest step back. */
+    .aui-window:not([data-active='true']) & {
+      color: var(--color-on-surface-variant);
+    }
+  }
+
+  .aui-window-controls {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: var(--spacing-xxs, 2px);
+    margin-inline-start: auto;
+    cursor: default;
+  }
+
+  /*
+   * The column beside the sidebar: the content panel fills it one bar inset from the window's
+   * edges — beside a sidebar, the sidebar's own inset is the gap — and the toolbar floats over it.
+   */
+  .aui-window-body {
+    position: relative;
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: var(--aui-window-bar-inset);
+    box-sizing: border-box;
+    min-inline-size: 0;
+    min-block-size: 0;
+    padding: var(--aui-window-bar-inset);
+  }
+
+  /*
+   * A full-height column on the window's glass. Its items start below the toolbar's line, so the
+   * two read as one window; with a panel inside, the panel fills it one bar inset from the edges.
+   */
+  .aui-window-sidebar {
+    flex: none;
+    box-sizing: border-box;
+    inline-size: var(--aui-window-sidebar-span);
+    min-block-size: 0;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xxs, 2px);
+    padding: var(--aui-window-toolbar-size) var(--spacing-xs) var(--spacing-xs);
+
+    &:has(> .aui-window-sidebar-panel) {
+      gap: var(--aui-window-bar-inset);
+      padding: var(--aui-window-bar-inset);
+      padding-inline-end: 0;
+      overflow: hidden;
+    }
+
+    /* Items read as a list: full width, text from the start, the current one tinted. */
+    & > .aui-button,
+    & > .aui-window-sidebar-panel > .aui-button {
+      justify-content: flex-start;
+    }
+
+    & > [aria-current='true'],
+    & > .aui-window-sidebar-panel > [aria-current='true'] {
+      background-color: color-mix(in oklch, var(--aui-control-bg) var(--tone-container-strength), transparent);
+    }
+  }
+
+  /*
+   * The sidebar's width as it shows: the width it was given, held between its min and max and to
+   * half the window, so the body always keeps the other half. The window is the query container,
+   * so the sidebar and its resizer resolve it against the same width.
+   */
+  .aui-window-sidebar,
+  .aui-window-sidebar-track {
+    --aui-window-sidebar-cap: min(var(--aui-window-sidebar-max, 100cqi), 50cqi);
+    --aui-window-sidebar-span: clamp(
+      var(--aui-window-sidebar-min, 0px),
+      var(--aui-window-sidebar-width),
+      var(--aui-window-sidebar-cap)
+    );
+  }
+
+  /*
+   * The sidebar's resizer rides a track laid over its resize range, from its narrowest to its
+   * widest right now, so the splitter's value is the width itself. The grip sits in the seam
+   * between the sidebar and the body, at the width as it shows, and shows its line only while
+   * pointed at or dragged.
+   */
+  .aui-window-sidebar-track {
+    position: absolute;
+    inset-block: 0;
+    left: var(--aui-window-sidebar-min);
+    inline-size: max(0px, calc(var(--aui-window-sidebar-cap) - var(--aui-window-sidebar-min)));
+    pointer-events: none;
+  }
+
+  /*
+   * An invisible grip centered in the seam, running between the window's rounded corners: the
+   * resize cursor alone shows it, and the focus ring when the keyboard reaches it.
+   */
+  .aui-splitter.aui-window-sidebar-resizer[aria-orientation='vertical'] {
+    position: absolute;
+    top: 50%;
+    left: calc(var(--aui-window-sidebar-span) - var(--aui-window-sidebar-min) + var(--aui-window-bar-inset) / 2);
+    block-size: calc(100% - var(--aui-window-frame-radius) * 2);
+    translate: 0 -50%;
+    pointer-events: auto;
+
+    &::before {
+      display: none;
+    }
+  }
+
+  /* While the sidebar is being resized, the drag sweeping across the panels selects no text. */
+  .aui-window:has(.aui-window-sidebar-resizer:active) {
+    user-select: none;
+  }
+
+  /*
+   * The panels — the content a solid glass surface (`aui-glass-surface`), a sidebar panel a frosted
+   * one (`aui-glass-panel`) — inset by one bar inset inside the window's 1px edge, so their corners
+   * are the window's minus both and stay concentric; maximized, they keep a small rounding of their own.
+   */
+  .aui-window-content,
+  .aui-window-sidebar-panel {
+    flex: 1 1 auto;
+    box-sizing: border-box;
+    min-inline-size: 0;
+    min-block-size: 0;
+    overflow: auto;
+    border-radius: var(--aui-window-panel-radius);
+    corner-shape: inherit;
+    transition: border-radius var(--duration-medium) var(--ease-emphasized);
+  }
+
+  /* The panel keeps its surface and corners; its scroller moves the content. */
+  .aui-window-content {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /*
+   * Your content scrolls here, padded. Under a floating toolbar it starts below the toolbar's line
+   * and slides beneath its glass as it scrolls. Being a scroll container, it pans on touch even
+   * though the window around it doesn't.
+   */
+  .aui-window-scroll {
+    flex: 1 1 auto;
+    min-block-size: 0;
+    overflow: auto;
+    padding: var(--spacing-md);
+
+    .aui-window-body:has(> .aui-window-toolbar) & {
+      padding-block-start: var(--aui-window-toolbar-size);
+    }
+  }
+
+  /*
+   * Once the content scrolls beneath it, the floating toolbar lifts off it: a highlight along its
+   * lower edge and a soft shadow, fading in over the first toolbar's height of scroll. The scroller lends its scroll position
+   * to the body, so the toolbar beside it can follow. Without scroll-driven animations, the bar
+   * simply has no shadow.
+   */
+  @supports (animation-timeline: scroll()) {
+    .aui-window-body:has(> .aui-window-toolbar) {
+      timeline-scope: --aui-window-scroll;
+
+      & .aui-window-scroll {
+        scroll-timeline: --aui-window-scroll block;
+      }
+
+      & > .aui-window-toolbar {
+        animation: aui-window-toolbar-lift linear both;
+        animation-timeline: --aui-window-scroll;
+        animation-range: 0 var(--aui-window-toolbar-size);
+      }
+    }
+  }
+
+  /* The light catching the bar's lower edge, then its shadow on the content; the inset one comes first so the two pair up while fading. */
+  @keyframes aui-window-toolbar-lift {
+    from {
+      box-shadow:
+        inset 0 -1px 0 transparent,
+        0 0 0 0 transparent;
+    }
+
+    to {
+      box-shadow:
+        inset 0 -1px 0 var(--aui-window-toolbar-edge),
+        var(--aui-window-toolbar-shadow);
+    }
+  }
+
+  /*
+   * A sidebar panel and a content panel side by side: their outer corners follow the window's,
+   * while the corners where the two meet stay thin, so they read as one split surface.
+   */
+  .aui-window:has(.aui-window-content) .aui-window-sidebar-panel {
+    border-start-end-radius: var(--aui-window-seam-radius);
+    border-end-end-radius: var(--aui-window-seam-radius);
+  }
+
+  .aui-window:has(> .aui-window-sidebar > .aui-window-sidebar-panel) .aui-window-content {
+    border-start-start-radius: var(--aui-window-seam-radius);
+    border-end-start-radius: var(--aui-window-seam-radius);
+  }
+
+  /* Sidebar panels stacked one above another meet the same way: thin where they touch. */
+  .aui-window-sidebar-panel:has(+ .aui-window-sidebar-panel) {
+    border-end-start-radius: var(--aui-window-seam-radius);
+    border-end-end-radius: var(--aui-window-seam-radius);
+  }
+
+  .aui-window-sidebar-panel + .aui-window-sidebar-panel {
+    border-start-start-radius: var(--aui-window-seam-radius);
+    border-start-end-radius: var(--aui-window-seam-radius);
+  }
+
+  .aui-window-sidebar-panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xxs, 2px);
+    padding: var(--spacing-xs);
+  }
+
+  /* A section's name over its items, quieter than the items themselves: a sidebar's, or the layout popup's. */
+  .aui-window-sidebar-label,
+  .aui-window-layouts-label {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    color: var(--color-on-surface-variant);
+    font-size: var(--font-label-sm-size);
+    font-weight: var(--font-label-sm-weight, 500);
+    letter-spacing: var(--font-label-sm-tracking, normal);
+    user-select: none;
+  }
+
+  /* The maximize button's layout popup: the shared panel holding a group of layouts per kind, each headed and ruled off from the last. */
+  /* Centered under the maximize button. The panel never scrolls, so the bridge below can reach past its edge. */
+  .aui-panel.aui-window-layouts {
+    position-area: bottom center;
+    min-width: 0;
+    overflow: visible;
+    padding: var(--spacing-xs);
+    /* The same glass as the windows, so the popup reads as part of the window it came from, even a solid one. */
+    --aui-glass-bg: var(--aui-window-bg);
+    --aui-glass-tint: var(--aui-window-glass-tint);
+    --aui-glass-edge: var(--aui-window-edge);
+    --aui-glass-filter: blur(var(--aui-window-glass-blur)) saturate(1.4);
+
+    &[data-popover-y='above'] {
+      position-area: top center;
+    }
+
+    /* An invisible bridge over the gap to the button, so the pointer never leaves both on its way in. */
+    &::before {
+      content: '';
+      position: absolute;
+      inset: calc(var(--aui-panel-gap) * -1) 0;
+      z-index: -1;
+    }
+  }
+
+  .aui-window-layouts-group + .aui-window-layouts-group {
+    margin-block-start: var(--spacing-xs);
+    padding-block-start: var(--spacing-xs);
+    border-block-start: 1px solid var(--color-outline-variant);
+  }
+
+  .aui-window-layouts-grid {
+    display: grid;
+    grid-template-columns: repeat(4, auto);
+    justify-content: start;
+    gap: var(--spacing-xxs, 2px);
+  }
+
+  .aui-window-resize {
+    position: absolute;
+    z-index: 1;
+    touch-action: none;
+
+    &[hidden] {
+      display: none;
+    }
+
+    &[data-edge='n'],
+    &[data-edge='s'] {
+      inset-inline: var(--aui-window-corner);
+      block-size: var(--aui-window-grip);
+      cursor: ns-resize;
+    }
+
+    &[data-edge='e'],
+    &[data-edge='w'] {
+      inset-block: var(--aui-window-corner);
+      inline-size: var(--aui-window-grip);
+      cursor: ew-resize;
+    }
+
+    &[data-edge='n'] {
+      inset-block-start: calc(var(--aui-window-grip) / -2);
+    }
+
+    &[data-edge='s'] {
+      inset-block-end: calc(var(--aui-window-grip) / -2);
+    }
+
+    &[data-edge='e'] {
+      inset-inline-end: calc(var(--aui-window-grip) / -2);
+    }
+
+    &[data-edge='w'] {
+      inset-inline-start: calc(var(--aui-window-grip) / -2);
+    }
+
+    &:is([data-edge='ne'], [data-edge='nw'], [data-edge='se'], [data-edge='sw']) {
+      inline-size: var(--aui-window-corner);
+      block-size: var(--aui-window-corner);
+    }
+
+    &[data-edge='ne'] {
+      inset-block-start: calc(var(--aui-window-grip) / -2);
+      inset-inline-end: calc(var(--aui-window-grip) / -2);
+      cursor: nesw-resize;
+    }
+
+    &[data-edge='sw'] {
+      inset-block-end: calc(var(--aui-window-grip) / -2);
+      inset-inline-start: calc(var(--aui-window-grip) / -2);
+      cursor: nesw-resize;
+    }
+
+    &[data-edge='nw'] {
+      inset-block-start: calc(var(--aui-window-grip) / -2);
+      inset-inline-start: calc(var(--aui-window-grip) / -2);
+      cursor: nwse-resize;
+    }
+
+    &[data-edge='se'] {
+      inset-block-end: calc(var(--aui-window-grip) / -2);
+      inset-inline-end: calc(var(--aui-window-grip) / -2);
+      cursor: nwse-resize;
+    }
+  }
+
+  .aui-window-taskbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--spacing-xs);
+
+    & > .aui-button[aria-pressed='true'] {
+      background-color: color-mix(in oklch, var(--aui-control-bg) var(--tone-container-strength), transparent);
+    }
+
+    & > .aui-button[data-minimized='true'] {
+      color: var(--color-on-surface-variant);
+    }
+  }
+}
+
+/*
+ * Reduced motion keeps the toolbar's shadow: it follows the reader's own scrolling rather than
+ * moving on its own, and it is what separates the bar from the content beneath it.
+ */
+@layer reduced-motion {
+  @media (prefers-reduced-motion: reduce) {
+    @supports (animation-timeline: scroll()) {
+      .aui-window-body:has(> .aui-window-toolbar) > .aui-window-toolbar {
+        animation: aui-window-toolbar-lift linear both !important;
+        animation-timeline: --aui-window-scroll !important;
+        animation-range: 0 var(--aui-window-toolbar-size) !important;
+      }
+    }
+  }
+}

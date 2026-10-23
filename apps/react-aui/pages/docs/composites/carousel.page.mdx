@@ -1,0 +1,262 @@
+---
+title: AUI Carousel
+nav: Carousel
+nav-priority: 370
+description: One slide at a time behind steppers, dots, a player, and arrow keys — with a timer that pauses for hover and stops for focus.
+---
+
+# AUI Carousel
+
+A carousel shows one slide at a time behind a set of travelers. The hard part is never the slides — it is **showing exactly one of them**, **moving with buttons, dots, and arrow keys**, **rotating on a timer that respects hover and focus**, and **telling your code when the slide or the rotation changes**.
+
+**AUI Carousel** does all of that for you, and leaves the markup and the styling entirely yours. The root holds the current slide and the rotation; the viewport, slides, steppers, dots, and player find it in scope.
+
+Styling is optional. Without AUI CSS the Carousel stays a correct, operable region; with it, the same markup gets the AUI treatment through the full library.
+
+:::interactive[Carousel demo]
+
+```tsx
+import {
+  Carousel,
+  CarouselNav,
+  CarouselPicker,
+  CarouselPlayer,
+  CarouselSlide,
+  CarouselViewport,
+  Readout,
+  Toggle,
+} from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { GlassStage } from '@/components/GlassStage.js';
+
+const SLIDES = [
+  { key: 'mountains', title: 'Above the treeline', body: 'Weather makes the schedule up here, not the map.' },
+  { key: 'ocean', title: 'Swell arrives', body: 'The tide keeps its own time, every single day.' },
+  { key: 'desert', title: 'Nights go cold', body: 'Clear skies in winter drop faster than the sun does.' },
+];
+
+const CarouselDemo = setup(() => {
+  const state = mutable({
+    slide: 'mountains',
+    auto: false,
+  });
+
+  return () => (
+    <div className="demo-button">
+      <div className="flex gap-xs w-full flex-wrap">
+        <Toggle size="sm" pressed={$bind(state, 'auto')}>
+          {() => (state.auto ? 'Rotating' : 'Paused')}
+        </Toggle>
+        <div className="flex-1"></div>
+        <Snippet>{() => <Readout label="Showing" value={SLIDES.find((slide) => slide.key === state.slide)?.title} />}</Snippet>
+      </div>
+      <GlassStage>
+        <div className="flex flex-col gap-lg">
+          <Carousel
+            label="Featured slides"
+            keys={SLIDES.map((slide) => slide.key)}
+            value={$bind(state, 'slide')}
+            autoplay={$bind(state, 'auto')}
+            loop
+            interval={4000}
+          >
+            <CarouselViewport label="Slides">
+              {SLIDES.map((slide) => (
+                <CarouselSlide key={slide.key} name={slide.key}>
+                  <span className="text-lg font-bold">{slide.title}</span>
+                  <span className="text-sm">{slide.body}</span>
+                </CarouselSlide>
+              ))}
+            </CarouselViewport>
+            <div className="flex items-center gap-sm">
+              <CarouselNav label="Previous slide" direction={-1} />
+              {SLIDES.map((slide) => (
+                <CarouselPicker key={slide.key} name={slide.key} label={`${slide.title} slide`} />
+              ))}
+              <CarouselPlayer label="Start rotation" playingLabel="Stop rotation">
+                Play
+              </CarouselPlayer>
+              <CarouselNav label="Next slide" direction={1} />
+            </div>
+          </Carousel>
+        </div>
+      </GlassStage>
+    </div>
+  );
+}, 'CarouselDemo');
+```
+
+```html
+<CarouselDemo />
+```
+
+<CarouselDemo />
+
+:::
+
+## Usage
+
+The root takes the keys and the current slide; the viewport holds the slides; the travelers sit around them:
+
+```tsx
+import {
+  Carousel,
+  CarouselNav,
+  CarouselPicker,
+  CarouselSlide,
+  CarouselViewport,
+} from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/carousel.css';
+
+export const Featured = ({ onSlide }: { onSlide: (key: string | undefined) => void }) => (
+  <Carousel label="Featured slides" keys={['mountains', 'ocean']} value="mountains" loop onchange={(event) => onSlide(event.detail)}>
+    <CarouselViewport label="Slides">
+      <CarouselSlide name="mountains">Above the treeline</CarouselSlide>
+      <CarouselSlide name="ocean">Swell arrives</CarouselSlide>
+    </CarouselViewport>
+    <CarouselNav label="Previous slide" direction={-1}>
+      ‹
+    </CarouselNav>
+    <CarouselPicker name="mountains" label="Mountains slide" />
+    <CarouselPicker name="ocean" label="Ocean slide" />
+    <CarouselNav label="Next slide" direction={1}>
+      ›
+    </CarouselNav>
+  </Carousel>
+);
+```
+
+For the full library — tokens, base defaults, every component, and the utilities — load `import '@airlib/aui';` instead. A lone component stylesheet carries only that component's rules.
+
+### The current slide
+
+`value` is the `name` of the slide on screen. Bind it to follow the carousel, or leave it out and let the first mounted dot claim it:
+
+```tsx
+const state = mutable({ slide: 'mountains' });
+
+<Carousel label="Featured slides" keys={['mountains', 'ocean']} value={$bind(state, 'slide')}>
+  {/* viewport, slides, travelers */}
+</Carousel>;
+```
+
+`keys` is the ordered list the carousel counts against — `total`, `last`, and `current` all come from it. A key that is not in `keys` leaves the carousel with no current slide.
+
+### The viewport
+
+`CarouselViewport` owns the slide area's single tab stop, its live-region politeness, and the identity every control points at. While rotation runs it holds `aria-live="off"`; idle it switches to `polite`:
+
+```tsx
+<CarouselViewport label="Slides">
+  {/* slides */}
+</CarouselViewport>
+```
+
+Without a viewport the steppers and player point at nothing. The slides address their own dots instead.
+
+### Sliding
+
+An inactive slide carries `hidden` and leaves the reading and focus order. A slide is named for screen readers by its dot, and announces itself as a slide, not a generic group:
+
+```tsx
+<CarouselSlide name="ocean">
+  <h2>Swell arrives</h2>
+  <p>The tide keeps its own time.</p>
+</CarouselSlide>
+```
+
+### Travel
+
+`CarouselNav` is one part pointed two ways: `direction={-1}` slides back, `direction={1}` forward. Each refuses at the bound it has nowhere left to go, and `loop` makes the pair wrap:
+
+```tsx
+<CarouselNav label="Previous slide" direction={-1}>‹</CarouselNav>
+<CarouselNav label="Next slide" direction={1}>›</CarouselNav>
+```
+
+`CarouselPicker` is one dot. It jumps straight to the slide it names, marks itself with `aria-current`, and fires nothing when its slide is already up:
+
+```tsx
+<CarouselPicker name="ocean" label="Ocean slide" />
+```
+
+### Rotation
+
+`autoplay` runs the timer, `interval` sets the gap (5000 ms by default), and `playing` reports whether the countdown is live. Hovering the viewport holds the timer and focusing inside stops it; `ontoggle` hears both:
+
+```tsx
+<Carousel
+  label="Featured slides"
+  keys={keys}
+  autoplay
+  interval={4000}
+  ontoggle={(event) => setRotating(event.detail)}
+>
+  {/* viewport, slides, travelers */}
+</Carousel>
+```
+
+`CarouselPlayer` flips rotation and travels its state through the label swap — `label` while stopped, `playingLabel` while running — never through a pressed state:
+
+```tsx
+<CarouselPlayer label="Start rotation" playingLabel="Stop rotation">
+  Play
+</CarouselPlayer>
+```
+
+### Arrow keys
+
+The viewport is the single tab stop, and the arrows switch slides rather than moving focus: `ArrowLeft` and `ArrowRight` step, `Home` and `End` reach the ends, and `loop` decides what happens at them. Set `arrowNav={false}` to take the keys back.
+
+### Properties
+
+#### Carousel
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `label` | `string` | required | The name of the whole region. |
+| `keys` | `string[]` | `[]` | The ordered slide keys driving counts and position. |
+| `value` | `Bindable<string>` | — | The current slide's `name`. |
+| `loop` | `boolean` | `false` | Wraps stepping and the timer at the ends. |
+| `autoplay` | `Bindable<boolean>` | `false` | Runs the rotation timer. |
+| `playing` | `Bindable<boolean>` | — | Whether the countdown is live; driven by the timer. |
+| `interval` | `number` | `5000` | Milliseconds between automatic advances. |
+| `arrowNav` | `boolean` | `true` | Whether the viewport's arrows switch slides. |
+| `disabled` | `boolean` | `false` | Locks every traveler across the group. |
+| `id` | `string` | generated | The namespace the viewport identity derives from. |
+| `onchange` | `(event: CustomEvent<string \| undefined>) => void` | — | The new slide's key after every advance. |
+| `ontoggle` | `(event: CustomEvent<boolean>) => void` | — | Rotation's new state, including hover and focus pauses. |
+
+#### CarouselViewport, CarouselSlide
+
+The viewport takes `label` and children. A slide takes `name` (required) and `id` for an explicit DOM identifier.
+
+#### CarouselNav, CarouselPicker, CarouselPlayer
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `direction` | `1 \| -1` | required | Stepper direction; nav only. |
+| `name` | `string` | required | The slide a dot targets; picker only. |
+| `label` | `string` | — | The accessible name: the stepper's action, the dot's slide, or the player's stopped state. |
+| `playingLabel` | `string` | — | The player's name while rotation runs. |
+| `selected` | `boolean` | — | The initial dot hint when the group has no value. |
+| `disabled` | `boolean` | `false` | Locks a single dot. |
+
+Your own classes are added next to the built-in ones:
+
+```tsx
+// class="aui-carousel my-carousel"
+<Carousel className="my-carousel" label="Featured slides" keys={keys}>
+  {/* parts */}
+</Carousel>
+```
+
+To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+
+Keyboard: the viewport is the tab stop. `ArrowLeft` and `ArrowRight` switch slides, `Home` and `End` jump to the ends, and every traveler answers `Enter`, `Space`, and a click.
+
+## Next Steps
+
+- [Tabs](/docs/widgets/tabs) — Single selection with hidden panels where the arrows only move focus.
+- [Toast](/docs/composites/toast) — The other timer that pauses for hover and stops for focus.
+- [Reorder](/docs/composites/reorder) — Moving within a collection instead of between slides.

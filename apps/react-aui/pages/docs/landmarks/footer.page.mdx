@@ -16,6 +16,7 @@ Styling is optional. Without AUI CSS the Footer stays a correct, operable landma
 ```tsx
 import { Footer, Toggle } from '@airlib/react-aui';
 import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { GlassStage } from '@/components/GlassStage.js';
 
 const FooterDemo = setup(() => {
   const state = mutable({ named: true });
@@ -25,15 +26,17 @@ const FooterDemo = setup(() => {
       <Toggle pressed={$bind(state, 'named')}>
         {() => (state.named ? 'Named' : 'Unnamed')}
       </Toggle>
-      <div className="aui-card flex gap-md items-center justify-center p-xl">
-        <Snippet>
-          {() => (
-            <Footer label={state.named ? 'Site' : undefined}>
-              <span>© AirLib</span>
-            </Footer>
-          )}
-        </Snippet>
-      </div>
+      <GlassStage>
+        <div className="flex gap-md items-center justify-center">
+          <Snippet>
+            {() => (
+              <Footer label={state.named ? 'Site' : undefined}>
+                <span>© AirLib</span>
+              </Footer>
+            )}
+          </Snippet>
+        </div>
+      </GlassStage>
     </div>
   );
 }, 'FooterDemo');

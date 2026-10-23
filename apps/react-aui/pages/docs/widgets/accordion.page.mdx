@@ -18,6 +18,7 @@ FAQs, filter panels, long settings forms: when a page has more sections than fit
 import { Accordion, Toggle } from '@airlib/react-aui';
 import { $bind, mutable, setup, Snippet } from '@airlib/react';
 import { DemoControl } from '@/components/DemoControl.js';
+import { GlassStage } from '@/components/GlassStage.js';
 
 const QUESTIONS = { shipping: 'Shipping', returns: 'Returns', payment: 'Payment' };
 
@@ -44,22 +45,24 @@ const AccordionDemo = setup(() => {
           {() => (state.multiple ? 'Several open' : 'One at a time')}
         </Toggle>
       </DemoControl>
-      <div className="aui-card flex flex-col p-xl">
-        <Snippet>
-          {() => (
-            <Accordion
-              items={QUESTIONS}
-              multiple={state.multiple}
-              value={state.multiple ? $bind(state, 'several') : $bind(state, 'open')}
-              size={state.size}
-              color={state.color}
-              disabled={state.disabled}
-            >
-              <Accordion.Snippet for="panel">{(entry) => ANSWERS[entry.name]}</Accordion.Snippet>
-            </Accordion>
-          )}
-        </Snippet>
-      </div>
+      <GlassStage>
+        <div className="flex flex-col">
+          <Snippet>
+            {() => (
+              <Accordion
+                items={QUESTIONS}
+                multiple={state.multiple}
+                value={state.multiple ? $bind(state, 'several') : $bind(state, 'open')}
+                size={state.size}
+                color={state.color}
+                disabled={state.disabled}
+              >
+                <Accordion.Snippet for="panel">{(entry) => ANSWERS[entry.name]}</Accordion.Snippet>
+              </Accordion>
+            )}
+          </Snippet>
+        </div>
+      </GlassStage>
     </div>
   );
 }, 'AccordionDemo');
@@ -190,4 +193,4 @@ Keyboard: every header is its own stop in the tab order. `Down` and `Up` move be
 
 - [Disclosure](/docs/widgets/disclosure) — A single section that shows and hides on its own.
 - [Tabs](/docs/widgets/tabs) — Sections that swap in one spot instead of stacking.
-- [Tree](/docs/widgets/tree) — When the sections nest inside each other.
+- [Tree](/docs/composites/tree) — When the sections nest inside each other.

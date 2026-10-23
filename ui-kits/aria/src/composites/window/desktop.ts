@@ -134,6 +134,15 @@ export const windowDesktopCtx = createContext<WindowDesktopAria>();
 /**
  * Compiled attributes for a window desktop.
  */
+export interface WindowDesktopProps extends AriaProps {
+  /**
+   * Space, in pixels, its windows leave where they meet face to face — another
+   * window, a dock, the other half of a split. A window's own `snapGap` wins.
+   * Defaults to 1.
+   */
+  snapGap?: number;
+}
+
 export interface WindowDesktopAttributes<E extends BaseElement = HTMLElement> extends AriaAttributes<E> {
   'data-window-desktop'?: 'true';
 }
@@ -144,17 +153,24 @@ export interface WindowDesktopAttributes<E extends BaseElement = HTMLElement> ex
  */
 export class WindowDesktopAria<E extends BaseElement = HTMLElement> extends Aria<
   E,
-  AriaProps,
+  WindowDesktopProps,
   WindowDesktopAttributes<E>,
   AriaOptions
 > {
   public readonly stack = new WindowStack();
 
-  public constructor(props: Partial<AriaProps> = {}, options: AriaOptions = {}) {
+  public constructor(props: Partial<WindowDesktopProps> = {}, options: AriaOptions = {}) {
     super(props, options);
     windowDesktopCtx.set(this as never);
-    this.omittedAttrs.push('data-window-desktop');
+    this.omittedAttrs.push('data-window-desktop', 'snapGap');
     this.update();
+  }
+
+  /**
+   * The space its windows leave where they meet each other or a dock, unless a window sets its own.
+   */
+  public get snapGap(): number | undefined {
+    return this.properties.snapGap;
   }
 
   /**
@@ -169,14 +185,14 @@ export class WindowDesktopAria<E extends BaseElement = HTMLElement> extends Aria
   }
 
   /**
-   * Pressing the desktop itself — not a window on it — leaves every window
-   * inactive and takes focus out of them.
+   * Pressing the bare desktop itself leaves every window inactive and takes
+   * focus out of them. Pressing anything on it — a window, the dock, a widget
+   * — doesn't: using the dock is not leaving the window being worked in.
    */
   protected attach() {
     const element = this.element as HTMLElement;
     const handlePointerDown = (event: PointerEvent) => {
-      const target = event.target as Element | null;
-      if (target?.closest('[role="dialog"]')) return;
+      if (event.target !== element) return;
 
       this.stack.release();
       const focused = element.ownerDocument.activeElement as HTMLElement | null;

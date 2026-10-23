@@ -1,4 +1,4 @@
-import { isEmpty } from '@airlib/core';
+import { $static, isEmpty } from '@airlib/core';
 import type { AriaOptions, AriaProps, BaseElement, DetachFn } from '../../types.js';
 import { PopupTriggerAria, type PopupTriggerAttributes, type PopupTriggerOptions } from '../popup/trigger.js';
 import type { ComboboxAria } from './combobox.js';
@@ -21,6 +21,23 @@ export interface ComboboxInputProps extends AriaProps {
    * Optional placeholder text.
    */
   placeholder?: string;
+
+  /**
+   * Whether the field shows the chosen options' labels while nobody is filtering. Turn it off
+   * when something else already shows the choice — a tag input's chips — so the field holds only
+   * what's typed.
+   *
+   * @default true
+   */
+  echo?: boolean;
+
+  /**
+   * What the panel lines up with: the input itself, or the shell around it (`'parent'`) when the
+   * input is only part of a larger field — a tag input's chips and text.
+   *
+   * @default 'self'
+   */
+  anchor?: 'self' | 'parent';
 }
 
 export interface ComboboxInputOptions extends PopupTriggerOptions {}
@@ -46,6 +63,11 @@ export class ComboboxInputAria<E extends BaseElement = HTMLElement> extends Popu
   ComboboxInputOptions
 > {
   protected declare host: ComboboxAria;
+
+  /**
+   * Whether the panel lines up with the shell around the input rather than the input itself.
+   */
+  protected anchorsParent = false;
 
   /**
    * Current combobox value.
@@ -82,7 +104,9 @@ export class ComboboxInputAria<E extends BaseElement = HTMLElement> extends Popu
   public constructor(props: ComboboxInputProps = {}, options: AriaOptions = { native: true }) {
     super(props as never, options as never);
 
-    this.omittedAttrs.push('aria-autocomplete', 'placeholder');
+    this.omittedAttrs.push('aria-autocomplete', 'placeholder', 'echo', 'anchor');
+    // What the panel lines up with is set when the input is made, not changed after.
+    this.anchorsParent = $static(() => this.properties.anchor === 'parent');
     this.update();
   }
 
@@ -97,7 +121,7 @@ export class ComboboxInputAria<E extends BaseElement = HTMLElement> extends Popu
       Object.assign(attrs, {
         name: this.host?.triggerId,
         type: 'text',
-        value: this.query || this.label || this.text || this.value,
+        value: this.query || (this.properties.echo === false ? '' : this.label || this.text || this.value),
         required: this.host?.properties.required,
         placeholder: this.properties.placeholder,
       });
@@ -114,6 +138,22 @@ export class ComboboxInputAria<E extends BaseElement = HTMLElement> extends Popu
     });
 
     return attrs;
+  }
+
+  /**
+   * Lends the panel's anchor to the shell around the input when it anchors to its parent: the
+   * panel then lines up with the whole field, while the input keeps every other part of the trigger.
+   */
+  protected override applyAttributes(): void {
+    super.applyAttributes();
+    if (!this.anchorsParent) return;
+
+    const own = this.element as HTMLElement | undefined;
+    const shell = own?.parentElement;
+    if (!own || !shell) return;
+
+    shell.style.anchorName = own.style.anchorName;
+    own.style.anchorName = '';
   }
 
   protected override attach(): DetachFn | void {

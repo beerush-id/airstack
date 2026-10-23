@@ -1,0 +1,244 @@
+---
+title: AUI Dialog
+nav: Dialog
+nav-priority: 302
+description: Ask for input or show detail in a sheet over the page — give it a title and a body and get the trigger, the sheet, focus trapping, Escape, and focus returned on close.
+keywords: [React dialog, React modal, accessible modal, modal dialog, React popup window, focus trap, ARIA dialog]
+---
+
+# AUI Dialog
+
+Settings, a short form, the detail of a record — some tasks need the page to step aside for a moment. A dialog has to name itself, keep keyboard focus inside while it's open, close on `Escape` or a click on the backdrop when that's allowed, and put focus back on the button that opened it.
+
+**AUI Dialog** handles all of it. Give it a title and a body; it renders the button, the sheet, and the close button.
+
+:::interactive[Dialog demo]
+
+```tsx
+import {
+  Avatar,
+  Button,
+  Dialog,
+  DialogClose,
+  Field,
+  FieldControl,
+  FieldDescription,
+  FieldLabel,
+  Readout,
+  Switch,
+} from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { DemoControl } from '@/components/DemoControl.js';
+import { GlassStage } from '@/components/GlassStage.js';
+
+const DialogDemo = setup(() => {
+  const state = mutable({ size: 'md', color: 'primary', editing: false });
+  // What teammates see, and the copy the dialog edits: Save keeps the copy, Cancel and Escape drop it.
+  const profile = mutable({ name: 'Ada Lovelace', role: 'Data analyst', online: true });
+  const draft = mutable({ name: '', role: '', online: false });
+  const save = () => {
+    Object.assign(profile, draft);
+    state.editing = false;
+  };
+
+  return () => (
+    <div className="demo-button">
+      <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} />
+      <GlassStage>
+        <Snippet>
+          {() => (
+            <div className="flex items-center gap-md">
+              <Avatar alt={profile.name} />
+              <div className="flex flex-col gap-xs flex-1">
+                <div className="text-title-sm">{profile.name}</div>
+                <div>{profile.role}</div>
+              </div>
+              <Dialog
+                label="Edit profile"
+                title="Edit profile"
+                description="Teammates see this in every workspace you share."
+                open={$bind(state, 'editing')}
+                size={state.size}
+                color={state.color}
+                onopen={() => Object.assign(draft, profile)}
+              >
+                <div className="flex flex-col gap-md">
+                  <Field value={$bind(draft, 'name')}>
+                    <FieldLabel>Display name</FieldLabel>
+                    <FieldControl />
+                  </Field>
+                  <Field value={$bind(draft, 'role')}>
+                    <FieldLabel>Role</FieldLabel>
+                    <FieldControl />
+                    <FieldDescription>Shown under your name in mentions and comments.</FieldDescription>
+                  </Field>
+                  <label className="flex items-center justify-between gap-md">
+                    Show when I'm online
+                    <Switch checked={$bind(draft, 'online')} />
+                  </label>
+                </div>
+                <Dialog.Snippet for="actions">
+                  {() => (
+                    <>
+                      <DialogClose>Cancel</DialogClose>
+                      <Button size={state.size} color={state.color} onClick={save}>
+                        Save
+                      </Button>
+                    </>
+                  )}
+                </Dialog.Snippet>
+              </Dialog>
+            </div>
+          )}
+        </Snippet>
+      </GlassStage>
+      <Snippet>{() => <Readout label="Online status" value={profile.online ? 'Shown' : 'Hidden'} />}</Snippet>
+    </div>
+  );
+}, 'DialogDemo');
+```
+
+```html
+<DialogDemo />
+```
+
+<DialogDemo />
+
+:::
+
+## Usage
+
+### Give it a title and a body
+
+Pass `title`, and `label` for the button that opens it. The children become the body, and a close button finishes the sheet:
+
+```tsx
+import { Dialog } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/dialog.css';
+
+export const ShippingInfo = () => (
+  <Dialog
+    label="Shipping details"
+    title="Shipping details"
+    description="Orders leave the warehouse within two business days."
+    closeLabel="Got it"
+  >
+    <p>Tracking arrives by email once the parcel is on its way.</p>
+  </Dialog>
+);
+```
+
+- **`label`** is the button text. Leave it out when something else opens the dialog (see below).
+- **`description`** sits under the title and is announced with it.
+- **`closeLabel`** names the button that closes the sheet, in your users' language. Leave it out and no button is drawn; `Escape` and an outside press still close it.
+
+### Supply your own buttons
+
+When the sheet needs more than one way out — Save and Cancel, say — fill the `actions` slot. `DialogClose` closes the sheet; anything else is an ordinary button:
+
+```tsx
+import { Button, Dialog, DialogClose } from '@airlib/react-aui';
+
+<Dialog label="Rename" title="Rename project">
+  <TextInput label="Name" value={$bind(project, 'name')} />
+  <Dialog.Snippet for="actions">
+    {() => (
+      <>
+        <DialogClose>Cancel</DialogClose>
+        <Button onClick={save}>Save</Button>
+      </>
+    )}
+  </Dialog.Snippet>
+</Dialog>
+```
+
+The `trigger` slot replaces the button's content the same way, for an icon or a richer label.
+
+### Open it from your code
+
+Leave out `label` and bind `open` when the dialog opens from somewhere else — a keyboard shortcut, a row click, the result of a request:
+
+```tsx
+const state = mutable({ open: false });
+
+<Button onClick={() => (state.open = true)}>Edit</Button>
+<Dialog open={$bind(state, 'open')} title="Edit item">
+  <ItemForm />
+</Dialog>
+```
+
+Closing — the close button, `Escape`, the backdrop — writes the same `open`, and `onclose` fires once.
+
+### Modal or not, dismissable or not
+
+- **`modality="modal"`** (default) dims the page and keeps focus inside the sheet until it closes. **`"nonmodal"`** leaves the page usable behind it — for an inspector or a helper that stays open while people work.
+- **`dismissable`** (default `true`) lets `Escape` and a click outside close the dialog. Turn it off when closing by accident would lose work; the close button still works. For a question that must be answered, use [Confirm](/docs/composites/confirm).
+
+### Build it from parts
+
+Compose the parts when the sheet's layout is yours to invent. They find each other inside `Dialog`; the title and description are announced automatically:
+
+```tsx
+import { Dialog, DialogClose, DialogDescription, DialogPanel, DialogTitle, DialogTrigger } from '@airlib/react-aui';
+
+<Dialog>
+  <DialogTrigger>Account settings</DialogTrigger>
+  <DialogPanel>
+    <DialogTitle>Account settings</DialogTitle>
+    <DialogDescription>Nothing is saved until you confirm.</DialogDescription>
+    <AccountForm />
+    <DialogClose>Cancel</DialogClose>
+    <DialogClose variant="filled">Save changes</DialogClose>
+  </DialogPanel>
+</Dialog>
+```
+
+Buttons placed straight in the sheet line up as its action row at the bottom; anything else takes a full line.
+
+### Style it once
+
+`size` and `color` on `Dialog` reach the open button and the sheet's buttons. Close buttons keep their quieter variant so the main action stands out. See [Style a composite once](/docs/theming#style-a-composite-once).
+
+### Properties
+
+`Dialog`:
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `title` | `string` | — | Renders the sheet for you, headed by this title. |
+| `label` | `string` | — | Text of the button that opens the dialog. Omit it to open from code. |
+| `description` | `string` | — | Explanation under the title, announced with it. |
+| `closeLabel` | `string` | — | Text of the close button when the `actions` slot is not used; without it, no close button is drawn. |
+| `open` | `Bindable<boolean>` | `false` | Whether the dialog is showing. |
+| `modality` | `'modal'`, `'nonmodal'` | `'modal'` | Whether the page behind stays usable. |
+| `dismissable` | `boolean` | `true` | Whether `Escape` and a click outside close it. |
+| `onopen` / `onclose` | `(event: CustomEvent<void>) => void` | — | Called after the dialog opens or closes. |
+| `size` / `color` / `variant` | shared vocabulary | `md` / `primary` / `filled` | Reach the open button and the sheet's buttons. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `children` | `ReactNode` | — | The body with `title`; the parts without it. |
+
+Slots (with `title`): `trigger()` for the open button's content, `actions()` for the buttons at the bottom of the sheet.
+
+Parts:
+
+| Part | Use it for |
+| --- | --- |
+| `DialogTrigger` | The button that opens the dialog. |
+| `DialogPanel` | The sheet. |
+| `DialogTitle` | The heading that names the dialog. |
+| `DialogDescription` | The explanation under the title. |
+| `DialogClose` | A button that closes the dialog. |
+
+Every part takes `className` and the style props; the buttons also take `disabled`.
+
+### Keyboard
+
+- `Tab` and `Shift + Tab` stay inside a modal dialog.
+- `Escape` closes a dismissable dialog.
+- Focus returns to the button (or element) that opened the dialog when it closes.
+
+## Next Steps
+
+- [Confirm](/docs/composites/confirm) — A yes-or-no question that must be answered.
+- [Popover](/docs/composites/popover) — Lighter content that stays attached to its button.
+- [Toast](/docs/composites/toast) — Tell people something happened without stopping them.

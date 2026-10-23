@@ -16,17 +16,33 @@ Styling is optional. Without AUI CSS the Announcer is still a correct live regio
 :::interactive[Announcer demo]
 
 ```tsx
-import { Announcer, Select, TextInput, Toggle } from '@airlib/react-aui';
-import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { Announcer, DescriptionList, List, ListItem, SearchInput, Select, Toggle } from '@airlib/react-aui';
+import { $bind, For, mutable, setup, Snippet } from '@airlib/react';
+import { GlassStage } from '@/components/GlassStage.js';
+
+const PRODUCTS = [
+  { name: 'Blue mug', price: '$18' },
+  { name: 'Red kettle', price: '$64' },
+  { name: 'Blue teapot', price: '$42' },
+  { name: 'Oak serving tray', price: '$36' },
+  { name: 'Blue saucer', price: '$12' },
+];
 
 const AnnouncerDemo = setup(() => {
   const state = mutable({
-    message: 'Draft saved',
+    query: '',
     politeness: 'polite',
     atomic: true,
     busy: false,
     relevant: 'additions text',
   });
+
+  // The list redraws silently as people type; the count is what a screen reader user would miss.
+  const matches = () => PRODUCTS.filter((product) => product.name.toLowerCase().includes(state.query.trim().toLowerCase()));
+  const message = () => {
+    const count = matches().length;
+    return count ? `${count} of ${PRODUCTS.length} products match` : 'No products match';
+  };
 
   return () => (
     <div className="demo-button">
@@ -51,23 +67,36 @@ const AnnouncerDemo = setup(() => {
           {() => (state.busy ? 'Busy — holds announcements' : 'Not busy')}
         </Toggle>
       </div>
-      <div className="aui-card flex flex-col gap-lg p-xl">
-        <TextInput value={$bind(state, 'message')} label="Message" placeholder="What should be announced?" />
-        <span>The region below stays invisible; the card shows the text it currently carries.</span>
-        <Snippet>
-          {() => (
-            <Announcer
-              politeness={state.politeness}
-              atomic={state.atomic}
-              busy={state.busy}
-              relevant={state.relevant}
-            >
-              {state.message}
-            </Announcer>
-          )}
-        </Snippet>
-        <Snippet>{() => <span>{state.message}</span>}</Snippet>
-      </div>
+      <GlassStage>
+        <div className="flex flex-col gap-lg">
+          <SearchInput value={$bind(state, 'query')} label="Search products" placeholder="Try “blue”" />
+          <List label="Products">
+            <For each={matches}>{(product) => <ListItem key={product.name} title={product.name} meta={product.price} />}</For>
+          </List>
+          <Snippet>
+            {() => (
+              <Announcer
+                politeness={state.politeness}
+                atomic={state.atomic}
+                busy={state.busy}
+                relevant={state.relevant}
+              >
+                {message()}
+              </Announcer>
+            )}
+          </Snippet>
+          <Snippet>
+            {() => (
+              <DescriptionList
+                items={[
+                  { label: 'Announcing', value: message() },
+                  { label: 'As', value: state.politeness === 'assertive' ? 'Alert, at once' : state.politeness === 'off' ? 'Nothing' : 'Status, when idle' },
+                ]}
+              />
+            )}
+          </Snippet>
+        </div>
+      </GlassStage>
     </div>
   );
 }, 'AnnouncerDemo');
@@ -79,6 +108,10 @@ const AnnouncerDemo = setup(() => {
 
 <AnnouncerDemo />
 
+:::
+
+:::tip[Nothing to see]
+The announcer itself is invisible: only screen readers hear it. Search the products and the readout under the list shows what it announces and how it will be read, so you can follow it without one.
 :::
 
 ## Usage
@@ -162,7 +195,7 @@ To make `className` replace the built-in classes, turn on `overrides` once in [T
 
 ## Next Steps
 
-- [Toast](/docs/widgets/toast) — A visible message with a lifetime and a dismissal.
+- [Toast](/docs/composites/toast) — A visible message with a lifetime and a dismissal.
 - [Progress](/docs/widgets/progress) — Ongoing work reported as a value instead of as narration.
 - [Text Input](/docs/widgets/text-input) — The validation states that usually trigger an assertive message.
 - [Section](/docs/landmarks/section) — A named landmark for a region that persists.

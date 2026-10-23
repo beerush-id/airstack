@@ -1,0 +1,98 @@
+/*
+ * Glint: light catching a glass surface where the pointer is. The edge
+ * brightens near the pointer and a faint sheen sits under it, fading in on
+ * hover and out where the pointer left. It reads the `--pointer-*` variables
+ * a part writes with `trackPointer`, and needs a positioned host that is its
+ * own stacking context (glass already is, through its backdrop filter).
+ */
+@layer theme {
+  :root {
+    --aui-glint-size: calc(var(--spacing) * 60);
+    /*
+     * How much of the theme's primary the light takes on a light scheme, so the glint reads as the
+     * theme's own light. On a dark scheme the light is the primary itself — white light mixed with a
+     * tint still reads white there — at the glint's faint strengths, which mixing into a
+     * near-transparent white would also raise.
+     */
+    --aui-glint-tint: 25%;
+    --aui-glint-light: var(--color-primary);
+    --aui-glint-edge: light-dark(
+      color-mix(in oklch, var(--color-primary) var(--aui-glint-tint), rgba(255, 255, 255, 0.9)),
+      oklch(from var(--aui-glint-light) l c h / 0.22)
+    );
+    --aui-glint-sheen: light-dark(
+      color-mix(in oklch, var(--color-primary) calc(var(--aui-glint-tint) / 2.5), rgba(255, 255, 255, 0.3)),
+      oklch(from var(--aui-glint-light) l c h / 0.035)
+    );
+    /* The arc of edge facing the pointer, lit wherever the pointer is; the rim is its faint reflection across. */
+    --aui-glint-arc: 120deg;
+    --aui-glint-arc-color: light-dark(
+      color-mix(in oklch, var(--color-primary) var(--aui-glint-tint), rgba(255, 255, 255, 0.55)),
+      oklch(from var(--aui-glint-light) l c h / 0.12)
+    );
+    --aui-glint-rim: light-dark(
+      color-mix(in oklch, var(--color-primary) var(--aui-glint-tint), rgba(255, 255, 255, 0.2)),
+      oklch(from var(--aui-glint-light) l c h / 0.04)
+    );
+  }
+}
+
+@layer component {
+  .aui-glint {
+    &::before,
+    &::after {
+      content: '';
+      position: absolute;
+      pointer-events: none;
+      border-radius: inherit;
+      corner-shape: inherit;
+      opacity: 0;
+      transition: opacity var(--duration-medium) var(--ease-standard);
+    }
+
+    /* The sheen sits on the surface, under the content. */
+    &::before {
+      inset: 0;
+      z-index: -1;
+      background: radial-gradient(
+        circle var(--aui-glint-size) at var(--pointer-x, 50%) var(--pointer-y, 0%),
+        var(--aui-glint-sheen),
+        transparent
+      );
+    }
+
+    /*
+     * The edge, masked to a 1px ring over the border: a hotspot where the pointer is near, over an
+     * arc aimed at the pointer from the center. Conic angles start at the top and `--pointer-angle`
+     * at the right, hence the quarter turn.
+     */
+    &::after {
+      inset: -1px;
+      padding: 1px;
+      background:
+        radial-gradient(
+          circle var(--aui-glint-size) at calc(var(--pointer-x, 50%) + 1px) calc(var(--pointer-y, 0%) + 1px),
+          var(--aui-glint-edge),
+          transparent
+        ),
+        conic-gradient(
+          from calc(var(--pointer-angle, 270deg) + 90deg - var(--aui-glint-arc) / 2),
+          transparent 0deg,
+          var(--aui-glint-arc-color) calc(var(--aui-glint-arc) / 2),
+          transparent var(--aui-glint-arc),
+          transparent 180deg,
+          var(--aui-glint-rim) calc(180deg + var(--aui-glint-arc) / 2),
+          transparent calc(180deg + var(--aui-glint-arc))
+        );
+      mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+      mask-composite: exclude;
+    }
+
+    &:hover::before,
+    &:hover::after {
+      opacity: 1;
+    }
+  }
+}

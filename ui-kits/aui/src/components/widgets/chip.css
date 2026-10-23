@@ -63,14 +63,19 @@
     cursor: pointer;
     user-select: none;
 
-    &:hover:not(:disabled, [aria-disabled='true'], [aria-pressed='true']) {
+    &:hover:not(:disabled, [aria-disabled='true'], [aria-pressed='true'], .aui-chip-filled) {
       background-color: color-mix(in oklch, var(--aui-item-bg) calc(var(--tone-container-strength) * 1.6), var(--color-surface-lowest));
     }
 
-    &[aria-pressed='true'] {
+    &[aria-pressed='true']:not(:disabled, [aria-disabled='true']) {
       --aui-chip-ink: var(--aui-item-fg);
       background-color: var(--aui-item-bg);
       box-shadow: none;
+    }
+
+    /* A solid fill lifts under a layer of its own ink instead. */
+    &:is(.aui-chip-filled, [aria-pressed='true']):hover:not(:disabled, [aria-disabled='true']) {
+      background-color: color-mix(in oklch, var(--aui-item-fg) var(--tone-hover-strength), var(--aui-item-bg));
     }
   }
 
@@ -82,15 +87,22 @@
   }
 
   /*
-   * Remove button: a square text button tucked inside the chip's end,
-   * inked like the chip so it reads on every variant.
+   * Remove button: a square text button tucked inside the chip's end, inked like the chip so it
+   * reads on every variant. Two thirds of the chip's height, with the same room at its end as above
+   * and below, so it sits inside the chip rather than filling it.
    */
   .aui-chip > .aui-chip-remove {
     --aui-control-bg: var(--aui-chip-ink);
-    --aui-icon-size: calc(var(--aui-control-height) * 0.4);
-    inline-size: calc(var(--aui-control-height) * 0.75 - var(--spacing));
-    block-size: calc(var(--aui-control-height) * 0.75 - var(--spacing));
-    margin-inline-end: calc(var(--aui-control-padding-x) * -0.35);
+    --aui-chip-remove-size: calc(var(--aui-control-height) * 0.5);
+    --aui-icon-size: calc(var(--aui-control-height) * 0.32);
+    inline-size: var(--aui-chip-remove-size);
+    block-size: var(--aui-chip-remove-size);
+    margin-inline-end: calc(var(--aui-control-height) * 0.125 - var(--aui-control-padding-x) * 0.5);
     border-radius: var(--radius-full);
+
+    /* A layer of the ink over the chip's own fill, so it reads on a solid chip too. */
+    &:hover:not(:disabled, [aria-disabled='true']) {
+      background-color: color-mix(in oklch, var(--aui-chip-ink) var(--tone-pressed-strength), transparent);
+    }
   }
 }

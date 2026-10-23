@@ -1,2 +1,3 @@
-@import './reset.css';
+/* The page reset (`reset.css`) is opt-in: apps import it themselves, in their own layer. */
 @import './focus.css';
+@import './motion.css';

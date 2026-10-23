@@ -4,11 +4,11 @@ import { docsGettingStartedRoute, docsIndexRoute, docsThemingRoute } from '../pa
 import rootRoute from '../pages/route.js';
 
 const POPULAR = [
-  { label: 'Select', href: '/docs/widgets/select' },
-  { label: 'Combobox', href: '/docs/widgets/combobox' },
-  { label: 'Date Picker', href: '/docs/widgets/date-picker' },
-  { label: 'Dialog', href: '/docs/widgets/dialog' },
-  { label: 'Menu', href: '/docs/widgets/menu' },
+  { label: 'Select', href: '/docs/composites/select' },
+  { label: 'Combobox', href: '/docs/composites/combobox' },
+  { label: 'Date Picker', href: '/docs/composites/date-picker' },
+  { label: 'Dialog', href: '/docs/composites/dialog' },
+  { label: 'Menu', href: '/docs/composites/menu' },
   { label: 'Tabs', href: '/docs/widgets/tabs' },
 ];
 

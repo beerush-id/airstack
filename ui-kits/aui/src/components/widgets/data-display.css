@@ -1,0 +1,246 @@
+@import './avatar.css';
+@import './badge.css';
+
+/*
+ * Reading parts for content drawn inside cards, answers, and notes: rows of a list, facts as
+ * labels and values, and a number at a glance. They carry no surface of their own; whatever holds
+ * them does.
+ */
+@layer theme {
+  :root {
+    --aui-list-gap: var(--spacing-xxs, 2px);
+    --aui-list-item-padding: var(--spacing-md);
+    /* Between the lead, the text, and the end; and between the parts inside the end. */
+    --aui-list-item-gap: var(--spacing-md);
+    --aui-list-item-end-gap: var(--spacing-sm);
+    /* Segments: the run rounds at its ends and stays nearly square where rows meet. */
+    --aui-list-item-radius: var(--radius-lg);
+    --aui-list-item-inner-radius: var(--spacing);
+    --aui-list-item-tint: var(--tone-faint-strength);
+    --aui-stat-value-font: calc(var(--font-base) * 1.75);
+  }
+}
+
+@layer component {
+  /* Rows of a list: a title over its supporting line, a picture leading, a time or count at the end. */
+  .aui-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--aui-list-gap);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .aui-list-item {
+    display: flex;
+    align-items: center;
+    gap: var(--aui-list-item-gap);
+    min-inline-size: 0;
+    padding: var(--aui-list-item-padding);
+    border-radius: var(--aui-list-item-inner-radius);
+    corner-shape: inherit;
+    /* Each row is a segment of one run on a faint container of its role, mixed the way `--color-*-container` is. */
+    background-color: color-mix(in oklch, var(--aui-item-bg) var(--aui-list-item-tint), var(--light-up));
+  }
+
+  .aui-list-item:first-child {
+    border-start-start-radius: var(--aui-list-item-radius);
+    border-start-end-radius: var(--aui-list-item-radius);
+  }
+
+  .aui-list-item:last-child {
+    border-end-start-radius: var(--aui-list-item-radius);
+    border-end-end-radius: var(--aui-list-item-radius);
+  }
+
+  .aui-list-item-lead {
+    flex: none;
+  }
+
+  .aui-list-item-text {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-inline-size: 0;
+  }
+
+  .aui-list-item-title,
+  .aui-list-item-description {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .aui-list-item-title {
+    font-weight: 600;
+  }
+
+  .aui-list-item-description,
+  .aui-list-item-meta {
+    color: var(--color-on-surface-variant);
+    font-size: var(--font-body-sm-size, 0.875em);
+  }
+
+  .aui-list-item-end {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: var(--aui-list-item-end-gap);
+  }
+
+  /* Facts as labels and their values: side by side by default, or each label over its value. */
+  /* Labels read as labels and values as the facts: small muted label type beside the value in full ink, on one baseline. */
+  .aui-description-list {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    align-items: baseline;
+    gap: var(--spacing-xs) var(--spacing-md);
+    margin: 0;
+
+    & > .aui-description-item {
+      display: contents;
+    }
+
+    & dt {
+      color: var(--color-on-surface-variant);
+      font-size: var(--font-label-md-size);
+      line-height: var(--font-label-md-line-height);
+      letter-spacing: var(--font-label-md-tracking);
+      font-weight: var(--font-label-md-weight);
+    }
+
+    & dd {
+      margin: 0;
+      min-inline-size: 0;
+      color: var(--color-on-surface);
+      font-weight: 500;
+      overflow-wrap: anywhere;
+    }
+  }
+
+  .aui-description-list-stacked {
+    grid-template-columns: 1fr;
+
+    & > .aui-description-item {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-xxs, 2px);
+    }
+  }
+
+  /*
+   * A number at a glance: the quiet label, the number one step below it, and a step further down
+   * how it moved — the change in a pill colored by its trend, the caption muted beside it.
+   */
+  .aui-stat {
+    position: relative;
+    display: inline-flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    min-inline-size: 0;
+  }
+
+  .aui-stat-label {
+    color: var(--color-on-surface-variant);
+    font-size: var(--font-label-lg-size);
+    line-height: var(--font-label-lg-line-height);
+  }
+
+  .aui-stat-value {
+    font-size: var(--aui-stat-value-font);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+  }
+
+  .aui-stat-trend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: calc(var(--spacing) * 1.5);
+    margin-block-start: var(--spacing-xs);
+    font-size: var(--font-label-md-size, 0.8125em);
+    line-height: var(--font-label-md-line-height);
+  }
+
+  .aui-stat-change {
+    --aui-icon-size: 1.15em;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xxs, 2px);
+    padding-inline: calc(var(--spacing) * 1.5);
+    border-radius: var(--radius-full);
+    color: var(--color-on-surface-variant);
+    background-color: color-mix(in oklch, var(--color-on-surface) 8%, transparent);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+
+    & > .aui-icon {
+      margin-inline-start: calc(var(--spacing) * -0.5);
+    }
+
+    &[data-trend='up'] {
+      color: var(--color-on-success-container);
+      background-color: var(--color-success-container);
+    }
+
+    &[data-trend='down'] {
+      color: var(--color-on-error-container);
+      background-color: var(--color-error-container);
+    }
+  }
+
+  .aui-stat-caption {
+    color: var(--color-on-surface-variant);
+  }
+
+  /* A current value under its label: the quiet label, then the value as badges, wrapping as a row. */
+  .aui-readout {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--spacing-xs);
+    min-inline-size: 0;
+  }
+
+  .aui-readout-label {
+    color: var(--color-on-surface-variant);
+    font-size: var(--font-label-md-size);
+    font-weight: var(--font-label-md-weight);
+    line-height: var(--font-label-md-line-height);
+    letter-spacing: var(--font-label-md-tracking);
+    margin-inline-end: var(--spacing-xxs, 2px);
+  }
+
+  /* A row of stats read together: equal columns, each set apart from the next by an inset divider. */
+  .aui-stat-group {
+    --aui-stat-group-gap: var(--spacing-lg);
+    --aui-stat-group-divider: var(--color-outline-variant);
+    --aui-stat-group-inset: var(--spacing-xs);
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+
+    & > .aui-stat {
+      padding-inline: var(--aui-stat-group-gap);
+    }
+
+    & > .aui-stat:first-child {
+      padding-inline-start: 0;
+    }
+
+    & > .aui-stat:last-child {
+      padding-inline-end: 0;
+    }
+
+    & > .aui-stat + .aui-stat::before {
+      content: '';
+      position: absolute;
+      inset-block: var(--aui-stat-group-inset);
+      inset-inline-start: 0;
+      inline-size: 1px;
+      background-color: var(--aui-stat-group-divider);
+    }
+  }
+}

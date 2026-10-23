@@ -2,6 +2,16 @@
 @import './panel.css';
 
 /*
+ * Anchors a part's own styles give an element — the pressed toggle, the open tab — go through
+ * `--aria-anchor-name`, which an open overlay on the same element adds to its own anchor instead
+ * of replacing. It stays on the element it is set on, never reaching the children.
+ */
+@property --aria-anchor-name {
+  syntax: '*';
+  inherits: false;
+}
+
+/*
  * Shared row: one pickable entry in a list — menu items, select and combobox
  * options, listbox options, tree rows. Borrows the control size scale so a
  * `sm` row lines up with a `sm` trigger.
@@ -28,14 +38,14 @@
     border-radius: var(--aui-item-radius);
     transition-duration: var(--duration-short);
     transition-timing-function: var(--ease-emphasized);
-    transition-property: background-color, color, border-radius;
+    transition-property: background-color, color, border-radius, var(--aui-state-transitions);
 
     &:hover {
-      background: color-mix(in oklch, var(--aui-item-bg) var(--tone-hover-strength), transparent);
+      background-color: color-mix(in oklch, var(--aui-item-bg) var(--tone-hover-strength), transparent);
     }
 
     &:active {
-      background: color-mix(in oklch, var(--aui-item-bg) var(--tone-pressed-strength), transparent);
+      background-color: color-mix(in oklch, var(--aui-item-bg) var(--tone-pressed-strength), transparent);
     }
 
     &:focus-visible {
@@ -47,7 +57,7 @@
     &[aria-current='page'],
     &[aria-selected='true'] {
       color: var(--aui-item-fg);
-      background: var(--aui-item-bg);
+      background-color: var(--aui-item-bg);
     }
 
     &[aria-disabled='true'] {
@@ -58,6 +68,39 @@
     & > .aui-icon {
       margin-inline-start: auto;
     }
+  }
+
+  /*
+   * A row's shortcut hint, at its end: a faint wash of the ink over whatever the row shows, so it
+   * reads the same on a plain row and a highlighted one. Its text comes from `data-hint`, which
+   * keeps it out of the row's text — a field that copies the chosen row never picks it up.
+   */
+  .aui-item-hint {
+    margin-inline-start: auto;
+    padding-inline: var(--spacing-xs);
+    border-radius: var(--radius-xs);
+    background-color: color-mix(in oklch, currentColor 10%, transparent);
+    color: var(--color-on-surface-variant);
+    font-family: var(--font-mono);
+    font-size: var(--font-label-sm-size);
+
+    &::after {
+      content: attr(data-hint) / '';
+    }
+  }
+
+  /*
+   * In a list that keeps several choices, a chosen row is tinted, not filled: many can stand
+   * together without the list turning solid, and the check marks each one.
+   */
+  [aria-multiselectable='true'] .aui-item[aria-selected='true'] {
+    color: var(--aui-item-bg);
+    background-color: color-mix(in oklch, var(--aui-item-bg) var(--tone-container-strength), transparent);
+  }
+
+  .aui-item[aria-selected='true'] > .aui-item-hint,
+  .aui-item[aria-current] > .aui-item-hint {
+    color: inherit;
   }
 
   /*

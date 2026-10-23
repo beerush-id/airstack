@@ -15,6 +15,8 @@ export type CodeInputProps = AuiFieldProps<'div'> & {
   label?: string;
   disabled?: boolean;
   readonly?: boolean;
+  /** Hides each character as it is entered, for secrets such as a PIN. */
+  masked?: boolean;
   children?: ReactNode;
   oninput?: (event: CustomEvent<string>) => void;
   onchange?: (event: CustomEvent<string>) => void;
@@ -25,6 +27,11 @@ export type CodeInputCellProps = AuiProps<'input'> & {
   index: number;
 };
 
+export type CodeInputSeparatorProps = Pick<AuiProps<'span'>, 'className'> & {
+  /** A mark of your own between the cells; a dash sized to the cells when left empty. */
+  children?: ReactNode;
+};
+
 const CODE_INPUT_ROLE = 'code-input';
 const CODE_INPUT_CELL_ROLE = 'code-input-cell';
 const DEFAULT_LENGTH = 6;
@@ -32,6 +39,7 @@ const STYLE_KEYS = ['size', 'color', 'variant'];
 
 register('codeInput', {});
 register('codeInputCell', { ...FIELD_STYLES });
+register('codeInputSeparator', {});
 
 const codeInputScope = createStyleScope();
 
@@ -74,3 +82,20 @@ export const CodeInputCell = setup<CodeInputCellProps>((props) => {
     return <input ref={cell.ref} {...withInputAttributes({ ...rest, defaultValue: value })} className={className()} />;
   };
 }, 'CodeInputCell');
+
+/**
+ * A visual break between runs of cells, as in `123–456`. It is only seen,
+ * never read: the code stays one field, and each cell keeps its position.
+ * It takes the size and color of the Code Input it sits in.
+ */
+export const CodeInputSeparator = setup<CodeInputSeparatorProps>((props) => {
+  const styles = codeInputScope.inherit(props);
+  const className = () =>
+    $families([AUI_CLASS.SCALE, AUI_CLASS.CODE_INPUT_SEPARATOR], styles, auiConfig.codeInputSeparator);
+
+  return () => (
+    <span aria-hidden="true" className={className()}>
+      {props.children}
+    </span>
+  );
+}, 'CodeInputSeparator');

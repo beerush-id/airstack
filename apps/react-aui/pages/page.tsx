@@ -1,36 +1,43 @@
 import { Head, Link, page } from '@airlib/react';
+import ThemeChat from '@/components/theme-chat.mdx';
 import { Showcase } from '@/components/Showcase.js';
-import { docsGettingStartedRoute, docsIndexRoute } from './docs/route.js';
+import { docsDynamicRoute, docsGettingStartedRoute, docsIndexRoute, docsThemingRoute } from './docs/route.js';
 import { rootIndexRoute } from './route.js';
 
 const PRIMARY_CTA = 'aui-control aui-control-lg aui-control-primary aui-button aui-button-lg aui-button-primary';
 const SECONDARY_CTA =
   'aui-control aui-control-lg aui-control-primary aui-control-tonal aui-button aui-button-lg aui-button-primary aui-button-tonal';
 
-const PROMISES = [
+const PILLARS = [
   {
-    title: 'Accessible without trying',
-    body: 'Roles, focus, keyboard travel, and screen-reader announcements come with every component. You never write an aria- attribute or a key handler.',
+    eyebrow: 'Accessible',
+    title: 'Accessible by default',
+    body: 'Roles, focus, keyboard travel and screen-reader announcements ship inside every component. Nobody on your team writes an aria- attribute again.',
   },
   {
-    title: 'Less code per screen',
-    body: 'Hand a select its options and it renders the trigger, the popup, and every row. No parts to wire, no open state to track, no ids to pass around.',
+    eyebrow: 'From data',
+    title: 'UI from data',
+    body: 'Hand a component its options, items or messages and it renders the trigger, the popup and every row — whether a person wrote the data or an agent did.',
   },
   {
-    title: 'One look, set once',
-    body: 'Six sizes, five variants, seven colors — the same words everywhere. Set them on a component and every part inside it follows, or set a default for the whole app.',
+    eyebrow: 'One language',
+    title: 'One design language',
+    body: 'Six sizes, five variants, seven colors — the same words on every component. Set them once and every part inside follows.',
   },
   {
-    title: 'Never stuck',
-    body: 'When the simple form is not enough, swap in your own row or trigger content, or build the component from its parts — the behavior comes along either way.',
-  },
-  {
+    eyebrow: 'Themes',
     title: 'Themes from one color',
-    body: 'Light and dark from a single seed color, every token overridable from plain CSS. No CSS-in-JS, no build plugin.',
+    body: 'Light and dark from a single seed color, glass included. Every token is plain CSS you can override.',
   },
   {
-    title: 'Styling stays optional',
-    body: 'Without the stylesheet every component is still a correct, operable control — so your own design system can take over whenever you want.',
+    eyebrow: 'Parts',
+    title: 'Parts when you need them',
+    body: 'Swap a row, a trigger or a chip for your own, or build from the parts. The behavior comes along either way.',
+  },
+  {
+    eyebrow: 'Headless',
+    title: 'Works without the stylesheet',
+    body: 'Drop the CSS and every control is still correct and operable, so your own design system can take over whenever you want.',
   },
 ];
 
@@ -39,9 +46,9 @@ export default page(rootIndexRoute).render(() => {
     <>
       <Head
         meta={{
-          title: 'Accessible React Components That Already Look Finished',
+          title: 'Data-Driven, Embeddable UI for Agents',
           description:
-            'React AUI gives you accessible, keyboard-ready React components with a complete design system. Hand a component your data and it renders the whole control — select, combobox, date picker, dialog, tabs, and more.',
+            'React AUI lets your agent answer with real, accessible screens inside your product, drawn by your design system and bound to your app state — and builds the rest of your app with the same components.',
           keywords: [
             'React components',
             'React component library',
@@ -60,11 +67,16 @@ export default page(rootIndexRoute).render(() => {
       />
       <div className="landing">
         <section className="landing-hero">
-          <span className="landing-eyebrow">React AUI</span>
-          <h1 className="landing-title">Accessible components that already look finished.</h1>
+          <span className="landing-pill">React UI kit · Accessible by default</span>
+          <h1 className="landing-title">
+            Data-driven, embeddable
+            <br />
+            UI for agents.
+          </h1>
           <p className="landing-lead">
-            Hand a component your data and get the whole control — structure, keyboard, focus, and a polished look.
-            Ship the screen, not the plumbing behind it.
+            Your agent shows instead of tells: real, working screens inside your product, on your design system and tied
+            to your app's state. The same components build the rest of your app, so everything your users touch is
+            accessible, by people and agents alike.
           </p>
           <div className="landing-ctas">
             <Link to={docsGettingStartedRoute} className={PRIMARY_CTA}>
@@ -77,29 +89,64 @@ export default page(rootIndexRoute).render(() => {
           <code className="landing-install">npm install @airlib/react-aui @airlib/aui</code>
         </section>
 
-        <section className="landing-section" aria-label="Live demo">
-          <Showcase />
+        <section className="landing-pillars" aria-label="What AUI gives you">
+          {PILLARS.map((pillar) => (
+            <article key={pillar.title} className="aui-card landing-pillar">
+              <span className="landing-eyebrow">{pillar.eyebrow}</span>
+              <h2>{pillar.title}</h2>
+              <p>{pillar.body}</p>
+            </article>
+          ))}
         </section>
 
-        <section className="landing-section" aria-labelledby="landing-promises">
-          <h2 id="landing-promises" className="landing-heading">
-            What you stop worrying about
-          </h2>
-          <div className="landing-cards">
-            {PROMISES.map((promise) => (
-              <article key={promise.title} className="aui-card landing-card">
-                <h3>{promise.title}</h3>
-                <p>{promise.body}</p>
-              </article>
-            ))}
+        <section className="landing-feature" aria-labelledby="landing-data">
+          <div className="landing-feature-text">
+            <span className="landing-eyebrow">UI from data</span>
+            <h2 id="landing-data" className="landing-heading">
+              Three-way interaction, made possible.
+            </h2>
+            <p>
+              Instead of writing markdown and waiting for you to type an answer, your agent asks with an interface you
+              can use, driving the same data your app and your agent read and write.
+            </p>
+            <Link to={docsDynamicRoute} className="landing-more">
+              Learn UI from data →
+            </Link>
+          </div>
+          <div className="landing-feature-demo air-mdx">
+            <ThemeChat />
+            <p className="landing-proof">Try it: switch the theme from the chat, then from the app.</p>
+          </div>
+        </section>
+
+        <section className="landing-feature landing-feature-flip" aria-labelledby="landing-a11y">
+          <div className="landing-feature-text">
+            <span className="landing-eyebrow">Accessible</span>
+            <h2 id="landing-a11y" className="landing-heading">
+              UI that speaks and listens to anyone.
+            </h2>
+            <p>
+              Every control tells screen readers and agents what it is, and takes input from a keyboard, a pointer, or an
+              agent writing the data, with nothing for your team to add.
+            </p>
+            <Link to={docsGettingStartedRoute} className="landing-more">
+              Get started →
+            </Link>
+          </div>
+          <div className="landing-feature-demo">
+            <Showcase />
+            <p className="landing-proof">Try it: click into the form, then book the trip without touching the mouse.</p>
           </div>
         </section>
 
         <section className="landing-hero">
-          <h2 className="landing-heading">Build the screen, not the plumbing.</h2>
+          <h2 className="landing-heading">Write the data. Ship the screen.</h2>
           <div className="landing-ctas">
             <Link to={docsGettingStartedRoute} className={PRIMARY_CTA}>
               Get started
+            </Link>
+            <Link to={docsThemingRoute} className={SECONDARY_CTA}>
+              Make it yours
             </Link>
           </div>
         </section>

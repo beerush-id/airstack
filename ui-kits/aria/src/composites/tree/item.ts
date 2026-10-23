@@ -165,6 +165,7 @@ export class TreeItemAria<
       'aria-selected': ariaBoolean(isSelected),
       'aria-expanded': this.isBranch ? ariaBoolean(this.expanded) : undefined,
       onclick: this.handleItemClick,
+      ondblclick: this.handleItemDoubleClick,
       onkeydown: this.handleItemKeyDown,
       onkeyup: undefined,
     }) as A;
@@ -176,8 +177,15 @@ export class TreeItemAria<
   }
 
   private readonly handleItemClick = (event: MouseEvent): void => {
-    if (this.disabled || event.defaultPrevented || !this.isOwnTarget(event)) return;
+    // The second click of a double click opens the branch instead of undoing the pick.
+    if (this.disabled || event.defaultPrevented || event.detail > 1 || !this.isOwnTarget(event)) return;
     this.toggle();
+  };
+
+  /** A branch row opens and closes on a double click, the way a file tree does. */
+  private readonly handleItemDoubleClick = (event: MouseEvent): void => {
+    if (this.disabled || event.defaultPrevented || !this.isOwnTarget(event)) return;
+    this.toggleExpand();
   };
 
   private readonly handleItemKeyDown = (event: KeyboardEvent): void => {

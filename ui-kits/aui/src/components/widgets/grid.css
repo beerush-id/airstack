@@ -3,25 +3,37 @@
 @layer theme {
   :root {
     --aui-grid-radius: var(--radius-lg);
-    --aui-grid-outline: var(--color-outline-variant);
-    --aui-grid-head-bg: var(--color-surface-container);
+    /* The frame's line, and how much of the grid's role color it takes, as a field's edge does. */
+    --aui-grid-edge: var(--color-outline-variant);
+    --aui-grid-edge-tint: 25%;
+    /* How strongly the lines between rows show against the frame. */
+    --aui-grid-divider-strength: 60%;
+    --aui-grid-head-bg: var(--color-container);
     --aui-grid-head-fg: var(--color-on-surface-variant);
     --aui-grid-cell-padding-block: calc(var(--spacing) * 2);
     --aui-grid-cell-padding-inline: calc(var(--spacing) * 3);
     --aui-grid-hover-bg: color-mix(in oklch, var(--color-on-surface) 7%, var(--color-surface));
     --aui-grid-selected-bg: var(--color-primary);
     --aui-grid-selected-fg: var(--color-on-primary);
-    --aui-grid-row-selected-bg: color-mix(in oklch, var(--color-primary) 16%, var(--color-surface));
+    --aui-grid-row-selected-bg: var(--color-primary);
+    --aui-grid-row-selected-fg: var(--color-on-primary);
     --aui-grid-sort-size: calc(var(--spacing) * 1.2);
   }
 }
 
 @layer component {
-  /* Selection follows the grid's role color from the shared scale. */
+  /*
+   * Selection and lines follow the grid's role color from the shared scale: the frame takes a
+   * tint of it, and the lines between rows are a lighter step of the frame, so the frame reads first.
+   */
   .aui-grid {
     --aui-grid-selected-bg: var(--aui-item-bg);
     --aui-grid-selected-fg: var(--aui-item-fg);
-    --aui-grid-row-selected-bg: color-mix(in oklch, var(--aui-item-bg) 16%, var(--color-surface));
+    /* A picked row is filled like a picked cell, a tree's row, or a list's item: one selection look. */
+    --aui-grid-row-selected-bg: var(--aui-item-bg);
+    --aui-grid-row-selected-fg: var(--aui-item-fg);
+    --aui-grid-outline: color-mix(in oklch, var(--aui-item-bg) var(--aui-grid-edge-tint), var(--aui-grid-edge));
+    --aui-grid-divider: color-mix(in oklch, var(--aui-grid-outline) var(--aui-grid-divider-strength), transparent);
     display: flex;
     flex-direction: column;
     inline-size: 100%;
@@ -37,10 +49,32 @@
     }
   }
 
+  /*
+   * A grid that knows its column count lays every row on one set of columns: each as wide as its
+   * widest cell needs, sharing any room left, and a grid too narrow for its words scrolls sideways
+   * rather than breaking them. Without the count, rows share the width evenly.
+   */
+  .aui-grid[aria-colcount] {
+    display: grid;
+    grid-template-columns: repeat(var(--aui-grid-columns), auto);
+    overflow: auto;
+
+    & > .aui-grid-row {
+      display: grid;
+      grid-column: 1 / -1;
+      grid-template-columns: subgrid;
+    }
+
+    & .aui-grid-cell {
+      min-inline-size: auto;
+      overflow-wrap: normal;
+    }
+  }
+
   .aui-grid-row {
     display: flex;
     align-items: stretch;
-    border-block-start: 1px solid var(--aui-grid-outline);
+    border-block-start: 1px solid var(--aui-grid-divider);
 
     &:first-child {
       border-block-start: 0;
@@ -48,10 +82,12 @@
 
     &[aria-selected='true'] {
       background-color: var(--aui-grid-row-selected-bg);
+      color: var(--aui-grid-row-selected-fg);
     }
 
     &[aria-disabled='true'] {
       color: var(--color-disabled-fg);
+      cursor: not-allowed;
     }
   }
 

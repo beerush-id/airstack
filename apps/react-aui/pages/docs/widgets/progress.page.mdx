@@ -19,6 +19,7 @@ Styling is optional. Without AUI CSS the Progress stays a correct, operable indi
 import { Progress, Select, Slider, Toggle } from '@airlib/react-aui';
 import { $bind, mutable, setup, Snippet } from '@airlib/react';
 import { COLOR_LABELS, SIZE_LABELS } from '@airlib/aui/utils';
+import { GlassStage } from '@/components/GlassStage.js';
 
 const ProgressDemo = setup(() => {
   const state = mutable({
@@ -40,21 +41,23 @@ const ProgressDemo = setup(() => {
       </div>
       <Snippet>
         {() => (
-          <div className="aui-card flex flex-col gap-lg p-xl">
-            <Slider min={0} max={100} value={$bind(state, 'value')} aria-label="Progress value" />
-            <Snippet>
-              {() => (
-                <Progress
-                  value={state.unknown ? null : state.value}
-                  size={state.size}
-                  color={state.color}
-                  label="Exporting archive"
-                  valuetext={state.unknown ? 'Working' : `${Math.round(state.value)} percent`}
-                />
-              )}
-            </Snippet>
-            <Progress value={100} size={state.size} color="success" label="Upload complete" />
-          </div>
+          <GlassStage>
+            <div className="flex flex-col gap-lg">
+              <Slider min={0} max={100} value={$bind(state, 'value')} aria-label="Progress value" />
+              <Snippet>
+                {() => (
+                  <Progress
+                    value={state.unknown ? null : state.value}
+                    size={state.size}
+                    color={state.color}
+                    label="Exporting archive"
+                    valuetext={state.unknown ? 'Working' : `${Math.round(state.value)} percent`}
+                  />
+                )}
+              </Snippet>
+              <Progress value={100} size={state.size} color="success" label="Upload complete" />
+            </div>
+          </GlassStage>
         )}
       </Snippet>
     </div>
@@ -166,4 +169,4 @@ To make `className` replace the built-in classes, turn on `overrides` once in [T
 - [Meter](/docs/widgets/meter) — A steady reading inside its bounds, without completion semantics.
 - [Slider](/docs/widgets/slider) — Bounded numeric entry the reader can move.
 - [Announcer](/docs/widgets/announcer) — Milestones narrated while the bar changes.
-- [Toast](/docs/widgets/toast) — The completion message after the bar reaches its end.
+- [Toast](/docs/composites/toast) — The completion message after the bar reaches its end.

@@ -51,15 +51,19 @@
     }
   }
 
-  /* Reduced motion keeps a slow turn: a still ring would not say "working". */
+  /* Without the sweep, the ring keeps a fixed arc so it still reads as turning. */
+  @media (prefers-reduced-motion: reduce) {
+    .aui-spinner circle {
+      stroke-dasharray: 40 60;
+    }
+  }
+}
+
+/* Reduced motion keeps a slow turn: a still ring would not say "working". */
+@layer reduced-motion {
   @media (prefers-reduced-motion: reduce) {
     .aui-spinner > svg {
-      animation-duration: 3s;
-    }
-
-    .aui-spinner circle {
-      animation: none;
-      stroke-dasharray: 40 60;
+      animation: aui-spinner-turn 3s linear infinite !important;
     }
   }
 }

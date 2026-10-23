@@ -10,18 +10,9 @@
     margin-inline: var(--spacing-md);
   }
 
-  /*
-   * Reclaim the pseudo from the state layer so the mark renders inline. The
-   * doubled class outweighs the press ripple (`.aui-item:active::after`),
-   * which would otherwise grow this in-flow dot to 512px and push the menu open.
-   */
-  .aui-item.aui-menu-item-checkbox[aria-checked='true']::after,
-  .aui-item.aui-menu-item-radio[aria-checked='true']::after {
+  .aui-menu-item-checkbox[aria-checked='true']::after,
+  .aui-menu-item-radio[aria-checked='true']::after {
     content: '';
-    position: static;
-    opacity: 1;
-    z-index: auto;
-    animation: none;
     inline-size: var(--spacing-sm);
     block-size: var(--spacing-sm);
     margin-inline-start: auto;

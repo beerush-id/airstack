@@ -3,7 +3,7 @@
 /* An inline sheet of shared item rows: the same rows a select panel holds, never floating. */
 @layer theme {
   :root {
-    --aui-listbox-bg: var(--color-surface-container);
+    --aui-listbox-bg: var(--color-container);
     --aui-listbox-radius: var(--radius-lg);
     --aui-listbox-padding: var(--spacing-xs);
   }
@@ -11,6 +11,9 @@
 
 @layer component {
   .aui-listbox {
+    /* The options' corners: the sheet's minus its padding, so the two stay concentric. */
+    --aui-listbox-inner-radius: max(calc(var(--aui-listbox-radius) - var(--aui-listbox-padding)), 0px);
+    --aui-item-radius: var(--aui-listbox-inner-radius);
     display: flex;
     flex-direction: column;
     gap: var(--spacing-xs);
@@ -26,6 +29,11 @@
 
     &[aria-disabled='true'] {
       color: var(--color-disabled-fg);
+    }
+
+    /* An option grows tall enough to hold its corners; the sheet keeps its own. */
+    & .aui-item {
+      block-size: max(var(--aui-control-height), calc(var(--aui-listbox-inner-radius) * 2));
     }
   }
 }

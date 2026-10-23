@@ -1,7 +1,13 @@
-/* Canonical cascade order shared by every import mode. */
-@layer theme, base, component, utility, reduced-motion;
+/*
+ * Canonical cascade order shared by every import mode. Everything AUI ships
+ * lives under one `aui` layer, so an app places it with a single name
+ * (`@layer reset, aui, app;`) and its own same-named layers never merge with
+ * ours. Each file declares plain `theme`/`component`/… layers; importing it
+ * with `layer(aui)` nests them as `aui.theme`, `aui.component`, and so on.
+ */
+@layer aui.theme, aui.base, aui.component, aui.glass, aui.utility, aui.reduced-motion;
 
-@import './base/index.css';
-@import './theme/index.css';
-@import './components/index.css';
-@import './utilities/index.css';
+@import './base/index.css' layer(aui);
+@import './theme/index.css' layer(aui);
+@import './components/index.css' layer(aui);
+@import './utilities/index.css' layer(aui);

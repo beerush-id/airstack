@@ -24,6 +24,18 @@
       "types": "./dist/components/index.d.ts",
       "import": "./dist/components/index.js"
     },
+    "./desktop": {
+      "types": "./dist/desktop/index.d.ts",
+      "import": "./dist/desktop/index.js"
+    },
+    "./dynamic": {
+      "types": "./dist/dynamic/index.d.ts",
+      "import": "./dist/dynamic/index.js"
+    },
+    "./markdown": {
+      "types": "./dist/dynamic/markdown.d.ts",
+      "import": "./dist/dynamic/markdown.js"
+    },
     "./icons": {
       "types": "./dist/icons/index.d.ts",
       "import": "./dist/icons/index.js"
@@ -49,10 +61,16 @@
     "@testing-library/react": "catalog:",
     "@testing-library/user-event": "catalog:",
     "@types/bun": "catalog:",
+    "@types/mdast": "catalog:lib",
     "jsdom": "catalog:",
     "publint": "catalog:",
+    "remark-gfm": "catalog:lib",
+    "remark-math": "catalog:lib",
+    "remark-parse": "catalog:lib",
     "rimraf": "catalog:",
+    "temml": "catalog:lib",
     "tsdown": "catalog:",
+    "unified": "catalog:lib",
     "vite": "catalog:",
     "vitest": "catalog:"
   },
@@ -64,7 +82,19 @@
   "peerDependencies": {
     "react": "catalog:lib",
     "react-dom": "catalog:lib",
-    "typescript": "catalog:lib"
+    "remark-gfm": "catalog:lib",
+    "remark-math": "catalog:lib",
+    "remark-parse": "catalog:lib",
+    "temml": "catalog:lib",
+    "typescript": "catalog:lib",
+    "unified": "catalog:lib"
+  },
+  "peerDependenciesMeta": {
+    "remark-gfm": { "optional": true },
+    "remark-math": { "optional": true },
+    "remark-parse": { "optional": true },
+    "temml": { "optional": true },
+    "unified": { "optional": true }
   },
   "scripts": {
     "dev": "rimraf dist && tsdown --watch ./src",

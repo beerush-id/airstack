@@ -15,7 +15,11 @@
     --aui-input-bg: var(--color-surface-lowest);
     --aui-input-fg: var(--color-on-surface);
     --aui-input-edge: var(--color-outline-variant);
-    --aui-input-placeholder: var(--color-on-surface-variant);
+    /* How much of the role color the resting edge carries, so it belongs with the tinted surroundings. */
+    --aui-input-edge-tint: 25%;
+    /* How much of the field's own ink the placeholder keeps over its fill, and how much role color it carries. */
+    --aui-input-placeholder-strength: 50%;
+    --aui-input-placeholder-tint: 20%;
   }
 }
 
@@ -32,7 +36,21 @@
    */
   .aui-input {
     --aui-state-layer-color: transparent;
-    --aui-control-outline-color: var(--aui-input-edge);
+    /*
+     * Both are read from the field itself, so they follow its role and its variant's fill: the
+     * edge carries a share of the role color, and the placeholder sits between the field's ink and
+     * its fill.
+     */
+    --aui-input-placeholder: color-mix(
+      in oklch,
+      var(--aui-control-bg) var(--aui-input-placeholder-tint),
+      color-mix(in oklch, var(--aui-input-fg) var(--aui-input-placeholder-strength), var(--aui-input-bg))
+    );
+    --aui-control-outline-color: color-mix(
+      in oklch,
+      var(--aui-control-bg) var(--aui-input-edge-tint),
+      var(--aui-input-edge)
+    );
     padding-inline: calc(var(--aui-control-padding-x) / 2 + var(--spacing));
     border-width: 1px;
     color: var(--aui-input-fg);
@@ -42,7 +60,7 @@
     cursor: text;
     user-select: text;
     caret-color: var(--aui-control-bg);
-    transition-property: background-color, outline-color, border-color, box-shadow;
+    transition-property: background-color, outline-color, border-color, box-shadow, var(--aui-state-transitions);
 
     &::placeholder {
       color: var(--aui-input-placeholder);
@@ -100,6 +118,7 @@
   .aui-input-tonal {
     --aui-input-bg: color-mix(in oklch, var(--aui-control-bg) var(--tone-container-strength), var(--color-surface-lowest));
     --aui-input-edge: transparent;
+    --aui-input-edge-tint: 0%;
   }
 
   .aui-input-outlined {
@@ -120,5 +139,13 @@
   /* The focus ring stays the keyboard signal; a shell rings when the text inside it is focus-visible. */
   .aui-input:has(:is(input, textarea):focus-visible) {
     outline-color: color-mix(in oklch, var(--focus-ring-color) 75%, var(--light-up));
+  }
+
+  /* A text area grows past a control's height to its rows, padded like a line of text, and resizes downward only. */
+  textarea.aui-input {
+    block-size: auto;
+    min-block-size: var(--aui-control-height);
+    padding-block: calc((var(--aui-control-height) - 1lh) / 2);
+    resize: vertical;
   }
 }

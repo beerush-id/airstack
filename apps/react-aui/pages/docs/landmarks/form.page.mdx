@@ -16,6 +16,7 @@ Styling is optional. Without AUI CSS the Form stays a correct, operable landmark
 ```tsx
 import { Form, Toggle } from '@airlib/react-aui';
 import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { GlassStage } from '@/components/GlassStage.js';
 
 const FormDemo = setup(() => {
   const state = mutable({ named: true });
@@ -25,15 +26,17 @@ const FormDemo = setup(() => {
       <Toggle pressed={$bind(state, 'named')}>
         {() => (state.named ? 'Named' : 'Unnamed')}
       </Toggle>
-      <div className="aui-card flex flex-col gap-md items-stretch justify-center p-xl">
-        <Snippet>
-          {() => (
-            <Form label={state.named ? 'Shipping address' : undefined}>
-              <span>Where should it go?</span>
-            </Form>
-          )}
-        </Snippet>
-      </div>
+      <GlassStage style={{ maxInlineSize: '20rem' }}>
+        <div className="flex flex-col gap-md items-stretch justify-center">
+          <Snippet>
+            {() => (
+              <Form label={state.named ? 'Shipping address' : undefined}>
+                <span>Where should it go?</span>
+              </Form>
+            )}
+          </Snippet>
+        </div>
+      </GlassStage>
     </div>
   );
 }, 'FormDemo');

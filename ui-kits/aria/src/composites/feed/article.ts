@@ -34,6 +34,7 @@ export interface FeedArticleProps extends AriaProps {
  */
 export interface FeedArticleAttributes<E extends BaseElement = HTMLElement> extends AriaAttributes<E> {
   role?: 'article';
+  tabindex: 0 | -1;
   'aria-posinset'?: number;
   'aria-setsize'?: number;
 }
@@ -62,16 +63,24 @@ export class FeedArticleAria<
     $static(() => {
       if (!this.feed) return;
       this.properties.id = this.properties.id ?? `${ROLE_ARTICLE}-${(this.feed.articles += 1)}`;
+      this.feed.tabStop.join(this.properties.id);
     });
 
     this.omittedAttrs.push('id', 'posinset');
+    // Focus anywhere in the article — itself or its links — makes it the feed's tab stop.
+    this.on('focusin', () => this.feed?.tabStop.focus(this.id));
+    this.cleanups.add(() => this.feed?.tabStop.leave(this.id));
     this.update();
   }
 
   protected override createAttributes(): A {
+    // One article is the feed's tab stop; Page Up and Page Down move between the rest.
+    const isTabStop = this.feed ? this.feed.tabStop.current === this.id : true;
+
     return {
       id: this.feed ? `${this.feed.id}-${this.id}` : undefined,
       role: this.isNative ? undefined : ROLE_ARTICLE,
+      tabindex: isTabStop ? 0 : -1,
       'aria-setsize': this.feed?.setsize ?? -1,
       'aria-posinset': this.properties.posinset,
     } as A;

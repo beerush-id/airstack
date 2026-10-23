@@ -4,8 +4,10 @@
  * A modal sheet pinned to one edge. The scrim, surface, title, and
  * description come from the shared modal layer; this file pins the sheet to
  * its side, lets the body scroll between a fixed heading and a fixed action
- * row, and slides the sheet in from its edge. The edge-side corners stay
- * square; the corners facing the page take the modal radius.
+ * row, and slides the sheet in from its edge. The frame's edge-side corners
+ * stay square; the rest, and the content inside, take the modal radius. The sheet
+ * carries its side (`.aui-drawer-panel-end`), since it is drawn over the page,
+ * outside the drawer's own element.
  */
 @layer theme {
   :root {
@@ -40,91 +42,123 @@
   }
 
   .aui-drawer-panel.aui-modal-panel {
-    flex-direction: column;
-    flex-wrap: nowrap;
-    align-items: stretch;
-    justify-content: flex-start;
     margin: 0;
     max-block-size: none;
-    overflow: hidden;
     animation-duration: var(--duration-medium);
     animation-timing-function: var(--ease-emphasized-decelerate);
 
-    & > * {
-      flex: none;
+    /* The content runs top to bottom: a fixed heading, the scrolling body, a fixed action row. */
+    & > .aui-modal-content {
+      flex-direction: column;
+      flex-wrap: nowrap;
+      align-items: stretch;
+      justify-content: flex-start;
+      overflow: hidden;
+
+      & > * {
+        flex: none;
+      }
     }
   }
 
-  .aui-drawer-panel > .aui-drawer-body {
+  /*
+   * The body scrolls, and a scroller clips: it gives its controls room for what they draw past
+   * their edge — a halo, a focus ring — and takes that room back from its own edges.
+   */
+  .aui-drawer-panel > .aui-modal-content > .aui-drawer-body {
+    --aui-drawer-body-room: max(
+      calc(var(--aui-control-height) * var(--aui-halo-scale)),
+      calc(var(--focus-ring-width) + var(--focus-ring-offset))
+    );
     flex: 1 1 auto;
     min-block-size: 0;
+    margin: calc(var(--aui-drawer-body-room) * -1);
+    padding: var(--aui-drawer-body-room);
     overflow-y: auto;
     overscroll-behavior: contain;
   }
 
+  /* Pinned to the bottom, never closer to the body than any sheet's action row is. */
   .aui-drawer-actions {
     display: flex;
     justify-content: flex-end;
     gap: var(--spacing-sm);
     margin-block-start: auto;
+    padding-block-start: calc(var(--aui-modal-actions-gap) - var(--aui-modal-gap));
   }
 
   /* Sides: inline sheets fill the height, block sheets fill the width. */
-  .aui-drawer-start .aui-drawer-panel,
-  .aui-drawer-end .aui-drawer-panel {
+  .aui-drawer-panel:is(.aui-drawer-panel-start, .aui-drawer-panel-end) {
     inset-block: 0;
     inline-size: var(--aui-drawer-size);
     block-size: 100dvh;
   }
 
-  .aui-drawer-top .aui-drawer-panel,
-  .aui-drawer-bottom .aui-drawer-panel {
+  .aui-drawer-panel:is(.aui-drawer-panel-top, .aui-drawer-panel-bottom) {
     inset-inline: 0;
     inline-size: 100%;
     block-size: auto;
     max-block-size: var(--aui-drawer-block-size);
   }
 
-  .aui-drawer-start .aui-drawer-panel {
+  /*
+   * The frame's edge-side corners meet the screen edge and stay square; the content's corners there
+   * keep the small rounding a window's panels keep when the window is maximized.
+   */
+  .aui-drawer-panel.aui-drawer-panel-start {
     inset-inline: 0 auto;
     border-start-start-radius: 0;
     border-end-start-radius: 0;
     animation-name: aui-drawer-in-start;
+
+    & > .aui-modal-content {
+      border-start-start-radius: var(--aui-modal-content-edge-radius);
+      border-end-start-radius: var(--aui-modal-content-edge-radius);
+    }
   }
 
-  .aui-drawer-end .aui-drawer-panel {
+  .aui-drawer-panel.aui-drawer-panel-end {
     inset-inline: auto 0;
     border-start-end-radius: 0;
     border-end-end-radius: 0;
     animation-name: aui-drawer-in-end;
+
+    & > .aui-modal-content {
+      border-start-end-radius: var(--aui-modal-content-edge-radius);
+      border-end-end-radius: var(--aui-modal-content-edge-radius);
+    }
   }
 
-  .aui-drawer-top .aui-drawer-panel {
+  .aui-drawer-panel.aui-drawer-panel-top {
     inset-block: 0 auto;
     border-start-start-radius: 0;
     border-start-end-radius: 0;
     animation-name: aui-drawer-in-top;
+
+    & > .aui-modal-content {
+      border-start-start-radius: var(--aui-modal-content-edge-radius);
+      border-start-end-radius: var(--aui-modal-content-edge-radius);
+    }
   }
 
-  .aui-drawer-bottom .aui-drawer-panel {
+  .aui-drawer-panel.aui-drawer-panel-bottom {
     inset-block: auto 0;
     border-end-start-radius: 0;
     border-end-end-radius: 0;
     animation-name: aui-drawer-in-bottom;
+
+    & > .aui-modal-content {
+      border-end-start-radius: var(--aui-modal-content-edge-radius);
+      border-end-end-radius: var(--aui-modal-content-edge-radius);
+    }
   }
 
   /* Logical sides slide in from the matching physical edge in right-to-left pages. */
-  .aui-drawer-start:dir(rtl) .aui-drawer-panel {
+  .aui-drawer-panel.aui-drawer-panel-start:dir(rtl) {
     animation-name: aui-drawer-in-end;
   }
 
-  .aui-drawer-end:dir(rtl) .aui-drawer-panel {
+  .aui-drawer-panel.aui-drawer-panel-end:dir(rtl) {
     animation-name: aui-drawer-in-start;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .aui-drawer-panel.aui-modal-panel {
-      animation: none;
-    }
   }
 }

@@ -67,6 +67,15 @@ export class GridCellAria<
         this.group = undefined;
         this.options.allowKeys = [];
       }
+      if (!this.isRowMode && this.properties.name) this.grid?.tabStop.join(this.properties.name);
+    });
+
+    // In an editable grid the cell focused last holds the tab stop, whether or not it's being edited.
+    this.on('focus', () => {
+      if (this.properties.name) this.grid?.tabStop.focus(this.properties.name);
+    });
+    this.cleanups.add(() => {
+      if (this.properties.name) this.grid?.tabStop.leave(this.properties.name);
     });
 
     this.on('keyup', (e) => {
@@ -82,8 +91,9 @@ export class GridCellAria<
       e.preventDefault();
     });
 
+    // Editing locks the grid's arrows to the caret; a read-only cell is never edited, so it never locks.
     effect.client(() => {
-      if (!this.editable || !this.grid) return;
+      if (!this.editable || !this.grid || this.properties.readonly) return;
 
       const selected = this.selected;
       this.grid.locked = selected;
@@ -110,7 +120,7 @@ export class GridCellAria<
   }
 
   protected commit() {
-    if (!this.grid || !this.editable || !this.selected) return;
+    if (!this.grid || !this.editable || !this.selected || this.properties.readonly) return;
     this.properties.value = this.element?.textContent;
     this.grid.value = undefined;
   }
@@ -135,11 +145,13 @@ export class GridCellAria<
     const isSelected = this.selected;
     const isDisabled = this.disabled;
     const isPassive = this.isRowMode;
+    // A picking grid's tab stop is its picked cell; an editable one's is the cell focused last.
+    const isTabStop = this.editable ? !isDisabled && this.grid?.tabStop.current === this.properties.name : isSelected;
 
     return Object.assign(attrs, {
       role: 'gridcell',
-      tabindex: isPassive ? undefined : this.editable ? (isDisabled ? -1 : 0) : isSelected ? 0 : -1,
-      contenteditable: isSelected && this.editable ? 'true' : undefined,
+      tabindex: isPassive ? undefined : isTabStop ? 0 : -1,
+      contenteditable: isSelected && this.editable && !this.properties.readonly ? 'true' : undefined,
       'aria-disabled': isPassive ? undefined : isDisabled ? 'true' : 'false',
       'aria-selected': isPassive ? undefined : isSelected ? 'true' : 'false',
       'aria-colindex': this.properties.colindex,

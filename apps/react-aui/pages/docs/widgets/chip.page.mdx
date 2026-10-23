@@ -16,6 +16,7 @@ Small labels show up everywhere: a status on a row, the values someone already c
 import { Chip } from '@airlib/react-aui';
 import { $bind, For, mutable, setup, Snippet } from '@airlib/react';
 import { DemoControl } from '@/components/DemoControl.js';
+import { GlassStage } from '@/components/GlassStage.js';
 
 const ChipDemo = setup(() => {
   const state = mutable({
@@ -38,36 +39,38 @@ const ChipDemo = setup(() => {
       />
       <Snippet>
         {() => (
-          <div className="aui-card flex flex-col gap-md p-xl">
-            <div className="flex flex-wrap gap-xs items-center">
-              <Chip size={state.size} color={state.color} variant={state.variant} disabled={state.disabled}>
-                In review
-              </Chip>
-              <For each={() => state.labels}>
-                {(label) => (
-                  <Chip
-                    removable
-                    removeLabel={`Remove ${label}`}
-                    size={state.size}
-                    color={state.color}
-                    variant={state.variant}
-                    disabled={state.disabled}
-                    onremove={() => (state.labels = state.labels.filter((item) => item !== label))}
-                  >
-                    {label}
-                  </Chip>
-                )}
-              </For>
+          <GlassStage>
+            <div className="flex flex-col gap-md">
+              <div className="flex flex-wrap gap-xs items-center">
+                <Chip size={state.size} color={state.color} variant={state.variant} disabled={state.disabled}>
+                  In review
+                </Chip>
+                <For each={() => state.labels}>
+                  {(label) => (
+                    <Chip
+                      removable
+                      removeLabel={`Remove ${label}`}
+                      size={state.size}
+                      color={state.color}
+                      variant={state.variant}
+                      disabled={state.disabled}
+                      onremove={() => (state.labels = state.labels.filter((item) => item !== label))}
+                    >
+                      {label}
+                    </Chip>
+                  )}
+                </For>
+              </div>
+              <div className="flex flex-wrap gap-xs items-center">
+                <Chip pressed={$bind(state, 'remote')} size={state.size} color={state.color} variant={state.variant} disabled={state.disabled}>
+                  Remote
+                </Chip>
+                <Chip pressed={$bind(state, 'fullTime')} size={state.size} color={state.color} variant={state.variant} disabled={state.disabled}>
+                  Full-time
+                </Chip>
+              </div>
             </div>
-            <div className="flex flex-wrap gap-xs items-center">
-              <Chip pressed={$bind(state, 'remote')} size={state.size} color={state.color} variant={state.variant} disabled={state.disabled}>
-                Remote
-              </Chip>
-              <Chip pressed={$bind(state, 'fullTime')} size={state.size} color={state.color} variant={state.variant} disabled={state.disabled}>
-                Full-time
-              </Chip>
-            </div>
-          </div>
+          </GlassStage>
         )}
       </Snippet>
     </div>
@@ -152,6 +155,6 @@ Keyboard: a filter chip is one tab stop and switches with `Space` or `Enter`. A 
 
 ## Next Steps
 
-- [Tag Input](/docs/widgets/tag-input) — Type and pick several values, shown as removable chips inside a field.
+- [Tag Input](/docs/composites/tag-input) — Type and pick several values, shown as removable chips inside a field.
 - [Toggle Group](/docs/widgets/toggle-group) — One choice out of a row of pressed buttons.
 - [Button](/docs/widgets/button) — For actions that run once instead of a state that stays.

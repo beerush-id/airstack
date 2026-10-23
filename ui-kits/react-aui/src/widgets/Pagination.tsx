@@ -5,6 +5,7 @@ import type { ComponentProps, ReactNode } from 'react';
 import { $families, auiConfig, type ComponentStyles, OMIT_KEYS } from '../config.js';
 import { ArrowLeft, ArrowRight } from '../icons/index.js';
 import { Link } from './Link.js';
+import { pageWindow } from './page-window.js';
 
 export type PaginationProps = Omit<ComponentProps<'nav'>, 'className' | 'color'> &
   Omit<ComponentStyles, 'variant'> & {
@@ -19,35 +20,8 @@ export type PaginationProps = Omit<ComponentProps<'nav'>, 'className' | 'color'>
   };
 
 const PAGINATION_ROLE = 'pagination';
-const GAP_BEFORE = 'gap-before';
-const GAP_AFTER = 'gap-after';
-
-type PageGap = typeof GAP_BEFORE | typeof GAP_AFTER;
 
 register('pagination', { size: SIZES.MD, color: COLORS.PRIMARY });
-
-/**
- * The page numbers worth showing: the first, the last, and `siblings` either
- * side of the current page, with a gap marker wherever pages are skipped.
- *
- * @param {number} page - The current page, 1-based.
- * @param {number} total - The number of pages.
- * @param {number} siblings - Pages kept on each side of the current one.
- * @returns {Array<number | 'gap-before' | 'gap-after'>} The run to render, in order; each gap is unique.
- */
-export function pageWindow(page: number, total: number, siblings = 1): Array<number | PageGap> {
-  const run: Array<number | PageGap> = [];
-  const start = Math.max(2, page - siblings);
-  const end = Math.min(total - 1, page + siblings);
-
-  if (total >= 1) run.push(1);
-  if (start > 2) run.push(GAP_BEFORE);
-  for (let n = start; n <= end; n++) run.push(n);
-  if (end < total - 1) run.push(GAP_AFTER);
-  if (total > 1) run.push(total);
-
-  return run;
-}
 
 /**
  * Named page run holding position and a single tab stop on the current page.

@@ -2,21 +2,22 @@
 title: AUI Checkbox
 nav: Checkbox
 nav-priority: 165
-description: Yes-no box with an undecided state on a native input, named by its wrapping label.
+description: Yes-no box with an undecided state, named by the label you place beside it.
 ---
 
 # AUI Checkbox
 
-A checkbox is a yes-no you can also leave undecided. The label wraps a native input and the name text, so activating the text marks the box and the control joins forms. The glyph keys off the state the browser reports — checked, indeterminate, or neither.
+A checkbox is a yes-no you can also leave undecided. It is the box alone, showing a check or a dash for the state it reports: checked, indeterminate, or neither. It carries no text of its own: wrap it in a `Label`, the way you wrap a native input, and the label names the box and toggles it on click. Its value lives in your bound state rather than a native form field.
 
-Styling is optional. Without AUI CSS the Checkbox stays a correct, operable native input; with it, the same markup gets the AUI treatment through the full library.
+Styling is optional. Without AUI CSS the Checkbox is still a correct, operable checkbox; with it, the box and its icons get the AUI treatment.
 
 :::interactive[Checkbox demo]
 
 ```tsx
-import { Checkbox, Toggle } from '@airlib/react-aui';
+import { Checkbox, Label, Toggle } from '@airlib/react-aui';
 import { $bind, mutable, setup, Snippet } from '@airlib/react';
 import { DemoControl } from '@/components/DemoControl.js';
+import { GlassStage } from '@/components/GlassStage.js';
 
 const CheckboxDemo = setup(() => {
   const state = mutable({ checked: false, indeterminate: false, size: 'md', color: 'primary', disabled: false });
@@ -27,21 +28,23 @@ const CheckboxDemo = setup(() => {
       <Toggle pressed={$bind(state, 'indeterminate')}>
         {() => (state.indeterminate ? 'Undecided' : 'Decided')}
       </Toggle>
-      <div className="aui-card flex gap-md items-center justify-center p-xl">
-        <Snippet>
-          {() => (
-            <Checkbox
-              size={state.size}
-              color={state.color}
-              disabled={state.disabled}
-              indeterminate={$bind(state, 'indeterminate')}
-              checked={$bind(state, 'checked')}
-            >
-              Weekly digest
-            </Checkbox>
-          )}
-        </Snippet>
-      </div>
+      <GlassStage style={{ maxInlineSize: '20rem' }}>
+        <div className="flex gap-md items-center justify-center">
+          <Snippet>
+            {() => (
+              <Label label="Weekly digest">
+                <Checkbox
+                  size={state.size}
+                  color={state.color}
+                  disabled={state.disabled}
+                  indeterminate={$bind(state, 'indeterminate')}
+                  checked={$bind(state, 'checked')}
+                />
+              </Label>
+            )}
+          </Snippet>
+        </div>
+      </GlassStage>
     </div>
   );
 }, 'CheckboxDemo');
@@ -57,11 +60,27 @@ const CheckboxDemo = setup(() => {
 
 ## Usage
 
+A checkbox is the box only. Wrap it in a `Label` to give it visible text: the label shows its `label` beside the box, names the box by it, and toggles it when pressed anywhere on the row:
+
 ```tsx
-import { Checkbox } from '@airlib/react-aui';
+import { Checkbox, Label } from '@airlib/react-aui';
+import { $bind, mutable } from '@airlib/react';
+import '@airlib/aui/components/widgets/label.css';
 import '@airlib/aui/components/widgets/checkbox.css';
 
-export const WeeklyDigest = () => <Checkbox>Weekly digest</Checkbox>;
+const settings = mutable({ digest: false });
+
+export const WeeklyDigest = () => (
+  <Label label="Weekly digest">
+    <Checkbox checked={$bind(settings, 'digest')} />
+  </Label>
+);
+```
+
+When no text is on screen, name the box with `aria-label` instead:
+
+```tsx
+<Checkbox aria-label="Select row" checked={$bind(row, 'selected')} />
 ```
 
 For the full library — tokens, base defaults, every component, and the utilities — load `import '@airlib/aui';` instead. A lone component stylesheet carries only that component's rules.
@@ -74,15 +93,16 @@ For the full library — tokens, base defaults, every component, and the utiliti
 | `indeterminate` | `boolean` | `false` | The undecided state. It outranks `checked` for the announcement, and the next activation settles it into a marked box. |
 | `value` | `string`, `number` | — | Group membership token; a member derives `checked` from the shared group value instead. |
 | `disabled` | `boolean` | `false` | Locks the box; clicks, keys, and writes commit nothing. |
-| `required` | `boolean` | `false` | Asks for the box to be marked before the form is accepted. |
+| `required` | `boolean` | `false` | Marks the box as one that must be checked; screen readers announce it. |
 | `invalid` | `boolean`, `'grammar'`, `'spelling'` | — | Marks the field invalid, and says what kind of wrong it is. |
-| `name` | `string` | — | The field name the box reports under when it submits with a form. |
+| `name` | `string` | — | The field the box stands for; it doesn't post with a native form, so send its value from your state. |
 | `size` | `xs`, `sm`, `md`, `lg`, `xl`, `xxl` | `'md'` | Explicit props win; otherwise the configured default applies. |
 | `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | Same precedence as `size`. |
 | `onchange` | `(event: CustomEvent<...>) => void` | — | Fires when the state really flips with the new state in `detail`; inside a group it carries the shared value instead. |
 | `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
-| `children` | `ReactNode` | — | The name text beside the box. |
-| `ref` | `Ref<HTMLInputElement>` | — | Access to the underlying input element. |
+| `children` | `ReactNode`, `(ctrl) => ReactNode` | — | A custom glyph in place of the check and dash; the function form reads the live state. |
+| `aria-label` | `string` | — | The name when no `Label` wraps the box; it wins over the label's text. |
+| `ref` | `Ref<HTMLSpanElement>` | — | Access to the box element. |
 
 Set app-wide defaults once instead of repeating props on every box:
 
@@ -92,27 +112,27 @@ import { configure } from '@airlib/react-aui';
 configure({ checkbox: { size: 'sm' } });
 
 // Renders small without passing size every time
-<Checkbox>Save</Checkbox>;
+<Checkbox aria-label="Save" />;
 ```
 
 Your own classes are added next to the built-in ones:
 
 ```tsx
-// class="aui-checkbox-box aui-checkbox-box-md aui-checkbox-box-primary my-box"
-<Checkbox className="my-box">Save</Checkbox>
+// class="aui-checkbox aui-checkbox-md aui-checkbox-primary my-box"
+<Checkbox aria-label="Save" className="my-box" />
 ```
 
 To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
 
-Keyboard: `Tab` reaches the box, `Space` marks or unmarks it on key-up. The state is announced through the native input; a locked box is announced as disabled.
+Keyboard: `Tab` reaches the checkbox, `Space` marks or unmarks it on key-up. Screen readers hear it as a checkbox named by its label, checked, unchecked, or mixed; a locked box is announced as disabled.
 
 ### Sizes
 
-Sizes: `xs`, `sm`, `md`, `lg`, `xl`, `xxl`, default `md`:
+Sizes: `xs`, `sm`, `md`, `lg`, `xl`, `xxl`, default `md`. Each box is half the height of a control at the same size, so it sits level with the buttons and fields beside it:
 
 ```tsx
-<Checkbox size="sm">Compact</Checkbox>
-<Checkbox size="lg">Spacious</Checkbox>
+<Checkbox size="sm" aria-label="Compact" />
+<Checkbox size="lg" aria-label="Spacious" />
 ```
 
 ### Color Variants
@@ -120,8 +140,8 @@ Sizes: `xs`, `sm`, `md`, `lg`, `xl`, `xxl`, default `md`:
 Colors: `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info`, default `primary`. The color fills a marked box with its matching on-color glyph:
 
 ```tsx
-<Checkbox color="error">Delete everything</Checkbox>
-<Checkbox color="success">Sync photos</Checkbox>
+<Checkbox color="error" aria-label="Delete everything" />
+<Checkbox color="success" aria-label="Sync photos" />
 ```
 
 ## Next Steps

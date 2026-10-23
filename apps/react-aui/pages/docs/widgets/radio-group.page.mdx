@@ -14,9 +14,12 @@ Styling is optional. Without AUI CSS the RadioGroup stays a correct, operable gr
 :::interactive[Radio group demo]
 
 ```tsx
-import { Radio, RadioGroup } from '@airlib/react-aui';
+import { Radio, RadioGroup, Readout } from '@airlib/react-aui';
 import { $bind, mutable, setup, Snippet } from '@airlib/react';
 import { DemoControl } from '@/components/DemoControl.js';
+import { GlassStage } from '@/components/GlassStage.js';
+
+const PLANS = { starter: 'Starter', pro: 'Pro', team: 'Team' };
 
 const RadioGroupDemo = setup(() => {
   const state = mutable({
@@ -29,28 +32,28 @@ const RadioGroupDemo = setup(() => {
   return () => (
     <div className="demo-button">
       <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} disabled={$bind(state, 'disabled')} />
-      <div className="aui-card flex gap-md items-center justify-center p-xl">
-        <Snippet>
-          {() => (
-            <RadioGroup
-              name="plan"
-              size={state.size}
-              color={state.color}
-              value={$bind(state, 'plan')}
-              disabled={state.disabled}
-            >
-              <Radio value="starter">Starter</Radio>
-              <Radio value="pro">Pro</Radio>
-              <Radio value="team">Team</Radio>
-            </RadioGroup>
-          )}
-        </Snippet>
-      </div>
+      <GlassStage style={{ maxInlineSize: '20rem' }}>
+        <div className="flex gap-md items-center justify-center">
+          <Snippet>
+            {() => (
+              <RadioGroup
+                name="plan"
+                size={state.size}
+                color={state.color}
+                value={$bind(state, 'plan')}
+                disabled={state.disabled}
+              >
+                <Radio value="starter">Starter</Radio>
+                <Radio value="pro">Pro</Radio>
+                <Radio value="team">Team</Radio>
+              </RadioGroup>
+            )}
+          </Snippet>
+        </div>
+      </GlassStage>
       <Snippet>
         {() => (
-          <p>
-            Plan: {JSON.stringify(state.plan)}
-          </p>
+          <Readout label="Plan" value={PLANS[state.plan]} />
         )}
       </Snippet>
     </div>

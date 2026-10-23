@@ -1,6 +1,6 @@
 import { aria } from '@airlib/aria';
 import { AUI_CLASS, register } from '@airlib/aui/utils';
-import { type AnyType, type Bindable, createContext, setup } from '@airlib/react';
+import { type AnyType, type Bindable, createContext, setup, stylex } from '@airlib/react';
 import type { ReactNode } from 'react';
 import { $families, auiConfig, type ComponentStyles, OMIT_KEYS } from '../config.js';
 
@@ -90,7 +90,7 @@ export const Grid = setup<GridProps>((props) => {
   gridProps.set(props);
 
   return () => (
-    <div ref={grid.ref} {...grid.restProps(OMIT_KEYS)} className={className()}>
+    <div ref={grid.ref} {...grid.restProps(OMIT_KEYS)} style={gridColumns(props)} className={className()}>
       {props.children}
     </div>
   );
@@ -108,11 +108,23 @@ export const TreeGrid = setup<TreeGridProps>((props) => {
   gridProps.set(props);
 
   return () => (
-    <div ref={grid.ref} {...grid.restProps(OMIT_KEYS)} className={className()}>
+    <div ref={grid.ref} {...grid.restProps(OMIT_KEYS)} style={gridColumns(props)} className={className()}>
       {props.children}
     </div>
   );
 }, 'TreeGrid');
+
+/**
+ * Publishes the grid's column count, so every row lines up on one set of columns sized by their
+ * content; without `colcount`, rows share the width evenly instead.
+ *
+ * @param props - The grid's props, for `colcount`.
+ * @returns The style the grid's element takes.
+ */
+function gridColumns(props: GridProps) {
+  // A count, not a length: as a string, so it isn't given a unit.
+  return stylex({ '--aui-grid-columns': props.colcount == null ? undefined : String(props.colcount) });
+}
 
 /**
  * One line of the grid. In `row` mode it carries the name a commit writes and

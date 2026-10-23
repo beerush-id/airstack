@@ -2,7 +2,7 @@
   :root {
     --aui-search-radius: var(--radius-full);
     --aui-search-outline: var(--color-outline);
-    --aui-search-bg: var(--color-surface-container);
+    --aui-search-bg: var(--color-container);
     --aui-search-padding-block: var(--spacing-xs);
     --aui-search-padding-inline: var(--spacing-lg);
     --aui-search-gap: var(--spacing-sm);

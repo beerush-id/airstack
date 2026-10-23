@@ -1,3 +1,5 @@
+@import './control.css';
+
 @layer theme {
   :root {
     --aui-switch-gap: calc(var(--spacing) * 1.5);
@@ -14,11 +16,11 @@
     padding: 0;
     border-radius: var(--radius-full);
     background-color: var(--color-surface-highest);
-    transition: background-color var(--duration-short) var(--ease-emphasized);
+    transition-property: background-color, var(--aui-state-transitions);
 
     &:hover:not(:disabled, [aria-disabled='true']) .aui-switch-thumb {
-      box-shadow: 0 0 0 calc(var(--spacing) * 3)
-        color-mix(in oklch, var(--aui-control-bg) 12%, black 10%);
+      box-shadow: 0 0 0 calc(var(--aui-control-height) * var(--aui-halo-scale))
+        color-mix(in oklch, var(--aui-control-bg) var(--aui-halo-strength), black var(--aui-halo-shade));
     }
 
     &.aui-control:active {

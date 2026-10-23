@@ -1,3 +1,19 @@
+@import './item.css';
+@import './glass.css';
+
+/*
+ * A toolbar is a strip of controls and groups of controls. Bare by default (`text`); the other
+ * variants give the strip a surface the members sit on, tinted by its role color through the
+ * shared scale, its corners concentric with the members'.
+ */
+@layer theme {
+  :root {
+    --aui-toolbar-gap: var(--spacing-xs);
+    --aui-toolbar-padding: var(--spacing-xs);
+    --aui-toolbar-radius: calc(var(--radius-lg) + var(--aui-toolbar-padding));
+  }
+}
+
 @layer component {
   .aui-toolbar {
     display: flex;
@@ -5,8 +21,113 @@
     gap: calc(var(--spacing) * 2);
   }
 
+  /*
+   * A row of options for something about to be sent — a model, a size, a count — beside the thing
+   * people look at, a prompt. Whatever their own variant, its controls read as the surrounding ink,
+   * tint under the pointer, and only a toggle that's on takes its role's tint. The row wraps.
+   */
+  .aui-toolbar-options {
+    flex-wrap: wrap;
+    gap: var(--spacing-xxs, 2px);
+
+    & > .aui-control:not(.aui-toggle[aria-pressed='true']) {
+      border-color: transparent;
+      background-color: transparent;
+      box-shadow: none;
+      color: var(--color-on-surface);
+    }
+
+    & > .aui-control:not(.aui-toggle[aria-pressed='true'], :has(input)):hover {
+      background-color: color-mix(in oklch, var(--color-on-surface) var(--tone-hover-strength), transparent);
+    }
+
+    /* Each select's glyph and caret a step quieter than its words. */
+    & .aui-select-value > .aui-icon,
+    & .aui-select-caret {
+      color: var(--color-on-surface-variant);
+    }
+
+    & .aui-select-caret {
+      --aui-icon-size: 1rem;
+    }
+  }
+
   .aui-toolbar[aria-orientation='vertical'] {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .aui-toolbar:not(.aui-toolbar-text) {
+    display: inline-flex;
+    align-self: flex-start;
+    gap: var(--aui-toolbar-gap);
+    padding: var(--aui-toolbar-padding);
+    border-radius: var(--aui-toolbar-radius);
+  }
+
+  .aui-toolbar-filled {
+    background-color: var(--color-container);
+  }
+
+  .aui-toolbar-tonal {
+    background-color: color-mix(in oklch, var(--aui-item-bg) var(--tone-faint-strength), var(--light-up));
+  }
+
+  .aui-toolbar-outlined {
+    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--aui-item-bg) 40%, var(--color-outline-variant));
+  }
+
+  .aui-toolbar-elevated {
+    background-color: var(--color-surface-lowest);
+    box-shadow: var(--elevation-1);
+  }
+
+  /* For a strip floating over other content: the shared glass (`aui-glass-frame`), lifted. */
+  .aui-toolbar-glass {
+    --aui-glass-radius: var(--aui-toolbar-radius);
+    --aui-glass-shadow: var(--elevation-3);
+  }
+
+  /*
+   * Floating: the strip is a top-layer popover over the selected text, centered on it and clear
+   * of it by a small gap. The popover's own box (inset, margin, border, canvas) is dropped, so
+   * the strip keeps the toolbar's look.
+   */
+  :where(.aui-floating-toolbar[popover]) {
+    inset: auto;
+    margin: 0;
+    border: 0;
+    padding: 0;
+    background: none;
+    color: inherit;
+    overflow: visible;
+  }
+
+  /*
+   * Anchored to the element holding the selection, at the selection's place within it, so the
+   * browser keeps the strip on the selection however its page or container scrolls.
+   */
+  .aui-toolbar.aui-floating-toolbar {
+    --aui-floating-toolbar-gap: var(--spacing-sm);
+    position: fixed;
+    position-anchor: var(--aui-floating-toolbar-anchor);
+    top: calc(anchor(top) + var(--aui-floating-toolbar-y));
+    left: calc(anchor(left) + var(--aui-floating-toolbar-x));
+    translate: -50% calc(-100% - var(--aui-floating-toolbar-gap));
+    user-select: none;
+    animation: aui-floating-toolbar-in var(--duration-short) var(--ease-emphasized);
+  }
+
+  @keyframes aui-floating-toolbar-in {
+    from {
+      opacity: 0;
+      scale: 0.96;
+    }
+  }
+
+  /* On a strip with a surface, the groups inside share it instead of drawing tracks of their own. */
+  .aui-toolbar:not(.aui-toolbar-text) > .aui-toggle-group {
+    --aui-toggle-group-bg: transparent;
+    padding: 0;
   }
 }

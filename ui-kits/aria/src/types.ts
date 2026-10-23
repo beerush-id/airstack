@@ -85,6 +85,14 @@ export interface AriaOptions {
    * List of allowed key codes for keyboard activation.
    */
   allowKeys?: string[];
+
+  /**
+   * Whether the element follows the pointer over it, writing its position to CSS variables at
+   * most once a frame: `--pointer-x` / `--pointer-y` (px from the top-left), `--pointer-fx` /
+   * `--pointer-fy` (0–1 across the box), and `--pointer-angle` (degrees from the center). The
+   * last position stays after the pointer leaves, so effects can fade out where it left.
+   */
+  trackPointer?: boolean;
 }
 
 /**
@@ -143,6 +151,8 @@ export interface DOMEvents<E extends BaseElement = HTMLElement> {
 
   oninput?: EventHandler<Event, E>;
   onchange?: EventHandler<Event, E>;
+  /** A command run on this part, carrying the command's name: from a context menu it hosts, or a menu inside it. */
+  oncommand?: (event: CustomEvent<string>) => void;
   onsubmit?: SubmitEventHandler<E>;
   onreset?: EventHandler<Event, E>;
   onscroll?: EventHandler<Event, E>;

@@ -1,9 +1,13 @@
 @import './input.css';
+@import './item.css';
 
 /* Each cell is a shared field squared to the control height; the row only spaces them. */
 @layer theme {
   :root {
     --aui-code-input-gap: var(--spacing-sm);
+    --aui-code-input-separator-color: var(--color-outline);
+    /* A disc glyph is small for its font size; this brings it up to a digit's presence. */
+    --aui-code-input-mask-scale: 1.6;
   }
 }
 
@@ -30,6 +34,33 @@
 
     &::selection {
       background: color-mix(in oklch, currentColor 30%, transparent);
+    }
+  }
+
+  /* A masked character is a disc, drawn as large as a digit reads; a custom cell has no password type to draw it. */
+  .aui-code-input-cell:is([type='password'], [data-masked='true']) {
+    font-size: calc(1.4em * var(--aui-code-input-mask-scale));
+  }
+
+  .aui-code-input-cell[data-masked='true'] {
+    -webkit-text-security: disc;
+  }
+
+  .aui-code-input-separator {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    color: var(--aui-code-input-separator-color);
+    user-select: none;
+
+    /* Left empty, it draws a dash scaled to the cells. */
+    &:empty::before {
+      content: '';
+      inline-size: calc(var(--aui-control-height) * 0.3);
+      block-size: max(2px, calc(var(--aui-control-height) * 0.05));
+      border-radius: var(--radius-full);
+      background-color: currentColor;
     }
   }
 }

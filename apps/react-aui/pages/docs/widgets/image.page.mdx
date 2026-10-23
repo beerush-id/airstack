@@ -17,6 +17,7 @@ Styling is optional. Without AUI CSS the Image stays a correct, operable image w
 import { Image, Select, Toggle } from '@airlib/react-aui';
 import { COLOR_LABELS } from '@airlib/aui/utils';
 import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { GlassStage } from '@/components/GlassStage.js';
 import avatar from '@/assets/avatar.jpeg?asset&sizes=128';
 
 const IMAGE_STATUS_LABELS: Record<string, string> = {
@@ -38,19 +39,21 @@ const ImageDemo = setup(() => {
           {() => (state.broken ? 'Working source' : 'Broken source')}
         </Toggle>
       </div>
-      <div className="aui-card flex gap-lg items-center p-xl">
-        <Snippet>
-          {() => (
-            <Image
-              src={state.broken ? '/missing.png' : avatar.src}
-              alt="Signed-in member"
-              color={state.color || undefined}
-              onchange={(event) => (state.status = event.detail)}
-            />
-          )}
-        </Snippet>
-        <span>Status:&nbsp;<Snippet>{() => <strong>{IMAGE_STATUS_LABELS[state.status]}</strong>}</Snippet></span>
-      </div>
+      <GlassStage>
+        <div className="flex gap-lg items-center">
+          <Snippet>
+            {() => (
+              <Image
+                src={state.broken ? '/missing.png' : avatar.src}
+                alt="Signed-in member"
+                color={state.color || undefined}
+                onchange={(event) => (state.status = event.detail)}
+              />
+            )}
+          </Snippet>
+          <span>Status:&nbsp;<Snippet>{() => <strong>{IMAGE_STATUS_LABELS[state.status]}</strong>}</Snippet></span>
+        </div>
+      </GlassStage>
     </div>
   );
 }, 'ImageDemo');

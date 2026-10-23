@@ -1,0 +1,109 @@
+@import './image.css';
+
+/*
+ * An app icon is a button holding a raised glass tile with strongly rounded
+ * corners — the app's picture, or its glyph or initials in the role's color
+ * on the glass — with an optional caption under it. The tile is as tall as a
+ * control unless `--aui-app-icon-size` says otherwise; launchers set it larger.
+ */
+@layer theme {
+  :root {
+    --aui-app-icon-radius: var(--radius-xl);
+    --aui-app-icon-corner: squircle;
+    --aui-app-icon-glass-tint: 55%;
+    --aui-app-icon-glass-blur: var(--size-sm);
+    --aui-app-icon-edge: light-dark(rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.12));
+    --aui-app-icon-shadow: var(--elevation-2);
+  }
+}
+
+@layer component {
+  .aui-app-icon {
+    --aui-image-size: var(--aui-app-icon-size, var(--aui-control-height));
+    --aui-icon-size: calc(var(--aui-image-size) * 0.5);
+    display: inline-flex;
+    flex: none;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-xs);
+    min-inline-size: 0;
+    padding: 0;
+    border: 0;
+    border-radius: var(--aui-app-icon-radius);
+    corner-shape: var(--aui-app-icon-corner);
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: var(--font-label-md-size);
+    cursor: pointer;
+    transition-property: background-color, translate, scale;
+    transition-duration: var(--duration-short);
+    transition-timing-function: var(--ease-emphasized);
+
+    &:focus-visible {
+      outline: var(--focus-ring-width) var(--focus-ring-style) var(--focus-ring-color);
+      outline-offset: var(--focus-ring-offset);
+    }
+
+    &:active {
+      scale: 0.96;
+    }
+
+    &:disabled {
+      opacity: 0.38;
+      cursor: default;
+    }
+
+    /*
+     * Captioned icons are launcher entries, and the whole entry highlights. It hugs its tile with
+     * one even inset, and its corners are the tile's plus that inset, so the highlight stays
+     * concentric with the tile. A caption wider than the tile truncates.
+     */
+    &:has(> .aui-app-icon-label) {
+      box-sizing: border-box;
+      inline-size: calc(var(--aui-image-size) + var(--spacing-sm) * 2);
+      padding: var(--spacing-sm);
+      border-radius: calc(var(--aui-app-icon-radius) + var(--spacing-sm));
+
+      &:hover:not(:disabled) {
+        background-color: color-mix(in oklch, var(--color-on-surface) 8%, transparent);
+      }
+    }
+  }
+
+  /*
+   * The picture and the fallback take the tile's corners themselves, so the tile needs no clipping.
+   * The edge is an inset outline so it draws over the picture too, catching light along every tile.
+   */
+  .aui-app-icon-tile {
+    overflow: visible;
+    border-radius: var(--aui-app-icon-radius);
+    corner-shape: var(--aui-app-icon-corner);
+
+    & > .aui-image-content,
+    & > .aui-image-fallback {
+      border-radius: inherit;
+      corner-shape: inherit;
+    }
+    background-color: color-mix(in oklch, var(--color-container-low) var(--aui-app-icon-glass-tint), transparent);
+    backdrop-filter: blur(var(--aui-app-icon-glass-blur)) saturate(1.4);
+    outline: 1px solid var(--aui-app-icon-edge);
+    outline-offset: -1px;
+    box-shadow: var(--aui-app-icon-shadow);
+
+    & .aui-image-fallback {
+      background-color: transparent;
+      color: var(--aui-fallback-fg);
+      font-size: calc(var(--aui-image-size) * 0.38);
+      font-weight: 600;
+      letter-spacing: normal;
+    }
+  }
+
+  .aui-app-icon-label {
+    max-inline-size: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}

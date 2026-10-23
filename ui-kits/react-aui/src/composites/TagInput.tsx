@@ -92,7 +92,8 @@ export const TagInput = setup<TagInputProps, TagInputSlots>((props, slots) => {
             );
           }}
         </For>
-        <ComboboxInput label={props.label}>
+        {/* The chips show what's chosen, so the field holds only what's being typed; the list lines up with the whole field. */}
+        <ComboboxInput label={props.label} echo={false} anchor="parent">
           {(input) => (
             <input
               ref={input.ref}

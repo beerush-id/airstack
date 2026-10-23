@@ -9,6 +9,7 @@ import type {
   Primitive,
 } from '../types.js';
 import { ariaInvalid, ariaPresent } from '../utils/attributes.js';
+import { type LabelAria, labelCtx } from './label.js';
 
 /**
  * Controller-dispatched checkbox event carrying the committed state in `detail`.
@@ -83,6 +84,7 @@ export interface CheckboxAttributes<E extends BaseElement = HTMLButtonElement | 
   checked?: boolean;
   indeterminate?: boolean;
   required?: boolean;
+  'aria-labelledby'?: string;
   'aria-checked'?: 'true' | 'false' | 'mixed';
   'aria-required'?: 'true' | 'false';
   'aria-invalid'?: 'true' | 'false' | 'grammar' | 'spelling';
@@ -103,6 +105,11 @@ export class CheckboxAria<
   A extends CheckboxAttributes<E> = CheckboxAttributes<E>,
   O extends CheckboxOptions = CheckboxOptions,
 > extends SelectionAria<E, T, A, SelectionOptions> {
+  /**
+   * The enclosing label that labels a custom host; a native input keeps the browser's labelling.
+   */
+  protected labelled?: LabelAria;
+
   public constructor(props: Partial<T> = {}, options: O = {} as O) {
     super(props, {
       native: true,
@@ -112,6 +119,8 @@ export class CheckboxAria<
       allowKeys: [' '],
       clickable: true,
     });
+
+    if (!this.isNative) this.labelled = labelCtx.get();
 
     this.omittedAttrs.push(
       'value',
@@ -219,6 +228,9 @@ export class CheckboxAria<
 
     return Object.assign(super.createAttributes(), {
       role: 'checkbox',
+      // Named by the label that labels it, unless the author names it explicitly.
+      'aria-labelledby':
+        this.properties['aria-labelledby'] ?? (this.properties['aria-label'] ? undefined : this.labelled?.id),
       'aria-checked': isIndeterminate ? 'mixed' : isChecked ? 'true' : 'false',
       'aria-required': ariaPresent(this.properties.required) ?? 'false',
       'aria-invalid': invalidAttr,

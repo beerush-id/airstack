@@ -1,0 +1,199 @@
+---
+title: AUI Date Picker
+nav: Date Picker
+nav-priority: 357
+description: Let people type a date or pick it from a calendar — one field with a calendar button, bounds that block invalid days, and a value that only changes on a real choice.
+keywords: [React date picker, accessible date picker, calendar input React, datepicker component, date field, AUI date picker]
+---
+
+# AUI Date Picker
+
+A date picker takes one date two ways: typed into a field by people who know it, or picked from a calendar by people who want to look. Deadlines, bookings, and report filters all need one. **Date Picker** gives you the field, the calendar button, the calendar, bounds that block invalid days, and full keyboard travel from one call with your value.
+
+:::interactive[Date picker demo]
+
+```tsx
+import { DatePicker, Readout, Toggle } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { GlassStage } from '@/components/GlassStage.js';
+
+const DatePickerDemo = setup(() => {
+  const state = mutable({ date: '2026-10-14', disabled: false });
+
+  return () => (
+    <div className="demo-button">
+      <div className="flex gap-xs w-full flex-wrap">
+        <Toggle size="sm" pressed={$bind(state, 'disabled')}>
+          {() => (state.disabled ? 'Locked' : 'Unlocked')}
+        </Toggle>
+        <div className="flex-1"></div>
+        <Snippet>{() => <Readout label="Date" value={state.date?.slice(0, 10)} empty="No date yet" />}</Snippet>
+      </div>
+      <GlassStage style={{ maxInlineSize: '20rem' }}>
+        <div className="flex flex-col gap-xs">
+          <div className="text-title-sm">Order #4821</div>
+          <div>Choose when it arrives; we deliver any day in October.</div>
+        </div>
+        <Snippet>
+          {() => (
+            <DatePicker
+              label="Delivery date"
+              placeholder="YYYY-MM-DD"
+              labels={{ open: 'Choose a delivery date', previous: 'Previous month', next: 'Next month', year: 'Year' }}
+              value={$bind(state, 'date')}
+              min="2026-10-01"
+              max="2026-10-31"
+              disabled={state.disabled}
+            />
+          )}
+        </Snippet>
+      </GlassStage>
+    </div>
+  );
+}, 'DatePickerDemo');
+```
+
+```html
+<DatePickerDemo />
+```
+
+<DatePickerDemo />
+
+:::
+
+## Usage
+
+### Bind a date
+
+Bind the value and set the bounds; the picker renders one field with a calendar button and the calendar behind it:
+
+```tsx
+import { DatePicker } from '@airlib/react-aui';
+import { $bind, mutable, setup } from '@airlib/react';
+import '@airlib/aui/components/widgets/date-picker.css';
+
+export const DeliveryDate = setup(() => {
+  const order = mutable({ deliverOn: '' });
+
+  return () => (
+    <DatePicker
+      label="Delivery date"
+      placeholder="YYYY-MM-DD"
+      labels={{ open: 'Choose a delivery date', previous: 'Previous month', next: 'Next month', year: 'Year' }}
+      value={$bind(order, 'deliverOn')}
+      min="2026-10-01"
+      max="2026-12-31"
+    />
+  );
+}, 'DeliveryDate');
+```
+
+You supply:
+
+- `value` — the chosen date as an ISO string (`'2026-10-14'`). Typing a partial date never writes it; a complete valid date or a calendar pick does.
+- `min` / `max` — the first and last date people may choose. Days outside are shown but cannot be picked.
+- `label` — the field's accessible name.
+- `placeholder` — the hint while the field is empty, such as the date format your users expect.
+- `labels` — names for the icon-only buttons: `open` (the calendar button), `previous` / `next` (the month steppers), and `year` (the year field). Nothing is named for you; every word comes from you, in your users' language.
+- `locales` — optional, for month and weekday names in your users' language.
+
+### A calendar in place
+
+When the date is the question — a booking form, a step in a wizard, an assistant asking when to meet — a field that hides the calendar adds a click for nothing. Add `inline` and the picker draws only the calendar, always open, with no field and no popup:
+
+```tsx
+<DatePicker
+  inline
+  label="Meeting date"
+  labels={{ previous: 'Previous month', next: 'Next month', year: 'Year' }}
+  value={$bind(meeting, 'date')}
+  min="2026-10-26"
+/>
+```
+
+Picking a day chooses it and the calendar stays where it is, so people can change their mind with one more press. `label` names the calendar itself, and `labels.open` has nothing to name. `inline` is read once, when the picker is created.
+
+### Compose the parts
+
+When you need a different layout — a separate button, a custom header, extra content in the calendar — pass a render function and place the parts yourself. `DatePickerField` gives you the single-field look; `DatePickerHeader` gives you the default month steppers and year field:
+
+```tsx
+import {
+  DatePicker,
+  DatePickerCalendar,
+  DatePickerField,
+  DatePickerHeader,
+  DatePickerInput,
+  DatePickerTrigger,
+} from '@airlib/react-aui';
+import { CalendarIcon } from '@airlib/react-aui/icons';
+
+<DatePicker value={$bind(order, 'deliverOn')} label="Delivery date">
+  {() => (
+    <>
+      <DatePickerField>
+        <DatePickerInput placeholder="YYYY-MM-DD" />
+        <DatePickerTrigger aria-label="Open calendar">
+          <CalendarIcon />
+        </DatePickerTrigger>
+      </DatePickerField>
+      <DatePickerCalendar>
+        <DatePickerHeader previousLabel="Previous month" nextLabel="Next month" yearLabel="Year" />
+      </DatePickerCalendar>
+    </>
+  )}
+</DatePicker>
+```
+
+The render function receives the picker, so a custom header can show the month on display — for example `picker.range.monthStr` next to `DatePickerNav` steppers and `DatePickerYearInput`. Outside a `DatePickerField`, the input and the trigger render as a separate field and button.
+
+## Style it once
+
+Set `size`, `color`, and `variant` on `DatePicker` and the field, the calendar button, and the calendar follow; a part's own prop still wins. The field takes `filled`, `tonal`, or `outlined`. See [Styling a composite](/docs/theming#style-a-composite-once).
+
+## Properties
+
+### DatePicker
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `value` | `Bindable<string>` | — | The chosen date, ISO format. |
+| `min` / `max` | `string` | — | First and last date that can be chosen. |
+| `label` | `string` | — | The field's accessible name. |
+| `placeholder` | `string` | — | Hint while the field is empty. |
+| `labels` | `{ open, previous, next, year }` | — | Names for the calendar button, the month steppers, and the year field. |
+| `inline` | `boolean` | `false` | Draws only the calendar, always open, with no field or popup. Read once. |
+| `locales` | `string[]` | — | Languages for month and weekday names. |
+| `month` / `year` | `Bindable<number>` | — | The month on display, if you need to move it yourself. |
+| `grid` | `'fixed'`, `'dynamic'` | — | Always six weeks, or only the weeks the month needs. |
+| `open` | `Bindable<boolean>` | — | Calendar visibility, if you need to control it. |
+| `disabled` | `boolean` | `false` | Locks typing and picking. |
+| `required` | `boolean` | `false` | A date must stay chosen. |
+| `size` | `xs`–`xxl` | `'md'` | Field and calendar size. |
+| `variant` | `filled`, `tonal`, `outlined` | `'filled'` | The field's surface. |
+| `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | Focus, today, and the chosen day. |
+| `onchange` | `(event: CustomEvent<string \| undefined>) => void` | — | After a date is committed. |
+| `oninput` | `(event: CustomEvent<string>) => void` | — | As people type. |
+| `onopen` / `onclose` | `(event: CustomEvent<boolean>) => void` | — | When the calendar opens or closes. |
+
+### Parts
+
+| Part | Notes |
+| --- | --- |
+| `DatePickerField` | One field box around the input and the trigger. |
+| `DatePickerInput` | The text field. `placeholder`, `disabled`. |
+| `DatePickerTrigger` | The button that opens the calendar. Give it an `aria-label` when it shows only an icon. |
+| `DatePickerCalendar` | The popup calendar. Its children become the header. |
+| `DatePickerHeader` | The default header: month steppers, month name, and year field. Name them with `previousLabel`, `nextLabel`, `yearLabel`. |
+| `DatePickerNav` | A month or year stepper: `type` (`'month'`, `'year'`), `direction` (`-1`, `1`). |
+| `DatePickerYearInput` | A field that jumps to a typed year. |
+
+## Keyboard
+
+In the field, typing enters a date and `ArrowDown` opens the calendar. In the calendar, arrows move by day and week without choosing, `PageUp` / `PageDown` move by month, `Home` / `End` go to the week's ends, `Enter` or `Space` chooses and closes, and `Escape` closes without choosing. Focus returns to the field on close. An inline calendar has nothing to open or close: `Enter` or `Space` chooses, and focus stays on the day.
+
+## Next Steps
+
+- [Date Range Picker](/docs/composites/date-range-picker) — A start and an end date in one calendar.
+- [Field](/docs/widgets/field) — Add a visible label, help text, and an error message.
+- [Select](/docs/composites/select) — When the choices are a short list rather than a calendar.

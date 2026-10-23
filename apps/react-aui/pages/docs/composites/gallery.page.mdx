@@ -1,0 +1,151 @@
+---
+title: AUI Gallery
+nav: Gallery
+nav-priority: 340
+description: Let people pick from pictures — photos, products, thumbnails — laid out as tiles that wrap into rows, with arrow keys that follow the grid and a selection your app binds.
+keywords: [React gallery, image grid React, photo picker, product picker, accessible image grid, selectable tiles, AUI gallery]
+---
+
+# AUI Gallery
+
+A set of photos to choose from, three outfits to compare, a folder of video thumbnails: some choices are pictures first. People expect to see them side by side, move between them with the arrow keys in every direction, and pick one, or several, without losing track of which ones they picked.
+
+**Gallery** is that grid of pictures. Hand it the tiles, bind the selection, and the layout, the keyboard and the announcements come with it.
+
+:::interactive[Gallery demo]
+
+```tsx
+import { Gallery, Readout } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { DemoControl } from '@/components/DemoControl.js';
+import { GlassStage } from '@/components/GlassStage.js';
+
+const OUTFITS = [
+  { value: 'linen', src: 'https://picsum.photos/seed/aui-linen/480/600', alt: 'Linen overshirt', title: 'Linen overshirt', description: '$89', meta: '4.8★' },
+  { value: 'knit', src: 'https://picsum.photos/seed/aui-knit/480/600', alt: 'Knit polo', title: 'Knit polo', description: '$64', meta: '4.6★' },
+  { value: 'blazer', src: 'https://picsum.photos/seed/aui-blazer/480/600', alt: 'Unstructured blazer', title: 'Unstructured blazer', description: '$129', meta: '4.9★' },
+  { value: 'chino', src: 'https://picsum.photos/seed/aui-chino/480/600', alt: 'Relaxed chinos', title: 'Relaxed chinos', description: '$72', meta: '4.5★' },
+];
+
+const GalleryDemo = setup(() => {
+  const state = mutable({ outfit: 'blazer', color: 'primary', disabled: false });
+
+  return () => (
+    <div className="demo-button">
+      <DemoControl color={$bind(state, 'color')} disabled={$bind(state, 'disabled')} />
+      <GlassStage>
+        <Snippet>
+          {() => (
+            <Gallery
+              label="Outfits for the meeting"
+              items={OUTFITS}
+              value={$bind(state, 'outfit')}
+              color={state.color}
+              disabled={state.disabled}
+              style={{ '--aui-gallery-ratio': '4 / 5' }}
+            />
+          )}
+        </Snippet>
+      </GlassStage>
+      <Snippet>
+        {() => <Readout label="Picked" value={OUTFITS.find((outfit) => outfit.value === state.outfit)?.title} empty="Nothing yet" />}
+      </Snippet>
+    </div>
+  );
+}, 'GalleryDemo');
+```
+
+```html
+<GalleryDemo />
+```
+
+<GalleryDemo />
+
+:::
+
+## Usage
+
+### Pictures in, a pick out
+
+Pass the tiles as `items` and bind `value` to the picked tile's `value`. Each tile needs a picture (`src`) and what it shows (`alt`); give it a `title`, and a line of `description` or `meta`, when the picture needs words under it:
+
+```tsx
+import { Gallery } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/gallery.css';
+
+<Gallery
+  label="Outfits for the meeting"
+  items={[
+    { value: 'linen', src: '/outfits/linen.jpg', alt: 'Linen overshirt', title: 'Linen overshirt', description: '$89', meta: '4.8★' },
+    { value: 'blazer', src: '/outfits/blazer.jpg', alt: 'Unstructured blazer', title: 'Unstructured blazer', description: '$129' },
+  ]}
+  value={$bind(order, 'outfit')}
+/>;
+```
+
+With a `title` the tile is named by it and the picture stays quiet, so a screen reader hears each name once; without one, the tile is named by its `alt`.
+
+### Pick several
+
+Set `multiple` and bind an array. Each picked tile keeps a ring and a check, so a row of picked photos still reads apart:
+
+```tsx
+<Gallery label="Photos from the park" multiple items={PARK_PHOTOS} value={$bind(post, 'photos')} />
+```
+
+### Shape the tiles
+
+The tiles fill the row at a minimum width and keep their pictures square. Change either from CSS, on the gallery or for the whole app:
+
+```css
+.outfits {
+  --aui-gallery-tile: 12rem;
+  --aui-gallery-ratio: 4 / 5;
+}
+```
+
+### Draw your own tile
+
+Fill the `item` slot to replace a tile's picture and caption — a duration badge on a video, a tag on a product. The tile still selects, rings and checks itself:
+
+```tsx
+<Gallery label="Clips" items={CLIPS} value={$bind(edit, 'clip')}>
+  <Gallery.Snippet for="item">
+    {(entry) => (
+      <>
+        <Image src={entry.src} alt="" />
+        <Badge>{entry.meta}</Badge>
+      </>
+    )}
+  </Gallery.Snippet>
+</Gallery>
+```
+
+### From data
+
+An agent can answer with a gallery as data: the role is `gallery`, its tiles go in `items`, and a writable binding keeps the pick in your app's state. See [UI from Data](/docs/dynamic).
+
+```json
+{
+  "role": "gallery",
+  "props": { "label": "Photos from the park", "items": [{ "value": "p1", "src": "/photos/p1.jpg", "alt": "Kite over the lawn" }] },
+  "bindings": [{ "prop": "value", "state": "drafts.post.photo", "writable": true }]
+}
+```
+
+## Properties
+
+| Prop | Type | Default | What it does |
+|---|---|---|---|
+| `label` | `string` | — | Names the gallery for screen readers |
+| `items` | `GalleryEntry[]` | — | The tiles; without it, place `GalleryItem` children |
+| `value` | `Bindable<string \| string[]>` | — | The picked tile, or tiles with `multiple` |
+| `multiple` | `boolean` | `false` | Lets people pick several |
+| `required` | `boolean` | `false` | Keeps at least one tile picked |
+| `disabled` | `boolean` | `false` | Shows the tiles but takes no picks |
+| `color` | `Color` | `primary` | The tint, ring, and check of a picked tile |
+
+## Next Steps
+
+- [Listbox](/docs/composites/listbox) — the same picking, as rows of text
+- [UI from Data](/docs/dynamic) — let an agent answer with a gallery

@@ -2,13 +2,13 @@
 title: AUI Avatar
 nav: Avatar
 nav-priority: 205
-description: Avatars for people and teams — a round picture with initials while it loads or when there is none, and overlapping groups that collapse into a "+N" count. Accessible, sized to line up with buttons.
+description: Avatars for people and teams — a round picture with initials when it fails or there is none, and overlapping groups that collapse into a "+N" count. Accessible, sized to line up with buttons.
 keywords: [React avatar, avatar group, user avatar, initials avatar, profile picture, React AUI avatar, accessible avatar]
 ---
 
 # AUI Avatar
 
-Every app that has people shows their faces somewhere: the comment author, the account menu, the members of a project. The picture is the easy part. The rest is what to show while it loads, what to show when it fails or never existed, how to name it for screen readers, and how to stack five of them without the edges turning to mush.
+Every app that has people shows their faces somewhere: the comment author, the account menu, the members of a project. The picture is the easy part. The rest is what to show when it fails or never existed, how to name it for screen readers, and how to stack five of them without the edges turning to mush.
 
 **AUI Avatar** gives you a round picture that falls back to the person's initials, named by the same `alt` you would give an image. **AvatarGroup** overlaps a row of them and collapses the rest into a count.
 
@@ -18,6 +18,7 @@ Every app that has people shows their faces somewhere: the comment author, the a
 import { Avatar, AvatarGroup, Badge } from '@airlib/react-aui';
 import { $bind, mutable, setup, Snippet } from '@airlib/react';
 import { DemoControl } from '@/components/DemoControl.js';
+import { GlassStage } from '@/components/GlassStage.js';
 import maya from '@/assets/avatar-1.jpg?asset&sizes=128';
 import leo from '@/assets/avatar-2.jpg?asset&sizes=128';
 import sara from '@/assets/avatar-3.jpg?asset&sizes=128';
@@ -40,20 +41,22 @@ const AvatarDemo = setup(() => {
       <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} />
       <Snippet>
         {() => (
-          <div className="aui-card flex flex-wrap gap-xl items-center justify-center p-xl">
-            <Avatar alt="Ivy Brooks" size={state.size} color={state.color} />
-            <Avatar src={noah.src} alt="Noah Reyes" size={state.size} color={state.color}>
-              <Badge dot label="Online" color="success" position="bottom-end" />
-            </Avatar>
-            <AvatarGroup
-              label="Project members"
-              items={MEMBERS}
-              max={4}
-              moreLabel={(n) => `${n} more members`}
-              size={state.size}
-              color={state.color}
-            />
-          </div>
+          <GlassStage>
+            <div className="flex flex-wrap gap-xl items-center justify-center">
+              <Avatar alt="Ivy Brooks" size={state.size} color={state.color} />
+              <Avatar src={noah.src} alt="Noah Reyes" size={state.size} color={state.color}>
+                <Badge dot label="Online" color="success" position="bottom-end" />
+              </Avatar>
+              <AvatarGroup
+                label="Project members"
+                items={MEMBERS}
+                max={4}
+                moreLabel={(n) => `${n} more members`}
+                size={state.size}
+                color={state.color}
+              />
+            </div>
+          </GlassStage>
         )}
       </Snippet>
     </div>
@@ -123,6 +126,29 @@ Each entry is `{ alt, src? }`. When one avatar needs more — a badge, its own c
 </AvatarGroup>
 ```
 
+### An app you can open
+
+Launchers, docks, and app switchers show apps the way an avatar shows people: a picture, or a glyph or initials when there is none. `AppIcon` is that tile as a button. Give it the app's name as `alt` and wire `onClick` like any button:
+
+```tsx
+import { AppIcon } from '@airlib/react-aui';
+import { CalendarIcon } from '@airlib/react-aui/icons';
+
+<AppIcon alt="Calendar" icon={<CalendarIcon />} onClick={() => calendar.open()} />
+```
+
+Put the name inside and it becomes a caption under the tile, the way a launcher lists apps. The caption then names the button, so screen readers hear the name once:
+
+```tsx
+<AppIcon alt="Invoices" src={invoices.logo} onClick={() => invoices.open()}>
+  Invoices
+</AppIcon>
+```
+
+It is a plain button, so `aria-pressed`, `disabled`, and every other button attribute work as usual. Set `--aui-app-icon-size` to draw the tile larger than a control.
+
+When the button is already something else — a dialog trigger, a menu button — put `AppIconTile` (it takes `alt`, `src`, `icon`, `color`) inside that button and give the button the `aui-app-icon` class. It then looks, hovers, presses, and shows focus like every other app icon. The dock's launcher button is built this way.
+
 ### Style it once
 
 `size` and `color` set on a group reach every avatar in it; an avatar's own prop wins. An avatar is as tall as a control at the same size, so an `sm` avatar lines up with an `sm` button. The color tints the initials background. See [Theming](/docs/theming#style-a-composite-once).
@@ -134,7 +160,7 @@ Each entry is `{ alt, src? }`. When one avatar needs more — a badge, its own c
 | Prop | Type | Default | Notes |
 | --- | --- | --- | --- |
 | `alt` | `string` | — | Required. The person's or entity's name; seeds the initials. Empty marks it decorative. |
-| `src` | `string` | — | Picture to show. Initials show while it loads, if it fails, or without it. |
+| `src` | `string` | — | Picture to show; it paints as it arrives. Initials show if it fails or without it. |
 | `size` | `xs`–`xxl` | `'md'` | Same height as a control at that size. |
 | `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | Tints the initials background. |
 | `children` | `ReactNode` | — | What sits on the avatar, such as a `Badge`. The picture and initials stay. |
@@ -150,8 +176,18 @@ Each entry is `{ alt, src? }`. When one avatar needs more — a badge, its own c
 | `size`, `color` | as above | — | Reach every avatar in the group. |
 | `children` | `ReactNode` | — | Your own avatars, when you compose instead of passing `items`. |
 
+`AppIcon` takes every button attribute, plus:
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `alt` | `string` | — | Required. The app's name; names the button and seeds the initials. |
+| `src` | `string` | — | Picture of the app. The glyph or initials show while it loads, if it fails, or without it. |
+| `icon` | `ReactNode` | — | A glyph shown in place of the initials. |
+| `size`, `color` | as above | `'md'`, `'primary'` | The tile is as tall as a control at that size; the color tints it. |
+| `children` | `ReactNode` | — | A caption under the tile. It names the button instead of `alt`. |
+
 ## Next Steps
 
 - [Badge](/docs/widgets/badge) — Presence dots and counts on an avatar.
 - [Image](/docs/widgets/image) — The picture-with-fallback an avatar is built on, for any image.
-- [Menu](/docs/widgets/menu) — The account menu an avatar usually opens.
+- [Menu](/docs/composites/menu) — The account menu an avatar usually opens.

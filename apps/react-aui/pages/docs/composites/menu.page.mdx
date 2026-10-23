@@ -1,0 +1,319 @@
+---
+title: AUI Menu
+nav: Menu
+nav-priority: 304
+description: A list of commands behind a button — give it your commands and get the trigger, the popup, keyboard travel, and dismissal. Checkbox items, radio groups, and menu bars when you need them.
+keywords: [React menu, dropdown menu, React dropdown, accessible menu, menu button, context actions, menubar, ARIA menu]
+---
+
+# AUI Menu
+
+Document actions, row actions, an export menu — commands that don't deserve a permanent spot on screen go behind a button. The hard part is everything around the list: the button and the popup must stay linked, the arrow keys should move through the commands while `Tab` leaves, picking a command should close the menu, and `Escape` or a click outside should put focus back where it was.
+
+**AUI Menu** handles all of it. Give it your commands and listen for the one people pick.
+
+:::interactive[Menu demo]
+
+```tsx
+import { Menu, Readout } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { DemoControl } from '@/components/DemoControl.js';
+import { GlassStage } from '@/components/GlassStage.js';
+
+const ACTIONS = [
+  { name: 'duplicate', label: 'Duplicate', shortcut: 'mod+d' },
+  { name: 'rename', label: 'Rename…', shortcut: 'f2' },
+  { name: 'share', label: 'Share link', shortcut: 'mod+shift+l' },
+  { name: 'archive', label: 'Archive', shortcut: 'mod+e' },
+];
+const LABELS = Object.fromEntries(ACTIONS.map((action) => [action.name, action.label]));
+
+const MenuDemo = setup(() => {
+  const state = mutable({ size: 'md', color: 'primary', variant: 'filled', disabled: false, last: '' });
+
+  return () => (
+    <div className="demo-button">
+      <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} variant={$bind(state, 'variant')} disabled={$bind(state, 'disabled')} />
+      <GlassStage>
+        <div className="flex flex-col gap-md items-center justify-center">
+          <Snippet>
+            {() => (
+              <Menu
+                label="Actions"
+                items={ACTIONS}
+                size={state.size}
+                color={state.color}
+                variant={state.variant}
+                disabled={state.disabled}
+                oncommand={(event) => (state.last = LABELS[event.detail])}
+              />
+            )}
+          </Snippet>
+          <Snippet>{() => <Readout label="Picked" value={state.last} empty="Nothing yet" />}</Snippet>
+        </div>
+      </GlassStage>
+    </div>
+  );
+}, 'MenuDemo');
+```
+
+```html
+<MenuDemo />
+```
+
+<MenuDemo />
+
+:::
+
+## Usage
+
+### Give it your commands
+
+Pass `items` and a `label`. The menu renders its button (with `label` as the text), the popup, and one row per command. `oncommand` receives the `name` of the command that was picked:
+
+```tsx
+import { Menu } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/menu.css';
+
+export const RowActions = ({ onAction }: { onAction: (name: string) => void }) => (
+  <Menu
+    label="Actions"
+    items={{ duplicate: 'Duplicate', rename: 'Rename…', archive: 'Archive' }}
+    oncommand={(event) => onAction(event.detail)}
+  />
+);
+```
+
+`items` takes a name-to-label map, or an array when a command needs more than a label:
+
+```tsx
+<Menu
+  label="Actions"
+  items={[
+    { name: 'duplicate', label: 'Duplicate' },
+    { name: 'delete', label: 'Delete', disabled: true },
+  ]}
+/>
+```
+
+### Change what a row or the button shows
+
+When a label alone isn't enough — an icon in front of each command — keep `items` and supply the content through the `item` or `trigger` slot. The rows, their keyboard behavior, and the commands stay the same:
+
+```tsx
+<Menu label="Actions" items={ACTIONS}>
+  <Menu.Snippet for="item">
+    {(entry) => (
+      <span className="flex items-center gap-sm">
+        {entry.label}
+        <kbd>{SHORTCUTS[entry.name]}</kbd>
+      </span>
+    )}
+  </Menu.Snippet>
+</Menu>
+```
+
+- **`item`** receives the entry (`name`, `label`, `disabled`) and renders inside that row.
+- **`trigger`** replaces the button's whole default content — `label` and its arrow. `label` then names the button, so an icon on its own still reads as "More actions"; a lone icon also squares the button.
+
+### Build it from parts
+
+Reach for the parts when the menu mixes kinds of rows — toggles, a set of exclusive options, separators — or when the button needs its own markup. The parts find each other inside `Menu`; nothing is wired by id:
+
+:::interactive[Every kind of row]
+
+```tsx
+import { Divider, Menu, MenuButton, MenuItem, MenuItemCheckbox, MenuItemGroup, MenuItemRadio, MenuPanel, Readout } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+
+const FormatMenuDemo = setup(() => {
+  const COMMANDS = { 'new-file': 'New document', 'open-file': 'Open', 'save-file': 'Save' };
+  const ALIGNMENTS = { left: 'Left', center: 'Center', right: 'Right' };
+  const state = mutable({ wrap: true, alignment: 'left', last: '' });
+
+  return () => (
+    <GlassStage>
+      <div className="flex flex-col gap-md items-center justify-center">
+        <Menu label="Document" oncommand={(event) => (state.last = event.detail)}>
+          <MenuButton>Document</MenuButton>
+          <MenuPanel>
+            <MenuItem name="new-file" shortcut="alt+n">
+              New document
+            </MenuItem>
+            <MenuItem name="open-file" shortcut="alt+o">
+              Open…
+            </MenuItem>
+            <MenuItem name="save-file" shortcut="alt+s" disabled>
+              Save
+            </MenuItem>
+            <Divider />
+            <MenuItemCheckbox checked={$bind(state, 'wrap')} shortcut="alt+w">
+              Word wrap
+            </MenuItemCheckbox>
+            <Divider />
+            <MenuItemGroup label="Alignment" value={$bind(state, 'alignment')}>
+              <MenuItemRadio value="left" shortcut="alt+l">
+                Align left
+              </MenuItemRadio>
+              <MenuItemRadio value="center" shortcut="alt+c">
+                Align center
+              </MenuItemRadio>
+              <MenuItemRadio value="right" shortcut="alt+r">
+                Align right
+              </MenuItemRadio>
+            </MenuItemGroup>
+          </MenuPanel>
+        </Menu>
+        <Snippet>
+          {() => (
+            <div className="flex flex-wrap gap-lg">
+              <Readout label="Command" value={COMMANDS[state.last]} empty="None yet" />
+              <Readout label="Wrap" value={state.wrap ? 'On' : 'Off'} />
+              <Readout label="Align" value={ALIGNMENTS[state.alignment]} />
+            </div>
+          )}
+        </Snippet>
+      </div>
+    </GlassStage>
+  );
+}, 'FormatMenuDemo');
+```
+
+```html
+<FormatMenuDemo />
+```
+
+<FormatMenuDemo />
+
+:::
+
+- **`MenuItem`** runs a command: picking it reports its `name` through `oncommand` and closes the menu.
+- **`MenuItemCheckbox`** is a setting that stays on or off. Picking it flips `checked` and leaves the menu open, so several toggles are one visit.
+- **`MenuItemGroup`** with **`MenuItemRadio`** rows is one choice out of several. The group's `value` is the checked row's `value`.
+- A **`Divider`** between rows separates sections.
+- Any row takes a **`shortcut`** — `mod+d`, `alt+shift+e`, `f2` — that does from anywhere on the page what picking the row does: runs the item, flips the checkbox, chooses the radio. It shows at the row's end as people read it, `⌘D` on a Mac and `Ctrl+D` elsewhere, and screen readers hear it through `aria-keyshortcuts`. `mod` is the platform's command key. A disabled row ignores its shortcut, and a key press inside a field stays with the field. In an `items` menu, give the entry a `shortcut` instead.
+
+### Several menus in a row
+
+`MenuBar` lines up menus — File, Edit, View — as one stop in the tab order; the arrow keys move between their buttons, and opening one menu while another is open moves straight to it:
+
+:::interactive[An editor's menu bar]
+
+```tsx
+import { Menu, MenuBar, Readout } from '@airlib/react-aui';
+import { mutable, setup, Snippet } from '@airlib/react';
+
+const FILE = [
+  { name: 'new', label: 'New document', shortcut: 'mod+alt+n' },
+  { name: 'open', label: 'Open…', shortcut: 'mod+o' },
+  { name: 'save', label: 'Save', shortcut: 'mod+s' },
+  { name: 'export', label: 'Export as PDF…', shortcut: 'mod+shift+e' },
+];
+const EDIT = [
+  { name: 'undo', label: 'Undo', shortcut: 'mod+z' },
+  { name: 'redo', label: 'Redo', shortcut: 'mod+shift+z' },
+  { name: 'find', label: 'Find…', shortcut: 'mod+f' },
+  { name: 'replace', label: 'Replace…', shortcut: 'mod+alt+f' },
+];
+const VIEW = [
+  { name: 'zoom-in', label: 'Zoom in', shortcut: 'mod+=' },
+  { name: 'zoom-out', label: 'Zoom out', shortcut: 'mod+-' },
+  { name: 'sidebar', label: 'Toggle sidebar', shortcut: 'mod+\\' },
+];
+const COMMAND_LABELS = Object.fromEntries([...FILE, ...EDIT, ...VIEW].map((entry) => [entry.name, entry.label]));
+
+const MenuBarDemo = setup(() => {
+  const state = mutable({ last: '' });
+  const pick = (event: CustomEvent<string>) => (state.last = event.detail);
+
+  return () => (
+    <GlassStage>
+      <div className="flex flex-col gap-md items-center">
+        <MenuBar label="Editor" variant="text">
+          <Menu label="File" items={FILE} oncommand={pick} />
+          <Menu label="Edit" items={EDIT} oncommand={pick} />
+          <Menu label="View" items={VIEW} oncommand={pick} />
+        </MenuBar>
+        <Snippet>{() => <Readout label="Command" value={COMMAND_LABELS[state.last]} empty="None yet" />}</Snippet>
+      </div>
+    </GlassStage>
+  );
+}, 'MenuBarDemo');
+```
+
+```html
+<MenuBarDemo />
+```
+
+<MenuBarDemo />
+
+:::
+
+### Open it from your code
+
+The menu opens and closes itself. Bind `open` only when something else should drive it — a keyboard shortcut, a tour:
+
+```tsx
+const state = mutable({ open: false });
+
+<Menu label="Actions" items={ACTIONS} open={$bind(state, 'open')} />
+```
+
+Every way of closing — a command, `Escape`, a click outside — writes the same `open`, and `onclose` fires once.
+
+### Style it once
+
+`size`, `color`, and `variant` on `Menu` (or on `MenuBar`) reach the button, the popup, and every row; a row's own prop wins. See [Style a composite once](/docs/theming#style-a-composite-once).
+
+### Properties
+
+`Menu`:
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `label` | `string` | — | The menu's name: the button text with `items`, and what assistive technology announces for the popup. |
+| `items` | `Record<string, string>` or `Array<{ name, label?, disabled? }>` | — | Renders the button, the popup, and one row per command. |
+| `oncommand` | `(event: CustomEvent<string>) => void` | — | Receives the picked command's `name`. |
+| `open` | `Bindable<boolean>` | `false` | Whether the popup is showing. Bind it to drive the menu from code. |
+| `disabled` | `boolean` | `false` | Locks the button and every row. |
+| `onopen` / `onclose` | `(event: CustomEvent<boolean>) => void` | — | Called after the popup opens or closes, however it closed. |
+| `size` / `color` / `variant` | shared vocabulary | `md` / `primary` / `filled` | Reach the button, the popup, and every row. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `children` | `ReactNode` | — | `Menu.Snippet` slots with `items`, or the parts without it. |
+
+Slots (with `items`): `trigger()` for the button's content in place of `label` and its arrow, `item(entry)` for each row's content.
+
+Parts:
+
+| Part | Props | Use it for |
+| --- | --- | --- |
+| `MenuButton` | `disabled`, style props, `children` | The button that opens the menu. |
+| `MenuPanel` | style props, `children` | The popup that holds the rows. |
+| `MenuItem` | `name`, `disabled`, `oncommand`, style props, `children` | A command. |
+| `MenuItemCheckbox` | `checked` (bindable), `indeterminate`, `disabled`, `onchange`, style props, `children` | An on/off setting; `indeterminate` shows a mixed state. |
+| `MenuItemGroup` | `label`, `value` (bindable), `disabled`, `children` | A named set of exclusive options. |
+| `MenuItemRadio` | `value`, `disabled`, `onchange`, style props, `children` | One option inside a group. |
+| `MenuBar` | `label`, `orientation`, `disabled`, style props, `children` | A row of menus with one tab stop. |
+
+Set app-wide defaults once instead of on every menu:
+
+```tsx
+import { configure } from '@airlib/react-aui';
+
+configure({ menuButton: { variant: 'tonal' }, menuItem: { size: 'sm' } });
+```
+
+### Keyboard
+
+- `Enter`, `Space`, or `↓` on the button opens the menu.
+- `↑` / `↓` move between rows without running anything; typing a letter jumps to the next row that starts with it.
+- `Enter` or `Space` runs a command and closes the menu, or flips a checkbox row and keeps it open.
+- `Escape` closes the menu and returns focus to the button; `Tab` leaves the menu.
+- In a `MenuBar`, the arrow keys move between the menu buttons without opening one.
+
+## Next Steps
+
+- [Context Menu](/docs/composites/context-menu) — The same commands for whatever was right-clicked.
+- [Select](/docs/composites/select) — Pick a value instead of running a command.
+- [Popover](/docs/composites/popover) — Show content, not commands, from a button.
+- [Dialog](/docs/composites/dialog) — Ask for more than one click's worth of input.

@@ -24,6 +24,8 @@ export type DatePickerProps = FieldStyles & {
   disabled?: boolean;
   required?: boolean;
   grid?: DatePickerGrid;
+  /** Draws the calendar in place, always showing, with no field or popup: picking a day sets the value and closes nothing. */
+  inline?: boolean;
   labels?: DatePickerLabels;
   children?: ReactNode | ((picker: DatePickerAria) => ReactNode);
   oninput?: (event: CustomEvent<string>) => void;
@@ -112,29 +114,30 @@ register('datePickerYearInput', {});
  */
 export const DatePicker = setup<DatePickerProps>((props) => {
   const grid = $static(() => props.grid);
-  const picker = aria(DATE_PICKER_ROLE, props as AnyType, { grid });
+  const inline = $static(() => !!props.inline);
+  const picker = aria(DATE_PICKER_ROLE, props as AnyType, { grid, inline });
   const className = () => $families(AUI_CLASS.DATE_PICKER, { className: props.className }, auiConfig.datePicker);
 
   datePickerScope.provide(props);
   datePickerView.set(picker as AnyType);
 
+  const header = () => (
+    <DatePickerHeader previousLabel={props.labels?.previous} nextLabel={props.labels?.next} yearLabel={props.labels?.year} />
+  );
+
   return () => (
-    <div ref={picker.ref} {...picker.restProps([...OMIT_KEYS, 'placeholder', 'labels'])} className={className()}>
+    <div ref={picker.ref} {...picker.restProps([...OMIT_KEYS, 'placeholder', 'labels', 'inline'])} className={className()}>
       {props.children ? (
         renderDynamic(props.children, picker)
+      ) : inline ? (
+        <DatePickerCalendar>{header()}</DatePickerCalendar>
       ) : (
         <>
           <DatePickerField>
             <DatePickerInput placeholder={props.placeholder} aria-label={props.label} />
             <DatePickerTrigger aria-label={props.labels?.open} />
           </DatePickerField>
-          <DatePickerCalendar>
-            <DatePickerHeader
-              previousLabel={props.labels?.previous}
-              nextLabel={props.labels?.next}
-              yearLabel={props.labels?.year}
-            />
-          </DatePickerCalendar>
+          <DatePickerCalendar>{header()}</DatePickerCalendar>
         </>
       )}
     </div>
@@ -212,21 +215,26 @@ export const DatePickerCalendar = setup<DatePickerCalendarProps>((props) => {
   const styles = datePickerScope.inherit(props);
   const calendar = aria(CALENDAR_ROLE, props as AnyType);
   const shadow = shadowPortal(() => calendar.open);
+  const inline = $static(() => calendar.inline);
+  // In place it is a block of the page, not a floating panel.
   const className = () =>
-    $families([AUI_CLASS.PANEL, AUI_CLASS.DATE_PICKER_CALENDAR], styles, auiConfig.datePickerCalendar);
-
-  return () =>
-    shadow(
-      <div ref={calendar.ref} {...calendar.restProps(OMIT_KEYS)} className={className()}>
-        {props.children && <div className={AUI_CLASS.DATE_PICKER_HEADER}>{props.children}</div>}
-        <div className={AUI_CLASS.DATE_PICKER_GRID}>
-          <For each={() => calendar.grid.weeks}>
-            {(label) => <div className={AUI_CLASS.DATE_PICKER_WEEKDAY}>{label}</div>}
-          </For>
-          <For each={() => calendar.grid.dates}>{(date) => <DatePickerDay date={date} />}</For>
-        </div>
-      </div>
+    $families(
+      [inline ? AUI_CLASS.DATE_PICKER_INLINE : AUI_CLASS.PANEL, AUI_CLASS.DATE_PICKER_CALENDAR],
+      styles,
+      auiConfig.datePickerCalendar
     );
+
+  const content = () => (
+    <div ref={calendar.ref} {...calendar.restProps([...OMIT_KEYS, 'labels', 'inline'])} className={className()}>
+      {props.children && <div className={AUI_CLASS.DATE_PICKER_HEADER}>{props.children}</div>}
+      <div className={AUI_CLASS.DATE_PICKER_GRID}>
+        <For each={() => calendar.grid.weeks}>{(label) => <div className={AUI_CLASS.DATE_PICKER_WEEKDAY}>{label}</div>}</For>
+        <For each={() => calendar.grid.dates}>{(date) => <DatePickerDay date={date} />}</For>
+      </div>
+    </div>
+  );
+
+  return () => (inline ? content() : shadow(content()));
 }, 'DatePickerCalendar');
 
 /**

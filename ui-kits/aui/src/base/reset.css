@@ -1,10 +1,12 @@
 /*
  * Opt-in page reset and global defaults. Native equivalent of the Tailwind
- * preflight values the archive relied on implicitly, plus the Material
- * page defaults. Importing a component stylesheet never applies these
- * page-wide rules; applications opt in explicitly:
+ * preflight values, plus the Material page defaults. Neither the AUI
+ * stylesheet nor any component stylesheet applies these page-wide rules;
+ * applications opt in explicitly, in a layer of their own placed before
+ * anything that styles prose:
  *
- *   import '@airlib/material/default.css';
+ *   @layer reset, aui, app;
+ *   @import '@airlib/aui/base/reset.css' layer(reset);
  */
 @layer base {
   *,
@@ -221,15 +223,5 @@
 
   [hidden] {
     display: none;
-  }
-}
-
-@layer reduced-motion {
-  @media (prefers-reduced-motion: reduce) {
-    * {
-      transition: none;
-      scroll-behavior: auto;
-      animation: none;
-    }
   }
 }

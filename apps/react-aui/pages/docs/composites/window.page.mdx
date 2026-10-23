@@ -1,0 +1,493 @@
+---
+title: AUI Window
+nav: Window
+nav-priority: 304
+description: Accessible React windows — movable, resizable, stackable panels with minimize and maximize, grid and edge snapping, keyboard moving and resizing, and a window manager to open them with data.
+keywords: [React window manager, React draggable window, resizable panel React, desktop UI React, window snapping, React MDI, floating window component]
+---
+
+# AUI Window
+
+Some apps are workspaces: an editor beside a preview, an inspector you drag next to the thing it inspects, three documents open at once. People expect those panels to move, resize, stack, minimize, and maximize like desktop windows — and to line up neatly when they drop one next to another.
+
+**AUI Window** gives you that whole behavior. A window moves by its glass — the toolbar, the sidebar's background — resizes from every edge and corner, comes to the front when pressed or focused, snaps to a grid or to the edges of other elements, and moves and resizes from the keyboard too. **Desktop** is the area windows live in, and the **window manager** lets any part of your app open a window with data.
+
+:::interactive[Window demo]
+
+```tsx
+import { Button, Toggle } from '@airlib/react-aui';
+import { arrangeWindows, defineWindow, Desktop, Window, WindowHost, WindowTaskbar } from '@airlib/react-aui/desktop';
+import { $bind, $use, mutable, setup } from '@airlib/react';
+import wallpaper from '@/assets/air-desktop.webp?asset&sizes=1600';
+import wallpaperDark from '@/assets/air-desktop-dark.webp?asset&sizes=1600';
+
+const notes = defineWindow<{ topic: string }>({
+  name: 'note',
+  title: (data) => data.topic,
+  multiple: true,
+  rect: { width: 300, height: 200 },
+  window: { snap: '.aui-window', minWidth: 220, minHeight: 140 },
+}).render(({ instance }) => () => (
+  <Window title={instance.title}>
+    <p>Notes about {instance.data.topic}.</p>
+  </Window>
+));
+
+const inspector = defineWindow({
+  name: 'inspector',
+  title: 'Inspector',
+  rect: { x: 360, y: 24, width: 260, height: 240 },
+  window: { snap: '.aui-window', grid: 8 },
+}).render(({ instance }) => () => (
+  <Window title={instance.title}>
+    <p>One inspector at a time — opening it again brings it to the front.</p>
+  </Window>
+));
+
+const TOPICS = ['Roadmap', 'Retro', 'Hiring', 'Launch'];
+
+const WindowDemo = setup(() => {
+  const view = mutable({ solid: false });
+  let count = 0;
+  let desktop: HTMLElement | null = null;
+
+  return () => (
+    <div className="flex flex-col gap-sm">
+      <div className="flex flex-wrap gap-xs">
+        <Button size="sm" onClick={() => notes.open({ topic: TOPICS[count++ % TOPICS.length] })}>
+          New note
+        </Button>
+        <Button size="sm" variant="tonal" onClick={() => inspector.open()}>
+          Inspector
+        </Button>
+        <Button size="sm" variant="text" onClick={() => arrangeWindows('cascade', desktop)}>
+          Cascade
+        </Button>
+        <Button size="sm" variant="text" onClick={() => arrangeWindows('tile', desktop)}>
+          Tile
+        </Button>
+        <div className="flex-1" />
+        <Toggle size="sm" pressed={$bind(view, 'solid')}>
+          Solid
+        </Toggle>
+      </div>
+      <div ref={(el) => (desktop = el?.querySelector('.aui-desktop') ?? null)}>
+        <Desktop className="demo-desktop" wallpaper={{ light: wallpaper.src, dark: wallpaperDark.src }}>
+          <WindowHost
+            variant={$use(() => (view.solid ? 'solid' : 'glass'))}
+            closeLabel="Close"
+            minimizeLabel="Minimize"
+            maximizeLabel="Maximize"
+            restoreLabel="Restore"
+          />
+        </Desktop>
+      </div>
+      <WindowTaskbar label="Open windows" />
+    </div>
+  );
+}, 'WindowDemo');
+```
+
+```html
+<WindowDemo />
+```
+
+<WindowDemo />
+
+:::
+
+Drag a window's toolbar to move it and drop it near another to see its edges snap. Pull any edge or corner to resize. Double-click a toolbar to maximize. Click a window's entry in the taskbar to bring it forward, or again to put it away.
+
+## Usage
+
+### One window
+
+When you need a single panel on the page, give `Window` its content. It always draws its frame: your content scrolling on a panel, a toolbar floating over the panel's top, and the resize grips. `title` draws text in the toolbar and names the window; each window button appears when you name it:
+
+```tsx
+import { Window } from '@airlib/react-aui/desktop';
+import '@airlib/aui/desktop.css';
+
+<Window
+  title="Layers"
+  x={$bind(panel, 'x')}
+  y={$bind(panel, 'y')}
+  width={$bind(panel, 'width')}
+  height={$bind(panel, 'height')}
+  closeLabel="Close layers"
+  maximizeLabel="Maximize layers"
+  restoreLabel="Restore layers"
+>
+  <LayerList />
+</Window>
+```
+
+- `x`, `y`, `width`, `height` — the geometry in pixels. Bind them to keep the position after a move, to save it, or to move the window from code. Leave them out and the window starts centered at a default size.
+- `open`, `minimized`, `maximized` — the window's state; bind them when your app needs to read or set it.
+- `closeLabel`, `minimizeLabel`, `maximizeLabel`, `restoreLabel` — the button names, in your users' language. Nothing is named for you: leave a label out and that button isn't drawn.
+- `minWidth`, `minHeight`, `maxWidth`, `maxHeight` — how small or large people may make it.
+- `movable`, `resizable`, `disabled` — turn moving, resizing, or everything off.
+
+Most app windows draw no title — the content says what the app is. Leave `title` out and name the window with `label` instead, so screen readers still announce it:
+
+```tsx
+<Window label="Mail" closeLabel="Close mail">
+  <MailApp />
+</Window>
+```
+
+With the window itself focused, the arrow keys move it and `Shift` + arrows resize it.
+
+### Keep windows inside an area
+
+Wrap windows in a `Desktop` when they belong to a region of the page — an editor canvas, a dashboard. Windows inside share one front-to-back order, stay inside the desktop, and snap to its edges:
+
+```tsx
+import { Desktop, Window } from '@airlib/react-aui/desktop';
+
+<Desktop className="workspace">
+  <Window title="Preview">…</Window>
+  <Window title="Console">…</Window>
+</Desktop>
+```
+
+Give the desktop a `wallpaper` — one image, or `{ light, dark }` to follow the color scheme. Glass windows blur whatever wallpaper sits behind them:
+
+```tsx
+<Desktop wallpaper={{ light: '/wallpaper.webp', dark: '/wallpaper-dark.webp' }}>…</Desktop>
+```
+
+To set one wallpaper for every desktop, set the `--aui-desktop-wallpaper` and `--aui-desktop-wallpaper-dark` tokens in your theme instead.
+
+Glass catches light where the pointer is: over a window, the dock, or the launcher, the arc of edge facing the pointer lights up — brightest where the pointer is near it — with a faint reflection on the opposite rim and a soft sheen under the pointer, all fading out where the pointer leaves. A window's light reaches half its longest side, so it scales with the window; elsewhere it reaches `--aui-glint-size`. Tune it with `--aui-glint-size`, `--aui-glint-edge`, `--aui-glint-arc` (how wide the lit arc is), `--aui-glint-arc-color`, `--aui-glint-rim`, and `--aui-glint-sheen`; set any of the colors to `transparent` to drop that layer. Your own glass surfaces get the same light from the `aui-glint` class, with the `trackPointer` option on the part behind them.
+
+Pressing the desktop itself, between windows, leaves every window inactive and takes focus out of them — the way clicking a desktop wallpaper does. The order is kept, and pressing or focusing a window makes it active again.
+
+Without a desktop, windows share the page and stay inside the viewport.
+
+### Glass or solid
+
+Windows default to `glass` — the same frosted sheet as menus and popovers, so whatever sits behind a window shows through softly. Use `solid` when the content behind is busy, or when windows sit over other windows all day:
+
+```tsx
+<Window title="Console" variant="solid">…</Window>
+
+// every window a host renders, unless its definition sets its own
+<WindowHost variant="solid" closeLabel="Close" />
+```
+
+Windows move with the page's motion settings: they grow in when they open or come back, shrink away when minimized, and glide to fill their area when maximized. While people drag or resize, the window follows the pointer exactly. With reduced motion turned on, every change is instant.
+
+### A sidebar and content
+
+Every window draws your content on a solid panel, inset from the window's edges with its corners following the window's, and the toolbar floats over the panel's top. Content scrolls under the toolbar and fades out there, so the title and buttons stay readable over it.
+
+App windows usually also have a column of navigation — folders, conversations, topics — beside the thing it navigates. It runs the window's full height beside the content panel. Put a `WindowSidebar` in the window's `sidebar` slot:
+
+```tsx
+import { Window, WindowSidebar } from '@airlib/react-aui/desktop';
+
+<Window label="Memory" closeLabel="Close memory">
+  <Window.Snippet for="sidebar">
+    {() => (
+      <WindowSidebar>
+        <TopicList />
+      </WindowSidebar>
+    )}
+  </Window.Snippet>
+  <MemoryEntry />
+</Window>
+```
+
+The sidebar sits on the window's glass, its items starting below the toolbar's line, and its bare glass moves the window. For sections on panels of their own, put `WindowSidebarPanel`s inside it, each named with a `WindowSidebarLabel`; a sidebar panel and the content panel stand at the same height and meet with thin corners. Each scrolls on its own, and the sidebar keeps its width as the window resizes. In a defined window, write the same inside its `render`: the sidebar and the content then share whatever state the render created, with nothing to pass between them.
+
+The content panel stays readable on a glass window, and it is one tone lighter than a solid one. Set `--aui-window-sidebar-width` for a wider or narrower sidebar, and `--aui-window-content-bg` for the panels' surface.
+
+#### Let people size the sidebar
+
+A sidebar of long topic names wants more room than one of short folder names, and only the person reading it knows how much. Name the sidebar's resizer with `sidebarResizeLabel`, and its edge becomes draggable — on the window, or once on the `WindowHost` for every defined window:
+
+```tsx
+<Window
+  label="Memory"
+  closeLabel="Close memory"
+  sidebarResizeLabel="Resize topics"
+  sidebarWidth={$bind(layout, 'topics')}
+  sidebarMinWidth={200}
+  sidebarMaxWidth={360}
+  onsidebarresize={(event) => saveLayout({ topics: event.detail })}
+>
+  …
+</Window>
+```
+
+- `sidebarWidth` — the width in pixels. Bind it when your app keeps the width; leave it out and the theme's width starts it.
+- `sidebarMinWidth` / `sidebarMaxWidth` — the range the resizer stays in, 160 to 400 unless you set them. The sidebar never takes more than half the window.
+- `onsidebarresize` — runs with the new width when a drag or a key press ends, for saving it somewhere of your own.
+
+Without a `sidebarResizeLabel` there is no resizer, and the sidebar keeps its width. Resizing redraws neither the sidebar nor its content, however long the list in it.
+
+A defined window keeps the width on its open copy, so each copy has its own. Give its definition a starting width in `rect`, and with `remember` the width comes back on the next visit along with the position and size:
+
+```tsx
+export const memoryWindow = defineWindow({
+  name: 'memory',
+  title: 'Memory',
+  remember: true,
+  rect: { width: 720, height: 480, sidebarWidth: 240 },
+  render: (instance) => <MemoryWindow instance={instance} />,
+});
+```
+
+### Where a window moves from
+
+Any bare glass moves the window: the toolbar, a sidebar's background, the frame. Controls keep the pointer, and so does your content — text selects, lists scroll — because content is a surface. Mark your own regions the same way: `data-window-surface` on an element makes pressing anywhere inside it leave the window alone, and a `WindowToolbar` placed inside a surface still moves it, since the nearest marker wins. On touch, a scrolling sidebar takes the finger for scrolling, so the window moves by its toolbar there.
+
+### Snap layouts
+
+Maximizing is all or nothing. People working across two windows want halves: one window on the left, one on the right, or one above the other. Give `layouts` and the maximize button offers them in a popup when people hover it, or press the down arrow on it. Pressing the button still maximizes:
+
+```tsx
+<WindowHost
+  closeLabel="Close"
+  maximizeLabel="Maximize"
+  restoreLabel="Restore"
+  layouts={{
+    label: 'Layouts',
+    move: 'Move & Resize',
+    arrange: 'Fill & Arrange',
+    left: 'Fill left half',
+    right: 'Fill right half',
+    vertical: 'Side by side with the window behind',
+    top: 'Fill top half',
+    bottom: 'Fill bottom half',
+    horizontal: 'Stacked with the window behind',
+    fill: 'Fill the desktop',
+    quarters: 'Tile in four with the windows behind',
+  }}
+/>
+```
+
+- `move`, `arrange` — head the two groups: the halves, and the layouts that fill the desktop or share it with the windows behind. Without them the groups show unheaded.
+- `left`, `right`, `top`, `bottom` — the window fills that half of its desktop.
+- `vertical`, `horizontal` — the window and the one behind it share the desktop: side by side or one above the other, this one on the half it mostly sits in.
+- `fill` — the window fills the desktop at its own size, without maximizing, so it moves and resizes as usual afterwards.
+- `quarters` — the window and up to three behind it tile the desktop in four, this one in the quarter it mostly sits in.
+- `label` names the popup. Each layout appears when you name it, in your users' language.
+
+The arrow keys move between the layouts. `Window` takes the same `layouts` prop.
+
+Maximizing and the halves stop just short of a `Dock`, so the dock never covers the bottom of a window. Set `dockAware={false}` on a window that should fill the whole area anyway. Your own bar can claim the same room: mark it `data-dock`, and windows leave its top or bottom edge free, depending on which half of the area it sits in.
+
+### Snap to a grid or to other elements
+
+When windows should line up, give them a `grid`, `snap` targets, or both:
+
+```tsx
+<Window title="Timeline" grid={8} snap={['.aui-window', '.toolbar']} snapMode="edge" snapThreshold={12}>
+  …
+</Window>
+```
+
+- `grid` — moving and resizing land on this step, in pixels. One number for both axes, or `{ x, y }`.
+- `snap` — selectors whose elements attract the window. `'.aui-window'` makes windows line up with each other. The window's area always attracts too, and so does anything marked `data-snap-target` — the `Dock` is, so windows line up against it. Mark your own fixed furniture (a toolbar, a sidebar) the same way.
+- `snapMode` — `'edge'` (default) lines up edges, `'center'` lines up centers, `'all'` does both.
+- `snapThreshold` — how close, in pixels, an edge must come before it snaps. Defaults to 8.
+- `snapGap` — the space left when the window meets something face to face — another window, the dock's top, the other half of a split layout — so the two read as separate pieces. Edges that line up, centers, and the desktop's own edges stay flush. Set it once on `Desktop` for every window in it; a window's own value wins. Defaults to 1.
+- `bounds` — where the window must stay: a selector, `'viewport'`, or `'none'`. Defaults to the desktop, else the viewport.
+
+### Open windows from anywhere
+
+When a window shows a record — a document, a contact, an order — define it once and open it with that record from anywhere in your app. `render` says how each open copy draws itself, and a `WindowHost` draws the open copies where you mount it:
+
+```tsx
+import { defineWindow, Desktop, Window, WindowHost } from '@airlib/react-aui/desktop';
+
+export const orderWindow = defineWindow<{ order: Order }>({
+  name: 'order',
+  title: ({ order }) => `Order ${order.number}`,
+  multiple: true,
+  remember: true,
+  rect: { width: 520, height: 400 },
+  window: { snap: '.aui-window', minWidth: 360 },
+}).render(({ instance }) => () => (
+  <Window title={instance.title}>
+    <OrderDetail order={instance.data.order} />
+  </Window>
+));
+
+// anywhere: a table row, a command, a notification
+orderWindow.open({ order });
+
+// once, in the layout
+<Desktop>
+  <WindowHost closeLabel="Close" minimizeLabel="Minimize" maximizeLabel="Maximize" restoreLabel="Restore" />
+</Desktop>
+```
+
+- `render` — runs once for each open copy, so state you create in it belongs to that copy; it returns what the copy draws, a `<Window>` around its content. That `<Window>` is the open copy: moving, resizing, closing, or maximizing it changes the copy itself, and its button names, layouts, and look come from the `WindowHost` unless you set them on it.
+- `multiple` — allow several copies at once. With it off, opening again brings the open copy to the front.
+- `remember` — keep position, size, sidebar width, and the maximized state between visits, in this browser.
+- `rect` — where and how big a fresh copy opens: `x`, `y`, `width`, `height`, and `sidebarWidth`.
+- `window` — how every copy behaves: size limits, grid, snap, dock awareness.
+- `render` receives `instance`: its `title`, its `data`, its live `state` (`x`, `y`, `width`, `height`, `sidebarWidth`, `minimized`, `maximized`), and `focus()`, `close()`, `minimize()`, `toggleMaximized()`. Parts deeper inside the window reach the same copy with `currentWindow()`.
+
+`orderWindow.instances` lists the open copies; `orderWindow.closeAll()` closes them.
+
+### Lay windows out
+
+`arrangeWindows(mode, area)` lays the open windows out inside an area — pass the desktop element:
+
+- `'cascade'` — each window offset from the last, all toolbars visible.
+- `'tile'` — the area split into a grid, one window per cell.
+- `'stack'` — piled in the center.
+
+### A dock
+
+`Dock` is the desktop's one input surface, centered at the bottom above every window: a launcher that opens a grid of every defined app above the dock, a prompt for typed or spoken requests, and the running apps. Put it inside the `Desktop`:
+
+```tsx
+import { Desktop, Dock, WindowHost } from '@airlib/react-aui/desktop';
+
+<Desktop>
+  <WindowHost closeLabel="Close" />
+  <Dock
+    label="Dock"
+    startLabel="Apps"
+    promptLabel="Ask the assistant"
+    placeholder="Ask anything"
+    voiceLabel="Voice input"
+    submitLabel="Send"
+    busyLabel="Thinking"
+    listening={$bind(voice, 'on')}
+    busy={$use(() => assistant.working)}
+    onsubmit={(event) => assistant.ask(event.detail)}
+  />
+</Desktop>
+```
+
+- `onsubmit` — receives the prompt's text when people press `Enter` or the send button; the prompt clears afterwards. `Shift` + `Enter` adds a line, and the field grows with its text.
+- `busy` — whether your app is still working on the last request. A spinner leads the prompt, named by `busyLabel`, and sending waits until it ends; people can keep typing the next request.
+- `listening` — whether voice input is on. The dock shows the state and toggles it; your app does the listening.
+- `startLabel`, `voiceLabel`, `submitLabel` — each names a button and draws it. Leave one out and that button isn't there. `promptLabel` names the field for screen readers.
+- `apps` — which apps the launcher lists and the dock shows when running. Defaults to every window you defined. Give a definition a `label` and an `image` (the app's picture) or an `icon` (a glyph) to show in the dock; without either, the label's initials show. `startImage` draws the start button as a picture tile too. Each app is drawn as an [`AppIcon`](/docs/widgets/avatar#an-app-you-can-open).
+
+Pressing a running app's icon brings it forward, puts its window away when it is already in front, and cycles through its windows when it has several. A dot marks the app in front.
+
+Like a window, the dock keeps `Tab` among its own controls: past the last running app it wraps to the launcher button, and `Shift` + `Tab` wraps back. People leave it by pressing a window or the desktop. Arrow keys move between the running apps. In the launcher they follow the grid as it wraps to the space it has: left and right go through the apps in order, up and down go to the closest app in the row above or below.
+
+For your own layout, compose `DockLauncher` (named with `aria-label`), `DockPrompt` (named with `label`), and `DockTasks` inside `Dock`, or replace the launcher and the running apps with the `start` and `tasks` slots.
+
+### A taskbar
+
+`WindowTaskbar` shows one button per open window. Pressing a button brings that window forward, puts it away when it is already in front, and brings it back when it is minimized. Name the bar with `label`; pass a function child to show an icon beside each title.
+
+```tsx
+<WindowTaskbar label="Open windows" />
+```
+
+### Build it from parts
+
+When the toolbar needs more than a title — tabs, a search field, a menu — fill the `title` slot, and add buttons with the `actions` slot. The window buttons you named stay:
+
+```tsx
+<Window label="Files" closeLabel="Close files">
+  <Window.Snippet for="title">{() => <SearchInput aria-label="Search files" />}</Window.Snippet>
+  <Results />
+</Window>
+```
+
+Fields and buttons inside the toolbar keep working as fields and buttons; pressing anywhere else on it moves the window.
+
+When the content should not sit on the panel at all — a media player, a canvas straight on the glass — replace the body whole with the `body` slot and build it from the parts. `WindowControls` draws the window buttons with the names and layouts the window and its host already give, so a toolbar you build keeps the same buttons:
+
+```tsx
+import { Window, WindowBody, WindowControls, WindowTitle, WindowToolbar } from '@airlib/react-aui/desktop';
+
+<Window>
+  <Window.Snippet for="body">
+    {() => (
+      <WindowBody>
+        <WindowToolbar>
+          <WindowTitle>Player</WindowTitle>
+          <WindowControls />
+        </WindowToolbar>
+        <VideoStage />
+      </WindowBody>
+    )}
+  </Window.Snippet>
+</Window>
+```
+
+A `WindowToolbar` moves the window wherever you place it, even inside a surface; the rest of your content keeps the pointer.
+
+### Properties
+
+`Window`:
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `title` | `string` | — | Text drawn in the toolbar; names the window. |
+| `label` | `string` | — | Names a window that draws no title. |
+| `x` / `y` | `Bindable<number>` | centered | Position from the desktop or viewport. |
+| `width` / `height` | `Bindable<number>` | theme default | Size in pixels. |
+| `minWidth` / `minHeight` / `maxWidth` / `maxHeight` | `number` | — | Size limits for resizing. |
+| `open` | `Bindable<boolean>` | `true` | Whether the window shows. |
+| `minimized` / `maximized` | `Bindable<boolean>` | `false` | Put away, or filling its area. |
+| `movable` / `resizable` | `boolean` | `true` | Allow moving, allow resizing. |
+| `disabled` | `boolean` | `false` | Locks moving, resizing, and the window buttons. |
+| `grid` | `number \| { x, y }` | — | Snap step while moving and resizing. |
+| `snap` | `string \| string[]` | — | Selectors that attract the window. |
+| `snapMode` | `'edge'`, `'center'`, `'all'` | `'edge'` | What lines up. |
+| `snapThreshold` | `number` | `8` | Snap distance in pixels. |
+| `snapGap` | `number` | desktop's, else `1` | Space left where it meets something face to face, including between split halves. |
+| `bounds` | `string`, `'viewport'`, `'none'` | desktop, else viewport | Where the window must stay. |
+| `keyStep` | `number` | `16` | Arrow-key step when there is no grid. |
+| `dockAware` | `boolean` | `true` | Maximizing and the halves stop short of any `data-dock` element. |
+| `closeLabel` / `minimizeLabel` / `maximizeLabel` / `restoreLabel` | `string` | — | Button names; a button appears only when named. |
+| `layouts` | `{ label, left?, right?, top?, bottom?, vertical?, horizontal? }` | — | The maximize button's layout popup; each layout appears when named. |
+| `variant` | `'glass'`, `'solid'` | `'glass'` | The window's surface. |
+| `size` / `color` | shared vocabulary | `'md'` / `'primary'` | Reach the window buttons. |
+| `onmove` / `onresize` | `(event: CustomEvent<{ x, y, width, height }>) => void` | — | When a move or resize ends. |
+| `onclose` / `onminimize` / `onrestore` / `onraise` | `(event: CustomEvent<void>) => void` | — | After each change. |
+| `onrelease` | `(event: CustomEvent<void>) => void` | — | When the window stops being active because its desktop was pressed. |
+| `onmaximize` | `(event: CustomEvent<boolean>) => void` | — | With the new maximized state. |
+| `sidebarWidth` | `Bindable<number>` | theme default | The sidebar's width in pixels; the resizer writes it. |
+| `sidebarMinWidth` / `sidebarMaxWidth` | `number` | `160` / `400` | The resizer's range; never more than half the window. |
+| `sidebarResizeLabel` | `string` | — | Names the sidebar's resizer; the resizer appears only when named. Also on `WindowHost`. |
+| `onsidebarresize` | `(event: CustomEvent<number>) => void` | — | With the new width when a resize ends. |
+
+Slots: `sidebar` adds the full-height column beside the body; `title` fills the toolbar before its buttons; `actions` adds buttons before the window buttons; `body` replaces the whole body — toolbar, content panel, and all.
+
+Parts:
+
+| Part | Notes |
+| --- | --- |
+| `Desktop` | The area windows share. Takes `wallpaper`, and `snapGap` for every window in it. |
+| `WindowToolbar` | The strip that moves the window, even inside a surface; double-click maximizes. |
+| `WindowControls` | The window buttons, named by its own props, else the window's, else the host's; children come first. |
+| `WindowTitle` | The heading that names the window. |
+| `WindowBody` | The column beside the sidebar; holds the toolbar and the content panel. Use it in the `body` slot. |
+| `WindowSidebar` | A full-height, fixed-width column on the window's glass, for the `sidebar` slot. |
+| `WindowSidebarPanel` | A section of the sidebar on its own inset panel; a surface. Stack several, and they meet with thin corners. |
+| `WindowSidebarLabel` | The name over a group of sidebar items, such as "Notes". |
+| `WindowContent` | The content panel the window draws for you; scrolls, and fades under a floating toolbar; a surface. |
+| `WindowResize` | One grip: `edge` is `n`, `s`, `e`, `w`, `ne`, `nw`, `se`, or `sw`. |
+| `WindowResizeGrips` | All eight grips. |
+| `WindowClose` / `WindowMinimize` / `WindowMaximize` | Window buttons; name each with `aria-label` (`WindowMaximize` also takes `restoreLabel`). |
+| `WindowHost` | Draws the windows opened through `defineWindow`, and lends them its button names, layouts, and look. |
+| `WindowTaskbar` | One button per open window. |
+
+## Keyboard
+
+Focus stays inside the window that has it: `Tab` moves through its controls and wraps from the last back to the first, and `Shift` + `Tab` wraps the other way. Leaving a window is deliberate — press another window or its taskbar entry.
+
+With the window itself focused (press its toolbar, or move focus to it), the arrow keys move it by the grid step or `keyStep`, and `Shift` + arrows resize it. Focusing anything inside a window brings it to the front. Closing or minimizing the focused window moves focus to the next window in front.
+
+The sidebar's resizer is a stop in the window's `Tab` order: the arrow keys widen and narrow the sidebar 16 pixels at a time, and `Home` / `End` take it to its narrowest and widest.
+
+## Next Steps
+
+- [Dialog](/docs/composites/dialog) — When the panel should block the page until it's answered.
+- [Drawer](/docs/composites/drawer) — A side sheet that slides in from an edge.
+- [Splitter](/docs/widgets/splitter) — Resizable panes that stay in the layout.

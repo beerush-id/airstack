@@ -2,6 +2,7 @@ import { $static, $symbol, createContext, uIndex } from '@airlib/core';
 import { Aria } from '../../core.js';
 import type { AriaAttributes, AriaOptions, AriaProps, BaseElement } from '../../types.js';
 import { ariaBoolean } from '../../utils/attributes.js';
+import { createTabStop } from '../../utils/tab-stop.js';
 
 const ROLE_FEED = 'feed';
 const ARTICLE_SELECTOR = 'article, [role="article"]';
@@ -86,6 +87,11 @@ export class FeedAria<
   }
 
   public articles = 0;
+
+  /**
+   * The feed's one tab stop: the article last focused, else the first one to join.
+   */
+  public readonly tabStop = createTabStop();
 
   /**
    * Total count of articles in the feed, or -1 if unknown.

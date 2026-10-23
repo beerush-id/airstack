@@ -16,9 +16,10 @@ Styling is optional. Without AUI CSS the Meter stays a correct, operable gauge; 
 :::interactive[Meter demo]
 
 ```tsx
-import { Meter, Select, Slider } from '@airlib/react-aui';
+import { Meter, Readout, Select, Slider } from '@airlib/react-aui';
 import { $bind, mutable, setup, Snippet } from '@airlib/react';
 import { COLOR_LABELS, SIZE_LABELS } from '@airlib/aui/utils';
+import { GlassStage } from '@/components/GlassStage.js';
 
 const MeterDemo = setup(() => {
   const state = mutable({
@@ -34,31 +35,33 @@ const MeterDemo = setup(() => {
         <Select size="sm" placeholder="Size" options={SIZE_LABELS} value={$bind(state, 'size')} />
         <Select size="sm" placeholder="Color" options={COLOR_LABELS} value={$bind(state, 'color')} />
       </div>
-      <div className="aui-card flex flex-col gap-lg p-xl">
-        <Snippet>
-          {() => (
-            <Slider
-              min={0}
-              max={state.max}
-              value={$bind(state, 'reading')}
-              aria-label="Storage used"
-            />
-          )}
-        </Snippet>
-        <Snippet>
-          {() => (
-            <Meter
-              value={state.reading}
-              max={state.max}
-              size={state.size}
-              color={state.color}
-              label="Storage"
-              valuetext={`${Math.round(state.reading)} GB of ${state.max} GB`}
-            />
-          )}
-        </Snippet>
-        <Snippet>{() => <span>{`${Math.round(state.reading)} GB of ${state.max} GB`}</span>}</Snippet>
-      </div>
+      <GlassStage>
+        <div className="flex flex-col gap-lg">
+          <Snippet>
+            {() => (
+              <Slider
+                min={0}
+                max={state.max}
+                value={$bind(state, 'reading')}
+                aria-label="Storage used"
+              />
+            )}
+          </Snippet>
+          <Snippet>
+            {() => (
+              <Meter
+                value={state.reading}
+                max={state.max}
+                size={state.size}
+                color={state.color}
+                label="Storage"
+                valuetext={`${Math.round(state.reading)} GB of ${state.max} GB`}
+              />
+            )}
+          </Snippet>
+          <Snippet>{() => <Readout label="Used" value={`${Math.round(state.reading)} GB of ${state.max} GB`} />}</Snippet>
+        </div>
+      </GlassStage>
     </div>
   );
 }, 'MeterDemo');

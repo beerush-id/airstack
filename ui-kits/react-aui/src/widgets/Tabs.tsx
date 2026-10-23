@@ -98,7 +98,12 @@ export const Tabs = setup<TabsProps, TabsSlots>((props, slots) => {
 export const TabList = setup<TabListProps>((props) => {
   const styles = tabsScope.inherit(props);
   const list = aria(LIST_ROLE, props as AnyType);
-  const className = () => $families([AUI_CLASS.SCALE, AUI_CLASS.TAB_LIST], styles, auiConfig.tabList);
+  const className = () => {
+    const families = $families([AUI_CLASS.SCALE, AUI_CLASS.TAB_LIST], styles, auiConfig.tabList);
+    // Glass is the shared material, not a strip style of its own.
+    const variant = styles.variant ?? auiConfig.tabList?.variant;
+    return variant === VARIANTS.GLASS ? `${families} ${AUI_CLASS.GLASS_FRAME}` : families;
+  };
 
   return () => (
     <div ref={list.ref} {...list.restProps(OMIT_KEYS)} className={className()}>

@@ -45,20 +45,6 @@
     position: relative;
   }
 
-  /*
-   * A pressed control clips its spreading ripple, which would cut the badge
-   * off its corner. A control carrying a badge stays unclipped and shows a
-   * flat pressed tint instead.
-   */
-  :is(.aui-control, .aui-item, .aui-state-layer):has(> .aui-badge-indicator):active {
-    overflow: visible;
-
-    &::after {
-      animation: none;
-      opacity: var(--tone-pressed-strength);
-    }
-  }
-
   .aui-badge-indicator {
     position: absolute;
     z-index: 1;

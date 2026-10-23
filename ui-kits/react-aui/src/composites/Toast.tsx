@@ -1,10 +1,11 @@
 import { aria } from '@airlib/aria';
 import { AUI_CLASS, register, SIZES, VARIANTS } from '@airlib/aui/utils';
-import { type AnyType, setup } from '@airlib/react';
+import { type AnyType, For, Show, setup } from '@airlib/react';
 import type { ReactNode } from 'react';
 import { $families, auiConfig, type ComponentStyles, OMIT_KEYS } from '../config.js';
 import { CloseIcon } from '../icons/index.js';
 import { createStyleScope } from '../utils/common.js';
+import { toast } from './toast-registry.js';
 
 export type ToastProps = ComponentStyles & {
   critical?: boolean;
@@ -15,8 +16,23 @@ export type ToastProps = ComponentStyles & {
 
 export type ToastCloseProps = ComponentStyles & {
   disabled?: boolean;
+  'aria-label'?: string;
   children?: ReactNode;
 };
+
+/** The corner notifications gather in. */
+export type ToastPlacement = 'top-end' | 'top-start' | 'bottom-end' | 'bottom-start';
+
+export type ToastHostProps = ComponentStyles & {
+  /** Names each notification's close button; without it, they have none and leave on their own. */
+  closeLabel?: string;
+  /** Milliseconds a notification stays when it sets no `duration` of its own. Defaults to 5000. */
+  duration?: number;
+  /** The corner they gather in. Defaults to the top end, clear of the dock. */
+  placement?: ToastPlacement;
+};
+
+const TOAST_DURATION = 5000;
 
 const TOAST_ROLE = 'toast';
 const CLOSE_ROLE = 'toast-close';
@@ -44,6 +60,34 @@ export const Toast = setup<ToastProps>((props) => {
     </div>
   );
 }, 'Toast');
+
+/**
+ * Shows the notifications added with `toast`, gathered in a corner, newest
+ * last. Mount it once. Each leaves when its time runs out or its close
+ * button is pressed; neither takes focus from what people are doing.
+ */
+export const ToastHost = setup<ToastHostProps>(
+  (props) => () => (
+    <div className={$families(AUI_CLASS.TOAST_HOST, props)} data-placement={props.placement ?? 'top-end'}>
+      <For each={() => toast.entries}>
+        {(entry) => (
+          <Toast
+            key={entry.id}
+            color={entry.color}
+            critical={entry.critical}
+            duration={entry.duration ?? props.duration ?? TOAST_DURATION}
+            size={props.size}
+            ondismiss={entry.dismiss}
+          >
+            {typeof entry.content === 'function' ? (entry.content as () => ReactNode)() : entry.content}
+            <Show when={() => props.closeLabel}>{(label) => <ToastClose aria-label={label} />}</Show>
+          </Toast>
+        )}
+      </For>
+    </div>
+  ),
+  'ToastHost'
+);
 
 /**
  * Button that commits the enclosing toast's dismissal. Without children it

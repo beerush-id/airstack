@@ -15,8 +15,10 @@ Styling is optional. Without AUI CSS the FilePicker stays a correct, operable bu
 
 ```tsx
 import { FilePicker, Select, Toggle } from '@airlib/react-aui';
+import { UploadIcon } from '@airlib/react-aui/icons';
 import { COLOR_LABELS } from '@airlib/aui/utils';
 import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { GlassStage } from '@/components/GlassStage.js';
 
 const FilePickerDemo = setup(() => {
   const state = mutable({ color: 'primary', disabled: false, multiple: true });
@@ -34,22 +36,25 @@ const FilePickerDemo = setup(() => {
           {() => (state.disabled ? 'Set Enabled' : 'Set Disabled')}
         </Toggle>
       </div>
-      <div className="aui-card flex flex-col gap-lg items-start justify-center p-xl">
-        <Snippet>
-          {() => (
-            <FilePicker
-              color={state.color}
-              multiple={state.multiple}
-              disabled={state.disabled}
-              accept="image/*"
-              onchange={noop}
-              oncancel={noop}
-            >
-              Choose images
-            </FilePicker>
-          )}
-        </Snippet>
-      </div>
+      <GlassStage>
+        <div className="flex flex-col gap-lg items-center justify-center">
+          <Snippet>
+            {() => (
+              <FilePicker
+                color={state.color}
+                multiple={state.multiple}
+                disabled={state.disabled}
+                accept="image/*"
+                onchange={noop}
+                oncancel={noop}
+              >
+                <UploadIcon />
+                <span>Choose images</span>
+              </FilePicker>
+            )}
+          </Snippet>
+        </div>
+      </GlassStage>
     </div>
   );
 }, 'FilePickerDemo');

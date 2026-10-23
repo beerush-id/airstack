@@ -1,6 +1,6 @@
-import { aria } from '@airlib/aria';
+import { aria, type TreeItemAria } from '@airlib/aria';
 import { AUI_CLASS, COLORS, register, SIZES } from '@airlib/aui/utils';
-import { type AnyType, type Bindable, For, Slot, setup } from '@airlib/react';
+import { type AnyType, type Bindable, For, renderDynamic, Slot, setup } from '@airlib/react';
 import type { ReactNode } from 'react';
 import { $families, auiConfig, type ComponentStyles, OMIT_KEYS } from '../config.js';
 import { ArrowRight } from '../icons/index.js';
@@ -18,7 +18,8 @@ export type TreeEntry = {
 };
 
 export type TreeSlots = {
-  item: (entry: TreeEntry) => ReactNode;
+  /** Content of each row; the node tells whether it's open, so a branch can show it. */
+  item: (entry: TreeEntry, item: TreeItemAria) => ReactNode;
 };
 
 export type TreeProps = ComponentStyles & {
@@ -43,7 +44,7 @@ export type TreeItemProps = ComponentStyles & {
   expanded?: Bindable<boolean>;
   selected?: Bindable<boolean>;
   disabled?: boolean;
-  children?: ReactNode;
+  children?: ReactNode | ((item: TreeItemAria) => ReactNode);
   ontoggle?: (event: CustomEvent<boolean>) => void;
 };
 
@@ -57,6 +58,7 @@ export type TreeGroupProps = ComponentStyles & {
 const TREE_ROLE = 'tree';
 const TREE_ITEM_ROLE = 'tree-item';
 const TREE_GROUP_ROLE = 'tree-group';
+const TREE_TOGGLE_ROLE = 'tree-toggle';
 
 const ITEM_OMIT = [...OMIT_KEYS, 'labelledby', 'ontoggle'];
 
@@ -87,10 +89,14 @@ export const Tree = setup<TreeProps, TreeSlots>((props, slots) => {
           disabled={entry.disabled}
           expanded={entry.children ? (entry.expanded ?? false) : undefined}
         >
-          <span>
-            <Slot for={() => slots.item?.(entry)}>{entry.label ?? entry.name}</Slot>
-          </span>
-          {entry.children && <TreeGroup>{renderEntries(entry.children)}</TreeGroup>}
+          {(item) => (
+            <>
+              <span>
+                <Slot for={() => slots.item?.(entry, item)}>{entry.label ?? entry.name}</Slot>
+              </span>
+              {entry.children && <TreeGroup>{renderEntries(entry.children)}</TreeGroup>}
+            </>
+          )}
         </TreeItem>
       )}
     </For>
@@ -111,12 +117,15 @@ export const Tree = setup<TreeProps, TreeSlots>((props, slots) => {
 export const TreeItem = setup<TreeItemProps>((props) => {
   const styles = treeScope.inherit(props);
   const item = aria(TREE_ITEM_ROLE, props as AnyType);
+  const toggle = aria(TREE_TOGGLE_ROLE);
   const className = () => $families([AUI_CLASS.SCALE, AUI_CLASS.TREE_ITEM], styles, auiConfig.treeItem);
 
   return () => (
     <li ref={item.ref} {...item.restProps(ITEM_OMIT)} className={className()}>
-      <ArrowRight className={AUI_CLASS.TREE_TOGGLE} aria-hidden="true" />
-      {props.children}
+      <span ref={toggle.ref} {...toggle.restProps(OMIT_KEYS)} className={AUI_CLASS.TREE_TOGGLE}>
+        <ArrowRight />
+      </span>
+      {renderDynamic(props.children, item)}
     </li>
   );
 }, 'TreeItem');

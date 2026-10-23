@@ -106,7 +106,7 @@ export function applyAttributes<E extends BaseElement>(
 
     if (!(key in next)) {
       if (key === 'style') {
-        element.removeAttribute('style');
+        applyStyles(element, undefined, prev.style);
       } else {
         if (key === 'indeterminate' && element instanceof HTMLInputElement) {
           element.indeterminate = false;
@@ -129,7 +129,7 @@ export function applyAttributes<E extends BaseElement>(
         element.removeAttribute('class');
       }
     } else if (key === 'style') {
-      applyStyles(element, value);
+      applyStyles(element, value, prev.style);
     } else {
       if ((key === 'checked' || key === 'indeterminate') && element instanceof HTMLInputElement) {
         element[key] = Boolean(value);
@@ -157,30 +157,39 @@ export function applyAttributes<E extends BaseElement>(
 }
 
 /**
- * Normalizes and applies style definitions onto an Element using stylex.
+ * Applies a controller's style properties onto an Element, diffed against the ones it set
+ * before. Only those properties are the controller's: the rest of the element's inline style
+ * belongs to whoever else renders it — a host that lends its element to a context menu keeps
+ * its own margins.
  *
  * @param element - The DOM element whose styles to update
- * @param styleValue - StyleInput object
+ * @param styleValue - The controller's style properties now, if any
+ * @param prevValue - The style properties the controller set last time, if any
  */
 export function applyStyles(
   element: BaseElement,
-  styleValue?: Record<string, string | number> | CSSStyleDeclaration
+  styleValue?: Record<string, string | number> | CSSStyleDeclaration,
+  prevValue?: Record<string, string | number> | CSSStyleDeclaration
 ): void {
-  if (!styleValue || typeof styleValue !== 'object') {
-    element.removeAttribute('style');
-    return;
-  }
-
   if (!('style' in element)) return;
 
   const htmlStyle = (element as HTMLElement).style;
-  htmlStyle.cssText = '';
+  const next = (styleValue && typeof styleValue === 'object' ? styleValue : {}) as Record<string, string | number>;
+  const prev = (prevValue && typeof prevValue === 'object' ? prevValue : {}) as Record<string, string | number>;
 
-  for (const [prop, val] of Object.entries(styleValue)) {
-    if (prop.startsWith('--')) {
-      htmlStyle.setProperty(prop, String(val));
-    } else {
-      htmlStyle[prop as never] = val as string;
-    }
+  for (const prop of Object.keys(prev)) {
+    if (!(prop in next)) setStyle(htmlStyle, prop, '');
+  }
+
+  for (const [prop, val] of Object.entries(next)) {
+    setStyle(htmlStyle, prop, val == null ? '' : String(val));
+  }
+}
+
+function setStyle(style: CSSStyleDeclaration, prop: string, value: string): void {
+  if (prop.startsWith('--')) {
+    style.setProperty(prop, value);
+  } else {
+    style[prop as never] = value as never;
   }
 }

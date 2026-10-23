@@ -1,6 +1,6 @@
 import { aria } from '@airlib/aria';
 import { AUI_CLASS, register } from '@airlib/aui/utils';
-import { type AnyType, type Bindable, setup } from '@airlib/react';
+import { type AnyType, type Bindable, setup, teleport } from '@airlib/react';
 import type { ReactNode } from 'react';
 import { $families, auiConfig, type ComponentStyles, OMIT_KEYS } from '../config.js';
 import type { OverlayXDirection, OverlayYDirection } from './overlay.js';
@@ -32,9 +32,13 @@ export const Tooltip = setup<TooltipProps>((props) => {
   const tooltip = aria(TOOLTIP_ROLE, props as AnyType);
   const className = () => $families(AUI_CLASS.TOOLTIP, props, auiConfig.tooltip);
 
-  return () => (
-    <div ref={tooltip.ref} {...tooltip.restProps(OMIT_KEYS)} className={className()}>
-      {props.children}
-    </div>
-  );
+  // Teleported to the page while showing, so no ancestor's overflow, stacking, or containing block can trap it.
+  return () => {
+    if (!tooltip.open) return null;
+    return teleport(
+      <div ref={tooltip.ref} {...tooltip.restProps(OMIT_KEYS)} className={className()}>
+        {props.children}
+      </div>
+    );
+  };
 }, 'Tooltip');

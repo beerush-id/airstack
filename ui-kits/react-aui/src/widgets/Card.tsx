@@ -1,5 +1,6 @@
+import { Aria } from '@airlib/aria';
 import { AUI_CLASS, branded, COLORS, register, SIZES, VARIANTS } from '@airlib/aui/utils';
-import { setup, shortId, template } from '@airlib/react';
+import { type AnyType, setup, template, uIndex } from '@airlib/react';
 import type { ComponentProps, ReactNode } from 'react';
 import { $class, $families, type AuiProps, auiConfig, type ComponentStyles } from '../config.js';
 
@@ -37,27 +38,55 @@ const CARD_CLASS = {
   ACTIONS: branded('card-actions'),
 };
 
-const CARD_OMIT: Array<keyof CardProps> = ['as', 'title', 'description', 'level', 'children', 'className', 'size', 'color', 'variant'];
+const CARD_OMIT: Array<keyof CardProps> = [
+  'as',
+  'title',
+  'description',
+  'level',
+  'children',
+  'className',
+  'size',
+  'color',
+  'variant',
+  'oncommand',
+];
 
 register('card', { size: SIZES.MD, color: COLORS.PRIMARY, variant: VARIANTS.FILLED });
+
+const CARD_SYMBOL = Symbol('aui-card');
 
 /**
  * Grouped content that reads as one unit: optional media, a heading, a
  * description, the body, and actions. With `title` it renders the heading for
  * you and names the card by it, so a list of cards reads as a list of named
  * entries; the `media`, `header`, and `actions` slots fill the rest.
+ *
+ * A card is the thing it stands for, so commands run on it land on it: its
+ * context menu, or a menu inside it, emits to its `oncommand`.
  */
 export const Card = setup<CardProps, CardSlots>((props, slots) => {
-  const titleId = `aui-card-${shortId()}`;
-  const className = () =>
-    $families([CARD_CLASS.ROOT, CARD_CLASS.FRAME, AUI_CLASS.SCALE], props, auiConfig.card);
+  // No behavior of its own: the card is the scope a context menu or a menu inside it acts on.
+  const entity = new Aria(props as AnyType);
+  // A counter in render order, the same on the server and in the browser, so the id hydrates.
+  const titleId = `aui-card-${uIndex(CARD_SYMBOL, true)}`;
+  const className = () => {
+    const families = $families([CARD_CLASS.ROOT, CARD_CLASS.FRAME, AUI_CLASS.SCALE], props, auiConfig.card);
+    // Glass is the shared material, not a card style of its own.
+    const variant = props.variant ?? auiConfig.card?.variant;
+    return variant === VARIANTS.GLASS ? `${families} ${AUI_CLASS.GLASS_FRAME}` : families;
+  };
 
   return () => {
     const Host = props.as ?? 'article';
     const hasHeader = Boolean(props.title || props.description || slots.header);
 
     return (
-      <Host {...props.$omit(CARD_OMIT)} aria-labelledby={props.title ? titleId : undefined} className={className()}>
+      <Host
+        ref={entity.ref}
+        {...props.$omit(CARD_OMIT)}
+        aria-labelledby={props.title ? titleId : undefined}
+        className={className()}
+      >
         {slots.media && <div className={CARD_CLASS.MEDIA}>{slots.media()}</div>}
         {hasHeader && (
           <div className={CARD_CLASS.HEADER}>

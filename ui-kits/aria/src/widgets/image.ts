@@ -46,7 +46,10 @@ export interface ImageProps extends AriaProps {
  *
  * @template E - Target Element type (defaults to HTMLElement)
  */
-export interface ImageAttributes<E extends BaseElement = HTMLElement> extends AriaAttributes<E> {}
+export interface ImageAttributes<E extends BaseElement = HTMLElement> extends AriaAttributes<E> {
+  /** The source lifecycle, for styles to decide which representation shows. */
+  'data-status'?: ImageStatus;
+}
 
 /**
  * Compiled HTML and ARIA attributes for an image content element.
@@ -141,12 +144,14 @@ export class ImageAria<
 
   /**
    * Computes the attributes for the image container. The container carries no
-   * accessibility semantics of its own; it coordinates lifecycle.
+   * accessibility semantics of its own; it coordinates lifecycle and publishes
+   * it as `data-status`, so what shows on screen can differ from what assistive
+   * technology is told: a picture may show while loading, before it is announced.
    *
    * @returns Image container attributes dictionary
    */
   protected override createAttributes(): A {
-    return {} as A;
+    return { 'data-status': this.status } as A;
   }
 
   /**

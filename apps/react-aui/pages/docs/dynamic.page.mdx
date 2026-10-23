@@ -1,0 +1,192 @@
+---
+title: UI from Data
+nav: UI from Data
+nav-priority: 130
+description: Draw UI an agent or a server describes as JSON — AUI components and prose by role, with plain props, live bindings to your app's state, and nothing that runs code.
+keywords: [generative UI, server-driven UI, JSON UI, agent UI, AI widgets, dynamic components, React AUI WidgetRenderer]
+---
+
+# UI from Data
+
+An assistant that can only answer in text has to describe a form instead of showing one. Letting it answer with code is worse: code from a model can do anything, can't be stored and replayed, and can't be drawn on the server. What an answer needs is UI as data — which component, with what props, showing which part of your app — that your app draws with components it already trusts.
+
+**UI from data** is that format and its renderer. A node names an AUI component or a prose tag by its role, carries plain JSON props, and can bind a prop to your app's state, so a card from an answer shows the real setting and a toggle in it changes the real setting. Nothing in a node runs code, so an answer can be saved, sent, replayed, and drawn on the server like any other data.
+
+:::interactive[Widget renderer demo]
+
+```tsx
+import { WidgetRenderer, type WidgetNode } from '@airlib/react-aui/dynamic';
+import { setup } from '@airlib/react';
+
+// The docs app shares its theme setting as `settings.theme`; this card shows it and changes it.
+const DISPLAY: WidgetNode = {
+  role: 'card',
+  children: [
+    { role: 'card-header', children: [{ role: 'card-title', children: ['Display'] }] },
+    {
+      role: 'card-body',
+      children: [
+        {
+          role: 'p',
+          children: ['Appearance: ', { role: 'badge', bindings: [{ prop: 'children', state: 'settings.theme.mode' }] }],
+        },
+        {
+          role: 'toggle-group',
+          props: { 'aria-label': 'Appearance', required: true },
+          bindings: [{ prop: 'value', state: 'settings.theme.mode', writable: true }],
+          children: [
+            { role: 'toggle', props: { value: 'system' }, children: ['System'] },
+            { role: 'toggle', props: { value: 'light' }, children: ['Light'] },
+            { role: 'toggle', props: { value: 'dark' }, children: ['Dark'] },
+          ],
+        },
+      ],
+    },
+  ],
+};
+
+const WidgetRendererDemo = setup(() => {
+  return () => (
+    <div className="flex justify-center p-xl">
+      <WidgetRenderer node={DISPLAY} />
+    </div>
+  );
+}, 'WidgetRendererDemo');
+```
+
+```html
+<WidgetRendererDemo />
+```
+
+<WidgetRendererDemo />
+
+:::
+
+The toggle group above came from data, and it changes this site's theme: the same setting as the switch in the header.
+
+## Usage
+
+### Draw a node
+
+Give `WidgetRenderer` one node:
+
+```tsx
+import { WidgetRenderer } from '@airlib/react-aui/dynamic';
+
+<WidgetRenderer
+  node={{
+    role: 'description-list',
+    props: {
+      items: [
+        { label: 'When', value: 'Tue, Oct 27 · 9:00' },
+        { label: 'Where', value: 'Room 4' },
+      ],
+    },
+  }}
+/>
+```
+
+A node is text, or an object with:
+
+- `role` — what draws it: an AUI component by its role (`card`, `tab-button`, `time-picker`), or a prose tag (`p`, `ul`, `table`).
+- `props` — the component's props, as plain JSON: text, numbers, booleans, arrays, and objects.
+- `bindings` — props kept live on your app's state; see below.
+- `children` — more nodes, each drawn by a renderer of its own.
+
+A node is drawn once and never changes; to show something new, add a new node. Its bindings stay live, so what it shows of your app follows your app.
+
+### Which roles data may name
+
+`auiComponents` lists every component data may name, keyed by role: the component's name in kebab case, or the aria role it plays when that names it better (`tab` draws `Tabs`). Use it to tell an agent what it can use, or to check an answer before drawing it:
+
+```ts
+import { auiComponents, type AuiComponentRole } from '@airlib/react-aui/dynamic';
+
+const roles = Object.keys(auiComponents) as AuiComponentRole[];
+```
+
+The desktop itself isn't in it: data describes what to show, and opening a window is something done, not drawn.
+
+For prose, a node may also use these tags: `p`, `span`, `strong`, `em`, `s`, `del`, `sup`, `sub`, `small`, `code`, `pre`, `blockquote`, `ul`, `ol`, `li`, `h3`–`h6`, `br`, `hr`, `a`, `dl`, `dt`, `dd`, and the `table` tags. A link only goes to the web, to mail, or within your page; any other link is dropped. A role the renderer doesn't know draws nothing and is reported in the console, so a mistaken answer never breaks the page.
+
+### Show and edit your app's state
+
+Share the state answers may reach once, with `auiAppCtx`, in the setup of a component around everything that draws them:
+
+```tsx
+import { auiAppCtx } from '@airlib/react-aui/dynamic';
+import { mutable, setup } from '@airlib/react';
+
+const App = setup(() => {
+  auiAppCtx.set({
+    settings: mutable({ theme: { mode: 'system' } }),
+    drafts: mutable({ meeting: {} }),
+  });
+
+  return () => <Desktop>…</Desktop>;
+}, 'App');
+```
+
+Then a node binds a prop to a path in it:
+
+```json
+{
+  "role": "time-picker",
+  "props": { "inline": true, "label": "Meeting time" },
+  "bindings": [{ "prop": "value", "state": "drafts.meeting.time", "writable": true }]
+}
+```
+
+- `prop` — the prop it fills, e.g. `value` or `children`.
+- `state` — a dotted path into what you shared, e.g. `settings.theme.mode`.
+- `writable` — lets the component write back: a control editing the setting it shows. Off by default, so a binding only shows the value.
+
+Only what you share is reachable; a path can't step past it. An answer that asks for a meeting's details writes them into `drafts.meeting`, where your app picks them up — nothing to wire per answer.
+
+### Narrow or widen what data may name
+
+Set `widgetVocabularyCtx` in the setup of a component around the renderers, and they draw from your vocabulary instead of every AUI component. Narrow it for answers you don't fully trust, or widen it with components of your own:
+
+```tsx
+import { auiComponents, widgetVocabularyCtx } from '@airlib/react-aui/dynamic';
+
+widgetVocabularyCtx.set({
+  ...auiComponents,
+  'order-card': OrderCard,
+});
+```
+
+Prose tags are always allowed, whatever the vocabulary.
+
+### What data can't do yet
+
+A node shows things and binds them to your state; it doesn't run actions. A button in an answer draws, but pressing it does nothing until actions arrive. To act on what people chose, read the state the answer wrote — the meeting draft above — from your app.
+
+## Properties
+
+`WidgetRenderer`:
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `node` | `WidgetNode` | — | The piece of UI to draw. |
+
+`WidgetNode` — text, or:
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `role` | `AuiComponentRole`, a prose tag, or a role your vocabulary adds | What draws it. |
+| `props` | `Record<string, JsonValue>` | Plain-data props. |
+| `bindings` | `{ prop, state, writable? }[]` | Props kept live on the shared app state. |
+| `children` | `WidgetNode[]` | Nodes drawn inside it. |
+
+| Export | What it is |
+| --- | --- |
+| `auiComponents` | Every component data may name, by role. |
+| `auiAppCtx` | The app state bindings resolve against. Set it once. |
+| `widgetVocabularyCtx` | The components renderers inside draw from, in place of `auiComponents`. |
+
+## Next Steps
+
+- [Dock Widgets](/docs/composites/dock-widgets) — Where an assistant's answers, made of these nodes, show up.
+- [Markdown](/docs/markdown) — Text drawn with the same renderer, as it streams in.
+- [Theming](/docs/theming) — The look every drawn component shares.

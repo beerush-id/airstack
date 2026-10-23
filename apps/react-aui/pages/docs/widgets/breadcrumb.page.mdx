@@ -18,6 +18,7 @@ Deep pages need a way back up: Docs / Widgets / Breadcrumb. A hand-built trail t
 import { Breadcrumb } from '@airlib/react-aui';
 import { $bind, mutable, setup, Snippet } from '@airlib/react';
 import { DemoControl } from '@/components/DemoControl.js';
+import { GlassStage } from '@/components/GlassStage.js';
 
 const BreadcrumbDemo = setup(() => {
   const state = mutable({ size: 'md', color: 'primary', disabled: false });
@@ -25,23 +26,25 @@ const BreadcrumbDemo = setup(() => {
   return () => (
     <div className="demo-button">
       <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} disabled={$bind(state, 'disabled')} />
-      <div className="aui-card flex flex-col gap-lg justify-center p-xl">
-        <Snippet>
-          {() => (
-            <Breadcrumb
-              label="Documentation trail"
-              size={state.size}
-              color={state.color}
-              links={[
-                { href: '#docs', label: 'Docs' },
-                { href: '#widgets', label: 'Widgets' },
-                { href: '#navigation', label: 'Navigation', disabled: state.disabled },
-                { href: '#breadcrumb', label: 'Breadcrumb' },
-              ]}
-            />
-          )}
-        </Snippet>
-      </div>
+      <GlassStage>
+        <div className="flex flex-col gap-lg justify-center">
+          <Snippet>
+            {() => (
+              <Breadcrumb
+                label="Documentation trail"
+                size={state.size}
+                color={state.color}
+                links={[
+                  { href: '#docs', label: 'Docs' },
+                  { href: '#widgets', label: 'Widgets' },
+                  { href: '#navigation', label: 'Navigation', disabled: state.disabled },
+                  { href: '#breadcrumb', label: 'Breadcrumb' },
+                ]}
+              />
+            )}
+          </Snippet>
+        </div>
+      </GlassStage>
     </div>
   );
 }, 'BreadcrumbDemo');

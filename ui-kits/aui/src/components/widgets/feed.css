@@ -1,3 +1,5 @@
+@import './skeleton.css';
+
 @layer theme {
   :root {
     --aui-feed-gap: var(--spacing-sm);
@@ -16,14 +18,21 @@
     color: var(--color-on-surface);
   }
 
-  .aui-feed-article {
+  /* An entry reads top down: what it is, quietly when and by whom, then what it says. */
+  .aui-feed-article,
+  .aui-feed-loading {
     display: flex;
     flex-direction: column;
     gap: var(--spacing-xs);
     padding: var(--aui-feed-article-padding);
     border-radius: var(--aui-feed-article-radius);
     background-color: var(--aui-feed-article-bg);
+  }
+
+  .aui-feed-article {
     color: inherit;
+    font-size: var(--font-body-md-size);
+    line-height: var(--font-body-md-line-height);
     outline: var(--focus-ring-width) var(--focus-ring-style) transparent;
     outline-offset: var(--focus-ring-offset);
     transition-property: background-color, box-shadow, outline-color;
@@ -38,6 +47,26 @@
       outline-color: color-mix(in oklch, var(--focus-ring-color) 75%, var(--light-up));
       box-shadow: var(--elevation-1);
     }
+  }
+
+  .aui-feed-article-title {
+    font-size: var(--font-title-md-size);
+    font-weight: var(--font-title-md-weight);
+    line-height: var(--font-title-md-line-height);
+    letter-spacing: var(--font-title-md-tracking);
+  }
+
+  .aui-feed-article-meta {
+    margin-block-end: var(--spacing-xs);
+    font-size: var(--font-label-md-size);
+    line-height: var(--font-label-md-line-height);
+    letter-spacing: var(--font-label-md-tracking);
+    color: var(--color-on-surface-variant);
+  }
+
+  /* The skeleton heading holds a short title's width, not the whole row. */
+  .aui-feed-loading > .aui-skeleton {
+    inline-size: 45%;
   }
 
   .aui-feed[aria-busy='true'] {

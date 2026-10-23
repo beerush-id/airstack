@@ -1,10 +1,22 @@
+@import './item.css';
+@import './toggle.css';
+@import './glass.css';
+
+/*
+ * A toggle group is a track of text toggles. One pressed at a time, a single
+ * indicator in the role's tint glides to the pressed member, the way the tab
+ * strip does; several at a time, each pressed member wears the tint itself.
+ */
 @layer theme {
   :root {
-    --aui-toggle-group-bg: var(--color-surface-container);
+    --aui-toggle-group-bg: var(--color-container);
     --aui-toggle-group-radius: var(--radius-lg);
     --aui-toggle-group-gap: calc(var(--spacing-xs) / 2);
     --aui-toggle-group-padding: var(--spacing-xs);
-    --aui-toggle-group-item-radius: var(--radius-xs);
+    /* The seams where members meet stay thin, as between a window's panels, so the track reads as one split control. */
+    --aui-toggle-group-item-radius: calc(var(--aui-toggle-group-padding) * 2);
+    /* How long a collapsible track stays open after the pointer leaves, so passing over it doesn't flicker it. */
+    --aui-toggle-group-collapse-delay: var(--duration-medium);
   }
 }
 
@@ -21,13 +33,162 @@
     border-radius: var(--aui-toggle-group-item-radius);
   }
 
-  .aui-toggle-group > .aui-toggle:first-child {
+  /* The ends of the track round with it: the start and end of a row, the top and bottom of a column. */
+  .aui-toggle-group:not(.aui-toggle-group-vertical) > .aui-toggle:first-child {
     border-start-start-radius: calc(var(--aui-toggle-group-radius) * 0.75);
     border-end-start-radius: calc(var(--aui-toggle-group-radius) * 0.75);
   }
 
-  .aui-toggle-group > .aui-toggle:last-child {
+  .aui-toggle-group:not(.aui-toggle-group-vertical) > .aui-toggle:last-child {
     border-start-end-radius: calc(var(--aui-toggle-group-radius) * 0.75);
     border-end-end-radius: calc(var(--aui-toggle-group-radius) * 0.75);
+  }
+
+  .aui-toggle-group-vertical {
+    flex-direction: column;
+
+    & > .aui-toggle:first-child {
+      border-start-start-radius: calc(var(--aui-toggle-group-radius) * 0.75);
+      border-start-end-radius: calc(var(--aui-toggle-group-radius) * 0.75);
+    }
+
+    & > .aui-toggle:last-child {
+      border-end-start-radius: calc(var(--aui-toggle-group-radius) * 0.75);
+      border-end-end-radius: calc(var(--aui-toggle-group-radius) * 0.75);
+    }
+  }
+
+  /* For a group floating over other content: its track is the shared glass (`aui-glass-frame`), lifted. */
+  .aui-toggle-group-glass {
+    --aui-glass-radius: var(--aui-toggle-group-radius);
+    --aui-glass-shadow: var(--elevation-3);
+  }
+
+  /*
+   * Members are text on the track; the pressed one takes the role's tint and ink. Hovering any
+   * member washes it in the role color, so hovering the pressed one deepens its tint rather than
+   * dimming it: the "on" state always reads stronger than a hover.
+   */
+  .aui-toggle-group > .aui-control.aui-toggle:not(:disabled, [aria-disabled='true']) {
+    --aui-state-layer-color: var(--aui-control-bg);
+    color: var(--color-on-surface-variant);
+    background-color: transparent;
+
+    &[aria-pressed='true'] {
+      color: var(--aui-control-bg);
+      background-color: color-mix(in oklch, var(--aui-control-bg) var(--tone-container-strength), var(--light-up));
+    }
+  }
+
+  /*
+   * One pressed at a time: the pressed member is the group's anchor and one indicator behind the
+   * members rides to it, so switching slides the tint instead of swapping it. Where anchor
+   * positioning is missing, the pressed member's own tint above stays in charge.
+   */
+  @supports (anchor-name: --aui-toggle-pressed) {
+    .aui-toggle-group-single {
+      position: relative;
+      isolation: isolate;
+      anchor-scope: --aui-toggle-pressed;
+
+      &::before {
+        content: '';
+        position: absolute;
+        z-index: -1;
+        position-anchor: --aui-toggle-pressed;
+        top: anchor(top);
+        left: anchor(left);
+        right: anchor(right);
+        bottom: anchor(bottom);
+        border-radius: var(--aui-toggle-group-item-radius);
+        corner-shape: inherit;
+        background-color: color-mix(in oklch, var(--aui-item-bg) var(--tone-container-strength), var(--light-up));
+        transition-property:
+          top, left, right, bottom, border-start-start-radius, border-start-end-radius, border-end-start-radius,
+          border-end-end-radius;
+        transition-duration: var(--duration-medium);
+        transition-timing-function: var(--ease-emphasized);
+      }
+
+      /* It takes the pressed member's shape: the track's rounding at either end, the inner one between. */
+      &:has(> .aui-toggle:first-child[aria-pressed='true'])::before {
+        border-start-start-radius: calc(var(--aui-toggle-group-radius) * 0.75);
+      }
+
+      &:has(> .aui-toggle:last-child[aria-pressed='true'])::before {
+        border-end-end-radius: calc(var(--aui-toggle-group-radius) * 0.75);
+      }
+
+      &:not(.aui-toggle-group-vertical):has(> .aui-toggle:first-child[aria-pressed='true'])::before,
+      &.aui-toggle-group-vertical:has(> .aui-toggle:last-child[aria-pressed='true'])::before {
+        border-end-start-radius: calc(var(--aui-toggle-group-radius) * 0.75);
+      }
+
+      &:not(.aui-toggle-group-vertical):has(> .aui-toggle:last-child[aria-pressed='true'])::before,
+      &.aui-toggle-group-vertical:has(> .aui-toggle:first-child[aria-pressed='true'])::before {
+        border-start-end-radius: calc(var(--aui-toggle-group-radius) * 0.75);
+      }
+
+      & > .aui-control.aui-toggle[aria-pressed='true']:not(:disabled, [aria-disabled='true']) {
+        --aria-anchor-name: --aui-toggle-pressed;
+        anchor-name: var(--aria-anchor-name);
+        background-color: transparent;
+      }
+    }
+  }
+
+  /*
+   * Collapsible: at rest the track shows only what is pressed; pointing at it, or moving the
+   * keyboard into it, opens the rest. Members shrink instead of leaving, so the arrow keys still
+   * reach them, and the track waits a beat before closing. A mouse click doesn't hold it open;
+   * only keyboard focus does.
+   */
+  .aui-toggle-group-collapsible {
+    interpolate-size: allow-keywords;
+    transition: gap var(--duration-medium) var(--ease-emphasized);
+
+    /* The control's own color transitions, then the size the track opens and closes with. */
+    & > .aui-control.aui-toggle {
+      overflow: clip;
+      transition-property:
+        background-color, outline-color, color, border-color, border-width, inline-size, block-size, padding-inline,
+        padding-block, border-radius, var(--aui-state-transitions);
+      transition-duration:
+        var(--duration-short), var(--duration-short), var(--duration-short), var(--duration-short),
+        var(--duration-short), var(--duration-medium), var(--duration-medium), var(--duration-medium),
+        var(--duration-medium), var(--duration-medium);
+    }
+
+    &:not(:hover, :has(:focus-visible)) {
+      /* The pressed member is both ends of the closed track, so every corner takes the track's rounding. */
+      --aui-toggle-group-item-radius: calc(var(--aui-toggle-group-radius) * 0.75);
+      gap: 0;
+      transition-delay: var(--aui-toggle-group-collapse-delay);
+
+      /* Only the closing waits; color changes stay immediate. Delays pair with the lists above. */
+      & > .aui-control.aui-toggle {
+        transition-delay:
+          0s, 0s, 0s, 0s, 0s, var(--aui-toggle-group-collapse-delay), var(--aui-toggle-group-collapse-delay),
+          var(--aui-toggle-group-collapse-delay), var(--aui-toggle-group-collapse-delay),
+          var(--aui-toggle-group-collapse-delay);
+      }
+
+      /* The indicator follows its member at once and rounds off with the closing track. */
+      &::before {
+        transition-delay:
+          0s, 0s, 0s, 0s, var(--aui-toggle-group-collapse-delay), var(--aui-toggle-group-collapse-delay),
+          var(--aui-toggle-group-collapse-delay), var(--aui-toggle-group-collapse-delay);
+      }
+
+      &:not(.aui-toggle-group-vertical) > .aui-control.aui-toggle:not([aria-pressed='true']) {
+        inline-size: 0;
+        padding-inline: 0;
+      }
+
+      &.aui-toggle-group-vertical > .aui-control.aui-toggle:not([aria-pressed='true']) {
+        block-size: 0;
+        padding-block: 0;
+      }
+    }
   }
 }

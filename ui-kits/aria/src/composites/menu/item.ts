@@ -1,4 +1,5 @@
-import type { AriaEventHandler, AriaOptions, AriaProps, BaseElement, Primitive } from '../../types.js';
+import type { AriaEventHandler, AriaOptions, AriaProps, BaseElement, DetachFn, Primitive } from '../../types.js';
+import { createShortcut, type ShortcutBinding } from '../../utils/shortcut.js';
 import { ButtonAria, type ButtonAttributes, type ButtonOptions } from '../../widgets/button.js';
 import {
   CheckboxAria,
@@ -35,9 +36,25 @@ export interface MenuItemProps extends AriaProps {
   disabled?: boolean;
 
   /**
+   * Keyboard shortcut that runs the item from anywhere on the page, e.g. `mod+d`.
+   */
+  shortcut?: string;
+
+  /**
    * Item-level command listener invoked with the item's name.
    */
   oncommand?: AriaEventHandler<MenuCommandEvent>;
+}
+
+/**
+ * A shortcut prop shared by every kind of menu row.
+ */
+export interface MenuItemShortcutProps {
+  /**
+   * Keyboard shortcut that activates the row from anywhere on the page, e.g. `mod+shift+e`.
+   * `mod` is `⌘` on Apple platforms and `Ctrl` elsewhere.
+   */
+  shortcut?: string;
 }
 
 /**
@@ -66,10 +83,22 @@ export class MenuItemAria<E extends BaseElement = HTMLButtonElement> extends But
   protected declare host: MenuAria;
 
   /**
+   * The item's keyboard shortcut; it runs the item the same way a click does.
+   */
+  protected shortcut?: ShortcutBinding;
+
+  /**
    * Whether this item is disabled, factoring in menu-level disablement.
    */
   public override get disabled() {
     return super.disabled || this.host?.disabled;
+  }
+
+  /**
+   * The shortcut as people read it, e.g. `⌘D`.
+   */
+  public get shortcutLabel(): string | undefined {
+    return this.shortcut?.label;
   }
 
   /**
@@ -80,7 +109,8 @@ export class MenuItemAria<E extends BaseElement = HTMLButtonElement> extends But
     super(props, { ...options, clickable: true } as ButtonOptions);
 
     this.host = menuCtx.get();
-    this.omittedAttrs.push('name', 'oncommand', 'role', 'tabindex', 'aria-disabled');
+    this.shortcut = createShortcut(() => this.properties.shortcut);
+    this.omittedAttrs.push('name', 'oncommand', 'shortcut', 'role', 'tabindex', 'aria-disabled');
 
     this.on('click', () => this.invoke());
     this.on('focus', () => {
@@ -100,9 +130,28 @@ export class MenuItemAria<E extends BaseElement = HTMLButtonElement> extends But
     const event = new CustomEvent('command', { bubbles: true, detail: this.properties.name, cancelable: true });
 
     this.element.dispatchEvent(event);
-    this.properties.oncommand?.(event as MenuCommandEvent);
+    // Its own `oncommand`, the menu's, and every scope's above them hear it as it bubbles.
     this.dispatch(event);
     this.host.open = false;
+  }
+
+  /**
+   * Runs the item when its shortcut is pressed anywhere on the page.
+   *
+   * @returns Teardown callback unbinding the shortcut
+   */
+  protected override attach(): DetachFn | void {
+    const detach = super.attach();
+    const unbind = this.shortcut?.attach(this.element!, () => {
+      if (this.disabled) return false;
+      this.invoke();
+      return true;
+    });
+
+    return () => {
+      detach?.();
+      unbind?.();
+    };
   }
 
   /**
@@ -112,6 +161,7 @@ export class MenuItemAria<E extends BaseElement = HTMLButtonElement> extends But
     return Object.assign(super.createAttributes(), {
       role: 'menuitem',
       tabIndex: -1,
+      'aria-keyshortcuts': this.shortcut?.aria,
     }) as MenuItemAttributes<E>;
   }
 }
@@ -119,7 +169,7 @@ export class MenuItemAria<E extends BaseElement = HTMLButtonElement> extends But
 /**
  * Reactive input properties for the Menu checkable item.
  */
-export interface MenuItemCheckboxProps extends CheckboxProps {}
+export interface MenuItemCheckboxProps extends CheckboxProps, MenuItemShortcutProps {}
 
 /**
  * Compiled HTML and ARIA attributes for a menu checkbox item.
@@ -147,10 +197,22 @@ export class MenuItemCheckboxAria<E extends BaseElement = HTMLButtonElement> ext
   protected declare host: MenuAria;
 
   /**
+   * The item's keyboard shortcut; it flips the item the same way a click does.
+   */
+  protected shortcut?: ShortcutBinding;
+
+  /**
    * Whether this item is disabled, factoring in menu-level disablement.
    */
   public override get disabled() {
     return super.disabled || this.host?.disabled;
+  }
+
+  /**
+   * The shortcut as people read it, e.g. `⌥Z`.
+   */
+  public get shortcutLabel(): string | undefined {
+    return this.shortcut?.label;
   }
 
   /**
@@ -161,8 +223,28 @@ export class MenuItemCheckboxAria<E extends BaseElement = HTMLButtonElement> ext
     super(props, { ...options, clickable: true });
 
     this.host = menuCtx.get();
-    this.omittedAttrs.push('checked', 'name', 'value', 'onchange', 'aria-checked', 'role');
+    this.shortcut = createShortcut(() => this.properties.shortcut);
+    this.omittedAttrs.push('checked', 'name', 'value', 'onchange', 'shortcut', 'aria-checked', 'role');
     this.update();
+  }
+
+  /**
+   * Flips the item when its shortcut is pressed anywhere on the page.
+   *
+   * @returns Teardown callback unbinding the shortcut and the label polyfill
+   */
+  protected override attach(): DetachFn | void {
+    const detach = super.attach();
+    const unbind = this.shortcut?.attach(this.element!, () => {
+      if (this.disabled) return false;
+      this.toggle();
+      return true;
+    });
+
+    return () => {
+      detach?.();
+      unbind?.();
+    };
   }
 
   /**
@@ -171,6 +253,7 @@ export class MenuItemCheckboxAria<E extends BaseElement = HTMLButtonElement> ext
   protected override createAttributes(): MenuItemCheckboxAttributes<E> {
     return Object.assign(super.createAttributes(), {
       role: 'menuitemcheckbox',
+      'aria-keyshortcuts': this.shortcut?.aria,
     }) as MenuItemCheckboxAttributes<E>;
   }
 }
@@ -180,7 +263,7 @@ export class MenuItemCheckboxAria<E extends BaseElement = HTMLButtonElement> ext
  *
  * @template T - Choice candidate value type
  */
-export interface MenuItemRadioProps<T extends Primitive = Primitive> extends RadioProps<T> {}
+export interface MenuItemRadioProps<T extends Primitive = Primitive> extends RadioProps<T>, MenuItemShortcutProps {}
 
 /**
  * Compiled HTML and ARIA attributes for a menu radio item.
@@ -208,10 +291,22 @@ export class MenuItemRadioAria<
   protected declare host: MenuAria;
 
   /**
+   * The item's keyboard shortcut; it chooses the item the same way a click does.
+   */
+  protected shortcut?: ShortcutBinding;
+
+  /**
    * Whether this item is disabled, factoring in menu-level disablement.
    */
   public override get disabled() {
     return super.disabled || this.host?.disabled;
+  }
+
+  /**
+   * The shortcut as people read it, e.g. `⌘L`.
+   */
+  public get shortcutLabel(): string | undefined {
+    return this.shortcut?.label;
   }
 
   /**
@@ -222,8 +317,28 @@ export class MenuItemRadioAria<
     super(props as never, { ...options, clickable: true });
 
     this.host = menuCtx.get();
-    this.omittedAttrs.push('value', 'name', 'checked', 'onchange', 'aria-checked', 'role');
+    this.shortcut = createShortcut(() => (this.properties as MenuItemRadioProps).shortcut);
+    this.omittedAttrs.push('value', 'name', 'checked', 'onchange', 'shortcut', 'aria-checked', 'role');
     this.update();
+  }
+
+  /**
+   * Chooses the item when its shortcut is pressed anywhere on the page.
+   *
+   * @returns Teardown callback unbinding the shortcut and the label polyfill
+   */
+  protected override attach(): DetachFn | void {
+    const detach = super.attach();
+    const unbind = this.shortcut?.attach(this.element!, () => {
+      if (this.disabled) return false;
+      this.select();
+      return true;
+    });
+
+    return () => {
+      detach?.();
+      unbind?.();
+    };
   }
 
   /**
@@ -232,6 +347,7 @@ export class MenuItemRadioAria<
   protected override createAttributes(): MenuItemRadioAttributes<E> {
     return Object.assign(super.createAttributes(), {
       role: 'menuitemradio',
+      'aria-keyshortcuts': this.shortcut?.aria,
     }) as MenuItemRadioAttributes<E>;
   }
 }

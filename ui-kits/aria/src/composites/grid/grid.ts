@@ -5,6 +5,7 @@ import { selectionGroup } from '../../selection.js';
 import type { AriaAttributes, AriaEvent, AriaEventHandler, AriaProps, BaseElement } from '../../types.js';
 import { ariaBoolean } from '../../utils/attributes.js';
 import { handleRovingKey } from '../../utils/navigation.js';
+import { createTabStop } from '../../utils/tab-stop.js';
 
 export const gridCtx = createContext<GridAria>();
 export interface GridProps extends AriaProps {
@@ -68,6 +69,12 @@ export class GridAria<
   }
 
   public locked = false;
+
+  /**
+   * An editable grid's one tab stop: the cell focused last, else the first one to join. Its
+   * selection is the cell being edited, which clears when editing ends, so it can't hold the stop.
+   */
+  public readonly tabStop = createTabStop();
 
   public constructor(props: Partial<T> = {}) {
     super(props);

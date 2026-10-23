@@ -13,9 +13,10 @@ A text field looks like the simplest control until you bind it to state: re-rend
 :::interactive[Text input demo]
 
 ```tsx
-import { SearchInput, TextInput, Toggle } from '@airlib/react-aui';
+import { Readout, SearchInput, TextInput, Toggle } from '@airlib/react-aui';
 import { $bind, mutable, setup, Snippet } from '@airlib/react';
 import { DemoControl } from '@/components/DemoControl.js';
+import { GlassStage } from '@/components/GlassStage.js';
 
 const TextDemo = setup(() => {
   const state = mutable({ name: 'Ada Lovelace', query: '', size: 'md', color: 'primary', disabled: false, invalid: false });
@@ -29,30 +30,32 @@ const TextDemo = setup(() => {
       </DemoControl>
       <Snippet>
         {() => (
-          <div className="aui-card flex flex-col gap-lg justify-center p-xl">
-            <Snippet>
-              {() => (
-                <TextInput
-                  label="Display name"
-                  placeholder="Ada"
-                  value={$bind(state, 'name')}
-                  size={state.size}
-                  color={state.color}
-                  disabled={state.disabled}
-                  invalid={state.invalid}
-                />
-              )}
-            </Snippet>
-            <SearchInput
-              label="Search docs"
-              placeholder="Search"
-              value={$bind(state, 'query')}
-              size={state.size}
-              color={state.color}
-              disabled={state.disabled}
-            />
-            <Snippet>{() => <span>Name: {state.name || '—'}</span>}</Snippet>
-          </div>
+          <GlassStage style={{ maxInlineSize: '20rem' }}>
+            <div className="flex flex-col gap-lg justify-center">
+              <Snippet>
+                {() => (
+                  <TextInput
+                    label="Display name"
+                    placeholder="Ada"
+                    value={$bind(state, 'name')}
+                    size={state.size}
+                    color={state.color}
+                    disabled={state.disabled}
+                    invalid={state.invalid}
+                  />
+                )}
+              </Snippet>
+              <SearchInput
+                label="Search docs"
+                placeholder="Search"
+                value={$bind(state, 'query')}
+                size={state.size}
+                color={state.color}
+                disabled={state.disabled}
+              />
+              <Snippet>{() => <Readout label="Name" value={state.name} empty="Empty" />}</Snippet>
+            </div>
+          </GlassStage>
         )}
       </Snippet>
     </div>
@@ -118,6 +121,16 @@ import { SearchInput } from '@airlib/react-aui';
 
 A read-only field stays focusable so its value can be selected and copied; a disabled field leaves the tab order.
 
+### Longer text
+
+For a message, a note, or a delivery instruction, one line is too little. Add `multiline` and the field becomes a text area with the same surface, binding, and states; `rows` sets how many lines it shows before it scrolls:
+
+```tsx
+<TextInput label="Delivery notes" placeholder="Gate code, where to leave it…" multiline rows={4} value={$bind(order, 'notes')} />
+```
+
+People can drag it taller, never wider, so it keeps the form's width. `multiline` is read once, when the field is created.
+
 ### Variants and colors
 
 Fields take three variants: `filled` (default), `tonal`, and `outlined`. A field stays neutral at rest and shows its `color` on hover, focus, and the caret; `invalid` switches it to the error color:
@@ -140,6 +153,8 @@ Set app-wide defaults once with `configure({ textInput: { variant: 'outlined' } 
 | `label` | `string` | — | Accessible name. Use [Field](/docs/widgets/field) for a visible label. |
 | `placeholder` | `string` | — | Hint shown while empty. |
 | `kind` | `'text'`, `'password'`, `'search'`, `'email'`, `'tel'`, `'url'` | `'text'` | The kind of text expected. |
+| `multiline` | `boolean` | `false` | A text area for several lines. Read once. |
+| `rows` | `number` | `3` | Lines a multiline field shows before it scrolls. |
 | `required` | `boolean` | `false` | Announced as required. |
 | `invalid` | `boolean`, `'grammar'`, `'spelling'` | `false` | Announced as invalid and drawn in the error color. |
 | `readonly` | `boolean` | `false` | Focusable and copyable, but not editable. |
@@ -160,4 +175,4 @@ Typing, selection, undo, and autocomplete are the browser's own. `Tab` moves in 
 
 - [Field](/docs/widgets/field) — Add a visible label, help text, and an error message.
 - [Number Stepper](/docs/widgets/number-stepper) — A number field that stays within bounds.
-- [Combobox](/docs/widgets/combobox) — A text field that filters a list to pick from.
+- [Combobox](/docs/composites/combobox) — A text field that filters a list to pick from.

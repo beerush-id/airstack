@@ -15,9 +15,10 @@ Search results, order histories, and article archives all split into pages. A ha
 :::interactive[Pagination demo]
 
 ```tsx
-import { Link, Pagination } from '@airlib/react-aui';
+import { Link, Pagination, Readout } from '@airlib/react-aui';
 import { $bind, For, mutable, setup, Snippet } from '@airlib/react';
 import { DemoControl } from '@/components/DemoControl.js';
+import { GlassStage } from '@/components/GlassStage.js';
 
 const pages = [1, 2, 3, 4, 5];
 
@@ -28,52 +29,56 @@ const PaginationDemo = setup(() => {
   return () => (
     <div className="demo-button">
       <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} disabled={$bind(state, 'disabled')} />
-      <div className="aui-card flex gap-lg items-center justify-center p-xl">
-        <Snippet>
-          {() => (
-            <Pagination
-              label="Archive pages"
-              previousLabel="Previous page"
-              nextLabel="Next page"
-              page={$bind(state, 'archive')}
-              total={12}
-              size={state.size}
-              color={state.color}
-            />
-          )}
-        </Snippet>
-      </div>
-      <Snippet>{() => <span>Archive page {state.archive} of 12</span>}</Snippet>
-      <div className="aui-card flex gap-lg items-center justify-center p-xl">
-        <Snippet>
-          {() => (
-            <Pagination
-              label="Search results pages"
-              previousLabel="Previous page"
-              nextLabel="Next page"
-              page={$bind(state, 'page')}
-              total={5}
-              size={state.size}
-              color={state.color}
-            >
-              <For each={() => pages}>
-                {(page) => (
-                  <Link
-                    href={`#page-${page}`}
-                    page={page}
-                    current={state.page === page}
-                    disabled={state.disabled && page === 3}
-                    onClick={stay}
-                  >
-                    {page}
-                  </Link>
-                )}
-              </For>
-            </Pagination>
-          )}
-        </Snippet>
-      </div>
-      <Snippet>{() => <span>Results page {state.page} of 5</span>}</Snippet>
+      <GlassStage>
+        <div className="flex gap-lg items-center justify-center">
+          <Snippet>
+            {() => (
+              <Pagination
+                label="Archive pages"
+                previousLabel="Previous page"
+                nextLabel="Next page"
+                page={$bind(state, 'archive')}
+                total={12}
+                size={state.size}
+                color={state.color}
+              />
+            )}
+          </Snippet>
+        </div>
+      </GlassStage>
+      <Snippet>{() => <Readout label="Archive page" value={`${state.archive} of 12`} />}</Snippet>
+      <GlassStage>
+        <div className="flex gap-lg items-center justify-center">
+          <Snippet>
+            {() => (
+              <Pagination
+                label="Search results pages"
+                previousLabel="Previous page"
+                nextLabel="Next page"
+                page={$bind(state, 'page')}
+                total={5}
+                size={state.size}
+                color={state.color}
+              >
+                <For each={() => pages}>
+                  {(page) => (
+                    <Link
+                      href={`#page-${page}`}
+                      page={page}
+                      current={state.page === page}
+                      disabled={state.disabled && page === 3}
+                      onClick={stay}
+                    >
+                      {page}
+                    </Link>
+                  )}
+                </For>
+              </Pagination>
+            )}
+          </Snippet>
+        </div>
+      </GlassStage>
+      <Snippet>{() => <Readout label="Results page" value={`${state.page} of 5`} />}</Snippet>
     </div>
   );
 }, 'PaginationDemo');
@@ -168,4 +173,4 @@ For a fully custom pager, `pageWindow(page, total, siblings)` returns the same r
 
 - [Navigation](/docs/widgets/navigation) — A list of links to the sections of your app.
 - [Breadcrumb](/docs/widgets/breadcrumb) — Show where a page sits and link back up.
-- [Grid](/docs/widgets/grid) — A keyboard-driven table for the results you are paging through.
+- [Grid](/docs/composites/grid) — A keyboard-driven table for the results you are paging through.

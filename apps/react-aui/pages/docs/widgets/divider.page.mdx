@@ -14,9 +14,10 @@ Styling is optional. Without AUI CSS the Divider stays a correct, operable separ
 :::interactive[Divider demo]
 
 ```tsx
-import { Divider, Select, Toggle } from '@airlib/react-aui';
+import { Button, Divider, Select, Toggle, Toolbar } from '@airlib/react-aui';
 import { COLOR_LABELS } from '@airlib/aui/utils';
 import { $bind, mutable, setup, Show, Snippet } from '@airlib/react';
+import { GlassStage } from '@/components/GlassStage.js';
 
 const DividerDemo = setup(() => {
   const state = mutable({ vertical: false, color: undefined });
@@ -30,20 +31,33 @@ const DividerDemo = setup(() => {
           {() => (state.vertical ? 'Vertical axis' : 'Horizontal axis')}
         </Toggle>
       </div>
-      <div className="aui-card flex flex-col gap-lg justify-center p-xl">
-        <span>Layers<br /><small>24 items, grouped by page</small></span>
-        <Show when={() => state.vertical} fallback={() => <Divider color={state.color || undefined} />}>
-          {() => <Divider color={state.color || undefined} orientation="vertical" />}
-        </Show>
-        <span>Assets<br /><small>8 symbols shared with the team</small></span>
-      </div>
-      <div className="aui-card flex gap-lg items-stretch p-xl">
-        <span>Preview</span>
-        <Snippet>
-          {() => <Divider color={state.color || undefined} orientation="vertical" />}
-        </Snippet>
-        <span>Inspector<br /><small>Padding, radius, and fill</small></span>
-      </div>
+      <GlassStage>
+        <div className="flex flex-col gap-lg">
+          <div className="flex flex-col gap-lg justify-center">
+            <span>Layers<br /><small>24 items, grouped by page</small></span>
+            <Show when={() => state.vertical} fallback={() => <Divider color={state.color || undefined} />}>
+              {() => <Divider color={state.color || undefined} orientation="vertical" />}
+            </Show>
+            <span>Assets<br /><small>8 symbols shared with the team</small></span>
+          </div>
+          <div className="flex gap-lg items-stretch">
+            <span>Preview</span>
+            <Snippet>
+              {() => <Divider color={state.color || undefined} orientation="vertical" />}
+            </Snippet>
+            <span>Inspector<br /><small>Padding, radius, and fill</small></span>
+          </div>
+          <Toolbar label="Text formatting">
+            <Button size="sm" variant="text">Bold</Button>
+            <Button size="sm" variant="text">Italic</Button>
+            <Snippet>{() => <Divider color={state.color || undefined} orientation="vertical" inset />}</Snippet>
+            <Button size="sm" variant="text">Left</Button>
+            <Button size="sm" variant="text">Center</Button>
+            <Snippet>{() => <Divider color={state.color || undefined} orientation="vertical" inset />}</Snippet>
+            <Button size="sm" variant="text">Link</Button>
+          </Toolbar>
+        </div>
+      </GlassStage>
     </div>
   );
 }, 'DividerDemo');
@@ -84,6 +98,18 @@ The rule runs horizontally until `orientation` says otherwise. Between side-by-s
 </div>
 ```
 
+When the rule should separate groups inside a container rather than split the container itself — the button groups of a toolbar, or rows inside a card's padding — add `inset`. It stops short of both ends, so it reads as a pause between groups instead of a wall:
+
+```tsx
+<Toolbar label="Text formatting">
+  <Button variant="text">Bold</Button>
+  <Button variant="text">Italic</Button>
+  <Divider orientation="vertical" inset />
+  <Button variant="text">Left</Button>
+  <Button variant="text">Center</Button>
+</Toolbar>
+```
+
 A divider never takes a tab stop and never carries a value, in either direction: no `tabindex`, and no `aria-value*` attributes, so a split in your layout can't be mistaken for a control.
 
 ### Properties
@@ -91,7 +117,8 @@ A divider never takes a tab stop and never carries a value, in either direction:
 | Prop | Type | Default | Notes |
 | --- | --- | --- | --- |
 | `orientation` | `'horizontal'`, `'vertical'` | `'horizontal'` | The axis the rule runs along. Announced only when vertical, because horizontal is what a separator is assumed to be. |
-| `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | — | Opt-in rule color. Without it the rule stays on the neutral outline token. |
+| `inset` | `boolean` | `false` | Stops the rule short of both ends instead of running edge to edge: by `--aui-divider-inset` across, `--aui-divider-inset-block` when vertical. |
+| `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | — | Opt-in rule color. Without it the rule stays on the soft neutral outline. |
 | `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
 | `ref` | `Ref<HTMLDivElement>` | — | Access to the underlying element. |
 
@@ -123,4 +150,4 @@ Colors: `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info
 
 - [Button](/docs/widgets/button) — A command trigger for actions that fire in place rather than dividing space.
 - [Switch](/docs/widgets/switch) — An on/off setting control for states that live on the page.
-- [Select](/docs/widgets/select) — An option list collapsed behind a trigger.
+- [Select](/docs/composites/select) — An option list collapsed behind a trigger.

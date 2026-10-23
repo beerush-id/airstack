@@ -1,18 +1,25 @@
-@import './item.css';
-
 /*
- * Loading placeholders. The fill is an on-surface wash, so it reads on any
- * surface it sits on; the shimmer is decoration and stops for reduced motion.
- * Text bars follow the size scale's line height; circles take the control height.
+ * Loading is a state, not a component. Inside any region marked
+ * `aria-busy="true"`, the real elements show as placeholder shapes until
+ * their data arrives: text that is still empty becomes a bar, pictures and
+ * initials become discs and blocks, controls keep their size but lose their
+ * content. Nothing is swapped or remounted when the data lands — the
+ * attribute flips and the same elements fill in.
+ *
+ * It lives in the utility layer so the placeholder look wins over each
+ * component's own surface without `!important`. The shimmer is decoration;
+ * reduced motion stops it with every other animation.
  */
 @layer theme {
   :root {
     --aui-skeleton-fill: color-mix(in oklch, var(--color-on-surface) 10%, transparent);
     --aui-skeleton-shine: color-mix(in oklch, var(--color-on-surface) 4%, transparent);
+    /* How wide an empty line of text stands in as. */
+    --aui-skeleton-width: 60%;
   }
 }
 
-@layer component {
+@layer utility {
   @keyframes aui-skeleton-shimmer {
     from {
       background-position: 100% 0;
@@ -22,57 +29,85 @@
     }
   }
 
-  .aui-skeleton,
-  .aui-skeleton-line {
-    display: block;
+  /*
+   * What turns into a placeholder while busy: anything you mark with
+   * `aui-skeleton`, avatars, images, controls, and text blocks that have no
+   * text yet.
+   */
+  [aria-busy='true']
+    :is(
+      .aui-skeleton,
+      .aui-skeleton-lines:empty,
+      .aui-avatar,
+      .aui-image,
+      .aui-control,
+      :is(h1, h2, h3, h4, h5, h6, p, li, dt, dd, figcaption, label):empty
+    ) {
+    color: transparent;
     background-color: var(--aui-skeleton-fill);
     background-image: linear-gradient(90deg, transparent 25%, var(--aui-skeleton-shine) 50%, transparent 75%);
     background-size: 200% 100%;
+    border-color: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+    pointer-events: none;
+    user-select: none;
     animation: aui-skeleton-shimmer 1.6s var(--ease-standard) infinite;
+
+    /* Icons, initials, and partial text inside are hidden; the shape is enough. */
+    & * {
+      visibility: hidden;
+    }
   }
 
-  .aui-skeleton[data-shape='text'],
-  .aui-skeleton-line {
+  /* Empty text has no line of its own: give it one, part of the width. */
+  [aria-busy='true'] :is(h1, h2, h3, h4, h5, h6, p, li, dt, dd, figcaption, label):empty:not(.aui-skeleton-lines),
+  [aria-busy='true'] .aui-skeleton:empty:not(.aui-skeleton-lines) {
+    min-block-size: 1lh;
+    inline-size: var(--aui-skeleton-width);
+  }
+
+  /*
+   * Each line of text draws as a bar shorter than the line, centered in it, with round ends: a
+   * band down the middle and a disc at either end, repeated every line.
+   */
+  [aria-busy='true'] :is(h1, h2, h3, h4, h5, h6, p, li, dt, dd, figcaption, label):empty,
+  [aria-busy='true'] .aui-skeleton:empty,
+  [aria-busy='true'] .aui-skeleton-lines {
+    --aui-skeleton-bar: 0.7lh;
+    border-radius: 0;
+    mask-image:
+      linear-gradient(
+        to bottom,
+        transparent calc((1lh - var(--aui-skeleton-bar)) / 2),
+        black calc((1lh - var(--aui-skeleton-bar)) / 2) calc((1lh + var(--aui-skeleton-bar)) / 2),
+        transparent calc((1lh + var(--aui-skeleton-bar)) / 2)
+      ),
+      radial-gradient(circle closest-side, black 94%, transparent),
+      radial-gradient(circle closest-side, black 94%, transparent);
+    mask-size:
+      calc(100% - var(--aui-skeleton-bar)) 1lh,
+      var(--aui-skeleton-bar) 1lh,
+      var(--aui-skeleton-bar) 1lh;
+    mask-position:
+      center 0,
+      left 0,
+      right 0;
+    mask-repeat: repeat-y;
+  }
+
+  /*
+   * A paragraph still to come: `aui-skeleton-lines` reserves
+   * `--aui-skeleton-lines` lines (3 by default) whether or not it is busy, so
+   * the text arriving never shrinks the layout; while busy, it draws that
+   * many bars.
+   */
+  .aui-skeleton-lines {
+    --aui-skeleton-lines: 3;
+    min-block-size: calc(var(--aui-skeleton-lines) * 1lh);
+  }
+
+  [aria-busy='true'] .aui-skeleton-lines {
     inline-size: 100%;
-    block-size: 1em;
-    margin-block: calc((var(--font-label-lg-line-height, 1.4em) - 1em) / 2);
-    border-radius: var(--radius-xs);
-  }
-
-  /* A run of bars: no own fill, the bars carry it; the last bar ends early like real text. */
-  .aui-skeleton[data-shape='lines'] {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5em;
-    background: none;
-    animation: none;
-
-    & > .aui-skeleton-line {
-      margin: 0;
-    }
-
-    & > .aui-skeleton-line:last-child:not(:first-child) {
-      inline-size: 60%;
-    }
-  }
-
-  .aui-skeleton[data-shape='circle'] {
-    inline-size: var(--aui-control-height);
-    block-size: var(--aui-control-height);
-    border-radius: var(--radius-full);
-  }
-
-  .aui-skeleton[data-shape='rect'] {
-    inline-size: 100%;
-    block-size: calc(var(--aui-control-height) * 3);
-    border-radius: var(--radius-md);
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .aui-skeleton,
-    .aui-skeleton-line {
-      animation: none;
-      background-image: none;
-    }
   }
 }

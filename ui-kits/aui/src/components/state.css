@@ -1,107 +1,115 @@
+/*
+ * The state layer: hover, focus, and press tint a stateful part, and a press ripples out from the
+ * pointer. Both paint on the part's own background — over its color, under its content — so its
+ * pseudo-elements stay free for the part itself.
+ *
+ * The layer eases through the part's own transition list: a part that declares
+ * `transition-property` appends `var(--aui-state-transitions)` to it.
+ */
+@property --aui-state-strength {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 0%;
+}
+
+@property --aui-ripple-strength {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 0%;
+}
+
+/* How far the ripple has spread toward the part's farthest corner. */
+@property --aui-ripple-size {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 100%;
+}
+
 @layer theme {
   :root {
-    --aui-state-layer-color: var(--light-up);
+    /* The part's own ink, so the tint reads on any fill: light on a filled part, the role color on a light one. */
+    --aui-state-layer-color: currentColor;
+    /* How long a held press takes to ripple across the part. */
+    --aui-ripple-duration: var(--duration-long);
   }
 
+  /* A press without a pointer on the part, from the keyboard, ripples from its middle. */
   .aui-control,
+  .aui-item,
   .aui-state-layer {
-    --pointer-x: 0;
-    --pointer-y: 0;
+    --pointer-x: 50%;
+    --pointer-y: 50%;
   }
 }
 
 @layer component {
-  @keyframes state-ripple {
+  @keyframes aui-ripple {
     from {
-      width: 0;
-      height: 0;
-      border-radius: 50%;
-      top: var(--pointer-y);
-      left: var(--pointer-x);
-      transform: translate3d(-50%, -50%, 0);
-      opacity: var(--tone-pressed-strength);
-      corner-shape: unset;
-    }
-    to {
-      width: 512px;
-      height: 512px;
-      opacity: var(--tone-pressed-strength);
-      border-radius: 50%;
-      top: var(--pointer-y);
-      left: var(--pointer-x);
-      transform: translate3d(-50%, -50%, 0);
-      corner-shape: unset;
+      --aui-ripple-size: 0%;
     }
   }
 
   .aui-state-layer,
   .aui-control,
   .aui-item {
+    --aui-state-transitions: --aui-state-strength, --aui-ripple-strength, --aui-ripple-size;
+    /* Anchors what a part lays over itself: a badge, a glint. */
     position: relative;
+    background-image:
+      radial-gradient(
+        circle farthest-corner at var(--pointer-x) var(--pointer-y),
+        color-mix(in oklch, var(--aui-state-layer-color) var(--aui-ripple-strength), transparent)
+          var(--aui-ripple-size),
+        transparent var(--aui-ripple-size)
+      ),
+      linear-gradient(
+        color-mix(in oklch, var(--aui-state-layer-color) var(--aui-state-strength), transparent),
+        color-mix(in oklch, var(--aui-state-layer-color) var(--aui-state-strength), transparent)
+      );
+    background-repeat: no-repeat;
 
+    &:hover {
+      --aui-state-strength: var(--tone-hover-strength);
+    }
+
+    &:focus-visible {
+      --aui-state-strength: var(--tone-focus-strength);
+    }
+
+    /* A held press spreads by its own animation; the ripple only eases, out to the edges as it fades, once released. */
     &:active {
-      overflow: hidden;
-    }
-
-    &:active::after {
-      animation: state-ripple 7s var(--ease-emphasized-decelerate) forwards;
+      --aui-state-strength: var(--tone-pressed-strength);
+      --aui-ripple-strength: var(--tone-pressed-strength);
+      --aui-state-transitions: --aui-state-strength;
+      animation: aui-ripple var(--aui-ripple-duration) var(--ease-emphasized-decelerate);
     }
   }
 
-  .aui-state-layer::before,
-  .aui-item::before,
-  .aui-control::before,
-  .aui-state-layer::after,
-  .aui-item::after,
-  .aui-control::after {
-    content: '';
-    inset: 0;
-    opacity: 0;
-    position: absolute;
-    z-index: -1;
-    pointer-events: none;
-    border-radius: inherit;
-    corner-shape: inherit;
-    background-color: var(--aui-state-layer-color);
-  }
-
-  .aui-state-layer::before,
-  .aui-item::before,
-  .aui-control::before {
-    transition-property: opacity, background-color;
+  /* A part with no transition list of its own still eases its state. */
+  :where(.aui-state-layer, .aui-control, .aui-item) {
+    transition-property: var(--aui-state-transitions);
     transition-duration: var(--duration-short);
-    transition-timing-function: var(--ease-standard);
+    transition-timing-function: var(--ease-emphasized);
   }
 
-  .aui-state-layer:hover::before,
-  .aui-item:hover::before,
-  .aui-control:hover::before {
-    opacity: var(--tone-hover-strength);
-  }
-
-  .aui-state-layer:focus-visible::before,
-  .aui-item:focus-visible::before,
-  .aui-control:focus-visible::before {
-    opacity: var(--tone-focus-strength);
-  }
-
-  .aui-state-layer:active::before,
-  .aui-item:active::before,
-  .aui-control:active::before {
-    opacity: var(--tone-pressed-strength);
-  }
-
+  /* A shell that holds a disabled field — a date range, a tag input — is as disabled as the field. */
   .aui-disabled,
   .aui-state-layer:disabled,
   .aui-state-layer[aria-disabled='true'],
   .aui-item:disabled,
   .aui-item[aria-disabled='true'],
   .aui-control:disabled,
-  .aui-control[aria-disabled='true'] {
+  .aui-control[aria-disabled='true'],
+  .aui-control:has(> :is(input, textarea):disabled) {
     cursor: not-allowed;
     background-color: var(--color-disabled-bg);
     color: var(--color-disabled-fg);
     border-color: transparent;
     --aui-state-layer-color: transparent;
+  }
+
+  /* The shell carries the disabled fill; a control inside it adds no second one. */
+  .aui-control:has(> :is(input, textarea):disabled) .aui-control {
+    background-color: transparent;
   }
 }

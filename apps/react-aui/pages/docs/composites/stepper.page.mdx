@@ -1,0 +1,196 @@
+---
+title: AUI Stepper
+nav: Stepper
+nav-priority: 264
+description: A bounded number field with − and + buttons in one control — buttons stop at the limits, keys step by small or large amounts, and size, color, and variant are set once for the whole control.
+keywords: [React stepper, React quantity input, plus minus input, React counter input, accessible spin button, number input with buttons]
+---
+
+# AUI Stepper
+
+Quantity pickers, guest counts, and amounts nudged in fixed steps all need the same thing: a number field with − and + buttons that agree with each other, never cross the limits, and stop being pressable at the end of the range. Stepper is that control in one call.
+
+:::interactive[Stepper demo]
+
+```tsx
+import { Stepper, StepperDecrement, StepperIncrement, StepperInput, Toggle } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { DemoControl } from '@/components/DemoControl.js';
+import { GlassStage } from '@/components/GlassStage.js';
+
+const StepperDemo = setup(() => {
+  const state = mutable({ qty: 2, price: 150, size: 'md', color: 'primary', disabled: false, locked: false });
+
+  return () => (
+    <div className="demo-button">
+      <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} disabled={$bind(state, 'disabled')}>
+        <Toggle size="sm" pressed={$bind(state, 'locked')}>
+          {() => (state.locked ? 'Set Editable' : 'Set Read-only')}
+        </Toggle>
+      </DemoControl>
+      <Snippet>
+        {() => (
+          <GlassStage style={{ maxInlineSize: '20rem' }}>
+            <div className="flex flex-col gap-lg">
+              <Stepper
+                label="Quantity"
+                decrementLabel="Remove one"
+                incrementLabel="Add one"
+                value={$bind(state, 'qty')}
+                min={1}
+                max={8}
+                size={state.size}
+                color={state.color}
+                disabled={state.disabled}
+                readonly={state.locked}
+              />
+              <Snippet>
+                {() => (
+                  <Stepper
+                    value={$bind(state, 'price')}
+                    min={0}
+                    max={500}
+                    step={50}
+                    page={100}
+                    valuetext={`${state.price} US dollars`}
+                    size={state.size}
+                    color={state.color}
+                    disabled={state.disabled}
+                    readonly={state.locked}
+                  >
+                    <StepperDecrement aria-label="Lower the gift card amount">−</StepperDecrement>
+                    <StepperInput aria-label="Gift card amount" />
+                    <StepperIncrement aria-label="Raise the gift card amount">+</StepperIncrement>
+                  </Stepper>
+                )}
+              </Snippet>
+              <Snippet>
+                {() => (
+                  <span>
+                    {state.qty} × $25 = ${state.qty * 25} · Gift card ${state.price}
+                  </span>
+                )}
+              </Snippet>
+            </div>
+          </GlassStage>
+        )}
+      </Snippet>
+    </div>
+  );
+}, 'StepperDemo');
+```
+
+```html
+<StepperDemo />
+```
+
+<StepperDemo />
+
+:::
+
+## Usage
+
+### The simple form
+
+Give it bounds and a value. It renders the − button, the field, and the + button, and names the field with `label`:
+
+```tsx
+import { Stepper } from '@airlib/react-aui';
+import { $bind, mutable, setup } from '@airlib/react';
+import '@airlib/aui/components/widgets/stepper.css';
+
+const Cart = setup(() => {
+  const line = mutable({ qty: 2 });
+
+  return () => (
+    <Stepper
+      label="Quantity"
+      decrementLabel="Remove one"
+      incrementLabel="Add one"
+      min={1}
+      max={8}
+      value={$bind(line, 'qty')}
+    />
+  );
+}, 'Cart');
+```
+
+At `min` the − button stops responding, at `max` the + button does; the field never shows a number outside the range.
+
+### Step sizes and meaning
+
+`step` is one button press or arrow key; `page` is one `PageUp` / `PageDown`. `valuetext` says what the number means:
+
+```tsx
+<Stepper label="Gift card" decrementLabel="Lower the amount" incrementLabel="Raise the amount" min={0} max={500} step={50} page={100} value={$bind(card, 'amount')} valuetext={`${card.amount} US dollars`} />
+```
+
+### React to changes
+
+The bound value always holds the current number. Listen to `onchange` when you want to act on a change — update a total, save a cart line:
+
+```tsx
+<Stepper label="Quantity" decrementLabel="Remove one" incrementLabel="Add one" min={1} max={8} value={$bind(line, 'qty')} onchange={(event) => saveLine(event.detail)} />
+```
+
+### Your own buttons
+
+When the buttons need their own labels or content — a translated name, an icon, a unit — compose the parts. They share the value and the bounds without any wiring:
+
+```tsx
+import { Stepper, StepperDecrement, StepperIncrement, StepperInput } from '@airlib/react-aui';
+
+<Stepper value={$bind(card, 'amount')} min={0} max={500} step={50}>
+  <StepperDecrement aria-label="Lower the amount">−</StepperDecrement>
+  <StepperInput aria-label="Gift card amount" />
+  <StepperIncrement aria-label="Raise the amount">+</StepperIncrement>
+</Stepper>;
+```
+
+Name each button and the field yourself: they have no visible text a screen reader could use.
+
+### Locking
+
+`readonly` keeps the value visible and focusable while both buttons and typing refuse changes; `disabled` locks the whole control and takes it out of the tab order.
+
+### Style it once
+
+`size`, `color`, and `variant` (`filled`, `tonal`, `outlined`) go on the Stepper and reach the field and both buttons. See [Style a composite once](/docs/theming#style-a-composite-once).
+
+### Properties
+
+#### Stepper
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `value` | `Bindable<number>` | `min`, then `0` | Always inside the bounds. |
+| `min` / `max` | `number` | — | Inclusive bounds; leave one out for an open side. |
+| `step` | `number` | `1` | One button press or arrow key. |
+| `page` | `number` | `10` | One `PageUp` / `PageDown`. |
+| `valuetext` | `string` | — | How the value is announced. |
+| `label` | `string` | — | Names the field in the simple form. |
+| `decrementLabel` / `incrementLabel` | `string` | — | Name the − and + buttons of the simple form, in your users' language. |
+| `required` | `boolean` | `false` | Announced as required. |
+| `readonly` | `boolean` | `false` | Visible and focusable; buttons and typing refuse changes. |
+| `disabled` | `boolean` | `false` | Locks the whole control. |
+| `size` | `xs`–`xxl` | `'md'` | Reaches the field and the buttons. |
+| `variant` | `filled`, `tonal`, `outlined` | `'filled'` | |
+| `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | |
+| `oninput` | `(event: CustomEvent<number>) => void` | — | Every step and typed change. |
+| `onchange` | `(event: CustomEvent<number>) => void` | — | The value moved. |
+| `children` | `ReactNode` | — | Your own parts; leave empty for the simple form. |
+| `className` | `string` | — | Added next to the built-in classes, or replaces them with [`overrides`](/docs/theming#overrides). |
+
+#### StepperInput, StepperDecrement, StepperIncrement
+
+The parts take `aria-label`, `className`, and any attribute of their element (`input` for the field, `button` for the buttons). The buttons never submit a surrounding form.
+
+## Keyboard
+
+The field is the one tab stop. `ArrowUp` / `ArrowDown` step by `step`, `PageUp` / `PageDown` by `page`, `Home` / `End` jump to the bounds. `ArrowLeft` / `ArrowRight` move the caret, and `Enter` is left to the surrounding form.
+
+## Next Steps
+
+- [Number Stepper](/docs/widgets/number-stepper) — The same bounded number without buttons.
+- [Slider](/docs/widgets/slider) — Pick a number by dragging.
+- [Field](/docs/widgets/field) — Add a visible label, help text, and an error message.

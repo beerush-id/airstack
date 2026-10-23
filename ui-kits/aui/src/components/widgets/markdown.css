@@ -1,0 +1,107 @@
+@import './checkbox.css';
+
+/*
+ * Markdown drawn with AUI's parts: prose that sits inside a card, an answer, or a note, so it
+ * carries no page margins of its own — blocks space themselves from each other, and the first and
+ * last touch the edges of whatever holds them.
+ */
+@layer theme {
+  :root {
+    --aui-markdown-gap: var(--spacing-sm);
+    --aui-markdown-code-bg: color-mix(in oklch, var(--color-on-surface) 6%, transparent);
+    --aui-markdown-rule: color-mix(in oklch, var(--color-on-surface) 14%, transparent);
+  }
+}
+
+@layer component {
+  .aui-markdown {
+    display: flex;
+    flex-direction: column;
+    gap: var(--aui-markdown-gap);
+    min-inline-size: 0;
+    overflow-wrap: anywhere;
+
+    & :is(p, ul, ol, blockquote, pre, table, h3, h4, h5, h6) {
+      margin: 0;
+    }
+
+    & :is(h3, h4, h5, h6) {
+      font-size: var(--font-title-sm-size);
+      font-weight: var(--font-title-sm-weight);
+      line-height: var(--font-title-sm-line-height);
+    }
+
+    & :is(ul, ol) {
+      display: flex;
+      flex-direction: column;
+      gap: calc(var(--aui-markdown-gap) / 2);
+      padding-inline-start: 1.4em;
+    }
+
+    /* A task's checkbox stands in for the bullet, its words beside it. */
+    & li.aui-markdown-task {
+      display: flex;
+      align-items: baseline;
+      gap: var(--spacing-sm);
+      list-style: none;
+      margin-inline-start: -1.4em;
+
+      & > .aui-checkbox {
+        flex: none;
+        align-self: center;
+      }
+    }
+
+    & blockquote {
+      padding-inline-start: var(--spacing-md);
+      border-inline-start: 3px solid var(--aui-markdown-rule);
+      color: var(--color-on-surface-variant);
+    }
+
+    & code {
+      padding: 0.1em 0.35em;
+      border-radius: var(--radius-xs);
+      background-color: var(--aui-markdown-code-bg);
+      font-family: var(--font-mono, ui-monospace, monospace);
+      font-size: 0.9em;
+    }
+
+    & pre {
+      overflow-x: auto;
+      padding: var(--spacing-sm) var(--spacing-md);
+      border-radius: var(--radius-sm);
+      background-color: var(--aui-markdown-code-bg);
+
+      & code {
+        padding: 0;
+        background: none;
+      }
+    }
+
+    & hr {
+      inline-size: 100%;
+      margin: 0;
+      border: 0;
+      border-block-start: 1px solid var(--aui-markdown-rule);
+    }
+
+    & table {
+      border-collapse: collapse;
+      font-size: 0.95em;
+    }
+
+    & :is(th, td) {
+      padding: var(--spacing-xs) var(--spacing-sm);
+      border-block-end: 1px solid var(--aui-markdown-rule);
+      text-align: start;
+    }
+
+    & a {
+      color: var(--color-primary);
+    }
+
+    & div.aui-formula {
+      overflow-x: auto;
+    }
+  }
+}

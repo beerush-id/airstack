@@ -67,8 +67,20 @@
   .bg-surface-low {
     background-color: var(--color-surface-low);
   }
-  .bg-surface-container {
-    background-color: var(--color-surface-container);
+  .bg-container-lowest {
+    background-color: var(--color-container-lowest);
+  }
+  .bg-container-low {
+    background-color: var(--color-container-low);
+  }
+  .bg-container {
+    background-color: var(--color-container);
+  }
+  .bg-container-high {
+    background-color: var(--color-container-high);
+  }
+  .bg-container-highest {
+    background-color: var(--color-container-highest);
   }
   .bg-surface-high {
     background-color: var(--color-surface-high);

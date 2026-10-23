@@ -1,0 +1,194 @@
+---
+title: AUI Feed
+nav: Feed
+nav-priority: 378
+description: A stream of articles that keeps loading as people read — each entry knows its place, a loading batch is announced, and PageUp/PageDown move between entries.
+keywords: [React feed component, infinite scroll accessible, article stream React, news feed component, ARIA feed]
+---
+
+# AUI Feed
+
+Release notes, activity streams, social timelines, search results that load as you scroll — a feed is a list of articles that keeps growing while people read it. The hard part is making it readable for everyone: screen-reader users need to know where they are in the stream and when a new batch is arriving, and keyboard users need to jump from entry to entry without the page stealing their keys.
+
+**AUI Feed** gives you that stream. Wrap your articles in it, tell it how long the run is and whether a batch is loading, and it handles the announcements and the keyboard travel.
+
+:::interactive[Feed demo]
+
+```tsx
+import { Button, Feed, FeedArticle, Readout } from '@airlib/react-aui';
+import { mutable, setup, Snippet } from '@airlib/react';
+import { GlassStage } from '@/components/GlassStage.js';
+
+const RELEASE_NOTES = [
+  {
+    title: 'Streaming markup lands in engine 2.4',
+    meta: 'Today · Rendering team',
+    body: 'Fine-grained signals and server streaming ship in the same release.',
+  },
+  {
+    title: 'Route transitions drop under a millisecond',
+    meta: 'Yesterday · Router team',
+    body: 'The router now matches and resolves in one pass, with no intermediate frame.',
+  },
+  {
+    title: 'Workers probe their own health',
+    meta: 'Oct 21 · Platform team',
+    body: 'Each isolate reports reachability after the edge cache latency spikes of last week.',
+  },
+  {
+    title: 'Images resize at the edge',
+    meta: 'Oct 18 · Media team',
+    body: 'Responsive sizes are cut on first request and cached beside the original.',
+  },
+  {
+    title: 'Forms validate as you type',
+    meta: 'Oct 14 · Forms team',
+    body: 'Schemas run on every keystroke and only speak up once a field has been left.',
+  },
+];
+
+const FeedDemo = setup(() => {
+  const stream = mutable({ shown: 2, busy: false });
+  // The next batch arrives after a short wait, the way a request would.
+  const loadMore = () => {
+    stream.busy = true;
+    setTimeout(() => {
+      stream.shown = Math.min(stream.shown + 2, RELEASE_NOTES.length);
+      stream.busy = false;
+    }, 1200);
+  };
+
+  return () => (
+    <div className="demo-button">
+      <GlassStage>
+        <Snippet>
+          {() => (
+            <Feed label="Release notes" busy={stream.busy} setsize={RELEASE_NOTES.length}>
+              {RELEASE_NOTES.slice(0, stream.shown).map((note, index) => (
+                <FeedArticle key={note.title} posinset={index + 1} title={note.title} meta={note.meta}>
+                  {note.body}
+                </FeedArticle>
+              ))}
+            </Feed>
+          )}
+        </Snippet>
+        <Snippet>
+          {() => (
+            <Button variant="tonal" disabled={stream.busy || stream.shown >= RELEASE_NOTES.length} onClick={loadMore}>
+              {stream.shown >= RELEASE_NOTES.length ? 'All caught up' : stream.busy ? 'Loading…' : 'Load more'}
+            </Button>
+          )}
+        </Snippet>
+      </GlassStage>
+      <Snippet>{() => <Readout label="Showing" value={`${stream.shown} of ${RELEASE_NOTES.length}`} />}</Snippet>
+    </div>
+  );
+}, 'FeedDemo');
+```
+
+```html
+<FeedDemo />
+```
+
+<FeedDemo />
+
+:::
+
+## Usage
+
+Wrap each entry in a `FeedArticle` inside a named `Feed`. Give the feed the size of the run and each article its position, its title, a line of meta, and its body:
+
+```tsx
+import { Feed, FeedArticle } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/feed.css';
+
+export const ReleaseStream = ({ notes }: { notes: Array<{ id: string; title: string; date: string; body: string }> }) => (
+  <Feed label="Release notes" setsize={notes.length}>
+    {notes.map((note, index) => (
+      <FeedArticle key={note.id} posinset={index + 1} title={note.title} meta={note.date}>
+        {note.body}
+      </FeedArticle>
+    ))}
+  </Feed>
+);
+```
+
+- `title` — what the entry is. It heads the article and names it, so people hear "Images resize at the edge, article 4 of 5".
+- `meta` — one quiet line under the title: when, by whom, where.
+- children — the body. Each article is a real `<article>`, so links, images, and buttons inside it work as usual.
+
+The whole feed is one tab stop: `Tab` lands on the article read last — the first one until then — and moves on into its links and buttons.
+
+## A stream that keeps growing
+
+When you render only a window of a long run — entries 41 through 60 of 400 — pass the real numbers. `setsize` is the length of the whole run, and `posinset` is where each rendered entry sits in it, so people always hear their true position:
+
+```tsx
+<Feed label="Activity" setsize={400}>
+  {page.map((entry, index) => (
+    <FeedArticle key={entry.id} posinset={41 + index}>
+      {/* entry */}
+    </FeedArticle>
+  ))}
+</Feed>
+```
+
+When the total is not known yet — an endless timeline — pass `setsize={-1}`.
+
+## While a batch is loading
+
+Set `busy` while you fetch the next batch and clear it when the articles are in. Assistive technology waits for the batch instead of announcing each article as it lands, AUI mutes the stream so nobody acts on half-loaded content, and a placeholder entry stands at the end of the stream where the batch will land:
+
+```tsx
+<Feed label="Activity" setsize={-1} busy={timeline.loading}>
+  {/* articles */}
+</Feed>
+```
+
+The placeholder is only seen, never read; the stream's busy state already tells screen readers a batch is coming.
+
+## Naming the stream
+
+Every feed needs a name. Pass `label`, or point `labelledby` at the heading that already names it:
+
+```tsx
+<h2 id="releases">Release notes</h2>
+<Feed labelledby="releases">{/* articles */}</Feed>
+```
+
+## Properties
+
+### Feed
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `label` | `string` | — | The stream's accessible name. |
+| `labelledby` | `string` | — | The id of an element that names the stream instead. |
+| `setsize` | `number` | `-1` | How many entries the whole run holds; `-1` while unknown. |
+| `busy` | `boolean` | `false` | Set while a batch is loading; shows a placeholder entry at the end. |
+| `id` | `string` | generated | The stream's DOM identifier. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `children` | `ReactNode` | — | The articles. |
+
+### FeedArticle
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `posinset` | `number` | — | The entry's 1-based position in the whole run. |
+| `title` | `string` | — | Heads the entry and names the article. |
+| `meta` | `string` | — | One quiet line under the title. |
+| `id` | `string` | generated | The article's DOM identifier. |
+| `className` | `string` | — | Added alongside the built-in classes. |
+| `children` | `ReactNode` | — | The entry's body. |
+
+To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+
+## Keyboard
+
+`PageDown` and `PageUp` move focus to the next and previous article; `Ctrl + Home` and `Ctrl + End` jump to the ends of the stream. At the first or last article the key goes back to the page, so scrolling keeps working. Plain `Home` and `End`, and `Ctrl` with `PageUp` or `PageDown`, are never taken.
+
+## Next Steps
+
+- [Section](/docs/landmarks/section) — A named region with its own heading around the stream.
+- [Grid](/docs/composites/grid) — Move across rows and columns instead of a single stream.
+- [Toast](/docs/composites/toast) — Tell people about something they did not ask to read.

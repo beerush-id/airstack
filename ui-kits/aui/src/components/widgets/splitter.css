@@ -8,6 +8,8 @@
     --aui-splitter-idle: var(--color-outline-variant);
     --aui-splitter-active: var(--color-primary);
     --aui-splitter-radius: var(--radius-xs);
+    /* The gap a seam splitter keeps between its two panels. */
+    --aui-splitter-gap: var(--spacing-sm);
   }
 }
 
@@ -87,6 +89,29 @@
       &::before {
         transform: none;
       }
+    }
+  }
+
+  /*
+   * Seam: the grip is the gap between two separate panels, as between a window's sidebar and its
+   * body. It draws no line; the resize cursor shows it, and the focus ring when the keyboard
+   * reaches it. Its margins keep the panels a gap apart while the hit area overlays both edges.
+   */
+  .aui-splitter.aui-splitter-seam {
+    &::before {
+      display: none;
+    }
+
+    &[aria-orientation='vertical'] {
+      margin-inline: calc((var(--aui-splitter-gap) - var(--aui-splitter-hit)) / 2);
+    }
+
+    &:not([aria-orientation='vertical']) {
+      margin-block: calc((var(--aui-splitter-gap) - var(--aui-splitter-hit)) / 2);
+    }
+
+    &:focus-visible {
+      outline-offset: calc((var(--aui-splitter-gap) - var(--aui-splitter-hit)) / 2);
     }
   }
 }

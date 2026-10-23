@@ -1,0 +1,148 @@
+---
+title: AUI Composer
+nav: Composer
+nav-priority: 345
+description: Let people write what they want made — a prompt, the options that shape it, and a send button that shows what it costs — for image, video, and music generation or any request to an agent.
+keywords: [React prompt input, AI prompt composer, generation form, video generation UI, prompt box with options, chat composer React, AUI composer]
+---
+
+# AUI Composer
+
+A video from a sentence, a poster from a photo, a song from a mood: making something with a model starts with a prompt, but the prompt is never all of it. People pick the model, the size, the length, how many to try — and want to know what it costs before they send it.
+
+**Composer** is that box. A prompt that grows with what's written, the options that shape the result in a row under it, and a send button that carries its cost. You choose the options; the composer lays them out and sends.
+
+:::interactive[Composer demo]
+
+```tsx
+import { Button, Composer, ComposerDivider, Readout, Select, Stepper, Toggle } from '@airlib/react-aui';
+import { AddIcon, AlternateEmailIcon, AspectRatioIcon, AutoAwesomeIcon, HdIcon, TimerIcon, TollIcon, VolumeOffIcon, VolumeUpIcon } from '@airlib/react-aui/icons';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { GlassStage } from '@/components/GlassStage.js';
+
+const MODELS = { seedance: 'Seedance 2.5', kling: 'Kling 2.1', veo: 'Veo 3' };
+const RESOLUTIONS = { '480p': '480p', '720p': '720p', '1080p': '1080p' };
+const ASPECTS = { '16:9': '16:9', '9:16': '9:16', '1:1': '1:1' };
+const DURATIONS = { '5': '5s', '8': '8s', '10': '10s' };
+const RATE = { '480p': 12, '720p': 20, '1080p': 32 };
+
+const ComposerDemo = setup(() => {
+  const job = mutable({ prompt: '', model: 'seedance', resolution: '720p', aspect: '16:9', duration: '5', sound: true, count: 1, sent: '' });
+  const cost = () => RATE[job.resolution] * Number(job.duration) * job.count * 8;
+
+  return () => (
+    <div className="demo-button">
+      <GlassStage style={{ inlineSize: '100%' }}>
+        <Snippet>
+          {() => (
+            <Composer
+              label="Describe the video"
+              placeholder="Write your prompt"
+              optionsLabel="Video settings"
+              value={$bind(job, 'prompt')}
+              submitLabel="Generate"
+              submitMeta={
+                <>
+                  <TollIcon aria-hidden="true" />
+                  <s>{Math.round(cost() * 1.6)}</s> {cost()}
+                </>
+              }
+              onsubmit={(event) => (job.sent = event.detail)}
+            >
+              <Button size="sm" variant="text" aria-label="Attach a reference">
+                <AddIcon />
+              </Button>
+              <Button size="sm" variant="text" aria-label="Mention a file">
+                <AlternateEmailIcon />
+              </Button>
+              <ComposerDivider />
+              <Select size="sm" variant="text" label="Model" options={MODELS} value={$bind(job, 'model')}>
+                <Select.Snippet for="trigger">{(value) => <><AutoAwesomeIcon /> <span>{MODELS[value]}</span></>}</Select.Snippet>
+              </Select>
+              <Select size="sm" variant="text" label="Resolution" options={RESOLUTIONS} value={$bind(job, 'resolution')}>
+                <Select.Snippet for="trigger">{(value) => <><HdIcon /> <span>{value}</span></>}</Select.Snippet>
+              </Select>
+              <Select size="sm" variant="text" label="Aspect ratio" options={ASPECTS} value={$bind(job, 'aspect')}>
+                <Select.Snippet for="trigger">{(value) => <><AspectRatioIcon /> <span>{value}</span></>}</Select.Snippet>
+              </Select>
+              <Select size="sm" variant="text" label="Length" options={DURATIONS} value={$bind(job, 'duration')}>
+                <Select.Snippet for="trigger">{(value) => <><TimerIcon /> <span>{DURATIONS[value]}</span></>}</Select.Snippet>
+              </Select>
+              <Toggle size="sm" aria-label="Sound" pressed={$bind(job, 'sound')}>
+                {(on) => (on ? <VolumeUpIcon /> : <VolumeOffIcon />)}
+              </Toggle>
+              <Stepper size="sm" label="Videos" decrementLabel="Fewer videos" incrementLabel="More videos" min={1} max={4} value={$bind(job, 'count')} />
+            </Composer>
+          )}
+        </Snippet>
+      </GlassStage>
+      <Snippet>{() => <Readout label="Sent" value={job.sent} empty="Nothing yet" />}</Snippet>
+    </div>
+  );
+}, 'ComposerDemo');
+```
+
+```html
+<ComposerDemo />
+```
+
+<ComposerDemo />
+
+:::
+
+## Usage
+
+### Write and send
+
+Bind `value` to the prompt, name the send button, and handle `onsubmit`. Enter sends; Shift+Enter adds a line:
+
+```tsx
+import { Composer } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/composer.css';
+
+<Composer label="Describe the video" placeholder="Write your prompt" value={$bind(job, 'prompt')} submitLabel="Generate" onsubmit={generate} />;
+```
+
+### Add the options
+
+Put the controls that shape the result inside it — selects, toggles, steppers, buttons — at `size="sm"`, and they line up in a row under the prompt that wraps instead of widening the box. The row is a toolbar: the arrows move between its controls. Separate groups with `ComposerDivider`:
+
+```tsx
+<Composer optionsLabel="Video settings" submitLabel="Generate" onsubmit={generate}>
+  <Button size="sm" variant="text" aria-label="Attach a reference"><AddIcon /></Button>
+  <ComposerDivider />
+  <Select size="sm" variant="text" label="Length" options={{ '5': '5s', '10': '10s' }} value={$bind(job, 'duration')} />
+</Composer>
+```
+
+### Show what it costs
+
+`submitMeta` is a second line on the send button — credits, time, a discount:
+
+```tsx
+<Composer submitLabel="Generate" submitMeta={<><TollIcon aria-hidden="true" /> <s>800</s> 500</>} />
+```
+
+### While it works
+
+Set `busy` while a sent prompt is being worked on; the send button waits, and the prompt stays editable for the next one.
+
+## Properties
+
+| Prop | Type | Default | What it does |
+|---|---|---|---|
+| `label` | `string` | — | Names the prompt for screen readers |
+| `placeholder` | `string` | — | Hint in the empty prompt |
+| `value` | `Bindable<string>` | — | The prompt's text |
+| `rows` | `number` | `2` | Lines the prompt shows before it grows |
+| `optionsLabel` | `string` | — | Names the options row |
+| `submitLabel` | `string` | — | The send button's words |
+| `submitMeta` | `ReactNode` | — | A second line on the send button |
+| `busy` / `disabled` | `boolean` | `false` | Holds sending |
+
+The box keeps to `--aui-composer-width` (`40rem`); on a narrow screen the send button drops under the prompt at full width.
+
+## Next Steps
+
+- [Image Segments](/docs/composites/image-segments) — pick what to change before you generate
+- [Stage](/docs/composites/stage) — play what you made

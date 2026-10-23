@@ -1,0 +1,162 @@
+@import './button.css';
+@import './glass.css';
+
+/*
+ * A composition in a fixed frame: the SVG scales to the box without moving anything inside it,
+ * letterboxed on the stage's dark backdrop. The transport floats over the lower edge on glass;
+ * its scrubber fills with the playhead. In full screen the frame fills the screen.
+ */
+@layer theme {
+  :root {
+    --aui-stage-bg: oklch(0.12 0 0);
+    --aui-stage-radius: var(--radius-lg);
+    --aui-stage-ratio: 16 / 9;
+  }
+}
+
+@layer component {
+  .aui-stage {
+    position: relative;
+    display: block;
+    aspect-ratio: var(--aui-stage-ratio);
+    overflow: hidden;
+    border-radius: var(--aui-stage-radius);
+    background-color: var(--aui-stage-bg);
+    outline: none;
+
+    &:focus-visible {
+      box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring-color);
+    }
+
+    /* The transport rests out of the way while playing, and comes back when pointed at or focused. */
+    &[data-playing='true']:not(:hover, :focus-within) > .aui-stage-transport {
+      opacity: 0;
+    }
+
+    &:fullscreen,
+    &[data-fullscreen='true'] {
+      aspect-ratio: auto;
+      border-radius: 0;
+    }
+
+    &[data-fullscreen='true'] {
+      position: fixed;
+      inset: 0;
+      inline-size: 100%;
+      block-size: 100%;
+      max-inline-size: none;
+      max-block-size: none;
+      margin: 0;
+      padding: 0;
+      border: 0;
+    }
+  }
+
+  .aui-stage-canvas {
+    display: block;
+    inline-size: 100%;
+    block-size: 100%;
+  }
+
+  /*
+   * Controls over a picture read on the dark side of the glass whatever the theme: the transport
+   * takes the dark scheme, so the shared glass and its text resolve to their dark values. A soft
+   * shade rises from the frame's lower edge behind it.
+   */
+  .aui-stage::after {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    inset-block-end: 0;
+    block-size: 35%;
+    background: linear-gradient(to top, rgb(0 0 0 / 0.45), transparent);
+    pointer-events: none;
+    transition: opacity var(--duration-medium) var(--ease-emphasized);
+  }
+
+  .aui-stage[data-playing='true']:not(:hover, :focus-within)::after {
+    opacity: 0;
+  }
+
+  .aui-stage-transport {
+    --aui-glass-radius: var(--radius-full);
+    color-scheme: only dark;
+    position: absolute;
+    inset-inline: var(--spacing-md);
+    inset-block-end: var(--spacing-md);
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-xs) var(--spacing-md) var(--spacing-xs) var(--spacing-xs);
+    color: var(--color-on-surface);
+    transition: opacity var(--duration-medium) var(--ease-emphasized);
+
+    & > .aui-button {
+      color: var(--color-on-surface);
+    }
+  }
+
+  .aui-stage-time {
+    flex: none;
+    min-inline-size: 9ch;
+    font-size: var(--font-label-md-size);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /*
+   * A thin bar that thickens under the pointer, filled to the playhead, with a knob riding the
+   * fill's end once it's pointed at or focused.
+   */
+  .aui-stage-scrubber {
+    position: relative;
+    flex: 1;
+    block-size: 4px;
+    margin-block: var(--spacing-sm);
+    border-radius: var(--radius-full);
+    background-color: color-mix(in oklch, currentColor 24%, transparent);
+    cursor: pointer;
+    touch-action: none;
+    outline: none;
+    transition: block-size var(--duration-short) var(--ease-emphasized);
+
+    &::before {
+      content: '';
+      position: absolute;
+      inset-block: 0;
+      inset-inline-start: 0;
+      inline-size: calc(var(--aria-timeline-progress, 0) * 100%);
+      border-radius: inherit;
+      background-color: var(--color-primary);
+    }
+
+    &::after {
+      content: '';
+      position: absolute;
+      inset-block-start: 50%;
+      inset-inline-start: calc(var(--aria-timeline-progress, 0) * 100%);
+      inline-size: 12px;
+      block-size: 12px;
+      translate: -50% -50%;
+      border-radius: var(--radius-full);
+      background-color: var(--color-primary);
+      box-shadow: 0 0 0 2px var(--color-on-primary);
+      scale: 0;
+      transition: scale var(--duration-short) var(--ease-emphasized);
+    }
+
+    &:hover,
+    &:focus-visible {
+      block-size: 6px;
+
+      &::after {
+        scale: 1;
+      }
+    }
+
+    &:focus-visible {
+      box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring-color);
+    }
+  }
+}

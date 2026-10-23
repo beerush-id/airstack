@@ -1,9 +1,10 @@
 import { aria } from '@airlib/aria';
 import { AUI_CLASS, branded, register } from '@airlib/aui/utils';
-import { type AnyType, type Bindable, classx, Slot, setup } from '@airlib/react';
+import { type AnyType, type Bindable, createContext, Slot, setup } from '@airlib/react';
 import type { ReactNode } from 'react';
 import { $families, auiConfig, type ComponentStyles, OMIT_KEYS } from '../config.js';
-import { DialogClose, DialogDescription, DialogTitle, DialogTrigger } from './Dialog.js';
+import { DialogClose } from './Dialog.js';
+import { createDialog, type DialogPanelProps } from './dialog-parts.js';
 import type { DialogModality } from './overlay.js';
 import { modalScope } from './scopes.js';
 
@@ -29,12 +30,9 @@ export type DrawerProps = ComponentStyles & {
   onclose?: (event: CustomEvent<void>) => void;
 };
 
-export type DrawerPanelProps = ComponentStyles & {
-  children?: ReactNode;
-};
+export type DrawerPanelProps = DialogPanelProps;
 
 const DIALOG_ROLE = 'dialog';
-const PANEL_ROLE = 'dialog-panel';
 const DRAWER = branded('drawer');
 const DRAWER_PANEL = branded('drawer-panel');
 const DRAWER_BODY = branded('drawer-body');
@@ -42,7 +40,25 @@ const DRAWER_ACTIONS = branded('drawer-actions');
 const DRAWER_OMIT = [...OMIT_KEYS, 'title', 'description', 'closeLabel', 'side'];
 
 register('drawer', {});
-register('drawerPanel', {});
+
+/** The enclosing drawer's side, for its sheet: the sheet is drawn over the page, outside the drawer's own element. */
+const drawerSide = createContext<{ side?: DrawerSide }>();
+
+/** A drawer is a dialog pinned to an edge: the dialog's parts, its sheet carrying its side wherever it is drawn. */
+export const {
+  Trigger: DrawerTrigger,
+  Panel: DrawerPanel,
+  Title: DrawerTitle,
+  Description: DrawerDescription,
+} = createDialog('drawer', 'Drawer', {
+  panelClass: () => {
+    const drawer = drawerSide.get();
+    return () => `${DRAWER_PANEL}-${drawer?.side ?? 'end'}`;
+  },
+});
+
+/** Closes the drawer; the dialog close button under a drawer name. */
+export const DrawerClose = DialogClose;
 
 /**
  * A sheet that slides in from an edge of the screen: filters beside a list,
@@ -55,13 +71,10 @@ register('drawerPanel', {});
  */
 export const Drawer = setup<DrawerProps, DrawerSlots>((props, slots) => {
   const dialog = aria(DIALOG_ROLE, props as AnyType);
-  const className = () =>
-    classx(
-      $families([AUI_CLASS.MODAL, DRAWER], { className: props.className }, auiConfig.drawer),
-      `${DRAWER}-${props.side ?? 'end'}`
-    );
+  const className = () => $families([AUI_CLASS.MODAL, DRAWER], { className: props.className }, auiConfig.drawer);
 
   modalScope.provide(props);
+  drawerSide.set(props);
 
   return () => (
     <div ref={dialog.ref} {...dialog.restProps(DRAWER_OMIT)} className={className()}>
@@ -70,13 +83,13 @@ export const Drawer = setup<DrawerProps, DrawerSlots>((props, slots) => {
       ) : (
         <>
           {props.label && (
-            <DialogTrigger>
+            <DrawerTrigger>
               <Slot for={() => slots.trigger?.()}>{props.label}</Slot>
-            </DialogTrigger>
+            </DrawerTrigger>
           )}
           <DrawerPanel>
-            <DialogTitle>{props.title}</DialogTitle>
-            {props.description && <DialogDescription>{props.description}</DialogDescription>}
+            <DrawerTitle>{props.title}</DrawerTitle>
+            {props.description && <DrawerDescription>{props.description}</DrawerDescription>}
             {props.children && <div className={DRAWER_BODY}>{props.children}</div>}
             {(slots.actions || props.closeLabel) && (
               <div className={DRAWER_ACTIONS}>
@@ -91,31 +104,3 @@ export const Drawer = setup<DrawerProps, DrawerSlots>((props, slots) => {
     </div>
   );
 }, 'Drawer');
-
-/**
- * The sheet itself: the drawer's dialog panel, pinned to the drawer's side.
- * Traps focus while modal and hides through `hidden` while closed.
- */
-export const DrawerPanel = setup<DrawerPanelProps>((props) => {
-  const panel = aria(PANEL_ROLE, props as AnyType);
-  const className = () =>
-    $families([AUI_CLASS.MODAL_PANEL, DRAWER_PANEL], props, auiConfig.drawerPanel);
-
-  return () => (
-    <div ref={panel.ref} {...panel.restProps(OMIT_KEYS)} className={className()}>
-      {props.children}
-    </div>
-  );
-}, 'DrawerPanel');
-
-/** Opens the enclosing drawer; the dialog trigger under a drawer name. */
-export const DrawerTrigger = DialogTrigger;
-
-/** Names the drawer for assistive technology; the dialog title under a drawer name. */
-export const DrawerTitle = DialogTitle;
-
-/** Explains the drawer; the dialog description under a drawer name. */
-export const DrawerDescription = DialogDescription;
-
-/** Closes the drawer; the dialog close button under a drawer name. */
-export const DrawerClose = DialogClose;

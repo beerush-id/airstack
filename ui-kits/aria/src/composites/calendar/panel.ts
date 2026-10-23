@@ -9,7 +9,7 @@ import { type DatePickerBase, dateSelectionCtx } from './picker.js';
 
 export interface DatePickerCalendarAttributes<E extends BaseElement = HTMLElement> extends AriaAttributes<E> {
   id?: string;
-  role?: 'dialog';
+  role?: 'dialog' | 'group';
   hidden?: boolean;
   'aria-label'?: string;
 }
@@ -27,8 +27,14 @@ export class DatePickerCalendarAria<E extends BaseElement = HTMLElement> extends
     return this.host?.panelId ?? this.properties.id;
   }
 
+  /** Whether the calendar is showing: always, when it is drawn in place. */
   public get open(): boolean {
-    return this.popup.open;
+    return this.inline || this.popup.open;
+  }
+
+  /** Whether the calendar is drawn in place rather than as its picker's popup. */
+  public get inline(): boolean {
+    return !!this.host?.options.inline;
   }
 
   public get weeks() {
@@ -42,14 +48,15 @@ export class DatePickerCalendarAria<E extends BaseElement = HTMLElement> extends
   /* istanbul ignore next: no flow assigns calendar.current; popup tracks the element through its own ref */
   public override set current(element: E | null) {
     super.current = element;
-    this.popup.current = element as unknown as HTMLElement;
+    if (this.popup) this.popup.current = element as unknown as HTMLElement;
   }
 
   public constructor(props: AriaProps = {}) {
     super(dateSelectionCtx.get(props));
 
     this.host = popupCtx.get() as unknown as DatePickerBase | undefined;
-    bindPanel(this as unknown as PopupPanel, { mode: ['click'], xDir: 'right', yDir: 'below' });
+    // In place, the calendar is no popup: nothing to position, dismiss, or close.
+    if (!this.inline) bindPanel(this as unknown as PopupPanel, { mode: ['click'], xDir: 'right', yDir: 'below' });
 
     this.omittedAttrs.push(...((this.host as unknown as this)?.omittedAttrs ?? []));
 
@@ -75,11 +82,16 @@ export class DatePickerCalendarAria<E extends BaseElement = HTMLElement> extends
   }
 
   public override destroy(): void {
-    this.popup.destroy();
+    this.popup?.destroy();
     super.destroy();
   }
 
   protected override createAttributes(): DatePickerCalendarAttributes<E> {
+    // In place it is a named group of days, not a dialog.
+    if (this.inline) {
+      return { id: this.id, role: 'group', 'aria-label': this.host?.properties.label } as DatePickerCalendarAttributes<E>;
+    }
+
     const overrides: DatePickerCalendarAttributes<E> = {
       id: this.id,
       role: 'dialog',

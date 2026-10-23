@@ -1,0 +1,139 @@
+---
+title: AUI Stage
+nav: Stage
+nav-priority: 342
+description: Play a composition — SVG layers in a fixed frame, driven by an AirLib timeline — with a transport, keyboard control, and full screen; the same timeline drives your editor and your agent.
+keywords: [React video player, SVG composition player, motion graphics player, timeline player, GSAP player React, accessible media player, AUI stage]
+---
+
+# AUI Stage
+
+A title card, a cut, a caption sliding in: a short video built from layers doesn't need to be rendered to a file to be watched. It needs a frame that keeps every layer in place at any size, a clock everything follows, and controls people already know — play, pause, scrub, full screen — from the pointer and the keyboard.
+
+**Stage** is that player. It draws your SVG layers in a fixed frame and plays them on an AirLib `Timeline`. It keeps no time of its own, so the [Timeline Editor](/docs/composites/timeline-editor), your app, and an agent all move the same playback by moving the same timeline.
+
+:::interactive[Stage demo]
+
+```tsx
+import { Stage, TimelineEditor } from '@airlib/react-aui';
+import { setup, Snippet } from '@airlib/react';
+import { createTimeline } from '@airlib/react/timeline';
+
+const STAGE_W = 1920;
+const STAGE_H = 1080;
+
+const MotionDemo = setup(() => {
+  const timeline = createTimeline({ frameRate: 30 });
+
+  const video = timeline.addTrack({ type: 'video', name: 'Media 1' });
+  video.addSegment({ name: 'Morning.mp4', startTime: 0, duration: 4, meta: { thumbnail: 'https://picsum.photos/seed/aui-morning/320/180' } });
+  video.addSegment({ name: 'Cafe.mp4', startTime: 4, duration: 5, meta: { thumbnail: 'https://picsum.photos/seed/aui-cafe/320/180' } });
+
+  const audio = timeline.addTrack({ type: 'audio', name: 'Audio 1' });
+  audio.addSegment({ name: 'Intro.mp3', startTime: 0, duration: 9 });
+
+  const text = timeline.addTrack({ type: 'text', name: 'Text 1' });
+  text.addSegment({ name: 'Day one', startTime: 0.5, duration: 3 });
+  text.addSegment({ name: 'Meet me at three', startTime: 5, duration: 3.5 });
+
+  // Which caption the playhead is in, if any.
+  const caption = () => [...text.segments].find((s) => timeline.state.time >= s.startTime && timeline.state.time < s.startTime + s.totalTime);
+
+  return () => (
+    <div className="flex flex-col gap-md w-full">
+      <Stage label="Short drama, episode 3" timeline={timeline} width={STAGE_W} height={STAGE_H}>
+        <rect width={STAGE_W} height={STAGE_H} fill="#1c1430" />
+        <Snippet>
+          {() => (
+            <circle
+              cx={240 + (timeline.state.time / Math.max(timeline.state.totalTime, 1)) * 1440}
+              cy={STAGE_H / 2}
+              r={140}
+              fill="#e8a4b4"
+            />
+          )}
+        </Snippet>
+        <Snippet>
+          {() => (
+            <text x={STAGE_W / 2} y={STAGE_H - 160} fill="#fff" fontSize={88} fontWeight={700} textAnchor="middle">
+              {caption()?.name ?? ''}
+            </text>
+          )}
+        </Snippet>
+      </Stage>
+      <TimelineEditor label="Clips in Short drama" timeline={timeline} zoom={64} />
+    </div>
+  );
+}, 'MotionDemo');
+```
+
+```html
+<MotionDemo />
+```
+
+<MotionDemo />
+
+:::
+
+## Usage
+
+### Play a composition
+
+Make a timeline, add its tracks and segments, and hand it to the stage with your layers as SVG children. Place the layers in the stage's own units — `width` by `height`, 1920 by 1080 unless you say otherwise — and they stay where you put them at any size:
+
+```tsx
+import { Stage } from '@airlib/react-aui';
+import { createTimeline } from '@airlib/react/timeline';
+import '@airlib/aui/components/widgets/stage.css';
+
+const timeline = createTimeline({ frameRate: 30 });
+timeline.addTrack({ type: 'text', name: 'Titles' }).addSegment({ name: 'Day one', startTime: 0, duration: 3 });
+
+<Stage label="Short drama, episode 3" timeline={timeline}>
+  <rect width={1920} height={1080} fill="#1c1430" />
+</Stage>;
+```
+
+The stage takes Space and K to play and pause, J and L to jump five seconds, the arrows to nudge a second, and Home and End to go to the ends. Its transport does the same by pointer, and its last button fills the screen.
+
+### Animate the layers with GSAP
+
+Build a paused GSAP timeline over your layers and seek it to the AirLib timeline whenever it moves. The AirLib timeline stays the one clock; GSAP only draws:
+
+```tsx
+import gsap from 'gsap';
+
+const motion = gsap.timeline({ paused: true });
+motion.from('#title', { opacity: 0, y: 40, duration: 0.6 }, 0.5);
+
+timeline.subscribe((state) => motion.seek(state.time));
+```
+
+### Drive it from your app
+
+Playback is the timeline's, so your app — or an agent asked to "play from the second shot" — calls it directly:
+
+```ts
+timeline.seek(4);
+timeline.play();
+```
+
+### Change its shape
+
+The frame follows `--aui-stage-ratio` (`16 / 9` by default; `9 / 16` for a vertical short) and sits on `--aui-stage-bg`. Hide the transport with `controls={false}` when something else plays it.
+
+## Properties
+
+| Prop | Type | Default | What it does |
+|---|---|---|---|
+| `label` | `string` | — | Names the stage for screen readers |
+| `timeline` | `Timeline` | — | The composition's clock and structure |
+| `width` / `height` | `number` | `1920` / `1080` | The frame, in the units layers are placed in |
+| `controls` | `boolean` | `true` | Shows the transport |
+| `jump` | `number` | `5` | Seconds J and L jump |
+| `labels` | `StageLabels` | English | Names of the transport's controls |
+
+## Next Steps
+
+- [Timeline Editor](/docs/composites/timeline-editor) — lay the same timeline out in tracks and clips
+- [Image Viewer](/docs/composites/image-viewer) — the same full screen, for still images

@@ -122,7 +122,12 @@ export const SelectTrigger = setup<SelectTriggerProps>((props) => {
 
     return (
       <button ref={trigger.ref} {...trigger.restProps(OMIT_KEYS)} className={className()}>
-        {props.label && <span className={AUI_CLASS.SELECT_PLACEHOLDER}>{props.label}</span>}
+        {/* Filled content replaces the whole face; the label stays only as the trigger's name. */}
+        {props.label && (
+          <span className={AUI_CLASS.SELECT_PLACEHOLDER} data-visually-hidden={props.children ? 'true' : undefined}>
+            {props.label}
+          </span>
+        )}
         {props.children ? (
           <span className={AUI_CLASS.SELECT_VALUE}>{renderDynamic(props.children, trigger)}</span>
         ) : (

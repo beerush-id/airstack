@@ -1,7 +1,10 @@
 @layer component {
   .aui-divider {
-    --aui-divider-color: var(--color-outline);
+    --aui-divider-color: var(--color-outline-variant);
     --aui-divider-thickness: 1px;
+    --aui-divider-inset: var(--spacing-md);
+    /* A vertical rule usually sits in a row one control tall, so it stops shorter. */
+    --aui-divider-inset-block: var(--spacing-sm);
 
     flex: none;
     display: block;
@@ -15,6 +18,18 @@
     inline-size: var(--aui-divider-thickness);
     block-size: auto;
     align-self: stretch;
+  }
+
+  /* Inset: the rule stops short of both ends instead of running edge to edge. */
+  .aui-divider-inset {
+    inline-size: calc(100% - var(--aui-divider-inset) * 2);
+    margin-inline: auto;
+  }
+
+  .aui-divider-inset[aria-orientation='vertical'] {
+    inline-size: var(--aui-divider-thickness);
+    margin-inline: 0;
+    margin-block: var(--aui-divider-inset-block);
   }
 
   .aui-divider-primary {

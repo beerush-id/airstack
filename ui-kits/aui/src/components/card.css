@@ -1,6 +1,7 @@
 @layer component {
   .aui-card {
     border-radius: var(--radius-xl);
-    background-color: var(--color-surface-container);
+    /* A card only groups content: a surface — the lightest one, so it sits apart from any page tone — never a container's. */
+    background-color: var(--color-surface-lowest);
   }
 }

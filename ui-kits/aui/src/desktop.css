@@ -1,0 +1,7 @@
+/*
+ * The desktop shell, opted into beside the main stylesheet. It lands in the
+ * same `aui` layer, in the same cascade order, as everything else AUI ships.
+ */
+@layer aui.theme, aui.base, aui.component, aui.glass, aui.utility, aui.reduced-motion;
+
+@import './components/desktop/index.css' layer(aui);

@@ -135,16 +135,4 @@ export class MenuAria<E extends BaseElement = HTMLElement> extends PopupAria<E, 
   public panel(props?: MenuPanelProps): MenuPanelAria {
     return new MenuPanelAria(props);
   }
-
-  /**
-   * Routes bubbled item `command` events to the root-level `oncommand` callback.
-   *
-   * @param event - The AriaEvent to capture.
-   */
-  protected capture(event: AriaEvent): void {
-    super.capture(event);
-    if (event.type === 'command') {
-      this.properties.oncommand?.(event as MenuCommandEvent);
-    }
-  }
 }

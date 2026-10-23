@@ -1,0 +1,120 @@
+@import './button.css';
+@import './toolbar.css';
+
+/*
+ * A prompt and its options on one surface, with the send button beside them. It keeps to a
+ * reading width: the options wrap under the prompt instead of stretching the row, and on a narrow
+ * screen the send button drops under everything at full width. The button's corners are
+ * concentric with the surface's, and the surface rings in its role color while it has focus.
+ */
+@layer theme {
+  :root {
+    --aui-composer-width: 40rem;
+    --aui-composer-padding: var(--spacing-sm);
+    --aui-composer-radius: var(--radius-xl);
+    --aui-composer-lines: 6;
+  }
+}
+
+@layer component {
+  .aui-composer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: var(--spacing-sm);
+    box-sizing: border-box;
+    inline-size: 100%;
+    max-inline-size: var(--aui-composer-width);
+    padding: var(--aui-composer-padding);
+    border-radius: var(--aui-composer-radius);
+    background-color: var(--color-surface-lowest);
+    box-shadow:
+      inset 0 0 0 1px color-mix(in oklch, var(--color-outline-variant) 70%, transparent),
+      var(--elevation-1);
+    transition: box-shadow var(--duration-short) var(--ease-emphasized);
+
+    &:focus-within {
+      box-shadow:
+        inset 0 0 0 2px color-mix(in oklch, var(--aui-item-bg) 55%, transparent),
+        var(--elevation-2);
+    }
+  }
+
+  /* The prompt and the options take every bit of the row the send button leaves. */
+  .aui-composer-main {
+    flex: 1000 1 18rem;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    min-inline-size: 0;
+  }
+
+  .aui-composer-input {
+    box-sizing: border-box;
+    inline-size: 100%;
+    min-block-size: 2lh;
+    max-block-size: calc(var(--aui-composer-lines) * 1lh + var(--spacing-sm) * 2);
+    padding: var(--spacing-sm);
+    border: 0;
+    background: transparent;
+    color: var(--color-on-surface);
+    font: inherit;
+    font-size: var(--font-body-lg-size, var(--font-label-lg-size));
+    line-height: 1.5;
+    resize: none;
+    field-sizing: content;
+    outline: none;
+
+    &::placeholder {
+      color: var(--color-on-surface-variant);
+      opacity: 0.8;
+    }
+  }
+
+  /* The options row starts a hair from the prompt's left edge. */
+  .aui-composer-options {
+    margin-inline-start: calc(var(--spacing-xs) * -0.5);
+  }
+
+  /* A thin rule between groups of options. */
+  .aui-composer-divider {
+    inline-size: 1px;
+    block-size: 1.25rem;
+    margin-inline: var(--spacing-xs);
+    background-color: color-mix(in oklch, var(--color-outline-variant) 80%, transparent);
+  }
+
+  .aui-composer > .aui-composer-submit {
+    flex: 1 0 8rem;
+    flex-direction: column;
+    justify-content: center;
+    gap: var(--spacing-xxs, 2px);
+    block-size: auto;
+    min-block-size: calc(var(--aui-control-height) * 1.75);
+    padding-inline: var(--spacing-lg);
+    border-radius: max(calc(var(--aui-composer-radius) - var(--aui-composer-padding)), var(--radius-xs));
+  }
+
+  .aui-composer-submit-label {
+    font-size: var(--font-title-sm-size);
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+
+  .aui-composer-submit-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    font-size: var(--font-label-md-size);
+    font-variant-numeric: tabular-nums;
+    opacity: 0.88;
+
+    & > .aui-icon {
+      --aui-icon-size: 1.1em;
+    }
+
+    & > s {
+      opacity: 0.7;
+    }
+  }
+}

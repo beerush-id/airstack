@@ -29,6 +29,8 @@ export const VARIANTS = {
   FILLED: 'filled',
   ELEVATED: 'elevated',
   OUTLINED: 'outlined',
+  /** A frosted pane over what's behind: for a control floating over other content. */
+  GLASS: 'glass',
 } as const;
 
 /** The surfaces a field can wear: press-only variants (`text`, `elevated`) have no boundary to type into. */
@@ -74,13 +76,15 @@ export const VARIANT_MAP: Record<Variant, string> = {
   filled: 'filled',
   elevated: 'elevated',
   outlined: 'outlined',
+  glass: 'glass',
 };
-export const VARIANT_LABELS = {
+export const VARIANT_LABELS: Record<Variant, string> = {
   text: 'Text',
   tonal: 'Tonal',
   filled: 'Filled',
   elevated: 'Elevated',
   outlined: 'Outlined',
+  glass: 'Glass',
 };
 
 export const COLOR_MAP: Record<Color, string> = {
@@ -235,6 +239,7 @@ export type MauiConfig = typeof DEFAULT_CONFIG & {
   switch?: ComponentStyles;
   toggle?: ComponentStyles;
   toggleGroup?: ComponentStyles;
+  label?: ComponentStyles;
   checkbox?: ComponentStyles;
   checkboxGroup?: ComponentStyles;
   radio?: ComponentStyles;
@@ -259,6 +264,7 @@ export type MauiConfig = typeof DEFAULT_CONFIG & {
   breadcrumb?: ComponentStyles;
   breadcrumbSeparator?: ComponentStyles;
   toolbar?: ComponentStyles;
+  floatingToolbar?: ComponentStyles;
   pagination?: ComponentStyles;
   field?: ComponentStyles;
   fieldLabel?: ComponentStyles;
@@ -319,6 +325,7 @@ export type MauiConfig = typeof DEFAULT_CONFIG & {
   toast?: ComponentStyles;
   toastClose?: ComponentStyles;
   datePicker?: ComponentStyles;
+  timePicker?: ComponentStyles;
   datePickerInput?: ComponentStyles;
   datePickerTrigger?: ComponentStyles;
   datePickerCalendar?: ComponentStyles;
@@ -354,15 +361,22 @@ export type MauiConfig = typeof DEFAULT_CONFIG & {
   badge?: ComponentStyles;
   avatar?: ComponentStyles;
   avatarGroup?: ComponentStyles;
+  appIcon?: ComponentStyles;
   chip?: ComponentStyles;
   tagInput?: ComponentStyles;
   card?: ComponentStyles;
   emptyState?: ComponentStyles;
-  skeleton?: ComponentStyles;
+  list?: ComponentStyles;
+  descriptionList?: ComponentStyles;
+  stat?: ComponentStyles;
+  readout?: ComponentStyles;
   spinner?: ComponentStyles;
   alert?: ComponentStyles;
   drawer?: ComponentStyles;
+  drawerTrigger?: ComponentStyles;
   drawerPanel?: ComponentStyles;
+  drawerTitle?: ComponentStyles;
+  drawerDescription?: ComponentStyles;
   commandPalette?: ComponentStyles;
   commandPaletteInput?: ComponentStyles;
   commandPaletteItem?: ComponentStyles;
@@ -372,6 +386,7 @@ export type MauiConfig = typeof DEFAULT_CONFIG & {
   windowTaskbar?: ComponentStyles;
   dock?: ComponentStyles;
   dockButton?: ComponentStyles;
+  dockWidgets?: ComponentStyles;
 };
 
 export const AUI_CLASS = {
@@ -382,9 +397,9 @@ export const AUI_CLASS = {
   SWITCH_TRACK: branded('switch-track'),
   TOGGLE: branded('toggle'),
   TOGGLE_GROUP: branded('toggle-group'),
+  LABEL: branded('label'),
+  LABEL_TEXT: branded('label-text'),
   CHECKBOX: branded('checkbox'),
-  CHECKBOX_LABEL: branded('checkbox-label'),
-  CHECKBOX_BOX: branded('checkbox-box'),
   CHECKBOX_GROUP: branded('checkbox-group'),
   RADIO: branded('radio'),
   RADIO_LABEL: branded('radio-label'),
@@ -400,6 +415,7 @@ export const AUI_CLASS = {
   SIDEBAR: branded('sidebar'),
   LINK: branded('link'),
   DIVIDER: branded('divider'),
+  DIVIDER_INSET: branded('divider-inset'),
   IMAGE: branded('image'),
   IMAGE_CONTENT: branded('image-content'),
   IMAGE_FALLBACK: branded('image-fallback'),
@@ -409,12 +425,23 @@ export const AUI_CLASS = {
   INPUT: branded('input'),
   PANEL: branded('panel'),
   ITEM: branded('item'),
+  ITEM_HINT: branded('item-hint'),
   SCALE: branded('scale'),
+  /** Light that follows the pointer over a glass surface; pair it with the part's `trackPointer`. */
+  GLINT: branded('glint'),
+  /** The outer glass pane: a tint over what's behind, blurred, edged, rounded, with a shadow. */
+  GLASS_FRAME: branded('glass-frame'),
+  /** A frosted pane on a glass frame. */
+  GLASS_PANEL: branded('glass-panel'),
+  /** A solid surface on a glass frame, for what people read and work on. */
+  GLASS_SURFACE: branded('glass-surface'),
   COLLAPSIBLE: branded('collapsible'),
   COLLAPSIBLE_HEADER: branded('collapsible-header'),
   COLLAPSIBLE_BODY: branded('collapsible-body'),
   MODAL: branded('modal'),
+  MODAL_SCRIM: branded('modal-scrim'),
   MODAL_PANEL: branded('modal-panel'),
+  MODAL_CONTENT: branded('modal-content'),
   MODAL_TITLE: branded('modal-title'),
   MODAL_DESCRIPTION: branded('modal-description'),
   MENU_ITEM: branded('menu-item'),
@@ -430,6 +457,8 @@ export const AUI_CLASS = {
   BREADCRUMB: branded('breadcrumb'),
   BREADCRUMB_SEPARATOR: branded('breadcrumb-separator'),
   TOOLBAR: branded('toolbar'),
+  TOOLBAR_OPTIONS: branded('toolbar-options'),
+  FLOATING_TOOLBAR: branded('floating-toolbar'),
   PAGINATION: branded('pagination'),
   PAGINATION_GAP: branded('pagination-gap'),
   PAGINATION_STEP: branded('pagination-step'),
@@ -442,11 +471,21 @@ export const AUI_CLASS = {
   SEARCH_INPUT: branded('search-input'),
   CODE_INPUT: branded('code-input'),
   CODE_INPUT_CELL: branded('code-input-cell'),
+  CODE_INPUT_SEPARATOR: branded('code-input-separator'),
   NUMBER_STEPPER: branded('number-stepper'),
   FORM: branded('form'),
   FILE_PICKER: branded('file-picker'),
   LISTBOX: branded('listbox'),
   LISTBOX_OPTION: branded('listbox-option'),
+  GALLERY: branded('gallery'),
+  GALLERY_ITEM: branded('gallery-item'),
+  GALLERY_MEDIA: branded('gallery-media'),
+  GALLERY_CAPTION: branded('gallery-caption'),
+  IMAGE_VIEWER: branded('image-viewer'),
+  IMAGE_SEGMENTS: branded('segments'),
+  COMPOSER: branded('composer'),
+  STAGE: branded('stage'),
+  TIMELINE_EDITOR: branded('timeline'),
   COMBOBOX: branded('combobox'),
   COMBOBOX_INPUT: branded('combobox-input'),
   COMBOBOX_PANEL: branded('combobox-panel'),
@@ -491,10 +530,13 @@ export const AUI_CLASS = {
   METER_FILL: branded('meter-fill'),
   TOAST: branded('toast'),
   TOAST_CLOSE: branded('toast-close'),
+  TOAST_HOST: branded('toast-host'),
+  TOAST_FLOATING: branded('toast-floating'),
   DATE_PICKER: branded('date-picker'),
   DATE_PICKER_INPUT: branded('date-picker-input'),
   DATE_PICKER_TRIGGER: branded('date-picker-trigger'),
   DATE_PICKER_CALENDAR: branded('date-picker-calendar'),
+  DATE_PICKER_INLINE: branded('date-picker-inline'),
   DATE_PICKER_HEADER: branded('date-picker-header'),
   DATE_PICKER_TITLE: branded('date-picker-title'),
   DATE_PICKER_FIELD: branded('date-picker-field'),
@@ -533,4 +575,5 @@ export const AUI_CLASS = {
   STEPPER_INPUT: branded('stepper-input'),
   STEPPER_BUTTON: branded('stepper-button'),
   SPLITTER: branded('splitter'),
+  SPLITTER_SEAM: branded('splitter-seam'),
 };

@@ -7,7 +7,7 @@
  */
 @layer theme {
   :root {
-    --aui-collapsible-bg: var(--color-surface-container);
+    --aui-collapsible-bg: var(--color-container);
     --aui-collapsible-radius: var(--radius-lg);
     --aui-collapsible-padding: var(--spacing-xs);
   }
@@ -15,6 +15,11 @@
 
 @layer component {
   .aui-collapsible {
+    /* The headers sit one padding in from the sheet's edge, so their corners follow its. */
+    --aui-collapsible-inner-radius: max(
+      calc(var(--aui-collapsible-radius) - var(--aui-collapsible-padding)),
+      0px
+    );
     display: flex;
     flex-direction: column;
     gap: 2px;
@@ -44,6 +49,26 @@
         transform: rotate(180deg);
       }
     }
+  }
+
+  /*
+   * The headers are items floating in the sheet, not segments of one strip, so every one takes the
+   * same corners: the sheet's, one padding in, concentric with it. A header grows tall enough to
+   * hold that corner rather than flattening it.
+   */
+  .aui-collapsible > .aui-collapsible-header {
+    border-radius: var(--aui-collapsible-inner-radius);
+    block-size: max(var(--aui-control-height), calc(var(--aui-collapsible-inner-radius) * 2));
+  }
+
+  /* A disabled item fades its text on the sheet, rather than turning into a block of its own. */
+  .aui-collapsible .aui-collapsible-header[aria-disabled='true'] {
+    background-color: transparent;
+  }
+
+  /* With every item disabled, the whole sheet takes the disabled surface: neutral, not the container's tint. */
+  .aui-collapsible:not(:has(.aui-collapsible-header:not([aria-disabled='true']))) {
+    background-color: var(--color-disabled-bg);
   }
 
   .aui-collapsible-body {

@@ -8,8 +8,8 @@ import { hasEntries, type ItemEntry, type ItemsInput, toEntries } from '../utils
 import { withTabIndex } from './attributes.js';
 import { menuScope } from './scopes.js';
 
-/** One command row of an `items` menu: `name` is what `oncommand` receives. */
-export type MenuEntry = ItemEntry;
+/** One command row of an `items` menu: `name` is what `oncommand` receives, `shortcut` runs it from the keyboard. */
+export type MenuEntry = ItemEntry & { shortcut?: string };
 
 export type MenuSlots = {
   trigger: () => ReactNode;
@@ -21,7 +21,7 @@ export type MenuProps = ComponentStyles & {
   label?: string;
   open?: Bindable<boolean>;
   disabled?: boolean;
-  items?: ItemsInput;
+  items?: Array<MenuEntry> | ItemsInput;
   children?: ReactNode;
   onopen?: (event: CustomEvent<true>) => void;
   onclose?: (event: CustomEvent<false>) => void;
@@ -30,6 +30,8 @@ export type MenuProps = ComponentStyles & {
 
 export type MenuButtonProps = ComponentStyles & {
   disabled?: boolean;
+  /** Names the trigger when its content doesn't, such as a lone icon. */
+  'aria-label'?: string;
   children?: ReactNode;
 };
 
@@ -40,6 +42,8 @@ export type MenuPanelProps = ComponentStyles & {
 export type MenuItemProps = ComponentStyles & {
   name?: string;
   disabled?: boolean;
+  /** Runs the item from anywhere on the page, e.g. `mod+d`; shown at the row's end as `⌘D` or `Ctrl+D`. */
+  shortcut?: string;
   children?: ReactNode;
   oncommand?: (event: CustomEvent<string>) => void;
 };
@@ -51,6 +55,8 @@ export type MenuItemCheckboxProps = ComponentStyles & {
   required?: boolean;
   name?: string;
   value?: string;
+  /** Flips the item from anywhere on the page; shown at the row's end. */
+  shortcut?: string;
   children?: ReactNode;
   oninput?: (event: CustomEvent<boolean>) => void;
   onchange?: (event: CustomEvent<boolean>) => void;
@@ -61,6 +67,8 @@ export type MenuItemRadioProps = ComponentStyles & {
   name?: string;
   checked?: Bindable<boolean>;
   disabled?: boolean;
+  /** Chooses the item from anywhere on the page; shown at the row's end. */
+  shortcut?: string;
   children?: ReactNode;
   onchange?: (event: CustomEvent<boolean>) => void;
 };
@@ -112,7 +120,9 @@ register('menuBar', {});
  * Root of a menu tree. The trigger, the panel, and the items find it
  * through ambient scope, and every dismissal path lands on one `open`.
  * With `items` it renders the trigger, panel, and rows itself; `label`
- * becomes the trigger text and the `trigger` / `item` slots refine them.
+ * and its arrow are the default trigger. The `trigger` slot replaces that
+ * whole default, and `label` then names the trigger; the `item` slot
+ * replaces each row's content.
  */
 export const Menu = setup<MenuProps, MenuSlots>((props, slots) => {
   const menu = aria(MENU_ROLE, props as AnyType);
@@ -125,14 +135,17 @@ export const Menu = setup<MenuProps, MenuSlots>((props, slots) => {
     <div ref={menu.ref} {...menu.restProps([...OMIT_KEYS, 'items'])} className={className()}>
       {hasEntries(props.items) ? (
         <>
-          <MenuButton>
-            <Slot for={() => slots.trigger?.()}>{props.label}</Slot>
-            <ArrowDown aria-hidden="true" />
+          {/* The slot replaces the whole default — label and arrow; `label` then names the trigger instead. */}
+          <MenuButton aria-label={slots.trigger ? props.label : undefined}>
+            <Slot for={() => slots.trigger?.()}>
+              <span>{props.label}</span>
+              <ArrowDown aria-hidden="true" />
+            </Slot>
           </MenuButton>
           <MenuPanel>
-            <For each={() => toEntries(props.items)}>
+            <For each={() => toEntries(props.items) as MenuEntry[]}>
               {(entry) => (
-                <MenuItem name={entry.name} disabled={entry.disabled}>
+                <MenuItem name={entry.name} disabled={entry.disabled} shortcut={entry.shortcut}>
                   <Slot for={() => slots.item?.(entry)}>{entry.label ?? entry.name}</Slot>
                 </MenuItem>
               )}
@@ -192,6 +205,7 @@ export const MenuItem = setup<MenuItemProps>((props) => {
   return () => (
     <button ref={item.ref} {...withTabIndex(item.restProps(OMIT_KEYS))} className={className()}>
       {renderDynamic(props.children, item)}
+      {item.shortcutLabel && <kbd className={AUI_CLASS.ITEM_HINT} data-hint={item.shortcutLabel} />}
     </button>
   );
 }, 'MenuItem');
@@ -208,6 +222,7 @@ export const MenuItemCheckbox = setup<MenuItemCheckboxProps>((props) => {
   return () => (
     <div ref={item.ref} {...withTabIndex(item.restProps(OMIT_KEYS))} className={className()}>
       {renderDynamic(props.children, item)}
+      {item.shortcutLabel && <kbd className={AUI_CLASS.ITEM_HINT} data-hint={item.shortcutLabel} />}
     </div>
   );
 }, 'MenuItemCheckbox');
@@ -223,6 +238,7 @@ export const MenuItemRadio = setup<MenuItemRadioProps>((props) => {
   return () => (
     <div ref={item.ref} {...withTabIndex(item.restProps(OMIT_KEYS))} className={className()}>
       {renderDynamic(props.children, item)}
+      {item.shortcutLabel && <kbd className={AUI_CLASS.ITEM_HINT} data-hint={item.shortcutLabel} />}
     </div>
   );
 }, 'MenuItemRadio');

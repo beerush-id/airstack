@@ -1,25 +1,22 @@
 import { Aria } from '../../core.js';
 import type { AriaAttributes, AriaOptions, AriaProps, BaseElement } from '../../types.js';
 import type { DragEdge } from '../../utils/drag.js';
-import { type WindowAria, windowCtx } from './window.js';
-
-/**
- * Elements inside a drag handle that keep their own pointer behavior instead
- * of starting a move.
- */
-const INTERACTIVE = 'button, a[href], input, select, textarea, [role="button"], [contenteditable="true"]';
+import { WINDOW_INTERACTIVE, type WindowAria, windowCtx } from './window.js';
 
 /**
  * Compiled attributes for a window drag handle.
  */
 export interface WindowDragAttributes<E extends BaseElement = HTMLElement> extends AriaAttributes<E> {
   'data-movable'?: 'true';
+  'data-window-drag'?: 'true';
 }
 
 /**
- * The area that moves its window — usually the title bar. Pressing and
- * dragging it moves the window; double-clicking it maximizes or restores.
- * Buttons and fields inside it keep their own behavior.
+ * The area that moves its window — usually the toolbar. The window itself
+ * starts the move: this part marks a handle, which wins over a surface around
+ * it, so a header inside a content panel can move the window too.
+ * Double-clicking it maximizes or restores. Controls inside it keep their own
+ * behavior.
  */
 export class WindowDragAria<E extends BaseElement = HTMLElement> extends Aria<
   E,
@@ -31,25 +28,20 @@ export class WindowDragAria<E extends BaseElement = HTMLElement> extends Aria<
 
   public constructor(props: Partial<AriaProps> = {}, options: AriaOptions = {}) {
     super(props, options);
-    this.omittedAttrs.push('data-movable');
+    this.omittedAttrs.push('data-movable', 'data-window-drag');
     this.update();
   }
 
   protected createAttributes(): WindowDragAttributes<E> {
     return {
       'data-movable': this.window?.movable ? 'true' : undefined,
-      onpointerdown: this.handlePointerDown,
+      'data-window-drag': 'true',
       ondblclick: this.handleDoubleClick,
     };
   }
 
-  private readonly handlePointerDown = (event: PointerEvent): void => {
-    if (event.defaultPrevented || (event.target as Element).closest?.(INTERACTIVE)) return;
-    this.window?.startMove(event);
-  };
-
   private readonly handleDoubleClick = (event: MouseEvent): void => {
-    if (event.defaultPrevented || (event.target as Element).closest?.(INTERACTIVE)) return;
+    if (event.defaultPrevented || (event.target as Element).closest?.(WINDOW_INTERACTIVE)) return;
     if (this.window && (this.window.properties.resizable ?? true)) this.window.toggleMaximized();
   };
 }
@@ -166,6 +158,8 @@ abstract class WindowButtonAria<E extends BaseElement = HTMLButtonElement> exten
   public constructor(props: Partial<AriaProps> = {}, options: AriaOptions = {}) {
     super(props, { native: true, ...options, clickable: true });
     this.omittedAttrs.push('role', 'type', 'disabled', 'tabindex', 'aria-disabled', 'aria-pressed');
+    // Like any button, so an overlay inside it (the maximize button's layout popup) finds it as its trigger.
+    this.markActionable();
     this.update();
   }
 

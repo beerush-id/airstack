@@ -27,7 +27,7 @@ const CardDemo = setup(() => {
       <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} variant={$bind(state, 'variant')} disabled={$bind(state, 'disabled')} />
       <Snippet>
         {() => (
-          <div className="grid grid-cols-2 gap-md">
+          <div className="demo-stage grid grid-cols-2 gap-md">
             <Card
               title="Team offsite"
               description="Rome · 12–14 November · 6 travelers"
@@ -128,6 +128,21 @@ import { Card, CardActions, CardBody, CardDescription, CardHeader, CardMedia, Ca
 
 Without `title`, name the card yourself with `aria-labelledby`, as above.
 
+### Act on the card
+
+A card stands for one thing — a note, a trip, a file — so the commands for that thing land on it. Put a [Context Menu](/docs/composites/context-menu) or a [Menu](/docs/composites/menu) inside the card, and every command picked from either reaches the card's `oncommand` with the command's name:
+
+```tsx
+import { Card, ContextMenu } from '@airlib/react-aui';
+
+<Card title={trip.name} oncommand={(event) => onTripAction(trip, event.detail)}>
+  {trip.summary}
+  <ContextMenu label={`${trip.name} actions`} items={{ share: 'Share', archive: 'Archive' }} />
+</Card>;
+```
+
+The handler already knows which card it is, so one handler can serve a whole board of them.
+
 ### Style it once
 
 `size` sets the card's padding, spacing, and title size; `color` tints the `tonal` variant; `variant` picks the surface: `filled` (default), `tonal`, or `elevated`. See [Style a composite once](/docs/theming#style-a-composite-once).
@@ -145,6 +160,7 @@ Without `title`, name the card yourself with `aria-labelledby`, as above.
 | `size` | `xs`–`xxl` | `'md'` | Padding, spacing, and title size. |
 | `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | Tint for the `tonal` variant. |
 | `variant` | `filled`, `tonal`, `elevated` | `'filled'` | The card's surface. |
+| `oncommand` | `(event: CustomEvent<string>) => void` | — | A command picked from a context menu or a menu inside the card, with its name. |
 | `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
 | `children` | `ReactNode` | — | The card's body. |
 

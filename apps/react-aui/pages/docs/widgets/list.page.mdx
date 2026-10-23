@@ -1,0 +1,147 @@
+---
+title: AUI List
+nav: List
+nav-priority: 455
+description: Rows of things — senders, events, files — each with a title, a supporting line, a picture, and what belongs at its end, laid out and named as one list.
+keywords: [React list, list item, inbox list, contact list, file list, React AUI list, accessible list]
+---
+
+# AUI List
+
+An inbox, a list of today's events, the files in a folder: the same row again and again — who or what, one line about it, a picture in front, a time or a count at the end. Writing that row by hand for every screen means re-solving the same alignment each time: the title that must truncate instead of pushing the time off the edge, the picture that needs initials when there's no photo, the badge that has to sit after the text and not under it.
+
+**AUI List** is that row, done once. You give each `ListItem` its words; it lays them out, and the `List` announces the rows as one named list.
+
+:::interactive[List demo]
+
+```tsx
+import { Badge, List, ListItem, Select } from '@airlib/react-aui';
+import { COLOR_LABELS } from '@airlib/aui/utils';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { GlassStage } from '@/components/GlassStage.js';
+import maya from '@/assets/avatar-1.jpg?asset&sizes=128';
+import leo from '@/assets/avatar-2.jpg?asset&sizes=128';
+import sara from '@/assets/avatar-3.jpg?asset&sizes=128';
+
+const ListDemo = setup(() => {
+  const state = mutable({ color: 'secondary' });
+
+  return () => (
+    <div className="demo-button">
+      <div className="flex gap-xs w-full">
+        <Select size="sm" placeholder="Color" options={COLOR_LABELS} value={$bind(state, 'color')} />
+      </div>
+      <GlassStage>
+        <Snippet>
+          {() => (
+            <List label="Unread mail" color={state.color}>
+              <ListItem image={maya.src} title="Maya Chen" description="Q4 roadmap — draft for review" meta="9:41">
+                <Badge variant="tonal" color="error">Urgent</Badge>
+              </ListItem>
+              <ListItem image={leo.src} title="Leo Hartmann" description="Re: venue for the offsite" meta="8:15" />
+              <ListItem image={sara.src} title="Sara Okafor" description="Invoice #2041 is ready" meta="Yesterday" />
+            </List>
+          )}
+        </Snippet>
+      </GlassStage>
+    </div>
+  );
+}, 'ListDemo');
+```
+
+```html
+<ListDemo />
+```
+
+<ListDemo />
+
+:::
+
+## Usage
+
+### Rows of things
+
+Put a `ListItem` per row inside a `List`, and name the list with `label` so screen readers hear what the rows are:
+
+```tsx
+import { List, ListItem } from '@airlib/react-aui';
+import { For } from '@airlib/react';
+import '@airlib/aui/components/widgets/data-display.css';
+
+<List label="Today's events">
+  <For each={() => events}>
+    {(event) => <ListItem title={event.name} description={event.room} meta={event.startsAt} />}
+  </For>
+</List>
+```
+
+Each row takes:
+
+- `title` — what the row is: a sender, an event, a file name. It truncates before it pushes anything else out.
+- `description` — one supporting line under it: a subject, a place, a size.
+- `meta` — what sits at its end: a time, a date, a count.
+- `image` — a picture leading the row, drawn as an [Avatar](/docs/widgets/avatar). When it fails to load, the initials of `title` show instead; without an `image`, nothing leads the row.
+
+The stylesheet carries the List, [Description List](/docs/widgets/description-list), and [Stat](/docs/widgets/stat) together. For the full library, load `import '@airlib/aui';` instead.
+
+### Something else in a row
+
+Children of a `ListItem` go at its end, after `meta`: a badge for a state, a chip for a tag, a button for the one action the row offers:
+
+```tsx
+<ListItem title="Contract_v3.pdf" description="2.4 MB · shared by Leo" meta="Oct 24">
+  <Button variant="text" size="sm" onClick={() => openContract('Contract_v3.pdf')}>
+    Review
+  </Button>
+</ListItem>
+```
+
+The row stays a plain list item; what you put in it keeps its own role and keyboard.
+
+### One run of segments
+
+The rows read as segments of one run: the first rounds at the top, the last at the bottom, and the rows between stay nearly square where they meet. The list's `color` tints every segment; give one row its own `color` to set it apart, like the message that needs an answer:
+
+```tsx
+<List label="Unread mail" color="tertiary">
+  <ListItem title="Maya Chen" description="Q4 roadmap — draft for review" meta="9:41" color="error" />
+  <ListItem title="Leo Hartmann" description="Re: venue for the offsite" meta="8:15" />
+</List>
+```
+
+### Properties
+
+`List`:
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `label` | `string` | — | Names the list for screen readers, e.g. "Unread mail". |
+| `size` / `color` | shared vocabulary | `'md'` / `'secondary'` | Reach every row without its own; `color` tints the segments. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `children` | `ReactNode` | — | The `ListItem`s. |
+
+`ListItem`:
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `title` | `string` | — | Required. What the row is. |
+| `description` | `string` | — | One supporting line under the title. |
+| `meta` | `string` | — | What sits at the row's end: a time, a date, a count. |
+| `image` | `string` | — | A picture leading the row; its initials come from `title`. |
+| `size` | `xs`–`xxl` | the list's | The row's scale and its leading picture's size. |
+| `color` | shared vocabulary | the list's | Tints this segment alone. |
+| `children` | `ReactNode` | — | Anything else the row holds, after its text. |
+
+Set `--aui-list-gap` for the space between rows, `--aui-list-item-padding` for the room inside each, `--aui-list-item-radius` and `--aui-list-item-inner-radius` for the run's ends and seams, and `--aui-list-item-tint` for how strongly the color shows. Set app-wide defaults once:
+
+```tsx
+import { configure } from '@airlib/react-aui';
+
+configure({ list: { className: 'inbox-list' } });
+```
+
+## Next Steps
+
+- [Description List](/docs/widgets/description-list) — Facts about one thing, label beside value.
+- [Avatar](/docs/widgets/avatar) — The picture that leads each row.
+- [Listbox](/docs/composites/listbox) — When people choose rows instead of reading them.

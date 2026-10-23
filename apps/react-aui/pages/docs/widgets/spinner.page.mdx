@@ -16,6 +16,7 @@ Some waits have no shape and no measurable end: saving, signing in, waiting on a
 import { Spinner } from '@airlib/react-aui';
 import { $bind, mutable, setup, Snippet } from '@airlib/react';
 import { DemoControl } from '@/components/DemoControl.js';
+import { GlassStage } from '@/components/GlassStage.js';
 
 const SpinnerDemo = setup(() => {
   const state = mutable({ size: 'md', color: 'primary' });
@@ -23,10 +24,12 @@ const SpinnerDemo = setup(() => {
   return () => (
     <div className="demo-button">
       <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} />
-      <div className="aui-card flex gap-md items-center justify-center p-xl">
-        <Snippet>{() => <Spinner label="Loading invoices" size={state.size} color={state.color} />}</Snippet>
-        <span>Loading invoices…</span>
-      </div>
+      <GlassStage>
+        <div className="flex gap-md items-center justify-center">
+          <Snippet>{() => <Spinner label="Loading invoices" size={state.size} color={state.color} />}</Snippet>
+          <span>Loading invoices…</span>
+        </div>
+      </GlassStage>
     </div>
   );
 }, 'SpinnerDemo');

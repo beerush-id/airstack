@@ -1,0 +1,109 @@
+---
+title: AUI Readout
+nav: Readout
+nav-priority: 458
+description: The current value of something, read out under its label — the chosen plan, the open tab, the filters applied — as badges people can scan.
+keywords: [React readout, current value, selected value display, filter summary, label value badge, React AUI readout]
+---
+
+# AUI Readout
+
+Every screen that lets people choose something also has to say what they chose: the plan they picked, the filters that are on, the tab that's open. Written as a sentence — "Filters: Wi-Fi, Pets" — it blends into the copy around it, and a list of choices turns into a comma soup nobody scans.
+
+**AUI Readout** says it at a glance. You give it a label and the current value; it shows the label quietly and each value as a badge, with a quiet badge while nothing is chosen yet.
+
+:::interactive[Readout demo]
+
+```tsx
+import { Readout, Toggle, ToggleGroup } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { DemoControl } from '@/components/DemoControl.js';
+import { GlassStage } from '@/components/GlassStage.js';
+
+const AMENITIES = { wifi: 'Wi-Fi', pets: 'Pets allowed', parking: 'Parking', pool: 'Pool' };
+
+const ReadoutDemo = setup(() => {
+  const state = mutable({ amenities: ['wifi', 'pets'] as string[], size: 'sm', color: 'primary' });
+
+  return () => (
+    <div className="demo-button">
+      <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} />
+      <GlassStage>
+        <div className="flex flex-col gap-md items-center">
+          <ToggleGroup multiple value={$bind(state, 'amenities')}>
+            <Toggle value="wifi">Wi-Fi</Toggle>
+            <Toggle value="pets">Pets</Toggle>
+            <Toggle value="parking">Parking</Toggle>
+            <Toggle value="pool">Pool</Toggle>
+          </ToggleGroup>
+          <Snippet>
+            {() => (
+              <Readout
+                label="Filters"
+                value={state.amenities.map((amenity) => AMENITIES[amenity])}
+                empty="Any stay"
+                size={state.size}
+                color={state.color}
+              />
+            )}
+          </Snippet>
+        </div>
+      </GlassStage>
+    </div>
+  );
+}, 'ReadoutDemo');
+```
+
+```html
+<ReadoutDemo />
+```
+
+<ReadoutDemo />
+
+:::
+
+## Usage
+
+```tsx
+import { Readout } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/data-display.css';
+
+<Readout label="Plan" value="Pro" />
+```
+
+You supply:
+
+- `label` — what the value is, e.g. "Plan".
+- `value` — the current value as it should read. Pass a list for several, and each entry gets its own badge: `['Wi-Fi', 'Pets allowed']`. Map stored keys to their labels first, so people read "Wi-Fi", not `wifi`.
+- `empty` — what shows while there is no value, e.g. "Any stay". Without it, "None".
+
+The label names the readout for screen readers, so they hear the badges as the label's value rather than loose words.
+
+The stylesheet carries the [List](/docs/widgets/list), [Description List](/docs/widgets/description-list), [Stat](/docs/widgets/stat), and Readout together.
+
+### Several readouts
+
+Several values about one thing read best side by side, each under its own label:
+
+```tsx
+<div className="flex flex-wrap gap-lg">
+  <Readout label="Departure" value="Berlin" />
+  <Readout label="Stops" value={['Copenhagen', 'Vilnius']} />
+</div>
+```
+
+### Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `label` | `string` | — | Required. What the value is; names the readout. |
+| `value` | `string \| number`, `Array<string \| number>` | — | The current value; one badge per entry. |
+| `empty` | `string` | `'None'` | What shows while there is no value. |
+| `size` / `color` | shared vocabulary | `'sm'` / `'primary'` | The badges' size and color; the empty badge stays secondary. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+
+## Next Steps
+
+- [Description List](/docs/widgets/description-list) — Several facts about one thing, label beside value.
+- [Stat](/docs/widgets/stat) — One number at a glance, and how it moved.
+- [Badge](/docs/widgets/badge) — The badge each value is drawn as.

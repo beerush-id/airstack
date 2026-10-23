@@ -20,7 +20,8 @@ Each slot provides:
 - **`row.checked`**: Boolean indicating whether the item is selected.
 
 ```tsx
-import { setup, For, Show, superList } from '@airlib/react'; // or '@airlib/solid'
+import { setup, For, Show } from '@airlib/react'; // or '@airlib/solid'
+import { superList } from '@airlib/react/common'; // or '@airlib/solid/common'
 
 export interface UserRow {
   id: number;
@@ -75,7 +76,7 @@ export const VirtualUserTable = setup(() => {
 Tracking selected items usually requires manual `Set` plumbing. `superList` maintains an integrated, reactive `selection` Set that updates automatically when rows are toggled:
 
 ```ts
-import { superList } from '@airlib/react'; // or '@airlib/solid'
+import { superList } from '@airlib/react/common'; // or '@airlib/solid/common'
 
 export const productList = superList([
   { id: 'p1', title: 'Keyboard' },
@@ -119,7 +120,7 @@ users.show(0, 10);
 When new items are added, `superList` automatically inserts them into their correct sorted position using binary insertion:
 
 ```ts
-import { superList } from '@airlib/react'; // or '@airlib/solid'
+import { superList } from '@airlib/react/common'; // or '@airlib/solid/common'
 
 export const leaderboard = superList(
   [

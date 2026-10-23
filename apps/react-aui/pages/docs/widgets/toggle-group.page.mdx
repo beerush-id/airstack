@@ -16,9 +16,13 @@ Styling is optional. Without AUI CSS the ToggleGroup stays a correct, operable g
 :::interactive[Toggle group demo]
 
 ```tsx
-import { Toggle, ToggleGroup } from '@airlib/react-aui';
+import { Readout, Toggle, ToggleGroup } from '@airlib/react-aui';
 import { $bind, mutable, setup, Snippet } from '@airlib/react';
 import { DemoControl } from '@/components/DemoControl.js';
+import { GlassStage } from '@/components/GlassStage.js';
+
+const STYLES = { bold: 'Bold', italic: 'Italic', underline: 'Underline' };
+const ALIGNS = { left: 'Left', center: 'Center', right: 'Right' };
 
 const ToggleGroupDemo = setup(() => {
   const state = mutable({
@@ -34,25 +38,28 @@ const ToggleGroupDemo = setup(() => {
       <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} disabled={$bind(state, 'disabled')} />
       <Snippet>
         {() => (
-          <div className="aui-card flex gap-md items-center justify-center p-xl">
-            <ToggleGroup size={state.size} color={state.color} multiple value={$bind(state, 'style')} disabled={state.disabled}>
-              <Toggle value="bold" aria-label="Bold"><span style={{ fontWeight: 800 }}>B</span></Toggle>
-              <Toggle value="italic" aria-label="Italic"><span style={{ fontStyle: 'italic' }}>I</span></Toggle>
-              <Toggle value="underline" aria-label="Underline"><span style={{ textDecoration: 'underline' }}>U</span></Toggle>
-            </ToggleGroup>
-            <ToggleGroup size={state.size} color={state.color} value={$bind(state, 'align')} disabled={state.disabled}>
-              <Toggle value="left">Left</Toggle>
-              <Toggle value="center">Center</Toggle>
-              <Toggle value="right">Right</Toggle>
-            </ToggleGroup>
-          </div>
+          <GlassStage>
+            <div className="flex gap-md items-center justify-center">
+              <ToggleGroup size={state.size} color={state.color} multiple value={$bind(state, 'style')} disabled={state.disabled}>
+                <Toggle value="bold" aria-label="Bold"><span style={{ fontWeight: 800 }}>B</span></Toggle>
+                <Toggle value="italic" aria-label="Italic"><span style={{ fontStyle: 'italic' }}>I</span></Toggle>
+                <Toggle value="underline" aria-label="Underline"><span style={{ textDecoration: 'underline' }}>U</span></Toggle>
+              </ToggleGroup>
+              <ToggleGroup size={state.size} color={state.color} value={$bind(state, 'align')} disabled={state.disabled}>
+                <Toggle value="left">Left</Toggle>
+                <Toggle value="center">Center</Toggle>
+                <Toggle value="right">Right</Toggle>
+              </ToggleGroup>
+            </div>
+          </GlassStage>
         )}
       </Snippet>
       <Snippet>
         {() => (
-          <p>
-            Style: {JSON.stringify(state.style)} · Align: {JSON.stringify(state.align)}
-          </p>
+          <div className="flex flex-wrap gap-lg">
+            <Readout label="Style" value={[state.style].flat().map((style) => STYLES[style])} />
+            <Readout label="Align" value={[state.align].flat().map((align) => ALIGNS[align])} />
+          </div>
         )}
       </Snippet>
     </div>
@@ -92,6 +99,10 @@ The group stylesheet carries only the container; each member gets its treatment 
 | --- | --- | --- | --- |
 | `value` | `Bindable<string \| string[]>` | — | The shared selection: one token in single mode, an array with `multiple`. Pressing the pressed member clears it. |
 | `multiple` | `boolean` | `false` | Keeps several members pressed at once; a single-select group holds one token. |
+| `required` | `boolean` | `false` | Keeps one member pressed: pressing the pressed one again leaves it on. |
+| `orientation` | `'horizontal'`, `'vertical'` | `'horizontal'` | Lays the members in a row or a column. Layout only; the arrow keys travel both ways. |
+| `variant` | `'filled'`, `'glass'` | `'filled'` | The track: toned, or the frosted sheet windows use. |
+| `collapsible` | `boolean` | `false` | Shows only the pressed members until the track is pointed at or reached by keyboard. |
 | `size` | `xs`, `sm`, `md`, `lg`, `xl`, `xxl` | `'sm'` | Reaches every member without its own; a member prop wins. |
 | `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | Same inheritance as `size`. |
 | `disabled` | `boolean` | `false` | Locks every member and drops the group out of the tab order. |
@@ -119,10 +130,24 @@ Size and color live on the group and reach every member — keep the strip unifo
 
 To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
 
+### Only the current choice, until it's needed
+
+In a tray, a status bar, or a crowded toolbar, a strip of every option costs room for a choice that rarely changes. Add `collapsible` and the group shows only its pressed member at rest. Pointing at the track, or moving the keyboard into it, opens the rest; leaving it closes them again after a short delay, so a pointer passing between members doesn't snap it shut:
+
+```tsx
+<ToggleGroup collapsible required value={$bind(settings, 'theme')} variant="glass" aria-label="Theme">
+  <Toggle value="system" aria-label="System theme"><SystemThemeIcon /></Toggle>
+  <Toggle value="light" aria-label="Light theme"><LightModeIcon /></Toggle>
+  <Toggle value="dark" aria-label="Dark theme"><DarkModeIcon /></Toggle>
+</ToggleGroup>
+```
+
+Pair it with `required`: with nothing pressed, nothing shows at rest. Keyboard focus inside keeps the strip open, and set `--aui-toggle-group-collapse-delay` for a longer or shorter wait before it closes.
+
 Keyboard: `ArrowRight` / `ArrowDown` moves to the next enabled member, `ArrowLeft` / `ArrowUp` to the previous, `Home` / `End` to the ends — travel only, never a commit. `Space` and `Enter` belong to the focused member. `Tab` leaves through the pressed member; with the single value cleared there is no tab stop until something is pressed again.
 
 ## Next Steps
 
 - [Toggle](/docs/widgets/toggle) — The two-state button every member is built from.
-- [Select](/docs/widgets/select) — A single choice collapsed behind a trigger instead of spread across a strip.
+- [Select](/docs/composites/select) — A single choice collapsed behind a trigger instead of spread across a strip.
 - [Switch](/docs/widgets/switch) — Independent on/off settings that keep a tab stop each instead of sharing one value.

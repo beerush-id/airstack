@@ -29,12 +29,11 @@
       cursor: not-allowed;
     }
 
+    /* The page you're on is where the trail ends, not a link to go to: full ink, no underline. */
     &[aria-current='page'] {
-      margin: 0;
-      padding: 0;
       color: var(--color-on-surface);
-      background-color: transparent;
       font-weight: 600;
+      text-decoration-line: none;
     }
   }
 

@@ -34,11 +34,13 @@ export interface CodeInputCellOptions extends AriaOptions {
  * @template E - Target Element type (defaults to HTMLInputElement)
  */
 export interface CodeInputCellAttributes<E extends BaseElement = HTMLInputElement> extends AriaAttributes<E> {
-  type?: 'text';
+  type?: 'text' | 'password';
   role?: 'textbox';
   value?: string;
   inputmode: 'numeric' | 'text';
-  autocomplete?: 'one-time-code';
+  autocomplete?: 'one-time-code' | 'off';
+  /** Marks a masked custom cell, which has no password type to hide its character. */
+  'data-masked'?: 'true';
   tabindex: number;
   disabled?: boolean;
   readonly?: boolean;
@@ -200,11 +202,13 @@ export class CodeInputCellAria<
       ? `${group.properties.label}, character ${this.index + 1} of ${group.length}`
       : undefined;
     const inputmode = group?.kind === 'alphanumeric' ? 'text' : 'numeric';
-    const autocomplete = this.index === 0 ? 'one-time-code' : undefined;
+    const isMasked = !!group?.masked;
+    // A secret is never offered a texted code, nor saved by the password manager.
+    const autocomplete = isMasked ? 'off' : this.index === 0 ? 'one-time-code' : undefined;
 
     if (this.isNative) {
       return {
-        type: 'text',
+        type: isMasked ? 'password' : 'text',
         value: char,
         inputmode,
         autocomplete,
@@ -221,6 +225,7 @@ export class CodeInputCellAria<
       autocomplete,
       tabindex: isTabStop ? 0 : -1,
       contenteditable: isDisabled || isReadonly ? 'false' : 'true',
+      'data-masked': isMasked ? 'true' : undefined,
       'aria-label': label,
       'aria-disabled': ariaBoolean(isDisabled),
       'aria-readonly': ariaBoolean(isReadonly),

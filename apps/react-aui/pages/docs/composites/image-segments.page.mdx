@@ -1,0 +1,148 @@
+---
+title: AUI Image Segments
+nav: Image Segments
+nav-priority: 344
+description: Show the objects a segmentation model like SAM found in an image as named, pickable masks, and take point prompts for the ones it missed — for editing, removing, or referring to objects by name.
+keywords: [SAM React, segment anything UI, image segmentation component, mask selection, object selection image, point prompt, AUI image segments]
+---
+
+# AUI Image Segments
+
+"Remove the person in the background", "make the kid's shirt blue", "crop to the tree": once a model like SAM has split a photo into objects, people need to see those objects, point at one, and say which. When the model missed something, they need to show it where to look.
+
+**Image Segments** is that view. Hand it the image and the masks; each mask becomes a named object people pick by pointer or keyboard, and your agent can refer to by name. Switch to point mode and a press becomes a prompt for the model.
+
+:::interactive[Image segments demo]
+
+```tsx
+import { Button, ImageSegments, Readout } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { GlassStage } from '@/components/GlassStage.js';
+import { parkScene, SCENE_HEIGHT, SCENE_SEGMENTS, SCENE_WIDTH } from '@/components/park-scene.js';
+
+const SegmentsDemo = setup(() => {
+  const state = mutable({ picked: ['stranger'], mode: 'select', points: [] });
+
+  return () => (
+    <div className="demo-button">
+      <Snippet>
+        {() => (
+          <div className="flex gap-xs">
+            <Button size="sm" variant={state.mode === 'select' ? 'filled' : 'tonal'} onClick={() => (state.mode = 'select')}>
+              Pick objects
+            </Button>
+            <Button size="sm" variant={state.mode === 'point' ? 'filled' : 'tonal'} onClick={() => (state.mode = 'point')}>
+              Point at a new one
+            </Button>
+          </div>
+        )}
+      </Snippet>
+      <GlassStage style={{ inlineSize: '100%' }}>
+        <Snippet>
+          {() => (
+            <ImageSegments
+              label="Objects in the photo"
+              src={parkScene()}
+              alt="A parent and kid chasing bubbles in the park"
+              width={SCENE_WIDTH}
+              height={SCENE_HEIGHT}
+              segments={SCENE_SEGMENTS}
+              multiple
+              mode={state.mode}
+              value={$bind(state, 'picked')}
+              points={$bind(state, 'points')}
+            />
+          )}
+        </Snippet>
+      </GlassStage>
+      <Snippet>
+        {() => (
+          <Readout
+            label={state.mode === 'point' ? 'Points' : 'Picked'}
+            value={
+              state.mode === 'point'
+                ? state.points.map((point) => `${point.include ? '+' : '−'} ${point.x}, ${point.y}`)
+                : state.picked.map((id) => SCENE_SEGMENTS.find((segment) => segment.id === id)?.label)
+            }
+            empty="Nothing yet"
+          />
+        )}
+      </Snippet>
+    </div>
+  );
+}, 'SegmentsDemo');
+```
+
+```html
+<SegmentsDemo />
+```
+
+<SegmentsDemo />
+
+:::
+
+## Usage
+
+### Show what the model found
+
+Pass the image, its size in pixels, and the segments — each with an `id`, a `label` people and agents can say, and its mask as SVG path data in the image's pixels. Bind `value` to the picked segment, or to an array with `multiple`:
+
+```tsx
+import { ImageSegments } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/segments.css';
+
+<ImageSegments
+  label="Objects in the photo"
+  src={photo.url}
+  alt="A parent and kid chasing bubbles in the park"
+  width={1200}
+  height={900}
+  segments={masks}
+  value={$bind(edit, 'object')}
+/>;
+```
+
+A segment tints under the pointer; picked, it keeps a moving outline and its label while the rest of the image dims. Focus the image and the arrows walk the segments, Space and Enter pick them, and each is announced by its label.
+
+### Ask for a segment it missed
+
+Set `mode="point"` and bind `points`. Each press places a prompt point in the image's pixels — Alt marks it as "not this" — ready to send to the model:
+
+```tsx
+<ImageSegments src={photo.url} alt="…" width={1200} height={900} segments={masks} mode="point" points={$bind(edit, 'points')} />
+```
+
+The points are measured through the image's own frame, so they stay right whatever size it's shown at.
+
+### Turn masks into path data
+
+SAM returns masks as bitmaps or run-length encodings. Trace each to an outline on your server — a contour in the image's pixels — and send its path data, so the browser draws crisp masks at any size and an agent can keep referring to "the person in the background" by id.
+
+### From data
+
+The role is `image-segments`; a writable binding keeps the pick in your app's state:
+
+```json
+{
+  "role": "image-segments",
+  "props": { "label": "Objects in the photo", "src": "/photos/park.jpg", "alt": "…", "width": 1200, "height": 900, "segments": [] },
+  "bindings": [{ "prop": "value", "state": "drafts.edit.object", "writable": true }]
+}
+```
+
+## Properties
+
+| Prop | Type | Default | What it does |
+|---|---|---|---|
+| `label` | `string` | — | Names the segments for screen readers |
+| `src` / `alt` | `string` | — | The image and what it shows |
+| `width` / `height` | `number` | — | The image's size in pixels; masks are placed in these |
+| `segments` | `ImageSegment[]` | — | `id`, `label`, `path`, and an optional `anchor` for the label |
+| `value` | `Bindable<string \| string[]>` | — | The picked segment, or segments with `multiple` |
+| `mode` | `'select' \| 'point'` | `'select'` | Pick segments, or place prompt points |
+| `points` | `Bindable<SegmentPoint[]>` | — | The prompt points: `x`, `y`, `include` |
+
+## Next Steps
+
+- [Image Viewer](/docs/composites/image-viewer) — show the result big
+- [Gallery](/docs/composites/gallery) — pick the photo to edit

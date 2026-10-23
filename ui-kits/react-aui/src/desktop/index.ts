@@ -1,0 +1,9 @@
+export * from './Window.js';
+export * from './WindowManager.js';
+export * from './Dock.js';
+export * from './DesktopWidgets.js';
+export * from './DockWidgets.js';
+export * from './window/registry.js';
+export * from './dock/registry.js';
+export * from './system/bootstrap.js';
+export type * from './system/types.js';

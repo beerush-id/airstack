@@ -1,0 +1,149 @@
+---
+title: AUI Tag Input
+nav: Tag Input
+nav-priority: 356
+description: Let people type and pick several values from a list, shown as removable chips inside one field — labels, recipients, skills, categories.
+keywords: [React tag input, multi select input React, chips input, React multiselect combobox, accessible tag input, AUI tag input]
+---
+
+# AUI Tag Input
+
+Choosing several things from a long list — labels for an issue, people to invite, skills on a profile — needs more than a select. People want to type to narrow the list, see what they already picked, and take one back out without starting over. **Tag Input** gives you exactly that: a field that filters as you type, a list that stays open while you pick, and every chosen value shown as a removable chip.
+
+:::interactive[Tag input demo]
+
+```tsx
+import { Readout, TagInput } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { DemoControl } from '@/components/DemoControl.js';
+import { GlassStage } from '@/components/GlassStage.js';
+
+const SKILLS = {
+  css: 'CSS',
+  design: 'Design systems',
+  react: 'React',
+  ts: 'TypeScript',
+  a11y: 'Accessibility',
+  perf: 'Performance',
+  test: 'Testing',
+};
+
+const TagInputDemo = setup(() => {
+  const state = mutable({ size: 'md', color: 'primary', disabled: false, skills: ['react', 'a11y'] });
+
+  return () => (
+    <div className="demo-button">
+      <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} disabled={$bind(state, 'disabled')} />
+      <GlassStage>
+        <Snippet>
+          {() => (
+            <TagInput
+              label="Skills"
+              placeholder="Type a skill"
+              removeLabel={(text) => `Remove ${text}`}
+              options={SKILLS}
+              value={$bind(state, 'skills')}
+              size={state.size}
+              color={state.color}
+              disabled={state.disabled}
+            />
+          )}
+        </Snippet>
+      </GlassStage>
+      <Snippet>{() => <Readout label="Chosen" value={state.skills.map((skill) => SKILLS[skill] ?? skill)} empty="Nothing yet" />}</Snippet>
+    </div>
+  );
+}, 'TagInputDemo');
+```
+
+```html
+<TagInputDemo />
+```
+
+<TagInputDemo />
+
+:::
+
+## Usage
+
+### Options in, chosen values out
+
+Pass the choices as `options` and bind `value` to an array. Typing narrows the list, picking an option adds its chip, picking it again or removing its chip takes it out:
+
+```tsx
+import { TagInput } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/tag-input.css';
+
+const LABELS = { bug: 'Bug', docs: 'Documentation', ui: 'Interface' };
+
+<TagInput
+  label="Labels"
+  options={LABELS}
+  value={$bind(issue, 'labels')}
+  placeholder="Add a label"
+  removeLabel={(text) => `Remove ${text}`}
+/>
+```
+
+`options` takes the same shape as [Select](/docs/composites/select) and [Combobox](/docs/composites/combobox): a token-to-text map, or an array of `{ key, label }` when order or extra fields matter. `value` holds the tokens; the chips show their text. Listen to `onchange` only when you need to react to a change — saving, for example — the binding already keeps your array current.
+
+Name the field the way you name a native input: wrap it in your own `<label>`, or pass `label` as its accessible name when there is no visible one.
+
+### Change what a chip or a row shows
+
+Keep the behavior and supply the content through slots. `chip` receives the chosen entry; `option` receives the entry and the row's state:
+
+```tsx
+<TagInput options={PEOPLE} value={$bind(invite, 'people')} label="Invite">
+  <TagInput.Snippet for="chip">{(person) => <span>@{person.key}</span>}</TagInput.Snippet>
+  <TagInput.Snippet for="option">
+    {(person) => (
+      <span>
+        <b>{person.label}</b> @{person.key}
+      </span>
+    )}
+  </TagInput.Snippet>
+</TagInput>
+```
+
+### Name the remove buttons
+
+Each chip's remove button shows only an icon, so give it a name in your app's language with `removeLabel`. It receives the chip's text, so every button says which value it removes:
+
+```tsx
+<TagInput options={LABELS} value={$bind(issue, 'labels')} removeLabel={(text) => `Remove ${text}`} />
+```
+
+## Looks
+
+The field wears the shared field look: `variant` takes `filled`, `tonal`, or `outlined`, and `size` and `color` reach the field, its chips, and the list together:
+
+```tsx
+<TagInput options={LABELS} value={$bind(issue, 'labels')} size="sm" color="tertiary" variant="outlined" />
+```
+
+The field grows a row at a time as chips wrap, so long selections never scroll sideways. Set app-wide defaults with `configure({ tagInput: { size: 'sm' } })`.
+
+## Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `options` | `Array<{ key, label? }>` or `Record<string, string>` | — | The choices. |
+| `value` | `Bindable<string[]>` | `[]` | The chosen tokens. |
+| `label` | `string` | — | Accessible name of the field. |
+| `placeholder` | `string` | — | Hint shown while nothing is chosen. |
+| `removeLabel` | `(text: string) => string` | — | Accessible name of each chip's remove button; the buttons have no visible text, so always pass it. |
+| `disabled` | `boolean` | `false` | Locks typing, picking, and removing. |
+| `required` | `boolean` | `false` | Marks the field as required. |
+| `onchange` | `(event: CustomEvent<string[]>) => void` | — | The chosen values changed. |
+| `size` / `color` / `variant` | shared vocabulary | `md` / `primary` / `filled` | `variant` takes the field variants. See [Theming](/docs/theming). |
+
+Slots: `chip(entry)` and `option(entry, option)`.
+
+Keyboard: typing filters and opens the list; `↓` / `↑` move through it; `Enter` adds or removes the highlighted option; `Escape` closes the list; `Tab` moves on to each chip's remove button, then out of the field.
+
+## Next Steps
+
+- [Combobox](/docs/composites/combobox) — The same typing and picking for a single value.
+- [Chip](/docs/widgets/chip) — The removable tags on their own.
+- [Select](/docs/composites/select) — Several values from a short list, without typing.

@@ -1,0 +1,124 @@
+@import './item.css';
+
+/*
+ * An image with its segments drawn over it in the image's own pixels. A segment shows only when
+ * it matters: tinted with the role color under the pointer, and once picked, outlined with a
+ * moving dashed line while the rest of the image dims around it. Strokes keep their width at any
+ * size. In point mode the masks step aside and the image takes crosshair presses.
+ */
+@layer theme {
+  :root {
+    --aui-segments-radius: var(--radius-lg);
+    --aui-segments-dim: rgb(0 0 0 / 0.5);
+    --aui-segments-include: var(--color-success);
+    --aui-segments-exclude: var(--color-error);
+  }
+}
+
+@keyframes aui-segments-march {
+  to {
+    stroke-dashoffset: -20;
+  }
+}
+
+@layer component {
+  .aui-segments {
+    display: block;
+  }
+
+  .aui-segments-canvas {
+    display: block;
+    inline-size: 100%;
+    block-size: auto;
+    overflow: hidden;
+    border-radius: var(--aui-segments-radius);
+    background-color: var(--color-container);
+    outline: none;
+
+    &:focus-visible {
+      box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring-color);
+    }
+  }
+
+  .aui-segments-spotlight {
+    fill: var(--aui-segments-dim);
+    pointer-events: none;
+    transition: opacity var(--duration-medium) var(--ease-emphasized);
+
+    @starting-style {
+      opacity: 0;
+    }
+  }
+
+  .aui-segments-region {
+    fill: transparent;
+    stroke: transparent;
+    stroke-width: 2px;
+    vector-effect: non-scaling-stroke;
+    cursor: pointer;
+    outline: none;
+    transition-property: fill, stroke;
+    transition-duration: var(--duration-short);
+    transition-timing-function: var(--ease-emphasized);
+
+    &:hover {
+      fill: color-mix(in oklch, var(--aui-item-bg) 30%, transparent);
+      stroke: var(--aui-item-bg);
+    }
+
+    &:focus-visible {
+      fill: color-mix(in oklch, var(--aui-item-bg) 22%, transparent);
+      stroke: var(--focus-ring-color);
+      stroke-width: 3px;
+    }
+
+    &[aria-selected='true'] {
+      fill: color-mix(in oklch, var(--aui-item-bg) 18%, transparent);
+      stroke: #fff;
+      stroke-width: 2.5px;
+      stroke-dasharray: 8 6;
+      animation: aui-segments-march 0.8s linear infinite;
+
+      @media (prefers-reduced-motion: reduce) {
+        animation: none;
+      }
+    }
+  }
+
+  /* A picked segment's name, over its top-left corner, readable on any picture. */
+  .aui-segments-tag {
+    fill: #fff;
+    font-family: inherit;
+    font-weight: 600;
+    paint-order: stroke;
+    stroke: rgb(0 0 0 / 0.55);
+    stroke-width: 0.3em;
+    stroke-linejoin: round;
+    pointer-events: none;
+  }
+
+  .aui-segments-point {
+    stroke: #fff;
+    stroke-width: 2px;
+    vector-effect: non-scaling-stroke;
+    pointer-events: none;
+
+    &[data-include='true'] {
+      fill: var(--aui-segments-include);
+    }
+
+    &[data-include='false'] {
+      fill: var(--aui-segments-exclude);
+    }
+  }
+
+  .aui-segments[data-mode='point'] {
+    & .aui-segments-canvas {
+      cursor: crosshair;
+    }
+
+    & .aui-segments-region {
+      pointer-events: none;
+    }
+  }
+}

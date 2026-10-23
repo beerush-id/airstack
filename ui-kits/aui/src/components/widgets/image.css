@@ -19,8 +19,14 @@
     border-radius: inherit;
   }
 
-  .aui-image-content[aria-hidden='true'],
-  .aui-image-fallback[aria-hidden='true'] {
+  /*
+   * The picture shows from the moment it has a source, painting as it arrives; only a missing or
+   * failed source gives way to the fallback. What shows is decided by the lifecycle, not by
+   * `aria-hidden`, which only says what assistive technology announces — a decorative picture is
+   * hidden from it yet still on screen.
+   */
+  .aui-image:is([data-status='idle'], [data-status='error']) > .aui-image-content,
+  .aui-image:is([data-status='loading'], [data-status='loaded']) > .aui-image-fallback {
     display: none;
   }
 
@@ -30,7 +36,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: var(--aui-fallback-bg, var(--color-surface-container));
+    background-color: var(--aui-fallback-bg, var(--color-container));
     color: var(--aui-fallback-fg, var(--color-on-surface-variant));
     font-weight: 600;
     border-radius: inherit;

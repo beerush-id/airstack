@@ -1,0 +1,149 @@
+---
+title: Markdown
+nav: Markdown
+nav-priority: 131
+description: Draw markdown with AUI's parts as it streams in — GitHub tables and task lists, math as native MathML, no raw HTML, and only the block that changed drawn again.
+keywords: [React markdown renderer, streaming markdown, LLM markdown, AI chat markdown, math LaTeX MathML, GFM, React AUI markdown]
+---
+
+# Markdown
+
+Assistants answer in markdown, and they answer a few words at a time. A markdown component that parses and redraws the whole text on every word stutters on long answers, shows half a table as a pile of pipes, and either trusts the HTML a model writes or strips formatting people wanted. Math arrives as LaTeX that needs a heavy library and its fonts before it reads as math.
+
+**Markdown** draws the text with AUI's own parts — prose as prose, task lists as checkboxes, tables as tables, formulas as formulas the browser draws itself — through the same renderer as [UI from data](/docs/dynamic). As words arrive, only the block they land in is drawn again.
+
+:::interactive[Markdown demo]
+
+```tsx
+import { Button } from '@airlib/react-aui';
+import { MarkdownRenderer } from '@airlib/react-aui/markdown';
+import { $use, mutable, setup } from '@airlib/react';
+
+const ANSWER = [
+  '### Your week',
+  '',
+  'You have **3 meetings** and one deadline:',
+  '',
+  '- [x] Send the Q4 roadmap draft',
+  '- [ ] Review the offsite budget',
+  '',
+  '| Day | Meeting | Room |',
+  '| --- | --- | --- |',
+  '| Tue | Roadmap review | 4 |',
+  '| Thu | Offsite planning | 2 |',
+  '',
+  'The budget grows by compound interest:',
+  '',
+  '$$',
+  'A = P\\left(1 + \\frac{r}{n}\\right)^{nt}',
+  '$$',
+].join('\n');
+
+const MarkdownDemo = setup(() => {
+  const state = mutable({ text: ANSWER });
+
+  const stream = () => {
+    const words = ANSWER.split(' ');
+    let count = 0;
+    state.text = '';
+    const timer = setInterval(() => {
+      state.text = words.slice(0, ++count).join(' ');
+      if (count >= words.length) clearInterval(timer);
+    }, 60);
+  };
+
+  return () => (
+    <div className="demo-button">
+      <Button size="sm" onClick={stream}>Stream it in</Button>
+      <div className="aui-card p-lg">
+        <MarkdownRenderer text={$use(state, 'text')} />
+      </div>
+    </div>
+  );
+}, 'MarkdownDemo');
+```
+
+```html
+<MarkdownDemo />
+```
+
+<MarkdownDemo />
+
+:::
+
+## Usage
+
+### Install
+
+The renderer parses with `unified` and the `remark` plugins, and draws math with `temml`. They are optional peers of `@airlib/react-aui`, so only apps that draw markdown install them:
+
+```bash
+npm install unified remark-parse remark-gfm remark-math temml
+```
+
+The [Dock Widgets](/docs/composites/dock-widgets) draw an answer's text with this renderer, so a desktop with answers needs them too.
+
+### Draw markdown
+
+Give `MarkdownRenderer` the text:
+
+```tsx
+import { MarkdownRenderer } from '@airlib/react-aui/markdown';
+import '@airlib/aui/components/widgets/markdown.css';
+
+<MarkdownRenderer text={note.body} />
+```
+
+It draws CommonMark with GitHub's additions — tables, task lists, strikethrough, autolinks, and footnotes — plus math: `$…$` within a line and `$$…$$` on lines of their own. Task lists show as checkboxes people can see but not change.
+
+The prose carries no page margins of its own: blocks space themselves from each other, and the first and last touch the edges of whatever holds them — a card, an answer, a note. Set `--aui-markdown-gap` for the space between blocks.
+
+### Keep up with a stream
+
+Bind `text` to where the answer's words arrive, and keep appending:
+
+```tsx
+<MarkdownRenderer text={$use(answer, 'text')} />
+```
+
+Each top-level block is drawn once and kept while its source stays the same, so a long answer costs no more per word than a short one. Text cut off mid-way still reads: an unclosed `**` shows as itself until its pair arrives, and an unclosed code fence shows as code in progress.
+
+### Safe by default
+
+The text is markdown, never HTML: markup in it shows as text, and a link only goes to the web, to mail, or within your page. What it draws comes from the same vocabulary as UI from data, so a [narrowed vocabulary](/docs/dynamic#narrow-or-widen-what-data-may-name) narrows markdown too; the renderer adds only `math` to it.
+
+### A formula on its own
+
+`Formula` draws one LaTeX formula as MathML, which the browser draws itself — no fonts or stylesheet to ship — in the color of the text around it:
+
+```tsx
+import { Formula } from '@airlib/react-aui/markdown';
+
+<p>
+  Energy is <Formula tex="E = mc^2" />.
+</p>
+<Formula display tex="\int_0^1 x^2 \, dx = \frac{1}{3}" />
+```
+
+`display` sets it on a line of its own, centered. A formula that doesn't parse shows its LaTeX, marked as an error, instead of breaking the page.
+
+## Properties
+
+`MarkdownRenderer`:
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `text` | `string` | — | The markdown. It may grow while drawn. |
+
+`Formula`:
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `tex` | `string` | — | The formula, in LaTeX. |
+| `display` | `boolean` | `false` | On a line of its own, centered, rather than within the text. |
+
+## Next Steps
+
+- [UI from Data](/docs/dynamic) — The renderer markdown draws through, and how answers bind to your app.
+- [Dock Widgets](/docs/composites/dock-widgets) — Where streamed answers show up on a desktop.
+- [Theming](/docs/theming) — The type and color the prose takes.

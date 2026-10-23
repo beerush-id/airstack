@@ -1,0 +1,87 @@
+/*
+ * Glass: the material windows, the dock, and everything floating over the
+ * desktop are made of, in three parts. A component adds the class for the
+ * part it is and tunes it through the `--aui-glass-*` variables — never by
+ * restating the properties — so every surface stays the same glass.
+ *
+ * - `aui-glass-frame`: the outer pane — a tint over what's behind, blurred,
+ *   with a light edge, rounded, casting a shadow. What sits on it skips a
+ *   second blur (`--aui-glass-backdrop: none`).
+ * - `aui-glass-panel`: a frosted pane on a frame — a further tint with the
+ *   same edge, lifted off it.
+ * - `aui-glass-surface`: a solid surface on a frame — the content color,
+ *   lifted off it, for what people read and work on.
+ *
+ * The parts sit in their own `glass` layer, above `component`, so a
+ * component's own base styles (a toast's background, say) never undo them,
+ * whatever order the sheets load in.
+ */
+@layer theme {
+  :root {
+    --aui-glass-bg: var(--color-container-low);
+    --aui-glass-fg: var(--color-on-surface);
+    /* How much surface color covers what's behind, and how strongly it is blurred. */
+    --aui-glass-tint: 55%;
+    --aui-glass-blur: var(--size-sm);
+    /* The light caught along the edge, plain white; a glint under the pointer carries the theme's tint. */
+    --aui-glass-edge: light-dark(rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.12));
+    --aui-glass-radius: var(--radius-xxl);
+    --aui-glass-shadow: var(--elevation-2);
+    /* A frosted panel's further tint, a solid surface's color, and how either lifts off its frame. */
+    --aui-glass-panel-tint: 70%;
+    --aui-glass-surface-bg: var(--color-container-lowest);
+    --aui-glass-surface-fg: var(--color-on-surface);
+    --aui-glass-lift: var(--elevation-1);
+    /* The rim of frame left around what sits inside it: a window's panels, a dialog's content. */
+    --aui-glass-inset: var(--spacing-xs);
+  }
+}
+
+@layer glass {
+  /*
+   * The parts that are glass by nature are listed here, beside the utility class, so their
+   * components never add a class for it: being the part is enough. A part that is glass only by
+   * choice — a `glass` variant — takes `aui-glass-frame` when that variant is chosen.
+   */
+  .aui-glass-frame,
+  .aui-window,
+  .aui-dock,
+  .aui-launcher,
+  .aui-dock-widget,
+  .aui-desktop-widget:not([data-bare='true']),
+  .aui-panel,
+  .aui-modal-panel,
+  .aui-command-palette {
+    background-color: color-mix(in oklch, var(--aui-glass-bg) var(--aui-glass-tint), transparent);
+    border: 1px solid var(--aui-glass-edge);
+    backdrop-filter: var(--aui-glass-filter, blur(var(--aui-glass-blur)) saturate(1.4));
+    border-radius: var(--aui-glass-radius);
+    box-shadow: var(--aui-glass-shadow);
+    color: var(--aui-glass-fg);
+    /* Glass controls on it keep their tint, not a second blur. */
+    --aui-glass-backdrop: none;
+
+    @media (prefers-reduced-transparency: reduce) {
+      background-color: var(--aui-glass-bg);
+      backdrop-filter: none;
+    }
+  }
+
+  /* No blur of its own: the frame's backdrop filter makes the frame the backdrop root, so a filter here would only see the frame's tint. */
+  .aui-glass-panel,
+  .aui-window-sidebar-panel {
+    background-color: color-mix(in oklch, var(--aui-glass-bg) var(--aui-glass-panel-tint), transparent);
+    outline: 1px solid var(--aui-glass-edge);
+    outline-offset: -1px;
+    box-shadow: var(--aui-glass-lift);
+  }
+
+  .aui-glass-surface,
+  .aui-window-content,
+  .aui-modal-content,
+  .aui-desktop-notes-input {
+    background-color: var(--aui-glass-surface-bg);
+    box-shadow: var(--aui-glass-lift);
+    color: var(--aui-glass-surface-fg);
+  }
+}

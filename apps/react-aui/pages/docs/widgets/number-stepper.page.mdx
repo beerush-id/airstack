@@ -13,9 +13,10 @@ A number field has to stay inside its bounds no matter how the number arrives: t
 :::interactive[Number stepper demo]
 
 ```tsx
-import { NumberStepper, Toggle } from '@airlib/react-aui';
+import { NumberStepper, Readout, Toggle } from '@airlib/react-aui';
 import { $bind, mutable, setup, Snippet } from '@airlib/react';
 import { DemoControl } from '@/components/DemoControl.js';
+import { GlassStage } from '@/components/GlassStage.js';
 
 const NumberStepperDemo = setup(() => {
   const state = mutable({ guests: 2, size: 'md', color: 'primary', disabled: false, readonly: false });
@@ -27,23 +28,25 @@ const NumberStepperDemo = setup(() => {
           {() => (state.readonly ? 'Set Writable' : 'Set Read-only')}
         </Toggle>
       </DemoControl>
-      <div className="aui-card flex flex-col gap-lg justify-center p-xl">
-        <Snippet>
-          {() => (
-            <NumberStepper
-              label="Guests"
-              min={1}
-              max={8}
-              value={$bind(state, 'guests')}
-              size={state.size}
-              color={state.color}
-              disabled={state.disabled}
-              readonly={state.readonly}
-            />
-          )}
-        </Snippet>
-        <Snippet>{() => <span>Guests: {state.guests}</span>}</Snippet>
-      </div>
+      <GlassStage style={{ maxInlineSize: '20rem' }}>
+        <div className="flex flex-col gap-lg justify-center">
+          <Snippet>
+            {() => (
+              <NumberStepper
+                label="Guests"
+                min={1}
+                max={8}
+                value={$bind(state, 'guests')}
+                size={state.size}
+                color={state.color}
+                disabled={state.disabled}
+                readonly={state.readonly}
+              />
+            )}
+          </Snippet>
+          <Snippet>{() => <Readout label="Guests" value={state.guests} />}</Snippet>
+        </div>
+      </GlassStage>
     </div>
   );
 }, 'NumberStepperDemo');
@@ -102,7 +105,7 @@ Like every field, it takes `filled` (default), `tonal`, or `outlined`, any of th
 <NumberStepper label="Nights" min={1} max={30} value={3} variant="outlined" size="sm" />
 ```
 
-Need visible − and + buttons? Use [Stepper](/docs/widgets/stepper) — the same bounded number with its step buttons built in.
+Need visible − and + buttons? Use [Stepper](/docs/composites/stepper) — the same bounded number with its step buttons built in.
 
 ### Properties
 
@@ -127,6 +130,6 @@ Need visible − and + buttons? Use [Stepper](/docs/widgets/stepper) — the sam
 
 ## Next Steps
 
-- [Stepper](/docs/widgets/stepper) — The same number with − and + buttons.
+- [Stepper](/docs/composites/stepper) — The same number with − and + buttons.
 - [Slider](/docs/widgets/slider) — Pick a number by dragging.
 - [Field](/docs/widgets/field) — Add a visible label, help text, and an error message.

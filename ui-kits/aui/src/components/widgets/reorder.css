@@ -90,6 +90,19 @@
     touch-action: none;
 
     /*
+     * A grip only says the entry can move, so it stays quiet at rest and takes the role color
+     * when the entry is pointed at or the grip is focused — the moment it's about to be used.
+     */
+    &.aui-button:not([data-active='true'], [aria-disabled='true']) {
+      color: var(--color-outline);
+      transition-property: color;
+    }
+
+    .aui-reorder-card:is(:hover, :focus-within) &.aui-button:not([data-active='true'], [aria-disabled='true']) {
+      color: var(--aui-control-bg);
+    }
+
+    /*
      * Held: a filled grip. Weighted past the text button's hover wash, which
      * the pointer always triggers while dragging and which would whiten the
      * grip under its own white glyph.

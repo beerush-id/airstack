@@ -18,6 +18,7 @@ Almost every app repeats a list of links on each page — a sidebar, a settings 
 import { Navigation } from '@airlib/react-aui';
 import { $bind, mutable, setup, Snippet } from '@airlib/react';
 import { DemoControl } from '@/components/DemoControl.js';
+import { GlassStage } from '@/components/GlassStage.js';
 
 const NavigationDemo = setup(() => {
   const state = mutable({ size: 'md', color: 'primary', disabled: false });
@@ -25,22 +26,24 @@ const NavigationDemo = setup(() => {
   return () => (
     <div className="demo-button">
       <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} disabled={$bind(state, 'disabled')} />
-      <div className="aui-card flex flex-col gap-lg justify-center p-xl">
-        <Snippet>
-          {() => (
-            <Navigation
-              label="Project sections"
-              size={state.size}
-              color={state.color}
-              links={[
-                { href: '#overview', label: 'Overview', current: true },
-                { href: '#members', label: 'Members' },
-                { href: '#billing', label: 'Billing', disabled: state.disabled },
-              ]}
-            />
-          )}
-        </Snippet>
-      </div>
+      <GlassStage>
+        <div className="flex flex-col gap-lg justify-center">
+          <Snippet>
+            {() => (
+              <Navigation
+                label="Project sections"
+                size={state.size}
+                color={state.color}
+                links={[
+                  { href: '#overview', label: 'Overview', current: true },
+                  { href: '#members', label: 'Members' },
+                  { href: '#billing', label: 'Billing', disabled: state.disabled },
+                ]}
+              />
+            )}
+          </Snippet>
+        </div>
+      </GlassStage>
     </div>
   );
 }, 'NavigationDemo');

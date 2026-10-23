@@ -78,7 +78,8 @@ export class ReorderHandleAria<
       id: this.properties.id,
       role: this.isNative ? undefined : 'button',
       type: this.isNative ? (this.properties.type ?? 'button') : undefined,
-      tabindex: this.isNative ? undefined : isDisabled ? -1 : 0,
+      // A locked entry's grip moves nothing, so Tab passes it by; a native button is reachable on its own otherwise.
+      tabindex: isDisabled ? -1 : this.isNative ? undefined : 0,
       onclick: this.handleClick,
       onkeydown: this.handleKeyDown,
       onpointerdown: this.handlePointerDown,

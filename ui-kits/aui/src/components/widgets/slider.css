@@ -1,3 +1,5 @@
+@import './control.css';
+
 @layer theme {
   :root {
     --aui-slider-height: var(--aui-control-height, calc(var(--spacing) * 11));
@@ -83,8 +85,8 @@
 
     &:hover:not(:disabled, [aria-disabled='true']) {
       background-color: color-mix(in oklch, var(--aui-slider-active-bg) 90%, var(--light-up));
-      box-shadow: 0 0 0 calc(var(--spacing) * 3)
-        color-mix(in oklch, var(--aui-control-bg) 12%, black 10%);
+      box-shadow: 0 0 0 calc(var(--aui-slider-height) * var(--aui-halo-scale))
+        color-mix(in oklch, var(--aui-control-bg) var(--aui-halo-strength), black var(--aui-halo-shade));
     }
 
     &:disabled,

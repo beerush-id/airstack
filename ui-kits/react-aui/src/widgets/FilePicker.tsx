@@ -3,7 +3,6 @@ import { AUI_CLASS, COLORS, register, SIZES, VARIANTS } from '@airlib/aui/utils'
 import { type Bindable, setup } from '@airlib/react';
 import type { ComponentProps, ReactNode } from 'react';
 import { $families, auiConfig, type ComponentStyles, OMIT_KEYS } from '../config.js';
-
 export type FilePickerProps = Omit<ComponentProps<'button'>, 'type' | 'disabled' | 'size' | 'className'> &
   ComponentStyles & {
     accept?: string;

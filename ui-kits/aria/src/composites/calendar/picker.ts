@@ -19,6 +19,11 @@ export interface DatePickerBaseProps extends PopupProps {
 export interface DatePickerOptions extends AriaOptions {
   type?: 'single' | 'range';
   grid?: 'fixed' | 'dynamic';
+  /**
+   * The calendar is drawn in place, always open, with no trigger or popup: picking a day writes
+   * the value and closes nothing.
+   */
+  inline?: boolean;
 }
 
 export interface DatePickerProps extends Omit<DatePickerBaseProps, 'value' | 'onchange'> {
@@ -195,7 +200,7 @@ export class DatePickerBase<
   }
 
   protected commit(close?: boolean) {
-    if (close || this.options.type === 'single') this.open = false;
+    if (!this.options.inline && (close || this.options.type === 'single')) this.open = false;
 
     this.draft[0] = undefined;
     this.draft[1] = undefined;

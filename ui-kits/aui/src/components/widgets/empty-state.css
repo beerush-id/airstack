@@ -45,7 +45,8 @@
     margin-block-end: var(--spacing-xs);
     border-radius: var(--radius-full);
     color: var(--aui-item-bg);
-    background-color: color-mix(in oklch, var(--aui-item-bg) var(--tone-container-strength), var(--color-surface));
+    /* The role's container, mixed the way `--color-*-container` is. */
+    background-color: color-mix(in oklch, var(--aui-item-bg) var(--tone-container-strength), var(--light-up));
   }
 
   .aui-empty-state-title {

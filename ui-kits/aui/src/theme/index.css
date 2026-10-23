@@ -98,10 +98,22 @@
       var(--light-up)
     );
 
-    /* Base colors: surface colors */
-    --color-surface: light-dark(
+    /*
+     * Surfaces are backgrounds — the page and the wrappers that only group content — so they are
+     * neutral: no hue to compete with what sits on them. Containers are the things placed on them —
+     * dialogs, menus, fields, lists — and carry a faint hue of the seed, so an object reads apart
+     * from the background it sits on. Both climb the same ladder below; only the hue differs.
+     */
+    /* No hue at all (`none`, not 0): a tint mixed into a surface keeps its own hue instead of being pulled toward red. */
+    --color-surface: light-dark(oklch(98% 0 none), oklch(16% 0 none));
+    /* The containers' anchors: their middle tone and their lightest, tinted by the seed. */
+    --color-container-base: light-dark(
       oklch(from var(--seed-color) 98% 0.01 h),
       oklch(from var(--seed-dark-color) 16% 0.02 h)
+    );
+    --color-container-up: light-dark(
+      oklch(from var(--seed-color) 100% 0.005 h),
+      oklch(from var(--seed-dark-color) 13% 0.02 h)
     );
     --color-on-surface: color-mix(
       in oklch,
@@ -156,37 +168,46 @@
       color-mix(in oklch, var(--color-primary) 55%, black)
     );
 
-    --color-surface-lowest: color-mix(
-      in oklch,
-      var(--color-on-surface) var(--tone-elevation-lowest),
-      var(--light-up)
-    );
-    --color-surface-low: color-mix(
-      in oklch,
-      var(--color-on-surface) var(--tone-elevation-low),
-      var(--light-up)
-    );
-    --color-surface-container: color-mix(
-      in srgb,
-      var(--color-on-surface) var(--tone-elevation-container),
-      var(--color-surface)
-    );
-    --color-surface-high: color-mix(
-      in srgb,
-      var(--color-on-surface) var(--tone-elevation-high),
-      var(--color-surface)
-    );
+    /*
+     * The ladder, the same for both families: toward the light, the ink mixes into the lightest
+     * anchor; into the page, into the middle one. A surface's middle step is the page itself; a
+     * container's sits one step into it, so a default container separates from the page by tone as
+     * well as by hue.
+     */
+    --color-surface-lowest: color-mix(in oklch, var(--color-on-surface) var(--tone-elevation-lowest), var(--light-up));
+    --color-surface-low: color-mix(in oklch, var(--color-on-surface) var(--tone-elevation-low), var(--light-up));
+    --color-surface-high: color-mix(in oklch, var(--color-on-surface) var(--tone-elevation-high), var(--color-surface));
     --color-surface-highest: color-mix(
-      in srgb,
+      in oklch,
       var(--color-on-surface) var(--tone-elevation-highest),
       var(--color-surface)
     );
 
-    /* Backwards compatibility aliases */
-    --color-surface-container-lowest: var(--color-surface-lowest);
-    --color-surface-container-low: var(--color-surface-low);
-    --color-surface-container-high: var(--color-surface-high);
-    --color-surface-container-highest: var(--color-surface-highest);
+    --color-container-lowest: color-mix(
+      in oklch,
+      var(--color-on-surface) var(--tone-elevation-lowest),
+      var(--color-container-up)
+    );
+    --color-container-low: color-mix(
+      in oklch,
+      var(--color-on-surface) var(--tone-elevation-low),
+      var(--color-container-up)
+    );
+    --color-container: color-mix(
+      in oklch,
+      var(--color-on-surface) var(--tone-elevation-container),
+      var(--color-container-base)
+    );
+    --color-container-high: color-mix(
+      in oklch,
+      var(--color-on-surface) var(--tone-elevation-high),
+      var(--color-container-base)
+    );
+    --color-container-highest: color-mix(
+      in oklch,
+      var(--color-on-surface) var(--tone-elevation-highest),
+      var(--color-container-base)
+    );
     --color-surface-variant: light-dark(
       color-mix(in oklch, var(--color-surface) 95%, black),
       color-mix(in oklch, var(--color-surface) 75%, white)
