@@ -2,49 +2,45 @@
 title: AUI Combobox
 nav: Combobox
 nav-priority: 355
-description: Editable field filtering a coordinated option popup.
+description: Let people type to narrow a long list and pick a match — pass your options and get the filtering field, the popup, keyboard travel, and a value that only changes on a real choice.
+keywords: [React combobox, autocomplete React, typeahead, searchable select, accessible combobox, filter dropdown React, AUI combobox]
 ---
 
 # AUI Combobox
 
-A combobox is a text field that filters a list you pick from. It keeps the typed filter separate from the committed value, opens the popup without touching the caret, travels the matches with the arrow keys, and settles the field when you leave.
-
-Styling is optional. Without AUI CSS the Combobox stays a correct, operable composite; with it, the same markup gets the AUI treatment through the full library.
+A combobox is a field people type into to find one option in a long list — countries, airports, team members. Typing narrows the list; the value only changes when someone actually picks a match, so a half-typed name never ends up saved. **Combobox** gives you the field, the filtered popup, and the keyboard travel from one call with your options.
 
 :::interactive[Combobox demo]
 
 ```tsx
-import { Combobox, ComboboxInput, ComboboxOption, ComboboxPanel, Toggle } from '@airlib/react-aui';
+import { Combobox } from '@airlib/react-aui';
 import { $bind, mutable, setup, Snippet } from '@airlib/react';
 import { DemoControl } from '@/components/DemoControl.js';
 
-const CITY_LABELS = {
-  ams: 'Amsterdam',
-  ber: 'Berlin',
-  cop: 'Copenhagen',
-  dub: 'Dublin',
-  vil: 'Vilnius',
-};
+const CITIES = { ams: 'Amsterdam', ber: 'Berlin', cop: 'Copenhagen', dub: 'Dublin', vil: 'Vilnius' };
 
 const ComboboxDemo = setup(() => {
-  const state = mutable({
-    size: 'md',
-    value: 'ams',
-    disabled: false,
-  });
-  const noop = () => {};
+  const state = mutable({ size: 'md', color: 'primary', value: 'ams', disabled: false });
 
   return () => (
     <div className="demo-button">
-      <div className="flex gap-xs w-full">
-        <DemoControl size={$bind(state, 'size')} disabled={$bind(state, 'disabled')} />
-      </div>
+      <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} disabled={$bind(state, 'disabled')} />
       <div className="aui-card flex flex-col gap-md items-stretch justify-center p-xl">
         <Snippet>
-          {() => <Combobox options={CITY_LABELS} value={$bind(state, 'value')} placeholder="Type to filter" size={state.size} disabled={state.disabled} />}
+          {() => (
+            <Combobox
+              label="Destination"
+              placeholder="Type a city"
+              options={CITIES}
+              value={$bind(state, 'value')}
+              size={state.size}
+              color={state.color}
+              disabled={state.disabled}
+            />
+          )}
         </Snippet>
       </div>
-      <Snippet>{() => <div>Selected: {CITY_LABELS[state.value] || 'None'} ({state.value || '-'})</div>}</Snippet>
+      <Snippet>{() => <span>Chosen: {CITIES[state.value] || 'nothing yet'}</span>}</Snippet>
     </div>
   );
 }, 'ComboboxDemo');
@@ -60,76 +56,110 @@ const ComboboxDemo = setup(() => {
 
 ## Usage
 
+### Pass your options
+
+Hand the combobox your options and bind the value. It filters by what people type, matching both the key and the label:
+
 ```tsx
-import { Combobox, ComboboxInput, ComboboxOption, ComboboxPanel } from '@airlib/react-aui';
+import { Combobox } from '@airlib/react-aui';
+import { $bind, mutable, setup } from '@airlib/react';
 import '@airlib/aui/components/widgets/combobox.css';
 
-export const CityPicker = () => (
-  <Combobox>
-    <ComboboxInput label="City" placeholder="Type to filter" />
-    <ComboboxPanel>
-      <ComboboxOption value="ams">Amsterdam</ComboboxOption>
-      <ComboboxOption value="ber">Berlin</ComboboxOption>
-    </ComboboxPanel>
-  </Combobox>
-);
+const AIRPORTS = { ams: 'Amsterdam Schiphol', lhr: 'London Heathrow', lis: 'Lisbon Humberto Delgado' };
+
+export const AirportPicker = setup(() => {
+  const trip = mutable({ to: '' });
+
+  return () => (
+    <Combobox label="Destination" placeholder="Search airports" options={AIRPORTS} value={$bind(trip, 'to')} />
+  );
+}, 'AirportPicker');
 ```
 
-The query is not the value. Typing writes `query` and selects nothing; a commit publishes the chosen option's rendered text and frees the query. Filtering is your render job — read `combobox.query`, narrow your own data, and render the survivors as members:
+You supply:
+
+- `options` — a `{ key: label }` map or an array of `{ key, label }` entries.
+- `value` — the chosen key, or an array with `multiple`. Typing never writes it; only picking does.
+- `label` — the field's accessible name. Always give one: the field has no visible label of its own.
+- `placeholder` — the hint shown while the field is empty.
+- `query` — optional. Bind it when you want the typed text, for example to fetch matches from a server.
+
+### Change what a row or the field shows
+
+Keep `options` and supply content through a slot:
 
 ```tsx
-import { derived, For } from '@airlib/react';
-
-const matches = derived(() => {
-  const query = combobox.query.trim().toLowerCase();
-  return cities.filter(([, city]) => city.toLowerCase().includes(query));
-});
+<Combobox options={AIRPORTS} value={$bind(trip, 'to')} label="Destination">
+  <Combobox.Snippet for="option">
+    {(item) => (
+      <span>
+        <b>{item.key.toUpperCase()}</b> {item.label}
+      </span>
+    )}
+  </Combobox.Snippet>
+</Combobox>
 ```
 
-Keep the panel mounted: the popover compiles `hidden` while closed, so the popup disappears without unmounting and the same instance keeps managing dismissal and focus return. Name the field yourself with `label` — the engine invents no label — and leave a native input uncontrolled so the controller's own write wins.
+- `option` receives the entry (`{ key, label }`) and renders inside that row.
+- `input` receives the current value and the field's ready-made `ref`, `props`, and `className`, for when the field itself needs different markup — spread them onto your own `<input>`.
 
-### Properties
+### Compose the parts
 
-| Prop | Type | Default | Notes |
-| --- | --- | --- | --- |
-| `query` | `Bindable<string>` | `''` | The filter text. Typing writes it; a commit or a leave clears it. |
-| `value` | `Bindable<string \| string[] \| null>` | — | The committed selection. Typing never writes it. |
-| `multiple` | `boolean` | `false` | Declares the array archetype; commits leave the popup open. |
-| `open` | `Bindable<boolean>` | — | Popup visibility, read and write. |
-| `disabled` | `boolean` | `false` | Locks typing, opening, traversal, and committing across the whole composite. |
-| `required` | `boolean` | `false` | With nothing selected, the first option to mount claims the selection. |
-| `onopen` / `onclose` | `(event: CustomEvent<boolean>) => void` | — | The popup's open and close edges. |
-| `oninput` | `(event: CustomEvent<string \| undefined>) => void` | — | The typed query and the option value as traversal moves the cursor. |
-| `onchange` | `(event: CustomEvent<string \| string[] \| undefined>) => void` | — | The whole committed value. |
-| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
-| `ref` | `Ref<HTMLDivElement>` | — | Access to the underlying composite root. |
+When the list comes from somewhere the combobox cannot filter for you — a server search, grouped results — compose the parts and render the matches yourself from the typed `query`:
 
-`ComboboxInput` props:
+```tsx
+import { Combobox, ComboboxInput, ComboboxOption, ComboboxPanel } from '@airlib/react-aui';
 
-| Prop | Type | Default | Notes |
-| --- | --- | --- | --- |
-| `label` | `string` | — | Accessible name applied as `aria-label`; the engine invents none. |
-| `placeholder` | `string` | — | Hint shown while the field is empty. |
-| `disabled` | `boolean` | `false` | This field alone refuses typing and opening. |
-| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
-| `ref` | `Ref<HTMLInputElement>` | — | Access to the underlying field. |
+<Combobox query={$bind(search, 'text')} value={$bind(trip, 'to')}>
+  <ComboboxInput label="Destination" placeholder="Search airports" />
+  <ComboboxPanel>
+    <For each={() => search.results}>
+      {(airport) => <ComboboxOption value={airport.code}>{airport.name}</ComboboxOption>}
+    </For>
+  </ComboboxPanel>
+</Combobox>
+```
 
-`ComboboxOption` props:
+## Style it once
+
+Set `size`, `color`, and `variant` on `Combobox` and the field, the popup, and every option follow; a part's own prop still wins. The field takes `filled`, `tonal`, or `outlined`. See [Styling a composite](/docs/theming#style-a-composite-once).
+
+## Properties
+
+### Combobox
 
 | Prop | Type | Default | Notes |
 | --- | --- | --- | --- |
-| `value` | `string` | — | Required. The token this option stands for. |
-| `selected` | `Bindable<boolean>` | — | Standalone hint; inside the composite the group rules decide. |
-| `disabled` | `boolean` | `false` | Locks this option. |
-| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
-| `ref` | `Ref<HTMLDivElement>` | — | Access to the underlying option element. |
+| `options` | `{ [key]: label }`, `Array<{ key, label? }>` | — | Renders the field and one option per match. |
+| `value` | `Bindable<string \| string[]>` | — | The chosen key, or keys with `multiple`. |
+| `query` | `Bindable<string>` | `''` | The typed text. Cleared after a choice. |
+| `multiple` | `boolean` | `false` | Allows several choices; choosing keeps the popup open. |
+| `label` | `string` | — | The field's accessible name. |
+| `placeholder` | `string` | — | Hint while the field is empty. |
+| `open` | `Bindable<boolean>` | — | Popup visibility, if you need to control it. |
+| `disabled` | `boolean` | `false` | Locks typing and choosing. |
+| `required` | `boolean` | `false` | A choice must stay selected. |
+| `size` | `xs`–`xxl` | `'md'` | Reaches the field, popup, and options. |
+| `variant` | `filled`, `tonal`, `outlined` | `'filled'` | The field's surface. |
+| `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | Focus, caret, and selected rows. |
+| `oninput` | `(event: CustomEvent<string \| undefined>) => void` | — | As people type. |
+| `onchange` | `(event: CustomEvent<string \| string[] \| undefined>) => void` | — | After a person picks. |
+| `onopen` / `onclose` | `(event: CustomEvent<boolean>) => void` | — | When the popup opens or closes. |
 
-To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+### Parts
 
-Keyboard: typing writes `query` and opens; arrows travel without committing; `Enter` on an option commits; `Escape` closes and returns focus to the field; `Tab` leaves, settles the field, and closes.
+| Part | Props | Notes |
+| --- | --- | --- |
+| `ComboboxInput` | `label`, `placeholder`, `disabled`, `size`, `color`, `variant` | The field people type into. |
+| `ComboboxPanel` | `size`, `color`, `children` | The popup holding the matches. |
+| `ComboboxOption` | `value` (required), `disabled`, `children` | One match; its children are the row content. |
+
+## Keyboard
+
+Typing opens the popup and narrows it. Arrows move through the matches without choosing; `Enter` chooses. `Escape` closes the popup and keeps focus in the field; `Tab` leaves and closes it.
 
 ## Next Steps
 
-- [Select](/docs/widgets/select) — The same popup for picking only, behind a button trigger instead of a field.
-- [Listbox](/docs/widgets/listbox) — The option list always visible, without the popup.
-- [Field](/docs/widgets/field) — The unit that binds a label, a control, and its failure message.
+- [Select](/docs/widgets/select) — The same list without typing, for short lists.
+- [Listbox](/docs/widgets/listbox) — The option list always visible on the page.
+- [Field](/docs/widgets/field) — Add a visible label, help text, and an error message around a field.

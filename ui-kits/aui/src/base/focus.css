@@ -1,7 +1,7 @@
 @layer base {
   .aui-control,
   .aui-focusable,
-  .aui-menu-item {
+  .aui-item {
     outline-style: solid;
     outline-width: var(--focus-ring-width);
     outline-offset: var(--focus-ring-offset);

@@ -27,8 +27,8 @@ const Header = setup<ComponentProps<'header'>>((props) => {
   return () => (
     <header className="docs-header">
       <div className="docs-header-inner">
-        <Link to={rootRoute} className="docs-header-brand" aria-label="React Maui home" onClick={close}>
-          React Maui
+        <Link to={rootRoute} className="docs-header-brand" aria-label="React AUI home" onClick={close}>
+          React AUI
         </Link>
         <nav className="docs-header-nav" aria-label="Primary">
           <For each={() => navs}>

@@ -1,0 +1,107 @@
+---
+title: AUI Empty State
+nav: Empty State
+nav-priority: 475
+description: Tell people why a list, search, or inbox is empty and give them the one action that fills it — an icon, a heading, a reason, and a call to action.
+keywords: [React empty state, no results component, empty list placeholder, zero state, blank slate]
+---
+
+# AUI Empty State
+
+A blank area is the worst first impression a screen can make: people cannot tell whether it is loading, broken, or simply new. An empty state answers that — it says what would be here, why it isn't yet, and offers the one action that changes it.
+
+:::interactive[Empty state demo]
+
+```tsx
+import { Button, EmptyState } from '@airlib/react-aui';
+import { SearchIcon } from '@airlib/react-aui/icons';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { DemoControl } from '@/components/DemoControl.js';
+
+const EmptyStateDemo = setup(() => {
+  const state = mutable({ size: 'md', color: 'primary', disabled: false });
+
+  return () => (
+    <div className="demo-button">
+      <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} disabled={$bind(state, 'disabled')} />
+      <div className="aui-card">
+        <Snippet>
+          {() => (
+            <EmptyState
+              title="No trips match “Oslo”"
+              description="Try a nearby city, or clear the filters to see every trip."
+              size={state.size}
+              color={state.color}
+            >
+              <EmptyState.Snippet for="icon">{() => <SearchIcon />}</EmptyState.Snippet>
+              <EmptyState.Snippet for="action">
+                {() => (
+                  <Button variant="tonal" size={state.size} color={state.color} disabled={state.disabled}>
+                    Clear filters
+                  </Button>
+                )}
+              </EmptyState.Snippet>
+            </EmptyState>
+          )}
+        </Snippet>
+      </div>
+    </div>
+  );
+}, 'EmptyStateDemo');
+```
+
+```html
+<EmptyStateDemo />
+```
+
+<EmptyStateDemo />
+
+:::
+
+## Usage
+
+Pass the heading and the reason; put the icon and the action in their slots:
+
+```tsx
+import { Button, EmptyState } from '@airlib/react-aui';
+import { SearchIcon } from '@airlib/react-aui/icons';
+import '@airlib/aui/components/widgets/empty-state.css';
+
+export const NoResults = ({ query }: { query: string }) => (
+  <EmptyState title={`No results for “${query}”`} description="Check the spelling, or search all projects.">
+    <EmptyState.Snippet for="icon">{() => <SearchIcon />}</EmptyState.Snippet>
+    <EmptyState.Snippet for="action">{() => <Button>Search all projects</Button>}</EmptyState.Snippet>
+  </EmptyState>
+);
+```
+
+- **`title`** — what is missing, in your users' words ("No invoices yet", not "Empty").
+- **`description`** — why, and what changes it.
+- **`icon`** slot — a picture of the thing that is missing; it is decorative, so the text must stand on its own.
+- **`action`** slot — the one action that fills the space. Offer two at most.
+- **Children** — anything else, between the description and the action (a short list of tips, a link to docs).
+
+The heading is an `h3`; set `level` (`2`–`6`) to fit where the empty state sits in the page.
+
+### Style it once
+
+`size` scales the icon disc, the spacing, and the padding; `color` tints the disc and its icon. See [Style a composite once](/docs/theming#style-a-composite-once).
+
+## Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `title` | `string` | — | What is missing. |
+| `description` | `string` | — | Why, and what changes it. |
+| `level` | `2`–`6` | `3` | Heading level of the title. |
+| `size` | `xs`–`xxl` | `'md'` | Icon disc, spacing, and padding. |
+| `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | Tint of the icon disc. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `children` | `ReactNode` | — | Extra content between the description and the action. |
+
+Slots: `icon`, `action`.
+
+## Next Steps
+
+- [Skeleton](/docs/widgets/skeleton) — What to show while the content is still loading, before you know it is empty.
+- [Card](/docs/widgets/card) — The content that replaces the empty state once there is some.

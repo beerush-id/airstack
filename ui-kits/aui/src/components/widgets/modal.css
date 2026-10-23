@@ -1,0 +1,89 @@
+@import './button.css';
+
+/*
+ * Shared modal sheet: the scrim, the centred surface, its heading and its
+ * explanation — worn by Dialog and Confirm alike. Buttons placed straight in
+ * the sheet line up as its action row; anything else takes a full line.
+ */
+@layer theme {
+  :root {
+    --aui-modal-bg: var(--color-surface-container-high);
+    --aui-modal-fg: var(--color-on-surface);
+    --aui-modal-radius: var(--radius-xl);
+    --aui-modal-padding: var(--spacing-lg);
+    --aui-modal-gap: var(--spacing-md);
+    --aui-modal-max-width: calc(var(--spacing) * 140);
+    --aui-modal-scrim: color-mix(in oklch, var(--color-scrim) 32%, transparent);
+  }
+}
+
+@layer component {
+  @keyframes aui-modal-enter {
+    from {
+      opacity: 0;
+      scale: 0.96;
+    }
+    to {
+      opacity: 1;
+      scale: 1;
+    }
+  }
+
+  .aui-modal:has(> .aui-modal-panel[aria-modal='true']:not([hidden]))::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: calc(var(--z-index-modal) - 1);
+    background: var(--aui-modal-scrim);
+    pointer-events: none;
+  }
+
+  .aui-modal-panel {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-index-modal);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: center;
+    align-content: flex-start;
+    gap: var(--aui-modal-gap) var(--spacing-sm);
+    margin: auto;
+    inline-size: min(100% - (var(--spacing-md) * 2), var(--aui-modal-max-width));
+    block-size: fit-content;
+    max-block-size: calc(100dvh - (var(--spacing-md) * 2));
+    overflow-y: auto;
+    padding: var(--aui-modal-padding);
+    background-color: var(--aui-modal-bg);
+    color: var(--aui-modal-fg);
+    border-radius: var(--aui-modal-radius);
+    box-shadow: var(--elevation-4);
+    animation: aui-modal-enter var(--duration-medium) var(--ease-emphasized-decelerate);
+
+    & > :not(.aui-control) {
+      flex-basis: 100%;
+    }
+
+    &[hidden] {
+      display: none;
+    }
+
+    &:focus-visible {
+      outline: var(--focus-ring-width) var(--focus-ring-style) var(--focus-ring-color);
+      outline-offset: calc(var(--focus-ring-offset) * -1);
+    }
+  }
+
+  .aui-modal-title {
+    font-size: var(--font-title-lg-size);
+    font-weight: var(--font-title-lg-weight);
+    line-height: var(--font-title-lg-line-height);
+    letter-spacing: var(--font-title-lg-tracking);
+  }
+
+  .aui-modal-description {
+    font-size: var(--font-label-lg-size);
+    line-height: var(--font-label-lg-line-height);
+    color: var(--color-on-surface-variant);
+  }
+}

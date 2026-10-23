@@ -2,23 +2,28 @@
 title: AUI Listbox
 nav: Listbox
 nav-priority: 350
-description: Inline option list with coordinated selection and full keyboard travel.
+description: Show a list of options that stays on the page — pass your options and get single or multiple selection, typeahead, and keyboard travel.
+keywords: [React listbox, accessible list selection, selectable list React, multi select list, AUI listbox]
 ---
 
 # AUI Listbox
 
-A listbox is the option list that never leaves the page. It keeps traversal and selection apart, matches a typed prefix over the option text, and carries single and multiple selection through one value. Each `ListboxOption` derives its selected mark from the container instead of holding a private copy.
-
-Styling is optional. Without AUI CSS the Listbox stays a correct, operable listbox; with it, the same markup gets the AUI treatment through the full library.
+A listbox is a list of choices that stays visible — a delivery speed, a set of labels to apply, an item in a side panel. People see every option at once and pick one or several. **Listbox** gives you the rows, the selected marks, typeahead, and arrow-key travel from one call with your options.
 
 :::interactive[Listbox demo]
 
 ```tsx
-import { Listbox, ListboxOption, Toggle } from '@airlib/react-aui';
+import { Listbox, Toggle } from '@airlib/react-aui';
 import { $bind, mutable, setup, Snippet } from '@airlib/react';
 
+const SPEEDS = [
+  { key: 'standard', label: 'Standard — 3 to 5 days' },
+  { key: 'express', label: 'Express — next day' },
+  { key: 'pickup', label: 'Pick up in store' },
+];
+
 const ListboxDemo = setup(() => {
-  const state = mutable({ multiple: false, disabled: false });
+  const state = mutable({ multiple: false, disabled: false, speed: 'standard' });
 
   return () => (
     <div className="demo-button">
@@ -35,13 +40,11 @@ const ListboxDemo = setup(() => {
           {() => (
             <Listbox
               label="Delivery speed"
+              options={SPEEDS}
+              value={$bind(state, 'speed')}
               multiple={state.multiple}
               disabled={state.disabled}
-            >
-              <ListboxOption value="standard">Standard</ListboxOption>
-              <ListboxOption value="express">Express</ListboxOption>
-              <ListboxOption value="overnight" disabled>O-right</ListboxOption>
-            </Listbox>
+            />
           )}
         </Snippet>
       </div>
@@ -60,66 +63,95 @@ const ListboxDemo = setup(() => {
 
 ## Usage
 
+### Pass your options
+
 ```tsx
-import { Listbox, ListboxOption } from '@airlib/react-aui';
+import { Listbox } from '@airlib/react-aui';
+import { $bind, mutable, setup } from '@airlib/react';
 import '@airlib/aui/components/widgets/listbox.css';
 
-export const Delivery = () => (
-  <Listbox label="Delivery speed" value="express">
-    <ListboxOption value="standard">Standard</ListboxOption>
-    <ListboxOption value="express">Express</ListboxOption>
-    <ListboxOption value="overnight" disabled>O-right</ListboxOption>
-  </Listbox>
-);
+const LABELS = { bug: 'Bug', design: 'Design', docs: 'Docs' };
+
+export const LabelPicker = setup(() => {
+  const issue = mutable({ labels: ['bug'] });
+
+  return () => <Listbox label="Labels" multiple options={LABELS} value={$bind(issue, 'labels')} />;
+}, 'LabelPicker');
 ```
 
-Moving the cursor commits nothing. Walk the list with arrow keys or a typed prefix, then press `Space`, `Enter`, or click once to commit — and press it again on the committed option to release the value, unless `required` refuses.
+You supply:
 
-Selection is derived, not stored. Writing `value` from outside re-derives every option at once and announces nothing. A disabled container withdraws its tab stop and cascades the lockout to every option.
+- `options` — a `{ key: label }` map or an array of `{ key, label }` entries, the same shape [Select](/docs/widgets/select) and [Combobox](/docs/widgets/combobox) take.
+- `value` — the chosen key, or an array of keys with `multiple`.
+- `label` — the list's accessible name.
 
-For several selections at once, declare the array archetype:
+### Change what a row shows
 
 ```tsx
-<Listbox label="Order updates" multiple value={['email']}>
-  <ListboxOption value="email">Email</ListboxOption>
-  <ListboxOption value="sms">Text message</ListboxOption>
+<Listbox label="Labels" options={LABELS} value={$bind(issue, 'labels')} multiple>
+  <Listbox.Snippet for="option">
+    {(entry) => (
+      <span>
+        <span className={`dot dot-${entry.key}`} /> {entry.label}
+      </span>
+    )}
+  </Listbox.Snippet>
 </Listbox>
 ```
 
-An option is a member of a group, not a widget of its own — the shared selection foundation behind `Button`, `Checkbox`, `Radio`, `Switch`, and `Tabs` coordinates through the same ambient group contract without a separate `Selection` component.
+The `option` slot receives the entry (`{ key, label }`) and renders inside that row; the selected mark stays.
 
-### Properties
+### Compose the parts
+
+When rows need their own props — a disabled row, rows from several sources — write them out:
+
+```tsx
+import { Listbox, ListboxOption } from '@airlib/react-aui';
+
+<Listbox label="Delivery speed" value={$bind(order, 'speed')}>
+  <ListboxOption value="standard">Standard</ListboxOption>
+  <ListboxOption value="express">Express</ListboxOption>
+  <ListboxOption value="overnight" disabled>
+    Overnight (unavailable)
+  </ListboxOption>
+</Listbox>
+```
+
+## Style it once
+
+Set `size` and `color` on `Listbox` and every row follows; a row's own prop still wins. See [Styling a composite](/docs/theming#style-a-composite-once).
+
+## Properties
+
+### Listbox
 
 | Prop | Type | Default | Notes |
 | --- | --- | --- | --- |
-| `id` | `string` | — | Container identifier, generated as `listbox-<n>` when omitted. Every option id derives from it. |
-| `label` | `string` | — | Accessible name, compiled as `aria-label`. A list without one is unidentifiable. |
-| `value` | `Bindable<string \| string[] \| null>` | — | The selection — a token, `null` while nothing is selected, or an array once `multiple` is set. |
-| `multiple` | `boolean` | `false` | Switches to the array archetype where `value` is an array and `onchange` carries that array. |
-| `required` | `boolean` | `false` | Compiles `aria-required` and refuses releasing the last selected option. |
-| `disabled` | `boolean` | `false` | Withdraws the tab stop, cascades to every option, and claims no key. |
-| `oninput` | `(event: CustomEvent<string>) => void` | — | Fires from the option that takes the cursor, with that value in `detail`. |
-| `onchange` | `(event: CustomEvent<string \| string[]>) => void` | — | Fires after a commit, with the whole value in `detail`. Copy the array if you keep it. |
-| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
-| `ref` | `Ref<HTMLDivElement>` | — | Access to the underlying listbox element. |
+| `options` | `{ [key]: label }`, `Array<{ key, label? }>` | — | Renders one row per entry. |
+| `value` | `Bindable<string \| string[] \| null>` | — | The chosen key, or keys with `multiple`. |
+| `multiple` | `boolean` | `false` | Allows several choices. |
+| `label` | `string` | — | The list's accessible name. |
+| `disabled` | `boolean` | `false` | Locks every row. |
+| `required` | `boolean` | `false` | A choice must stay selected. |
+| `size` | `xs`–`xxl` | `'md'` | Row height and type. |
+| `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | Selected rows and focus. |
+| `oninput` | `(event: CustomEvent<string>) => void` | — | As the keyboard moves through rows. |
+| `onchange` | `(event: CustomEvent<string \| string[]>) => void` | — | After a person changes the selection. |
 
-`ListboxOption` props:
+### ListboxOption
 
 | Prop | Type | Default | Notes |
 | --- | --- | --- | --- |
-| `value` | `string` | — | Required. The token the group measures itself against. |
-| `selected` | `Bindable<boolean>` | — | Hint that this option is the one; inside a group it writes the group's value at mount. |
-| `disabled` | `boolean` | `false` | Locks this option; the container's `disabled` reaches every option the same way. |
-| `onchange` | `(event: CustomEvent<boolean>) => void` | — | Fires when a commit by this option really moves the selection. |
-| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
-| `ref` | `Ref<HTMLDivElement>` | — | Access to the underlying option element. |
+| `value` | `string` | — | Required. The key this row stands for. |
+| `disabled` | `boolean` | `false` | Skipped by the keyboard and cannot be chosen. |
+| `children` | `ReactNode` | — | The row content. |
 
-To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+## Keyboard
 
-Keyboard: `Tab` enters the container then each selected option; arrows move the cursor, `Home`/`End` jump, printable characters typeahead, `Space`/`Enter` commits.
+`Tab` reaches the list once. Arrows move between rows without choosing; `Space` or `Enter` chooses; typing jumps to the next row starting with those letters. `Home` and `End` go to the first and last row.
 
 ## Next Steps
 
-- [Select](/docs/widgets/select) — The same list collapsed behind a trigger and a popup.
-- [RadioGroup](/docs/widgets/radio-group) — Always-visible choices where every member is its own tab stop.
-- [Field](/docs/widgets/field) — The unit that binds a label, a control, and its failure message.
+- [Select](/docs/widgets/select) — The same choices behind a trigger, when space is tight.
+- [Checkbox Group](/docs/widgets/checkbox-group) — Several independent yes/no choices.
+- [Radio Group](/docs/widgets/radio-group) — One choice from a short list, each with its own control.

@@ -4,7 +4,7 @@ import { type Bindable, renderDynamic, setup } from '@airlib/react';
 import type { ReactNode } from 'react';
 import { $families, auiConfig, type AuiPrimitive, type AuiProps, type ComponentStyles, OMIT_KEYS } from '../config.js';
 
-import { toggleGroupProps } from './context.js';
+import { toggleGroupScope } from './context.js';
 
 export type ToggleValue = AuiPrimitive;
 
@@ -30,18 +30,9 @@ register('toggle', toggleStyles);
  * `aria-pressed`. Safe in forms: never submits unless `type="submit"`.
  */
 export const Toggle = setup<ToggleProps>((props) => {
-  const group = toggleGroupProps.get();
+  const styles = toggleGroupScope.inherit(props);
   const toggle = aria<HTMLButtonElement, AuiPrimitive>(TOGGLE_ROLE, props);
-  const className = () =>
-    $families(
-      [AUI_CLASS.CONTROL, AUI_CLASS.TOGGLE],
-      {
-        size: props.size ?? group?.size,
-        color: props.color ?? group?.color,
-        className: props.className,
-      },
-      auiConfig.toggle
-    );
+  const className = () => $families([AUI_CLASS.CONTROL, AUI_CLASS.TOGGLE], styles, auiConfig.toggle);
 
   return () => (
     <button ref={toggle.ref} {...toggle.restProps([...OMIT_KEYS])} className={className()}>

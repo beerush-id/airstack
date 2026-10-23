@@ -1,7 +1,47 @@
+@import './item.css';
+@import './link.css';
+
+/* Links stack as shared item rows; the current page fills with the role color. */
 @layer component {
   .aui-navigation {
     display: flex;
     flex-direction: column;
-    gap: calc(var(--spacing) * 2);
+    gap: 2px;
+  }
+
+  .aui-navigation > .aui-link {
+    display: flex;
+    align-items: center;
+    gap: var(--aui-control-gap);
+    block-size: var(--aui-control-height);
+    margin: 0;
+    padding-inline: calc(var(--aui-control-padding-x) * 0.85);
+    border-radius: var(--aui-item-radius);
+    color: var(--color-on-surface);
+    font-weight: 500;
+    text-decoration-line: none;
+    transition: background-color var(--duration-short) var(--ease-emphasized);
+
+    &:hover:not([aria-disabled='true'], [aria-current='page']) {
+      background-color: color-mix(in oklch, var(--aui-item-bg) var(--tone-hover-strength), transparent);
+    }
+
+    &[aria-disabled='true'] {
+      color: var(--color-disabled-fg);
+      background-color: var(--color-disabled-bg);
+      cursor: not-allowed;
+    }
+
+    &[aria-current='page'] {
+      margin: 0;
+      padding-inline: calc(var(--aui-control-padding-x) * 0.85);
+      border-radius: var(--aui-item-radius);
+      color: var(--aui-item-fg);
+      background-color: var(--aui-item-bg);
+
+      &:hover {
+        background-color: var(--aui-item-bg);
+      }
+    }
   }
 }

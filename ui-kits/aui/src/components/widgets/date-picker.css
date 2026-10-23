@@ -1,22 +1,20 @@
+@import './button.css';
+@import './input.css';
+@import './panel.css';
+
+/*
+ * The field, the trigger, and the calendar surface come from the shared
+ * input, button, and panel layers; this file lays out the bar and the grid.
+ */
 @layer theme {
   :root {
     --aui-date-picker-gap: var(--spacing-sm);
-    --aui-date-picker-padding: var(--spacing-md);
+    --aui-date-picker-padding: var(--spacing-sm);
     --aui-date-picker-bar-gap: var(--spacing-xs);
-
-    --aui-date-picker-fg: var(--color-on-surface);
     --aui-date-picker-muted: var(--color-on-surface-variant);
-    --aui-date-picker-outline: var(--color-outline);
-    --aui-date-picker-hover-bg: var(--color-surface-high);
-
-    --aui-date-picker-selected-bg: var(--color-primary);
-    --aui-date-picker-selected-fg: var(--color-on-primary);
-    --aui-date-picker-range-bg: color-mix(in oklch, var(--color-primary) 18%, transparent);
-    --aui-date-picker-today-ring: var(--color-primary);
-
     --aui-date-picker-day-size: calc(var(--spacing) * 9);
     --aui-date-picker-day-radius: var(--radius-full);
-    --aui-date-picker-year-width: calc(var(--spacing) * 18);
+    --aui-date-picker-year-width: calc(var(--spacing) * 14);
   }
 }
 
@@ -24,107 +22,131 @@
   .aui-date-picker,
   .aui-date-range-picker {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
     gap: var(--aui-date-picker-bar-gap);
     position: relative;
-    color: var(--aui-date-picker-fg);
   }
 
   .aui-date-picker-input {
     flex: 1 1 calc(var(--spacing) * 32);
-    min-inline-size: 0;
-    padding: calc(var(--spacing) * 2) calc(var(--spacing) * 3);
-    border: 1px solid var(--aui-date-picker-outline);
-    border-radius: var(--radius-sm);
-    background: var(--color-surface);
-    color: inherit;
-    font: inherit;
     font-variant-numeric: tabular-nums;
-    letter-spacing: 0.04em;
+  }
 
-    &::placeholder {
-      color: var(--aui-date-picker-muted);
+  .aui-date-picker-trigger {
+    flex: none;
+  }
+
+  /* One field box: bare date text, an optional range dash, and the trigger tucked at the end. */
+  /* `min-inline-size: 0` lets the field shrink below its inputs' natural ~20ch width. */
+  .aui-date-picker-field {
+    flex: 1 1 calc(var(--spacing) * 40);
+    min-inline-size: 0;
+    gap: var(--spacing-xs);
+    padding-inline-end: calc(var(--spacing) * 1);
+
+    & > .aui-date-picker-input {
+      flex: 1 1 0;
+      min-inline-size: 0;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      caret-color: inherit;
+      outline: none;
+
+      &::placeholder {
+        color: var(--aui-input-placeholder);
+      }
     }
 
-    &:focus-visible {
-      outline: var(--focus-ring-width) var(--focus-ring-style) var(--focus-ring-color);
-      outline-offset: var(--focus-ring-offset);
-      border-color: var(--aui-date-picker-selected-bg);
-    }
-
-    &[aria-invalid='true'] {
-      border-color: var(--color-error);
-    }
-
-    &:disabled,
-    &[aria-disabled='true'] {
-      opacity: 0.5;
-      cursor: not-allowed;
+    /* Inside the field the icon button shrinks to leave one spacing step to every edge. */
+    & > .aui-date-picker-trigger {
+      --aui-icon-size: calc(var(--aui-control-height) * 0.45);
+      block-size: calc(var(--aui-control-height) - var(--spacing) * 2);
+      inline-size: calc(var(--aui-control-height) - var(--spacing) * 2);
+      border-radius: var(--radius-full);
     }
   }
 
-  .aui-control.aui-date-picker-trigger {
-    --aui-control-height: calc(var(--spacing) * 11);
-    --aui-control-padding-x: calc(var(--spacing) * 3);
-    --aui-control-bg: var(--color-surface-container);
+  /* A calendar glyph is not a caret: it stays upright while the calendar is open. */
+  .aui-date-picker-trigger[aria-expanded='true'] > .aui-icon:last-child {
+    transform: none;
   }
 
-  /* The calendar rides on the menu-panel surface; this only adds its layout. */
+  .aui-date-picker-separator {
+    flex: none;
+    color: var(--aui-input-placeholder);
+    user-select: none;
+  }
+
+  /* The calendar opens under the field's trailing button, so it aligns to the field's end. */
+  .aui-date-picker-calendar[data-popover-y='above'] {
+    position-area: top span-left;
+  }
+
   .aui-date-picker-calendar {
+    position-area: bottom span-left;
+    --aui-date-picker-range-bg: color-mix(in oklch, var(--aui-panel-accent) 18%, transparent);
     gap: var(--aui-date-picker-gap);
     padding: var(--aui-date-picker-padding);
     inline-size: max-content;
-
-    &[hidden] {
-      display: none;
-    }
   }
 
+  /*
+   * The grid decides the calendar's width; the header claims none of its own
+   * (zero basis, full minimum), so its steppers land over the first and last
+   * day columns instead of past them.
+   */
   .aui-date-picker-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: var(--aui-date-picker-bar-gap);
+    inline-size: 0;
+    min-inline-size: 100%;
     min-block-size: var(--aui-date-picker-day-size);
   }
 
-  .aui-control.aui-date-picker-nav {
-    --aui-control-height: var(--aui-date-picker-day-size);
-    --aui-control-padding-x: var(--spacing-sm);
-    --aui-control-bg: transparent;
-    --aui-control-outline-color: transparent;
-    color: var(--aui-date-picker-fg);
+  .aui-date-picker-title {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
     font-size: var(--font-title-sm-size);
+    font-weight: var(--font-title-sm-weight);
+    line-height: var(--font-title-sm-line-height);
+    letter-spacing: var(--font-title-sm-tracking);
+    text-transform: capitalize;
+  }
 
-    &:hover {
-      background-color: var(--aui-date-picker-hover-bg);
-    }
-
-    &:active {
-      background-color: var(--aui-date-picker-range-bg);
-    }
-
-    &[aria-disabled='true'] {
-      opacity: 0.4;
-      cursor: not-allowed;
-    }
+  /* The steppers match a day cell so they sit exactly over the first and last columns. */
+  .aui-date-picker-nav {
+    flex: none;
+    inline-size: var(--aui-date-picker-day-size);
+    block-size: var(--aui-date-picker-day-size);
   }
 
   .aui-date-picker-year {
     inline-size: var(--aui-date-picker-year-width);
     padding-block: var(--spacing-xs);
-    padding-inline: var(--spacing-sm);
+    padding-inline: var(--spacing-xs);
     border: 0;
     border-radius: var(--radius-xs);
     background: transparent;
     color: inherit;
     font: inherit;
-    font-weight: 700;
     font-variant-numeric: tabular-nums;
+    -moz-appearance: textfield;
+
+    /* The month steppers already move the grid; the native spinner would be a second, cramped pair. */
+    &::-webkit-inner-spin-button,
+    &::-webkit-outer-spin-button {
+      appearance: none;
+      margin: 0;
+    }
 
     &:hover {
-      background-color: var(--aui-date-picker-hover-bg);
+      background-color: color-mix(in oklch, var(--aui-panel-accent) var(--tone-hover-strength), transparent);
     }
 
     &:focus-visible {
@@ -156,7 +178,7 @@
     min-block-size: var(--aui-date-picker-day-size);
     padding: 0;
     border-radius: var(--aui-date-picker-day-radius);
-    color: var(--aui-date-picker-fg);
+    font-size: var(--font-label-lg-size);
     font-variant-numeric: tabular-nums;
     cursor: pointer;
     user-select: none;
@@ -165,7 +187,7 @@
     transition-timing-function: var(--ease-emphasized);
 
     &:hover {
-      background-color: var(--aui-date-picker-hover-bg);
+      background-color: color-mix(in oklch, var(--aui-panel-accent) var(--tone-hover-strength), transparent);
     }
 
     &:focus-visible {
@@ -175,7 +197,6 @@
 
     &[data-offside='true'] {
       color: var(--aui-date-picker-muted);
-      opacity: 0.65;
     }
 
     &[data-in-range='true'] {
@@ -184,19 +205,19 @@
     }
 
     &[aria-current='date'] {
-      box-shadow: inset 0 0 0 1px var(--aui-date-picker-today-ring);
+      box-shadow: inset 0 0 0 1px var(--aui-panel-accent);
       font-weight: 700;
     }
 
     &[aria-selected='true'] {
-      background-color: var(--aui-date-picker-selected-bg);
-      color: var(--aui-date-picker-selected-fg);
+      background-color: var(--aui-panel-accent);
+      color: var(--aui-panel-on-accent);
       font-weight: 700;
       box-shadow: none;
     }
 
     &[aria-disabled='true'] {
-      opacity: 0.35;
+      color: var(--color-disabled-fg);
       cursor: not-allowed;
 
       &:hover {

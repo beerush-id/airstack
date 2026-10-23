@@ -1,3 +1,20 @@
+@import './control.css';
+@import './item.css';
+
+/*
+ * Tab triggers ride the shared control for size, color, and type; the strip
+ * is a segmented track and the variant decides how the open tab stands out:
+ * filled / tonal / outlined fill or ring the open tab, elevated lifts it off
+ * the track, text drops the track for an underline indicator.
+ */
+@layer theme {
+  :root {
+    --aui-tab-list-bg: var(--color-surface-high);
+    --aui-tab-list-padding: var(--spacing-xs);
+    --aui-tab-indicator-size: 2px;
+  }
+}
+
 @layer component {
   .aui-tab {
     display: flex;
@@ -5,56 +22,158 @@
     gap: var(--spacing-md);
   }
 
-  .aui-tab:has([aria-orientation='vertical']) {
+  .aui-tab:has(> [aria-orientation='vertical']) {
     flex-direction: row;
+    align-items: flex-start;
   }
 
   .aui-tab-list {
-    display: flex;
-    gap: var(--spacing-sm);
-    border-bottom: 1px solid var(--color-outline-variant);
-    padding-bottom: var(--spacing-sm);
+    display: inline-flex;
+    align-self: flex-start;
+    gap: var(--spacing-xs);
+    padding: var(--aui-tab-list-padding);
+    background-color: var(--aui-tab-list-bg);
+    border-radius: calc(var(--radius-md) + var(--aui-tab-list-padding));
+    max-inline-size: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
   }
 
   .aui-tab-list[aria-orientation='vertical'] {
     flex-direction: column;
-    border-bottom: 0;
-    border-right: 1px solid var(--color-outline-variant);
-    padding-bottom: 0;
-    padding-right: var(--spacing-sm);
+    align-items: stretch;
+  }
+
+  .aui-tab-list-text {
+    --aui-tab-list-bg: transparent;
+    padding: 0;
+    gap: 0;
+    border-radius: 0;
+    box-shadow: inset 0 calc(var(--aui-tab-indicator-size) * -0.5) 0 var(--color-outline-variant);
   }
 
   .aui-tab-button {
-    padding: var(--spacing-sm) var(--spacing-md);
-    border: 1px solid transparent;
-    border-radius: var(--radius-sm);
-    background-color: transparent;
-    color: var(--color-on-surface-variant);
+    --aui-control-outline-color: transparent;
+    --aui-state-layer-color: var(--aui-control-bg);
+    flex: none;
+    justify-content: center;
     cursor: pointer;
+    color: var(--color-on-surface-variant);
+    background-color: transparent;
+    box-shadow: none;
+
+    &:hover:not(:disabled, [aria-disabled='true'], [aria-selected='true']) {
+      color: var(--color-on-surface);
+    }
+
+    &:disabled,
+    &[aria-disabled='true'] {
+      background-color: transparent;
+      color: var(--color-disabled-fg);
+    }
   }
 
-  .aui-tab-button:hover:not(:disabled):not([aria-disabled='true']) {
-    background-color: var(--color-surface-container);
-    color: var(--color-on-surface);
+  .aui-tab-list[aria-orientation='vertical'] > .aui-tab-button {
+    justify-content: flex-start;
   }
 
   .aui-tab-button[aria-selected='true'] {
-    background-color: var(--color-primary);
-    color: var(--color-on-primary);
+    color: var(--aui-control-fg);
+    background-color: var(--aui-control-bg);
   }
 
-  .aui-tab-button:focus-visible {
-    outline: var(--focus-ring-width) var(--focus-ring-style) var(--focus-ring-color);
-    outline-offset: var(--focus-ring-offset);
+  .aui-tab-button-tonal[aria-selected='true'] {
+    color: var(--aui-control-bg);
+    background-color: color-mix(in oklch, var(--aui-control-bg) var(--tone-container-strength), var(--light-up));
   }
 
-  .aui-tab-button:disabled,
-  .aui-tab-button[aria-disabled='true'] {
-    opacity: 0.6;
-    cursor: not-allowed;
+  .aui-tab-button-outlined[aria-selected='true'] {
+    --aui-control-outline-color: var(--aui-control-bg);
+    color: var(--aui-control-bg);
+    background-color: var(--color-surface);
   }
 
-  .aui-tab-panel[hidden] {
-    display: none;
+  .aui-tab-button-elevated[aria-selected='true'] {
+    color: var(--aui-control-bg);
+    background-color: var(--color-surface-lowest);
+    box-shadow: var(--elevation-1);
+  }
+
+  .aui-tab-button-text {
+    border-radius: 0;
+
+    &[aria-selected='true'] {
+      color: var(--aui-control-bg);
+      background-color: transparent;
+      box-shadow: inset 0 calc(var(--aui-tab-indicator-size) * -1) 0 var(--aui-control-bg);
+    }
+  }
+
+  .aui-tab-panel {
+    color: var(--color-on-surface);
+
+    &[hidden] {
+      display: none;
+    }
+  }
+
+  /*
+   * Gliding selection: the open tab is the strip's anchor and one indicator
+   * behind the triggers rides to it, so switching tabs slides the surface
+   * instead of swapping it. The strip carries the role color through the
+   * shared scale; triggers keep only their ink. Where anchor positioning is
+   * missing, the per-tab fill above stays in charge.
+   */
+  @supports (anchor-name: --aui-tab-open) {
+    .aui-tab-list {
+      position: relative;
+      isolation: isolate;
+      anchor-scope: --aui-tab-open;
+
+      &::before {
+        content: '';
+        position: absolute;
+        z-index: -1;
+        position-anchor: --aui-tab-open;
+        top: anchor(top);
+        left: anchor(left);
+        right: anchor(right);
+        bottom: anchor(bottom);
+        /* Concentric with the track; the pseudo has no class, so it borrows the strip's squircle corners. */
+        border-radius: var(--radius-md);
+        corner-shape: inherit;
+        background-color: var(--aui-item-bg);
+        transition-property: top, left, right, bottom, background-color;
+        transition-duration: var(--duration-medium);
+        transition-timing-function: var(--ease-emphasized);
+      }
+    }
+
+    .aui-tab-list > .aui-tab-button[aria-selected='true'] {
+      anchor-name: --aui-tab-open;
+      background-color: transparent;
+      box-shadow: none;
+    }
+
+    .aui-tab-list-tonal::before {
+      background-color: color-mix(in oklch, var(--aui-item-bg) var(--tone-container-strength), var(--light-up));
+    }
+
+    .aui-tab-list-outlined::before {
+      background-color: var(--color-surface);
+      box-shadow: inset 0 0 0 1px var(--aui-item-bg);
+    }
+
+    .aui-tab-list-elevated::before {
+      background-color: var(--color-surface-lowest);
+      box-shadow: var(--elevation-1);
+    }
+
+    /* The text variant glides an underline instead of a surface. */
+    .aui-tab-list-text::before {
+      top: auto;
+      block-size: var(--aui-tab-indicator-size);
+      border-radius: var(--radius-full);
+    }
   }
 }

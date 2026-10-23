@@ -141,7 +141,8 @@
     height: auto;
   }
 
-  input[type='search'] {
+  /* Zero specificity: a styled control's own ring offset must win over this browser patch. */
+  :where(input[type='search']) {
     -webkit-appearance: textfield;
     outline-offset: -2px;
   }

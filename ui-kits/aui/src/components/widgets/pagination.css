@@ -1,7 +1,78 @@
+@import './item.css';
+@import './link.css';
+
+/* Page links sit as round chips on the shared item scale; the current page fills with the role color. */
 @layer component {
   .aui-pagination {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: calc(var(--spacing) * 2);
+    gap: var(--spacing-xs);
+  }
+
+  .aui-pagination > .aui-link,
+  .aui-pagination-gap,
+  .aui-pagination-step {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-inline-size: var(--aui-control-height);
+    block-size: var(--aui-control-height);
+    margin: 0;
+    padding-inline: var(--spacing-xs);
+    border-radius: var(--radius-full);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .aui-pagination > .aui-link {
+    color: var(--color-on-surface);
+    font-weight: 500;
+    text-decoration-line: none;
+    transition: background-color var(--duration-short) var(--ease-emphasized);
+
+    &:hover:not([aria-disabled='true'], [aria-current='page']) {
+      background-color: color-mix(in oklch, var(--aui-item-bg) var(--tone-hover-strength), transparent);
+    }
+
+    &[aria-current='page'] {
+      padding-inline: var(--spacing-xs);
+      margin: 0;
+      color: var(--aui-item-fg);
+      background-color: var(--aui-item-bg);
+
+      &:hover {
+        background-color: var(--aui-item-bg);
+      }
+    }
+  }
+
+  .aui-pagination-gap {
+    color: var(--color-on-surface-variant);
+    user-select: none;
+  }
+
+  /* Previous/next: the same chip as a page, inked in the role color, plain at the bounds. */
+  .aui-pagination-step {
+    --aui-icon-size: calc(var(--aui-control-height) * 0.5);
+    padding: 0;
+    border: 0;
+    background-color: transparent;
+    color: var(--aui-item-bg);
+    cursor: pointer;
+    transition: background-color var(--duration-short) var(--ease-emphasized);
+
+    &:hover:not(:disabled) {
+      background-color: color-mix(in oklch, var(--aui-item-bg) var(--tone-hover-strength), transparent);
+    }
+
+    &:focus-visible {
+      outline: var(--focus-ring-width) var(--focus-ring-style) var(--focus-ring-color);
+      outline-offset: var(--focus-ring-offset);
+    }
+
+    &:disabled {
+      color: var(--color-disabled-fg);
+      cursor: not-allowed;
+    }
   }
 }

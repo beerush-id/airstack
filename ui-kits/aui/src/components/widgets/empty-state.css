@@ -1,0 +1,73 @@
+@import './item.css';
+
+/*
+ * Centered placeholder for empty lists and results. The icon sits on a soft
+ * role-tinted disc; size scales the disc and the heading, the role color comes
+ * from the shared scale (`--aui-item-bg`).
+ */
+@layer theme {
+  :root {
+    --aui-empty-state-icon-size: calc(var(--spacing) * 16);
+  }
+}
+
+@layer component {
+  .aui-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-xl) var(--spacing-lg);
+    text-align: center;
+    color: var(--color-on-surface);
+    font-weight: 400;
+  }
+
+  .aui-empty-state-xs,
+  .aui-empty-state-sm {
+    --aui-empty-state-icon-size: calc(var(--spacing) * 12);
+    padding: var(--spacing-lg) var(--spacing-md);
+  }
+
+  .aui-empty-state-lg,
+  .aui-empty-state-xl,
+  .aui-empty-state-xxl {
+    --aui-empty-state-icon-size: calc(var(--spacing) * 20);
+    padding: var(--spacing-xxl) var(--spacing-xl);
+  }
+
+  .aui-empty-state-icon {
+    --aui-icon-size: calc(var(--aui-empty-state-icon-size) * 0.5);
+    display: grid;
+    place-items: center;
+    inline-size: var(--aui-empty-state-icon-size);
+    block-size: var(--aui-empty-state-icon-size);
+    margin-block-end: var(--spacing-xs);
+    border-radius: var(--radius-full);
+    color: var(--aui-item-bg);
+    background-color: color-mix(in oklch, var(--aui-item-bg) var(--tone-container-strength), var(--color-surface));
+  }
+
+  .aui-empty-state-title {
+    margin: 0;
+    font-size: var(--font-title-md-size);
+    font-weight: var(--font-title-md-weight);
+    line-height: var(--font-title-md-line-height);
+    text-wrap: balance;
+  }
+
+  .aui-empty-state-description {
+    margin: 0;
+    max-inline-size: 44ch;
+    color: var(--color-on-surface-variant);
+    text-wrap: pretty;
+  }
+
+  .aui-empty-state-action {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--spacing-sm);
+    margin-block-start: var(--spacing-sm);
+  }
+}

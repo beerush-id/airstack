@@ -34,22 +34,22 @@ const LinkDemo = setup(() => {
           {() => (state.disabled ? 'Set Enabled' : 'Set Disabled')}
         </Toggle>
       </div>
-      <div className="aui-card flex flex-col gap-lg items-start justify-center p-xl">
-        <Snippet>
-          {() => (
-            <Link
-              href="/docs/widgets/link"
-              color={state.color}
-              current={state.current}
-              disabled={state.disabled}
-              onClick={block}
-            >
-              This guide
-            </Link>
-          )}
-        </Snippet>
-        <Snippet>
-          {() => (
+      <Snippet>
+        {() => (
+          <div className="aui-card flex flex-col gap-lg items-start justify-center p-xl">
+            <Snippet>
+              {() => (
+                <Link
+                  href="/docs/widgets/link"
+                  color={state.color}
+                  current={state.current}
+                  disabled={state.disabled}
+                  onClick={block}
+                >
+                  This guide
+                </Link>
+              )}
+            </Snippet>
             <Link
               href="/docs/widgets/button"
               color={state.color}
@@ -58,9 +58,9 @@ const LinkDemo = setup(() => {
             >
               Component reference
             </Link>
-          )}
-        </Snippet>
-      </div>
+          </div>
+        )}
+      </Snippet>
     </div>
   );
 }, 'LinkDemo');

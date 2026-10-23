@@ -2,10 +2,10 @@ import { aria } from '@airlib/aria';
 import { AUI_CLASS, register } from '@airlib/aui/utils';
 import { type Bindable, setup } from '@airlib/react';
 import type { ComponentProps, ReactNode } from 'react';
-import { $families, auiConfig, type ComponentStyles, OMIT_KEYS } from '../config.js';
+import { $families, auiConfig, FIELD_STYLES, type FieldStyles, OMIT_KEYS } from '../config.js';
 
-export interface NumberStepperProps extends Omit<ComponentProps<'input'>, 'className' | 'color' | 'value'>,
-  Omit<ComponentStyles, 'variant'> {
+export interface NumberStepperProps extends Omit<ComponentProps<'input'>, 'className' | 'color' | 'value' | 'size'>,
+  FieldStyles {
   value?: Bindable<number>;
   min?: number;
   max?: number;
@@ -20,9 +20,7 @@ export interface NumberStepperProps extends Omit<ComponentProps<'input'>, 'class
 
 const NUMBER_STEPPER_ROLE = 'number-stepper';
 
-const numberStepperStyles: ComponentStyles = {};
-
-register('numberStepper', numberStepperStyles);
+register('numberStepper', { ...FIELD_STYLES });
 
 /**
  * Discrete number clamped to its bounds on every write.
@@ -30,7 +28,8 @@ register('numberStepper', numberStepperStyles);
  */
 export const NumberStepper = setup<NumberStepperProps>((props) => {
   const stepper = aria(NUMBER_STEPPER_ROLE, props, { native: true } as never);
-  const className = () => $families(AUI_CLASS.NUMBER_STEPPER, props, auiConfig.numberStepper);
+  const className = () =>
+    $families([AUI_CLASS.CONTROL, AUI_CLASS.INPUT, AUI_CLASS.NUMBER_STEPPER], props, auiConfig.numberStepper);
 
   return () => (
     <input

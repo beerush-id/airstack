@@ -1,0 +1,210 @@
+@import './control.css';
+@import './panel.css';
+
+/*
+ * Shared row: one pickable entry in a list — menu items, select and combobox
+ * options, listbox options, tree rows. Borrows the control size scale so a
+ * `sm` row lines up with a `sm` trigger.
+ */
+@layer theme {
+  :root {
+    --aui-item-bg: var(--color-primary);
+    --aui-item-fg: var(--color-on-primary);
+    --aui-item-radius: var(--radius-xs);
+  }
+}
+
+@layer component {
+  .aui-item {
+    --aui-state-layer-color: var(--aui-item-bg);
+    display: flex;
+    gap: var(--aui-control-gap);
+    align-items: center;
+    block-size: var(--aui-control-height);
+    padding-block: 0;
+    padding-inline: calc(var(--aui-control-padding-x) * 0.85);
+    cursor: pointer;
+    user-select: none;
+    border-radius: var(--aui-item-radius);
+    transition-duration: var(--duration-short);
+    transition-timing-function: var(--ease-emphasized);
+    transition-property: background-color, color, border-radius;
+
+    &:hover {
+      background: color-mix(in oklch, var(--aui-item-bg) var(--tone-hover-strength), transparent);
+    }
+
+    &:active {
+      background: color-mix(in oklch, var(--aui-item-bg) var(--tone-pressed-strength), transparent);
+    }
+
+    &:focus-visible {
+      outline: var(--focus-ring-width) var(--focus-ring-style) var(--focus-ring-color);
+      outline-offset: calc(var(--focus-ring-offset) * -1);
+    }
+
+    &[aria-current='true'],
+    &[aria-current='page'],
+    &[aria-selected='true'] {
+      color: var(--aui-item-fg);
+      background: var(--aui-item-bg);
+    }
+
+    &[aria-disabled='true'] {
+      color: var(--color-disabled-fg);
+      cursor: not-allowed;
+    }
+
+    & > .aui-icon {
+      margin-inline-start: auto;
+    }
+  }
+
+  /*
+   * `.aui-scale-*` carries the item color and size scale for row-like parts
+   * that cannot wear `.aui-item` itself: tree nodes, page and nav link runs.
+   */
+  .aui-item-primary,
+  .aui-scale-primary {
+    --aui-item-bg: var(--color-primary);
+    --aui-item-fg: var(--color-on-primary);
+    --focus-ring-color: var(--color-primary);
+  }
+
+  .aui-item-secondary,
+  .aui-scale-secondary {
+    --aui-item-bg: var(--color-secondary);
+    --aui-item-fg: var(--color-on-secondary);
+    --focus-ring-color: var(--color-secondary);
+  }
+
+  .aui-item-tertiary,
+  .aui-scale-tertiary {
+    --aui-item-bg: var(--color-tertiary);
+    --aui-item-fg: var(--color-on-tertiary);
+    --focus-ring-color: var(--color-tertiary);
+  }
+
+  .aui-item-info,
+  .aui-scale-info {
+    --aui-item-bg: var(--color-info);
+    --aui-item-fg: var(--color-on-info);
+    --focus-ring-color: var(--color-info);
+  }
+
+  .aui-item-error,
+  .aui-scale-error {
+    --aui-item-bg: var(--color-error);
+    --aui-item-fg: var(--color-on-error);
+    --focus-ring-color: var(--color-error);
+  }
+
+  .aui-item-success,
+  .aui-scale-success {
+    --aui-item-bg: var(--color-success);
+    --aui-item-fg: var(--color-on-success);
+    --focus-ring-color: var(--color-success);
+  }
+
+  .aui-item-warning,
+  .aui-scale-warning {
+    --aui-item-bg: var(--color-warning);
+    --aui-item-fg: var(--color-on-warning);
+    --focus-ring-color: var(--color-warning);
+  }
+
+  .aui-item-xs,
+  .aui-scale-xs {
+    --aui-control-height: var(--aui-control-height-xs);
+    --aui-control-padding-x: var(--aui-control-padding-x-xs);
+    --aui-control-gap: var(--aui-control-gap-xs);
+    --aui-icon-size: calc(var(--size-xs) * 0.55);
+    font-size: var(--font-label-sm-size);
+    font-weight: var(--font-label-sm-weight);
+    line-height: var(--font-label-sm-line-height);
+    letter-spacing: var(--font-label-sm-tracking);
+
+    @supports (corner-shape: squircle) {
+      --aui-panel-radius-strength: 2.5;
+    }
+  }
+
+  .aui-item-sm,
+  .aui-scale-sm {
+    --aui-control-height: var(--aui-control-height-sm);
+    --aui-control-padding-x: var(--aui-control-padding-x-sm);
+    --aui-control-gap: var(--aui-control-gap-sm);
+    --aui-icon-size: calc(var(--size-sm) * 0.55);
+    font-size: var(--font-label-md-size);
+    font-weight: var(--font-label-md-weight);
+    line-height: var(--font-label-md-line-height);
+    letter-spacing: var(--font-label-md-tracking);
+
+    @supports (corner-shape: squircle) {
+      --aui-panel-radius-strength: 1.25;
+    }
+  }
+
+  .aui-item-md,
+  .aui-scale-md {
+    --aui-control-height: var(--aui-control-height-md);
+    --aui-control-padding-x: var(--aui-control-padding-x-md);
+    --aui-control-gap: var(--aui-control-gap-md);
+    --aui-icon-size: calc(var(--size-md) * 0.55);
+    font-size: var(--font-label-lg-size);
+    font-weight: var(--font-label-lg-weight);
+    line-height: var(--font-label-lg-line-height);
+    letter-spacing: var(--font-label-lg-tracking);
+  }
+
+  .aui-item-lg,
+  .aui-scale-lg {
+    --aui-control-height: var(--aui-control-height-lg);
+    --aui-control-padding-x: var(--aui-control-padding-x-lg);
+    --aui-control-gap: var(--aui-control-gap-lg);
+    --aui-icon-size: calc(var(--size-lg) * 0.55);
+    font-size: var(--font-title-sm-size);
+    font-weight: var(--font-title-sm-weight);
+    line-height: var(--font-title-sm-line-height);
+    letter-spacing: var(--font-title-sm-tracking);
+
+    @supports (corner-shape: squircle) {
+      --aui-panel-radius: var(--radius-lg);
+      --aui-panel-radius-strength: 0.85;
+    }
+  }
+
+  .aui-item-xl,
+  .aui-scale-xl {
+    --aui-control-height: var(--aui-control-height-xl);
+    --aui-control-padding-x: var(--aui-control-padding-x-xl);
+    --aui-control-gap: var(--aui-control-gap-xl);
+    --aui-icon-size: calc(var(--size-xl) * 0.55);
+    font-size: var(--font-title-md-size);
+    font-weight: var(--font-title-md-weight);
+    line-height: var(--font-title-md-line-height);
+    letter-spacing: var(--font-title-md-tracking);
+
+    @supports (corner-shape: squircle) {
+      --aui-panel-radius: var(--radius-xl);
+      --aui-panel-radius-strength: 0.7;
+    }
+  }
+
+  .aui-item-xxl,
+  .aui-scale-xxl {
+    --aui-control-height: var(--aui-control-height-xxl);
+    --aui-control-padding-x: var(--aui-control-padding-x-xxl);
+    --aui-control-gap: var(--aui-control-gap-xxl);
+    --aui-icon-size: calc(var(--size-xxl) * 0.55);
+    font-size: var(--font-title-lg-size);
+    font-weight: var(--font-title-lg-weight);
+    line-height: var(--font-title-lg-line-height);
+    letter-spacing: var(--font-title-lg-tracking);
+
+    @supports (corner-shape: squircle) {
+      --aui-panel-radius: var(--radius-xxl);
+      --aui-panel-radius-strength: 0.75;
+    }
+  }
+}

@@ -1,97 +1,27 @@
-@layer theme {
-  :root {
-    --aui-menu-panel-bg: var(--color-surface-container);
-    --aui-menu-panel-radius: var(--radius-lg);
-    --aui-menu-panel-radius-strength: 0.75;
-    --aui-menu-panel-gap: var(--spacing-xs);
-    --aui-menu-panel-padding-x: var(--spacing-xs);
-    --aui-menu-panel-padding-y: var(--spacing-xs);
+@import './button.css';
+@import './item.css';
 
-    --aui-menu-item-bg: var(--color-primary);
-    --aui-menu-item-fg: var(--color-on-primary);
-    --aui-menu-item-radius: var(--radius-xs);
-
-    @supports (corner-shape: squircle) {
-      --aui-menu-panel-radius: var(--radius-md);
-      --aui-menu-panel-radius-strength: 1;
-    }
-  }
-}
-
+/* Menu-only parts; the panel and rows come from the shared panel and item layers. */
 @layer component {
-  @keyframes menu-pop-up {
-    from {
-      transform: translateY(calc(var(--spacing-sm) * -1));
-    }
-    to {
-      transform: translateY(0);
-    }
+  /* A separator between rows is a hint, not a frame: hairline, inset to the row text. */
+  .aui-panel > .aui-divider {
+    --aui-divider-color: var(--color-outline-variant);
+    inline-size: auto;
+    margin-inline: var(--spacing-md);
   }
 
-  .aui-menu-panel {
-    display: flex;
-    flex-direction: column;
-    gap: var(--aui-menu-panel-gap);
-    position: fixed;
-    z-index: var(--z-index-popover);
-    position-area: bottom span-right;
-    position-try-fallbacks:
-      flip-block,
-      flip-inline,
-      flip-block flip-inline;
-    position-try-order: normal;
-    min-width: calc(var(--spacing) * 40);
-    margin-block: var(--aui-menu-panel-gap);
-    background: color-mix(in oklch, var(--aui-menu-panel-bg) 80%, transparent);
-    border: 1px solid light-dark(rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.1));
-    backdrop-filter: blur(var(--size-sm));
-    border-radius: var(--aui-menu-panel-radius);
-    padding-block: var(--aui-menu-panel-padding-y);
-    padding-inline: var(--aui-menu-panel-padding-x);
-    overflow-y: auto;
-    box-shadow: var(--elevation-3);
-    animation: menu-pop-up var(--duration-medium) var(--ease-emphasized-decelerate) forwards;
-
-    .aui-menu-item:first-child {
-      border-start-start-radius: calc(
-        var(--aui-menu-panel-radius) *
-        var(--aui-menu-panel-radius-strength)
-      );
-      border-start-end-radius: calc(
-        var(--aui-menu-panel-radius) *
-        var(--aui-menu-panel-radius-strength)
-      );
-    }
-
-    .aui-menu-item:last-child {
-      border-end-start-radius: calc(
-        var(--aui-menu-panel-radius) *
-        var(--aui-menu-panel-radius-strength)
-      );
-      border-end-end-radius: calc(
-        var(--aui-menu-panel-radius) *
-        var(--aui-menu-panel-radius-strength)
-      );
-    }
-  }
-
-  .aui-menu-panel[hidden] {
-    display: none;
-  }
-
-  .aui-menu-button {
-    cursor: pointer;
-
-    &:disabled,
-    &[aria-disabled='true'] {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-  }
-
-  .aui-menu-item-checkbox[aria-checked='true']::after,
-  .aui-menu-item-radio[aria-checked='true']::after {
+  /*
+   * Reclaim the pseudo from the state layer so the mark renders inline. The
+   * doubled class outweighs the press ripple (`.aui-item:active::after`),
+   * which would otherwise grow this in-flow dot to 512px and push the menu open.
+   */
+  .aui-item.aui-menu-item-checkbox[aria-checked='true']::after,
+  .aui-item.aui-menu-item-radio[aria-checked='true']::after {
     content: '';
+    position: static;
+    opacity: 1;
+    z-index: auto;
+    animation: none;
     inline-size: var(--spacing-sm);
     block-size: var(--spacing-sm);
     margin-inline-start: auto;
@@ -105,7 +35,7 @@
     gap: inherit;
 
     &[aria-disabled='true'] {
-      opacity: 0.6;
+      color: var(--color-disabled-fg);
     }
   }
 
@@ -119,134 +49,5 @@
   .aui-menu-bar[aria-orientation='vertical'] {
     flex-direction: column;
     align-items: stretch;
-  }
-
-  .aui-menu-item {
-    --aui-state-layer-color: var(--aui-menu-item-bg);
-    display: flex;
-    gap: var(--aui-control-gap);
-    align-items: center;
-    block-size: var(--aui-control-height);
-    padding-block: 0;
-    padding-inline: calc(var(--aui-control-padding-x) * 0.85);
-    cursor: pointer;
-    border-radius: var(--aui-menu-item-radius);
-    transition-duration: var(--duration-short);
-    transition-timing-function: var(--ease-emphasized);
-    transition-property: background-color, color, border-radius;
-
-    &:hover {
-      background: color-mix(
-        in oklch,
-        var(--aui-menu-item-bg) var(--tone-hover-strength),
-        transparent
-      );
-    }
-
-    &:active {
-      background: color-mix(
-        in oklch,
-        var(--aui-menu-item-bg) var(--tone-pressed-strength),
-        transparent
-      );
-    }
-
-    &:focus-visible {
-      outline: var(--focus-ring-width) var(--focus-ring-style) var(--focus-ring-color);
-      outline-offset: calc(var(--focus-ring-offset) * -1);
-    }
-
-    &[aria-current='true'],
-    &[aria-selected='true'] {
-      color: var(--aui-menu-item-fg);
-      background: var(--aui-menu-item-bg);
-    }
-
-    &[aria-disabled='true'] {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-
-    & > .aui-icon {
-      margin-inline-start: auto;
-    }
-  }
-
-  .aui-menu-item-xs {
-    --aui-control-height: var(--aui-control-height-xs);
-    --aui-control-padding-x: var(--aui-control-padding-x-xs);
-    --aui-control-gap: var(--aui-control-gap-xs);
-    --aui-icon-size: calc(var(--size-xs) * 0.55);
-    font-size: var(--font-label-sm-size);
-    font-weight: var(--font-label-sm-weight);
-    line-height: var(--font-label-sm-line-height);
-    letter-spacing: var(--font-label-sm-tracking);
-
-    @supports (corner-shape: squircle) {
-      --aui-menu-panel-radius-strength: 2.5;
-    }
-  }
-
-  .aui-menu-item-sm {
-    --aui-control-height: var(--aui-control-height-sm);
-    --aui-control-padding-x: var(--aui-control-padding-x-sm);
-    --aui-control-gap: var(--aui-control-gap-sm);
-    --aui-icon-size: calc(var(--size-sm) * 0.55);
-    font-size: var(--font-label-md-size);
-    font-weight: var(--font-label-md-weight);
-    line-height: var(--font-label-md-line-height);
-    letter-spacing: var(--font-label-md-tracking);
-
-    @supports (corner-shape: squircle) {
-      --aui-menu-panel-radius-strength: 1.25;
-    }
-  }
-
-  .aui-menu-item-lg {
-    --aui-control-height: var(--aui-control-height-lg);
-    --aui-control-padding-x: var(--aui-control-padding-x-lg);
-    --aui-control-gap: var(--aui-control-gap-lg);
-    --aui-icon-size: calc(var(--size-lg) * 0.55);
-    font-size: var(--font-title-sm-size);
-    font-weight: var(--font-title-sm-weight);
-    line-height: var(--font-title-sm-line-height);
-    letter-spacing: var(--font-title-sm-tracking);
-
-    @supports (corner-shape: squircle) {
-      --aui-menu-panel-radius: var(--radius-lg);
-      --aui-menu-panel-radius-strength: 0.85;
-    }
-  }
-
-  .aui-menu-item-xl {
-    --aui-control-height: var(--aui-control-height-xl);
-    --aui-control-padding-x: var(--aui-control-padding-x-xl);
-    --aui-control-gap: var(--aui-control-gap-xl);
-    --aui-icon-size: calc(var(--size-xl) * 0.55);
-    font-size: var(--font-title-md-size);
-    font-weight: var(--font-title-md-weight);
-    line-height: var(--font-title-md-line-height);
-    letter-spacing: var(--font-title-md-tracking);
-
-    @supports (corner-shape: squircle) {
-      --aui-menu-panel-radius: var(--radius-xl);
-      --aui-menu-panel-radius-strength: 0.7;
-    }
-  }
-
-  .aui-menu-item-xxl {
-    --aui-control-height: var(--aui-control-height-xxl);
-    --aui-control-padding-x: var(--aui-control-padding-x-xxl);
-    --aui-control-gap: var(--aui-control-gap-xxl);
-    --aui-icon-size: calc(var(--size-xxl) * 0.55);
-    font-size: var(--font-title-lg-size);
-    font-weight: var(--font-title-lg-weight);
-    line-height: var(--font-title-lg-line-height);
-    letter-spacing: var(--font-title-lg-tracking);
-
-    @supports (corner-shape: squircle) {
-      --aui-menu-panel-radius: var(--radius-xxl);
-      --aui-menu-panel-radius-strength: 0.75;
-    }
   }
 }

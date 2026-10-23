@@ -1,6 +1,6 @@
 import { aria } from '@airlib/aria';
 import { AUI_CLASS, register } from '@airlib/aui/utils';
-import { type AnyType, type Bindable, setup } from '@airlib/react';
+import { type AnyType, type Bindable, createContext, setup } from '@airlib/react';
 import type { ReactNode } from 'react';
 import { $families, auiConfig, type ComponentStyles, OMIT_KEYS } from '../config.js';
 
@@ -68,8 +68,11 @@ const ROW_HEADER_ROLE = 'grid-rowheader';
 
 const CELL_OMIT = [...OMIT_KEYS, 'value'];
 
-register('grid', {});
-register('treeGrid', {});
+/** The enclosing grid's props, so a cell can tell whether the grid takes typing. */
+const gridProps = createContext<GridProps>();
+
+register('grid', { size: 'sm', color: 'primary' });
+register('treeGrid', { size: 'sm', color: 'primary' });
 register('gridRow', {});
 register('gridCell', {});
 register('gridColumnHeader', {});
@@ -82,7 +85,9 @@ register('gridRowHeader', {});
  */
 export const Grid = setup<GridProps>((props) => {
   const grid = aria(GRID_ROLE, props as AnyType);
-  const className = () => $families(AUI_CLASS.GRID, props, auiConfig.grid);
+  const className = () => $families([AUI_CLASS.SCALE, AUI_CLASS.GRID], props, auiConfig.grid);
+
+  gridProps.set(props);
 
   return () => (
     <div ref={grid.ref} {...grid.restProps(OMIT_KEYS)} className={className()}>
@@ -97,7 +102,10 @@ export const Grid = setup<GridProps>((props) => {
  */
 export const TreeGrid = setup<TreeGridProps>((props) => {
   const grid = aria(TREE_GRID_ROLE, props as AnyType);
-  const className = () => $families([AUI_CLASS.GRID, AUI_CLASS.TREE_GRID], props, auiConfig.treeGrid);
+  const className = () =>
+    $families([AUI_CLASS.SCALE, AUI_CLASS.GRID, AUI_CLASS.TREE_GRID], props, auiConfig.treeGrid);
+
+  gridProps.set(props);
 
   return () => (
     <div ref={grid.ref} {...grid.restProps(OMIT_KEYS)} className={className()}>
@@ -126,11 +134,14 @@ export const GridRow = setup<GridRowProps>((props) => {
  * session where `Escape` or a blur commits what was typed.
  */
 export const GridCell = setup<GridCellProps>((props) => {
+  const grid = gridProps.get();
   const cell = aria(CELL_ROLE, props as AnyType);
   const className = () => $families(AUI_CLASS.GRID_CELL, props, auiConfig.gridCell);
+  // A styling hook only: CSS gives every typeable cell a text cursor before the edit begins.
+  const editable = () => (grid?.editable && !props.readonly ? 'true' : undefined);
 
   return () => (
-    <div ref={cell.ref} {...cell.restProps(CELL_OMIT)} className={className()}>
+    <div ref={cell.ref} {...cell.restProps(CELL_OMIT)} data-editable={editable()} className={className()}>
       {props.children}
     </div>
   );

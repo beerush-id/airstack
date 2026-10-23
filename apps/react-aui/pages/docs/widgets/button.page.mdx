@@ -25,9 +25,9 @@ const ButtonDemo = setup(() => {
   return () => (
     <div className="demo-button">
       <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} variant={$bind(state, 'variant')} disabled={$bind(state, 'disabled')} />
-      <div className="aui-card flex gap-md items-center justify-center p-xl">
-        <Snippet>
-          {() => (
+      <Snippet>
+        {() => (
+          <div className="aui-card flex gap-md items-center justify-center p-xl">
             <Button
               size={state.size}
               variant={state.variant}
@@ -37,12 +37,8 @@ const ButtonDemo = setup(() => {
                 state.count += 1;
               }}
             >
-              Clicks: {state.count}
+              Clicks: <Snippet>{() => state.count}</Snippet>
             </Button>
-          )}
-        </Snippet>
-        <Snippet>
-          {() => (
             <Button
               size={state.size}
               variant={state.variant}
@@ -53,12 +49,10 @@ const ButtonDemo = setup(() => {
               }}
             >
               <HelpIcon />
-              <span>Clicks: {state.count}</span>
+              <span>
+                Clicks: <Snippet>{() => state.count}</Snippet>
+              </span>
             </Button>
-          )}
-        </Snippet>
-        <Snippet>
-          {() => (
             <Button
               size={state.size}
               variant={state.variant}
@@ -71,9 +65,9 @@ const ButtonDemo = setup(() => {
             >
               <HelpIcon />
             </Button>
-          )}
-        </Snippet>
-      </div>
+          </div>
+        )}
+      </Snippet>
     </div>
   );
 }, 'ButtonDemo');

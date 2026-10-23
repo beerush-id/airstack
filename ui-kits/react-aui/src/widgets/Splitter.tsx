@@ -21,7 +21,7 @@ const SPLITTER_ROLE = 'splitter';
 
 const SPLITTER_OMIT = [...OMIT_KEYS, 'value', 'min', 'max', 'step', 'orientation'];
 
-register('splitter', {});
+register('splitter', { color: 'primary' });
 
 /**
  * The movable boundary between two panes. It holds the position against real
@@ -30,7 +30,7 @@ register('splitter', {});
  */
 export const Splitter = setup<SplitterProps>((props) => {
   const splitter = aria(SPLITTER_ROLE, props as AnyType);
-  const className = () => $families(AUI_CLASS.SPLITTER, props, auiConfig.splitter);
+  const className = () => $families([AUI_CLASS.SCALE, AUI_CLASS.SPLITTER], props, auiConfig.splitter);
 
   return () => (
     <div ref={splitter.ref} {...splitter.restProps(SPLITTER_OMIT)} className={className()}>

@@ -1,0 +1,72 @@
+@import './item.css';
+@import './image.css';
+
+/*
+ * A round picture the height of a control at the same size, so an `sm`
+ * avatar lines up with an `sm` button. Initials scale with it and take the
+ * role's container colors from the image fallback. In a group, avatars
+ * overlap and are ringed in the surface color to keep each edge readable.
+ */
+@layer theme {
+  :root {
+    --aui-avatar-ring: var(--color-surface);
+  }
+}
+
+@layer component {
+  .aui-avatar {
+    --aui-image-size: var(--aui-control-height);
+    display: inline-flex;
+    flex: none;
+    vertical-align: middle;
+    border-radius: var(--radius-full);
+    /* The picture and the initials round themselves, so a badge on the corner stays whole. */
+    overflow: visible;
+
+    & .aui-image-fallback {
+      font-size: calc(var(--aui-control-height) * 0.38);
+      letter-spacing: normal;
+    }
+  }
+
+  .aui-avatar-group {
+    display: inline-flex;
+    align-items: center;
+
+    & > .aui-avatar {
+      margin-inline-start: calc(var(--aui-control-height) * -0.25);
+    }
+
+    & > .aui-avatar:first-child {
+      margin-inline-start: 0;
+    }
+
+    & > .aui-avatar {
+      box-shadow: 0 0 0 2px var(--aui-avatar-ring);
+    }
+  }
+
+  /* The "+N" count: an avatar-sized chip on a neutral surface. */
+  .aui-avatar-more {
+    align-items: center;
+    justify-content: center;
+    inline-size: var(--aui-control-height);
+    block-size: var(--aui-control-height);
+    background-color: var(--color-surface-highest);
+    color: var(--color-on-surface-variant);
+    font-size: calc(var(--aui-control-height) * 0.34);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .aui-avatar-label {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}

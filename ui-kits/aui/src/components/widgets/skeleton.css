@@ -1,0 +1,78 @@
+@import './item.css';
+
+/*
+ * Loading placeholders. The fill is an on-surface wash, so it reads on any
+ * surface it sits on; the shimmer is decoration and stops for reduced motion.
+ * Text bars follow the size scale's line height; circles take the control height.
+ */
+@layer theme {
+  :root {
+    --aui-skeleton-fill: color-mix(in oklch, var(--color-on-surface) 10%, transparent);
+    --aui-skeleton-shine: color-mix(in oklch, var(--color-on-surface) 4%, transparent);
+  }
+}
+
+@layer component {
+  @keyframes aui-skeleton-shimmer {
+    from {
+      background-position: 100% 0;
+    }
+    to {
+      background-position: -100% 0;
+    }
+  }
+
+  .aui-skeleton,
+  .aui-skeleton-line {
+    display: block;
+    background-color: var(--aui-skeleton-fill);
+    background-image: linear-gradient(90deg, transparent 25%, var(--aui-skeleton-shine) 50%, transparent 75%);
+    background-size: 200% 100%;
+    animation: aui-skeleton-shimmer 1.6s var(--ease-standard) infinite;
+  }
+
+  .aui-skeleton[data-shape='text'],
+  .aui-skeleton-line {
+    inline-size: 100%;
+    block-size: 1em;
+    margin-block: calc((var(--font-label-lg-line-height, 1.4em) - 1em) / 2);
+    border-radius: var(--radius-xs);
+  }
+
+  /* A run of bars: no own fill, the bars carry it; the last bar ends early like real text. */
+  .aui-skeleton[data-shape='lines'] {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5em;
+    background: none;
+    animation: none;
+
+    & > .aui-skeleton-line {
+      margin: 0;
+    }
+
+    & > .aui-skeleton-line:last-child:not(:first-child) {
+      inline-size: 60%;
+    }
+  }
+
+  .aui-skeleton[data-shape='circle'] {
+    inline-size: var(--aui-control-height);
+    block-size: var(--aui-control-height);
+    border-radius: var(--radius-full);
+  }
+
+  .aui-skeleton[data-shape='rect'] {
+    inline-size: 100%;
+    block-size: calc(var(--aui-control-height) * 3);
+    border-radius: var(--radius-md);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .aui-skeleton,
+    .aui-skeleton-line {
+      animation: none;
+      background-image: none;
+    }
+  }
+}

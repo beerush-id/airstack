@@ -97,43 +97,7 @@
     }
   }
 
-  .aui-control-primary {
-    --focus-ring-color: var(--color-primary);
-  }
-  .aui-control-secondary {
-    --focus-ring-color: var(--color-secondary);
-  }
-  .aui-control-tertiary {
-    --focus-ring-color: var(--color-tertiary);
-  }
-
-  .aui-control-info {
-    --focus-ring-color: var(--color-info);
-  }
-  .aui-control-error {
-    --focus-ring-color: var(--color-error);
-  }
-  .aui-control-success {
-    --focus-ring-color: var(--color-success);
-  }
-  .aui-control-warning {
-    --focus-ring-color: var(--color-warning);
-  }
-
-  .aui-control-text,
-  .aui-control-outlined {
-    color: var(--aui-control-bg);
-    background-color: transparent;
-  }
-
-  .aui-control-text:hover {
-    background-color: color-mix(
-      in oklch,
-      var(--aui-control-bg) var(--tone-elevation-low),
-      var(--light-up)
-    );
-  }
-
+  /* Surface treatments shared by every control family; `filled` is the base rule above. */
   .aui-control-tonal {
     color: var(--aui-control-bg);
     background-color: color-mix(
@@ -146,50 +110,50 @@
   .aui-control-outlined {
     --aui-control-outline-color: var(--aui-control-bg);
     border-width: 1px;
-
-    &:hover {
-      color: var(--aui-control-fg);
-      background-color: var(--aui-control-bg);
-    }
-  }
-
-  .aui-control-elevated {
-    box-shadow: var(--elevation-3);
+    color: var(--aui-control-bg);
+    background-color: transparent;
   }
 
   .aui-control-primary {
     --aui-control-bg: var(--color-primary);
     --aui-control-fg: var(--color-on-primary);
+    --focus-ring-color: var(--color-primary);
   }
 
   .aui-control-secondary {
     --aui-control-bg: var(--color-secondary);
     --aui-control-fg: var(--color-on-secondary);
+    --focus-ring-color: var(--color-secondary);
   }
 
   .aui-control-tertiary {
     --aui-control-bg: var(--color-tertiary);
     --aui-control-fg: var(--color-on-tertiary);
+    --focus-ring-color: var(--color-tertiary);
   }
 
   .aui-control-info {
     --aui-control-bg: var(--color-info);
     --aui-control-fg: var(--color-on-info);
+    --focus-ring-color: var(--color-info);
   }
 
   .aui-control-error {
     --aui-control-bg: var(--color-error);
     --aui-control-fg: var(--color-on-error);
+    --focus-ring-color: var(--color-error);
   }
 
   .aui-control-success {
     --aui-control-bg: var(--color-success);
     --aui-control-fg: var(--color-on-success);
+    --focus-ring-color: var(--color-success);
   }
 
   .aui-control-warning {
     --aui-control-bg: var(--color-warning);
     --aui-control-fg: var(--color-on-warning);
+    --focus-ring-color: var(--color-warning);
   }
 
   .aui-control-xs {

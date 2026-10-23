@@ -66,18 +66,14 @@ const CarouselDemo = setup(() => {
             ))}
           </CarouselViewport>
           <div className="flex items-center gap-sm">
-            <CarouselNav label="Previous slide" direction={-1}>
-              ‹
-            </CarouselNav>
+            <CarouselNav label="Previous slide" direction={-1} />
             {SLIDES.map((slide) => (
               <CarouselPicker key={slide.key} name={slide.key} label={`${slide.title} slide`} />
             ))}
             <CarouselPlayer label="Start rotation" playingLabel="Stop rotation">
               Play
             </CarouselPlayer>
-            <CarouselNav label="Next slide" direction={1}>
-              ›
-            </CarouselNav>
+            <CarouselNav label="Next slide" direction={1} />
           </div>
         </Carousel>
       </div>

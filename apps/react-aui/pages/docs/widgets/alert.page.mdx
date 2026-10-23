@@ -1,0 +1,151 @@
+---
+title: AUI Alert
+nav: Alert
+nav-priority: 308
+description: Inline React alert for notices, warnings, errors, and success messages — role colors, an icon that matches the message, optional actions and dismissal, announced to screen readers when it appears.
+keywords: [React alert, React inline message, React notice banner, accessible alert component, React warning message, React error message, aria-live alert]
+---
+
+# AUI Alert
+
+Some messages belong in the page, next to what they are about: a form that failed to save, a plan about to expire, a setting that changed how something works. An alert keeps that message in place, colors it by what it means, and makes sure screen-reader users hear it when it appears.
+
+Styling is optional. Without AUI CSS the Alert is still a readable, announced message; with it, it takes the role's container color and a matching icon.
+
+:::interactive[Alert demo]
+
+```tsx
+import { Alert, Button } from '@airlib/react-aui';
+import { $bind, mutable, setup, Show, Snippet } from '@airlib/react';
+import { DemoControl } from '@/components/DemoControl.js';
+
+const AlertDemo = setup(() => {
+  const state = mutable({ size: 'md', color: 'warning', open: true });
+
+  return () => (
+    <div className="demo-button">
+      <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} />
+      <div className="aui-card flex flex-col gap-md p-xl">
+        <Snippet>
+          {() => (
+            <Alert
+              title="Your trial ends in 3 days"
+              description="Add a payment method to keep your projects running."
+              size={state.size}
+              color={state.color}
+              open={$bind(state, 'open')}
+              dismissable
+              dismissLabel="Hide trial notice"
+            >
+              <Alert.Snippet for="actions">{() => <Button size="sm" variant="tonal" color={state.color}>Add payment</Button>}</Alert.Snippet>
+            </Alert>
+          )}
+        </Snippet>
+        <Snippet>
+          {() => (
+            <Alert color="success" variant="filled" size={state.size} title="Changes saved" description="Everyone on the team sees the new schedule." />
+          )}
+        </Snippet>
+        <Show when={() => !state.open}>
+          {() => <Button size="sm" variant="text" onClick={() => (state.open = true)}>Show the trial notice again</Button>}
+        </Show>
+      </div>
+    </div>
+  );
+}, 'AlertDemo');
+```
+
+```html
+<AlertDemo />
+```
+
+<AlertDemo />
+
+:::
+
+## Usage
+
+### Say it in one line
+
+Give the alert a `color` for what the message means, a `title`, and a `description`. The icon follows the color — a check for `success`, a warning sign for `warning`, an error mark for `error`, an information mark otherwise:
+
+```tsx
+import { Alert } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/alert.css';
+
+<Alert color="error" title="Payment declined" description="Your card was declined. Try another card or contact your bank." />
+```
+
+When the message needs links or emphasis, write it as children instead of `description`:
+
+```tsx
+<Alert color="info" title="New sign-in">
+  <p>
+    Someone signed in from Lisbon. <a href="/security">Review activity</a>
+  </p>
+</Alert>
+```
+
+### Let people act on it or close it
+
+The `actions` slot puts buttons at the end of the message. `dismissable` adds a close button; bind `open` to know when it was dismissed, or to bring the alert back later:
+
+```tsx
+<Alert
+  color="warning"
+  title="Storage almost full"
+  open={$bind(settings, 'storageNotice')}
+  dismissable
+  dismissLabel="Hide storage notice"
+>
+  <Alert.Snippet for="actions">{() => <Button size="sm" variant="tonal" color="warning">Upgrade</Button>}</Alert.Snippet>
+</Alert>
+```
+
+The close button shows only a glyph, so name it with `dismissLabel` in your users' language — the alert supplies no wording of its own. `ondismiss` fires once when the close button is used — the place to remember that someone hid the message.
+
+### Choose your own icon
+
+The `icon` slot replaces the role's icon:
+
+```tsx
+<Alert color="tertiary" title="New: shared calendars">
+  <Alert.Snippet for="icon">{() => <CalendarIcon />}</Alert.Snippet>
+</Alert>
+```
+
+### How loudly it is announced
+
+An alert that appears while someone is on the page is read out without moving their focus. A message present when the page loads is simply read in place. Set `politeness="assertive"` for changes that must interrupt — a failed payment, a lost connection — and `politeness="off"` for messages that should never be announced on their own.
+
+## Look
+
+- `variant="tonal"` (default) sits on the role's container color — calm enough to stay on the page.
+- `variant="filled"` uses the role color itself, for messages that must stand out.
+- `size` (`xs`–`xxl`) scales the text, the spacing, and the buttons inside together. See [Theming](/docs/theming#style-a-composite-once).
+
+### Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `color` | `primary`, `secondary`, `tertiary`, `info`, `success`, `warning`, `error` | `'info'` | What the message means; picks the colors and the icon. |
+| `variant` | `tonal`, `filled` | `'tonal'` | Container color or full role color. |
+| `size` | `xs`–`xxl` | `'md'` | Text, spacing, and button size together. |
+| `title` | `ReactNode` | — | The message in a few words. |
+| `description` | `ReactNode` | — | The detail; children replace it when you need markup. |
+| `dismissable` | `boolean` | `false` | Adds a close button. |
+| `dismissLabel` | `string` | — | Accessible name of the close button. Always set it with `dismissable`; the alert adds no wording of its own. |
+| `open` | `Bindable<boolean>` | — | Whether the alert shows. The close button writes `false`. |
+| `politeness` | `'polite'`, `'assertive'`, `'off'` | `'polite'` | How a newly appearing message is announced. |
+| `ondismiss` | `() => void` | — | Called when the close button is used. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+
+Slots: `icon` replaces the role icon; `actions` renders buttons at the end of the message.
+
+Keyboard: the alert itself takes no focus. Its actions and close button sit in the normal tab order.
+
+## Next Steps
+
+- [Toast](/docs/widgets/toast) — A message that appears briefly and leaves on its own, instead of staying in the page.
+- [Announcer](/docs/widgets/announcer) — Announce a change to screen readers with nothing shown on screen.
+- [Confirm](/docs/widgets/confirm) — Ask a question that must be answered before going on.

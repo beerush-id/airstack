@@ -1,0 +1,143 @@
+/*
+ * Shared floating surface: the glass sheet every popup sits on — menus,
+ * select and combobox lists, popovers, the date picker calendar.
+ * Components add only their placement and inner layout.
+ */
+@layer theme {
+  :root {
+    --aui-panel-bg: var(--color-surface-container);
+    --aui-panel-accent: var(--color-primary);
+    --aui-panel-on-accent: var(--color-on-primary);
+    --aui-panel-radius: var(--radius-lg);
+    --aui-panel-radius-strength: 0.75;
+    --aui-panel-gap: var(--spacing-xs);
+    --aui-panel-padding-x: var(--spacing-xs);
+    --aui-panel-padding-y: var(--spacing-xs);
+
+    @supports (corner-shape: squircle) {
+      --aui-panel-radius: var(--radius-md);
+      --aui-panel-radius-strength: 1;
+    }
+  }
+}
+
+@layer component {
+  @keyframes aui-panel-pop {
+    from {
+      transform: translateY(calc(var(--spacing-sm) * -1));
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  /* The mirror image for a panel placed above its trigger: it slides up, out of the trigger. */
+  @keyframes aui-panel-pop-above {
+    from {
+      transform: translateY(var(--spacing-sm));
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  .aui-panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--aui-panel-gap);
+    position: fixed;
+    z-index: var(--z-index-popover);
+    position-area: bottom span-right;
+    position-try-fallbacks:
+      flip-block,
+      flip-inline,
+      flip-block flip-inline;
+    position-try-order: normal;
+    min-width: calc(var(--spacing) * 40);
+    margin-block: var(--aui-panel-gap);
+    background: color-mix(in oklch, var(--aui-panel-bg) 80%, transparent);
+    border: 1px solid light-dark(rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.1));
+    backdrop-filter: blur(var(--size-sm));
+    border-radius: var(--aui-panel-radius);
+    padding-block: var(--aui-panel-padding-y);
+    padding-inline: var(--aui-panel-padding-x);
+    overflow-y: auto;
+    box-shadow: var(--elevation-3);
+    animation: aui-panel-pop var(--duration-medium) var(--ease-emphasized-decelerate) forwards;
+
+    .aui-item:first-child {
+      border-start-start-radius: calc(
+        var(--aui-panel-radius) *
+        var(--aui-panel-radius-strength)
+      );
+      border-start-end-radius: calc(
+        var(--aui-panel-radius) *
+        var(--aui-panel-radius-strength)
+      );
+    }
+
+    .aui-item:last-child {
+      border-end-start-radius: calc(
+        var(--aui-panel-radius) *
+        var(--aui-panel-radius-strength)
+      );
+      border-end-end-radius: calc(
+        var(--aui-panel-radius) *
+        var(--aui-panel-radius-strength)
+      );
+    }
+  }
+
+  .aui-panel[hidden] {
+    display: none;
+  }
+
+  /* `data-popover-y` is the side the panel opens on; the slide always travels away from the trigger. */
+  .aui-panel[data-popover-y='above'] {
+    position-area: top span-right;
+    animation-name: aui-panel-pop-above;
+  }
+
+  /* The accent a panel's own content highlights with (chosen day, active row). */
+  .aui-panel-primary {
+    --aui-panel-accent: var(--color-primary);
+    --aui-panel-on-accent: var(--color-on-primary);
+    --focus-ring-color: var(--color-primary);
+  }
+
+  .aui-panel-secondary {
+    --aui-panel-accent: var(--color-secondary);
+    --aui-panel-on-accent: var(--color-on-secondary);
+    --focus-ring-color: var(--color-secondary);
+  }
+
+  .aui-panel-tertiary {
+    --aui-panel-accent: var(--color-tertiary);
+    --aui-panel-on-accent: var(--color-on-tertiary);
+    --focus-ring-color: var(--color-tertiary);
+  }
+
+  .aui-panel-info {
+    --aui-panel-accent: var(--color-info);
+    --aui-panel-on-accent: var(--color-on-info);
+    --focus-ring-color: var(--color-info);
+  }
+
+  .aui-panel-error {
+    --aui-panel-accent: var(--color-error);
+    --aui-panel-on-accent: var(--color-on-error);
+    --focus-ring-color: var(--color-error);
+  }
+
+  .aui-panel-success {
+    --aui-panel-accent: var(--color-success);
+    --aui-panel-on-accent: var(--color-on-success);
+    --focus-ring-color: var(--color-success);
+  }
+
+  .aui-panel-warning {
+    --aui-panel-accent: var(--color-warning);
+    --aui-panel-on-accent: var(--color-on-warning);
+    --focus-ring-color: var(--color-warning);
+  }
+}

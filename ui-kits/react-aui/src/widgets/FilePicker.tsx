@@ -35,7 +35,8 @@ register('filePicker', filePickerStyles);
  */
 export const FilePicker = setup<FilePickerProps>((props) => {
   const picker = aria(FILE_PICKER_ROLE, props);
-  const className = () => $families([AUI_CLASS.CONTROL, AUI_CLASS.FILE_PICKER], props, auiConfig.filePicker);
+  const className = () =>
+    $families([AUI_CLASS.CONTROL, AUI_CLASS.BUTTON, AUI_CLASS.FILE_PICKER], props, auiConfig.filePicker);
 
   return () => (
     <button ref={picker.ref} {...picker.restProps([...FILE_PICKER_OMIT_KEYS])} className={className()}>

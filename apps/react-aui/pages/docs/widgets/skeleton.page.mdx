@@ -1,0 +1,95 @@
+---
+title: AUI Skeleton
+nav: Skeleton
+nav-priority: 480
+description: Show the shape of content while it loads — text lines, avatar circles, and media blocks that keep the layout still and stop shimmering for reduced motion.
+keywords: [React skeleton loader, loading placeholder, skeleton screen, shimmer loading, content placeholder]
+---
+
+# AUI Skeleton
+
+When content takes a moment, a spinner tells people to wait but not what is coming, and the page jumps when it lands. A skeleton draws the content's shape in advance — the lines of text, the avatar, the picture — so the layout holds still and the wait feels shorter.
+
+:::interactive[Skeleton demo]
+
+```tsx
+import { Card, Skeleton } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { DemoControl } from '@/components/DemoControl.js';
+
+const SkeletonDemo = setup(() => {
+  const state = mutable({ size: 'md' });
+
+  return () => (
+    <div className="demo-button">
+      <DemoControl size={$bind(state, 'size')} />
+      <Snippet>
+        {() => (
+          <Card aria-busy="true" aria-label="Loading trip">
+            <div className="flex items-center gap-md">
+              <Skeleton shape="circle" size={state.size} />
+              <div className="flex-1">
+                <Skeleton size={state.size} style={{ inlineSize: '40%' }} />
+              </div>
+            </div>
+            <Skeleton shape="rect" size={state.size} />
+            <Skeleton lines={3} size={state.size} />
+          </Card>
+        )}
+      </Snippet>
+    </div>
+  );
+}, 'SkeletonDemo');
+```
+
+```html
+<SkeletonDemo />
+```
+
+<SkeletonDemo />
+
+:::
+
+## Usage
+
+Draw the shapes of what is loading, in the same layout the real content will use:
+
+```tsx
+import { Skeleton } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/skeleton.css';
+
+export const ProfileLoading = () => (
+  <div aria-busy="true" aria-label="Loading profile">
+    <Skeleton shape="circle" />
+    <Skeleton lines={2} />
+  </div>
+);
+```
+
+- **`shape="text"`** (default) — one bar the height of a line of text; with `lines`, a paragraph whose last line ends early.
+- **`shape="circle"`** — an avatar-sized disc.
+- **`shape="rect"`** — a block for an image or chart; size it with `style` or a class.
+
+Skeletons are hidden from screen readers. Mark the region that is loading with `aria-busy="true"` and a name, so assistive tech knows to wait and announces the real content when it arrives. Width is yours: set `inline-size` on a text bar to match the line it stands in for.
+
+The shimmer stops when people ask their system to reduce motion; the shapes stay.
+
+### Style it once
+
+`size` follows the shared scale: text bars take that size's line height, circles take that size's control height. See [Theming](/docs/theming).
+
+## Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `shape` | `'text'`, `'circle'`, `'rect'` | `'text'` | The shape to draw. |
+| `lines` | `number` | `1` | Number of text bars; `shape="text"` only. |
+| `size` | `xs`–`xxl` | `'md'` | Bar height and circle diameter. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `style` | `CSSProperties` | — | Width and height for a specific placeholder. |
+
+## Next Steps
+
+- [Spinner](/docs/widgets/spinner) — When there is no layout to hold, only a wait.
+- [Progress](/docs/widgets/progress) — When you know how much is left.
+- [Empty State](/docs/widgets/empty-state) — When the content arrives and there is none.

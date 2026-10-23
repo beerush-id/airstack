@@ -1,13 +1,17 @@
+@import './button.css';
+@import './item.css';
+
+/*
+ * Entries are rows on the shared item scale with a text-button grip. Each
+ * `<li>` only holds its slot — the engine reads it, so it never moves — and
+ * its inner card carries every visual. A held card tints with its role color,
+ * lifts, and follows the pointer; the grip fills while held.
+ */
 @layer theme {
   :root {
     --aui-reorder-gap: var(--spacing-xs);
-    --aui-reorder-item-radius: var(--radius-sm);
-    --aui-reorder-item-padding-block: calc(var(--spacing) * 1.5);
-    --aui-reorder-item-padding-inline: var(--spacing-md);
-    --aui-reorder-outline: var(--color-outline-variant);
-    --aui-reorder-active-outline: var(--color-primary);
-    --aui-reorder-active-bg: color-mix(in oklch, var(--color-primary) 10%, var(--color-surface));
-    --aui-reorder-active-ring: color-mix(in oklch, var(--color-primary) 35%, transparent);
+    --aui-reorder-item-bg: var(--color-surface);
+    --aui-reorder-item-radius: var(--radius-md);
   }
 }
 
@@ -27,64 +31,77 @@
 
   .aui-reorder-item {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--spacing-sm);
-    padding: var(--aui-reorder-item-padding-block) var(--aui-reorder-item-padding-inline);
-    border: 1px solid var(--aui-reorder-outline);
-    border-radius: var(--aui-reorder-item-radius);
-    background: var(--color-surface);
-    color: var(--color-on-surface);
-    transition-property: border-color, background-color, box-shadow, opacity;
-    transition-duration: var(--duration-short);
-    transition-timing-function: var(--ease-emphasized);
-
-    &:hover {
-      border-color: var(--color-outline);
-    }
-
-    &[data-active='true'] {
-      border-color: var(--aui-reorder-active-outline);
-      background: var(--aui-reorder-active-bg);
-      box-shadow: 0 0 0 var(--focus-ring-width) var(--aui-reorder-active-ring);
-    }
-
-    &[aria-disabled='true'] {
-      color: var(--color-disabled-fg);
-    }
+    min-inline-size: 0;
+    list-style: none;
   }
 
   .aui-reorder-horizontal > .aui-reorder-item {
     flex: 1 1 0;
-    min-inline-size: 0;
   }
 
-  .aui-control.aui-reorder-handle {
-    --aui-control-bg: transparent;
-    --aui-control-outline-color: transparent;
-    --aui-control-height: calc(var(--spacing) * 8);
-    --aui-control-padding-x: var(--spacing-sm);
+  .aui-reorder-card {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--aui-control-gap);
+    min-inline-size: 0;
+    min-block-size: calc(var(--aui-control-height) + var(--spacing-sm));
+    padding-block: var(--spacing-xs);
+    padding-inline: calc(var(--aui-control-padding-x) * 0.85) var(--spacing-xs);
+    border-radius: var(--aui-reorder-item-radius);
+    background-color: var(--aui-reorder-item-bg);
+    color: var(--color-on-surface);
+    transition-property: background-color, box-shadow, color;
+    transition-duration: var(--duration-short);
+    transition-timing-function: var(--ease-emphasized);
+  }
+
+  .aui-reorder-item[data-active='true'] {
+    position: relative;
+    z-index: 1;
+
+    /*
+     * Follow the pointer: its travel since pick-up, less the slots the preview
+     * has already moved this entry (one card plus the gap each — the card
+     * fills its slot, so `100%` is one slot). The drag vars exist only during
+     * a pointer drag, so without them the declaration is invalid and keyboard
+     * moves stay put.
+     */
+    & > .aui-reorder-card {
+      background-color: color-mix(in oklch, var(--aui-item-bg) var(--tone-container-strength), var(--aui-reorder-item-bg));
+      box-shadow: var(--elevation-2);
+      translate: 0 calc(var(--drag-move-y) - var(--aui-reorder-shift) * (100% + var(--aui-reorder-gap)));
+    }
+  }
+
+  .aui-reorder-horizontal > .aui-reorder-item[data-active='true'] > .aui-reorder-card {
+    translate: calc(var(--drag-move-x) - var(--aui-reorder-shift) * (100% + var(--aui-reorder-gap))) 0;
+  }
+
+  .aui-reorder-item[aria-disabled='true'] > .aui-reorder-card {
+    color: var(--color-disabled-fg);
+    background-color: var(--color-disabled-bg);
+  }
+
+  .aui-reorder-handle {
+    flex: none;
     cursor: grab;
     touch-action: none;
 
-    &:hover:not([aria-disabled='true']) {
-      background-color: var(--color-surface-high);
-    }
-
-    &:focus-visible {
-      outline: var(--focus-ring-width) var(--focus-ring-style) var(--focus-ring-color);
-      outline-offset: var(--focus-ring-offset);
-    }
-
-    &[data-active='true'] {
+    /*
+     * Held: a filled grip. Weighted past the text button's hover wash, which
+     * the pointer always triggers while dragging and which would whiten the
+     * grip under its own white glyph.
+     */
+    &.aui-button[data-active='true'] {
       cursor: grabbing;
-      background-color: var(--color-primary);
-      color: var(--color-on-primary);
+      color: var(--aui-control-fg);
+      background-color: var(--aui-control-bg);
     }
 
     &[aria-disabled='true'] {
       cursor: not-allowed;
-      opacity: 0.5;
     }
   }
 }

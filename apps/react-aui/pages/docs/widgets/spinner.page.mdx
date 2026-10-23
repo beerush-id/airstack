@@ -1,0 +1,75 @@
+---
+title: AUI Spinner
+nav: Spinner
+nav-priority: 485
+description: Show that something is working when you can't say how long it takes — a named, accessible loading indicator in six sizes and seven colors.
+keywords: [React spinner, loading spinner, accessible loading indicator, busy indicator, React loader]
+---
+
+# AUI Spinner
+
+Some waits have no shape and no measurable end: saving, signing in, waiting on a server. A spinner says "working on it" — and it has to say it to screen-reader users too, with a name that tells them what is loading.
+
+:::interactive[Spinner demo]
+
+```tsx
+import { Spinner } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { DemoControl } from '@/components/DemoControl.js';
+
+const SpinnerDemo = setup(() => {
+  const state = mutable({ size: 'md', color: 'primary' });
+
+  return () => (
+    <div className="demo-button">
+      <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} />
+      <div className="aui-card flex gap-md items-center justify-center p-xl">
+        <Snippet>{() => <Spinner label="Loading invoices" size={state.size} color={state.color} />}</Snippet>
+        <span>Loading invoices…</span>
+      </div>
+    </div>
+  );
+}, 'SpinnerDemo');
+```
+
+```html
+<SpinnerDemo />
+```
+
+<SpinnerDemo />
+
+:::
+
+## Usage
+
+Name what is loading:
+
+```tsx
+import { Spinner } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/spinner.css';
+
+export const SavingIndicator = () => <Spinner label="Saving changes" />;
+```
+
+`label` is required: it is the only thing a screen reader announces, so make it specific ("Loading invoices", not "Loading"), in your app's language. The spinner ships no name of its own — the name is always yours. The spinner announces as a progress indicator with no reading — the right signal for a wait without a known end. When you can measure the work, use [Progress](/docs/widgets/progress) so people see how much is left.
+
+Remove the spinner when the work is done rather than hiding it, so the busy announcement ends with it. When people ask their system to reduce motion, the ring turns slowly instead of sweeping.
+
+### Style it once
+
+`size` follows the shared control scale, so a spinner next to a button of the same size lines up; `color` sets its ink. See [Theming](/docs/theming).
+
+## Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `label` | `string` | — | Required. What is loading, announced to screen readers. |
+| `size` | `xs`–`xxl` | `'md'` | Diameter, matched to the control of the same size. |
+| `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | Ink of the ring. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+
+## Next Steps
+
+- [Progress](/docs/widgets/progress) — When you know how far along the work is.
+- [Skeleton](/docs/widgets/skeleton) — When you can draw the shape of what is coming.
+- [Button](/docs/widgets/button) — Pair a spinner with the action that started the wait.

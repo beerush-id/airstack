@@ -7,7 +7,8 @@ export type DemoControlProps = {
   size: Bindable<Size>;
   color?: Bindable<Color>;
   variant?: Bindable<Variant>;
-  disabled: Bindable<boolean>;
+  /** Pass only when the demoed component reacts to `disabled`; without it the toggle is not shown. */
+  disabled?: Bindable<boolean>;
   children?: ReactNode;
 };
 
@@ -20,9 +21,11 @@ export const DemoControl = template<DemoControlProps>(
         <Select size="sm" placeholder="Variant" options={VARIANT_LABELS} value={$bind(props, 'variant')} />
       )}
       <div className="flex-1"></div>
-      <Toggle size="sm" pressed={$bind(props, 'disabled')}>
-        {() => (props.disabled ? 'Set Enabled' : 'Set Disabled')}
-      </Toggle>
+      {props.disabled !== undefined && (
+        <Toggle size="sm" pressed={$bind(props, 'disabled')}>
+          {() => (props.disabled ? 'Set Enabled' : 'Set Disabled')}
+        </Toggle>
+      )}
       {props.children}
     </div>
   ),

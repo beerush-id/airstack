@@ -35,12 +35,16 @@ const MeterDemo = setup(() => {
         <Select size="sm" placeholder="Color" options={COLOR_LABELS} value={$bind(state, 'color')} />
       </div>
       <div className="aui-card flex flex-col gap-lg p-xl">
-        <Slider
-          min={0}
-          max={state.max}
-          value={$bind(state, 'reading')}
-          aria-label="Storage used"
-        />
+        <Snippet>
+          {() => (
+            <Slider
+              min={0}
+              max={state.max}
+              value={$bind(state, 'reading')}
+              aria-label="Storage used"
+            />
+          )}
+        </Snippet>
         <Snippet>
           {() => (
             <Meter
@@ -53,7 +57,7 @@ const MeterDemo = setup(() => {
             />
           )}
         </Snippet>
-        <span>{`${Math.round(state.reading)} GB of ${state.max} GB`}</span>
+        <Snippet>{() => <span>{`${Math.round(state.reading)} GB of ${state.max} GB`}</span>}</Snippet>
       </div>
     </div>
   );

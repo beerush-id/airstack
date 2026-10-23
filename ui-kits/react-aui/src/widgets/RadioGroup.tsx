@@ -3,7 +3,7 @@ import { AUI_CLASS, register } from '@airlib/aui/utils';
 import { type AnyType, type Bindable, setup } from '@airlib/react';
 import type { ReactNode } from 'react';
 import { $families, auiConfig, type AuiPrimitive, type AuiProps, type ComponentStyles, OMIT_KEYS } from '../config.js';
-import { radioGroupProps } from './context.js';
+import { radioGroupScope } from './context.js';
 
 export type RadioGroupValue = AuiPrimitive;
 
@@ -35,7 +35,7 @@ export const RadioGroup = setup<RadioGroupProps>((props) => {
   const group = aria(RADIO_GROUP_ROLE, props as AnyType);
   const className = () => $families(AUI_CLASS.RADIO_GROUP, props, auiConfig.radioGroup);
 
-  radioGroupProps.set(props as AnyType);
+  radioGroupScope.provide(props as AnyType);
 
   return () => (
     <div ref={group.ref} {...group.restProps([...OMIT_KEYS])} className={className()}>

@@ -1,0 +1,61 @@
+@import './item.css';
+
+/*
+ * Shared collapsible sheet worn by Accordion and Disclosure: a quiet surface
+ * of item-row headers, each followed by its body. An open header takes the
+ * role color and turns its chevron.
+ */
+@layer theme {
+  :root {
+    --aui-collapsible-bg: var(--color-surface-container);
+    --aui-collapsible-radius: var(--radius-lg);
+    --aui-collapsible-padding: var(--spacing-xs);
+  }
+}
+
+@layer component {
+  .aui-collapsible {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: var(--aui-collapsible-padding);
+    background-color: var(--aui-collapsible-bg);
+    color: var(--color-on-surface);
+    border-radius: var(--aui-collapsible-radius);
+  }
+
+  .aui-collapsible-header {
+    inline-size: 100%;
+    border: 0;
+    background-color: transparent;
+    color: inherit;
+    font-family: inherit;
+    font-weight: 600;
+    text-align: start;
+
+    & > .aui-icon:last-child {
+      transition: transform var(--duration-short) var(--ease-emphasized);
+    }
+
+    &[aria-expanded='true'] {
+      color: var(--aui-item-bg);
+
+      & > .aui-icon:last-child {
+        transform: rotate(180deg);
+      }
+    }
+  }
+
+  .aui-collapsible-body {
+    /* Same inline inset as the header row (the root carries the size scale), so text lines up. */
+    padding-block: var(--spacing-xs) var(--spacing-md);
+    padding-inline: calc(var(--aui-control-padding-x) * 0.85);
+    color: var(--color-on-surface-variant);
+    font-size: var(--font-label-lg-size);
+    line-height: var(--font-label-lg-line-height);
+
+    &[hidden] {
+      display: none;
+    }
+  }
+}

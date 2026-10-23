@@ -7,7 +7,7 @@ description: Tokens, CSS layers, shared size/variant/color vocabulary, utilities
 
 # Theming
 
-AUI supplies the look, React supplies the structure. Every component works without CSS; add `import '@airlib/aui'` for the full library, or `import '@airlib/aui/components/widgets/button.css'` for one component's own rules. The full library brings the theme tokens, base defaults, component families, and utilities that make a component look finished.
+AUI supplies the look, React supplies the structure. Every component works without CSS; add `import '@airlib/aui'` for the full library, or `import '@airlib/aui/components/widgets/button.css'` for one component and the shared looks it builds on. The full library brings the theme tokens, base defaults, component families, and utilities that make a component look finished.
 
 Selective imports never pull unrelated component families, and CSS never loads through JavaScript utilities — `import { configure } from '@airlib/react-aui'` and `import { SIZES } from '@airlib/aui/utils'` carry types and configuration only.
 
@@ -51,6 +51,41 @@ import { configure } from '@airlib/react-aui';
 
 configure({ button: { size: 'sm' } });
 ```
+
+### Fields take three variants
+
+Anything you type into — text inputs, the combobox field, steppers, code cells, date fields — takes `filled`, `tonal`, or `outlined`. A field needs a visible boundary, so the press-only `text` and `elevated` variants are not offered, and TypeScript says so:
+
+```tsx
+<TextInput variant="outlined" color="success" placeholder="Coupon code" />
+```
+
+A field stays neutral at rest and shows its color on hover, focus, the caret, and errors, so it never reads as a button.
+
+## Style a composite once
+
+When a component is made of parts — a select's trigger and options, a menu's button and items, a dialog's buttons — set `size`, `color`, and `variant` on the outer component and every part follows:
+
+```tsx
+<Select options={CITIES} size="sm" color="tertiary" />
+
+<Menu size="lg" color="secondary">
+  <MenuButton>Export</MenuButton>
+  <MenuPanel>
+    <MenuItem name="pdf">As PDF</MenuItem>
+    <MenuItem name="csv" color="error">As CSV (beta)</MenuItem>
+  </MenuPanel>
+</Menu>
+```
+
+A part still decides for itself when you tell it to. The value a part uses is, first to last:
+
+1. the part's own prop (`color="error"` on that one item);
+2. the nearest outer component's prop (`color="secondary"` on the menu);
+3. the part's configured default from `configure()`;
+4. the built-in default.
+
+A few secondary buttons keep their own quieter variant even under a filled parent — a dialog's close, a confirm's cancel, a toast's dismiss — so the main action stays the loudest thing on the sheet.
 
 ## Palette
 
@@ -444,4 +479,4 @@ Behavior, refs, events, and accessibility are unchanged.
 
 ## Global defaults
 
-`@airlib/aui` includes the base layer, so the full-library import brings the element defaults along with the components. A single component stylesheet brings none of them — no tokens, no base defaults, no utilities — so pair it with what you load yourself, or use the full library.
+`@airlib/aui` includes the base layer, so the full-library import brings the element defaults along with the components. A single component stylesheet brings that component plus the shared looks it is built from — the control shape, the field surface, the floating panel, the list row — but no tokens, no base defaults, and no utilities, so pair it with what you load yourself, or use the full library. Importing several component stylesheets never duplicates the shared looks.

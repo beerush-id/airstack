@@ -1,16 +1,9 @@
+@import './input.css';
+
+/* Each cell is a shared field squared to the control height; the row only spaces them. */
 @layer theme {
   :root {
     --aui-code-input-gap: var(--spacing-sm);
-    --aui-code-input-outline: var(--color-outline);
-    --aui-code-input-cell-width: calc(var(--spacing) * 11);
-    --aui-code-input-cell-height: calc(var(--spacing) * 13);
-    --aui-code-input-cell-radius: var(--radius-sm);
-    --aui-code-input-hover-outline: color-mix(
-      in srgb,
-      var(--color-outline) 55%,
-      var(--color-on-surface)
-    );
-    --aui-code-input-caret: var(--color-primary);
   }
 }
 
@@ -26,58 +19,17 @@
   }
 
   .aui-code-input-cell {
-    inline-size: var(--aui-code-input-cell-width);
-    block-size: var(--aui-code-input-cell-height);
+    flex: none;
+    inline-size: calc(var(--aui-control-height) * 0.9);
+    block-size: calc(var(--aui-control-height) * 1.15);
     padding: 0;
-    border: 1px solid var(--aui-code-input-outline);
-    border-radius: var(--aui-code-input-cell-radius);
-    background: var(--color-surface);
-    color: var(--color-on-surface);
-    font: inherit;
-    font-size: var(--font-title-md-size);
-    font-weight: var(--font-title-md-weight);
+    font-size: 1.4em;
+    font-weight: 600;
     font-variant-numeric: tabular-nums;
     text-align: center;
-    caret-color: var(--aui-code-input-caret);
-    transition:
-      border-color var(--duration-short) var(--ease-emphasized),
-      background-color var(--duration-short) var(--ease-emphasized);
 
     &::selection {
-      background: var(--color-primary-container);
-      color: var(--color-on-primary-container);
-    }
-
-    &:hover:not(:disabled):not([aria-disabled='true']) {
-      background: var(--color-surface-high);
-      border-color: var(--aui-code-input-hover-outline);
-    }
-
-    &:active:not(:disabled):not([aria-disabled='true']) {
-      background: var(--color-surface-highest);
-    }
-
-    &:focus {
-      border-color: var(--color-primary);
-    }
-
-    &:focus-visible {
-      outline: var(--focus-ring-width) var(--focus-ring-style) var(--focus-ring-color);
-      outline-offset: var(--focus-ring-offset);
-    }
-
-    &[readonly],
-    &[aria-readonly='true'] {
-      background: var(--color-surface-high);
-      color: var(--color-on-surface-variant);
-    }
-
-    &:disabled,
-    &[aria-disabled='true'] {
-      border-color: var(--color-disabled-border);
-      background: var(--color-disabled-bg);
-      color: var(--color-disabled-fg);
-      cursor: not-allowed;
+      background: color-mix(in oklch, currentColor 30%, transparent);
     }
   }
 }

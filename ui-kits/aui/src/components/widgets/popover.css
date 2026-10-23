@@ -1,32 +1,29 @@
+@import './panel.css';
+
+/* The surface comes from the shared panel; this file adds the content padding and placement. */
 @layer theme {
   :root {
-    --aui-popover-bg: var(--color-surface-container);
-    --aui-popover-radius: var(--radius-lg);
     --aui-popover-padding: var(--spacing-md);
     --aui-popover-gap: var(--spacing-sm);
   }
 }
 
 @layer component {
+  /* A popover usually lives inside its trigger: it sheds the control's label typography. */
   .aui-popover {
-    position: fixed;
-    z-index: var(--z-index-popover);
-    position-area: bottom span-right;
-    position-try-fallbacks: flip-block, flip-inline, flip-block flip-inline;
-    max-inline-size: min(calc(var(--spacing) * 80), calc(100dvi - (var(--spacing-md) * 2)));
-    padding: var(--aui-popover-padding);
-    display: flex;
-    flex-direction: column;
     gap: var(--aui-popover-gap);
-    background-color: var(--aui-popover-bg);
+    padding: var(--aui-popover-padding);
+    max-inline-size: min(calc(var(--spacing) * 80), calc(100dvi - (var(--spacing-md) * 2)));
     color: var(--color-on-surface);
-    border: 1px solid var(--color-outline-variant);
-    border-radius: var(--aui-popover-radius);
-    box-shadow: var(--elevation-3);
-
-    &[hidden] {
-      display: none;
-    }
+    cursor: auto;
+    user-select: text;
+    white-space: normal;
+    text-align: start;
+    font-family: var(--font-sans);
+    font-size: var(--font-label-lg-size);
+    font-weight: 400;
+    line-height: var(--font-label-lg-line-height);
+    letter-spacing: normal;
 
     &:focus-visible {
       outline: var(--focus-ring-width) var(--focus-ring-style) var(--focus-ring-color);

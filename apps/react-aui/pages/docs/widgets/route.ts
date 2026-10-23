@@ -48,6 +48,17 @@ const carouselRoute = route.route('/carousel');
 const stepperRoute = route.route('/stepper');
 const splitterRoute = route.route('/splitter');
 const codeInputRoute = route.route('/code-input');
+const alertRoute = route.route('/alert');
+const drawerRoute = route.route('/drawer');
+const avatarRoute = route.route('/avatar');
+const badgeRoute = route.route('/badge');
+const chipRoute = route.route('/chip');
+const tagInputRoute = route.route('/tag-input');
+const commandPaletteRoute = route.route('/command-palette');
+const cardRoute = route.route('/card');
+const emptyStateRoute = route.route('/empty-state');
+const skeletonRoute = route.route('/skeleton');
+const spinnerRoute = route.route('/spinner');
 /** AirLib managed */
 
 export const widgetsRoute = route;
@@ -97,5 +108,16 @@ export const widgetsCarouselRoute = carouselRoute;
 export const widgetsStepperRoute = stepperRoute;
 export const widgetsSplitterRoute = splitterRoute;
 export const widgetsCodeInputRoute = codeInputRoute;
+export const widgetsAlertRoute = alertRoute;
+export const widgetsDrawerRoute = drawerRoute;
+export const widgetsAvatarRoute = avatarRoute;
+export const widgetsBadgeRoute = badgeRoute;
+export const widgetsChipRoute = chipRoute;
+export const widgetsTagInputRoute = tagInputRoute;
+export const widgetsCommandPaletteRoute = commandPaletteRoute;
+export const widgetsCardRoute = cardRoute;
+export const widgetsEmptyStateRoute = emptyStateRoute;
+export const widgetsSkeletonRoute = skeletonRoute;
+export const widgetsSpinnerRoute = spinnerRoute;
 
 export default widgetsRoute;

@@ -1,0 +1,157 @@
+---
+title: AUI Card
+nav: Card
+nav-priority: 470
+description: Group related content into one unit — media, a heading, a description, the body, and actions — named by its title so a list of cards reads as a list of named entries.
+keywords: [React card component, accessible card, content card, product card, card with image, card actions]
+---
+
+# AUI Card
+
+Dashboards, product grids, and settings pages are made of cards: a picture, a heading, a line of context, and the buttons that act on it. The hard part is not the box — it is keeping the pieces in the same order and spacing everywhere, and making each card announce itself by its heading so a screen reader user can tell twenty cards apart.
+
+Card gives you that unit from two props, keeps the spacing on the shared scale, and names the card by its title for you.
+
+:::interactive[Card demo]
+
+```tsx
+import { Button, Card } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { DemoControl } from '@/components/DemoControl.js';
+
+const CardDemo = setup(() => {
+  const state = mutable({ size: 'md', color: 'primary', variant: 'filled', disabled: false });
+
+  return () => (
+    <div className="demo-button">
+      <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} variant={$bind(state, 'variant')} disabled={$bind(state, 'disabled')} />
+      <Snippet>
+        {() => (
+          <div className="grid grid-cols-2 gap-md">
+            <Card
+              title="Team offsite"
+              description="Rome · 12–14 November · 6 travelers"
+              size={state.size}
+              color={state.color}
+              variant={state.variant}
+            >
+              <p>Workshops on day one, the city on day two. Evenings stay free.</p>
+              <Card.Snippet for="actions">
+                {() => (
+                  <>
+                    <Button variant="text" size={state.size} color={state.color} disabled={state.disabled}>
+                      Share
+                    </Button>
+                    <Button size={state.size} color={state.color} disabled={state.disabled}>
+                      Book
+                    </Button>
+                  </>
+                )}
+              </Card.Snippet>
+            </Card>
+            <Card
+              title="Quarterly report"
+              description="Revenue up 12%, churn steady."
+              size={state.size}
+              color={state.color}
+              variant={state.variant}
+            />
+          </div>
+        )}
+      </Snippet>
+    </div>
+  );
+}, 'CardDemo');
+```
+
+```html
+<CardDemo />
+```
+
+<CardDemo />
+
+:::
+
+## Usage
+
+### Title and description
+
+When the card is a heading, a line of context, and some content, pass `title` and `description` and put the content inside:
+
+```tsx
+import { Card } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/card.css';
+
+export const ReportCard = () => (
+  <Card title="Quarterly report" description="Revenue up 12%, churn steady.">
+    <p>Download the full breakdown before Friday's review.</p>
+  </Card>
+);
+```
+
+The title renders as an `h3` and names the card. When the cards sit under a page heading of a different depth, set `level` (`2`–`6`) so the page outline stays correct. The card renders an `<article>` — right for an entry in a list or feed; use `as="section"` for a region of a page, or `as="div"` when the card is purely visual.
+
+### Slots
+
+Reach for slots when the card needs more than text:
+
+- **`media`** — an image, video, or illustration that bleeds to the card's top and side edges.
+- **`header`** — your own heading block in place of `title` and `description`, for a badge next to the title or an avatar beside it. Keep a heading inside so the card stays named.
+- **`actions`** — buttons or links, aligned to the end of the card's last row.
+
+```tsx
+<Card title="Lisbon loft" description="Sleeps 6 · €180 a night">
+  <Card.Snippet for="media">{() => <img src="/loft.jpg" alt="" />}</Card.Snippet>
+  <Card.Snippet for="actions">{() => <Button>Reserve</Button>}</Card.Snippet>
+</Card>
+```
+
+Leave `alt` empty on a media image that only decorates; describe it when it carries information the text does not.
+
+### Building from parts
+
+When the layout is yours — two headers, media in the middle, actions at the top — compose the parts. Each is a plain element with the card's spacing and type; order them however you need:
+
+```tsx
+import { Card, CardActions, CardBody, CardDescription, CardHeader, CardMedia, CardTitle } from '@airlib/react-aui';
+
+<Card aria-labelledby="loft-title">
+  <CardHeader>
+    <CardTitle id="loft-title" level={2}>Lisbon loft</CardTitle>
+    <CardDescription>Sleeps 6 · €180 a night</CardDescription>
+  </CardHeader>
+  <CardMedia><img src="/loft.jpg" alt="" /></CardMedia>
+  <CardBody>Ten minutes from the venue on foot.</CardBody>
+  <CardActions><Button>Reserve</Button></CardActions>
+</Card>
+```
+
+Without `title`, name the card yourself with `aria-labelledby`, as above.
+
+### Style it once
+
+`size` sets the card's padding, spacing, and title size; `color` tints the `tonal` variant; `variant` picks the surface: `filled` (default), `tonal`, or `elevated`. See [Style a composite once](/docs/theming#style-a-composite-once).
+
+## Properties
+
+`Card`:
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `title` | `string` | — | Heading text; also names the card. |
+| `description` | `string` | — | One or two lines under the title. |
+| `level` | `2`–`6` | `3` | Heading level of the title. |
+| `as` | `'article'`, `'section'`, `'div'` | `'article'` | The element the card renders. |
+| `size` | `xs`–`xxl` | `'md'` | Padding, spacing, and title size. |
+| `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | Tint for the `tonal` variant. |
+| `variant` | `filled`, `tonal`, `elevated` | `'filled'` | The card's surface. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `children` | `ReactNode` | — | The card's body. |
+
+Slots: `media`, `header`, `actions`. Parts: `CardMedia`, `CardHeader`, `CardTitle` (takes `level`), `CardDescription`, `CardBody`, `CardActions` — each accepts the props of its element.
+
+## Next Steps
+
+- [Empty State](/docs/widgets/empty-state) — What to show in the grid of cards before there is anything to show.
+- [Skeleton](/docs/widgets/skeleton) — A card-shaped placeholder while the content loads.
+- [Button](/docs/widgets/button) — The actions inside a card.

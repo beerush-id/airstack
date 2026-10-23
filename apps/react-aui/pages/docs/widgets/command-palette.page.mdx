@@ -1,0 +1,154 @@
+---
+title: AUI Command Palette
+nav: Command Palette
+nav-priority: 305
+description: Let people search and run any action from the keyboard — Ctrl/⌘ + K opens a sheet, typing narrows the commands, Enter runs one. Give it your commands and handle one event.
+keywords: [React command palette, command menu, Ctrl K, Cmd K, keyboard shortcuts React, spotlight search, quick actions, accessible command palette]
+---
+
+# AUI Command Palette
+
+Apps grow more actions than any toolbar can hold. A command palette puts all of them one shortcut away: press `Ctrl`/`⌘` + `K`, type a few letters, press `Enter`. It has to open from anywhere, keep focus in the field, move through the matches with the arrows without running anything, run the chosen command, and hand focus back when it closes.
+
+**AUI Command Palette** does all of that from a list of commands and one event. You decide what each command does; the palette decides nothing else on your behalf.
+
+:::interactive[Command palette demo]
+
+```tsx
+import { CommandPalette } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { DemoControl } from '@/components/DemoControl.js';
+
+const COMMANDS = [
+  { name: 'new-doc', label: 'New document', group: 'File', hint: 'N' },
+  { name: 'open', label: 'Open…', group: 'File', hint: 'O' },
+  { name: 'share', label: 'Share link', group: 'File', keywords: 'copy url invite' },
+  { name: 'theme', label: 'Toggle dark mode', group: 'View' },
+  { name: 'zoom-in', label: 'Zoom in', group: 'View', hint: '+' },
+  { name: 'shortcuts', label: 'Keyboard shortcuts', group: 'Help', hint: '?' },
+];
+
+const CommandPaletteDemo = setup(() => {
+  const state = mutable({ size: 'md', color: 'primary', last: 'nothing yet' });
+
+  return () => (
+    <div className="demo-button">
+      <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} />
+      <div className="aui-card flex flex-col gap-md items-center justify-center p-xl">
+        <Snippet>
+          {() => (
+            <CommandPalette
+              label="Search commands"
+              title="Commands"
+              placeholder="Type a command"
+              items={COMMANDS}
+              size={state.size}
+              color={state.color}
+              oncommand={(event) => (state.last = event.detail)}
+            >
+              <CommandPalette.Snippet for="empty">{(query) => <span>No commands match “{query}”.</span>}</CommandPalette.Snippet>
+            </CommandPalette>
+          )}
+        </Snippet>
+        <Snippet>{() => <span>Last command: {state.last}</span>}</Snippet>
+      </div>
+    </div>
+  );
+}, 'CommandPaletteDemo');
+```
+
+```html
+<CommandPaletteDemo />
+```
+
+<CommandPaletteDemo />
+
+:::
+
+## Usage
+
+### Commands
+
+Give the palette your commands and listen for the one that runs. `name` is what `oncommand` receives, `label` is what people read:
+
+```tsx
+import { CommandPalette } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/command-palette.css';
+
+const COMMANDS = [
+  { name: 'new-doc', label: 'New document', group: 'File', hint: 'N' },
+  { name: 'share', label: 'Share link', group: 'File', keywords: 'copy url invite' },
+  { name: 'theme', label: 'Toggle dark mode', group: 'View' },
+];
+
+export const AppCommands = () => (
+  <CommandPalette title="Commands" placeholder="Type a command" items={COMMANDS} oncommand={(event) => run(event.detail)} />
+);
+```
+
+- **`group`** puts the command under a heading; groups keep the order they first appear in.
+- **`hint`** shows a key at the end of the row — the shortcut that runs the same action elsewhere.
+- **`keywords`** add words the filter matches without showing them, so "copy url" finds _Share link_.
+- **`disabled`** keeps the command visible but unrunnable.
+
+The palette opens on `Ctrl`/`⌘` + `K` from anywhere on the page. Turn that off with `shortcut={false}` when your app already uses the combination. Add `label` to render a button that opens it as well — useful for pointer users and for making the palette discoverable.
+
+### Opening it from your code
+
+Bind `open` to open or close the palette yourself — from a menu item, a toolbar button, or your own shortcut:
+
+```tsx
+const ui = mutable({ commands: false });
+
+<CommandPalette title="Commands" items={COMMANDS} open={$bind(ui, 'commands')} shortcut={false} />;
+```
+
+### Slots
+
+Change what a row shows, the trigger's content, or what appears when nothing matches:
+
+```tsx
+<CommandPalette title="Commands" items={COMMANDS}>
+  <CommandPalette.Snippet for="item">
+    {(command) => (
+      <>
+        <CommandIcon name={command.name} />
+        <span>{command.label}</span>
+      </>
+    )}
+  </CommandPalette.Snippet>
+  <CommandPalette.Snippet for="empty">{(query) => <span>Nothing for “{query}”. Try another word.</span>}</CommandPalette.Snippet>
+</CommandPalette>
+```
+
+- **`item`** receives the command entry; the row keeps its highlight, keyboard travel, and commit.
+- **`empty`** receives the typed text and shows while no command matches. Without it the list simply stays empty.
+- **`trigger`** renders inside the `label` button.
+
+### Style it once
+
+`size`, `color`, and `variant` on the palette reach the trigger, the field, and every row. See [Theming](/docs/theming#style-a-composite-once).
+
+### Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `title` | `string` | — | Required. The palette's name, announced when it opens; not shown on screen. |
+| `items` | `CommandEntry[]` | — | `{ name, label?, group?, hint?, keywords?, disabled? }`. |
+| `oncommand` | `(event: CustomEvent<string>) => void` | — | Fires with the chosen command's `name`; the palette closes afterwards. |
+| `open` | `Bindable<boolean>` | `false` | Whether the palette is open. Bind it to open or close it from your code. |
+| `shortcut` | `boolean` | `true` | `Ctrl`/`⌘` + `K` opens the palette. |
+| `label` | `string` | — | Renders a trigger button with this text. |
+| `placeholder` | `string` | — | Hint shown in the empty field. |
+| `size` | `xs`, `sm`, `md`, `lg`, `xl`, `xxl` | `'md'` | Reaches the trigger, the field, and the rows. |
+| `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | Colors the highlighted row, the field's focus, and the trigger. |
+
+Every word the palette shows or announces is yours: `title`, `placeholder`, `label`, each command's `label` and `hint`, and the `empty` slot. The palette ships no built-in text, so nothing stays untranslated by accident.
+
+Keyboard: `Ctrl`/`⌘` + `K` opens; typing narrows the list; `↓` / `↑` move through the matches without running anything; `Enter` runs the highlighted command; `Escape` closes and returns focus to where it was.
+
+## Next Steps
+
+- [Menu](/docs/widgets/menu) — A short list of commands behind a button, when typing to find one is more than people need.
+- [Combobox](/docs/widgets/combobox) — Typing to filter a list when the result is a value to keep, not an action to run.
+- [Dialog](/docs/widgets/dialog) — The sheet the palette is built on, for anything else that needs the page to step aside.

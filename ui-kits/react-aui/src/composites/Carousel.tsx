@@ -1,8 +1,10 @@
 import { aria } from '@airlib/aria';
-import { AUI_CLASS, register } from '@airlib/aui/utils';
+import { AUI_CLASS, COLORS, register, SIZES, VARIANTS } from '@airlib/aui/utils';
 import { type AnyType, type Bindable, setup } from '@airlib/react';
 import type { ReactNode } from 'react';
-import { $families, type AuiProps, auiConfig, OMIT_KEYS } from '../config.js';
+import { $families, type AuiProps, auiConfig, type ComponentStyles, OMIT_KEYS } from '../config.js';
+import { ArrowLeft, ArrowRight } from '../icons/index.js';
+import { createStyleScope } from '../utils/common.js';
 
 export type CarouselDirection = 1 | -1;
 
@@ -65,21 +67,27 @@ const VIEWPORT_OMIT = [...OMIT_KEYS, 'label'];
 const NAV_OMIT = [...OMIT_KEYS, 'direction'];
 const PICKER_OMIT = [...OMIT_KEYS, 'name', 'selected'];
 
+const carouselButtonStyles: ComponentStyles = { size: SIZES.MD, color: COLORS.PRIMARY, variant: VARIANTS.TONAL };
+
 register('carousel', {});
 register('carouselViewport', {});
 register('carouselSlide', {});
-register('carouselNav', {});
-register('carouselPicker', {});
-register('carouselPlayer', {});
+register('carouselNav', { ...carouselButtonStyles });
+register('carouselPicker', { color: COLORS.PRIMARY });
+register('carouselPlayer', { ...carouselButtonStyles });
+
+const carouselScope = createStyleScope();
 
 /**
  * One slide at a time behind a set of travelers. The root holds the current
  * slide, the rotation state, and the timer; the viewport, slides, steppers,
- * dots, and player all find it in scope.
+ * dots, and player all find it in scope, and follow its size, color, and variant.
  */
 export const Carousel = setup<CarouselProps>((props) => {
   const carousel = aria(CAROUSEL_ROLE, props as AnyType);
-  const className = () => $families(AUI_CLASS.CAROUSEL, props, auiConfig.carousel);
+  const className = () => $families(AUI_CLASS.CAROUSEL, { className: props.className }, auiConfig.carousel);
+
+  carouselScope.provide(props);
 
   return () => (
     <div ref={carousel.ref} {...carousel.restProps(OMIT_KEYS)} className={className()}>
@@ -120,16 +128,20 @@ export const CarouselSlide = setup<CarouselSlideProps>((props) => {
 
 /**
  * One step button. It steps `direction` and disables itself at the bound it
- * has nowhere left to go, or while the group is locked.
+ * has nowhere left to go, or while the group is locked. Without children it
+ * shows an arrow pointing its way.
  */
 export const CarouselNav = setup<CarouselNavProps>((props) => {
+  const styles = carouselScope.inherit(props);
   const nav = aria(NAV_ROLE, props as AnyType);
-  const className = () =>
-    $families([AUI_CLASS.CONTROL, AUI_CLASS.BUTTON, AUI_CLASS.CAROUSEL_NAV], props, auiConfig.carouselNav);
+  const className = () => {
+    const families = $families([AUI_CLASS.CONTROL, AUI_CLASS.BUTTON, AUI_CLASS.CAROUSEL_NAV], styles, auiConfig.carouselNav);
+    return props.children ? families : `${families} ${AUI_CLASS.CONTROL_ICON}`;
+  };
 
   return () => (
     <button ref={nav.ref} {...nav.restProps(NAV_OMIT)} type="button" className={className()}>
-      {props.children}
+      {props.children ?? (props.direction < 0 ? <ArrowLeft aria-hidden="true" /> : <ArrowRight aria-hidden="true" />)}
     </button>
   );
 }, 'CarouselNav');
@@ -139,8 +151,14 @@ export const CarouselNav = setup<CarouselNavProps>((props) => {
  * slide is up.
  */
 export const CarouselPicker = setup<CarouselPickerProps>((props) => {
+  const scoped = carouselScope.inherit(props);
   const picker = aria(PICKER_ROLE, props as AnyType);
-  const className = () => $families(AUI_CLASS.CAROUSEL_PICKER, props, auiConfig.carouselPicker);
+  const className = () =>
+    $families(
+      [AUI_CLASS.SCALE, AUI_CLASS.CAROUSEL_PICKER],
+      { color: scoped.color, className: props.className },
+      auiConfig.carouselPicker
+    );
 
   return () => (
     <button ref={picker.ref} {...picker.restProps(PICKER_OMIT)} type="button" className={className()}>
@@ -154,9 +172,10 @@ export const CarouselPicker = setup<CarouselPickerProps>((props) => {
  * through a pressed state.
  */
 export const CarouselPlayer = setup<CarouselPlayerProps>((props) => {
+  const styles = carouselScope.inherit(props);
   const player = aria(PLAYER_ROLE, props as AnyType);
   const className = () =>
-    $families([AUI_CLASS.CONTROL, AUI_CLASS.BUTTON, AUI_CLASS.CAROUSEL_PLAYER], props, auiConfig.carouselPlayer);
+    $families([AUI_CLASS.CONTROL, AUI_CLASS.BUTTON, AUI_CLASS.CAROUSEL_PLAYER], styles, auiConfig.carouselPlayer);
 
   return () => (
     <button

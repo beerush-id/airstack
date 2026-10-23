@@ -1,0 +1,117 @@
+@import './button.css';
+@import './item.css';
+
+/*
+ * An inline message. `tonal` (default) sits on the role's container color,
+ * `filled` on the role color itself. Size and the role color come from the
+ * shared scale; the dismiss button is a text button inked like the message.
+ */
+@layer theme {
+  :root {
+    --aui-alert-radius: var(--radius-lg);
+  }
+}
+
+@layer component {
+  .aui-alert {
+    --aui-alert-bg: var(--color-info-container);
+    --aui-alert-fg: var(--color-on-info-container);
+    display: flex;
+    align-items: flex-start;
+    gap: var(--aui-control-gap);
+    padding-block: calc(var(--aui-control-padding-x) * 0.5);
+    padding-inline: calc(var(--aui-control-padding-x) * 0.75) calc(var(--aui-control-padding-x) * 0.5);
+    border-radius: var(--aui-alert-radius);
+    background-color: var(--aui-alert-bg);
+    color: var(--aui-alert-fg);
+    font-weight: 400;
+
+    &[hidden] {
+      display: none;
+    }
+  }
+
+  .aui-alert-primary {
+    --aui-alert-bg: var(--color-primary-container);
+    --aui-alert-fg: var(--color-on-primary-container);
+  }
+
+  .aui-alert-secondary {
+    --aui-alert-bg: var(--color-secondary-container);
+    --aui-alert-fg: var(--color-on-secondary-container);
+  }
+
+  .aui-alert-tertiary {
+    --aui-alert-bg: var(--color-tertiary-container);
+    --aui-alert-fg: var(--color-on-tertiary-container);
+  }
+
+  .aui-alert-info {
+    --aui-alert-bg: var(--color-info-container);
+    --aui-alert-fg: var(--color-on-info-container);
+  }
+
+  .aui-alert-success {
+    --aui-alert-bg: var(--color-success-container);
+    --aui-alert-fg: var(--color-on-success-container);
+  }
+
+  .aui-alert-warning {
+    --aui-alert-bg: var(--color-warning-container);
+    --aui-alert-fg: var(--color-on-warning-container);
+  }
+
+  .aui-alert-error {
+    --aui-alert-bg: var(--color-error-container);
+    --aui-alert-fg: var(--color-on-error-container);
+  }
+
+  /* Filled: the role color itself, read from the shared scale. */
+  .aui-alert.aui-alert-filled {
+    --aui-alert-bg: var(--aui-item-bg);
+    --aui-alert-fg: var(--aui-item-fg);
+  }
+
+  /* Icon, content, actions, and dismiss share one first-row height, so a one-line message centers and a long one top-aligns. */
+  .aui-alert-icon {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    min-block-size: var(--aui-control-height);
+  }
+
+  .aui-alert-content {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    justify-content: center;
+    gap: var(--spacing-xs);
+    min-inline-size: 0;
+    min-block-size: var(--aui-control-height);
+  }
+
+  .aui-alert-title {
+    margin: 0;
+    font-weight: 600;
+  }
+
+  .aui-alert-body {
+    > p {
+      margin: 0;
+    }
+  }
+
+  .aui-alert-actions {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: var(--spacing-xs);
+    min-block-size: var(--aui-control-height);
+  }
+
+  /* The dismiss button inks like the message on either surface. */
+  .aui-alert-dismiss {
+    --aui-control-bg: var(--aui-alert-fg);
+    flex: none;
+  }
+}

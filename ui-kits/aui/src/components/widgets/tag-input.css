@@ -1,0 +1,45 @@
+@import './input.css';
+@import './chip.css';
+@import './combobox.css';
+
+/*
+ * The field shell holds the chosen chips and a bare query input that wraps
+ * after them; it grows a row at a time instead of scrolling sideways.
+ */
+@layer component {
+  .aui-tag-input {
+    display: block;
+  }
+
+  .aui-tag-input-field {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--spacing-xs);
+    block-size: auto;
+    min-block-size: var(--aui-control-height);
+    padding-block: calc(var(--spacing) * 1);
+    padding-inline: calc(var(--spacing) * 1.5);
+  }
+
+  .aui-tag-input-query {
+    flex: 1 1 calc(var(--spacing) * 24);
+    min-inline-size: 0;
+    block-size: calc(var(--aui-control-height) * 0.75);
+    padding: 0 var(--spacing-xs);
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    caret-color: inherit;
+    outline: none;
+
+    &::placeholder {
+      color: var(--aui-input-placeholder);
+    }
+  }
+
+  .aui-tag-input-panel {
+    min-inline-size: calc(var(--spacing) * 60);
+  }
+}

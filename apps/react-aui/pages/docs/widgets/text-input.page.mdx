@@ -2,59 +2,59 @@
 title: AUI Text Input
 nav: Text Input
 nav-priority: 211
-description: Live string control with caret-safe binding and commit signal.
+description: A text field bound to your state in both directions without ever moving the caret — with search, required, invalid, and read-only states, six sizes, three field variants, and seven colors.
+keywords: [React text input, React input component, accessible text field, React search input, controlled input caret, two-way binding input]
 ---
 
 # AUI Text Input
 
-A text field is the one control you mostly should not redraw. It keeps one live string in both directions without yanking the caret, projects required, invalid, and readonly onto whichever host you chose, and tells your code when the text actually commits — leaving typing, selection, and autocomplete to the browser. `SearchInput` is the same live string with the searchbox role and search type.
-
-Styling is optional. Without AUI CSS the input stays a correct, operable field; with it, the same markup gets the AUI treatment.
+A text field looks like the simplest control until you bind it to state: re-render it on every keystroke and the caret jumps, autocomplete fights you, and "invalid" or "required" never quite reach assistive tech. Text Input keeps one live string in sync with your state in both directions while the caret stays exactly where the user put it, and it tells you when the text is committed.
 
 :::interactive[Text input demo]
 
 ```tsx
-import { TextInput, SearchInput, Toggle } from '@airlib/react-aui';
+import { SearchInput, TextInput, Toggle } from '@airlib/react-aui';
 import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { DemoControl } from '@/components/DemoControl.js';
 
 const TextDemo = setup(() => {
-  const state = mutable({ name: 'Ada Lovelace', query: '', disabled: false, invalid: false });
+  const state = mutable({ name: 'Ada Lovelace', query: '', size: 'md', color: 'primary', disabled: false, invalid: false });
 
   return () => (
     <div className="demo-button">
-      <div className="flex gap-xs w-full">
-        <div className="flex-1"></div>
-        <Toggle size="sm" pressed={$bind(state, 'disabled')}>
-          {() => (state.disabled ? 'Enabled' : 'Disabled')}
-        </Toggle>
+      <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} disabled={$bind(state, 'disabled')}>
         <Toggle size="sm" pressed={$bind(state, 'invalid')}>
-          {() => (state.invalid ? 'Valid' : 'Invalid')}
+          {() => (state.invalid ? 'Set Valid' : 'Set Invalid')}
         </Toggle>
-      </div>
-      <div className="aui-card flex flex-col gap-lg justify-center p-xl">
-        <Snippet>
-          {() => (
-            <TextInput
-              label="Display name"
-              placeholder="Ada"
-              value={$bind(state, 'name')}
-              disabled={state.disabled}
-              invalid={state.invalid}
-            />
-          )}
-        </Snippet>
-        <Snippet>
-          {() => (
+      </DemoControl>
+      <Snippet>
+        {() => (
+          <div className="aui-card flex flex-col gap-lg justify-center p-xl">
+            <Snippet>
+              {() => (
+                <TextInput
+                  label="Display name"
+                  placeholder="Ada"
+                  value={$bind(state, 'name')}
+                  size={state.size}
+                  color={state.color}
+                  disabled={state.disabled}
+                  invalid={state.invalid}
+                />
+              )}
+            </Snippet>
             <SearchInput
               label="Search docs"
               placeholder="Search"
               value={$bind(state, 'query')}
+              size={state.size}
+              color={state.color}
               disabled={state.disabled}
             />
-          )}
-        </Snippet>
-        <span>Name: {state.name || '—'}</span>
-      </div>
+            <Snippet>{() => <span>Name: {state.name || '—'}</span>}</Snippet>
+          </div>
+        )}
+      </Snippet>
     </div>
   );
 }, 'TextDemo');
@@ -70,64 +70,94 @@ const TextDemo = setup(() => {
 
 ## Usage
 
-Bind the live value; typing copies into props instead of rewriting the element, so the caret stays where the user put it. Commit arrives through `onchange` on blur (native) with the committed text in `detail`:
+### Bind a value
+
+Bind the field to a property of your state. Typing writes it; writing it from anywhere else updates the field, and the caret is never moved by either:
 
 ```tsx
 import { TextInput } from '@airlib/react-aui';
+import { $bind, mutable, setup } from '@airlib/react';
 import '@airlib/aui/components/widgets/text-input.css';
 
-export const Name = () => (
-  <TextInput label="Display name" placeholder="Ada" />
-);
+const Profile = setup(() => {
+  const profile = mutable({ name: '' });
+
+  return () => <TextInput label="Display name" placeholder="Ada" value={$bind(profile, 'name')} />;
+}, 'Profile');
 ```
 
-Use the search face for queries — same contract, searchbox role and search type:
+`label` names the field for screen readers. To show a visible label, help text, and an error message next to the field, wrap it in a [Field](/docs/widgets/field).
+
+### React to a commit
+
+The bound value follows every keystroke. When you want the finished text — to save it, validate it, or send a request — listen for `onchange`, which fires once the user leaves the field with a new value:
+
+```tsx
+<TextInput label="Display name" value={$bind(profile, 'name')} onchange={(event) => saveName(event.detail)} />
+```
+
+### Search
+
+For a query box, `SearchInput` is the same field announced as a search box, with the browser's search behavior:
 
 ```tsx
 import { SearchInput } from '@airlib/react-aui';
 
-export const Query = () => (
-  <SearchInput label="Search docs" placeholder="Search" />
-);
+<SearchInput label="Search orders" placeholder="Order number or customer" value={$bind(filters, 'query')} />;
 ```
 
-Take the multiline path through `kind` on a custom host, or render your own `textarea` host with the same controller. Invalid projects exactly as the browser states it; readonly keeps the field reachable while refusing every key.
+### Kinds and states
+
+`kind` picks the keyboard and validation the browser offers — `text`, `password`, `search`, `email`, `tel`, or `url`. `required`, `invalid`, `readonly`, and `disabled` are announced to assistive tech as well as styled:
+
+```tsx
+<TextInput label="Email" kind="email" required />
+<TextInput label="Coupon" invalid={!couponOk} />
+<TextInput label="Account ID" value="ACC-2041" readonly />
+```
+
+A read-only field stays focusable so its value can be selected and copied; a disabled field leaves the tab order.
+
+### Variants and colors
+
+Fields take three variants: `filled` (default), `tonal`, and `outlined`. A field stays neutral at rest and shows its `color` on hover, focus, and the caret; `invalid` switches it to the error color:
+
+```tsx
+<TextInput label="Name" variant="filled" />
+<TextInput label="Name" variant="tonal" color="secondary" />
+<TextInput label="Name" variant="outlined" size="lg" />
+```
+
+Set app-wide defaults once with `configure({ textInput: { variant: 'outlined' } })`; see [Theming](/docs/theming#sizes-variants-colors).
 
 ### Properties
 
+`TextInput` and `SearchInput` take the same props:
+
 | Prop | Type | Default | Notes |
 | --- | --- | --- | --- |
-| `value` | `Bindable<string>` | `''` | Live text, both directions. Seeded once; never rewritten per keystroke. |
-| `kind` | `'text'`, `'password'`, `'search'`, `'email'`, `'tel'`, `'url'` | — | Selects the native type behavior and the custom-host role. |
-| `multiline` | `boolean` | `false` | Compiles `aria-multiline` on custom hosts. |
-| `readonly` | `boolean` | `false` | Reachable but immutable; refuses every key. |
-| `disabled` | `boolean` | `false` | Out of the tab order; commits stop. |
-| `required` | `boolean` | `false` | Required indicator, projected as the browser states it. |
-| `invalid` | `boolean`, `'grammar'`, `'spelling'` | `false` | Failure state, projected to `aria-invalid`. |
-| `placeholder` | `string` | — | Hint text. |
-| `label` | `string` | — | Accessible name, compiled to `aria-label`. |
-| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
-| `ref` | `Ref<HTMLInputElement>` | — | Access to the underlying input element. |
+| `value` | `Bindable<string>` | `''` | The text, kept in sync both ways. |
+| `label` | `string` | — | Accessible name. Use [Field](/docs/widgets/field) for a visible label. |
+| `placeholder` | `string` | — | Hint shown while empty. |
+| `kind` | `'text'`, `'password'`, `'search'`, `'email'`, `'tel'`, `'url'` | `'text'` | The kind of text expected. |
+| `required` | `boolean` | `false` | Announced as required. |
+| `invalid` | `boolean`, `'grammar'`, `'spelling'` | `false` | Announced as invalid and drawn in the error color. |
+| `readonly` | `boolean` | `false` | Focusable and copyable, but not editable. |
+| `disabled` | `boolean` | `false` | Not focusable, not editable. |
+| `size` | `xs`–`xxl` | `'md'` | |
+| `variant` | `filled`, `tonal`, `outlined` | `'filled'` | |
+| `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | |
+| `onchange` | `(event: CustomEvent<string>) => void` | — | The committed text, when the user leaves the field. |
+| `className` | `string` | — | Added next to the built-in classes, or replaces them with [`overrides`](/docs/theming#overrides). |
 
-Set app-wide defaults once instead of repeating props:
+Any other `input` attribute (`name`, `autocomplete`, `maxLength`, …) passes through to the element.
 
-```tsx
-import { configure } from '@airlib/react-aui';
+## Keyboard
 
-configure({ textInput: { className: 'my-input' } });
-```
-
-Your own classes are added next to the built-in ones:
-
-```tsx
-// class="aui-text-input my-input"
-<TextInput label="Name" placeholder="Ada" className="my-input" />
-```
-
-To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+Typing, selection, undo, and autocomplete are the browser's own. `Tab` moves in and out; a disabled field is skipped.
 
 ## Next Steps
 
-- [Field](/docs/widgets/field) — The namespace wrapping this control with label, helper, and failure.
-- [Number Stepper](/docs/widgets/number-stepper) — The clamped-number sibling for stepped values.
-- [Select](/docs/widgets/select) — The coordinated-list sibling for choosing from options.
+- [Field](/docs/widgets/field) — Add a visible label, help text, and an error message.
+- [Number Stepper](/docs/widgets/number-stepper) — A number field that stays within bounds.
+- [Combobox](/docs/widgets/combobox) — A text field that filters a list to pick from.

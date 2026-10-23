@@ -17,7 +17,7 @@ Styling is optional. Without AUI CSS the ToggleGroup stays a correct, operable g
 
 ```tsx
 import { Toggle, ToggleGroup } from '@airlib/react-aui';
-import { $bind, mutable, setup, Snippet, effect } from '@airlib/react';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
 import { DemoControl } from '@/components/DemoControl.js';
 
 const ToggleGroupDemo = setup(() => {
@@ -32,26 +32,22 @@ const ToggleGroupDemo = setup(() => {
   return () => (
     <div className="demo-button">
       <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} disabled={$bind(state, 'disabled')} />
-      <div className="aui-card flex gap-md items-center justify-center p-xl">
-        <Snippet>
-          {() => (
+      <Snippet>
+        {() => (
+          <div className="aui-card flex gap-md items-center justify-center p-xl">
             <ToggleGroup size={state.size} color={state.color} multiple value={$bind(state, 'style')} disabled={state.disabled}>
               <Toggle value="bold" aria-label="Bold"><span style={{ fontWeight: 800 }}>B</span></Toggle>
               <Toggle value="italic" aria-label="Italic"><span style={{ fontStyle: 'italic' }}>I</span></Toggle>
               <Toggle value="underline" aria-label="Underline"><span style={{ textDecoration: 'underline' }}>U</span></Toggle>
             </ToggleGroup>
-          )}
-        </Snippet>
-        <Snippet>
-          {() => (
             <ToggleGroup size={state.size} color={state.color} value={$bind(state, 'align')} disabled={state.disabled}>
               <Toggle value="left">Left</Toggle>
               <Toggle value="center">Center</Toggle>
               <Toggle value="right">Right</Toggle>
             </ToggleGroup>
-          )}
-        </Snippet>
-      </div>
+          </div>
+        )}
+      </Snippet>
       <Snippet>
         {() => (
           <p>

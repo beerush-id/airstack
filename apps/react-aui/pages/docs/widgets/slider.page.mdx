@@ -30,37 +30,29 @@ const SliderDemo = setup(() => {
   return () => (
     <div className="demo-button">
       <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} disabled={$bind(state, 'disabled')} />
-      <div className="aui-card flex gap-md items-center justify-center p-xl">
-        <div className="flex-1 flex-col gap-md">
-        <Snippet>
-          {() => (
-            <Slider
-              value={$bind(state, 'volume')}
-              min={0}
-              max={100}
-              step={1}
-              size={state.size}
-              color={state.color}
-              disabled={state.disabled}
-            />
-          )}
-        </Snippet>
-        <Snippet>
-          {() => (
-            <Slider
-              value={$bind(state, 'budgets')}
-              min={0}
-              max={1000}
-              step={1}
-              size={state.size}
-              color={state.color}
-              disabled={state.disabled}
-            />
-          )}
-        </Snippet>
-        </div>
-        <Snippet>
-          {() => (
+      <Snippet>
+        {() => (
+          <div className="aui-card flex gap-md items-center justify-center p-xl">
+            <div className="flex-1 flex-col gap-md">
+              <Slider
+                value={$bind(state, 'volume')}
+                min={0}
+                max={100}
+                step={1}
+                size={state.size}
+                color={state.color}
+                disabled={state.disabled}
+              />
+              <Slider
+                value={$bind(state, 'budgets')}
+                min={0}
+                max={1000}
+                step={1}
+                size={state.size}
+                color={state.color}
+                disabled={state.disabled}
+              />
+            </div>
             <Slider
               value={$bind(state, 'volume')}
               min={0}
@@ -71,10 +63,6 @@ const SliderDemo = setup(() => {
               disabled={state.disabled}
               orientation="vertical"
             />
-          )}
-        </Snippet>
-        <Snippet>
-          {() => (
             <Slider
               value={$bind(state, 'budgets')}
               min={0}
@@ -85,9 +73,9 @@ const SliderDemo = setup(() => {
               disabled={state.disabled}
               orientation="vertical"
             />
-          )}
-        </Snippet>
-      </div>
+          </div>
+        )}
+      </Snippet>
       <Snippet>
         {() => (
           <p>

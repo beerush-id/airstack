@@ -2,6 +2,7 @@ export * from './ArrowDown.js';
 export * from './ArrowLeft.js';
 export * from './ArrowRight.js';
 export * from './ArrowUp.js';
+export * from './Calendar.js';
 export * from './Check.js';
 export * from './Close.js';
 export * from './ContentPaste.js';

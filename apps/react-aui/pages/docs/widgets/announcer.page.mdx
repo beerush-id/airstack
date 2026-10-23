@@ -66,7 +66,7 @@ const AnnouncerDemo = setup(() => {
             </Announcer>
           )}
         </Snippet>
-        <span>{state.message}</span>
+        <Snippet>{() => <span>{state.message}</span>}</Snippet>
       </div>
     </div>
   );
@@ -113,9 +113,7 @@ An assertive region compiles `role="alert"` in place of `status`. Nothing remoun
 
 ```tsx
 <Announcer atomic={false} relevant="additions">
-  {log.map((line) => (
-    <div key={line.id}>{line.text}</div>
-  ))}
+  <For each={() => log}>{(line) => <div>{line.text}</div>}</For>
 </Announcer>
 ```
 

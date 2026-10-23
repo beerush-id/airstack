@@ -1,15 +1,13 @@
 @layer theme {
   :root {
-    --aui-feed-gap: var(--spacing-md);
+    --aui-feed-gap: var(--spacing-sm);
     --aui-feed-article-radius: var(--radius-lg);
-    --aui-feed-article-padding: var(--spacing-lg);
-    --aui-feed-article-outline: var(--color-outline-variant);
+    --aui-feed-article-padding: var(--spacing-md) var(--spacing-lg);
     --aui-feed-article-bg: var(--color-surface);
-    --aui-feed-article-hover-bg: var(--color-surface-container);
-    --aui-feed-busy-opacity: 0.6;
-  }
+    --aui-feed-article-hover-bg: var(--color-surface-low);  }
 }
 
+/* Entries are tonal cards on the surface ramp; focus lifts the one being read. */
 @layer component {
   .aui-feed {
     display: flex;
@@ -23,23 +21,27 @@
     flex-direction: column;
     gap: var(--spacing-xs);
     padding: var(--aui-feed-article-padding);
-    border: 1px solid var(--aui-feed-article-outline);
     border-radius: var(--aui-feed-article-radius);
-    background: var(--aui-feed-article-bg);
+    background-color: var(--aui-feed-article-bg);
     color: inherit;
+    outline: var(--focus-ring-width) var(--focus-ring-style) transparent;
+    outline-offset: var(--focus-ring-offset);
+    transition-property: background-color, box-shadow, outline-color;
+    transition-duration: var(--duration-short);
+    transition-timing-function: var(--ease-emphasized);
 
     &:hover {
-      background: var(--aui-feed-article-hover-bg);
+      background-color: var(--aui-feed-article-hover-bg);
     }
 
     &:focus-visible {
-      outline: var(--focus-ring-width) var(--focus-ring-style) var(--focus-ring-color);
-      outline-offset: var(--focus-ring-offset);
+      outline-color: color-mix(in oklch, var(--focus-ring-color) 75%, var(--light-up));
+      box-shadow: var(--elevation-1);
     }
   }
 
   .aui-feed[aria-busy='true'] {
-    opacity: var(--aui-feed-busy-opacity);
+    color: var(--color-on-surface-variant);
 
     & .aui-feed-article {
       pointer-events: none;

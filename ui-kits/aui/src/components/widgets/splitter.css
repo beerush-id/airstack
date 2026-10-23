@@ -1,3 +1,6 @@
+@import './item.css';
+
+/* The grip line takes the role color from the shared scale while hovered or dragged. */
 @layer theme {
   :root {
     --aui-splitter-hit: calc(var(--spacing) * 2.5);
@@ -27,8 +30,16 @@
         transform var(--duration-short) var(--ease-emphasized);
     }
 
+    /*
+     * The grip takes no room on its axis: negative margins cancel the hit
+     * area, so panes sized by the value meet exactly under the line and a
+     * press never jumps. The hit area overlays both panes instead.
+     */
+    z-index: 1;
+
     &[aria-orientation='vertical'] {
       inline-size: var(--aui-splitter-hit);
+      margin-inline: calc(var(--aui-splitter-hit) / -2);
       block-size: auto;
       cursor: col-resize;
 
@@ -36,26 +47,32 @@
         inline-size: var(--aui-splitter-line);
         block-size: 100%;
       }
+
+      /* Thicken across the line only; scaling its length would overshoot the panes. */
+      &:is(:hover, :active)::before {
+        transform: scaleX(3);
+      }
     }
 
     &:not([aria-orientation='vertical']) {
       inline-size: 100%;
       block-size: var(--aui-splitter-hit);
+      margin-block: calc(var(--aui-splitter-hit) / -2);
       cursor: row-resize;
 
       &::before {
         inline-size: 100%;
         block-size: var(--aui-splitter-line);
       }
+
+      &:is(:hover, :active)::before {
+        transform: scaleY(3);
+      }
     }
 
     &:hover,
     &:active {
-      color: var(--aui-splitter-active);
-    }
-
-    &:hover::before {
-      transform: scale(3);
+      color: var(--aui-item-bg, var(--aui-splitter-active));
     }
 
     &:focus-visible {
@@ -65,7 +82,7 @@
 
     &[aria-disabled='true'] {
       cursor: not-allowed;
-      opacity: 0.5;
+      color: var(--color-disabled-border);
 
       &::before {
         transform: none;

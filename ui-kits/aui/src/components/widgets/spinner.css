@@ -1,0 +1,65 @@
+@import './item.css';
+
+/*
+ * Indeterminate loading ring. Its diameter follows the size scale's control
+ * height and its ink the role color from the shared scale; the faint track
+ * keeps the ring's shape readable between sweeps.
+ */
+@layer component {
+  @keyframes aui-spinner-turn {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes aui-spinner-sweep {
+    0% {
+      stroke-dasharray: 1 60;
+      stroke-dashoffset: 0;
+    }
+    50% {
+      stroke-dasharray: 40 60;
+      stroke-dashoffset: -12;
+    }
+    100% {
+      stroke-dasharray: 40 60;
+      stroke-dashoffset: -56;
+    }
+  }
+
+  .aui-spinner {
+    display: inline-grid;
+    place-items: center;
+    flex: none;
+    inline-size: calc(var(--aui-control-height) * 0.6);
+    block-size: calc(var(--aui-control-height) * 0.6);
+    color: var(--aui-item-bg);
+
+    & > svg {
+      inline-size: 100%;
+      block-size: 100%;
+      overflow: visible;
+      animation: aui-spinner-turn 1.4s linear infinite;
+    }
+
+    & circle {
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      animation: aui-spinner-sweep 1.4s var(--ease-standard) infinite;
+    }
+  }
+
+  /* Reduced motion keeps a slow turn: a still ring would not say "working". */
+  @media (prefers-reduced-motion: reduce) {
+    .aui-spinner > svg {
+      animation-duration: 3s;
+    }
+
+    .aui-spinner circle {
+      animation: none;
+      stroke-dasharray: 40 60;
+    }
+  }
+}

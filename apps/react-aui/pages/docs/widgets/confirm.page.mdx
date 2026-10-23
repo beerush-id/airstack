@@ -2,67 +2,49 @@
 title: AUI Confirm
 nav: Confirm
 nav-priority: 303
-description: Always-modal alertdialog that cannot be dismissed — the answer comes from the action or the cancel button, never from Escape.
+description: Ask a yes-or-no question that must be answered before anything irreversible happens — a title, a description, and two labeled answers; Escape and outside clicks never decide for the user.
+keywords: [React confirm dialog, confirmation modal, are you sure dialog, React alert dialog, delete confirmation, ARIA alertdialog]
 ---
 
 # AUI Confirm
 
-A confirm is the question a page asks before something irreversible: delete this project, publish now, discard the draft. Getting it right means the panel is always modal, `Escape` never answers for the reader, focus starts on the safe choice, and the two outcomes are announced as decisions rather than as a closed dialog.
+Deleting a project, publishing to production, leaving with unsaved changes — some actions deserve one deliberate "yes" first. That question has to stop everything else, start on the safe answer, and never be answered by a stray `Escape` or a click on the backdrop.
 
-**AUI Confirm** does all of that for you, and leaves the markup and the styling entirely yours. One state drives the trigger, the panel, the title, the description, and the two buttons; the panel compiles the `alertdialog` role and names itself; the cancel button takes focus when the panel opens. `Escape` is suppressed at every point — the decision belongs to the two buttons.
-
-Styling is optional. Without AUI CSS the Confirm stays a correct, operable decision; with it, the same markup gets the AUI treatment through the full library.
+**AUI Confirm** is that question. Give it a title, a description, and the two answers; it tells you which one was picked.
 
 :::interactive[Confirm demo]
 
 ```tsx
-import { Confirm, ConfirmAction, ConfirmCancel, ConfirmDescription, ConfirmPanel, ConfirmTitle, ConfirmTrigger, Toggle } from '@airlib/react-aui';
-import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { Confirm } from '@airlib/react-aui';
+import { mutable, setup, Snippet } from '@airlib/react';
 
 const ConfirmDemo = setup(() => {
-  const state = mutable({ open: false, last: 'Nothing decided yet' });
+  const state = mutable({ last: 'Nothing decided yet' });
 
   return () => (
-    <div className="demo-button">
-      <div className="flex gap-xs w-full flex-wrap">
-        <Toggle size="sm" pressed={$bind(state, 'open')}>
-          {() => (state.open ? 'Close decision' : 'Open decision')}
-        </Toggle>
-        <div className="flex-1"></div>
-        <span>{state.last}</span>
+    <div className="aui-card flex flex-col gap-md items-center justify-center p-xl">
+      <div className="flex flex-wrap gap-md">
+        <Confirm
+          label="Delete project"
+          title="Delete this project?"
+          description="Every notebook in it is removed for good. This cannot be undone."
+          actionLabel="Delete"
+          cancelLabel="Keep project"
+          color="error"
+          onconfirm={() => (state.last = 'Project deleted')}
+          oncancel={() => (state.last = 'Project kept')}
+        />
+        <Confirm
+          label="Publish changes"
+          title="Publish to production?"
+          description="Readers see the new version immediately."
+          actionLabel="Publish"
+          cancelLabel="Not yet"
+          onconfirm={() => (state.last = 'Changes published')}
+          oncancel={() => (state.last = 'Publishing cancelled')}
+        />
       </div>
-      <div className="aui-card flex flex-wrap gap-lg items-center justify-center p-xl">
-        <Snippet>
-          {() => (
-            <Confirm
-              open={$bind(state, 'open')}
-              onconfirm={() => (state.last = 'Project deleted')}
-              oncancel={() => (state.last = 'Deletion declined')}
-            >
-              <ConfirmTrigger>Delete project</ConfirmTrigger>
-              <ConfirmPanel>
-                <ConfirmTitle>Delete project?</ConfirmTitle>
-                <ConfirmDescription>Every notebook in it is removed for good. This cannot be undone.</ConfirmDescription>
-                <ConfirmCancel>Keep project</ConfirmCancel>
-                <ConfirmAction>Delete</ConfirmAction>
-              </ConfirmPanel>
-            </Confirm>
-          )}
-        </Snippet>
-        <Snippet>
-          {() => (
-            <Confirm onconfirm={() => (state.last = 'Changes published')} oncancel={() => (state.last = 'Publishing cancelled')}>
-              <ConfirmTrigger>Publish changes</ConfirmTrigger>
-              <ConfirmPanel>
-                <ConfirmTitle>Publish to production?</ConfirmTitle>
-                <ConfirmDescription>Readers see the new version immediately.</ConfirmDescription>
-                <ConfirmCancel>Cancel</ConfirmCancel>
-                <ConfirmAction>Publish</ConfirmAction>
-              </ConfirmPanel>
-            </Confirm>
-          )}
-        </Snippet>
-      </div>
+      <Snippet>{() => <span>{state.last}</span>}</Snippet>
     </div>
   );
 }, 'ConfirmDemo');
@@ -78,113 +60,113 @@ const ConfirmDemo = setup(() => {
 
 ## Usage
 
-Put one trigger, one panel, one title, one description, and the two buttons inside the unit. The order of the buttons is a decision of your own — focus starts on cancel either way:
+### Ask the question
+
+Pass `label` for the button that asks, `title` for the question, and name both answers. Act on `onconfirm`:
 
 ```tsx
-import { Confirm, ConfirmAction, ConfirmCancel, ConfirmDescription, ConfirmPanel, ConfirmTitle, ConfirmTrigger } from '@airlib/react-aui';
+import { Confirm } from '@airlib/react-aui';
 import '@airlib/aui/components/widgets/confirm.css';
 
-export const DeleteProject = () => (
-  <Confirm onconfirm={() => project.remove()}>
-    <ConfirmTrigger>Delete project</ConfirmTrigger>
-    <ConfirmPanel>
-      <ConfirmTitle>Delete project?</ConfirmTitle>
-      <ConfirmDescription>Every notebook in it is removed for good.</ConfirmDescription>
-      <ConfirmCancel>Keep project</ConfirmCancel>
-      <ConfirmAction>Delete</ConfirmAction>
-    </ConfirmPanel>
-  </Confirm>
+export const DeleteProject = ({ onDelete }: { onDelete: () => void }) => (
+  <Confirm
+    label="Delete project"
+    title="Delete this project?"
+    description="Every notebook in it is removed for good."
+    actionLabel="Delete"
+    cancelLabel="Keep project"
+    color="error"
+    onconfirm={onDelete}
+  />
 );
 ```
 
-For the full library — tokens, base defaults, every component, and the utilities — load `import '@airlib/aui';` instead. A lone component stylesheet carries only that component's rules.
+- **`actionLabel`** names the yes. Name it after what it does — "Delete", "Publish" — in your app's language.
+- **`cancelLabel`** names the no. Focus starts here, so pressing `Enter` by reflex never commits the risky answer.
+- **`color`** reaches the ask button and the yes — `color="error"` marks a destructive action. The no stays quiet.
+- Extra content (a checklist, a summary) goes in as children, under the description.
 
-Leave `open` out and the trigger drives the panel; set it and the panel follows yours. Bind it to open the decision from outside:
+### Keep it open when the answer can't go through
 
-```tsx
-import { $bind, mutable } from '@airlib/react';
-
-const state = mutable({ open: false });
-
-<Confirm open={$bind(state, 'open')}>
-  <ConfirmTrigger>Delete project</ConfirmTrigger>
-  <ConfirmPanel>
-    <ConfirmTitle>Delete project?</ConfirmTitle>
-    <ConfirmDescription>Every notebook in it is removed for good.</ConfirmDescription>
-    <ConfirmCancel>Keep project</ConfirmCancel>
-    <ConfirmAction>Delete</ConfirmAction>
-  </ConfirmPanel>
-</Confirm>
-```
-
-### Answering
-
-The action commits and closes; the cancel button declines and closes. Each fires its own event, and either can be cancelled to keep the panel open — useful when the decision needs an async check before it lands:
+Both answers close the question unless you stop them. Call `event.preventDefault()` in `onconfirm` — for example when the server rejects the delete — and the question stays up:
 
 ```tsx
 <Confirm
+  title="Delete this project?"
+  label="Delete project"
+  actionLabel="Delete"
+  cancelLabel="Keep project"
   onconfirm={(event) => {
-    if (!repository.canDelete()) event.preventDefault();
+    if (!canDelete) event.preventDefault();
   }}
-  oncancel={() => audit.note('declined')}
->
-  <ConfirmTrigger>Delete project</ConfirmTrigger>
+/>
+```
+
+### Ask from your code
+
+Leave out `label` and bind `open` when the question comes from somewhere else — closing a tab with unsaved changes, a keyboard shortcut:
+
+```tsx
+<Confirm open={$bind(editor, 'askToLeave')} title="Leave without saving?" actionLabel="Leave" cancelLabel="Stay" onconfirm={leave} />
+```
+
+The `trigger` slot replaces the ask button's content when it needs an icon or richer label.
+
+### Build it from parts
+
+Compose the parts when the sheet's layout is yours to invent:
+
+```tsx
+import { Confirm, ConfirmAction, ConfirmCancel, ConfirmDescription, ConfirmPanel, ConfirmTitle, ConfirmTrigger } from '@airlib/react-aui';
+
+<Confirm onconfirm={publish} color="tertiary">
+  <ConfirmTrigger>Publish changes</ConfirmTrigger>
   <ConfirmPanel>
-    <ConfirmTitle>Delete project?</ConfirmTitle>
-    <ConfirmDescription>Every notebook in it is removed for good.</ConfirmDescription>
-    <ConfirmCancel>Keep project</ConfirmCancel>
-    <ConfirmAction>Delete</ConfirmAction>
+    <ConfirmTitle>Publish to production?</ConfirmTitle>
+    <ConfirmDescription>Readers see the new version immediately.</ConfirmDescription>
+    <ConfirmCancel>Cancel</ConfirmCancel>
+    <ConfirmAction>Publish</ConfirmAction>
   </ConfirmPanel>
 </Confirm>
 ```
 
-`Escape` and outside presses never answer. `Tab` and `Shift+Tab` stay inside the panel, `Enter` and `Space` activate the focused button, and focus starts on the cancel button. Closing returns focus to the trigger.
+Buttons placed straight in the sheet line up as its action row.
 
-### Parts
+### Style it once
 
-| Part | Host | Role | What it does |
-| --- | --- | --- | --- |
-| `Confirm` | `div` | — | Holds `open`, the identifier namespace, and the two decision events. |
-| `ConfirmTrigger` | `button` | — | Opens the panel. |
-| `ConfirmPanel` | `div` | `alertdialog` | The always-modal container. Carries `aria-modal="true"`, naming, and `hidden` while closed. |
-| `ConfirmTitle` | `div` | — | Names the decision. |
-| `ConfirmDescription` | `div` | — | Explains what the decision commits. |
-| `ConfirmCancel` | `button` | — | Declines and closes. Receives focus when the panel opens. |
-| `ConfirmAction` | `button` | — | Commits and closes. |
+`size` and `color` on `Confirm` reach the ask button and the yes; the no keeps its quieter look. See [Style a composite once](/docs/theming#style-a-composite-once).
 
 ### Properties
 
+`Confirm`:
+
 | Prop | Type | Default | Notes |
 | --- | --- | --- | --- |
-| `id` | `string` | `confirm-<n>` | The prefix every part's identifier derives from. Generated when omitted. |
-| `open` | `Bindable<boolean>` | `false` | Whether the panel is showing. Bind it to open the decision from code. |
-| `onconfirm` | `(event: CustomEvent<void>) => void` | — | Called when the action commits. `preventDefault()` keeps the panel open. |
-| `oncancel` | `(event: CustomEvent<void>) => void` | — | Called when the cancel button declines. `preventDefault()` keeps the panel open. |
-| `onopen` / `onclose` | `(event: CustomEvent<void>) => void` | — | Called once per visibility change. |
+| `title` | `string` | — | Renders the question for you, headed by this title. |
+| `label` | `string` | — | Text of the button that asks. Omit it to ask from code. |
+| `description` | `string` | — | What the yes commits, under the title. |
+| `actionLabel` | `string` | — | The yes. |
+| `cancelLabel` | `string` | — | The no; it receives focus first. |
+| `onconfirm` / `oncancel` | `(event: CustomEvent<void>) => void` | — | Called on each answer; `preventDefault()` keeps the question open. |
+| `open` | `Bindable<boolean>` | `false` | Whether the question is showing. |
+| `onopen` / `onclose` | `(event: CustomEvent<void>) => void` | — | Called after it opens or closes. |
+| `size` / `color` / `variant` | shared vocabulary | `md` / `primary` / `filled` | Reach the ask button and the yes. |
 | `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
-| `children` | `ReactNode` | — | The trigger and the panel. |
-| `ref` | `Ref<HTMLDivElement>` | — | Access to the confirm root element. |
+| `children` | `ReactNode` | — | Extra content with `title`; the parts without it. |
 
-The confirm is always modal and never dismissable — there is no prop to change either. `ConfirmTrigger`, `ConfirmCancel`, and `ConfirmAction` take `disabled` and `className`; the panel takes a `ref`.
+Slot (with `title`): `trigger()` for the ask button's content.
 
-Your own classes are added next to the built-in ones:
+Parts: `ConfirmTrigger`, `ConfirmPanel`, `ConfirmTitle`, `ConfirmDescription`, `ConfirmCancel`, `ConfirmAction`. Each takes `className` and the style props; the buttons also take `disabled`.
 
-```tsx
-// class="aui-confirm my-decision"
-<Confirm className="my-decision">
-  <ConfirmTrigger>Delete project</ConfirmTrigger>
-  <ConfirmPanel className="my-panel">
-    <ConfirmTitle>Delete project?</ConfirmTitle>
-    <ConfirmAction>Delete</ConfirmAction>
-  </ConfirmPanel>
-</Confirm>
-```
+### Keyboard
 
-To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+- Focus starts on the no.
+- `Tab` and `Shift + Tab` stay inside the question.
+- `Escape` and clicks outside do nothing: only the two answers close it.
+- Focus returns to the ask button when it closes.
 
 ## Next Steps
 
-- [Dialog](/docs/widgets/dialog) — The dismissable overlay this composite is built on.
-- [Popover](/docs/widgets/popover) — A lighter panel for content that does not need a decision.
-- [Menu](/docs/widgets/menu) — Commands that act immediately, without a confirmation step.
-- [Button](/docs/widgets/button) — The trigger and the two decision buttons in disguise.
+- [Dialog](/docs/widgets/dialog) — A sheet for input or detail that can be dismissed.
+- [Toast](/docs/widgets/toast) — Confirm that the action went through.
+- [Button](/docs/widgets/button) — The action itself, when it doesn't need a question.

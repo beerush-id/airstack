@@ -2,35 +2,31 @@
 title: AUI Field
 nav: Field
 nav-priority: 210
-description: Namespace tying label, control, helper text, and failure into one unit.
+description: A form field with a visible label, a control, help text, and an error message that connect themselves for screen readers — the error waits until the user has interacted with the field.
+keywords: [React form field, React label input error, accessible form field, form validation message React, input helper text]
 ---
 
 # AUI Field
 
-A field ties a label, a control, helper text, and a failure message into one unit. It derives every part address from a single namespace, holds the failure back until the field has been touched, and keeps helper text and the failure on separate channels — falling back to the control's own rule when you pass none.
-
-Styling is optional. Without AUI CSS the Field stays a correct, wired namespace; with it, the same markup gets the AUI treatment.
+Every form field needs the same four pieces — a label, the control, a hint, and an error — connected so a screen reader reads the label and the hint with the control, and announces the error when it appears. Wiring that by hand means inventing ids and `aria-describedby` lists for every field. Field connects the pieces for you, and holds the error back until the user has actually touched the field, so nobody sees "Required" before typing a letter.
 
 :::interactive[Field demo]
 
 ```tsx
 import { Field, FieldControl, FieldDescription, FieldError, FieldLabel, Toggle } from '@airlib/react-aui';
 import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { DemoControl } from '@/components/DemoControl.js';
 
 const FieldDemo = setup(() => {
-  const state = mutable({ value: '', touched: false, invalid: true });
+  const state = mutable({ value: '', touched: false, size: 'md', color: 'primary', disabled: false });
 
   return () => (
     <div className="demo-button">
-      <div className="flex gap-xs w-full">
-        <div className="flex-1"></div>
+      <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} disabled={$bind(state, 'disabled')}>
         <Toggle size="sm" pressed={$bind(state, 'touched')}>
           {() => (state.touched ? 'Touched' : 'Untouched')}
         </Toggle>
-        <Toggle size="sm" pressed={$bind(state, 'invalid')}>
-          {() => (state.invalid ? 'Invalid' : 'Valid')}
-        </Toggle>
-      </div>
+      </DemoControl>
       <div className="aui-card flex flex-col gap-lg justify-center p-xl">
         <Snippet>
           {() => (
@@ -39,7 +35,10 @@ const FieldDemo = setup(() => {
               required
               value={$bind(state, 'value')}
               touched={$bind(state, 'touched')}
-              invalid={$bind(state, 'invalid')}
+              invalid={!state.value.includes('@')}
+              size={state.size}
+              color={state.color}
+              disabled={state.disabled}
             >
               <FieldLabel>Work email</FieldLabel>
               <FieldControl />
@@ -48,7 +47,7 @@ const FieldDemo = setup(() => {
             </Field>
           )}
         </Snippet>
-        <span>Value: {state.value || '—'}</span>
+        <Snippet>{() => <span>Value: {state.value || '—'}</span>}</Snippet>
       </div>
     </div>
   );
@@ -65,13 +64,15 @@ const FieldDemo = setup(() => {
 
 ## Usage
 
-Put the value and rules on `Field`; the parts wire by namespace. The control reads its id, disabled, required, and invalid state from the enclosing field:
+### A labelled field
+
+Put the pieces inside `Field`. They find each other: the label points at the control, and the hint and the error are read with it:
 
 ```tsx
 import { Field, FieldControl, FieldDescription, FieldError, FieldLabel } from '@airlib/react-aui';
 import '@airlib/aui/components/widgets/field.css';
 
-export const Email = () => (
+export const EmailField = () => (
   <Field placeholder="you@example.com" required>
     <FieldLabel>Work email</FieldLabel>
     <FieldControl />
@@ -81,61 +82,71 @@ export const Email = () => (
 );
 ```
 
-Bind the live value and drive validation from your own rule. The failure shows once the field is both touched and invalid; before that, only the description announces:
+Leave out any piece you don't need; a field with only a label and a control is fine. The field's `placeholder`, `required`, and `disabled` reach the control.
+
+### Bind and validate
+
+Bind the value, and decide validity with your own rule. The error stays hidden until the field is both touched and invalid; until then only the hint is read:
 
 ```tsx
 import { $bind, mutable, setup } from '@airlib/react';
 import { Field, FieldControl, FieldError, FieldLabel } from '@airlib/react-aui';
 
-const Email = setup(() => {
-  const state = mutable({ value: '', touched: false });
+const SignIn = setup(() => {
+  const form = mutable({ email: '', touched: false });
 
   return () => (
-    <Field
-      value={$bind(state, 'value')}
-      touched={$bind(state, 'touched')}
-      invalid={state.value.indexOf('@') < 0}
-    >
+    <Field value={$bind(form, 'email')} touched={$bind(form, 'touched')} invalid={!form.email.includes('@')}>
       <FieldLabel>Work email</FieldLabel>
       <FieldControl />
       <FieldError>Enter a valid email address.</FieldError>
     </Field>
   );
-}, 'Email');
+}, 'SignIn');
 ```
+
+Binding `touched` lets you mark every field touched on submit, so all errors show at once.
+
+### Style it once
+
+`size`, `color`, and `variant` (`filled`, `tonal`, `outlined`) on the Field reach its control; the label and messages keep the text styles. See [Style a composite once](/docs/theming#style-a-composite-once).
 
 ### Properties
 
+#### Field
+
 | Prop | Type | Default | Notes |
 | --- | --- | --- | --- |
-| `id` | `string` | auto | Field namespace. Every part address derives from it. |
-| `type` | `string` | `'text'` | Control type the field reports to its parts. |
-| `value` | `Bindable<string \| number>` | — | Live field value. The controller writes it back on input. |
-| `placeholder` | `string` | — | Hint forwarded to the control. |
-| `required` | `boolean` | `false` | Requirement flag inherited by the control. |
-| `disabled` | `boolean` | `false` | Locks the whole field; inherited by the control. |
-| `invalid` | `Bindable<boolean>` | `false` | Failure flag. The controller writes it back from validation. |
-| `touched` | `Bindable<boolean>` | `false` | Interaction flag gating the failure channel. |
-| `invalidMessages` | `Bindable<string \| string[]>` | — | Failure text backing the error part. |
-| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
-| `ref` | `Ref<HTMLDivElement>` | — | Access to the underlying namespace element. |
+| `value` | `Bindable<string \| number>` | — | The control's value, kept in sync both ways. |
+| `type` | `string` | `'text'` | The control's input type. |
+| `placeholder` | `string` | — | Hint shown in the empty control. |
+| `required` | `boolean` | `false` | Announced as required. |
+| `disabled` | `boolean` | `false` | Locks the control. |
+| `invalid` | `Bindable<boolean>` | `false` | Marks the field invalid; the error shows once it is also touched. |
+| `touched` | `Bindable<boolean>` | `false` | Whether the user has interacted with the field. |
+| `invalidMessages` | `Bindable<string \| string[]>` | — | Error text to show when you don't render your own in `FieldError`. |
+| `id` | `string` | generated | Base id for the pieces, if you need a stable one. |
+| `size` | `xs`–`xxl` | `'md'` | Reaches the control. |
+| `variant` | `filled`, `tonal`, `outlined` | `'filled'` | |
+| `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | |
+| `oninput` | `(event: CustomEvent<string \| number>) => void` | — | Every edit of the control. |
+| `className` | `string` | — | Added next to the built-in classes, or replaces them with [`overrides`](/docs/theming#overrides). |
 
-Parts: `FieldLabel` (wired by `for`), `FieldControl` (id, disabled, required, invalid from the namespace), `FieldDescription` (helper channel), `FieldError` (failure channel, shown once touched and invalid).
+#### The pieces
 
-Your own classes are added next to the built-in ones:
+| Part | Renders | Notes |
+| --- | --- | --- |
+| `FieldLabel` | `label` | The visible name, tied to the control. |
+| `FieldControl` | `input` | Takes any `input` attribute; its own `size`, `color`, or `variant` wins over the Field's. |
+| `FieldDescription` | `span` | Help text, always read with the control. |
+| `FieldError` | `span` | The error, shown and announced once the field is touched and invalid. |
 
-```tsx
-// class="aui-field my-field"
-<Field placeholder="Email" className="my-field">
-  <FieldLabel>Email</FieldLabel>
-  <FieldControl />
-</Field>
-```
+## Keyboard
 
-To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+The control is the only focusable piece; typing and selection are the browser's own. Clicking the label focuses the control.
 
 ## Next Steps
 
-- [Text Input](/docs/widgets/text-input) — A live string control to place inside a field.
-- [Number Stepper](/docs/widgets/number-stepper) — A clamped number inside a field.
-- [Select](/docs/widgets/select) — A coordinated listbox value inside a field.
+- [Text Input](/docs/widgets/text-input) — A standalone text field bound to your state.
+- [Number Stepper](/docs/widgets/number-stepper) — A number field that stays within bounds.
+- [Select](/docs/widgets/select) — Pick a value from a list.

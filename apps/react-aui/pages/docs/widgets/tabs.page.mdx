@@ -2,57 +2,72 @@
 title: AUI Tabs
 nav: Tabs
 nav-priority: 310
-description: Tabbed interface with strip, triggers, and panels — single tab stop, arrow-key travel, one panel at a time.
+description: Show one of several panels at a time behind a strip of tabs — pass the tab names and the panel content, and get keyboard travel, screen-reader pairing, and a gliding selection.
+keywords: [React tabs, accessible tabs, tab panel React, tabbed interface, ARIA tabs, settings tabs]
 ---
 
 # AUI Tabs
 
-A tabbed interface shows one panel at a time behind a strip of triggers: account, security, and notification settings. Getting it right means linking every trigger to its panel, keeping the strip at a single tab stop, letting the arrow keys move focus without swapping panels, and telling your code when the selection changes.
+Settings pages, product details, dashboards: when several panels share one spot and people look at one at a time, you need tabs. Building them by hand means pairing every tab with its panel for screen readers, keeping the strip to a single stop in the tab order, moving between tabs with the arrow keys without swapping panels behind the reader's back, and making sure one tab is always open.
 
-**AUI Tabs** does all of that for you, and leaves the markup and the styling entirely yours. One tab is always open: clicking the tab that is already open changes nothing and fires no event, so the group can never end up empty.
-
-Styling is optional. Without AUI CSS the Tabs stay a correct, operable group; with it, the same markup gets the AUI treatment through the full library.
+**AUI Tabs** does all of that. Give it the tab names and what each panel shows, bind the open tab to your state if you need it, and it renders the strip, the panels, and the selection that glides from tab to tab.
 
 :::interactive[Tabs demo]
 
 ```tsx
-import { TabButton, TabList, TabPanel, Tabs, Toggle } from '@airlib/react-aui';
+import { Tabs, Toggle } from '@airlib/react-aui';
 import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { DemoControl } from '@/components/DemoControl.js';
+
+const SECTIONS = { account: 'Account', security: 'Security', notifications: 'Notifications' };
+
+const PANELS = {
+  account: 'Personal details, email, and profile settings.',
+  security: 'Two-factor authentication and security keys.',
+  notifications: 'Which email and in-app alerts you receive.',
+};
 
 const TabsDemo = setup(() => {
-  const state = mutable({ current: 'account', vertical: false, disabled: false });
+  const state = mutable({
+    current: 'account',
+    size: 'md',
+    color: 'primary',
+    variant: 'filled',
+    vertical: false,
+    disabled: false,
+  });
 
   return () => (
     <div className="demo-button">
-      <div className="flex gap-xs w-full">
-        <div className="flex-1"></div>
+      <DemoControl
+        size={$bind(state, 'size')}
+        color={$bind(state, 'color')}
+        variant={$bind(state, 'variant')}
+        disabled={$bind(state, 'disabled')}
+      >
         <Toggle size="sm" pressed={$bind(state, 'vertical')}>
-          {() => (state.vertical ? 'Vertical strip' : 'Horizontal strip')}
+          {() => (state.vertical ? 'Vertical' : 'Horizontal')}
         </Toggle>
-        <Toggle size="sm" pressed={$bind(state, 'disabled')}>
-          {() => (state.disabled ? 'Set Enabled' : 'Set Disabled')}
-        </Toggle>
-      </div>
-      <div className="aui-card flex gap-md items-center justify-center p-xl">
+      </DemoControl>
+      <div className="aui-card flex p-xl">
         <Snippet>
           {() => (
             <Tabs
+              label="Account settings"
+              items={SECTIONS}
               value={$bind(state, 'current')}
               orientation={state.vertical ? 'vertical' : 'horizontal'}
+              size={state.size}
+              color={state.color}
+              variant={state.variant}
               disabled={state.disabled}
             >
-              <TabList label="Account settings">
-                <TabButton name="account">Account</TabButton>
-                <TabButton name="security">Security</TabButton>
-                <TabButton name="notifications">Notifications</TabButton>
-              </TabList>
-              <TabPanel name="account">Personal details, email, and profile settings.</TabPanel>
-              <TabPanel name="security">Two-factor authentication and security keys.</TabPanel>
-              <TabPanel name="notifications">Which email and in-app alerts you receive.</TabPanel>
+              <Tabs.Snippet for="panel">{(entry) => PANELS[entry.name]}</Tabs.Snippet>
             </Tabs>
           )}
         </Snippet>
       </div>
+      <Snippet>{() => <span>Open tab: {state.current}</span>}</Snippet>
     </div>
   );
 }, 'TabsDemo');
@@ -68,82 +83,124 @@ const TabsDemo = setup(() => {
 
 ## Usage
 
-The group as a whole holds which tab is open, and the strip, the triggers, and the panels all follow it. The group is an ordinary container with no meaning of its own, so the panels don't have to live inside it — your layout stays yours:
+### From a list of tabs
+
+When the tabs are known up front, pass them as `items` and fill each panel through the `panel` slot. Each entry's key is the tab's name; its value is the text on the tab:
 
 ```tsx
-import { TabButton, TabList, TabPanel, Tabs } from '@airlib/react-aui';
+import { Tabs } from '@airlib/react-aui';
 import '@airlib/aui/components/widgets/tabs.css';
 
-export const AccountSettings = () => (
-  <Tabs value="account">
-    <TabList label="Account settings">
-      <TabButton name="account">Account</TabButton>
-      <TabButton name="security">Security</TabButton>
-    </TabList>
-    <TabPanel name="account">Personal details, email, and profile settings.</TabPanel>
-    <TabPanel name="security">Two-factor authentication and security keys.</TabPanel>
+const SECTIONS = { account: 'Account', security: 'Security', billing: 'Billing' };
+
+export const SettingsTabs = () => (
+  <Tabs label="Settings" items={SECTIONS}>
+    <Tabs.Snippet for="panel">
+      {(entry) => <SettingsSection section={entry.name} />}
+    </Tabs.Snippet>
   </Tabs>
 );
 ```
 
-For the full library — tokens, base defaults, every component, and the utilities — load `import '@airlib/aui';` instead. A lone component stylesheet carries only that component's rules.
-
-Give each trigger the same `name` as its panel and the two link both ways, so renaming one can't orphan the other. Name the strip with `label` so two tab groups on one page stay distinguishable to screen readers:
+The first tab opens by default. Bind `value` when the rest of your screen needs to know which tab is open, or to open one from elsewhere — a deep link, a "Go to billing" button:
 
 ```tsx
-<TabList label="Account settings">
-  <TabButton name="account">Account</TabButton>
-</TabList>
-```
-
-The strip runs horizontally until `orientation` says otherwise — which arrow keys move through it, and what screen readers are told:
-
-```tsx
-<Tabs orientation="vertical">
-  {/* ArrowDown / ArrowUp travel the strip */}
+<Tabs label="Settings" items={SECTIONS} value={$bind(page, 'section')}>
+  …
 </Tabs>
 ```
 
-Leave `value` out and the group keeps its own selection; set it and the group follows your state. Bind it to drive the selection from outside — switching is cancellable by calling `preventDefault` on the click:
+Pass full entries instead of a map when a tab needs to be disabled:
 
 ```tsx
-import { $bind, mutable } from '@airlib/react';
+const SECTIONS = [
+  { name: 'account', label: 'Account' },
+  { name: 'billing', label: 'Billing', disabled: true },
+];
+```
 
-const state = mutable({ current: 'account' });
+### Custom tab content
 
-<Tabs value={$bind(state, 'current')}>
-  {/* ... */}
+When a tab needs more than text — an icon, an unread count — supply it through the `tab` slot. The tab keeps its behavior and selection; you decide what renders inside it:
+
+```tsx
+<Tabs label="Inbox" items={FOLDERS}>
+  <Tabs.Snippet for="tab">
+    {(entry) => (
+      <>
+        {entry.label} <span className="count">{unread[entry.name]}</span>
+      </>
+    )}
+  </Tabs.Snippet>
+  <Tabs.Snippet for="panel">{(entry) => <MessageList folder={entry.name} />}</Tabs.Snippet>
 </Tabs>
 ```
+
+### Building from parts
+
+When the strip and the panels are not next to each other — the strip in a toolbar, the panels in the page body — or each panel is long, hand-written markup, compose the parts. A tab and its panel find each other by a shared `name`:
+
+```tsx
+import { TabButton, TabList, TabPanel, Tabs } from '@airlib/react-aui';
+
+<Tabs value={$bind(page, 'section')}>
+  <TabList label="Account settings">
+    <TabButton name="account">Account</TabButton>
+    <TabButton name="security">Security</TabButton>
+  </TabList>
+  <TabPanel name="account">
+    <ProfileForm />
+  </TabPanel>
+  <TabPanel name="security">
+    <SecurityKeys />
+  </TabPanel>
+</Tabs>
+```
+
+### Style it once
+
+`size`, `color`, and `variant` on `Tabs` reach the strip and every tab; a tab's own prop still wins. See [Theming](/docs/theming#style-a-composite-once).
+
+The variant decides how the open tab stands out as the selection glides between tabs: `filled` fills it with the color, `tonal` tints it, `outlined` rings it, `elevated` lifts it off the strip, and `text` drops the strip for a sliding underline.
 
 ### Properties
 
+`Tabs`:
+
 | Prop | Type | Default | Notes |
 | --- | --- | --- | --- |
-| `id` | `string` | `tab-<n>` | The prefix both sides of the pairing are built from. Generated when you leave it out. |
-| `value` | `Bindable<string>` | — | The `name` of the open tab. When you leave it out, a button with `selected` takes it, otherwise the first button to mount does. Bind it to read and write the selection from outside. |
-| `orientation` | `'horizontal' \| 'vertical'` | `'horizontal'` | Whether the strip runs across or down — which arrow keys move through it, and what screen readers are told. |
-| `disabled` | `boolean` | `false` | Locks switching and arrow keys across the whole group. |
-| `onchange` | `(event: CustomEvent<string>) => void` | — | Fires when a different tab opens, with the new tab's `name` in `detail`. |
+| `items` | `Record<string, string>` or `Array<{ name, label?, disabled? }>` | — | The tabs to render. Leave it out to compose the parts yourself. |
+| `label` | `string` | — | The strip's name for screen readers. Give one whenever the page has more than one tab strip. |
+| `value` | `Bindable<string>` | first tab | The `name` of the open tab. Bind it to read or change the open tab from outside. |
+| `orientation` | `'horizontal'`, `'vertical'` | `'horizontal'` | Whether the strip runs across or down, and which arrow keys travel it. |
+| `disabled` | `boolean` | `false` | Locks switching across the whole group. |
+| `size` | `xs`–`xxl` | `'md'` | Reaches the strip and every tab. |
+| `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | The color of the open tab. |
+| `variant` | `filled`, `tonal`, `outlined`, `elevated`, `text` | `'filled'` | How the open tab stands out. |
+| `onchange` | `(event: CustomEvent<string>) => void` | — | A different tab opened; `detail` is its `name`. Use it to save or track the choice. |
 | `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
-| `children` | `ReactNode` | — | The strip, triggers, and panels linked by matching `name` values. |
-| `ref` | `Ref<HTMLDivElement>` | — | Access to the tabs root element. |
 
-Each trigger is a native `button` announced as a tab, open or not, together with the panel it opens. The arrows move focus only — `Enter`, `Space`, or a click is what switches the panel. Disabled triggers are skipped by arrow travel, and a group disabled at the top doesn't move at all.
+Slots, used with `items`:
 
-Your own classes are added next to the built-in ones:
+| Slot | Receives | Renders |
+| --- | --- | --- |
+| `panel` | the entry (`name`, `label`) | The content of that tab's panel. |
+| `tab` | the entry (`name`, `label`) | What the tab itself shows, in place of its label. |
 
-```tsx
-// class="aui-tab my-settings"
-<Tabs className="my-settings">
-  {/* ... */}
-</Tabs>
-```
+Parts, used without `items`:
 
-To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+| Part | Props | Notes |
+| --- | --- | --- |
+| `TabList` | `label`, `labelledby` | The strip. Name it so screen readers can tell strips apart. |
+| `TabButton` | `name` (required), `disabled`, `selected` | One tab. `selected` opens it first when `value` is not set. |
+| `TabPanel` | `name` (required) | The content shown while the tab with the same `name` is open. |
+
+Set app-wide defaults once with `configure({ tabButton: { variant: 'tonal' } })`.
+
+Keyboard: `Tab` lands on the open tab and leaves the strip on the next press. The arrow keys move between tabs (`Left`/`Right` across, `Up`/`Down` down a vertical strip) without changing the open panel; `Home` and `End` jump to the first and last tab; `Enter` or `Space` opens the focused tab. Disabled tabs are skipped. One tab is always open: activating the open tab changes nothing and fires no event.
 
 ## Next Steps
 
-- [Disclosure](/docs/widgets/disclosure) — The single-section collapsible for content that hides instead of swaps.
-- [Accordion](/docs/widgets/accordion) — Stacked collapsibles where several sections can stay open.
-- [Divider](/docs/widgets/divider) — The static structural rule that stays out of the tab order.
+- [Accordion](/docs/widgets/accordion) — Stacked sections that open and close, where several can stay open at once.
+- [Disclosure](/docs/widgets/disclosure) — One section that shows and hides.
+- [Navigation](/docs/widgets/navigation) — When each "tab" is really a separate page with its own address.

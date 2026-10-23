@@ -39,12 +39,16 @@ const ImageDemo = setup(() => {
         </Toggle>
       </div>
       <div className="aui-card flex gap-lg items-center p-xl">
-        <Image
-          src={state.broken ? '/missing.png' : avatar.src}
-          alt="Signed-in member"
-          color={state.color || undefined}
-          onchange={(event) => (state.status = event.detail)}
-        />
+        <Snippet>
+          {() => (
+            <Image
+              src={state.broken ? '/missing.png' : avatar.src}
+              alt="Signed-in member"
+              color={state.color || undefined}
+              onchange={(event) => (state.status = event.detail)}
+            />
+          )}
+        </Snippet>
         <span>Status:&nbsp;<Snippet>{() => <strong>{IMAGE_STATUS_LABELS[state.status]}</strong>}</Snippet></span>
       </div>
     </div>

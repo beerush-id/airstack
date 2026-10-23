@@ -1,16 +1,16 @@
+@import './item.css';
+
+/*
+ * A tree node is one `<li>` holding its row and its nested group, so the
+ * node itself is a grid: row 1 is the toggle plus the label, row 2 the group.
+ * The row surface is painted by `::before` on row 1 only, so selecting a
+ * branch never floods its children. Size and color come from the item scale.
+ */
 @layer theme {
   :root {
-    --aui-tree-radius: var(--radius-md);
-    --aui-tree-outline: var(--color-outline-variant);
-    --aui-tree-gap: calc(var(--spacing) * 0.5);
-    --aui-tree-padding: var(--spacing-xs);
-    --aui-tree-item-padding-block: calc(var(--spacing) * 1.5);
-    --aui-tree-item-padding-inline: calc(var(--spacing) * 2.5);
-    --aui-tree-glyph-gap: calc(var(--spacing) * 2);
-    --aui-tree-hover-bg: color-mix(in oklch, var(--color-on-surface) 8%, var(--color-surface));
-    --aui-tree-selected-bg: var(--color-primary);
-    --aui-tree-selected-fg: var(--color-on-primary);
-    --aui-tree-glyph-fg: var(--color-on-surface-variant);
+    --aui-tree-gap: 2px;
+    --aui-tree-indent: calc(var(--spacing) * 5);
+    --aui-tree-toggle-size: calc(var(--spacing) * 7);
   }
 }
 
@@ -26,20 +26,12 @@
   }
 
   .aui-tree {
-    padding: var(--aui-tree-padding);
-    border: 1px solid var(--aui-tree-outline);
-    border-radius: var(--aui-tree-radius);
-    background: var(--color-surface);
     color: var(--color-on-surface);
-
-    &:focus-visible {
-      outline: var(--focus-ring-width) var(--focus-ring-style) var(--focus-ring-color);
-      outline-offset: var(--focus-ring-offset);
-    }
+    outline: none;
   }
 
   .aui-tree-group {
-    margin-block-start: var(--aui-tree-gap);
+    padding-inline-start: var(--aui-tree-indent);
 
     &[hidden] {
       display: none;
@@ -47,75 +39,84 @@
   }
 
   .aui-tree-item {
-    position: relative;
-    padding: var(--aui-tree-item-padding-block) var(--aui-tree-item-padding-inline);
-    padding-inline-start: calc(
-      var(--aui-tree-item-padding-inline) +
-      var(--aui-tree-glyph-gap) +
-      var(--spacing)
-    );
-    border-radius: var(--radius-xs);
-    color: inherit;
+    display: grid;
+    grid-template-columns: var(--aui-tree-toggle-size) minmax(0, 1fr);
+    align-items: center;
+    row-gap: var(--aui-tree-gap);
+    list-style: none;
+    isolation: isolate;
     cursor: pointer;
-    transition-property: background-color, color;
-    transition-duration: var(--duration-short);
-    transition-timing-function: var(--ease-emphasized);
+    user-select: none;
+    outline: none;
 
-    &[aria-expanded]::before {
+    &::before {
       content: '';
-      position: absolute;
-      inset-block-start: calc(var(--aui-tree-item-padding-block) + var(--spacing) * 0.5);
-      inset-inline-start: var(--aui-tree-item-padding-inline);
-      inline-size: calc(var(--spacing) * 1.5);
-      block-size: calc(var(--spacing) * 1.5);
-      border-inline-end: 2px solid var(--aui-tree-glyph-fg);
-      border-block-end: 2px solid var(--aui-tree-glyph-fg);
-      transform: rotate(-45deg);
+      grid-row: 1;
+      grid-column: 1 / -1;
+      align-self: stretch;
+      z-index: -1;
+      border-radius: var(--aui-item-radius);
+      outline: var(--focus-ring-width) var(--focus-ring-style) transparent;
+      outline-offset: calc(var(--focus-ring-offset) * -1);
+      transition-property: background-color, outline-color;
+      transition-duration: var(--duration-short);
+      transition-timing-function: var(--ease-emphasized);
+    }
+
+    & > .aui-tree-toggle {
+      grid-row: 1;
+      grid-column: 1;
+      justify-self: center;
+      visibility: hidden;
+      color: var(--color-on-surface-variant);
       transition: transform var(--duration-short) var(--ease-emphasized);
     }
 
-    &[aria-expanded='true']::before {
-      transform: rotate(45deg);
+    & > :not(.aui-tree-toggle, .aui-tree-group) {
+      grid-row: 1;
+      grid-column: 2;
+      display: flex;
+      align-items: center;
+      gap: var(--aui-control-gap);
+      min-block-size: var(--aui-control-height);
+      padding-inline-end: var(--spacing-sm);
     }
 
-    &:hover:not([aria-selected='true']):not([aria-disabled='true']) {
-      background-color: var(--aui-tree-hover-bg);
+    & > .aui-tree-group {
+      grid-row: 2;
+      grid-column: 1 / -1;
     }
 
-    &:active:not([aria-selected='true']):not([aria-disabled='true']) {
-      background-color: color-mix(in oklch, var(--color-on-surface) 12%, var(--color-surface));
+    &[aria-expanded] > .aui-tree-toggle {
+      visibility: visible;
     }
 
-    &:focus-visible {
-      z-index: 1;
-      outline: var(--focus-ring-width) var(--focus-ring-style) var(--focus-ring-color);
-      outline-offset: calc(var(--focus-ring-offset) * -1);
+    &[aria-expanded='true'] > .aui-tree-toggle {
+      transform: rotate(90deg);
     }
 
-    &[aria-selected='true'] {
-      background-color: var(--aui-tree-selected-bg);
-      color: var(--aui-tree-selected-fg);
-      font-weight: 600;
+    /* Hovering a child must not light up every ancestor row. */
+    &:hover:not(:has(.aui-tree-group:hover), [aria-selected='true'], [aria-disabled='true'])::before {
+      background-color: color-mix(in oklch, var(--aui-item-bg) var(--tone-hover-strength), transparent);
     }
 
-    &[aria-selected='true']:hover:not([aria-disabled='true']) {
-      background-color: color-mix(
-        in oklch,
-        var(--aui-tree-selected-bg) 88%,
-        var(--color-on-primary)
-      );
+    &:focus-visible::before {
+      outline-color: color-mix(in oklch, var(--focus-ring-color) 75%, var(--light-up));
+    }
+
+    &[aria-selected='true']::before {
+      background-color: var(--aui-item-bg);
+    }
+
+    &[aria-selected='true'] > :not(.aui-tree-group) {
+      color: var(--aui-item-fg);
     }
 
     &[aria-disabled='true'] {
-      color: var(--color-disabled-fg);
       cursor: not-allowed;
 
-      &::before {
-        opacity: 0.4;
-      }
-
-      &:hover {
-        background-color: transparent;
+      & > :not(.aui-tree-group) {
+        color: var(--color-disabled-fg);
       }
     }
   }

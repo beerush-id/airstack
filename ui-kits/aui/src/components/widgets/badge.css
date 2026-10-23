@@ -1,0 +1,102 @@
+@import './item.css';
+
+/*
+ * A short label or a count, sized from the shared scale (half a control's
+ * height) and colored from its role. `filled` is the role fill, `tonal` a
+ * container tint. Placed inside an element, a count or dot pins to its corner,
+ * ringed in the surface color so it reads cleanly over the element's edge.
+ */
+@layer theme {
+  :root {
+    --aui-badge-ring: var(--color-surface);
+  }
+}
+
+@layer component {
+  .aui-badge {
+    --aui-badge-height: calc(var(--aui-control-height) * 0.5);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    box-sizing: border-box;
+    min-inline-size: var(--aui-badge-height);
+    block-size: var(--aui-badge-height);
+    padding-inline: calc(var(--aui-badge-height) * 0.35);
+    border-radius: var(--radius-full);
+    background-color: var(--aui-item-bg);
+    color: var(--aui-item-fg);
+    font-family: var(--font-sans);
+    font-size: calc(var(--aui-badge-height) * 0.6);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    letter-spacing: normal;
+    white-space: nowrap;
+  }
+
+  .aui-badge-tonal {
+    background-color: color-mix(in oklch, var(--aui-item-bg) var(--tone-container-strength), var(--color-surface));
+    color: var(--aui-item-bg);
+  }
+
+  /* The element a count or dot sits in becomes its corner's reference. */
+  :where(:has(> .aui-badge-indicator)) {
+    position: relative;
+  }
+
+  /*
+   * A pressed control clips its spreading ripple, which would cut the badge
+   * off its corner. A control carrying a badge stays unclipped and shows a
+   * flat pressed tint instead.
+   */
+  :is(.aui-control, .aui-item, .aui-state-layer):has(> .aui-badge-indicator):active {
+    overflow: visible;
+
+    &::after {
+      animation: none;
+      opacity: var(--tone-pressed-strength);
+    }
+  }
+
+  .aui-badge-indicator {
+    position: absolute;
+    z-index: 1;
+    inset-block-start: 0;
+    inset-inline-end: 0;
+    translate: 35% -35%;
+    box-shadow: 0 0 0 2px var(--aui-badge-ring);
+    pointer-events: none;
+
+    &[data-position='bottom-end'] {
+      inset-block-start: auto;
+      inset-block-end: 0;
+      translate: 35% 35%;
+    }
+  }
+
+  /* A dot carries no text: a third of a badge, centred on the corner. */
+  .aui-badge-dot {
+    --aui-badge-height: calc(var(--aui-control-height) * 0.22);
+    min-inline-size: 0;
+    inline-size: var(--aui-badge-height);
+    padding: 0;
+    translate: 0 0;
+
+    &[data-position='bottom-end'] {
+      translate: 0 0;
+    }
+  }
+
+  /* What a count or dot means, kept for screen readers only. */
+  .aui-badge-label {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}

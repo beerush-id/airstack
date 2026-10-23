@@ -1,10 +1,17 @@
+@import './button.css';
+
+/*
+ * Neutral by default: an inverse snackbar whose actions read in the inverse
+ * primary. A role color swaps the surface for that role's container.
+ */
 @layer theme {
   :root {
-    --aui-toast-bg: var(--color-surface-container-high);
-    --aui-toast-fg: var(--color-on-surface);
-    --aui-toast-radius: var(--radius-lg);
-    --aui-toast-padding-block: var(--spacing-md);
-    --aui-toast-padding-inline: var(--spacing-lg);
+    --aui-toast-bg: var(--color-inverse-surface);
+    --aui-toast-fg: var(--color-inverse-on-surface);
+    --aui-toast-action: var(--color-inverse-primary);
+    --aui-toast-radius: var(--radius-md);
+    --aui-toast-padding-block: var(--spacing-sm);
+    --aui-toast-padding-inline: var(--spacing-md);
     --aui-toast-gap: var(--spacing-sm);
     --aui-toast-min-width: calc(var(--spacing) * 72);
     --aui-toast-max-width: calc(var(--spacing) * 110);
@@ -12,7 +19,7 @@
 }
 
 @layer component {
-  @keyframes toast-enter {
+  @keyframes aui-toast-enter {
     from {
       transform: translateY(calc(var(--spacing) * 4));
       opacity: 0;
@@ -27,25 +34,87 @@
     display: flex;
     align-items: center;
     gap: var(--aui-toast-gap);
-    min-inline-size: var(--aui-toast-min-width);
+    min-inline-size: min(var(--aui-toast-min-width), 100%);
     max-inline-size: min(var(--aui-toast-max-width), calc(100dvi - (var(--spacing-lg) * 2)));
+    min-block-size: calc(var(--spacing) * 12);
     padding-block: var(--aui-toast-padding-block);
     padding-inline: var(--aui-toast-padding-inline);
     background-color: var(--aui-toast-bg);
     color: var(--aui-toast-fg);
-    border: 1px solid var(--color-outline-variant);
     border-radius: var(--aui-toast-radius);
     box-shadow: var(--elevation-3);
-    animation: toast-enter var(--duration-medium) var(--ease-emphasized-decelerate) both;
+    font-size: var(--font-label-lg-size);
+    line-height: var(--font-label-lg-line-height);
+    letter-spacing: var(--font-label-lg-tracking);
+    animation: aui-toast-enter var(--duration-medium) var(--ease-emphasized-decelerate) both;
+  }
 
-    &[role='alert'] {
-      --aui-toast-bg: var(--color-error-container);
-      --aui-toast-fg: var(--color-on-error-container);
-      border-color: color-mix(in oklch, var(--color-error) 40%, transparent);
-    }
+  /* Zero specificity: the close button reads in the toast's action color unless given a role color. */
+  :where(.aui-toast-close) {
+    --aui-control-bg: var(--aui-toast-action);
+    --aui-control-fg: var(--aui-toast-bg);
+    --focus-ring-color: var(--aui-toast-action);
+  }
+
+  .aui-toast[role='alert'] {
+    --aui-toast-bg: var(--color-error-container);
+    --aui-toast-fg: var(--color-on-error-container);
+    --aui-toast-action: var(--color-error);
+  }
+
+  .aui-toast-primary {
+    --aui-toast-bg: var(--color-primary-container);
+    --aui-toast-fg: var(--color-on-primary-container);
+    --aui-toast-action: var(--color-primary);
+  }
+
+  .aui-toast-secondary {
+    --aui-toast-bg: var(--color-secondary-container);
+    --aui-toast-fg: var(--color-on-secondary-container);
+    --aui-toast-action: var(--color-secondary);
+  }
+
+  .aui-toast-tertiary {
+    --aui-toast-bg: var(--color-tertiary-container);
+    --aui-toast-fg: var(--color-on-tertiary-container);
+    --aui-toast-action: var(--color-tertiary);
+  }
+
+  .aui-toast-info {
+    --aui-toast-bg: var(--color-info-container);
+    --aui-toast-fg: var(--color-on-info-container);
+    --aui-toast-action: var(--color-info);
+  }
+
+  .aui-toast-error {
+    --aui-toast-bg: var(--color-error-container);
+    --aui-toast-fg: var(--color-on-error-container);
+    --aui-toast-action: var(--color-error);
+  }
+
+  .aui-toast-success {
+    --aui-toast-bg: var(--color-success-container);
+    --aui-toast-fg: var(--color-on-success-container);
+    --aui-toast-action: var(--color-success);
+  }
+
+  .aui-toast-warning {
+    --aui-toast-bg: var(--color-warning-container);
+    --aui-toast-fg: var(--color-on-warning-container);
+    --aui-toast-action: var(--color-warning);
   }
 
   .aui-toast-close {
+    --aui-state-layer-color: var(--aui-toast-action);
+    flex: none;
     margin-inline-start: auto;
+
+    /*
+     * The toast surface is inverse, so the button tints toward its own action
+     * color instead of the page's light: a light wash here would sink the label.
+     */
+    &.aui-button-text:hover:not(:disabled, [aria-disabled='true']) {
+      background-color: color-mix(in oklch, var(--aui-toast-action) var(--tone-hover-strength), var(--aui-toast-bg));
+    }
   }
 }

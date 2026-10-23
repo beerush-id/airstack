@@ -4,7 +4,7 @@ import { type AnyType, type Bindable, renderDynamic, setup } from '@airlib/react
 import type { ReactNode } from 'react';
 import { $families, auiConfig, type AuiProps, type ComponentStyles, OMIT_KEYS } from '../config.js';
 import { DragHandle } from '../icons/index.js';
-import { sliderProps } from './context.js';
+import { sliderScope } from './context.js';
 
 export type SliderValue = number | [number, number];
 
@@ -49,7 +49,7 @@ export const Slider = setup<SliderProps>((props) => {
   const slider = aria(SLIDER_ROLE, props as AnyType);
   const className = () => $families(AUI_CLASS.SLIDER, props, auiConfig.slider);
 
-  sliderProps.set(props);
+  sliderScope.provide(props);
 
   return () => {
     if (!props.children) {
@@ -71,18 +71,9 @@ export const Slider = setup<SliderProps>((props) => {
 }, 'Slider');
 
 export const SliderThumb = setup<SliderThumbProps>((props) => {
-  const group = sliderProps.get();
+  const styles = sliderScope.inherit(props);
   const thumb = aria(SLIDER_THUMB_ROLE, props);
-  const className = () =>
-    $families(
-      AUI_CLASS.SLIDER_THUMB,
-      {
-        size: props.size ?? group?.size,
-        color: props.color ?? group?.color,
-        className: props.className,
-      },
-      auiConfig.sliderThumb
-    );
+  const className = () => $families(AUI_CLASS.SLIDER_THUMB, styles, auiConfig.sliderThumb);
 
   return () => (
     <div ref={thumb.ref} {...thumb.restProps([...OMIT_KEYS])} className={className()}>

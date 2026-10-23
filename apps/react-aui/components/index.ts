@@ -3,3 +3,4 @@ export * from './ErrorView.js';
 export * from './Footer.js';
 export * from './Header.js';
 export * from './Icons.js';
+export * from './Showcase.js';

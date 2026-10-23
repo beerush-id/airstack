@@ -2,83 +2,44 @@
 title: AUI Context Menu
 nav: Context Menu
 nav-priority: 305
-description: Anchored popup for a secondary click or Shift+F10 — records the pointer offset, carries the menu role, and dismisses itself.
+description: Commands for whatever was right-clicked — wrap the target, give it your commands, and get a menu at the pointer or on Shift+F10, with keyboard travel and dismissal handled.
+keywords: [React context menu, right click menu, React right-click, accessible context menu, Shift+F10, ARIA menu]
 ---
 
 # AUI Context Menu
 
-A context menu shows the actions that belong to whatever the reader pointed at: a row in a checklist, a node in a tree, a file in a list. Getting it right means a secondary click opens the panel where the pointer landed, `Shift+F10` opens it under the focused element, the same items and traversal work as any other menu, and the panel dismisses itself without leaving the page in a half-open state.
+Rows in a list, files in a tree, cards on a board — people expect a right-click to offer the commands for that thing, right where they clicked. Keyboard users need the same menu without a mouse, and everyone expects it to close on `Escape`, on a click elsewhere, or once a command runs.
 
-**AUI Context Menu** does all of that for you, and leaves the markup and the styling entirely yours. The host records the click offset as `--anchor-x` and `--anchor-y` and compiles an `anchor-name` of its own; the panel reads that offset and carries the menu role. While the panel shows, the host also gains `aria-haspopup="menu"`, `aria-expanded`, and `aria-controls`.
-
-Styling is optional. Without AUI CSS the panel still opens, closes, and takes the menu role; with it, the same markup gets the AUI treatment through the full library.
+**AUI Context Menu** wraps the area that owns the commands. A right-click opens the menu at the pointer; `Shift + F10` opens it from the keyboard.
 
 :::interactive[Context Menu demo]
 
 ```tsx
-import { ContextMenu, ContextMenuPanel, Divider, MenuItem, MenuItemCheckbox, MenuItemGroup, MenuItemRadio, Toggle } from '@airlib/react-aui';
-import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { ContextMenu } from '@airlib/react-aui';
+import { mutable, setup, Snippet } from '@airlib/react';
 
+const STEP_ACTIONS = { duplicate: 'Duplicate step', rename: 'Rename…', archive: 'Archive' };
 const STEP_ROWS = ['Ship the docs', 'Publish the release notes', 'Announce in the forum'];
 
 const ContextMenuDemo = setup(() => {
-  const state = mutable({
-    open: false,
-    disabled: false,
-    timestamps: true,
-    sort: 'manual',
-    last: 'No command yet',
-  });
+  const state = mutable({ last: 'Right-click a step, or focus one and press Shift + F10' });
 
   return () => (
-    <div className="demo-button">
-      <div className="flex gap-xs w-full flex-wrap">
-        <span>Right-click a step, or focus one and press Shift + F10</span>
-        <div className="flex-1"></div>
-        <Toggle size="sm" pressed={$bind(state, 'open')}>
-          {() => (state.open ? 'Close menu' : 'Open menu')}
-        </Toggle>
-        <Toggle size="sm" pressed={$bind(state, 'disabled')}>
-          {() => (state.disabled ? 'Set Enabled' : 'Set Disabled')}
-        </Toggle>
-      </div>
-      <div className="aui-card flex flex-col gap-lg p-xl">
-        <Snippet>
-          {() => (
-            <ContextMenu
-              label="Step actions"
-              open={$bind(state, 'open')}
-              disabled={state.disabled}
-              oncommand={(event) => (state.last = `Command: ${event.detail}`)}
-            >
-              <div className="flex flex-col gap-xs">
-                {STEP_ROWS.map((row) => (
-                  <div key={row} tabIndex={0}>
-                    {row}
-                  </div>
-                ))}
-              </div>
-              <ContextMenuPanel>
-                <MenuItem name="duplicate-step">Duplicate step</MenuItem>
-                <MenuItem name="rename-step">Rename…</MenuItem>
-                <MenuItem name="delete-step" disabled>
-                  Delete
-                </MenuItem>
-                <Divider />
-                <MenuItemCheckbox name="timestamps" checked={$bind(state, 'timestamps')}>
-                  Show timestamps
-                </MenuItemCheckbox>
-                <Divider />
-                <MenuItemGroup label="Sort by" value={$bind(state, 'sort')}>
-                  <MenuItemRadio value="manual">Manual order</MenuItemRadio>
-                  <MenuItemRadio value="recent">Recent changes</MenuItemRadio>
-                </MenuItemGroup>
-              </ContextMenuPanel>
-            </ContextMenu>
-          )}
-        </Snippet>
-        <span>{state.last}</span>
-      </div>
+    <div className="aui-card flex flex-col gap-md p-xl">
+      <ContextMenu
+        label="Step actions"
+        items={STEP_ACTIONS}
+        oncommand={(event) => (state.last = `Picked: ${STEP_ACTIONS[event.detail]}`)}
+      >
+        <div className="flex flex-col gap-xs">
+          {STEP_ROWS.map((row) => (
+            <div key={row} tabIndex={0}>
+              {row}
+            </div>
+          ))}
+        </div>
+      </ContextMenu>
+      <Snippet>{() => <span>{state.last}</span>}</Snippet>
     </div>
   );
 }, 'ContextMenuDemo');
@@ -94,113 +55,130 @@ const ContextMenuDemo = setup(() => {
 
 ## Usage
 
-The host is an ordinary element that wraps the things the menu acts on, plus one panel. It compiles no role and no trigger — the menu semantics live on the panel:
+### Wrap the target and give it your commands
+
+The children are the area people right-click. Pass `items` and a `label`, and listen for the picked command's `name`:
 
 ```tsx
-import { ContextMenu, ContextMenuPanel, MenuItem } from '@airlib/react-aui';
+import { ContextMenu } from '@airlib/react-aui';
 import '@airlib/aui/components/widgets/context-menu.css';
 
-export const Checklist = () => (
-  <ContextMenu label="Step actions" oncommand={(event) => run(event.detail)}>
-    <div tabIndex={0}>Ship the docs</div>
-    <div tabIndex={0}>Publish the release notes</div>
-    <ContextMenuPanel>
-      <MenuItem name="duplicate-step">Duplicate step</MenuItem>
-      <MenuItem name="delete-step">Delete</MenuItem>
-    </ContextMenuPanel>
+export const FileRow = ({ file, onAction }: { file: string; onAction: (name: string) => void }) => (
+  <ContextMenu
+    label={`Actions for ${file}`}
+    items={{ open: 'Open', rename: 'Rename…', delete: 'Delete' }}
+    oncommand={(event) => onAction(event.detail)}
+  >
+    <div tabIndex={0}>{file}</div>
   </ContextMenu>
 );
 ```
 
-For the full library — tokens, base defaults, every component, and the utilities — load `import '@airlib/aui';` instead. A lone component stylesheet carries only that component's rules.
+Keep something focusable inside the target — a row with `tabIndex={0}`, a link, a button — so keyboard users can reach it and press `Shift + F10`.
 
-The surface only hears keys from inside itself, so it needs at least one focusable descendant. A secondary click anywhere on the surface opens the panel at the pointer; `Shift+F10` and the `ContextMenu` key open it at the bottom-centre of the descendant that had focus.
+`items` takes a name-to-label map, or an array of `{ name, label, disabled }` when a command needs to be disabled.
 
-Items behave exactly as they do in a [Menu](/docs/widgets/menu): commands close the panel with their `name`, checkbox items toggle in place, and radio items move their group's value:
+### Change what a row shows
+
+Keep `items` and supply each row's content through the `item` slot — an icon, a shortcut hint:
 
 ```tsx
-<ContextMenu label="Step actions">
-  <div tabIndex={0}>Ship the docs</div>
-  <ContextMenuPanel>
-    <MenuItemCheckbox name="timestamps" checked={$bind(state, 'timestamps')}>
-      Show timestamps
-    </MenuItemCheckbox>
-    <MenuItemGroup label="Sort by" value={$bind(state, 'sort')}>
-      <MenuItemRadio value="manual">Manual order</MenuItemRadio>
-      <MenuItemRadio value="recent">Recent changes</MenuItemRadio>
-    </MenuItemGroup>
-  </ContextMenuPanel>
+<ContextMenu label="Step actions" items={STEP_ACTIONS}>
+  <ContextMenu.Snippet for="item">{(entry) => <span>{entry.label}</span>}</ContextMenu.Snippet>
+  <StepList />
 </ContextMenu>
 ```
 
-Leave `open` out and the gestures drive the panel; set it and the panel follows yours. Bind it to open the menu from code:
+### Build the menu from parts
+
+When the menu mixes kinds of rows — toggles, exclusive options, separators — put a `ContextMenuPanel` after the target and fill it with the same rows a [Menu](/docs/widgets/menu) uses:
+
+:::interactive[Every kind of row]
 
 ```tsx
-import { $bind, mutable } from '@airlib/react';
+import { ContextMenu, ContextMenuPanel, Divider, MenuItem, MenuItemCheckbox, MenuItemGroup, MenuItemRadio } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
 
-const state = mutable({ open: false });
+const BoardMenuDemo = setup(() => {
+  const state = mutable({ timestamps: true, sort: 'manual', last: 'No command yet' });
 
-<ContextMenu label="Step actions" open={$bind(state, 'open')}>
-  <div tabIndex={0}>Ship the docs</div>
-  <ContextMenuPanel>
-    <MenuItem name="duplicate-step">Duplicate step</MenuItem>
-  </ContextMenuPanel>
+  return () => (
+    <div className="aui-card flex flex-col gap-md p-xl">
+      <ContextMenu label="Board actions" oncommand={(event) => (state.last = `Command: ${event.detail}`)}>
+        <div tabIndex={0} className="p-lg">
+          Right-click anywhere on the board
+        </div>
+        <ContextMenuPanel>
+          <MenuItem name="new-card">New card</MenuItem>
+          <MenuItem name="paste" disabled>
+            Paste
+          </MenuItem>
+          <Divider />
+          <MenuItemCheckbox checked={$bind(state, 'timestamps')}>Show timestamps</MenuItemCheckbox>
+          <Divider />
+          <MenuItemGroup label="Sort by" value={$bind(state, 'sort')}>
+            <MenuItemRadio value="manual">Manual order</MenuItemRadio>
+            <MenuItemRadio value="recent">Recent changes</MenuItemRadio>
+          </MenuItemGroup>
+        </ContextMenuPanel>
+      </ContextMenu>
+      <Snippet>{() => <span>{state.last} · timestamps {state.timestamps ? 'on' : 'off'} · sort {state.sort}</span>}</Snippet>
+    </div>
+  );
+}, 'BoardMenuDemo');
+```
+
+```html
+<BoardMenuDemo />
+```
+
+<BoardMenuDemo />
+
+:::
+
+### Open it from your code
+
+Bind `open` when something else should open the menu — a "more" button on a touch screen, for example. Every way of closing writes the same `open`:
+
+```tsx
+<ContextMenu label="Step actions" items={STEP_ACTIONS} open={$bind(state, 'open')}>
+  <StepList />
 </ContextMenu>
 ```
 
-`disabled` refuses both ways in — the secondary click and the keyboard shortcut — and reaches every item on top of its own state:
+### Style it once
 
-```tsx
-<ContextMenu label="Step actions" disabled>
-  <div tabIndex={0}>Ship the docs</div>
-  <ContextMenuPanel>
-    <MenuItem name="duplicate-step">Duplicate step</MenuItem>
-  </ContextMenuPanel>
-</ContextMenu>
-```
+`size`, `color`, and `variant` on `ContextMenu` reach the popup and every row; a row's own prop wins. See [Style a composite once](/docs/theming#style-a-composite-once).
 
 ### Properties
 
-#### Context Menu
+`ContextMenu`:
 
 | Prop | Type | Default | Notes |
 | --- | --- | --- | --- |
-| `id` | `string` | `menu-<n>` | The identifier the host and panel share. Generated when omitted. |
-| `label` | `string` | — | The panel's accessible name. Pass it on the host. |
-| `open` | `Bindable<boolean>` | `false` | Panel visibility. Bind it to open or close from code. |
-| `disabled` | `boolean` | `false` | Refuses the secondary click and the keyboard shortcut, and reaches every item. |
-| `onopen` / `onclose` | `(event: CustomEvent<true \| false>) => void` | — | Called after the panel opens or closes, whichever gesture caused it. |
-| `oncommand` | `(event: CustomEvent<string>) => void` | — | Receives every item command, with the item's `name` in `detail`. |
+| `label` | `string` | — | The menu's name, announced when it opens. |
+| `items` | `Record<string, string>` or `Array<{ name, label?, disabled? }>` | — | Renders the popup with one row per command after your target. |
+| `oncommand` | `(event: CustomEvent<string>) => void` | — | Receives the picked command's `name`. |
+| `open` | `Bindable<boolean>` | `false` | Whether the menu is showing. |
+| `disabled` | `boolean` | `false` | Stops the menu from opening. |
+| `onopen` / `onclose` | `(event: CustomEvent<boolean>) => void` | — | Called after the menu opens or closes. |
+| `size` / `color` / `variant` | shared vocabulary | `md` / `primary` / — | Reach the popup and every row. |
 | `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
-| `children` | `ReactNode` | — | The focusable content the menu acts on, plus one panel. |
-| `ref` | `Ref<HTMLDivElement>` | — | Access to the host element. |
+| `children` | `ReactNode` | — | The target area, plus `ContextMenuPanel` when composing by hand. |
 
-#### Context Menu Panel
+Slot (with `items`): `item(entry)` for each row's content.
 
-| Prop | Type | Default | Notes |
-| --- | --- | --- | --- |
-| `children` | `ReactNode` | — | The items, groups, and dividers. |
-| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+Parts: `ContextMenuPanel` (style props, `children`) holds the rows; the rows are [Menu](/docs/widgets/menu)'s `MenuItem`, `MenuItemCheckbox`, `MenuItemGroup`, and `MenuItemRadio`.
 
-The panel reads the host's name and visibility, compiles `role="menu"`, and places itself from the pointer offset. The item parts are the same components the [Menu](/docs/widgets/menu) uses; their properties are documented there.
+### Keyboard
 
-Your own classes are added next to the built-in ones:
-
-```tsx
-// class="aui-context-menu-panel my-step-menu"
-<ContextMenu className="my-surface" label="Step actions">
-  <div tabIndex={0}>Ship the docs</div>
-  <ContextMenuPanel className="my-step-menu">
-    <MenuItem name="duplicate-step">Duplicate step</MenuItem>
-  </ContextMenuPanel>
-</ContextMenu>
-```
-
-To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+- `Shift + F10` (or the context-menu key) on a focused element inside the target opens the menu.
+- `↑` / `↓` move between rows; typing a letter jumps to the next row that starts with it.
+- `Enter` or `Space` runs a command and closes the menu, or flips a checkbox row.
+- `Escape` closes the menu and returns focus to where it was.
 
 ## Next Steps
 
-- [Menu](/docs/widgets/menu) — The same items and traversal behind a button rather than a pointer.
-- [Popover](/docs/widgets/popover) — An anchored panel for content rather than commands.
-- [Listbox](/docs/widgets/listbox) — A selection list whose rows the menu can act on.
-- [Toolbar](/docs/widgets/toolbar) — A strip of controls where a menu is the overflow.
+- [Menu](/docs/widgets/menu) — The same commands behind a button.
+- [Tree](/docs/widgets/tree) — Nested items that often carry a context menu each.
+- [Grid](/docs/widgets/grid) — Rows and cells people act on.

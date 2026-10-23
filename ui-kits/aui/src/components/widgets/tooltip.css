@@ -2,28 +2,49 @@
   :root {
     --aui-tooltip-bg: var(--color-inverse-surface);
     --aui-tooltip-fg: var(--color-inverse-on-surface);
-    --aui-tooltip-radius: var(--radius-xs);
-    --aui-tooltip-padding-block: var(--spacing-xs);
-    --aui-tooltip-padding-inline: var(--spacing-sm);
+    --aui-tooltip-radius: var(--radius-sm);
+    --aui-tooltip-offset: var(--spacing-xs);
+    --aui-tooltip-padding-block: calc(var(--spacing) * 1.5);
+    --aui-tooltip-padding-inline: calc(var(--spacing) * 2.5);
   }
 }
 
 @layer component {
+  @keyframes aui-tooltip-in {
+    from {
+      opacity: 0;
+      scale: 0.96;
+    }
+    to {
+      opacity: 1;
+      scale: 1;
+    }
+  }
+
+  /* Centred on its trigger; it lives inside the trigger, so it sheds the control typography. */
   .aui-tooltip {
     position: fixed;
     z-index: var(--z-index-popover);
-    position-area: bottom span-right;
-    position-try-fallbacks: flip-block, flip-inline, flip-block flip-inline;
+    position-area: bottom;
+    position-try-fallbacks: flip-block, flip-inline;
+    margin: var(--aui-tooltip-offset);
+    inline-size: max-content;
     max-inline-size: calc(var(--spacing) * 64);
     padding-block: var(--aui-tooltip-padding-block);
     padding-inline: var(--aui-tooltip-padding-inline);
     background-color: var(--aui-tooltip-bg);
     color: var(--aui-tooltip-fg);
     border-radius: var(--aui-tooltip-radius);
+    box-shadow: var(--elevation-2);
+    font-family: var(--font-sans);
     font-size: var(--font-label-md-size);
     font-weight: var(--font-label-md-weight);
     line-height: var(--font-label-md-line-height);
+    letter-spacing: var(--font-label-md-tracking);
+    text-align: start;
+    white-space: normal;
     pointer-events: none;
+    animation: aui-tooltip-in var(--duration-short) var(--ease-emphasized-decelerate);
 
     &[hidden] {
       display: none;
@@ -31,11 +52,16 @@
   }
 
   .aui-tooltip[data-tooltip-y='above'] {
-    position-area: top span-right;
+    position-area: top;
   }
 
   .aui-tooltip[data-tooltip-x='before'],
   .aui-tooltip[data-tooltip-x='left'] {
-    position-area: bottom span-left;
+    position-area: left;
+  }
+
+  .aui-tooltip[data-tooltip-x='after'],
+  .aui-tooltip[data-tooltip-x='right'] {
+    position-area: right;
   }
 }

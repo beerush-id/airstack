@@ -2,16 +2,15 @@
 title: AUI Tooltip
 nav: Tooltip
 nav-priority: 301
-description: Advisory panel for the control it hangs from — described-by only while open, hover waits, focus opens at once, and Escape dismisses without stealing focus.
+description: A short hint for the control under the pointer or keyboard focus — appears on hover after a short wait or instantly on focus, is read out by screen readers, and never steals focus.
+keywords: [React tooltip, accessible tooltip, hover hint, React hint, aria-describedby, icon button label hint]
 ---
 
 # AUI Tooltip
 
-A tooltip explains a control: what a save button writes, what an icon means, which shortcut fires. Getting it right means describing the trigger only while the panel is open, revealing on focus without the pointer delay, staying open while the pointer crosses into the panel, and dismissing on `Escape` without moving focus anywhere.
+Icon buttons, truncated labels, a setting whose effect isn't obvious — sometimes a control needs one line of explanation. That line should appear for mouse users after a moment of hovering, appear at once for keyboard users, be read out by screen readers along with the control, and never get in the way of using it.
 
-**AUI Tooltip** does all of that for you, and leaves the markup and the styling entirely yours. The panel compiles `role="tooltip"` and starts hidden; the trigger gains `aria-describedby` only while the panel shows, so a screen reader never meets stale advice. The panel is a stop of neither the tab order nor the focus ring — it is an advisory, not a control.
-
-Styling is optional. Without AUI CSS the Tooltip stays a correct advisory; with it, the same markup gets the AUI treatment through the full library.
+**AUI Tooltip** is that line. Put it inside the control it explains.
 
 :::interactive[Tooltip demo]
 
@@ -29,17 +28,17 @@ const TooltipDemo = setup(() => {
           {() => (state.open ? 'Hide tooltip' : 'Show tooltip')}
         </Toggle>
         <Toggle size="sm" pressed={$bind(state, 'above')}>
-          {() => (state.above ? 'Placed above' : 'Placed below')}
+          {() => (state.above ? 'Shows above' : 'Shows below')}
         </Toggle>
         <Toggle size="sm" pressed={$bind(state, 'dismissable')}>
-          {() => (state.dismissable ? 'Outside press closes' : 'Outside press ignored')}
+          {() => (state.dismissable ? 'Outside click closes' : 'Outside click ignored')}
         </Toggle>
       </div>
       <div className="aui-card flex flex-col gap-lg justify-center p-xl">
-        <span>Focus or hover a control — the tooltip follows the live placement</span>
-        <div className="flex flex-wrap gap-md">
-          <Snippet>
-            {() => (
+        <span>Hover or focus a button</span>
+        <Snippet>
+          {() => (
+            <div className="flex flex-wrap gap-md">
               <Button>
                 Save
                 <Tooltip
@@ -50,25 +49,17 @@ const TooltipDemo = setup(() => {
                   Stored on this device
                 </Tooltip>
               </Button>
-            )}
-          </Snippet>
-          <Snippet>
-            {() => (
               <Button>
                 Share
                 <Tooltip yDir={state.above ? 'above' : 'below'}>Anyone with the link can read</Tooltip>
               </Button>
-            )}
-          </Snippet>
-          <Snippet>
-            {() => (
               <Button disabled>
                 Publish
-                <Tooltip>Never shown while the trigger is locked</Tooltip>
+                <Tooltip>Never shown while the button is disabled</Tooltip>
               </Button>
-            )}
-          </Snippet>
-        </div>
+            </div>
+          )}
+        </Snippet>
       </div>
     </div>
   );
@@ -85,67 +76,56 @@ const TooltipDemo = setup(() => {
 
 ## Usage
 
-Render the tooltip inside the control it explains. The enclosing actionable element becomes its trigger; only when there is none does it fall back to the panel's parent in the DOM:
+### Put it inside the control
+
+Render `Tooltip` inside the button or link it explains. Hovering or focusing that control shows it, and screen readers read it as the control's description:
 
 ```tsx
 import { Button, Tooltip } from '@airlib/react-aui';
+import { SettingsIcon } from '@airlib/react-aui/icons';
 import '@airlib/aui/components/widgets/tooltip.css';
 
-export const SaveAction = () => (
-  <Button>
-    Save
-    <Tooltip>Stored on this device</Tooltip>
+export const SettingsButton = () => (
+  <Button className="aui-control-icon" aria-label="Settings">
+    <SettingsIcon />
+    <Tooltip>Workspace settings</Tooltip>
   </Button>
 );
 ```
 
-For the full library — tokens, base defaults, every component, and the utilities — load `import '@airlib/aui';` instead. A lone component stylesheet carries only that component's rules.
+A tooltip describes; it doesn't name. An icon-only button still needs its own `aria-label`, as above.
 
-Pointer arrival schedules the open after `delay`; focusing the trigger opens it at once. Both paths lead to the same panel, and `mode` chooses which gestures reach it at all:
+Keep it to one short line of plain text. Anything people need to click or read at length belongs in a [Popover](/docs/widgets/popover).
+
+### Choose when it shows
+
+- **Hover** waits `delay` milliseconds (300 by default) so it doesn't flash while the pointer passes by. Moving the pointer onto the tooltip keeps it open.
+- **Focus** shows it at once — keyboard users never wait.
+- `mode` picks the gestures: `['hover', 'focus']` by default; add `'click'` for touch-friendly hints. Keep `'focus'` so keyboard users get the hint too.
+- **Closing:** moving away, `Escape`, or a click outside (unless `dismissable` is off). Focus stays on the control.
+- A disabled control never shows its tooltip.
+
+### Choose the side
+
+`yDir="above"` shows it above the control; `xDir="before"` / `"after"` put it at the control's start or end. When there's no room, it flips to the side that fits:
 
 ```tsx
 <Button>
   Share
-  <Tooltip delay={500} mode={['hover', 'focus']}>
-    Anyone with the link can read
-  </Tooltip>
+  <Tooltip yDir="above">Anyone with the link can read</Tooltip>
 </Button>
 ```
 
-Turn `focus` off and keyboard users get nothing; turn `hover` off and only focus and click reveal it. The panel is hoverable, so moving the pointer from the trigger into the panel keeps it open. Focus never waits, whatever the delay says.
+### Show it from your code
 
-Leave `open` out and the gestures drive the panel; set it and the panel follows yours. Bind it to show advice from code:
+Bind `open` to point at a control during onboarding, for example:
 
 ```tsx
-import { $bind, mutable } from '@airlib/react';
-
-const state = mutable({ open: false });
+const tour = mutable({ hint: false });
 
 <Button>
   Save
-  <Tooltip open={$bind(state, 'open')}>Stored on this device</Tooltip>
-</Button>
-```
-
-`Escape` closes an open panel and stops the key from reaching listeners above the trigger. An outside press closes it only while `dismissable` is true. The panel takes no focus at any point, so `Escape` leaves focus exactly where it was — on the trigger.
-
-A disabled trigger shows no advisory at all: `show()`, `scheduleOpen()`, and `toggle()` refuse while the control is locked:
-
-```tsx
-<Button disabled>
-  Publish
-  <Tooltip>Never shown while the trigger is locked</Tooltip>
-</Button>
-```
-
-Placement is a token pair, not a calculation. `xDir` and `yDir` become `data-tooltip-x` and `data-tooltip-y` on the panel:
-
-```tsx
-<Button>
-  Share
-  <Tooltip yDir="above" xDir="after">
-    Anyone with the link can read
-  </Tooltip>
+  <Tooltip open={$bind(tour, 'hint')}>Saves to this device</Tooltip>
 </Button>
 ```
 
@@ -153,35 +133,23 @@ Placement is a token pair, not a calculation. `xDir` and `yDir` become `data-too
 
 | Prop | Type | Default | Notes |
 | --- | --- | --- | --- |
-| `id` | `string` | `tooltip-<n>` | The panel identifier, and the value the trigger's `aria-describedby` points at while it is open. |
-| `open` | `Bindable<boolean>` | `false` | Whether the panel is showing. Bind it to reveal the advice from code. |
-| `mode` | `('hover' \| 'focus' \| 'click')[]` | `['hover', 'focus']` | Which gestures reveal the panel. Fixed when the panel is created. |
-| `delay` | `number` | `300` | Milliseconds the hover gesture waits. Focus never waits. |
-| `dismissable` | `boolean` | `true` | Whether an outside press closes the panel. `Escape` closes it either way. |
-| `xDir` | `'before' \| 'after' \| 'left' \| 'between' \| 'right'` | — | Horizontal placement token, emitted as `data-tooltip-x`. |
-| `yDir` | `'top' \| 'bottom' \| 'above' \| 'below' \| 'between'` | — | Vertical placement token, emitted as `data-tooltip-y`. |
-| `onchange` | `(event: CustomEvent<boolean>) => void` | — | Called each time visibility commits, with the new state in `detail`. |
+| `open` | `Bindable<boolean>` | `false` | Whether the tooltip is showing. |
+| `mode` | `('hover' \| 'focus' \| 'click')[]` | `['hover', 'focus']` | Which gestures on the control show it. Set it once; it doesn't change later. |
+| `delay` | `number` | `300` | Milliseconds hover waits. Focus never waits. |
+| `dismissable` | `boolean` | `true` | Whether a click outside closes it. `Escape` closes it either way. |
+| `xDir` | `'before' \| 'after' \| 'left' \| 'between' \| 'right'` | — | Horizontal side. |
+| `yDir` | `'top' \| 'bottom' \| 'above' \| 'below' \| 'between'` | — | Vertical side. |
+| `onchange` | `(event: CustomEvent<boolean>) => void` | — | Called when it shows (`true`) or hides (`false`). |
 | `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
-| `children` | `ReactNode` | — | One line of advice. |
-| `ref` | `Ref<HTMLDivElement>` | — | Access to the panel element. |
+| `children` | `ReactNode` | — | The hint text. |
 
-The panel claims no tab stop and never takes focus. `Tab` reaches the trigger, which reveals the panel as it takes focus; the panel itself is never a stop.
+### Keyboard
 
-Your own classes are added next to the built-in ones:
-
-```tsx
-// class="aui-tooltip my-hint"
-<Button>
-  Save
-  <Tooltip className="my-hint">Stored on this device</Tooltip>
-</Button>
-```
-
-To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+- Focusing the control shows the tooltip at once; the tooltip itself is never a tab stop.
+- `Escape` hides it and leaves focus on the control.
 
 ## Next Steps
 
-- [Popover](/docs/widgets/popover) — A panel the reader works in, with focus landing inside.
-- [Dialog](/docs/widgets/dialog) — The modal surface for a decision that holds focus until answered.
-- [Button](/docs/widgets/button) — The trigger a tooltip most often describes.
-- [Toolbar](/docs/widgets/toolbar) — A strip of controls where advisories explain each one.
+- [Popover](/docs/widgets/popover) — Richer content people can click into.
+- [Button](/docs/widgets/button) — The control a tooltip most often explains.
+- [Toolbar](/docs/widgets/toolbar) — A row of icon buttons, each with its own hint.

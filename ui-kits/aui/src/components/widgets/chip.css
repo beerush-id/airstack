@@ -1,0 +1,96 @@
+@import './button.css';
+@import './item.css';
+
+/*
+ * A compact label on the shared item scale: three quarters of a control's
+ * height, the role color from `.aui-scale-*`. Static and removable chips
+ * are spans; a filter chip is a toggle button that fills while pressed.
+ */
+@layer component {
+  .aui-chip {
+    --aui-chip-ink: var(--aui-item-bg);
+    display: inline-flex;
+    align-items: center;
+    gap: calc(var(--aui-control-gap) / 2);
+    max-inline-size: 100%;
+    block-size: calc(var(--aui-control-height) * 0.75);
+    padding-inline: calc(var(--aui-control-padding-x) * 0.5);
+    border: 0;
+    border-radius: var(--radius-sm);
+    color: var(--aui-chip-ink);
+    background-color: color-mix(in oklch, var(--aui-item-bg) var(--tone-container-strength), var(--color-surface-lowest));
+    font-family: inherit;
+    font-weight: 500;
+    white-space: nowrap;
+    vertical-align: middle;
+    transition-property: background-color, color, box-shadow;
+    transition-duration: var(--duration-short);
+    transition-timing-function: var(--ease-emphasized);
+
+    & > .aui-icon:first-child {
+      --aui-icon-size: calc(var(--aui-control-height) * 0.4);
+      margin-inline-start: calc(var(--aui-control-padding-x) * -0.15);
+    }
+  }
+
+  .aui-chip-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .aui-chip-filled {
+    --aui-chip-ink: var(--aui-item-fg);
+    background-color: var(--aui-item-bg);
+  }
+
+  .aui-chip-outlined {
+    background-color: transparent;
+    box-shadow: inset 0 0 0 1px var(--aui-item-bg);
+  }
+
+  .aui-chip-text {
+    background-color: transparent;
+  }
+
+  .aui-chip-elevated {
+    --aui-chip-ink: var(--color-on-surface);
+    background-color: var(--color-surface-lowest);
+    box-shadow: var(--elevation-1);
+  }
+
+  /* Filter chip: pressable, fills with the role color while on. */
+  button.aui-chip {
+    cursor: pointer;
+    user-select: none;
+
+    &:hover:not(:disabled, [aria-disabled='true'], [aria-pressed='true']) {
+      background-color: color-mix(in oklch, var(--aui-item-bg) calc(var(--tone-container-strength) * 1.6), var(--color-surface-lowest));
+    }
+
+    &[aria-pressed='true'] {
+      --aui-chip-ink: var(--aui-item-fg);
+      background-color: var(--aui-item-bg);
+      box-shadow: none;
+    }
+  }
+
+  .aui-chip:is(:disabled, [aria-disabled='true']) {
+    --aui-chip-ink: var(--color-disabled-fg);
+    background-color: var(--color-disabled-bg);
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+
+  /*
+   * Remove button: a square text button tucked inside the chip's end,
+   * inked like the chip so it reads on every variant.
+   */
+  .aui-chip > .aui-chip-remove {
+    --aui-control-bg: var(--aui-chip-ink);
+    --aui-icon-size: calc(var(--aui-control-height) * 0.4);
+    inline-size: calc(var(--aui-control-height) * 0.75 - var(--spacing));
+    block-size: calc(var(--aui-control-height) * 0.75 - var(--spacing));
+    margin-inline-end: calc(var(--aui-control-padding-x) * -0.35);
+    border-radius: var(--radius-full);
+  }
+}

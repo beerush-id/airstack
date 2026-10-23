@@ -18,3 +18,6 @@ export * from './Reorder.js';
 export * from './Carousel.js';
 export * from './Stepper.js';
 export * from './CodeInput.js';
+export * from './CommandPalette.js';
+export * from './Drawer.js';
+export * from './TagInput.js';

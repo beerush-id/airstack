@@ -4,7 +4,7 @@ import { type Bindable, renderDynamic, setup } from '@airlib/react';
 import type { ReactNode } from 'react';
 import { $families, auiConfig, type AuiPrimitive, type AuiProps, type ComponentStyles, OMIT_KEYS } from '../config.js';
 
-import { radioGroupProps } from './context.js';
+import { radioGroupScope } from './context.js';
 
 export type RadioValue = AuiPrimitive;
 
@@ -35,18 +35,10 @@ register('radio', radioStyles);
  * Select-only: re-activating the holder commits nothing.
  */
 export const Radio = setup<RadioProps>((props) => {
-  const group = radioGroupProps.get();
+  const group = radioGroupScope.get();
+  const styles = radioGroupScope.inherit(props);
   const radio = aria(RADIO_ROLE, props);
-  const className = () =>
-    $families(
-      AUI_CLASS.RADIO_BOX,
-      {
-        size: props.size ?? group?.size,
-        color: props.color ?? group?.color,
-        className: props.className,
-      },
-      auiConfig.radio
-    );
+  const className = () => $families(AUI_CLASS.RADIO_BOX, styles, auiConfig.radio);
 
   return () => (
     <label className={AUI_CLASS.RADIO}>

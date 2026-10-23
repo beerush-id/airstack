@@ -1,34 +1,18 @@
-@layer theme {
-  :root {
-    --aui-context-menu-offset-x: var(--anchor-x, 0px);
-    --aui-context-menu-offset-y: var(--anchor-y, 0px);
-  }
-}
+@import './menu.css';
 
+/*
+ * The surface comes from the shared panel; only the pointer placement is
+ * local. The panel is anchored to the context surface and receives the
+ * pointer's offset inside it as `--anchor-x` / `--anchor-y`.
+ */
 @layer component {
-  .aui-context-menu {
-    anchor-name: --aui-context-menu-anchor;
-  }
-
   .aui-context-menu-panel {
-    position: fixed;
-    z-index: var(--z-index-popover);
-    inset-block-start: var(--aui-context-menu-offset-y);
-    inset-inline-start: var(--aui-context-menu-offset-x);
-    display: flex;
-    flex-direction: column;
-    gap: var(--aui-menu-panel-gap, var(--spacing-xs));
+    position-area: none;
+    margin: 0;
+    inset: auto;
+    top: calc(anchor(top) + var(--anchor-y, 0px));
+    left: calc(anchor(left) + var(--anchor-x, 0px));
+    position-try-fallbacks: flip-block, flip-inline, flip-block flip-inline;
     min-inline-size: calc(var(--spacing) * 48);
-    padding-block: var(--spacing-xs);
-    padding-inline: var(--spacing-xs);
-    background-color: var(--color-surface-container);
-    color: var(--color-on-surface);
-    border: 1px solid var(--color-outline-variant);
-    border-radius: var(--radius-md);
-    box-shadow: var(--elevation-3);
-
-    &[hidden] {
-      display: none;
-    }
   }
 }

@@ -1,5 +1,25 @@
+@import './control.css';
+@import './item.css';
+
 @layer component {
+  .aui-select-trigger {
+    cursor: pointer;
+
+    /*
+     * The caret rides the trailing edge however wide the trigger grows.
+     * Weighted past the control's trailing-icon rule, which sets only a gap.
+     */
+    & > .aui-icon.aui-select-caret:last-child {
+      margin-inline-start: auto;
+      transition: transform var(--duration-short) var(--ease-emphasized);
+    }
+  }
+
   .aui-select-panel {
     position-area: bottom span-left;
+
+    &[data-popover-y='above'] {
+      position-area: top span-left;
+    }
   }
 }

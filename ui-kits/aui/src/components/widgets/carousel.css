@@ -1,14 +1,18 @@
+@import './button.css';
+@import './item.css';
+
+/*
+ * The steppers and the player are shared buttons; the dots take the role
+ * color from the shared scale and stretch into a pill for the current slide.
+ */
 @layer theme {
   :root {
     --aui-carousel-gap: var(--spacing-md);
-    --aui-carousel-radius: var(--radius-lg);
-    --aui-carousel-surface: var(--color-surface-container);
+    --aui-carousel-radius: var(--radius-xl);
+    --aui-carousel-surface: var(--color-surface);
     --aui-carousel-padding: var(--spacing-xl);
     --aui-carousel-slide-min: calc(var(--spacing) * 36);
-    --aui-carousel-control-size: calc(var(--spacing) * 10);
     --aui-carousel-dot-size: calc(var(--spacing) * 2);
-    --aui-carousel-dot-line: var(--color-outline);
-    --aui-carousel-dot-current: var(--color-primary);
   }
 }
 
@@ -27,10 +31,11 @@
     border-radius: var(--aui-carousel-radius);
     background: var(--aui-carousel-surface);
     overflow: hidden;
+    outline: var(--focus-ring-width) var(--focus-ring-style) transparent;
+    outline-offset: var(--focus-ring-offset);
 
     &:focus-visible {
-      outline: var(--focus-ring-width) var(--focus-ring-style) var(--focus-ring-color);
-      outline-offset: var(--focus-ring-offset);
+      outline-color: color-mix(in oklch, var(--focus-ring-color) 75%, var(--light-up));
     }
   }
 
@@ -46,46 +51,25 @@
     }
   }
 
-  .aui-control.aui-carousel-nav {
-    --aui-control-height: var(--aui-carousel-control-size);
-    --aui-control-padding-x: 0;
-    --aui-control-bg: var(--color-surface-container);
-    --aui-control-outline-color: transparent;
-    inline-size: var(--aui-carousel-control-size);
+  .aui-carousel-nav {
     border-radius: var(--radius-full);
-
-    &:hover:not(:disabled) {
-      background-color: var(--color-surface-high);
-    }
-
-    &:active:not(:disabled) {
-      background-color: var(--color-surface-highest);
-    }
-
-    &:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-    }
   }
 
   .aui-carousel-picker {
+    flex: none;
     inline-size: var(--aui-carousel-dot-size);
     block-size: var(--aui-carousel-dot-size);
     padding: 0;
-    border: 1px solid var(--aui-carousel-dot-line);
+    border: 0;
     border-radius: var(--radius-full);
-    background: transparent;
+    background-color: color-mix(in oklch, var(--aui-item-bg) 30%, transparent);
     cursor: pointer;
-    transition-property: background-color, border-color, scale;
-    transition-duration: var(--duration-short);
+    transition-property: background-color, inline-size;
+    transition-duration: var(--duration-medium);
     transition-timing-function: var(--ease-emphasized);
 
     &:hover:not(:disabled) {
-      border-color: var(--aui-carousel-dot-current);
-    }
-
-    &:active:not(:disabled) {
-      scale: 0.9;
+      background-color: color-mix(in oklch, var(--aui-item-bg) 55%, transparent);
     }
 
     &:focus-visible {
@@ -94,29 +78,12 @@
     }
 
     &[aria-current='true'] {
-      border-color: var(--aui-carousel-dot-current);
-      background: var(--aui-carousel-dot-current);
+      inline-size: calc(var(--aui-carousel-dot-size) * 3);
+      background-color: var(--aui-item-bg);
     }
 
     &:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-    }
-  }
-
-  .aui-control.aui-carousel-player {
-    --aui-control-height: calc(var(--spacing) * 8);
-    --aui-control-padding-x: var(--spacing-md);
-    --aui-control-bg: transparent;
-    --aui-control-outline-color: var(--color-outline);
-    font-size: var(--font-label-md-size);
-
-    &:hover:not(:disabled) {
-      background-color: var(--color-surface-high);
-    }
-
-    &:disabled {
-      opacity: 0.4;
+      background-color: var(--color-disabled-fg);
       cursor: not-allowed;
     }
   }

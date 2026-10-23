@@ -2,109 +2,69 @@
 title: AUI Tree
 nav: Tree
 nav-priority: 396
-description: A nested hierarchy where arrows walk visible nodes, Right opens a branch or steps inside it, Left closes it or returns to the parent, and one tree holds the selection.
+description: Show folders, categories, or org charts that open in place — pass nested items, bind the selection, and get keyboard travel across every level and correct screen-reader announcements.
+keywords: [React tree view, accessible tree, file tree React, nested list selection, ARIA tree, folder tree component]
 ---
 
 # AUI Tree
 
-A tree presents folders, categories, or organization nodes that expand in place. The hard part is never the nesting — it is **stepping through visible nodes across levels**, **opening a branch and then entering it**, **pairing every child group with its branch**, and **keeping selection coordinated across the whole hierarchy**.
+File browsers, category pickers, org charts: nested items that open in place. The nesting is the easy part. The hard part is letting the arrow keys walk only what is visible across every level, opening a branch and then stepping into it, telling screen readers which items are folders and which are leaves, and keeping one selection across the whole hierarchy.
 
-**AUI Tree** does all of that for you, and leaves the markup and the styling entirely yours. The root holds the selection; items declare their own names, and a group inside an item pairs with it on its own.
-
-Styling is optional. Without AUI CSS the Tree stays a correct, operable hierarchy; with it, the same markup gets the AUI treatment through the full library.
+**AUI Tree** does all of that. Give it your nested items, bind the selection to your state, and it renders every row, branch, and chevron.
 
 :::interactive[Tree demo]
 
 ```tsx
-import { Toggle, Tree, TreeGroup, TreeItem } from '@airlib/react-aui';
+import { Toggle, Tree } from '@airlib/react-aui';
 import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { DemoControl } from '@/components/DemoControl.js';
+
+const FILES = [
+  {
+    name: 'src',
+    expanded: true,
+    children: [
+      { name: 'components', children: [{ name: 'Button.tsx' }, { name: 'Tree.tsx' }] },
+      { name: 'index.ts' },
+    ],
+  },
+  { name: 'package.json' },
+  { name: 'secrets.env', disabled: true },
+];
 
 const TreeDemo = setup(() => {
   const state = mutable({
     file: 'index.ts',
-    chosen: ['esm', 'types'],
-    locked: false,
+    files: ['Button.tsx', 'index.ts'],
+    multiple: false,
+    size: 'sm',
+    color: 'primary',
+    disabled: false,
   });
 
   return () => (
     <div className="demo-button">
-      <div className="flex gap-xs w-full flex-wrap">
-        <Toggle size="sm" pressed={$bind(state, 'locked')}>
-          {() => (state.locked ? 'Locked' : 'Unlocked')}
+      <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} disabled={$bind(state, 'disabled')}>
+        <Toggle size="sm" pressed={$bind(state, 'multiple')}>
+          {() => (state.multiple ? 'Several' : 'One')}
         </Toggle>
-        <div className="flex-1"></div>
-        <Snippet>{() => <span>{state.file}</span>}</Snippet>
-      </div>
-      <div className="aui-card flex flex-col gap-lg p-xl">
-        <Snippet>
-          {() => (
-            <Tree label="Project files" value={$bind(state, 'file')} disabled={state.locked}>
-              <TreeItem name="src" label="src" expanded={true}>
-                <span>src</span>
-                <TreeGroup>
-                  <TreeItem name="components" label="components" expanded={false}>
-                    <span>components</span>
-                    <TreeGroup>
-                      <TreeItem name="Button.tsx">
-                        <span>Button.tsx</span>
-                      </TreeItem>
-                      <TreeItem name="Tree.tsx">
-                        <span>Tree.tsx</span>
-                      </TreeItem>
-                    </TreeGroup>
-                  </TreeItem>
-                  <TreeItem name="index.ts">
-                    <span>index.ts</span>
-                  </TreeItem>
-                </TreeGroup>
-              </TreeItem>
-              <TreeItem name="package.json">
-                <span>package.json</span>
-              </TreeItem>
-              <TreeItem name="secrets" disabled>
-                <span>secrets.env</span>
-              </TreeItem>
-            </Tree>
-          )}
-        </Snippet>
-      </div>
-
-      <div className="aui-card flex flex-col gap-lg p-xl">
-        <Snippet>{() => <span className="text-sm">{state.chosen.join(', ') || 'Nothing selected'}</span>}</Snippet>
+      </DemoControl>
+      <div className="aui-card flex flex-col p-xl">
         <Snippet>
           {() => (
             <Tree
-              label="Export targets"
-              multiple
-              value={$bind(state, 'chosen')}
-              disabled={state.locked}
-            >
-              <TreeItem name="dist" label="dist" expanded={true}>
-                <span>dist</span>
-                <TreeGroup>
-                  <TreeItem name="esm">
-                    <span>esm/bundle.js</span>
-                  </TreeItem>
-                  <TreeItem name="cjs">
-                    <span>cjs/bundle.cjs</span>
-                  </TreeItem>
-                  <TreeItem name="types">
-                    <span>types/index.d.ts</span>
-                  </TreeItem>
-                </TreeGroup>
-              </TreeItem>
-              <TreeItem name="docs" label="docs" expanded={false}>
-                <span>docs</span>
-                <TreeGroup>
-                  <TreeItem name="api.md">
-                    <span>api.md</span>
-                  </TreeItem>
-                </TreeGroup>
-              </TreeItem>
-            </Tree>
+              label="Project files"
+              items={FILES}
+              multiple={state.multiple}
+              value={state.multiple ? $bind(state, 'files') : $bind(state, 'file')}
+              size={state.size}
+              color={state.color}
+              disabled={state.disabled}
+            />
           )}
         </Snippet>
       </div>
+      <Snippet>{() => <span>Selected: {state.multiple ? state.files.join(', ') : state.file}</span>}</Snippet>
     </div>
   );
 }, 'TreeDemo');
@@ -120,143 +80,124 @@ const TreeDemo = setup(() => {
 
 ## Usage
 
-The root takes the selection; the items and groups describe the hierarchy:
+### From nested data
+
+Pass your hierarchy as `items`. An entry with `children` is a branch; one without is a leaf. `name` is what the selection holds, `label` what the row shows:
+
+```tsx
+import { Tree } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/tree.css';
+
+const CATEGORIES = [
+  {
+    name: 'clothing',
+    label: 'Clothing',
+    expanded: true,
+    children: [
+      { name: 'shirts', label: 'Shirts' },
+      { name: 'shoes', label: 'Shoes' },
+    ],
+  },
+  { name: 'gifts', label: 'Gift cards' },
+];
+
+export const CategoryPicker = () => <Tree label="Categories" items={CATEGORIES} value={$bind(filter, 'category')} />;
+```
+
+Branches start closed unless the entry says `expanded: true`. Disable an entry with `disabled: true`; people can still see it but cannot select or open it.
+
+Seed `value` with a node. The keyboard enters the tree on the selected node, so a tree with nothing selected cannot be reached with `Tab`.
+
+### Choosing several
+
+Set `multiple` to let people pick more than one node; `value` becomes a list of names:
+
+```tsx
+<Tree label="Export targets" items={TARGETS} multiple value={$bind(exportJob, 'targets')} />
+```
+
+By default the arrow keys only move focus and `Enter`, `Space`, or a click selects. Set `manual={false}` when moving should select, as in a file browser that previews whatever is focused. Set `required` to keep a single-select tree from ending up empty.
+
+### Custom row content
+
+When a row needs more than text — a file icon, a size, a badge — supply it through the `item` slot. Selection, the chevron, and the keyboard stay in place:
+
+```tsx
+<Tree label="Project files" items={FILES} value={$bind(editor, 'file')}>
+  <Tree.Snippet for="item">
+    {(entry) => (
+      <>
+        <FileIcon name={entry.name} /> {entry.label ?? entry.name}
+      </>
+    )}
+  </Tree.Snippet>
+</Tree>
+```
+
+### Building from parts
+
+When rows come from several sources or a branch loads its children on demand, compose the parts. Inside a `TreeItem`, everything before the nested `TreeGroup` is the row; the group holds the children and opens and closes with its branch. Give a branch a `label` so screen readers announce its name instead of its whole subtree:
 
 ```tsx
 import { Tree, TreeGroup, TreeItem } from '@airlib/react-aui';
-import '@airlib/aui/components/widgets/tree.css';
 
-export const ProjectFiles = ({ onOpen }: { onOpen: (file: string) => void }) => (
-  <Tree label="Project files" value="index.ts" onchange={(event) => onOpen(String(event.detail))}>
-    <TreeItem name="src" label="src" expanded={true}>
-      <span>src</span>
-      <TreeGroup>
-        <TreeItem name="index.ts">
-          <span>index.ts</span>
-        </TreeItem>
-      </TreeGroup>
-    </TreeItem>
-    <TreeItem name="package.json">
-      <span>package.json</span>
-    </TreeItem>
-  </Tree>
-);
-```
-
-For the full library — tokens, base defaults, every component, and the utilities — load `import '@airlib/aui';` instead. A lone component stylesheet carries only that component's rules.
-
-### The selection
-
-`value` is one node name, or an array when `multiple` is set. A node is selected when its `name` matches:
-
-```tsx
-const state = mutable({ files: ['esm', 'types'] });
-
-<Tree label="Export targets" multiple value={$bind(state, 'files')}>
-  {/* items */}
+<Tree label="Project files" value={$bind(editor, 'file')}>
+  <TreeItem name="src" label="src" expanded={$bind(folders, 'src')}>
+    <span>src</span>
+    <TreeGroup>
+      <TreeItem name="index.ts">
+        <span>index.ts</span>
+      </TreeItem>
+    </TreeGroup>
+  </TreeItem>
+  <TreeItem name="package.json">
+    <span>package.json</span>
+  </TreeItem>
 </Tree>
 ```
 
-A node compiles `tabindex="0"` only while it is selected, so a single-select tree holds one stop and a multi-select tree holds one per selected node. With no value the tree has no stop at all, so seed `value` when the tree must be reachable by keyboard.
+Bind a branch's `expanded` to open or close it from elsewhere, and listen to `ontoggle` to load its children the first time it opens.
 
-### Branches and groups
+### Style it once
 
-A node is a branch when it takes `expanded` or when a `TreeGroup` mounts inside it. The group marks its parent as a branch, pairs `aria-labelledby` with the item's id, and hides while the branch is collapsed — no ARIA wiring on your side:
-
-```tsx
-<TreeItem name="src" label="src" expanded={false}>
-  <span>src</span>
-  <TreeGroup>
-    <TreeItem name="index.ts">
-      <span>index.ts</span>
-    </TreeItem>
-  </TreeGroup>
-</TreeItem>
-```
-
-A leaf omits `aria-expanded`, so a file is never announced as a folder. Bound `expanded` to follow the controller, and `ontoggle` to hear each open and close:
-
-```tsx
-const node = mutable({ open: true });
-
-<TreeItem name="src" label="src" expanded={$bind(node, 'open')} ontoggle={(event) => console.log(event.detail)}>
-  {/* label and group */}
-</TreeItem>
-```
-
-A branch's accessible name is its whole subtree, so pass `label` when the children would otherwise pollute it.
-
-### Keyboard and focus
-
-`manual` defaults to `true`: the arrows move focus without changing the selection, and `Enter`, `Space`, or a click commits. Set `manual={false}` to select whatever focus lands on:
-
-```tsx
-<Tree label="Export targets" value="esm" manual={false}>
-  {/* items */}
-</Tree>
-```
-
-### Locking
-
-`disabled` on the root locks selection, expansion, and traversal; `disabled` on a node locks just that node's picks. `required` keeps a single-select tree from clearing its value and announces `aria-required`:
-
-```tsx
-<Tree label="Project files" value="index.ts" required>
-  {/* items */}
-</Tree>
-```
+`size` and `color` on `Tree` reach every row; a row's own prop still wins. Selected rows take the color. See [Theming](/docs/theming#style-a-composite-once).
 
 ### Properties
 
-#### Tree
+`Tree`:
 
 | Prop | Type | Default | Notes |
 | --- | --- | --- | --- |
-| `label` | `string` | — | The tree's name. |
-| `labelledby` | `string` | — | An element id that names the tree instead. |
-| `value` | `Bindable<string \| string[]>` | — | The selected node, or nodes. |
-| `multiple` | `boolean` | `false` | Allows more than one selected node. |
-| `manual` | `boolean` | `true` | Whether arrows move focus only, or select as they move. |
-| `required` | `boolean` | `false` | Refuses an empty single selection. |
-| `disabled` | `boolean` | `false` | Locks the whole hierarchy. |
-| `id` | `string` | generated | Namespace prefix for node ids. |
-| `onchange` | `(event: CustomEvent<string \| string[] \| undefined>) => void` | — | The selection after every commit. |
+| `items` | `Array<{ name, label?, disabled?, expanded?, children? }>` | — | The hierarchy to render. Leave it out to compose the parts yourself. |
+| `label` | `string` | — | The tree's name for screen readers. |
+| `labelledby` | `string` | — | The id of a visible heading that names the tree instead. |
+| `value` | `Bindable<string \| string[]>` | — | The selected node's name, or the list of names with `multiple`. |
+| `multiple` | `boolean` | `false` | Lets people select several nodes. |
+| `manual` | `boolean` | `true` | Leave it on so moving focus never changes the selection; turn it off to select as focus moves. |
+| `required` | `boolean` | `false` | Keeps a single-select tree from ending up with nothing selected. |
+| `disabled` | `boolean` | `false` | Locks selection and expansion across the tree. |
+| `size` | `xs`–`xxl` | `'sm'` | Reaches every row. |
+| `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | The color of selected rows. |
+| `onchange` | `(event: CustomEvent<string \| string[] \| undefined>) => void` | — | The selection changed; `detail` is the whole value. |
 | `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
-| `children` | `ReactNode` | — | Items. |
-| `ref` | `Ref<HTMLUListElement>` | — | Access to the tree element. |
 
-#### TreeItem
+Slots, used with `items`:
 
-| Prop | Type | Default | Notes |
-| --- | --- | --- | --- |
-| `name` | `string` | — | The identity matched against the tree value. |
-| `value` | `string` | — | Alias for `name` when `name` is omitted. |
-| `label` | `string` | — | The node's accessible name, when its subtree would say too much. |
-| `expanded` | `Bindable<boolean>` | — | Marks a branch and holds its state. |
-| `selected` | `Bindable<boolean>` | — | The initial hint. |
-| `disabled` | `boolean` | `false` | Locks this node's picks and expansion. |
-| `ontoggle` | `(event: CustomEvent<boolean>) => void` | — | Each branch open and close. |
-| `id` | `string` | generated | The id its child group points at. |
+| Slot | Receives | Renders |
+| --- | --- | --- |
+| `item` | the entry (`name`, `label`, `children`, …) | What the row shows, in place of its label. |
 
-#### TreeGroup
+Parts, used without `items`:
 
-Takes `id`, `label`, and `labelledby` for the rare case you want to name a group yourself; the standard attributes for a `ul` host plus `className` and `ref` come along.
+| Part | Props | Notes |
+| --- | --- | --- |
+| `TreeItem` | `name`, `label`, `expanded`, `disabled`, `ontoggle` | One node. `expanded` or a nested `TreeGroup` makes it a branch; `label` names a branch for screen readers. |
+| `TreeGroup` | `label`, `labelledby` | The children of a branch, shown while the branch is open. |
 
-Your own classes are added next to the built-in ones:
-
-```tsx
-// class="aui-tree my-tree"
-<Tree className="my-tree" label="Project files">
-  {/* items */}
-</Tree>
-```
-
-To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
-
-Keyboard: `ArrowDown` and `ArrowUp` visit the next and previous visible enabled node without wrapping, `Home` and `End` reach the first and last, `ArrowRight` opens a closed branch and steps into an open one, `ArrowLeft` closes an open branch or returns to the parent, and `Enter` or `Space` selects.
+Keyboard: `Tab` enters on the selected node. `Down` and `Up` move to the next and previous visible node without wrapping, `Home` and `End` jump to the first and last, `Right` opens a closed branch or steps into an open one, `Left` closes an open branch or returns to its parent, and `Enter` or `Space` selects.
 
 ## Next Steps
 
-- [Grid](/docs/widgets/grid) — Two-dimensional travel across rows and cells.
-- [Accordion](/docs/widgets/accordion) — Stacked disclosure sections without hierarchy.
-- [Listbox](/docs/widgets/listbox) — Flat single and multiple selection with typeahead.
+- [Accordion](/docs/widgets/accordion) — Sections that open and close without nesting.
+- [Listbox](/docs/widgets/listbox) — A flat list to pick one or several from.
+- [Grid](/docs/widgets/grid) — Rows and columns people move through with the keyboard.

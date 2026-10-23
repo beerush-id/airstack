@@ -36,7 +36,7 @@
 
   .aui-state-layer,
   .aui-control,
-  .aui-menu-item {
+  .aui-item {
     position: relative;
 
     &:active {
@@ -49,10 +49,10 @@
   }
 
   .aui-state-layer::before,
-  .aui-menu-item::before,
+  .aui-item::before,
   .aui-control::before,
   .aui-state-layer::after,
-  .aui-menu-item::after,
+  .aui-item::after,
   .aui-control::after {
     content: '';
     inset: 0;
@@ -66,7 +66,7 @@
   }
 
   .aui-state-layer::before,
-  .aui-menu-item::before,
+  .aui-item::before,
   .aui-control::before {
     transition-property: opacity, background-color;
     transition-duration: var(--duration-short);
@@ -74,19 +74,19 @@
   }
 
   .aui-state-layer:hover::before,
-  .aui-menu-item:hover::before,
+  .aui-item:hover::before,
   .aui-control:hover::before {
     opacity: var(--tone-hover-strength);
   }
 
   .aui-state-layer:focus-visible::before,
-  .aui-menu-item:focus-visible::before,
+  .aui-item:focus-visible::before,
   .aui-control:focus-visible::before {
     opacity: var(--tone-focus-strength);
   }
 
   .aui-state-layer:active::before,
-  .aui-menu-item:active::before,
+  .aui-item:active::before,
   .aui-control:active::before {
     opacity: var(--tone-pressed-strength);
   }
@@ -94,8 +94,8 @@
   .aui-disabled,
   .aui-state-layer:disabled,
   .aui-state-layer[aria-disabled='true'],
-  .aui-menu-item:disabled,
-  .aui-menu-item[aria-disabled='true'],
+  .aui-item:disabled,
+  .aui-item[aria-disabled='true'],
   .aui-control:disabled,
   .aui-control[aria-disabled='true'] {
     cursor: not-allowed;

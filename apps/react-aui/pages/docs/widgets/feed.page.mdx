@@ -2,16 +2,15 @@
 title: AUI Feed
 nav: Feed
 nav-priority: 378
-description: A named stream of articles that carries one size for the whole run, announces a loading batch, and travels between entries with PageUp and PageDown.
+description: A stream of articles that keeps loading as people read — each entry knows its place, a loading batch is announced, and PageUp/PageDown move between entries.
+keywords: [React feed component, infinite scroll accessible, article stream React, news feed component, ARIA feed]
 ---
 
 # AUI Feed
 
-A feed is a named stream of articles that grows while the reader moves through it, and every entry carries its place in the run. The hard part is never the cards — it is **compiling the stream role on the container**, **giving each entry its position while the run states its size once**, **announcing a loading batch**, and **stepping between entries without claiming the reader's own keys**.
+Release notes, activity streams, social timelines, search results that load as you scroll — a feed is a list of articles that keeps growing while people read it. The hard part is making it readable for everyone: screen-reader users need to know where they are in the stream and when a new batch is arriving, and keyboard users need to jump from entry to entry without the page stealing their keys.
 
-**AUI Feed** does all of that for you, and leaves the markup and the styling entirely yours. The container carries the role, the size, and the keys; every article reads the size from it.
-
-Styling is optional. Without AUI CSS the Feed stays a correct, operable stream; with it, the same markup gets the AUI treatment through the full library.
+**AUI Feed** gives you that stream. Wrap your articles in it, tell it how long the run is and whether a batch is loading, and it handles the announcements and the keyboard travel.
 
 :::interactive[Feed demo]
 
@@ -25,11 +24,10 @@ const FeedDemo = setup(() => {
   return () => (
     <div className="demo-button">
       <div className="flex gap-xs w-full flex-wrap">
+        <div className="flex-1"></div>
         <Toggle size="sm" pressed={$bind(state, 'busy')}>
           {() => (state.busy ? 'Loading a batch' : 'Settled')}
         </Toggle>
-        <div className="flex-1"></div>
-        <Snippet>{() => <span className="text-sm">{state.busy ? 'aria-busy="true"' : 'aria-busy="false"'}</span>}</Snippet>
       </div>
       <div className="aui-card flex flex-col gap-lg p-xl">
         <Snippet>
@@ -72,113 +70,94 @@ const FeedDemo = setup(() => {
 
 ## Usage
 
-The container carries the run; each article states where it sits:
+Wrap each entry in a `FeedArticle` inside a named `Feed`. Give the feed the size of the run and each article its position:
 
 ```tsx
 import { Feed, FeedArticle } from '@airlib/react-aui';
 import '@airlib/aui/components/widgets/feed.css';
 
-export const ReleaseStream = () => (
-  <Feed label="Release notes" setsize={2}>
-    <FeedArticle posinset={1}>
-      <h3>Streaming markup lands in engine 2.4</h3>
-      <p>Fine-grained signals and server streaming ship in the same release.</p>
-    </FeedArticle>
-    <FeedArticle posinset={2}>
-      <h3>Route transitions drop under a millisecond</h3>
-      <p>The router now matches and resolves in one pass, with no intermediate frame.</p>
-    </FeedArticle>
+export const ReleaseStream = ({ notes }: { notes: Array<{ id: string; title: string; body: string }> }) => (
+  <Feed label="Release notes" setsize={notes.length}>
+    {notes.map((note, index) => (
+      <FeedArticle key={note.id} posinset={index + 1}>
+        <h3>{note.title}</h3>
+        <p>{note.body}</p>
+      </FeedArticle>
+    ))}
   </Feed>
 );
 ```
 
-For the full library — tokens, base defaults, every component, and the utilities — load `import '@airlib/aui';` instead. A lone component stylesheet carries only that component's rules.
+Each article is a real `<article>`, so headings, links, and buttons inside it work as usual.
 
-### The size belongs to the run
+## A stream that keeps growing
 
-`setsize` names how many entries the run holds, or `-1` while that is unknown. Every article reads it from the container, so a page never restates the count per entry:
+When you render only a window of a long run — entries 41 through 60 of 400 — pass the real numbers. `setsize` is the length of the whole run, and `posinset` is where each rendered entry sits in it, so people always hear their true position:
 
 ```tsx
-<Feed label="Release notes" setsize={4}>
-  <FeedArticle posinset={4}>
-    <h3>Migration guide for 2.3 projects</h3>
-  </FeedArticle>
+<Feed label="Activity" setsize={400}>
+  {page.map((entry, index) => (
+    <FeedArticle key={entry.id} posinset={41 + index}>
+      {/* entry */}
+    </FeedArticle>
+  ))}
 </Feed>
 ```
 
-### The position belongs to you
+When the total is not known yet — an endless timeline — pass `setsize={-1}`.
 
-`posinset` is compiled only when you pass it; nothing counts entries for you, and the number you pass is the number announced. That is what keeps an infinite stream honest — the entries you render can be numbers 41 through 60 of a run of 400:
+## While a batch is loading
 
-```tsx
-<Feed label="Release notes" setsize={400}>
-  <FeedArticle posinset={41}>{/* one window of the run */}</FeedArticle>
-</Feed>
-```
-
-### A batch that is still arriving
-
-`busy` compiles `aria-busy` in both states. The flag is a state, not a spinner: nothing is announced by the controller, no timer runs, and AUI dims the stream and holds pointer input while it is set:
+Set `busy` while you fetch the next batch and clear it when the articles are in. Assistive technology waits for the batch instead of announcing each article as it lands, and AUI mutes the stream so nobody acts on half-loaded content:
 
 ```tsx
-<Feed label="Release notes" busy setsize={4}>
-  {/* the batch */}
-</Feed>
-```
-
-### Naming the stream
-
-`label` names the feed; `labelledby` takes the name from a heading instead. `id` is the container's identifier and the namespace its articles derive theirs from:
-
-```tsx
-<h2 id="releases">Release notes</h2>
-<Feed labelledby="releases" id="releases-feed">
+<Feed label="Activity" setsize={-1} busy={timeline.loading}>
   {/* articles */}
 </Feed>
 ```
 
-### Properties
+Show your own spinner or skeleton if you want one; `busy` only changes how the stream behaves.
 
-#### Feed
+## Naming the stream
+
+Every feed needs a name. Pass `label`, or point `labelledby` at the heading that already names it:
+
+```tsx
+<h2 id="releases">Release notes</h2>
+<Feed labelledby="releases">{/* articles */}</Feed>
+```
+
+## Properties
+
+### Feed
 
 | Prop | Type | Default | Notes |
 | --- | --- | --- | --- |
 | `label` | `string` | — | The stream's accessible name. |
-| `labelledby` | `string` | — | An element id that names the stream instead. |
-| `setsize` | `number` | `-1` | How many entries the run holds, or `-1` while unknown. |
-| `busy` | `boolean` | `false` | Whether a batch is still arriving. |
-| `id` | `string` | generated | The container's identifier and the articles' namespace. |
+| `labelledby` | `string` | — | The id of an element that names the stream instead. |
+| `setsize` | `number` | `-1` | How many entries the whole run holds; `-1` while unknown. |
+| `busy` | `boolean` | `false` | Set while a batch is loading. |
+| `id` | `string` | generated | The stream's DOM identifier. |
 | `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
-| `children` | `ReactNode` | — | Articles. |
-| `ref` | `Ref<HTMLDivElement>` | — | Access to the feed element. |
+| `children` | `ReactNode` | — | The articles. |
 
-#### FeedArticle
+### FeedArticle
 
 | Prop | Type | Default | Notes |
 | --- | --- | --- | --- |
-| `posinset` | `number` | — | The 1-based position in the run. |
-| `id` | `string` | generated | The part the container prefixes. |
+| `posinset` | `number` | — | The entry's 1-based position in the whole run. |
+| `id` | `string` | generated | The article's DOM identifier. |
 | `className` | `string` | — | Added alongside the built-in classes. |
 | `children` | `ReactNode` | — | The entry's content. |
-| `ref` | `Ref<HTMLElement>` | — | Access to the article element. |
-
-An article is a real `<article>`, so it keeps its native role and needs no compiled one. It carries no tab stop of its own: the feed's keys move focus onto it, and AUI draws the focus ring.
-
-Your own classes are added next to the built-in ones:
-
-```tsx
-// class="aui-feed my-stream"
-<Feed className="my-stream" label="Release notes">
-  {/* articles */}
-</Feed>
-```
 
 To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
 
-Keyboard: `PageDown` and `PageUp` move focus to the next and previous entry, and `Ctrl + Home` or `Ctrl + End` jump to the ends. At the ends the key is left to the browser, so the page keeps scrolling; an unmodified `Home` or `End`, and `Ctrl` with `PageUp` or `PageDown`, are never claimed.
+## Keyboard
+
+`PageDown` and `PageUp` move focus to the next and previous article; `Ctrl + Home` and `Ctrl + End` jump to the ends of the stream. At the first or last article the key goes back to the page, so scrolling keeps working. Plain `Home` and `End`, and `Ctrl` with `PageUp` or `PageDown`, are never taken.
 
 ## Next Steps
 
-- [Section](/docs/landmarks/section) — A named region around the stream, with its own heading.
-- [Grid](/docs/widgets/grid) — Two-dimensional travel across rows and cells.
-- [Toast](/docs/widgets/toast) — The live region for news the reader did not ask for.
+- [Section](/docs/landmarks/section) — A named region with its own heading around the stream.
+- [Grid](/docs/widgets/grid) — Move across rows and columns instead of a single stream.
+- [Toast](/docs/widgets/toast) — Tell people about something they did not ask to read.

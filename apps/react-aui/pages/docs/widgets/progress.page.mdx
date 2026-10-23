@@ -38,23 +38,25 @@ const ProgressDemo = setup(() => {
           {() => (state.unknown ? 'Unknown duration' : 'Known duration')}
         </Toggle>
       </div>
-      <div className="aui-card flex flex-col gap-lg p-xl">
-        <Slider min={0} max={100} value={$bind(state, 'value')} aria-label="Progress value" />
-        <Snippet>
-          {() => (
-            <Progress
-              value={state.unknown ? null : state.value}
-              size={state.size}
-              color={state.color}
-              label="Exporting archive"
-              valuetext={state.unknown ? 'Working' : `${Math.round(state.value)} percent`}
-            />
-          )}
-        </Snippet>
-        <Snippet>
-          {() => <Progress value={100} size={state.size} color="success" label="Upload complete" />}
-        </Snippet>
-      </div>
+      <Snippet>
+        {() => (
+          <div className="aui-card flex flex-col gap-lg p-xl">
+            <Slider min={0} max={100} value={$bind(state, 'value')} aria-label="Progress value" />
+            <Snippet>
+              {() => (
+                <Progress
+                  value={state.unknown ? null : state.value}
+                  size={state.size}
+                  color={state.color}
+                  label="Exporting archive"
+                  valuetext={state.unknown ? 'Working' : `${Math.round(state.value)} percent`}
+                />
+              )}
+            </Snippet>
+            <Progress value={100} size={state.size} color="success" label="Upload complete" />
+          </div>
+        )}
+      </Snippet>
     </div>
   );
 }, 'ProgressDemo');

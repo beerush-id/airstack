@@ -4,7 +4,7 @@ import { type Bindable, renderDynamic, setup } from '@airlib/react';
 import type { ReactNode } from 'react';
 import { $families, auiConfig, type AuiPrimitive, type AuiProps, type ComponentStyles, OMIT_KEYS } from '../config.js';
 
-import { checkboxGroupProps } from './context.js';
+import { checkboxGroupScope } from './context.js';
 
 export type CheckboxValue = AuiPrimitive;
 
@@ -38,18 +38,9 @@ register('checkbox', checkboxStyles);
  * the browser reports — checked, indeterminate, or neither.
  */
 export const Checkbox = setup<CheckboxProps>((props) => {
-  const group = checkboxGroupProps.get();
+  const styles = checkboxGroupScope.inherit(props);
   const checkbox = aria(CHECKBOX_ROLE, props);
-  const className = () =>
-    $families(
-      AUI_CLASS.CHECKBOX_BOX,
-      {
-        size: props.size ?? group?.size,
-        color: props.color ?? group?.color,
-        className: props.className,
-      },
-      auiConfig.checkbox
-    );
+  const className = () => $families(AUI_CLASS.CHECKBOX_BOX, styles, auiConfig.checkbox);
 
   return () => (
     <label className={AUI_CLASS.CHECKBOX}>

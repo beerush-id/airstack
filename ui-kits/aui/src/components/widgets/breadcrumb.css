@@ -1,8 +1,41 @@
+@import './item.css';
+@import './link.css';
+
+/* A quiet trail on the shared size scale: ancestors recede, the current crumb reads in full ink. */
 @layer component {
   .aui-breadcrumb {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: calc(var(--spacing) * 2);
+    gap: var(--spacing-xs);
+    min-block-size: var(--aui-control-height);
+  }
+
+  .aui-breadcrumb > .aui-link {
+    color: var(--color-on-surface-variant);
+    font-weight: 500;
+    text-decoration-line: none;
+
+    &:hover:not([aria-disabled='true'], [aria-current='page']) {
+      color: var(--aui-item-bg);
+      text-decoration-line: underline;
+    }
+
+    /* A refused crumb keeps the link's dashed underline so it reads as "there, but closed". */
+    &[aria-disabled='true'] {
+      color: var(--color-disabled-fg);
+      text-decoration-line: underline;
+      text-decoration-style: dashed;
+      cursor: not-allowed;
+    }
+
+    &[aria-current='page'] {
+      margin: 0;
+      padding: 0;
+      color: var(--color-on-surface);
+      background-color: transparent;
+      font-weight: 600;
+    }
   }
 
   .aui-breadcrumb-separator {

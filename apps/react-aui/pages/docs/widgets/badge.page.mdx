@@ -1,0 +1,136 @@
+---
+title: AUI Badge
+nav: Badge
+nav-priority: 195
+description: Badges for short labels and counts — mark an icon, a button, or an avatar with an unread count or a status dot, or tag content as New or Beta. Accessible, sized and colored like every AUI component.
+keywords: [React badge, notification badge, unread count, status dot, label badge, React AUI badge, accessible badge]
+---
+
+# AUI Badge
+
+Unread messages on an inbox icon, a green dot on someone who is online, a "Beta" tag next to a feature name — small marks that carry a lot of meaning. The hard part is not drawing the pill: it is keeping a count from overflowing its corner, hiding it at zero, and making sure screen-reader users hear "3 unread messages" instead of a bare "3" or nothing at all.
+
+**AUI Badge** handles all of that. Give it a `count` or a `dot` and the element you want to mark; give it plain children and it becomes a label.
+
+:::interactive[Badge demo]
+
+```tsx
+import { Badge, Button } from '@airlib/react-aui';
+import { HelpIcon } from '@airlib/react-aui/icons';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { DemoControl } from '@/components/DemoControl.js';
+
+const BadgeDemo = setup(() => {
+  const state = mutable({ unread: 3, size: 'md', color: 'error', disabled: false });
+
+  return () => (
+    <div className="demo-button">
+      <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} />
+      <Snippet>
+        {() => (
+          <div className="aui-card flex gap-xl items-center justify-center p-xl">
+            <Button variant="tonal" size={state.size} onClick={() => (state.unread += 1)}>
+              Inbox
+              <Snippet>
+                {() => <Badge count={state.unread} label={`${state.unread} unread messages`} color={state.color} />}
+              </Snippet>
+            </Button>
+            <Button variant="tonal" size={state.size} className="aui-control-icon" aria-label="Help">
+              <HelpIcon />
+              <Badge dot label="New activity" color={state.color} />
+            </Button>
+            <Badge size={state.size} color={state.color} variant="tonal">
+              Beta
+            </Badge>
+            <Button variant="text" onClick={() => (state.unread = 0)}>
+              Mark all read
+            </Button>
+          </div>
+        )}
+      </Snippet>
+    </div>
+  );
+}, 'BadgeDemo');
+```
+
+```html
+<BadgeDemo />
+```
+
+<BadgeDemo />
+
+:::
+
+## Usage
+
+### Mark an element with a count
+
+Put the badge inside the element it marks and pass the number. It pins itself to the element's top corner, takes the element's size, hides itself at zero, and collapses anything above `max` to `99+`:
+
+```tsx
+import { Badge, Button } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/badge.css';
+
+<Button>
+  Inbox
+  <Badge count={unread} label={`${unread} unread messages`} color="error" />
+</Button>
+```
+
+Name it with `label`. Screen readers then hear your sentence instead of a bare number; without a `label` they hear the number itself. The badge ships no wording of its own — every name comes from you, in your app's language.
+
+### Mark an element with a dot
+
+When the fact matters but the number does not — new activity, someone online — use `dot`. Put it at the bottom corner for presence on an avatar:
+
+```tsx
+<Avatar src={user.photo} alt={user.name}>
+  <Badge dot label="Online" color="success" position="bottom-end" />
+</Avatar>
+```
+
+A dot without a `label` is decoration and stays silent; add one whenever the dot carries information.
+
+### Tag content with a label
+
+With no `count` and no `dot`, the badge is a small pill around its own text:
+
+```tsx
+<h3>
+  Smart replies <Badge variant="tonal">Beta</Badge>
+</h3>
+```
+
+### Style it once
+
+`size` and `color` follow the shared vocabulary; a badge is half the height of a control at the same size. A count or dot takes the size of the element it sits in, so it grows and shrinks with the button or avatar; give it its own `size` only to break from that. See [Theming](/docs/theming#style-a-composite-once).
+
+### Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `count` | `number` | — | Shows this number on the corner of the element the badge sits in. |
+| `max` | `number` | `99` | Above this, the count reads `max+`. |
+| `showZero` | `boolean` | `false` | Keep a count of `0` visible. |
+| `dot` | `boolean` | `false` | Shows a dot instead of a number. |
+| `position` | `'top-end'`, `'bottom-end'` | `'top-end'` | Which corner of the element the indicator sits on. |
+| `label` | `string` | — | What the count or dot means, read by screen readers instead of the bare value. |
+| `size` | `xs`–`xxl` | `'md'`; a count or dot follows its element | Half the height of a control at the same size. |
+| `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | Role color of the badge. |
+| `variant` | `filled`, `tonal` | `'filled'` | `tonal` is a soft container tint, good for labels. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `children` | `ReactNode` | — | The label text, when the badge is a pill. |
+
+Set app-wide defaults once:
+
+```tsx
+import { configure } from '@airlib/react-aui';
+
+configure({ badge: { color: 'error', size: 'sm' } });
+```
+
+## Next Steps
+
+- [Avatar](/docs/widgets/avatar) — The picture a presence dot usually sits on.
+- [Button](/docs/widgets/button) — The most common element to put a count on.
+- [Toast](/docs/widgets/toast) — For news that deserves a message, not just a number.

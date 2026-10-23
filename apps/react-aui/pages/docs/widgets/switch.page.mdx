@@ -24,9 +24,9 @@ const SwitchDemo = setup(() => {
   return () => (
     <div className="demo-button">
       <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} disabled={$bind(state, 'disabled')} />
-      <div className="aui-card flex gap-xl items-center justify-center p-xl">
-        <Snippet>
-          {() => (
+      <Snippet>
+        {() => (
+          <div className="aui-card flex gap-xl items-center justify-center p-xl">
             <label className="flex items-center gap-sm">
               <span>Wi-Fi</span>
               <Switch
@@ -37,10 +37,6 @@ const SwitchDemo = setup(() => {
                 disabled={state.disabled}
               />
             </label>
-          )}
-        </Snippet>
-        <Snippet>
-          {() => (
             <label className="flex items-center gap-sm">
               <span>Bluetooth</span>
               <Switch
@@ -50,9 +46,9 @@ const SwitchDemo = setup(() => {
                 disabled={state.disabled}
               />
             </label>
-          )}
-        </Snippet>
-      </div>
+          </div>
+        )}
+      </Snippet>
     </div>
   );
 }, 'SwitchDemo');

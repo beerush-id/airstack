@@ -2,12 +2,12 @@ import { aria } from '@airlib/aria';
 import { AUI_CLASS, register } from '@airlib/aui/utils';
 import { type Bindable, setup } from '@airlib/react';
 import type { ComponentProps, ReactNode } from 'react';
-import { $families, auiConfig, type ComponentStyles, OMIT_KEYS } from '../config.js';
+import { $families, auiConfig, type ComponentStyles, FIELD_STYLES, type FieldStyles, OMIT_KEYS } from '../config.js';
+import { createStyleScope } from '../utils/common.js';
 
 export type FieldValue = string | number;
 
-export interface FieldProps extends Omit<ComponentProps<'div'>, 'className' | 'color'>,
-  Omit<ComponentStyles, 'size' | 'variant' | 'color'> {
+export interface FieldProps extends Omit<ComponentProps<'div'>, 'className' | 'color'>, FieldStyles {
   id?: string;
   type?: string;
   value?: Bindable<FieldValue>;
@@ -24,8 +24,7 @@ export interface FieldProps extends Omit<ComponentProps<'div'>, 'className' | 'c
 export type FieldLabelProps = Omit<ComponentProps<'label'>, 'className' | 'color'> &
   Omit<ComponentStyles, 'size' | 'variant' | 'color'> & { children?: ReactNode };
 
-export type FieldControlProps = Omit<ComponentProps<'input'>, 'className' | 'color'> &
-  Omit<ComponentStyles, 'size' | 'variant' | 'color'>;
+export type FieldControlProps = Omit<ComponentProps<'input'>, 'className' | 'color' | 'size'> & FieldStyles;
 
 export type FieldDescriptionProps = Omit<ComponentProps<'span'>, 'className' | 'color'> &
   Omit<ComponentStyles, 'size' | 'variant' | 'color'> & { children?: ReactNode };
@@ -43,9 +42,11 @@ const fieldStyles: ComponentStyles = {};
 
 register('field', fieldStyles);
 register('fieldLabel', fieldStyles);
-register('fieldControl', fieldStyles);
+register('fieldControl', { ...FIELD_STYLES });
 register('fieldDescription', fieldStyles);
 register('fieldError', fieldStyles);
+
+const fieldScope = createStyleScope<FieldProps>();
 
 /**
  * Ties label, control, helper text, and failure into one namespace.
@@ -53,7 +54,9 @@ register('fieldError', fieldStyles);
  */
 export const Field = setup<FieldProps>((props) => {
   const field = aria(FIELD_ROLE, props);
-  const className = () => $families(AUI_CLASS.FIELD, props, auiConfig.field);
+  const className = () => $families(AUI_CLASS.FIELD, { className: props.className }, auiConfig.field);
+
+  fieldScope.provide(props);
 
   return () => (
     <div ref={field.ref} {...field.restProps([...OMIT_KEYS, 'id', 'type', 'value', 'placeholder', 'required', 'disabled', 'invalid', 'invalidMessages', 'touched', 'oninput'])} className={className()}>
@@ -80,8 +83,10 @@ export const FieldLabel = setup<FieldLabelProps>((props) => {
  * Field control address derived from the enclosing namespace.
  */
 export const FieldControl = setup<FieldControlProps>((props) => {
+  const styles = fieldScope.inherit(props);
   const control = aria(FIELD_CONTROL_ROLE, props);
-  const className = () => $families(AUI_CLASS.FIELD_CONTROL, props, auiConfig.fieldControl);
+  const className = () =>
+    $families([AUI_CLASS.CONTROL, AUI_CLASS.INPUT, AUI_CLASS.FIELD_CONTROL], styles, auiConfig.fieldControl);
 
   return () => <input ref={control.ref} {...control.restProps([...OMIT_KEYS])} className={className()} />;
 }, 'FieldControl');

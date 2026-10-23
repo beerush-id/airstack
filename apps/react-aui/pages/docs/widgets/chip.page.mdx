@@ -1,0 +1,157 @@
+---
+title: AUI Chip
+nav: Chip
+nav-priority: 145
+description: Show compact labels, removable tags, and filter chips — one component for a status tag, a chosen value people can remove, or an on/off filter.
+keywords: [React chip, React tag component, removable tag React, filter chips React, accessible chip, AUI chip]
+---
+
+# AUI Chip
+
+Small labels show up everywhere: a status on a row, the values someone already chose, the filters above a list. They look alike but behave differently — one is just text, one needs a way to remove it, one turns a filter on and off. **Chip** covers all three from one component, with the remove button and the pressed state already accessible.
+
+:::interactive[Chip demo]
+
+```tsx
+import { Chip } from '@airlib/react-aui';
+import { $bind, For, mutable, setup, Snippet } from '@airlib/react';
+import { DemoControl } from '@/components/DemoControl.js';
+
+const ChipDemo = setup(() => {
+  const state = mutable({
+    size: 'sm',
+    color: 'primary',
+    variant: 'tonal',
+    disabled: false,
+    labels: ['Design', 'Frontend', 'Urgent'],
+    remote: true,
+    fullTime: false,
+  });
+
+  return () => (
+    <div className="demo-button">
+      <DemoControl
+        size={$bind(state, 'size')}
+        color={$bind(state, 'color')}
+        variant={$bind(state, 'variant')}
+        disabled={$bind(state, 'disabled')}
+      />
+      <Snippet>
+        {() => (
+          <div className="aui-card flex flex-col gap-md p-xl">
+            <div className="flex flex-wrap gap-xs items-center">
+              <Chip size={state.size} color={state.color} variant={state.variant} disabled={state.disabled}>
+                In review
+              </Chip>
+              <For each={() => state.labels}>
+                {(label) => (
+                  <Chip
+                    removable
+                    removeLabel={`Remove ${label}`}
+                    size={state.size}
+                    color={state.color}
+                    variant={state.variant}
+                    disabled={state.disabled}
+                    onremove={() => (state.labels = state.labels.filter((item) => item !== label))}
+                  >
+                    {label}
+                  </Chip>
+                )}
+              </For>
+            </div>
+            <div className="flex flex-wrap gap-xs items-center">
+              <Chip pressed={$bind(state, 'remote')} size={state.size} color={state.color} variant={state.variant} disabled={state.disabled}>
+                Remote
+              </Chip>
+              <Chip pressed={$bind(state, 'fullTime')} size={state.size} color={state.color} variant={state.variant} disabled={state.disabled}>
+                Full-time
+              </Chip>
+            </div>
+          </div>
+        )}
+      </Snippet>
+    </div>
+  );
+}, 'ChipDemo');
+```
+
+```html
+<ChipDemo />
+```
+
+<ChipDemo />
+
+:::
+
+## Usage
+
+### A label
+
+Put text in a chip to mark a status or a category. It is not interactive, so it never takes a tab stop:
+
+```tsx
+import { Chip } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/chip.css';
+
+<Chip color="success">Paid</Chip>
+```
+
+### A removable tag
+
+When people can take a value back out — a chosen label, an applied filter, a recipient — add `removable`. The chip gets a remove button; drop the entry from your data in `onremove`:
+
+```tsx
+<For each={() => labels}>
+  {(label) => (
+    <Chip removable removeLabel={`Remove ${label}`} onremove={() => drop(label)}>
+      {label}
+    </Chip>
+  )}
+</For>
+```
+
+The remove button shows only an icon, so always name it with `removeLabel`, in your app's language: "Remove Design" tells a screen-reader user which chip goes.
+
+### A filter chip
+
+When a chip switches something on and off, bind `pressed`. The chip becomes a button that announces its state and shows a check while it is on:
+
+```tsx
+<Chip pressed={$bind(filters, 'remote')}>Remote</Chip>
+```
+
+For a set of filters where only one can be on, put the chips in a [Toggle Group](/docs/widgets/toggle-group) and give each a `value`.
+
+## Looks
+
+Chips take the shared vocabulary: `size` (`xs`–`xxl`, default `sm`), `color` (default `primary`), and `variant` (default `tonal`):
+
+```tsx
+<Chip variant="filled" color="error">Overdue</Chip>
+<Chip variant="outlined">Draft</Chip>
+```
+
+`tonal` tints the chip with its color, `filled` paints it solid, `outlined` keeps only an outline, `text` drops the surface, and `elevated` lifts a neutral chip. A pressed filter chip always fills with its color. Set a default once with `configure({ chip: { size: 'xs' } })`.
+
+## Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `children` | `ReactNode` | — | The chip's text or content. |
+| `removable` | `boolean` | `false` | Adds a remove button after the label. |
+| `removeLabel` | `string` | — | Accessible name of the remove button, e.g. `Remove Berlin`; always pass it with `removable`. |
+| `onremove` | `(event) => void` | — | The remove button was activated. |
+| `pressed` | `Bindable<boolean>` | — | Makes it a filter chip: a toggle button that stays on or off. |
+| `value` | `string` | — | The token a filter chip stands for inside a toggle group. |
+| `onchange` | `(event: CustomEvent<boolean>) => void` | — | A filter chip was switched. |
+| `disabled` | `boolean` | `false` | Locks the chip and its remove button. |
+| `size` / `color` / `variant` | shared vocabulary | `sm` / `primary` / `tonal` | See [Theming](/docs/theming). |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+
+Keyboard: a filter chip is one tab stop and switches with `Space` or `Enter`. A removable chip's remove button is its own tab stop and activates with `Space` or `Enter`. A plain label takes no tab stop.
+
+## Next Steps
+
+- [Tag Input](/docs/widgets/tag-input) — Type and pick several values, shown as removable chips inside a field.
+- [Toggle Group](/docs/widgets/toggle-group) — One choice out of a row of pressed buttons.
+- [Button](/docs/widgets/button) — For actions that run once instead of a state that stays.

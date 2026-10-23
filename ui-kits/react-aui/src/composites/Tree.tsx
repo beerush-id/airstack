@@ -1,10 +1,25 @@
 import { aria } from '@airlib/aria';
-import { AUI_CLASS, register } from '@airlib/aui/utils';
-import { type AnyType, type Bindable, setup } from '@airlib/react';
+import { AUI_CLASS, COLORS, register, SIZES } from '@airlib/aui/utils';
+import { type AnyType, type Bindable, For, Slot, setup } from '@airlib/react';
 import type { ReactNode } from 'react';
 import { $families, auiConfig, type ComponentStyles, OMIT_KEYS } from '../config.js';
+import { ArrowRight } from '../icons/index.js';
+import { createStyleScope } from '../utils/common.js';
 
 export type TreeValue = string | string[];
+
+/** One node of an `items` tree: a branch when it has `children`. */
+export type TreeEntry = {
+  name: string;
+  label?: string;
+  disabled?: boolean;
+  expanded?: boolean;
+  children?: TreeEntry[];
+};
+
+export type TreeSlots = {
+  item: (entry: TreeEntry) => ReactNode;
+};
 
 export type TreeProps = ComponentStyles & {
   id?: string;
@@ -15,6 +30,7 @@ export type TreeProps = ComponentStyles & {
   manual?: boolean;
   required?: boolean;
   disabled?: boolean;
+  items?: TreeEntry[];
   children?: ReactNode;
   onchange?: (event: CustomEvent<TreeValue | undefined>) => void;
 };
@@ -45,35 +61,61 @@ const TREE_GROUP_ROLE = 'tree-group';
 const ITEM_OMIT = [...OMIT_KEYS, 'labelledby', 'ontoggle'];
 
 register('tree', {});
-register('treeItem', {});
+register('treeItem', { size: SIZES.SM, color: COLORS.PRIMARY });
 register('treeGroup', {});
+
+const treeScope = createStyleScope();
 
 /**
  * Nested hierarchy driven by one roving stop per selected node. Arrows walk
  * only visible nodes across every level, and selection stays coordinated
- * between root items and deeply nested children alike.
+ * between root items and deeply nested children alike. With `items` it
+ * renders every node and branch itself; the `item` slot refines each row.
  */
-export const Tree = setup<TreeProps>((props) => {
+export const Tree = setup<TreeProps, TreeSlots>((props, slots) => {
   const tree = aria(TREE_ROLE, props as AnyType);
-  const className = () => $families(AUI_CLASS.TREE, props, auiConfig.tree);
+  const className = () => $families(AUI_CLASS.TREE, { className: props.className }, auiConfig.tree);
+
+  treeScope.provide(props);
+
+  const renderEntries = (entries: TreeEntry[]): ReactNode => (
+    <For each={() => entries}>
+      {(entry) => (
+        <TreeItem
+          name={entry.name}
+          label={entry.children ? (entry.label ?? entry.name) : undefined}
+          disabled={entry.disabled}
+          expanded={entry.children ? (entry.expanded ?? false) : undefined}
+        >
+          <span>
+            <Slot for={() => slots.item?.(entry)}>{entry.label ?? entry.name}</Slot>
+          </span>
+          {entry.children && <TreeGroup>{renderEntries(entry.children)}</TreeGroup>}
+        </TreeItem>
+      )}
+    </For>
+  );
 
   return () => (
-    <ul ref={tree.ref} {...tree.restProps([...OMIT_KEYS, 'labelledby'])} className={className()}>
-      {props.children}
+    <ul ref={tree.ref} {...tree.restProps([...OMIT_KEYS, 'labelledby', 'items'])} className={className()}>
+      {props.items ? renderEntries(props.items) : props.children}
     </ul>
   );
 }, 'Tree');
 
 /**
  * One node. A leaf selects; a branch — marked by `expanded` or by a nested
- * `TreeGroup` — opens and closes without disturbing its siblings.
+ * `TreeGroup` — opens and closes without disturbing its siblings. The row
+ * is everything before the nested group; the highlight covers only the row.
  */
 export const TreeItem = setup<TreeItemProps>((props) => {
+  const styles = treeScope.inherit(props);
   const item = aria(TREE_ITEM_ROLE, props as AnyType);
-  const className = () => $families(AUI_CLASS.TREE_ITEM, props, auiConfig.treeItem);
+  const className = () => $families([AUI_CLASS.SCALE, AUI_CLASS.TREE_ITEM], styles, auiConfig.treeItem);
 
   return () => (
     <li ref={item.ref} {...item.restProps(ITEM_OMIT)} className={className()}>
+      <ArrowRight className={AUI_CLASS.TREE_TOGGLE} aria-hidden="true" />
       {props.children}
     </li>
   );

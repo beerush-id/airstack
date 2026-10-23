@@ -1,0 +1,117 @@
+@import '../card.css';
+@import './item.css';
+
+/*
+ * Structure for the Card component on top of the plain `.aui-card` surface.
+ * The frame owns layout and padding; the role color comes from the shared
+ * scale (`--aui-item-bg`). No borders: variants separate by surface and lift.
+ */
+@layer theme {
+  :root {
+    --aui-card-padding: var(--spacing-lg);
+    --aui-card-gap: var(--spacing-md);
+  }
+}
+
+@layer component {
+  .aui-card-frame {
+    display: flex;
+    flex-direction: column;
+    gap: var(--aui-card-gap);
+    padding: var(--aui-card-padding);
+    overflow: hidden;
+    color: var(--color-on-surface);
+    font-weight: 400;
+  }
+
+  .aui-card-frame-xs,
+  .aui-card-frame-sm {
+    --aui-card-padding: var(--spacing-md);
+    --aui-card-gap: var(--spacing-sm);
+  }
+
+  .aui-card-frame-lg {
+    --aui-card-padding: var(--spacing-xl);
+    --aui-card-gap: var(--spacing-lg);
+  }
+
+  .aui-card-frame-xl,
+  .aui-card-frame-xxl {
+    --aui-card-padding: var(--spacing-xxl);
+    --aui-card-gap: var(--spacing-lg);
+  }
+
+  .aui-card-tonal {
+    background-color: color-mix(in oklch, var(--aui-item-bg) var(--tone-container-strength), var(--color-surface));
+  }
+
+  .aui-card-elevated {
+    background-color: var(--color-surface-lowest);
+    box-shadow: var(--elevation-1);
+  }
+
+  /* Media bleeds to the card's edges; only a leading media reaches the top. */
+  .aui-card-media {
+    margin-inline: calc(var(--aui-card-padding) * -1);
+
+    &:first-child {
+      margin-block-start: calc(var(--aui-card-padding) * -1);
+    }
+
+    & > :is(img, video, picture, svg) {
+      display: block;
+      inline-size: 100%;
+      block-size: auto;
+      object-fit: cover;
+    }
+  }
+
+  .aui-card-header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+
+  .aui-card-title {
+    margin: 0;
+    font-size: var(--font-title-md-size);
+    font-weight: var(--font-title-md-weight);
+    line-height: var(--font-title-md-line-height);
+    letter-spacing: var(--font-title-md-tracking);
+    text-wrap: balance;
+  }
+
+  .aui-card-frame-xs .aui-card-title,
+  .aui-card-frame-sm .aui-card-title {
+    font-size: var(--font-title-sm-size);
+    line-height: var(--font-title-sm-line-height);
+  }
+
+  .aui-card-frame-lg .aui-card-title,
+  .aui-card-frame-xl .aui-card-title,
+  .aui-card-frame-xxl .aui-card-title {
+    font-size: var(--font-title-lg-size);
+    line-height: var(--font-title-lg-line-height);
+  }
+
+  .aui-card-description {
+    margin: 0;
+    color: var(--color-on-surface-variant);
+    text-wrap: pretty;
+  }
+
+  .aui-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .aui-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--spacing-sm);
+    margin-block-start: auto;
+  }
+}

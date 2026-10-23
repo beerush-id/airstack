@@ -1,6 +1,8 @@
+@import './item.css';
+
 @layer theme {
   :root {
-    --aui-grid-radius: var(--radius-md);
+    --aui-grid-radius: var(--radius-lg);
     --aui-grid-outline: var(--color-outline-variant);
     --aui-grid-head-bg: var(--color-surface-container);
     --aui-grid-head-fg: var(--color-on-surface-variant);
@@ -15,7 +17,11 @@
 }
 
 @layer component {
+  /* Selection follows the grid's role color from the shared scale. */
   .aui-grid {
+    --aui-grid-selected-bg: var(--aui-item-bg);
+    --aui-grid-selected-fg: var(--aui-item-fg);
+    --aui-grid-row-selected-bg: color-mix(in oklch, var(--aui-item-bg) 16%, var(--color-surface));
     display: flex;
     flex-direction: column;
     inline-size: 100%;
@@ -64,11 +70,22 @@
       outline-offset: calc(var(--focus-ring-offset) * -1);
     }
 
-    &:hover:not([aria-selected='true']):not([aria-disabled='true']) {
+    /*
+     * One cursor per cell kind: only a selectable cell (it carries
+     * `aria-selected`) points and lights up; headers and display-only cells
+     * stay plain, an editable cell shows a text cursor, a disabled one refuses.
+     */
+    cursor: default;
+
+    &[aria-selected] {
+      cursor: pointer;
+    }
+
+    &[aria-selected='false']:not([aria-disabled='true']):hover {
       background-color: var(--aui-grid-hover-bg);
     }
 
-    &:active:not([aria-selected='true']):not([aria-disabled='true']) {
+    &[aria-selected='false']:not([aria-disabled='true']):active {
       background-color: color-mix(in oklch, var(--color-on-surface) 11%, var(--color-surface));
     }
 
@@ -82,8 +99,13 @@
       background-color: color-mix(
         in oklch,
         var(--aui-grid-selected-bg) 88%,
-        var(--color-on-primary)
+        var(--aui-grid-selected-fg)
       );
+    }
+
+    /* A typeable cell shows the text cursor at rest, not only once the edit opens. */
+    &[data-editable='true'] {
+      cursor: text;
     }
 
     &[aria-disabled='true'] {
@@ -144,6 +166,6 @@
 
   .aui-grid-column-header[aria-disabled='true'],
   .aui-grid-row-header[aria-disabled='true'] {
-    opacity: 0.5;
+    color: var(--color-disabled-fg);
   }
 }

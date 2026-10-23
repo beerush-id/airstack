@@ -1,20 +1,29 @@
 import { aria, type OptionAria, type SelectAria, type SelectPanelAria, type SelectTriggerAria } from '@airlib/aria';
 import { AUI_CLASS, COLORS, register, SIZES, VARIANTS } from '@airlib/aui/utils';
 import { type AnyType, type Bindable, For, renderDynamic, Slot, setup, shadowPortal } from '@airlib/react';
-import { isObjectLike } from '@airlib/react/core';
 import type { ReactNode } from 'react';
-import { $families, type AuiPrimitive, type AuiProps, auiConfig, type ComponentStyles, OMIT_KEYS } from '../config.js';
+import {
+  $families,
+  type AuiFieldProps,
+  type AuiPrimitive,
+  type AuiProps,
+  auiConfig,
+  type ComponentStyles,
+  type FieldStyles,
+  OMIT_KEYS,
+} from '../config.js';
 import { ArrowDown, CheckIcon } from '../icons/index.js';
+import { createStyleScope, hasEntries, type OptionEntry, type OptionsInput, toOptions } from '../utils/common.js';
 
 export type SelectValue = AuiPrimitive | AuiPrimitive[];
-export type SelectItem = { key: string; label?: string };
+export type SelectItem = OptionEntry;
 
 export type SelectSlots = {
-  option: (key: string, value: AuiPrimitive) => ReactNode;
+  option: (entry: OptionEntry, option: OptionAria) => ReactNode;
   trigger: (value?: AuiPrimitive | AuiPrimitive[]) => ReactNode;
 };
 
-export type SelectProps = ComponentStyles & {
+export type SelectProps = FieldStyles & {
   open?: Bindable<boolean>;
   value?: Bindable<SelectValue>;
   label?: string;
@@ -23,7 +32,7 @@ export type SelectProps = ComponentStyles & {
   required?: boolean;
   placeholder?: string;
 
-  options?: Array<SelectItem> | Record<string, AuiPrimitive>;
+  options?: OptionsInput;
   children?: ReactNode | ((instance: SelectAria) => ReactNode);
 
   onopen?: (event: CustomEvent<boolean>) => void;
@@ -32,7 +41,7 @@ export type SelectProps = ComponentStyles & {
   onchange?: (event: CustomEvent<string | string[] | undefined>) => void;
 };
 
-export type SelectTriggerProps = AuiProps<'button'> & {
+export type SelectTriggerProps = AuiFieldProps<'button'> & {
   label?: string;
   disabled?: boolean;
   children?: ReactNode | ((trigger: SelectTriggerAria) => ReactNode);
@@ -66,27 +75,25 @@ register('selectPanel', selectStyles);
 register('selectOption', selectStyles);
 register('selectTrigger', selectStyles);
 
+const selectScope = createStyleScope<SelectProps>();
+
 export const Select = setup<SelectProps, SelectSlots>((props, slots) => {
   const select = aria(SELECT_ROLE, props as AnyType);
 
+  selectScope.provide(props);
+
   return () => {
-    if (isObjectLike(props.options)) {
+    if (hasEntries(props.options)) {
       return (
         <>
-          <SelectTrigger
-            size={props.size}
-            color={props.color}
-            variant={props.variant}
-            label={props.label}
-            placeholder={props.placeholder}
-          >
+          <SelectTrigger label={props.label} placeholder={props.placeholder}>
             <Slot for={() => slots.trigger?.(select.value)}>{select.label || props.placeholder}</Slot>
           </SelectTrigger>
-          <SelectPanel size={props.size} color={props.color} variant={props.variant}>
-            <For each={() => Object.entries(props.options!)}>
-              {([key, value]) => (
-                <SelectOption size={props.size} color={props.color} variant={props.variant} value={key}>
-                  <Slot for={() => slots.option?.(key, value)}>{value}</Slot>
+          <SelectPanel>
+            <For each={() => toOptions(props.options)}>
+              {(entry) => (
+                <SelectOption value={entry.key}>
+                  {(option) => <Slot for={() => slots.option?.(entry, option)}>{entry.label ?? entry.key}</Slot>}
                 </SelectOption>
               )}
             </For>
@@ -95,7 +102,7 @@ export const Select = setup<SelectProps, SelectSlots>((props, slots) => {
       );
     }
 
-    const className = () => $families(AUI_CLASS.SELECT, props, auiConfig.select);
+    const className = () => $families(AUI_CLASS.SELECT, props as ComponentStyles, auiConfig.select);
     return (
       <div ref={select.ref} {...select.restProps(OMIT_KEYS)} className={className()}>
         {renderDynamic(props.children, select)}
@@ -105,8 +112,9 @@ export const Select = setup<SelectProps, SelectSlots>((props, slots) => {
 }, 'Select');
 
 export const SelectTrigger = setup<SelectTriggerProps>((props) => {
+  const styles = selectScope.inherit(props as ComponentStyles);
   const trigger = aria(SELECT_TRIGGER_ROLE, props);
-  const className = () => $families([AUI_CLASS.CONTROL, AUI_CLASS.SELECT_TRIGGER], props, auiConfig.selectTrigger);
+  const className = () => $families([AUI_CLASS.CONTROL, AUI_CLASS.SELECT_TRIGGER], styles, auiConfig.selectTrigger);
 
   return () => (
     <button ref={trigger.ref} {...trigger.restProps(OMIT_KEYS)} className={className()}>
@@ -118,9 +126,10 @@ export const SelectTrigger = setup<SelectTriggerProps>((props) => {
 }, 'SelectTrigger');
 
 export const SelectPanel = setup<SelectPanelProps>((props) => {
+  const styles = selectScope.inherit(props);
   const panel = aria(SELECT_PANEL_ROLE, props);
   const shadow = shadowPortal(() => panel.open);
-  const className = () => $families([AUI_CLASS.MENU_PANEL, AUI_CLASS.SELECT_PANEL], props, auiConfig.selectPanel);
+  const className = () => $families([AUI_CLASS.PANEL, AUI_CLASS.SELECT_PANEL], styles, auiConfig.selectPanel);
 
   return () =>
     shadow(
@@ -131,8 +140,9 @@ export const SelectPanel = setup<SelectPanelProps>((props) => {
 }, 'SelectPanel');
 
 export const SelectOption = setup<SelectOptionProps>((props) => {
+  const styles = selectScope.inherit(props);
   const option = aria(SELECT_OPTION_ROLE, props);
-  const className = () => $families([AUI_CLASS.MENU_ITEM, AUI_CLASS.SELECT_OPTION], props, auiConfig.selectOption);
+  const className = () => $families([AUI_CLASS.ITEM, AUI_CLASS.SELECT_OPTION], styles, auiConfig.selectOption);
 
   return () => (
     <div ref={option.ref} {...option.restProps(OMIT_KEYS)} className={className()}>

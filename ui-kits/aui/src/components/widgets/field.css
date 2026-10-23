@@ -1,16 +1,26 @@
+@import './input.css';
+
 @layer component {
   .aui-field {
     display: flex;
     flex-direction: column;
-    gap: calc(var(--spacing) * 2);
+    gap: var(--spacing-xs);
   }
 
   .aui-field-label {
-    font-weight: 500;
+    color: var(--color-on-surface);
+    font-size: var(--font-label-lg-size);
+    font-weight: var(--font-label-lg-weight);
+    line-height: var(--font-label-lg-line-height);
+    letter-spacing: var(--font-label-lg-tracking);
   }
 
-  .aui-field-control {
-    width: 100%;
+  .aui-field-description,
+  .aui-field-error {
+    padding-inline: var(--spacing-xs);
+    font-size: var(--font-label-md-size);
+    line-height: var(--font-label-md-line-height);
+    letter-spacing: var(--font-label-md-tracking);
   }
 
   .aui-field-description {

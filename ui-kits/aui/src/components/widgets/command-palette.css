@@ -1,0 +1,101 @@
+@import './modal.css';
+@import './input.css';
+@import './item.css';
+
+/*
+ * A command palette is the shared modal sheet, set high on the page, holding
+ * the shared field over a list of shared rows. The list sits in place under
+ * the field — it never floats — and scrolls on its own.
+ */
+@layer theme {
+  :root {
+    --aui-command-palette-width: calc(var(--spacing) * 140);
+    --aui-command-palette-offset: 12dvh;
+    --aui-command-palette-list-height: min(60dvh, calc(var(--spacing) * 96));
+  }
+}
+
+@layer component {
+  .aui-command-palette {
+    --aui-modal-max-width: var(--aui-command-palette-width);
+    --aui-item-radius: var(--radius-sm);
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: var(--spacing-sm);
+    margin-block: var(--aui-command-palette-offset) auto;
+    padding: var(--spacing-sm);
+
+    /* The sheet is a column here, so its children size to content instead of a full line. */
+    & > * {
+      flex-basis: auto;
+    }
+  }
+
+  /* Named for assistive tech; the field's placeholder already says what the sheet is for. */
+  .aui-command-palette-title {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .aui-command-palette-search {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    min-block-size: 0;
+  }
+
+  .aui-command-palette-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-block-size: var(--aui-command-palette-list-height);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+
+    &[hidden] {
+      display: none;
+    }
+  }
+
+  .aui-command-palette-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .aui-command-palette-group-label {
+    padding-block: var(--spacing-sm) var(--spacing-xs);
+    padding-inline: calc(var(--aui-control-padding-x, var(--spacing-md)) * 0.85);
+    color: var(--color-on-surface-variant);
+    font-size: var(--font-label-md-size);
+    font-weight: 600;
+    letter-spacing: var(--font-label-md-tracking);
+  }
+
+  .aui-command-palette-hint {
+    margin-inline-start: auto;
+    padding-inline: var(--spacing-xs);
+    border-radius: var(--radius-xs);
+    background-color: var(--color-surface-container-high);
+    color: var(--color-on-surface-variant);
+    font-family: var(--font-mono);
+    font-size: var(--font-label-sm-size);
+  }
+
+  /* On the highlighted row the hint takes the row's ink so it never sinks into the fill. */
+  .aui-command-palette-item[aria-selected='true'] > .aui-command-palette-hint {
+    background-color: transparent;
+    color: inherit;
+  }
+
+  .aui-command-palette-empty {
+    padding: var(--spacing-lg);
+    color: var(--color-on-surface-variant);
+    text-align: center;
+  }
+}

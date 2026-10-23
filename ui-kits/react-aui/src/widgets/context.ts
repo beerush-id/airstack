@@ -1,7 +1,7 @@
 import type { ComponentStyles } from '@airlib/aui/utils';
-import { type ComponentProps, createContext } from '@airlib/react';
+import { createStyleScope } from '../utils/common.js';
 
-export const sliderProps = createContext<ComponentProps<ComponentStyles>>();
-export const toggleGroupProps = createContext<ComponentProps<ComponentStyles>>();
-export const radioGroupProps = createContext<ComponentProps<ComponentStyles & { name?: string }>>();
-export const checkboxGroupProps = createContext<ComponentProps<ComponentStyles>>();
+export const sliderScope = createStyleScope();
+export const toggleGroupScope = createStyleScope();
+export const radioGroupScope = createStyleScope<ComponentStyles & { name?: string }>();
+export const checkboxGroupScope = createStyleScope();

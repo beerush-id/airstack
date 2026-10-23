@@ -2,43 +2,43 @@
 title: AUI Breadcrumb
 nav: Breadcrumb
 nav-priority: 201
-description: Trail of ancestor links with one tab stop and decorative separators.
+description: Show where a page sits in your app and let people step back up — a breadcrumb trail from a plain list of links, with the current page marked for you.
+keywords: [React breadcrumb, accessible breadcrumbs, breadcrumb navigation, React breadcrumb trail, current page]
 ---
 
 # AUI Breadcrumb
 
-A breadcrumb is the trail of links back up a hierarchy — Docs / Aria / Breadcrumb. It names the landmark, hides the separators from everyone who listens, keeps the whole trail at one tab stop on the current crumb, and lets the arrow keys travel the crumbs while activation stays with the links.
+Deep pages need a way back up: Docs / Widgets / Breadcrumb. A hand-built trail tends to announce every "/" to screen readers, give each crumb its own tab stop, and forget to mark the page the reader is on.
+
+**Breadcrumb** renders the trail from a list of links. Separators stay visual only, the whole trail is one tab stop that lands on the current page, and the arrow keys move along the crumbs.
 
 :::interactive[Breadcrumb demo]
 
 ```tsx
-import { Breadcrumb, BreadcrumbSeparator, Link, Toggle } from '@airlib/react-aui';
+import { Breadcrumb } from '@airlib/react-aui';
 import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { DemoControl } from '@/components/DemoControl.js';
 
 const BreadcrumbDemo = setup(() => {
-  const state = mutable({ disabledStepper: true });
-  const block = (event: { preventDefault: () => void }) => event.preventDefault();
+  const state = mutable({ size: 'md', color: 'primary', disabled: false });
 
   return () => (
     <div className="demo-button">
-      <div className="flex gap-xs w-full">
-        <div className="flex-1"></div>
-        <Toggle size="sm" pressed={$bind(state, 'disabledStepper')}>
-          {() => (state.disabledStepper ? 'Stepper disabled' : 'Stepper enabled')}
-        </Toggle>
-      </div>
+      <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} disabled={$bind(state, 'disabled')} />
       <div className="aui-card flex flex-col gap-lg justify-center p-xl">
         <Snippet>
           {() => (
-            <Breadcrumb label="Documentation trail">
-              <Link href="#docs" onClick={block}>Docs</Link>
-              <BreadcrumbSeparator />
-              <Link href="#docs-aria" onClick={block}>Aria</Link>
-              <BreadcrumbSeparator />
-              <Link href="#docs-aria-stepper" disabled={state.disabledStepper} onClick={block}>Stepper</Link>
-              <BreadcrumbSeparator />
-              <Link href="#docs-aria-breadcrumb" current onClick={block}>Breadcrumb</Link>
-            </Breadcrumb>
+            <Breadcrumb
+              label="Documentation trail"
+              size={state.size}
+              color={state.color}
+              links={[
+                { href: '#docs', label: 'Docs' },
+                { href: '#widgets', label: 'Widgets' },
+                { href: '#navigation', label: 'Navigation', disabled: state.disabled },
+                { href: '#breadcrumb', label: 'Breadcrumb' },
+              ]}
+            />
           )}
         </Snippet>
       </div>
@@ -57,54 +57,80 @@ const BreadcrumbDemo = setup(() => {
 
 ## Usage
 
-Mark the terminal crumb current so the single tab stop lands where the reader already is:
+### From a list of links
+
+Pass the trail from the top down as `links`. The last entry is the page the reader is on, so it is marked current for you; mark another entry `current` yourself when the trail continues past the current page:
+
+```tsx
+import { Breadcrumb } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/breadcrumb.css';
+
+const TRAIL = [
+  { href: '/settings', label: 'Settings' },
+  { href: '/settings/team', label: 'Team' },
+  { href: '/settings/team/roles', label: 'Roles' },
+];
+
+export const SettingsTrail = () => <Breadcrumb label="Settings trail" links={TRAIL} />;
+```
+
+A crumb with `disabled` stays visible — readers still see the path — but can't be followed, and keyboard travel steps over it.
+
+### Custom crumbs and separators
+
+Keep `links` and change what renders: the `link` slot fills each crumb, the `separator` slot replaces the "/" between them. Separators remain silent to screen readers whatever you put there:
+
+```tsx
+<Breadcrumb label="Settings trail" links={TRAIL}>
+  <Breadcrumb.Snippet for="separator">{() => '›'}</Breadcrumb.Snippet>
+  <Breadcrumb.Snippet for="link">{(entry) => entry.label.toUpperCase()}</Breadcrumb.Snippet>
+</Breadcrumb>
+```
+
+### Composing the trail yourself
+
+When crumbs come from different places, place [Link](/docs/widgets/link) elements with a `BreadcrumbSeparator` between them, and mark the reader's page `current`:
 
 ```tsx
 import { Breadcrumb, BreadcrumbSeparator, Link } from '@airlib/react-aui';
-import '@airlib/aui/components/widgets/breadcrumb.css';
 
-export const Trail = () => (
-  <Breadcrumb label="Documentation trail">
-    <Link href="#docs">Docs</Link>
-    <BreadcrumbSeparator />
-    <Link href="#docs-aria">Aria</Link>
-    <BreadcrumbSeparator />
-    <Link href="#docs-aria-breadcrumb" current>Breadcrumb</Link>
-  </Breadcrumb>
-);
+<Breadcrumb label="Settings trail">
+  <Link href="/settings">Settings</Link>
+  <BreadcrumbSeparator />
+  <Link href="/settings/team">Team</Link>
+  <BreadcrumbSeparator />
+  <Link href="/settings/team/roles" current>Roles</Link>
+</Breadcrumb>
 ```
 
-Separators are decorative only — seen, never announced. Render your own glyph between crumbs; it compiles `role="separator"` with `aria-hidden="true"` and takes no part in travel:
+`BreadcrumbSeparator` shows "/" unless you give it children. Without a `current` crumb, `Tab` skips the trail entirely, so composed trails should always mark one.
 
-```tsx
-<BreadcrumbSeparator>/</BreadcrumbSeparator>
-```
+### Style it once
 
-With no crumb marked current, every crumb parks at `-1` and `Tab` never enters the trail — the arrows still reach it. With a disabled crumb, travel passes over it in every direction and the tab order skips it too.
+`size` and `color` on the Breadcrumb reach every crumb. See [Style a composite once](/docs/theming#style-a-composite-once).
 
 ### Properties
 
 | Prop | Type | Default | Notes |
 | --- | --- | --- | --- |
-| `label` | `string` | `'Breadcrumbs'` | Landmark name, compiled to `aria-label`. |
+| `links` | `LinkEntry[]` | — | `{ href, label, current?, disabled? }` per crumb, top of the hierarchy first. |
+| `label` | `string` | `'Breadcrumbs'` | The landmark's name for screen readers. |
+| `size` | `xs`, `sm`, `md`, `lg`, `xl`, `xxl` | `'md'` | Type size and height of the trail. |
+| `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | Hover color of the ancestor crumbs. |
 | `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
-| `ref` | `Ref<HTMLElement>` | — | Access to the underlying landmark element. |
+| `children` | `ReactNode` | — | Your own links and separators, when you compose instead of passing `links`. |
+| `ref` | `Ref<HTMLElement>` | — | Access to the landmark element. |
 
-`ArrowRight` / `ArrowLeft` move to the next / previous enabled crumb and wrap at both ends. `Home` / `End` jump to the ends. `Enter` belongs to the focused link.
+Slots: `link` — `(entry: LinkEntry) => ReactNode`, the content of each crumb; `separator` — `() => ReactNode`, the mark between crumbs.
 
-Your own classes are added next to the built-in ones:
+`BreadcrumbSeparator` takes `className` and `children` (the mark to show).
 
-```tsx
-// class="aui-breadcrumb my-trail"
-<Breadcrumb label="Trail" className="my-trail">
-  <Link href="#a">A</Link>
-</Breadcrumb>
-```
+## Keyboard
 
-To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+`Tab` lands on the current crumb and leaves the trail from there. `ArrowRight` / `ArrowLeft` move to the next / previous crumb, skipping disabled ones and wrapping at the ends. `Home` / `End` jump to the first and last crumb. `Enter` follows the focused crumb.
 
 ## Next Steps
 
-- [Link](/docs/widgets/link) — Destinations, disabled lockout, and the current-page mark behind each crumb.
-- [Navigation](/docs/widgets/navigation) — The same roving landmark running vertically over menus and side trails.
-- [Pagination](/docs/widgets/pagination) — The same single-stop travel over a page list with a held position.
+- [Navigation](/docs/widgets/navigation) — The list of sections the trail leads into.
+- [Pagination](/docs/widgets/pagination) — Move through pages of results.
+- [Link](/docs/widgets/link) — A single destination with a disabled state and the current-page mark.

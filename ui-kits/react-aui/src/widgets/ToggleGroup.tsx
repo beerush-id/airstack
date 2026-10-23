@@ -3,7 +3,7 @@ import { AUI_CLASS, COLORS, register, SIZES } from '@airlib/aui/utils';
 import { type AnyType, type Bindable, setup } from '@airlib/react';
 import type { ReactNode } from 'react';
 import { $families, auiConfig, type AuiPrimitive, type AuiProps, type ComponentStyles, OMIT_KEYS } from '../config.js';
-import { toggleGroupProps } from './context.js';
+import { toggleGroupScope } from './context.js';
 
 export type ToggleGroupValue = AuiPrimitive | AuiPrimitive[];
 
@@ -33,7 +33,7 @@ export const ToggleGroup = setup<ToggleGroupProps>((props) => {
   const group = aria(TOGGLE_GROUP_ROLE, props as AnyType);
   const className = () => $families(AUI_CLASS.TOGGLE_GROUP, props, auiConfig.toggleGroup);
 
-  toggleGroupProps.set(props);
+  toggleGroupScope.provide(props);
 
   return () => (
     <div ref={group.ref} {...group.restProps([...OMIT_KEYS])} className={className()}>

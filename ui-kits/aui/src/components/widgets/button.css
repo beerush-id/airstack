@@ -1,5 +1,31 @@
+@import './control.css';
+
+/* Button-like treatment layered on the shared control: the press-only variants. */
 @layer component {
   .aui-button {
     display: inline-flex;
+    cursor: pointer;
+  }
+
+  .aui-button-outlined:hover:not(:disabled, [aria-disabled='true']) {
+    color: var(--aui-control-fg);
+    background-color: var(--aui-control-bg);
+  }
+
+  .aui-button-text {
+    color: var(--aui-control-bg);
+    background-color: transparent;
+
+    &:hover:not(:disabled, [aria-disabled='true']) {
+      background-color: color-mix(
+        in oklch,
+        var(--aui-control-bg) var(--tone-elevation-low),
+        var(--light-up)
+      );
+    }
+  }
+
+  .aui-button-elevated {
+    box-shadow: var(--elevation-3);
   }
 }

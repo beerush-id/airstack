@@ -16,7 +16,7 @@ Styling is optional. Without AUI CSS the Divider stays a correct, operable separ
 ```tsx
 import { Divider, Select, Toggle } from '@airlib/react-aui';
 import { COLOR_LABELS } from '@airlib/aui/utils';
-import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { $bind, mutable, setup, Show, Snippet } from '@airlib/react';
 
 const DividerDemo = setup(() => {
   const state = mutable({ vertical: false, color: undefined });
@@ -32,15 +32,9 @@ const DividerDemo = setup(() => {
       </div>
       <div className="aui-card flex flex-col gap-lg justify-center p-xl">
         <span>Layers<br /><small>24 items, grouped by page</small></span>
-        <Snippet>
-          {() =>
-            state.vertical ? (
-              <Divider color={state.color || undefined} orientation="vertical" />
-            ) : (
-              <Divider color={state.color || undefined} />
-            )
-          }
-        </Snippet>
+        <Show when={() => state.vertical} fallback={() => <Divider color={state.color || undefined} />}>
+          {() => <Divider color={state.color || undefined} orientation="vertical" />}
+        </Show>
         <span>Assets<br /><small>8 symbols shared with the team</small></span>
       </div>
       <div className="aui-card flex gap-lg items-stretch p-xl">

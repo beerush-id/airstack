@@ -2,63 +2,61 @@
 title: AUI Code Input
 nav: Code Input
 nav-priority: 273
-description: A segmented verification code or PIN that behaves as one field — one tab stop, forward advancing edits, paste that spreads across cells, and a completion event you can act on.
+description: A verification code or PIN entered one character per cell that still behaves as one field — one tab stop, paste and SMS autofill across all cells, and an event when the code is complete.
+keywords: [React OTP input, React verification code input, React PIN input, one-time code input, segmented input React, accessible OTP]
 ---
 
 # AUI Code Input
 
-A code input splits a verification code or PIN across separate cells while still being one field. The hard part is never the cells — it is **keeping the whole strip at a single tab stop**, **advancing the caret as characters land**, **spreading a pasted code across the cells that follow**, **shifting what remains left when a character goes**, and **telling your code when the value is complete**.
-
-**AUI Code Input** does all of that for you, and leaves the markup and the styling entirely yours. The group holds the one contiguous string and the tab stop; the cells find it in scope, so nothing is wired by hand.
-
-Styling is optional. Without AUI CSS the Code Input stays a correct, operable group of textboxes; with it, the same markup gets the AUI treatment through the full library.
+Verification codes and PINs read best as separate boxes, but people expect them to behave like one field: typing moves to the next box, pasting a code fills them all, the phone's SMS autofill just works, and tabbing past it doesn't stop six times. Code Input gives you the boxes and that behavior, holds the code as one string, and tells you the moment it's complete.
 
 :::interactive[Code input demo]
 
 ```tsx
-import { CodeInput, CodeInputCell, Toggle } from '@airlib/react-aui';
+import { CodeInput, Toggle } from '@airlib/react-aui';
 import { $bind, mutable, setup, Snippet } from '@airlib/react';
-
-const digits = (count: number) => Array.from({ length: count }, (_, index) => <CodeInputCell key={index} index={index} />);
+import { DemoControl } from '@/components/DemoControl.js';
 
 const CodeInputDemo = setup(() => {
-  const state = mutable({
-    code: '42',
-    backup: 'A9',
-    locked: false,
-  });
+  const state = mutable({ code: '42', backup: 'A9', size: 'md', color: 'primary', disabled: false, readonly: false });
 
   return () => (
     <div className="demo-button">
-      <div className="flex gap-xs w-full flex-wrap">
-        <Toggle size="sm" pressed={$bind(state, 'locked')}>
-          {() => (state.locked ? 'Locked' : 'Unlocked')}
+      <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} disabled={$bind(state, 'disabled')}>
+        <Toggle size="sm" pressed={$bind(state, 'readonly')}>
+          {() => (state.readonly ? 'Set Editable' : 'Set Read-only')}
         </Toggle>
-        <div className="flex-1"></div>
-        <Snippet>{() => <span>{state.code.length === 6 ? `${state.code} — complete` : `${state.code.length} of 6 digits`}</span>}</Snippet>
-      </div>
-
+      </DemoControl>
       <div className="aui-card flex flex-col gap-lg p-xl">
         <Snippet>
           {() => (
             <CodeInput
               label="Verification code"
-              length={6}
               value={$bind(state, 'code')}
-              disabled={state.locked}
-              oncomplete={(event) => console.log('complete', event.detail)}
-            >
-              {digits(6)}
-            </CodeInput>
+              size={state.size}
+              color={state.color}
+              disabled={state.disabled}
+              readonly={state.readonly}
+            />
           )}
         </Snippet>
-
         <Snippet>
           {() => (
-            <CodeInput label="Backup code" length={4} kind="alphanumeric" value={$bind(state, 'backup')} readonly={state.locked}>
-              {digits(4)}
-            </CodeInput>
+            <CodeInput
+              label="Backup code"
+              length={4}
+              kind="alphanumeric"
+              value={$bind(state, 'backup')}
+              variant="outlined"
+              size={state.size}
+              color={state.color}
+              disabled={state.disabled}
+              readonly={state.readonly}
+            />
           )}
+        </Snippet>
+        <Snippet>
+          {() => <span>{state.code.length === 6 ? `${state.code} — complete` : `${state.code.length} of 6 digits`}</span>}
         </Snippet>
       </div>
     </div>
@@ -76,104 +74,71 @@ const CodeInputDemo = setup(() => {
 
 ## Usage
 
-The group is the wiring: put the cells inside it and they share its value. Any number of cells works, as long as there are as many as `length` says:
+### The simple form
+
+Name it and bind the code. It renders six cells by default; `length` changes the count:
 
 ```tsx
-import { CodeInput, CodeInputCell } from '@airlib/react-aui';
+import { CodeInput } from '@airlib/react-aui';
+import { $bind, mutable, setup } from '@airlib/react';
 import '@airlib/aui/components/widgets/code-input.css';
 
-const CODE_LENGTH = 6;
+const Verify = setup(() => {
+  const form = mutable({ code: '' });
 
-export const VerifyCode = ({ onComplete }: { onComplete: (code: string) => void }) => (
-  <CodeInput label="Verification code" length={CODE_LENGTH} oncomplete={(event) => onComplete(event.detail)}>
-    {Array.from({ length: CODE_LENGTH }, (_, index) => (
-      <CodeInputCell key={index} index={index} />
-    ))}
-  </CodeInput>
-);
+  return () => <CodeInput label="Verification code" value={$bind(form, 'code')} />;
+}, 'Verify');
 ```
 
-For the full library — tokens, base defaults, every component, and the utilities — load `import '@airlib/aui';` instead. A lone component stylesheet carries only that component's rules.
+The `label` also names every cell for screen readers — "Verification code, character 2 of 6" — so people always know where they are.
 
-### The value
+### Act when the code is complete
 
-One code, never a sparse set of cells. Typing or pasting into an empty cell appends at the first unfilled position; removing a character in the middle shifts everything after it left:
+`oncomplete` fires as soon as the last character lands, which is the moment to verify. `onchange` fires when the user leaves the field with a changed code — the right hook for form state:
 
 ```tsx
-const state = mutable({ code: '42' });
-
-<CodeInput label="Verification code" length={6} value={$bind(state, 'code')}>
-  {/* cells */}
-</CodeInput>;
+<CodeInput label="Verification code" value={$bind(form, 'code')} oncomplete={(event) => verify(event.detail)} />
 ```
 
-Read back, the value is the contiguous valid prefix up to `length`, so overflow is dropped rather than stored. `kind` decides which characters may join it — `'numeric'` (the default) takes `0-9`, `'alphanumeric'` also takes `a-zA-Z`. A character outside the set is ignored where it stands and the rest of that same input still lands:
+### Allowed characters
+
+`kind="numeric"` (default) accepts digits only and opens the number pad on phones; `kind="alphanumeric"` also accepts letters. Anything else is ignored as it's typed or pasted:
 
 ```tsx
-<CodeInput label="Backup code" length={4} kind="alphanumeric" value={$bind(state, 'backup')}>
-  {/* cells */}
-</CodeInput>
+<CodeInput label="Backup code" length={8} kind="alphanumeric" value={$bind(form, 'backup')} />
 ```
 
-### One tab stop
+### Paste and autofill
 
-The whole strip is one stop in the tab order, not six. Before focus enters, the entry cell is the first unfilled position — or the last cell when the code is full — so tabbing through the page never visits six cells in a row. Focus moves inside on its own as characters land.
-
-### Pasting and autofill
-
-A pasted string spreads from the cell that received it: accepted characters replace what stood there onward, anything past `length` is discarded, and focus lands on the next unfilled cell or the last one when the code is full. The first cell also carries `autocomplete="one-time-code"`, so an SMS code or a password manager fills the group the same way:
-
-```tsx
-<CodeInput label="Verification code" length={6} value={$bind(state, 'code')}>
-  {/* a pasted "123456" fills all six cells and fires complete */}
-</CodeInput>
-```
-
-### Deleting
-
-`Backspace` clears the focused cell and shifts the rest left in place. On an unfilled cell it removes the character before it and steps focus back there. `Delete` clears the focused cell and shifts left without moving focus, so a value can be corrected without leaving the slot.
-
-### Knowing when it is complete
-
-The group reports at three edges:
-
-| Event | Fires when | Detail |
-| --- | --- | --- |
-| `oninput` | An edit commits a different code | The updated code |
-| `onchange` | Focus leaves the group and the code differs from when focus entered | The committed code |
-| `oncomplete` | An edit yields a different code whose length equals `length` | The full code |
-
-`onchange` is deliberately not per keystroke — the code is a single value, so it is compared on the way out. That makes it the right hook for validation and form state, while `oncomplete` is the one to hand a verification request:
-
-```tsx
-<CodeInput label="Verification code" length={6} value={$bind(state, 'code')} oncomplete={(event) => verify(event.detail)}>
-  {/* cells */}
-</CodeInput>
-```
+Pasting a code into any cell spreads it across the cells that follow, and the phone's one-time-code autofill fills the whole field — no extra setup.
 
 ### Locking
 
-`disabled` closes the whole group — every cell leaves the tab order and refuses typing, pasting, and deletion. `readonly` keeps the cells focusable and the arrows working while refusing every edit, which suits a code that is shown for copying rather than changed:
+`readonly` shows the code for copying while refusing edits; `disabled` locks every cell and takes the field out of the tab order.
+
+### Your own cells
+
+To lay the cells out yourself — say, a dash after the third — compose them. Each `CodeInputCell` takes its position:
 
 ```tsx
-<CodeInput label="Verification code" length={6} value={$bind(state, 'code')} readonly>
-  {/* cells */}
-</CodeInput>
-```
+import { CodeInput, CodeInputCell } from '@airlib/react-aui';
 
-### The cells
-
-`CodeInputCell` renders a native `input` per position and takes only `index`. Each cell derives its character from the group, so writing `value` from outside updates the cells rather than falling out of step. Cell `0` gets the one-time-code hint; every cell's virtual keyboard follows `kind`.
-
-Give the group a `label` and each cell is named `"{label}, character {n} of {length}"`, so a screen reader announces where the caret is. Leave `label` out and no English text is invented — the group is simply unnamed:
-
-```tsx
-<CodeInput label="Verification code" length={6}>
+<CodeInput label="Verification code" length={6} value={$bind(form, 'code')}>
   <CodeInputCell index={0} />
   <CodeInputCell index={1} />
-  {/* … */}
-</CodeInput>
+  <CodeInputCell index={2} />
+  <span aria-hidden="true">–</span>
+  <CodeInputCell index={3} />
+  <CodeInputCell index={4} />
+  <CodeInputCell index={5} />
+</CodeInput>;
 ```
+
+Provide one cell for every position up to `length`.
+
+### Style it once
+
+`size`, `color`, and `variant` (`filled`, `tonal`, `outlined`) go on the Code Input and reach every cell. See [Style a composite once](/docs/theming#style-a-composite-once).
 
 ### Properties
 
@@ -181,38 +146,31 @@ Give the group a `label` and each cell is named `"{label}, character {n} of {len
 
 | Prop | Type | Default | Notes |
 | --- | --- | --- | --- |
-| `value` | `Bindable<string>` | `''` | The code, kept as a contiguous valid prefix up to `length`. |
-| `length` | `number` | `6` | How many character positions the code has. |
-| `kind` | `'numeric'`, `'alphanumeric'` | `'numeric'` | The allowed character set. |
-| `label` | `string` | — | The group's name, and the base of every cell's positional name. |
-| `disabled` | `boolean` | `false` | Locks the group and drops every cell from the tab order. |
-| `readonly` | `boolean` | `false` | Keeps cells focusable and navigable; refuses every edit. |
-| `oninput` | `(event: CustomEvent<string>) => void` | — | The code after an edit changes it. |
-| `onchange` | `(event: CustomEvent<string>) => void` | — | The code on blur once it differs from focus entry. |
-| `oncomplete` | `(event: CustomEvent<string>) => void` | — | The full code, right after it reaches `length`. |
-| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
-| `children` | `ReactNode` | — | The cells. |
-| `ref` | `Ref<HTMLDivElement>` | — | Access to the group element. |
+| `value` | `Bindable<string>` | `''` | The code as one string. |
+| `length` | `number` | `6` | Number of characters, and of cells in the simple form. |
+| `kind` | `'numeric'`, `'alphanumeric'` | `'numeric'` | Which characters are accepted. |
+| `label` | `string` | — | Names the field and every cell. |
+| `readonly` | `boolean` | `false` | Focusable and copyable, not editable. |
+| `disabled` | `boolean` | `false` | Locks every cell. |
+| `size` | `xs`–`xxl` | `'md'` | Reaches every cell. |
+| `variant` | `filled`, `tonal`, `outlined` | `'filled'` | |
+| `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | |
+| `oninput` | `(event: CustomEvent<string>) => void` | — | Every edit that changes the code. |
+| `onchange` | `(event: CustomEvent<string>) => void` | — | The changed code, when the user leaves the field. |
+| `oncomplete` | `(event: CustomEvent<string>) => void` | — | The full code, as soon as it reaches `length`. |
+| `children` | `ReactNode` | — | Your own cells; leave empty for the simple form. |
+| `className` | `string` | — | Added next to the built-in classes, or replaces them with [`overrides`](/docs/theming#overrides). |
 
 #### CodeInputCell
 
-Takes `index` plus the standard attributes for an `input` host and `className`/`ref`. The character, the tab stop, `inputmode`, `autocomplete`, and the `disabled`/`readonly` state all come from the group.
+Takes `index` (its position, from `0`) plus `className` and any `input` attribute. A cell's own `size`, `color`, or `variant` wins over the Code Input's.
 
-Your own classes are added next to the built-in ones:
+## Keyboard
 
-```tsx
-// class="aui-code-input my-code"
-<CodeInput className="my-code" label="Verification code" length={6}>
-  {/* cells */}
-</CodeInput>
-```
-
-To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
-
-Keyboard: `ArrowLeft` and `ArrowRight` travel between the cells that hold characters and the first unfilled one, without wrapping. `Home` goes to the first cell, `End` to the first unfilled cell or the last cell when full. `Backspace` and `Delete` edit as described above, and `Tab` moves on from the group's single stop.
+The whole field is one tab stop. Typing advances to the next cell; `ArrowLeft` / `ArrowRight` move between filled cells, `Home` / `End` jump to the start or the end of the code. `Backspace` deletes the character before the caret and moves back; `Delete` removes the current one in place.
 
 ## Next Steps
 
-- [Text Input](/docs/widgets/text-input) — The same characters in one field instead of many.
-- [Field](/docs/widgets/field) — Label, description, and error wired to a control.
-- [Stepper](/docs/widgets/stepper) — The other multi-part value that stays one stop.
+- [Text Input](/docs/widgets/text-input) — A single text field.
+- [Field](/docs/widgets/field) — Add a visible label, help text, and an error message.
+- [Stepper](/docs/widgets/stepper) — Another multi-part field that stays one tab stop.

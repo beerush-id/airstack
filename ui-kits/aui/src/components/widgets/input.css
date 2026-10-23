@@ -1,0 +1,124 @@
+@import './control.css';
+
+/*
+ * Field treatment layered on the shared control: the box you type into.
+ * It keeps the control's size scale and radius but reads as a field, not a
+ * button: a neutral surface, regular-weight text, a text cursor, and the
+ * role color held back for focus, the caret, and errors.
+ *
+ * `.aui-input` also dresses a field shell — a wrapper holding a bare input
+ * and its inline buttons (stepper, date field) — so the ring follows focus
+ * anywhere inside it.
+ */
+@layer theme {
+  :root {
+    --aui-input-bg: var(--color-surface-lowest);
+    --aui-input-fg: var(--color-on-surface);
+    --aui-input-edge: var(--color-outline-variant);
+    --aui-input-placeholder: var(--color-on-surface-variant);
+  }
+}
+
+/*
+ * The surface ramp steps too finely to separate a field from the card it
+ * sits on, so a filled field takes the lightest surface plus a hairline edge:
+ * it reads as a field on the page and on any container alike.
+ */
+@layer component {
+  /*
+   * A field's text only needs to clear the corner, not balance a label in a
+   * pill: half the control's inline padding plus one spacing step
+   * (xs 8 → 8, md 24 → 16, xxl 48 → 28), always at or above the radius.
+   */
+  .aui-input {
+    --aui-state-layer-color: transparent;
+    --aui-control-outline-color: var(--aui-input-edge);
+    padding-inline: calc(var(--aui-control-padding-x) / 2 + var(--spacing));
+    border-width: 1px;
+    color: var(--aui-input-fg);
+    background-color: var(--aui-input-bg);
+    font-family: var(--font-sans);
+    font-weight: 400;
+    cursor: text;
+    user-select: text;
+    caret-color: var(--aui-control-bg);
+    transition-property: background-color, outline-color, border-color, box-shadow;
+
+    &::placeholder {
+      color: var(--aui-input-placeholder);
+      opacity: 1;
+    }
+
+    /* The browser's selection wash nearly vanishes on dark surfaces; a solid role mix reads on both. */
+    &::selection,
+    & ::selection {
+      color: var(--aui-control-fg);
+      background-color: var(--aui-control-bg);
+    }
+
+    /* Hover previews the field's role color at half strength; focus commits to it. */
+    &:hover:not(:disabled, [aria-disabled='true'], :focus, :has(:is(input, textarea):focus)) {
+      --aui-control-outline-color: color-mix(in oklch, var(--aui-control-bg) 50%, var(--aui-input-edge));
+    }
+
+    &[aria-invalid='true'],
+    &:has([aria-invalid='true']) {
+      --aui-control-bg: var(--color-error);
+      --aui-control-fg: var(--color-on-error);
+      --focus-ring-color: var(--color-error);
+      --aui-control-outline-color: var(--color-error);
+    }
+
+    /* Controls nested in a field ring inward, like the slider thumb, so no ring stacks on the field's edge. */
+    & .aui-control {
+      --focus-ring-offset: calc(var(--focus-ring-width) * -2);
+    }
+
+    &:disabled,
+    &[aria-disabled='true'] {
+      cursor: not-allowed;
+    }
+
+    &:read-only:not(:disabled, div) {
+      cursor: default;
+    }
+  }
+
+  /*
+   * Native fields stretch and shed the browser chrome; shells keep their own layout.
+   * The tag sits in `:where()` so a component's own sizing (code cells) still wins.
+   */
+  :where(input, textarea).aui-input {
+    display: block;
+    inline-size: 100%;
+    min-inline-size: 0;
+    text-overflow: ellipsis;
+    appearance: none;
+  }
+
+  /* A role-tinted fill carries its own edge; the hairline would only muddy it. */
+  .aui-input-tonal {
+    --aui-input-bg: color-mix(in oklch, var(--aui-control-bg) var(--tone-container-strength), var(--color-surface-lowest));
+    --aui-input-edge: transparent;
+  }
+
+  .aui-input-outlined {
+    --aui-input-bg: transparent;
+    --aui-input-edge: var(--color-outline);
+  }
+
+  /*
+   * Focus state: the border takes the full role color, for any focus, pointer
+   * included, since typing is the point. It answers to the text being focused
+   * only, so a focused nested button leaves the edge alone. Weight is left to
+   * the focus ring.
+   */
+  .aui-input:is(:focus, :has(:is(input, textarea):focus)) {
+    --aui-control-outline-color: var(--aui-control-bg);
+  }
+
+  /* The focus ring stays the keyboard signal; a shell rings when the text inside it is focus-visible. */
+  .aui-input:has(:is(input, textarea):focus-visible) {
+    outline-color: color-mix(in oklch, var(--focus-ring-color) 75%, var(--light-up));
+  }
+}

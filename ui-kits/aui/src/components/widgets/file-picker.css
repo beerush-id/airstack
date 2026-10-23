@@ -1,31 +1,8 @@
+@import './button.css';
+
+/* A file picker is a button: variants, states, and focus come from the shared button layer. */
 @layer component {
   .aui-file-picker {
-    cursor: pointer;
-    user-select: none;
     white-space: nowrap;
-
-    &:not([aria-disabled='true']) {
-      cursor: pointer;
-    }
-
-    &:hover:not(:disabled):not([aria-disabled='true']) {
-      background-color: color-mix(in oklch, var(--aui-control-bg) 88%, var(--aui-control-fg));
-    }
-
-    &:active:not(:disabled):not([aria-disabled='true']) {
-      background-color: color-mix(in oklch, var(--aui-control-bg) 78%, var(--aui-control-fg));
-    }
-
-    &:focus-visible {
-      outline: var(--focus-ring-width) var(--focus-ring-style) var(--focus-ring-color);
-      outline-offset: var(--focus-ring-offset);
-      z-index: 1;
-    }
-
-    &:disabled,
-    &[aria-disabled='true'] {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
   }
 }

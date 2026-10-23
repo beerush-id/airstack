@@ -31,9 +31,17 @@ export const VARIANTS = {
   OUTLINED: 'outlined',
 } as const;
 
+/** The surfaces a field can wear: press-only variants (`text`, `elevated`) have no boundary to type into. */
+export const FIELD_VARIANTS = {
+  TONAL: VARIANTS.TONAL,
+  FILLED: VARIANTS.FILLED,
+  OUTLINED: VARIANTS.OUTLINED,
+} as const;
+
 export type Size = (typeof SIZES)[keyof typeof SIZES];
 export type Color = (typeof COLORS)[keyof typeof COLORS];
 export type Variant = (typeof VARIANTS)[keyof typeof VARIANTS];
+export type FieldVariant = (typeof FIELD_VARIANTS)[keyof typeof FIELD_VARIANTS];
 
 /** Fallback values only — explicit props always win. No mode flags here. */
 export interface ComponentStyles {
@@ -343,6 +351,21 @@ export type MauiConfig = typeof DEFAULT_CONFIG & {
   stepperInput?: ComponentStyles;
   stepperButton?: ComponentStyles;
   splitter?: ComponentStyles;
+  badge?: ComponentStyles;
+  avatar?: ComponentStyles;
+  avatarGroup?: ComponentStyles;
+  chip?: ComponentStyles;
+  tagInput?: ComponentStyles;
+  card?: ComponentStyles;
+  emptyState?: ComponentStyles;
+  skeleton?: ComponentStyles;
+  spinner?: ComponentStyles;
+  alert?: ComponentStyles;
+  drawer?: ComponentStyles;
+  drawerPanel?: ComponentStyles;
+  commandPalette?: ComponentStyles;
+  commandPaletteInput?: ComponentStyles;
+  commandPaletteItem?: ComponentStyles;
 };
 
 export const AUI_CLASS = {
@@ -376,6 +399,18 @@ export const AUI_CLASS = {
   IMAGE_FALLBACK: branded('image-fallback'),
   SELECT: branded('select'),
   CONTROL: branded('control'),
+  CONTROL_ICON: branded('control-icon'),
+  INPUT: branded('input'),
+  PANEL: branded('panel'),
+  ITEM: branded('item'),
+  SCALE: branded('scale'),
+  COLLAPSIBLE: branded('collapsible'),
+  COLLAPSIBLE_HEADER: branded('collapsible-header'),
+  COLLAPSIBLE_BODY: branded('collapsible-body'),
+  MODAL: branded('modal'),
+  MODAL_PANEL: branded('modal-panel'),
+  MODAL_TITLE: branded('modal-title'),
+  MODAL_DESCRIPTION: branded('modal-description'),
   MENU_ITEM: branded('menu-item'),
   MENU_PANEL: branded('menu-panel'),
   SELECT_CARET: branded('select-caret'),
@@ -388,6 +423,8 @@ export const AUI_CLASS = {
   BREADCRUMB_SEPARATOR: branded('breadcrumb-separator'),
   TOOLBAR: branded('toolbar'),
   PAGINATION: branded('pagination'),
+  PAGINATION_GAP: branded('pagination-gap'),
+  PAGINATION_STEP: branded('pagination-step'),
   FIELD: branded('field'),
   FIELD_LABEL: branded('field-label'),
   FIELD_CONTROL: branded('field-control'),
@@ -451,6 +488,9 @@ export const AUI_CLASS = {
   DATE_PICKER_TRIGGER: branded('date-picker-trigger'),
   DATE_PICKER_CALENDAR: branded('date-picker-calendar'),
   DATE_PICKER_HEADER: branded('date-picker-header'),
+  DATE_PICKER_TITLE: branded('date-picker-title'),
+  DATE_PICKER_FIELD: branded('date-picker-field'),
+  DATE_PICKER_SEPARATOR: branded('date-picker-separator'),
   DATE_PICKER_GRID: branded('date-picker-grid'),
   DATE_PICKER_WEEKDAY: branded('date-picker-weekday'),
   DATE_PICKER_DAY: branded('date-picker-day'),
@@ -465,12 +505,14 @@ export const AUI_CLASS = {
   GRID_ROW_HEADER: branded('grid-row-header'),
   TREE: branded('tree'),
   TREE_ITEM: branded('tree-item'),
+  TREE_TOGGLE: branded('tree-toggle'),
   TREE_GROUP: branded('tree-group'),
   FEED: branded('feed'),
   FEED_ARTICLE: branded('feed-article'),
   REORDER: branded('reorder'),
   REORDER_HORIZONTAL: branded('reorder-horizontal'),
   REORDER_ITEM: branded('reorder-item'),
+  REORDER_CARD: branded('reorder-card'),
   REORDER_HANDLE: branded('reorder-handle'),
   SEARCH: branded('search'),
   CAROUSEL: branded('carousel'),

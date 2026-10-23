@@ -23,7 +23,7 @@ export type PopoverProps = ComponentStyles & {
 
 const POPOVER_ROLE = 'popover';
 
-register('popover', {});
+register('popover', { size: 'md', color: 'primary' });
 
 /**
  * Floating panel anchored to the actionable control around it. The
@@ -33,7 +33,7 @@ register('popover', {});
 export const Popover = setup<PopoverProps>((props) => {
   const popupRole = $static(() => props.popupRole);
   const popover = aria(POPOVER_ROLE, props as AnyType, { popupRole });
-  const className = () => $families(AUI_CLASS.POPOVER, props, auiConfig.popover);
+  const className = () => $families([AUI_CLASS.PANEL, AUI_CLASS.POPOVER], props, auiConfig.popover);
 
   return () => (
     <div ref={popover.ref} {...popover.restProps(OMIT_KEYS)} className={className()}>

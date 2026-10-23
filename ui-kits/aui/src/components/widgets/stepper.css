@@ -1,74 +1,63 @@
+@import './button.css';
+@import './input.css';
+
+/*
+ * The group is the field shell: it wears the shared field look, the number
+ * sits bare inside it, and the step buttons are role-colored text buttons
+ * at its ends.
+ */
 @layer theme {
   :root {
-    --aui-stepper-radius: var(--radius-full);
-    --aui-stepper-outline: var(--color-outline);
-    --aui-stepper-gap: calc(var(--spacing) * 0.5);
-    --aui-stepper-button-size: calc(var(--spacing) * 8);
-    --aui-stepper-input-width: calc(var(--spacing) * 11);
+    --aui-stepper-input-width: calc(var(--spacing) * 12);
   }
 }
 
 @layer component {
+  /* One inset all round: the buttons sit as far from the side edges as from the top and bottom. */
   .aui-stepper {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--aui-stepper-gap);
-    padding: calc(var(--spacing) * 0.5);
-    border: 1px solid var(--aui-stepper-outline);
-    border-radius: var(--aui-stepper-radius);
-    background: var(--color-surface);
-    color: var(--color-on-surface);
-
-    &:focus-within {
-      border-color: var(--color-primary);
-    }
+    --aui-stepper-inset: var(--spacing);
+    gap: 0;
+    /* Less the field's 1px edge, so the side gap matches the vertical one exactly. */
+    padding-inline: calc(var(--aui-stepper-inset) - 1px);
   }
 
   .aui-stepper-input {
+    flex: 1 1 auto;
     inline-size: var(--aui-stepper-input-width);
-    padding-block: var(--spacing-sm);
-    padding-inline: var(--spacing-xs);
+    min-inline-size: 0;
+    padding: 0;
     border: 0;
-    border-radius: var(--radius-xs);
     background: transparent;
     color: inherit;
     font: inherit;
+    font-weight: 500;
     font-variant-numeric: tabular-nums;
     text-align: center;
+    caret-color: inherit;
+    outline: none;
+    -moz-appearance: textfield;
 
-    &:focus-visible {
-      outline: var(--focus-ring-width) var(--focus-ring-style) var(--focus-ring-color);
-      outline-offset: calc(var(--focus-ring-offset) * -1);
-    }
-
-    &:disabled,
-    &[aria-disabled='true'] {
-      color: var(--color-disabled-fg);
-      cursor: not-allowed;
+    &::-webkit-inner-spin-button,
+    &::-webkit-outer-spin-button {
+      appearance: none;
+      margin: 0;
     }
   }
 
-  .aui-control.aui-stepper-button {
-    --aui-control-height: var(--aui-stepper-button-size);
-    --aui-control-padding-x: 0;
-    --aui-control-bg: transparent;
-    --aui-control-outline-color: transparent;
-    inline-size: var(--aui-stepper-button-size);
+  .aui-stepper-button {
+    flex: none;
+    inline-size: calc(var(--aui-control-height) - var(--aui-stepper-inset) * 2);
+    block-size: calc(var(--aui-control-height) - var(--aui-stepper-inset) * 2);
+    padding: 0;
+    justify-content: center;
     border-radius: var(--radius-full);
-    font-size: var(--font-title-sm-size);
+    font-size: 1.25em;
     line-height: 1;
+  }
 
-    &:hover:not(:disabled) {
-      background-color: var(--color-surface-high);
-    }
-
-    &:active:not(:disabled) {
-      background-color: var(--color-surface-highest);
-    }
-
-    &:disabled {
-      opacity: 0.35;
-      cursor: not-allowed;
-    }
+  /* Disabled stays bare: a filled chip inside the field would read as a second control. */
+  .aui-stepper > .aui-stepper-button:is(:disabled, [aria-disabled='true']) {
+    background-color: transparent;
+    color: var(--color-disabled-fg);
   }
 }

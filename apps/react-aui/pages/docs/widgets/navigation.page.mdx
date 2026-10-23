@@ -2,41 +2,42 @@
 title: AUI Navigation
 nav: Navigation
 nav-priority: 200
-description: Named landmark holding one tab stop across its links with vertical arrow travel.
+description: A sidebar or section menu of links that keyboard users can jump to and move through with the arrow keys — from a plain list of destinations.
+keywords: [React navigation menu, accessible sidebar navigation, React nav links, current page link, keyboard navigation menu]
 ---
 
 # AUI Navigation
 
-A navigation group is the run of links every page repeats — a sidebar, a section index, a settings menu. It names the landmark so it can be jumped to, holds one tab stop instead of one per link, and roves across the links with the vertical arrows while leaving activation to the links themselves.
+Almost every app repeats a list of links on each page — a sidebar, a settings menu, a section index. Done by hand, keyboard users tab through every link on every page, screen-reader users can't jump straight to it, and the current page looks like every other link.
 
-Styling is optional. Without AUI CSS the Navigation stays a correct landmark; with it, the same markup gets the AUI treatment through the full library.
+**Navigation** turns a list of destinations into a named, jumpable landmark. Keyboard users reach it with one tab and move between links with the arrow keys, the current page stands out, and a disabled link stays visible but can't be followed.
 
 :::interactive[Navigation demo]
 
 ```tsx
-import { Link, Navigation, Toggle } from '@airlib/react-aui';
+import { Navigation } from '@airlib/react-aui';
 import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { DemoControl } from '@/components/DemoControl.js';
 
 const NavigationDemo = setup(() => {
-  const state = mutable({ disabledBilling: true });
-  const block = (event: { preventDefault: () => void }) => event.preventDefault();
+  const state = mutable({ size: 'md', color: 'primary', disabled: false });
 
   return () => (
     <div className="demo-button">
-      <div className="flex gap-xs w-full">
-        <div className="flex-1"></div>
-        <Toggle size="sm" pressed={$bind(state, 'disabledBilling')}>
-          {() => (state.disabledBilling ? 'Billing disabled' : 'Billing enabled')}
-        </Toggle>
-      </div>
+      <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} disabled={$bind(state, 'disabled')} />
       <div className="aui-card flex flex-col gap-lg justify-center p-xl">
         <Snippet>
           {() => (
-            <Navigation label="Project sections">
-              <Link href="#overview" current onClick={block}>Overview</Link>
-              <Link href="#members" onClick={block}>Members</Link>
-              <Link href="#billing" disabled={state.disabledBilling} onClick={block}>Billing</Link>
-            </Navigation>
+            <Navigation
+              label="Project sections"
+              size={state.size}
+              color={state.color}
+              links={[
+                { href: '#overview', label: 'Overview', current: true },
+                { href: '#members', label: 'Members' },
+                { href: '#billing', label: 'Billing', disabled: state.disabled },
+              ]}
+            />
           )}
         </Snippet>
       </div>
@@ -55,72 +56,90 @@ const NavigationDemo = setup(() => {
 
 ## Usage
 
-Name the landmark and place ordinary links inside. The links keep their own navigation, activation, and current-page mark:
+### From a list of links
+
+When your destinations are data — a route table, a settings list — pass them as `links`. Each entry needs an `href` and a `label`; mark the page the reader is on with `current`, and switch a destination off with `disabled`:
+
+```tsx
+import { Navigation } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/navigation.css';
+
+const SECTIONS = [
+  { href: '/project/overview', label: 'Overview', current: true },
+  { href: '/project/members', label: 'Members' },
+  { href: '/project/billing', label: 'Billing', disabled: true },
+];
+
+export const ProjectNav = () => <Navigation label="Project sections" links={SECTIONS} />;
+```
+
+Give every navigation on a page its own `label` — it is the name screen-reader users pick from when they jump between landmarks.
+
+### Richer rows with a slot
+
+When a row needs more than its text — an icon, a count badge — keep `links` and fill each row through the `link` slot. The slot receives the entry; the link, its current mark, and the keyboard behavior stay the same:
+
+```tsx
+const MAILBOXES = [
+  { href: '/mail/inbox', label: 'Inbox', current: true },
+  { href: '/mail/drafts', label: 'Drafts' },
+  { href: '/mail/spam', label: 'Spam' },
+];
+const UNREAD: Record<string, number> = { '/mail/inbox': 12, '/mail/drafts': 2, '/mail/spam': 48 };
+
+<Navigation label="Mailboxes" links={MAILBOXES}>
+  <Navigation.Snippet for="link">
+    {(entry) => (
+      <>
+        {entry.label}
+        <span className="text-label-sm">{UNREAD[entry.href]}</span>
+      </>
+    )}
+  </Navigation.Snippet>
+</Navigation>
+```
+
+### Composing the links yourself
+
+When links come from different places or need their own handlers, place [Link](/docs/widgets/link) elements inside. They behave exactly like the rows `links` renders:
 
 ```tsx
 import { Link, Navigation } from '@airlib/react-aui';
-import '@airlib/aui/components/widgets/navigation.css';
 
-export const Sections = () => (
-  <Navigation label="Project sections">
-    <Link href="#overview" current>Overview</Link>
-    <Link href="#members">Members</Link>
-    <Link href="#billing">Billing</Link>
-  </Navigation>
-);
-```
-
-Point at existing text instead of naming inline when the name already lives on the page:
-
-```tsx
-<Navigation labelledby="sections-heading">
-  <Link href="#overview" current>Overview</Link>
-  <Link href="#members">Members</Link>
-</Navigation>
-```
-
-A disabled link keeps its `href` so it stays discoverable, announces `aria-disabled`, and is stepped over by every direction of travel:
-
-```tsx
 <Navigation label="Project sections">
-  <Link href="#archived" disabled>Archived</Link>
+  <Link href="/project/overview" current>Overview</Link>
+  <Link href="/project/members">Members</Link>
+  <Link href="/project/billing" disabled>Billing</Link>
 </Navigation>
 ```
+
+If a heading on the page already names the section, point at it with `labelledby` instead of repeating the text in `label`.
+
+### Style it once
+
+`size` and `color` on the Navigation reach every link inside it. See [Style a composite once](/docs/theming#style-a-composite-once).
 
 ### Properties
 
 | Prop | Type | Default | Notes |
 | --- | --- | --- | --- |
-| `label` | `string` | — | Landmark name, compiled to `aria-label`. Give every navigation on the page its own name. |
-| `labelledby` | `string` | — | ID of an element that already names the landmark, compiled to `aria-labelledby`. |
+| `links` | `LinkEntry[]` | — | `{ href, label, current?, disabled? }` per destination. Renders one link row each. |
+| `label` | `string` | — | The landmark's name for screen readers. |
+| `labelledby` | `string` | — | ID of an element that already names the landmark, used instead of `label`. |
+| `size` | `xs`, `sm`, `md`, `lg`, `xl`, `xxl` | `'md'` | Row height and type size for every link. |
+| `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | The current page's highlight. |
 | `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
-| `ref` | `Ref<HTMLElement>` | — | Access to the underlying landmark element. |
+| `children` | `ReactNode` | — | Your own `Link` elements, when you compose instead of passing `links`. |
+| `ref` | `Ref<HTMLElement>` | — | Access to the landmark element. |
 
-No controller-mutated props: `label` stays live — change it and the landmark follows. Links own `current`, `disabled`, and activation; the group never writes selection on your behalf.
+Slots: `link` — `(entry: LinkEntry) => ReactNode`, the content of each row.
 
-`ArrowDown` / `ArrowUp` move to the next / previous enabled link and wrap at both ends. `Home` / `End` jump to the ends. `Enter` belongs to the focused link, which navigates itself. `Tab` leaves the group from its single stop.
+## Keyboard
 
-Set app-wide defaults once instead of repeating props:
-
-```tsx
-import { configure } from '@airlib/react-aui';
-
-configure({ navigation: { className: 'my-nav' } });
-```
-
-Your own classes are added next to the built-in ones:
-
-```tsx
-// class="aui-navigation my-nav"
-<Navigation label="Sections" className="my-nav">
-  <Link href="#a">A</Link>
-</Navigation>
-```
-
-To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+`Tab` reaches the navigation once and leaves it once. `ArrowDown` / `ArrowUp` move to the next / previous link, skipping disabled ones and wrapping at the ends. `Home` / `End` jump to the first and last link. `Enter` follows the focused link.
 
 ## Next Steps
 
-- [Link](/docs/widgets/link) — Destinations and the current-page mark inside the group.
-- [Breadcrumb](/docs/widgets/breadcrumb) — The same rover locked horizontal over a trail of ancestors.
-- [Pagination](/docs/widgets/pagination) — The same rover over a page list with a held position.
+- [Breadcrumb](/docs/widgets/breadcrumb) — Show where the current page sits and link back up.
+- [Pagination](/docs/widgets/pagination) — Move through pages of results.
+- [Link](/docs/widgets/link) — A single destination with a disabled state and the current-page mark.

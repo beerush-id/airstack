@@ -1,4 +1,4 @@
-@layer components {
+@layer component {
   .aui-card {
     border-radius: var(--radius-xl);
     background-color: var(--color-surface-container);

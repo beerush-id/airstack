@@ -2,92 +2,126 @@
 title: Getting Started
 nav: Getting Started
 nav-priority: 100
-description: Install the packages, pick an import mode, and find your component.
+description: Install React AUI, load the styles, and render your first accessible component — then refine it with slots or build it from parts.
+keywords: [React AUI install, React component library setup, accessible select React, React design system getting started]
 ---
 
 # Getting Started
 
-Three layers, three jobs. AirLib Headless Kits (`@airlib/aria`) own behavior, keyboard handling, and accessibility. `@airlib/react-aui` declares structure and class composition on top of them. `@airlib/aui` supplies tokens and native CSS. Every component works without CSS; styles are always optional.
+From an empty file to a working, accessible component: install two packages, load one stylesheet, and hand a component your data. This page walks one component — a city picker — from its simplest form to fully custom, so you see every path the library offers before you need it.
 
-## Installation
+## Install
 
 ```bash
 npm install @airlib/react-aui @airlib/aui
 ```
 
-`react`, `react-dom`, and `typescript` are peer dependencies, so your app supplies them. The AirLib packages — `@airlib/react`, `@airlib/aria`, and `@airlib/aui` — arrive as dependencies.
+Your app supplies `react`, `react-dom`, and `typescript`. The rest of AirLib — `@airlib/react` for state, `@airlib/aria` for behavior — comes along as dependencies.
 
-## Import modes
+## Load the styles
 
-Load the full library or a single component's styles:
+Load the whole look once, at your app's entry:
 
 ```tsx
-import { Button } from '@airlib/react-aui';
 import '@airlib/aui';
 ```
 
+That brings the theme tokens, the element defaults, every component, and the layout and text utilities. If you only use a few components, load just theirs — each stylesheet brings the component and the shared looks it is built from:
+
 ```tsx
-import { Button } from '@airlib/react-aui';
-import '@airlib/aui/components/widgets/button.css';
+import '@airlib/aui/components/widgets/select.css';
 ```
 
-The full import brings theme tokens, base defaults, every component family, and the utilities. A single-component stylesheet carries only that component's own rules. Both modes agree visually; the CSS cascade order (`theme`, `base`, `component`, `utility`, `reduced-motion`) is declared once in the library entry so import order never decides precedence.
+Styles are optional. Without them every component is still a correct, keyboard- and screen-reader-ready control; the stylesheet is what makes it look finished.
 
-Configuration and vocabulary carry no styles. Importing them never loads CSS:
+## Your first component
+
+Hand the component your data and bind its value to your state. It renders the trigger, the popup, the options, and the keyboard handling:
+
+:::interactive[City picker]
+
+```tsx
+import { Select } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+
+const CITIES = { ams: 'Amsterdam', ber: 'Berlin', lis: 'Lisbon', osl: 'Oslo' };
+
+const CityPicker = setup(() => {
+  const trip = mutable({ from: 'lis' });
+
+  return () => (
+    <div className="flex flex-col gap-sm">
+      <Select label="Departure" options={CITIES} value={$bind(trip, 'from')} />
+      <Snippet>{() => <span>Leaving from {CITIES[trip.from]}</span>}</Snippet>
+    </div>
+  );
+}, 'CityPicker');
+```
+
+```html
+<CityPicker />
+```
+
+<CityPicker />
+
+:::
+
+`$bind(trip, 'from')` is a two-way binding: picking an option writes `trip.from`, and writing `trip.from` from anywhere moves the select. There is no change handler to write and no open state to keep — the component owns both. Listen to `onchange` only when you want to react to the user's choice, for example to save it.
+
+## Make it look the part
+
+One vocabulary styles every component: `size` (`xs`–`xxl`), `color` (`primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info`), and `variant`. Set them on the component and every part inside it — the trigger, the popup, the options — follows:
+
+```tsx
+<Select options={CITIES} value={$bind(trip, 'from')} size="lg" color="tertiary" variant="outlined" />
+```
+
+Set a default once instead of on every call:
 
 ```tsx
 import { configure } from '@airlib/react-aui';
-import { SIZES } from '@airlib/aui/utils';
+
+configure({ select: { size: 'sm' } });
 ```
 
-## Shared vocabulary
+## Change what a row shows
 
-One vocabulary across every component: `size` (`xs`–`xxl`, default `md`), `variant` (`filled`, `elevated`, `tonal`, `outlined`, `text`, default `filled`), `color` (`primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info`, default `primary`):
+When the label alone is not enough — an airport code in front of the city, say — keep the component and supply the content through a slot. The behavior and the structure stay the library's; you only decide what renders inside:
 
 ```tsx
-import { Button } from '@airlib/react-aui';
-
-<Button size="sm" variant="tonal" color="success">Saved</Button>
+<Select options={CITIES} value={$bind(trip, 'from')}>
+  <Select.Snippet for="option">
+    {(entry) => (
+      <span>
+        <b>{entry.key.toUpperCase()}</b> {entry.label}
+      </span>
+    )}
+  </Select.Snippet>
+</Select>
 ```
 
-Explicit props win; otherwise the configured fallback applies:
+Every component with a data prop offers slots for its trigger, rows, or panels; each component's page lists them.
+
+## Build it from parts
+
+When the layout is yours to invent — a footer row inside the popup, mixed rows, rows from several sources — compose the parts yourself. They still find each other: no ids to wire, no open state to pass down:
 
 ```tsx
-import { configure } from '@airlib/react-aui';
+import { Select, SelectOption, SelectPanel, SelectTrigger } from '@airlib/react-aui';
 
-configure({ button: { size: 'sm' } });
+<Select value={$bind(trip, 'from')} size="lg">
+  <SelectTrigger placeholder="Choose a departure" />
+  <SelectPanel>
+    <SelectOption value="ams">Amsterdam</SelectOption>
+    <SelectOption value="ber">Berlin</SelectOption>
+  </SelectPanel>
+</Select>
 ```
 
-Your own classes sit alongside the built-in ones by default. To replace the built-in classes with yours, turn on `overrides` as shown in [Theming](/docs/theming). Tokens, layers, and overrides all live there.
-
-## Components
-
-### Widgets
-
-- [Button](/docs/widgets/button) — Action trigger with safe form defaults, six sizes, five variants, and seven colors.
-- [Toggle](/docs/widgets/toggle) — Two-state button with pressed announcement, six sizes, and seven colors.
-- [Link](/docs/widgets/link) — Destination trigger on a real anchor with disabled cancellation and the current-page mark.
-- [Switch](/docs/widgets/switch) — Binary on/off control with a track and thumb, six sizes, and seven colors.
-- [Divider](/docs/widgets/divider) — Structural boundary on a real element with the separator role, an opt-in rule color, and horizontal or vertical axes.
-- [Image](/docs/widgets/image) — Image loading coordinator with an accessible fallback, a read-only lifecycle status, and a decorative mode that leaves the accessibility tree.
-- [Checkbox](/docs/widgets/checkbox) — Yes-no box with an undecided state on a native input, named by its wrapping label.
-- [Checkbox Group](/docs/widgets/checkbox-group) — One committed set of checked values across many boxes, each toggling on its own.
-
-### Composites
-
-- [Select](/docs/widgets/select) — Collapsible option list with trigger, popup panel, and options, in single or multiple mode.
-
-### Landmarks
-
-- [Header](/docs/landmarks/header) — Document header on a real header element with the banner role and an opt-in accessible name.
-- [Main](/docs/landmarks/main) — Primary content on a real main element with the main role and an opt-in accessible name.
-- [Footer](/docs/landmarks/footer) — Document footer on a real footer element with the contentinfo role and an opt-in accessible name.
-- [Section](/docs/landmarks/section) — Named page region on a real section element with the region role published only while named.
-- [Sidebar](/docs/landmarks/sidebar) — Supporting content on a real aside element with the complementary role and an opt-in accessible name.
-
-More groups and components appear here as their slices land.
+`size="lg"` on the root still reaches the trigger and every option. A part's own prop wins when you set one.
 
 ## Next Steps
 
-- [Theming](/docs/theming) — Tokens, layers, the shared vocabulary, overrides, and selective imports.
-- [Button](/docs/widgets/button) — The first component to try: safe form defaults with six sizes, five variants, and seven colors.
+- [Overview](/docs) — Every component, grouped by the job it does.
+- [Theming](/docs/theming) — Tokens, colors, layers, and styling a composite once.
+- [Select](/docs/widgets/select) — Everything the city picker can do, from multiple selection to keyboard behavior.

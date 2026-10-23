@@ -29,29 +29,31 @@ const SplitterDemo = setup(() => {
         <Snippet>{() => <span>{state.split}%</span>}</Snippet>
       </div>
       <div className="aui-card p-lg">
-        <Snippet>
-          {() => (
-            <div
-              className="flex gap-sm"
-              style={{ '--demo-split': `${state.split}%`, blockSize: '160px' } as never}
-            >
+        <div className="flex" style={{ blockSize: '160px' }}>
+          <Snippet>
+            {() => (
               <div
-                className="aui-card flex flex-1 items-center justify-center"
-                style={{ flexBasis: 'var(--demo-split)' }}
+                className="aui-card flex items-center justify-center"
+                style={
+                  {
+                    '--demo-split': `${((state.split - 10) / (90 - 10)) * 100}%`,
+                    flex: '0 0 var(--demo-split)',
+                  } as never
+                }
               >
                 Canvas
               </div>
-              <Splitter
-                label="Preview width"
-                value={$bind(state, 'split')}
-                min={10}
-                max={90}
-                orientation="vertical"
-              />
-              <div className="aui-card flex flex-1 items-center justify-center">Inspector</div>
-            </div>
-          )}
-        </Snippet>
+            )}
+          </Snippet>
+          <Splitter
+            label="Preview width"
+            value={$bind(state, 'split')}
+            min={10}
+            max={90}
+            orientation="vertical"
+          />
+          <div className="aui-card flex flex-1 items-center justify-center">Inspector</div>
+        </div>
       </div>
     </div>
   );

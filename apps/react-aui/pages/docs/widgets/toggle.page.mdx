@@ -25,21 +25,17 @@ const ToggleDemo = setup(() => {
   return () => (
     <div className="demo-button">
       <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} disabled={$bind(state, 'disabled')} />
-      <div className="aui-card flex gap-md items-center justify-center p-xl">
-        <Snippet>
-          {() => (
+      <Snippet>
+        {() => (
+          <div className="aui-card flex gap-md items-center justify-center p-xl">
             <Toggle
               size={state.size}
               color={state.color}
               disabled={state.disabled}
               pressed={$bind(state, 'pressed')}
             >
-              {state.pressed ? 'Pressed' : 'Unpressed'}
+              {() => (state.pressed ? 'Pressed' : 'Unpressed')}
             </Toggle>
-          )}
-        </Snippet>
-        <Snippet>
-          {() => (
             <Toggle
               size={state.size}
               color={state.color}
@@ -47,12 +43,8 @@ const ToggleDemo = setup(() => {
               pressed={$bind(state, 'pressed')}
             >
               <HelpIcon />
-              <span>{state.pressed ? 'Pressed' : 'Unpressed'}</span>
+              <Snippet>{() => <span>{state.pressed ? 'Pressed' : 'Unpressed'}</span>}</Snippet>
             </Toggle>
-          )}
-        </Snippet>
-        <Snippet>
-          {() => (
             <Toggle
               size={state.size}
               color={state.color}
@@ -62,9 +54,9 @@ const ToggleDemo = setup(() => {
             >
               <HelpIcon />
             </Toggle>
-          )}
-        </Snippet>
-      </div>
+          </div>
+        )}
+      </Snippet>
     </div>
   );
 }, 'ToggleDemo');

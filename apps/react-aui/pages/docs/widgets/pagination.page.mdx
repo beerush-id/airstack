@@ -2,54 +2,78 @@
 title: AUI Pagination
 nav: Pagination
 nav-priority: 203
-description: Named page run holding position with one tab stop on the current page.
+description: Let people move through pages of results — previous and next, the first and last page, and the pages around the current one, from just a page count.
+keywords: [React pagination, accessible pagination, pagination component, page navigation, React paging]
 ---
 
 # AUI Pagination
 
-A run of page links has to behave as one control. It names the run as a landmark, holds a single tab stop on the current page, travels only the enabled links with the arrows, and keeps a page position that previous and next step from — while every page stays an ordinary link with its own `href`.
+Search results, order histories, and article archives all split into pages. A hand-built pager has to decide which page numbers to show, disable previous and next at the ends, keep the current page highlighted, and stay usable from the keyboard without a tab stop per page.
+
+**Pagination** does all of that from a page count. Bind the current page, give it the total, and it shows previous and next, the first and last page, the pages around the current one, and a gap wherever pages are skipped.
 
 :::interactive[Pagination demo]
 
 ```tsx
-import { Button, Link, Pagination, Toggle } from '@airlib/react-aui';
-import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { Link, Pagination } from '@airlib/react-aui';
+import { $bind, For, mutable, setup, Snippet } from '@airlib/react';
+import { DemoControl } from '@/components/DemoControl.js';
 
 const pages = [1, 2, 3, 4, 5];
 
 const PaginationDemo = setup(() => {
-  const state = mutable({ page: 2, total: 5, disableThree: false });
-  const block = (event: { preventDefault: () => void }) => event.preventDefault();
+  const state = mutable({ size: 'md', color: 'primary', disabled: false, archive: 6, page: 2 });
+  const stay = (event: { preventDefault: () => void }) => event.preventDefault();
 
   return () => (
     <div className="demo-button">
-      <div className="flex gap-xs w-full">
-        <div className="flex-1"></div>
-        <Toggle size="sm" pressed={$bind(state, 'disableThree')}>
-          {() => (state.disableThree ? 'Page 3 disabled' : 'Page 3 enabled')}
-        </Toggle>
-      </div>
+      <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} disabled={$bind(state, 'disabled')} />
       <div className="aui-card flex gap-lg items-center justify-center p-xl">
         <Snippet>
           {() => (
-            <Pagination label="Search results pages" page={$bind(state, 'page')} total={state.total}>
-              {pages.map((page) => (
-                <Link
-                  key={page}
-                  href={`#page-${page}`}
-                  page={page}
-                  current={state.page === page}
-                  disabled={state.disableThree && page === 3}
-                  onClick={block}
-                >
-                  {page}
-                </Link>
-              ))}
+            <Pagination
+              label="Archive pages"
+              previousLabel="Previous page"
+              nextLabel="Next page"
+              page={$bind(state, 'archive')}
+              total={12}
+              size={state.size}
+              color={state.color}
+            />
+          )}
+        </Snippet>
+      </div>
+      <Snippet>{() => <span>Archive page {state.archive} of 12</span>}</Snippet>
+      <div className="aui-card flex gap-lg items-center justify-center p-xl">
+        <Snippet>
+          {() => (
+            <Pagination
+              label="Search results pages"
+              previousLabel="Previous page"
+              nextLabel="Next page"
+              page={$bind(state, 'page')}
+              total={5}
+              size={state.size}
+              color={state.color}
+            >
+              <For each={() => pages}>
+                {(page) => (
+                  <Link
+                    href={`#page-${page}`}
+                    page={page}
+                    current={state.page === page}
+                    disabled={state.disabled && page === 3}
+                    onClick={stay}
+                  >
+                    {page}
+                  </Link>
+                )}
+              </For>
             </Pagination>
           )}
         </Snippet>
       </div>
-      <span>Page {state.page} of {state.total}</span>
+      <Snippet>{() => <span>Results page {state.page} of 5</span>}</Snippet>
     </div>
   );
 }, 'PaginationDemo');
@@ -65,66 +89,83 @@ const PaginationDemo = setup(() => {
 
 ## Usage
 
-Bind the position and mark the current page so the single tab stop lands where the reader is:
+### From a page count
 
-```tsx
-import { Link, Pagination } from '@airlib/react-aui';
-import '@airlib/aui/components/widgets/pagination.css';
-
-export const Results = () => (
-  <Pagination label="Search results pages" page={2} total={5}>
-    <Link href="#page-1" page={1}>1</Link>
-    <Link href="#page-2" page={2} current>2</Link>
-    <Link href="#page-3" page={3}>3</Link>
-  </Pagination>
-);
-```
-
-Step from your own previous/next controls using the controller's guards. A page link carrying `page` commits that number into the run when it activates; a middle-click never commits:
+Bind the current page and pass `total`. Pagination shows the previous and next steppers, the first and last page, one page either side of the current one, and a gap where pages are skipped:
 
 ```tsx
 import { Pagination } from '@airlib/react-aui';
 import { $bind, mutable, setup } from '@airlib/react';
+import '@airlib/aui/components/widgets/pagination.css';
 
-const Results = setup(() => {
-  const state = mutable({ page: 2 });
+const OrderHistory = setup(() => {
+  const view = mutable({ page: 1 });
 
   return () => (
-    <Pagination label="Results" page={$bind(state, 'page')} total={5}>
-      <button type="button" onClick={() => (state.page -= 1)}>Previous</button>
-      <button type="button" onClick={() => (state.page += 1)}>Next</button>
-    </Pagination>
+    <Pagination
+      label="Order history pages"
+      previousLabel="Previous page"
+      nextLabel="Next page"
+      page={$bind(view, 'page')}
+      total={24}
+    />
   );
-}, 'Results');
+}, 'OrderHistory');
 ```
 
-Leave `total` out while the last page is unknown: forward stepping does nothing and `canForward` stays false until the bound arrives.
+Each tweak is one prop:
+
+- **Real URLs.** Give `href` a function from page number to address, so each page is a shareable, crawlable link: `href={(page) => '/orders?page=' + page}`. Without it the pages only move the bound position.
+- **More pages around the current one.** `siblings={2}` keeps two on each side instead of one.
+- **Names for the steppers.** `previousLabel` and `nextLabel` name the arrow buttons for screen readers. Nothing is named for you; the words come from you, in your users' language.
+
+Previous is disabled on the first page and next on the last. Leave `total` out while the last page is still unknown — next stays disabled until it arrives.
+
+### Composing the pages yourself
+
+When you need your own layout — only a few pages, custom labels, disabled pages — place [Link](/docs/widgets/link) elements inside. Give each its `page` number so activating it moves the bound position, and mark the one the reader is on `current`:
+
+```tsx
+import { Link, Pagination } from '@airlib/react-aui';
+
+<Pagination label="Search results pages" previousLabel="Previous page" nextLabel="Next page" page={$bind(view, 'page')} total={3}>
+  <Link href="/search?page=1" page={1}>1</Link>
+  <Link href="/search?page=2" page={2} current>2</Link>
+  <Link href="/search?page=3" page={3} disabled>3</Link>
+</Pagination>
+```
+
+Your own previous and next controls just write the bound page: `onClick={() => (view.page -= 1)}`.
+
+### Style it once
+
+`size` and `color` on the Pagination reach every page and stepper. See [Style a composite once](/docs/theming#style-a-composite-once).
 
 ### Properties
 
 | Prop | Type | Default | Notes |
 | --- | --- | --- | --- |
-| `label` | `string` | `'Pagination'` | Landmark name, compiled to `aria-label`. |
-| `page` | `Bindable<number>` | `1` | Current position. Writing it moves the run; page links write it on activation. |
-| `total` | `number` | — | Last position. Absent means the forward bound is unknown. |
+| `page` | `Bindable<number>` | `1` | The current page, 1-based. Bind it to read and set the position. |
+| `total` | `number` | — | The number of pages. Without it, next stays disabled. |
+| `siblings` | `number` | `1` | Pages shown on each side of the current one. |
+| `href` | `(page: number) => string` | — | Builds each page's address. Without it, pages only move the position. |
+| `previousLabel` | `string` | — | Screen-reader name of the previous stepper. |
+| `nextLabel` | `string` | — | Screen-reader name of the next stepper. |
+| `label` | `string` | — | The landmark's name for screen readers. |
+| `size` | `xs`, `sm`, `md`, `lg`, `xl`, `xxl` | `'md'` | Size of every page and stepper. |
+| `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | The current page's highlight and the steppers' color. |
 | `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
-| `ref` | `Ref<HTMLElement>` | — | Access to the underlying landmark element. |
+| `children` | `ReactNode` | — | Your own links, when you compose instead of passing `total` alone. |
+| `ref` | `Ref<HTMLElement>` | — | Access to the landmark element. |
 
-`page` stays live — change it and the run follows. `ArrowRight` / `ArrowLeft` travel the enabled links and wrap. `Home` / `End` land on the first and last enabled link. `Tab` enters at the current page and leaves from it.
+For a fully custom pager, `pageWindow(page, total, siblings)` returns the same run of page numbers and gaps the simple form shows.
 
-Your own classes are added next to the built-in ones:
+## Keyboard
 
-```tsx
-// class="aui-pagination my-pager"
-<Pagination label="Results" page={2} total={5} className="my-pager">
-  <Link href="#p1" page={1}>1</Link>
-</Pagination>
-```
-
-To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+`Tab` lands on the current page and leaves the pager from there. `ArrowRight` / `ArrowLeft` move between the pages, skipping disabled ones and wrapping at the ends. `Home` / `End` jump to the first and last page. `Enter` opens the focused page.
 
 ## Next Steps
 
-- [Link](/docs/widgets/link) — Page links carrying `href`, `page`, and the current mark.
-- [Breadcrumb](/docs/widgets/breadcrumb) — The same single-stop travel over a trail of ancestors.
-- [Navigation](/docs/widgets/navigation) — The same rover running vertically over menus.
+- [Navigation](/docs/widgets/navigation) — A list of links to the sections of your app.
+- [Breadcrumb](/docs/widgets/breadcrumb) — Show where a page sits and link back up.
+- [Grid](/docs/widgets/grid) — A keyboard-driven table for the results you are paging through.
