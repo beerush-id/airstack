@@ -36,5 +36,10 @@
       height: 100%;
       fill: currentColor;
     }
+
+    &:not[role] {
+      pointer-events: none;
+      user-select: none;
+    }
   }
 }

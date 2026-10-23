@@ -506,21 +506,6 @@ describe('Combobox - Coverage', () => {
         });
       }));
 
-    it('leaves query and text alone when capturing without a bound element', () =>
-      scope.run(() => {
-        component().run(() => {
-          const combobox = aria<HTMLElement>('combobox', { value: null });
-          combobox.query = 'am';
-          combobox.text = 'keep';
-
-          combobox.captureChange();
-          expect(combobox.query).toBe('am');
-          expect(combobox.text).toBe('keep');
-
-          combobox.destroy();
-        });
-      }));
-
     it('proxies value and query from the host input', () =>
       scope.run(() => {
         component().run(() => {

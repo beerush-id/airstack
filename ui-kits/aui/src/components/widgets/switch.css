@@ -38,6 +38,7 @@
     transition-timing-function: var(--ease-emphasized);
     transition-property: margin-inline-start, background-color, box-shadow;
     box-shadow: 0 0 0 0 transparent;
+    pointer-events: none;
 
     & > .aui-icon {
       width: calc(var(--aui-icon-size) * 0.6);

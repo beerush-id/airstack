@@ -47,6 +47,7 @@
 
     .air-mdx-sidebar-link {
       width: 100%;
+      border-radius: var(--radius-sm);
 
       &:hover {
         background-color: var(--color-surface-container);
@@ -55,6 +56,14 @@
       &.active {
         color: var(--color-on-primary);
         background-color: var(--color-primary);
+      }
+    }
+
+    @supports (corner-shape: squircle) {
+      --air-box-radius: var(--radius-md);
+
+      .air-interactive-toggle label {
+        border-radius: calc(var(--air-box-radius) * 0.35);
       }
     }
   }

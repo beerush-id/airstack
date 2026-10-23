@@ -2,6 +2,7 @@
   :root {
     --aui-menu-panel-bg: var(--color-surface-container);
     --aui-menu-panel-radius: var(--radius-lg);
+    --aui-menu-panel-radius-strength: 0.75;
     --aui-menu-panel-gap: var(--spacing-xs);
     --aui-menu-panel-padding-x: var(--spacing-xs);
     --aui-menu-panel-padding-y: var(--spacing-xs);
@@ -9,6 +10,11 @@
     --aui-menu-item-bg: var(--color-primary);
     --aui-menu-item-fg: var(--color-on-primary);
     --aui-menu-item-radius: var(--radius-xs);
+
+    @supports (corner-shape: squircle) {
+      --aui-menu-panel-radius: var(--radius-md);
+      --aui-menu-panel-radius-strength: 1;
+    }
   }
 }
 
@@ -36,7 +42,9 @@
     position-try-order: normal;
     min-width: calc(var(--spacing) * 40);
     margin-block: var(--aui-menu-panel-gap);
-    background: var(--aui-menu-panel-bg);
+    background: color-mix(in oklch, var(--aui-menu-panel-bg) 80%, transparent);
+    border: 1px solid light-dark(rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.1));
+    backdrop-filter: blur(var(--size-sm));
     border-radius: var(--aui-menu-panel-radius);
     padding-block: var(--aui-menu-panel-padding-y);
     padding-inline: var(--aui-menu-panel-padding-x);
@@ -49,13 +57,25 @@
     }
 
     .aui-menu-item:first-child {
-      border-start-start-radius: calc(var(--aui-menu-panel-radius) * 0.75);
-      border-start-end-radius: calc(var(--aui-menu-panel-radius) * 0.75);
+      border-start-start-radius: calc(
+        var(--aui-menu-panel-radius) *
+        var(--aui-menu-panel-radius-strength)
+      );
+      border-start-end-radius: calc(
+        var(--aui-menu-panel-radius) *
+        var(--aui-menu-panel-radius-strength)
+      );
     }
 
     .aui-menu-item:last-child {
-      border-end-start-radius: calc(var(--aui-menu-panel-radius) * 0.75);
-      border-end-end-radius: calc(var(--aui-menu-panel-radius) * 0.75);
+      border-end-start-radius: calc(
+        var(--aui-menu-panel-radius) *
+        var(--aui-menu-panel-radius-strength)
+      );
+      border-end-end-radius: calc(
+        var(--aui-menu-panel-radius) *
+        var(--aui-menu-panel-radius-strength)
+      );
     }
   }
 
@@ -93,6 +113,10 @@
     font-weight: var(--font-label-sm-weight);
     line-height: var(--font-label-sm-line-height);
     letter-spacing: var(--font-label-sm-tracking);
+
+    @supports (corner-shape: squircle) {
+      --aui-menu-panel-radius-strength: 2.5;
+    }
   }
 
   .aui-menu-item-sm {
@@ -104,6 +128,10 @@
     font-weight: var(--font-label-md-weight);
     line-height: var(--font-label-md-line-height);
     letter-spacing: var(--font-label-md-tracking);
+
+    @supports (corner-shape: squircle) {
+      --aui-menu-panel-radius-strength: 1.25;
+    }
   }
 
   .aui-menu-item-lg {
@@ -115,6 +143,11 @@
     font-weight: var(--font-title-sm-weight);
     line-height: var(--font-title-sm-line-height);
     letter-spacing: var(--font-title-sm-tracking);
+
+    @supports (corner-shape: squircle) {
+      --aui-menu-panel-radius: var(--radius-lg);
+      --aui-menu-panel-radius-strength: 0.85;
+    }
   }
 
   .aui-menu-item-xl {
@@ -126,6 +159,11 @@
     font-weight: var(--font-title-md-weight);
     line-height: var(--font-title-md-line-height);
     letter-spacing: var(--font-title-md-tracking);
+
+    @supports (corner-shape: squircle) {
+      --aui-menu-panel-radius: var(--radius-xl);
+      --aui-menu-panel-radius-strength: 0.7;
+    }
   }
 
   .aui-menu-item-xxl {
@@ -137,5 +175,10 @@
     font-weight: var(--font-title-lg-weight);
     line-height: var(--font-title-lg-line-height);
     letter-spacing: var(--font-title-lg-tracking);
+
+    @supports (corner-shape: squircle) {
+      --aui-menu-panel-radius: var(--radius-xxl);
+      --aui-menu-panel-radius-strength: 0.75;
+    }
   }
 }

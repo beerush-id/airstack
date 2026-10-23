@@ -59,6 +59,7 @@
     z-index: -1;
     pointer-events: none;
     border-radius: inherit;
+    corner-shape: inherit;
     background-color: var(--aui-state-layer-color);
   }
 
