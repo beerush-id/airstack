@@ -1,0 +1,205 @@
+---
+title: AUI Stepper
+nav: Stepper
+nav-priority: 264
+description: One bounded number shared by a field and two step buttons that go inert at the bound they have nowhere left to go.
+---
+
+# AUI Stepper
+
+A stepper is a number you nudge. The hard part is never the two buttons — it is **keeping one value shared by the field and the buttons**, **clamping every path into it to the same bounds**, **stepping on the vertical keys while the horizontal keys stay with the caret**, and **taking a button out of reach the moment it has nowhere left to go**.
+
+**AUI Stepper** does all of that for you, and leaves the markup and the styling entirely yours. The group holds the number and the bounds; the field and the two buttons find it in scope, so no ids or prop drilling are needed.
+
+Styling is optional. Without AUI CSS the Stepper stays a correct, operable spinbutton group; with it, the same markup gets the AUI treatment through the full library.
+
+:::interactive[Stepper demo]
+
+```tsx
+import { Stepper, StepperDecrement, StepperIncrement, StepperInput, Toggle } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+
+const StepperDemo = setup(() => {
+  const state = mutable({
+    qty: 2,
+    price: 150,
+    locked: false,
+  });
+
+  return () => (
+    <div className="demo-button">
+      <div className="flex gap-xs w-full flex-wrap">
+        <Toggle size="sm" pressed={$bind(state, 'locked')}>
+          {() => (state.locked ? 'Read-only' : 'Editable')}
+        </Toggle>
+        <div className="flex-1"></div>
+        <Snippet>
+          {() => (
+            <span>
+              {state.qty} × $25 = ${state.qty * 25}
+            </span>
+          )}
+        </Snippet>
+      </div>
+
+      <div className="aui-card flex flex-col gap-lg p-xl">
+        <Snippet>
+          {() => (
+            <Stepper aria-label="Quantity" value={$bind(state, 'qty')} min={1} max={8} readonly={state.locked}>
+              <StepperDecrement aria-label="Decrease quantity">−</StepperDecrement>
+              <StepperInput aria-label="Quantity" />
+              <StepperIncrement aria-label="Increase quantity">+</StepperIncrement>
+            </Stepper>
+          )}
+        </Snippet>
+
+        <Snippet>
+          {() => (
+            <Stepper
+              aria-label="Gift card amount"
+              value={$bind(state, 'price')}
+              min={0}
+              max={500}
+              step={50}
+              page={100}
+              disabled={state.locked}
+              valuetext={`${state.price} US dollars`}
+            >
+              <StepperDecrement aria-label="Lower the gift card amount">−</StepperDecrement>
+              <StepperInput aria-label="Gift card amount" />
+              <StepperIncrement aria-label="Raise the gift card amount">+</StepperIncrement>
+            </Stepper>
+          )}
+        </Snippet>
+      </div>
+    </div>
+  );
+}, 'StepperDemo');
+```
+
+```html
+<StepperDemo />
+```
+
+<StepperDemo />
+
+:::
+
+## Usage
+
+The group is the wiring: put the field and the buttons inside it and they share its value:
+
+```tsx
+import { Stepper, StepperDecrement, StepperIncrement, StepperInput } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/stepper.css';
+
+export const Quantity = ({ value, onValue }: { value: number; onValue: (next: number) => void }) => (
+  <Stepper aria-label="Quantity" value={value} min={1} max={8} onchange={(event) => onValue(event.detail)}>
+    <StepperDecrement aria-label="Decrease quantity">−</StepperDecrement>
+    <StepperInput aria-label="Quantity" />
+    <StepperIncrement aria-label="Increase quantity">+</StepperIncrement>
+  </Stepper>
+);
+```
+
+For the full library — tokens, base defaults, every component, and the utilities — load `import '@airlib/aui';` instead. A lone component stylesheet carries only that component's rules.
+
+### The value and the bounds
+
+`value` is read back with the bounds already applied and falls back to `min`, then `0`. Writes through the controller clamp the same way, so the field and the buttons can never disagree:
+
+```tsx
+const state = mutable({ qty: 2 });
+
+<Stepper aria-label="Quantity" value={$bind(state, 'qty')} min={1} max={8}>
+  {/* field and buttons */}
+</Stepper>;
+```
+
+Leave `min` or `max` out and that side is unbounded: the button never disarms and `Home` or `End` stays with the browser.
+
+### Stepping
+
+`step` is how far one button press or one stepping key moves (default `1`); `page` is how far `PageUp` and `PageDown` travel (default `10`):
+
+```tsx
+<Stepper aria-label="Gift card amount" value={$bind(state, 'price')} min={0} max={500} step={50} page={100}>
+  {/* field and buttons */}
+</Stepper>
+```
+
+Both buttons carry `tabindex="-1"`, so the field stays the single tab stop; the buttons are reachable by pointer or programmatically.
+
+### The field
+
+`StepperInput` renders a native `<input>` compiled as a plain text field whose readings the controller parses itself — no browser spinner ever fights the stepping keys. Typing commits only valid decimals, an invalid reading keeps the current value, and a blur restores the last committed number:
+
+```tsx
+<StepperInput aria-label="Quantity" />
+```
+
+`valuetext` says what the number means, so `150` can be announced as “150 US dollars”. On a native field the ARIA value vocabulary comes from the group; the element itself stays a plain input.
+
+### Locking
+
+`readonly` refuses steps and typing: the field leaves the tab order yet stays focusable, and both buttons disarm. `disabled` closes the whole group — the field leaves the tab order and the buttons go inert:
+
+```tsx
+<Stepper aria-label="Quantity" value={5} min={0} max={10} disabled>
+  {/* field and buttons */}
+</Stepper>
+```
+
+`required` says a value must be given; the constraint is carried by the field, not the group.
+
+### Events
+
+| Event | Fires when | Detail |
+| --- | --- | --- |
+| `oninput` | A button press, a stepping key, or a typed keystroke | The committed number |
+| `onchange` | The value actually moved, whoever moved it | The committed number |
+
+A press at a bound changes nothing and announces nothing.
+
+### Properties
+
+#### Stepper
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `value` | `Bindable<number>` | `min`, then `0` | The current number, bounds applied on read and write. |
+| `min` / `max` | `number` | — | Inclusive bounds; undeclared means unbounded on that side. |
+| `step` | `number` | `1` | One press or one arrow keystroke. |
+| `page` | `number` | `10` | One `PageUp` or `PageDown`. |
+| `disabled` | `boolean` | `false` | Locks the whole group. |
+| `readonly` | `boolean` | `false` | Refuses steps and typing; buttons disarm. |
+| `required` | `boolean` | `false` | Says a value must be given; carried by the field. |
+| `valuetext` | `string` | — | What the number is called out as. |
+| `oninput` / `onchange` | `(event: CustomEvent<number>) => void` | — | The committed number at each edge. |
+
+#### StepperInput
+
+Takes `oninput` and `onchange` plus the standard attributes for an `input` host and `className`/`ref`.
+
+#### StepperIncrement, StepperDecrement
+
+Take children plus the standard attributes for a `button` host and `className`/`ref`. Both compile `type="button"` so they can never submit the form around them.
+
+Your own classes are added next to the built-in ones:
+
+```tsx
+// class="aui-stepper my-stepper"
+<Stepper className="my-stepper" aria-label="Quantity" value={2}>
+  {/* field and buttons */}
+</Stepper>
+```
+
+To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+
+Keyboard: `ArrowUp` and `ArrowDown` step by `step`, `PageUp` and `PageDown` by `page`, and `Home` and `End` jump to the declared bounds. `ArrowLeft` and `ArrowRight` stay with the caret, `Enter` and `Space` are bypassed so a surrounding form is safe, and nothing is consumed while the group is read-only or disabled.
+
+## Next Steps
+
+- [Number Stepper](/docs/widgets/number-stepper) — The same bounded number in a single element.
+- [Slider](/docs/widgets/slider) — The same bounds entered by pointing.
+- [Field](/docs/widgets/field) — Label, description, and error wired to a control.

@@ -1,0 +1,232 @@
+---
+title: AUI Date Range Picker
+nav: Date Range Picker
+nav-priority: 358
+description: A date range picker that holds change until both ends are picked, orders the pair whichever end came first, and shares one calendar.
+---
+
+# AUI Date Range Picker
+
+A date range is two picks that only count together. Booking forms, report windows, and filter bars all take a start and an end — the hard part is **keeping `change` silent until both ends exist**, **ordering the pair no matter which end was picked first**, **shrinking the field when only one end is set**, and **opening on the month you left**.
+
+**AUI Date Range Picker** does all of that for you, and leaves the markup and the styling entirely yours. It is the [Date Picker](/docs/widgets/date-picker) with a range behind it: the same field, trigger, calendar, days, and steppers, coordinated around one ordered pair.
+
+Styling is optional. Without AUI CSS the Date Range Picker stays a correct, operable pair of date fields; with it, the same markup gets the AUI treatment through the full library.
+
+:::interactive[Date range demo]
+
+```tsx
+import {
+  DatePickerCalendar,
+  DatePickerInput,
+  DatePickerNav,
+  DatePickerTrigger,
+  DatePickerYearInput,
+  DateRangePicker,
+  Toggle,
+} from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+
+const DateRangeDemo = setup(() => {
+  const state = mutable({
+    stay: ['2026-10-14', '2026-10-18'] as [string, string],
+    disabled: false,
+  });
+
+  return () => (
+    <div className="demo-button">
+      <div className="flex gap-xs w-full flex-wrap">
+        <Toggle size="sm" pressed={$bind(state, 'disabled')}>
+          {() => (state.disabled ? 'Locked' : 'Unlocked')}
+        </Toggle>
+        <div className="flex-1"></div>
+        <Snippet>
+          {() => <span>{state.stay[0] && state.stay[1] ? `${state.stay[0].slice(0, 10)} → ${state.stay[1].slice(0, 10)}` : 'Half a range'}</span>}
+        </Snippet>
+      </div>
+      <div className="aui-card flex flex-col gap-lg p-xl">
+        <Snippet>
+          {() => (
+            <DateRangePicker
+              value={$bind(state, 'stay')}
+              min="2026-10-01"
+              max="2026-12-31"
+              disabled={state.disabled}
+              label="Choose a stay"
+            >
+              {(picker) => (
+                <>
+                  <DatePickerInput slot="start" aria-label="Arrival" placeholder="YYYY-MM-DD" />
+                  <span>–</span>
+                  <DatePickerInput slot="end" aria-label="Departure" placeholder="YYYY-MM-DD" />
+                  <DatePickerTrigger aria-label="Open calendar">Open</DatePickerTrigger>
+                  <DatePickerCalendar>
+                    <DatePickerNav type="month" direction={-1} aria-label="Previous month">
+                      ‹
+                    </DatePickerNav>
+                    <Snippet>
+                      {() => (
+                        <span className="flex items-center gap-xs">
+                          <span>{picker.range.monthStr}</span>
+                          <DatePickerYearInput aria-label="Year" />
+                        </span>
+                      )}
+                    </Snippet>
+                    <DatePickerNav type="month" direction={1} aria-label="Next month">
+                      ›
+                    </DatePickerNav>
+                  </DatePickerCalendar>
+                </>
+              )}
+            </DateRangePicker>
+          )}
+        </Snippet>
+      </div>
+    </div>
+  );
+}, 'DateRangeDemo');
+```
+
+```html
+<DateRangeDemo />
+```
+
+<DateRangeDemo />
+
+:::
+
+## Usage
+
+Compose it exactly like the single picker, with two fields instead of one. `slot` tells each field which end it types:
+
+```tsx
+import {
+  DatePickerCalendar,
+  DatePickerInput,
+  DatePickerNav,
+  DatePickerTrigger,
+  DateRangePicker,
+} from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/date-picker.css';
+
+export const StayField = ({ onPick }: { onPick: (stay: [string, string] | undefined) => void }) => (
+  <DateRangePicker label="Choose a stay" onchange={(event) => onPick(event.detail)}>
+    {(picker) => (
+      <>
+        <DatePickerInput slot="start" aria-label="Arrival" placeholder="YYYY-MM-DD" />
+        <DatePickerInput slot="end" aria-label="Departure" placeholder="YYYY-MM-DD" />
+        <DatePickerTrigger aria-label="Open calendar">Open</DatePickerTrigger>
+        <DatePickerCalendar>
+          <DatePickerNav type="month" direction={-1} aria-label="Previous month">
+            ‹
+          </DatePickerNav>
+          <span>{picker.range.monthStr}</span>
+          <DatePickerNav type="month" direction={1} aria-label="Next month">
+            ›
+          </DatePickerNav>
+        </DatePickerCalendar>
+      </>
+    )}
+  </DateRangePicker>
+);
+```
+
+For the full library — tokens, base defaults, every component, and the utilities — load `import '@airlib/aui';` instead. A lone component stylesheet carries only that component's rules.
+
+### The draft
+
+The first pick is a draft, not a value: `change` stays silent, the calendar stays open, and the value holds the half-made pair with its second end empty. The second pick completes the range, orders it, and closes:
+
+```tsx
+<DateRangePicker onchange={(event) => console.log(event.detail)} label="Choose a stay">
+  {/* fields, trigger, calendar */}
+</DateRangePicker>
+```
+
+Pick the 20th and then the 8th and `detail` is `[8th, 20th]`. Picking the same day twice is one pick, not two — a zero-length range is never reported by accident.
+
+### The value
+
+A completed pick stores two ISO timestamps, and each field shows its own `YYYY-MM-DD` part. You may hand the root either shape:
+
+```tsx
+<DateRangePicker value={['2026-10-14', '2026-10-18']} label="Choose a stay">
+  {/* fields, trigger, calendar */}
+</DateRangePicker>
+```
+
+Clearing a field empties that end of the stored pair and reports nothing; the next pick starts a fresh draft, so a half-cleared range never becomes a value by accident. Binding `value` from outside is the way back to an empty range, and the picker reopens on the month of the range's start.
+
+### The month shown
+
+Same as the single picker: the calendar shows the start's month, or this month while nothing is chosen. `month` and `year` move it from outside; the steppers move it from inside without choosing anything; `grid` picks six fixed rows or only the rows the month fills.
+
+```tsx
+<DateRangePicker min="2026-10-01" max="2026-12-31" grid="dynamic" label="Choose a stay">
+  {/* fields, trigger, calendar */}
+</DateRangePicker>
+```
+
+`min` and `max` take `YYYY-MM-DD` and are inclusive. Days outside them read disabled and refuse clicks, `Enter`, and `Space`, so a range can never be started or ended on a closed day.
+
+### Properties
+
+#### DateRangePicker
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `value` | `Bindable<[string, string]>` | — | The ordered pair. Any strings `Date` can parse; a pick stores ISO timestamps. While one end is picked the pair holds that end and an empty second. |
+| `open` | `Bindable<boolean>` | `false` | Calendar visibility. Bind it to open from outside. |
+| `month` | `Bindable<number>` | start's month | The shown month as `1`–`12`. Writing it moves the grid. |
+| `year` | `Bindable<number>` | start's year | The shown year as `YYYY`. Writing it moves the grid. |
+| `min` / `max` | `string` | — | Inclusive `YYYY-MM-DD` bounds; days outside refuse every choosing path. |
+| `label` | `string` | — | The calendar's name for screen readers. Leave it out and the dialog is unnamed. |
+| `locales` | `string[]` | runtime locale | The locale stack every label is formatted with. |
+| `grid` | `'fixed'`, `'dynamic'` | `'fixed'` | Creation-time option: keep six rows, or drop empty ones. |
+| `disabled` | `boolean` | `false` | Locks typing, opening, and choosing across the whole picker. |
+| `required` | `boolean` | `false` | Marks both fields as required. |
+| `id` | `string` | generated | The prefix the fields, trigger, and calendar are linked through. |
+| `oninput` | `(event: CustomEvent<string>) => void` | — | The raw text from either field as it is typed. |
+| `onchange` | `(event: CustomEvent<[string, string] \| undefined>) => void` | — | The ordered pair once both ends exist; silent on the first pick. |
+| `onopen` / `onclose` | `(event: CustomEvent<true \| false>) => void` | — | The popup's edges, through every path. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `children` | `ReactNode \| (picker) => ReactNode` | — | The fields, trigger, and calendar. A function child receives the picker itself. |
+| `ref` | `Ref<HTMLDivElement>` | — | Access to the root element. |
+
+#### The parts
+
+The fields, trigger, calendar, days, steppers, and year field are the ones from [Date Picker](/docs/widgets/date-picker#properties) — same props, same behavior. Only `DatePickerInput` knows about ranges, through `slot`: `'start'` types the first end, `'end'` the second.
+
+Claiming the picker from a function child is also how you reach its controller — `picker.open`, `picker.range.monthStr`, or `picker.select(start, end)` to set a whole range yourself:
+
+```tsx
+<DateRangePicker label="Choose a stay">
+  {(picker) => (
+    <>
+      {/* fields, trigger, calendar */}
+      <button type="button" onClick={() => picker.deselect()}>
+        Clear
+      </button>
+    </>
+  )}
+</DateRangePicker>
+```
+
+Your own classes are added next to the built-in ones:
+
+```tsx
+// class="aui-date-range-picker my-range"
+<DateRangePicker className="my-range" label="Choose a stay">
+  {/* fields, trigger, calendar */}
+</DateRangePicker>
+```
+
+To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+
+Keyboard: each field is a `combobox` — type into it, or press `ArrowDown` to open the calendar. In the grid the arrows travel days, `PageUp`/`PageDown` flip the month, and `Enter` or `Space` picks; the first pick keeps the calendar open, the second closes it and returns focus to the field that opened it. `Escape` closes without saving the draft.
+
+## Next Steps
+
+- [Date Picker](/docs/widgets/date-picker) — One date, typed or picked.
+- [Text Input](/docs/widgets/text-input) — The typed field without a calendar behind it.
+- [Select](/docs/widgets/select) — Choosing from a list instead of from a calendar.

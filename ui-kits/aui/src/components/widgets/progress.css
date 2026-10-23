@@ -1,0 +1,101 @@
+@layer theme {
+  :root {
+    --aui-progress-height: calc(var(--spacing) * 2);
+    --aui-progress-radius: var(--radius-full);
+    --aui-progress-track: color-mix(in oklch, var(--color-on-surface) 12%, transparent);
+    --aui-progress-fill: var(--color-primary);
+
+    --aui-progress-height-xs: calc(var(--spacing) * 1);
+    --aui-progress-height-sm: calc(var(--spacing) * 1.5);
+    --aui-progress-height-md: calc(var(--spacing) * 2);
+    --aui-progress-height-lg: calc(var(--spacing) * 3);
+    --aui-progress-height-xl: calc(var(--spacing) * 4);
+    --aui-progress-height-xxl: calc(var(--spacing) * 5);
+  }
+}
+
+@layer component {
+  @keyframes progress-indeterminate {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(250%);
+    }
+  }
+
+  .aui-progress {
+    display: block;
+    inline-size: 100%;
+    block-size: var(--aui-progress-height);
+    overflow: hidden;
+    background-color: var(--aui-progress-track);
+    border-radius: var(--aui-progress-radius);
+  }
+
+  .aui-progress-fill {
+    display: block;
+    block-size: 100%;
+    inline-size: var(--aria-progress-offset, 0%);
+    background-color: var(--aui-progress-fill);
+    border-radius: inherit;
+    transition: inline-size var(--duration-medium) var(--ease-emphasized);
+  }
+
+  .aui-progress:not([aria-valuenow]) .aui-progress-fill {
+    inline-size: 40%;
+    animation: progress-indeterminate var(--duration-long) var(--ease-emphasized) infinite;
+  }
+
+  .aui-progress-xs {
+    --aui-progress-height: var(--aui-progress-height-xs);
+  }
+
+  .aui-progress-sm {
+    --aui-progress-height: var(--aui-progress-height-sm);
+  }
+
+  .aui-progress-md {
+    --aui-progress-height: var(--aui-progress-height-md);
+  }
+
+  .aui-progress-lg {
+    --aui-progress-height: var(--aui-progress-height-lg);
+  }
+
+  .aui-progress-xl {
+    --aui-progress-height: var(--aui-progress-height-xl);
+  }
+
+  .aui-progress-xxl {
+    --aui-progress-height: var(--aui-progress-height-xxl);
+  }
+
+  .aui-progress-primary {
+    --aui-progress-fill: var(--color-primary);
+  }
+
+  .aui-progress-secondary {
+    --aui-progress-fill: var(--color-secondary);
+  }
+
+  .aui-progress-tertiary {
+    --aui-progress-fill: var(--color-tertiary);
+  }
+
+  .aui-progress-info {
+    --aui-progress-fill: var(--color-info);
+  }
+
+  .aui-progress-success {
+    --aui-progress-fill: var(--color-success);
+  }
+
+  .aui-progress-warning {
+    --aui-progress-fill: var(--color-warning);
+  }
+
+  .aui-progress-error {
+    --aui-progress-fill: var(--color-error);
+  }
+}

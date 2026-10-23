@@ -1,0 +1,47 @@
+@layer component {
+  .aui-accordion {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--color-outline-variant);
+    border-radius: var(--radius-md);
+    background-color: var(--color-surface);
+  }
+
+  .aui-accordion-button {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+    width: 100%;
+    padding: var(--spacing-md);
+    border: 0;
+    background-color: transparent;
+    color: var(--color-on-surface);
+    text-align: start;
+    cursor: pointer;
+  }
+
+  .aui-accordion-button:hover:not(:disabled):not([aria-disabled='true']) {
+    background-color: var(--color-surface-container);
+  }
+
+  .aui-accordion-button:focus-visible {
+    outline: var(--focus-ring-width) var(--focus-ring-style) var(--focus-ring-color);
+    outline-offset: calc(var(--focus-ring-offset) * -1);
+  }
+
+  .aui-accordion-button:disabled,
+  .aui-accordion-button[aria-disabled='true'] {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .aui-accordion-panel {
+    padding: 0 var(--spacing-md) var(--spacing-md);
+    color: var(--color-on-surface-variant);
+  }
+
+  .aui-accordion-panel[hidden] {
+    display: none;
+  }
+}

@@ -4,5 +4,7 @@
 @import './layout.css';
 @import './variant.css';
 @import './color-variant.css';
+@import './bg.css';
+@import './fg.css';
 
 @import './touch.css';

@@ -1,0 +1,41 @@
+@layer theme {
+  :root {
+    --aui-tooltip-bg: var(--color-inverse-surface);
+    --aui-tooltip-fg: var(--color-inverse-on-surface);
+    --aui-tooltip-radius: var(--radius-xs);
+    --aui-tooltip-padding-block: var(--spacing-xs);
+    --aui-tooltip-padding-inline: var(--spacing-sm);
+  }
+}
+
+@layer component {
+  .aui-tooltip {
+    position: fixed;
+    z-index: var(--z-index-popover);
+    position-area: bottom span-right;
+    position-try-fallbacks: flip-block, flip-inline, flip-block flip-inline;
+    max-inline-size: calc(var(--spacing) * 64);
+    padding-block: var(--aui-tooltip-padding-block);
+    padding-inline: var(--aui-tooltip-padding-inline);
+    background-color: var(--aui-tooltip-bg);
+    color: var(--aui-tooltip-fg);
+    border-radius: var(--aui-tooltip-radius);
+    font-size: var(--font-label-md-size);
+    font-weight: var(--font-label-md-weight);
+    line-height: var(--font-label-md-line-height);
+    pointer-events: none;
+
+    &[hidden] {
+      display: none;
+    }
+  }
+
+  .aui-tooltip[data-tooltip-y='above'] {
+    position-area: top span-right;
+  }
+
+  .aui-tooltip[data-tooltip-x='before'],
+  .aui-tooltip[data-tooltip-x='left'] {
+    position-area: bottom span-left;
+  }
+}

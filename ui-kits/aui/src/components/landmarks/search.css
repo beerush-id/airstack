@@ -1,0 +1,54 @@
+@layer theme {
+  :root {
+    --aui-search-radius: var(--radius-full);
+    --aui-search-outline: var(--color-outline);
+    --aui-search-bg: var(--color-surface-container);
+    --aui-search-padding-block: var(--spacing-xs);
+    --aui-search-padding-inline: var(--spacing-lg);
+    --aui-search-gap: var(--spacing-sm);
+  }
+}
+
+@layer component {
+  .aui-search {
+    display: flex;
+    align-items: center;
+    gap: var(--aui-search-gap);
+    padding: var(--aui-search-padding-block) var(--aui-search-padding-inline);
+    border: 1px solid var(--aui-search-outline);
+    border-radius: var(--aui-search-radius);
+    background: var(--aui-search-bg);
+    color: var(--color-on-surface);
+
+    &:focus-within {
+      border-color: var(--color-primary);
+      outline: var(--focus-ring-width) var(--focus-ring-style) var(--focus-ring-color);
+      outline-offset: var(--focus-ring-offset);
+    }
+
+    & > input {
+      flex: 1 1 auto;
+      min-inline-size: 0;
+      padding-block: var(--spacing-sm);
+      border: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+
+      &::placeholder {
+        color: var(--color-on-surface-variant);
+      }
+
+      &:focus-visible {
+        outline: none;
+      }
+    }
+
+    & > .aui-control {
+      --aui-control-bg: transparent;
+      --aui-control-outline-color: transparent;
+      --aui-control-height: calc(var(--spacing) * 8);
+      --aui-control-padding-x: var(--spacing-sm);
+    }
+  }
+}

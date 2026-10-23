@@ -1,0 +1,168 @@
+---
+title: AUI Splitter
+nav: Splitter
+nav-priority: 291
+description: A focusable separator that drags along its parent area, steps with the arrows, clamps every write, and publishes its position as a CSS percentage.
+---
+
+# AUI Splitter
+
+A pane boundary looks like a thin handle until the platform gets involved. The hard part is never the line — it is **stepping the position with four arrow keys while every other key stays with the page**, **tracking a drag outside the handle until release**, **clamping every write inside the declared bounds**, and **keeping the allocation while leaving the tab order when locked**.
+
+**AUI Splitter** does all of that for you, and leaves the panes and their layout entirely yours. The handle holds the position and publishes it as a percentage; the stylesheet sizes the panes from it.
+
+Styling is optional. Without AUI CSS the Splitter stays a correct, operable separator; with it, the same markup gets the AUI treatment through the full library.
+
+:::interactive[Splitter demo]
+
+```tsx
+import { Splitter } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+
+const SplitterDemo = setup(() => {
+  const state = mutable({ split: 40 });
+
+  return () => (
+    <div className="demo-button">
+      <div className="flex gap-xs w-full flex-wrap">
+        <div className="flex-1"></div>
+        <Snippet>{() => <span>{state.split}%</span>}</Snippet>
+      </div>
+      <div className="aui-card p-lg">
+        <Snippet>
+          {() => (
+            <div
+              className="flex gap-sm"
+              style={{ '--demo-split': `${state.split}%`, blockSize: '160px' } as never}
+            >
+              <div
+                className="aui-card flex flex-1 items-center justify-center"
+                style={{ flexBasis: 'var(--demo-split)' }}
+              >
+                Canvas
+              </div>
+              <Splitter
+                label="Preview width"
+                value={$bind(state, 'split')}
+                min={10}
+                max={90}
+                orientation="vertical"
+              />
+              <div className="aui-card flex flex-1 items-center justify-center">Inspector</div>
+            </div>
+          )}
+        </Snippet>
+      </div>
+    </div>
+  );
+}, 'SplitterDemo');
+```
+
+```html
+<SplitterDemo />
+```
+
+<SplitterDemo />
+
+:::
+
+## Usage
+
+The handle is a separator between two panes. It takes the position and the bounds; the panes stay ordinary elements:
+
+```tsx
+import { Splitter } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/splitter.css';
+
+export const PreviewLayout = () => (
+  <div className="preview-layout">
+    <div className="preview-canvas">Canvas</div>
+    <Splitter label="Preview width" value={40} min={10} max={90} orientation="vertical" />
+    <div className="preview-inspector">Inspector</div>
+  </div>
+);
+```
+
+For the full library — tokens, base defaults, every component, and the utilities — load `import '@airlib/aui';` instead. A lone component stylesheet carries only that component's rules.
+
+### The position
+
+`value` is a position in percentage points along the range, clamped to `min` and `max` (defaults `0` and `100`). Every write — a drag, a key step, or your own — passes through the same clamp:
+
+```tsx
+const state = mutable({ split: 40 });
+
+<Splitter label="Preview width" value={$bind(state, 'split')} min={10} max={90} orientation="vertical" />;
+```
+
+`step` is how far one arrow keystroke travels (default `1`). A drag is continuous and never snaps to it.
+
+### The axis
+
+`orientation` is both the axis the separator announces and the axis a drag is measured along. Column layouts need `'vertical'` — a sideways drag on a horizontal separator moves nothing:
+
+```tsx
+<Splitter label="Preview width" value={50} orientation="vertical" />
+```
+
+### Sizing the panes
+
+The handle publishes its position as `--aria-splitter-offset` on itself, as a percentage of the declared span. Because custom properties inherit down and not up, republish the number on the panes' shared parent from the same bound state, and let the stylesheet do the arithmetic:
+
+```tsx
+<div className="preview-layout" style={{ '--preview-split': `${state.split}%` } as never}>
+  <div className="preview-canvas" style={{ flexBasis: 'var(--preview-split)' }}>
+    Canvas
+  </div>
+  <Splitter label="Preview width" value={$bind(state, 'split')} min={10} max={90} orientation="vertical" />
+  <div className="preview-inspector">Inspector</div>
+</div>
+```
+
+### Events
+
+| Event | Fires when | Detail |
+| --- | --- | --- |
+| `oninput` | Every key step and every drag move | The committed position |
+| `onchange` | The interaction ends, if the position moved | The committed position |
+
+A press that commits nothing is silent.
+
+### Locking
+
+`disabled` refuses keys and drags, ends a mid-drag lock at the last committed position, and parks the handle at `tabindex="-1"` — the allocation stays where it is:
+
+```tsx
+<Splitter label="Preview width" value={60} min={20} max={80} disabled />
+```
+
+### Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `value` | `Bindable<number>` | `min` | The partition position in percentage points. |
+| `min` / `max` | `number` | `0` / `100` | Inclusive bounds, announced and enforced. |
+| `step` | `number` | `1` | One arrow keystroke. |
+| `orientation` | `'horizontal'`, `'vertical'` | `'horizontal'` | The announced axis and the drag axis. |
+| `disabled` | `boolean` | `false` | Refuses keys and drags; leaves the tab order. |
+| `label` | `string` | — | The handle's accessible name. |
+| `oninput` / `onchange` | `(event: CustomEvent<number>) => void` | — | The committed position at each edge. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `ref` | `Ref<HTMLDivElement>` | — | Access to the handle element. |
+
+Your own classes are added next to the built-in ones:
+
+```tsx
+// class="aui-splitter my-grip"
+<Splitter className="my-grip" label="Preview width" value={40} />
+```
+
+To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+
+Keyboard: `ArrowRight` and `ArrowDown` advance by `step`, `ArrowLeft` and `ArrowUp` retreat, both holding at the bounds. `Tab` focuses the handle, or steps over it while disabled; every other key — including `PageUp`, `PageDown`, `Home`, and `End` — is left to the browser.
+
+## Next Steps
+
+- [Divider](/docs/widgets/divider) — The static rule that takes no tab stop.
+- [Slider](/docs/widgets/slider) — The same range vocabulary on a track you drag.
+- [Progress](/docs/widgets/progress) — The read-only face of the same numbers.

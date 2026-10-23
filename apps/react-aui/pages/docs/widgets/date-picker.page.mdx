@@ -1,0 +1,263 @@
+---
+title: AUI Date Picker
+nav: Date Picker
+nav-priority: 357
+description: A date picker with a typed field and a popup calendar — one popup, one value, arrow travel that never chooses, and focus handed back on close.
+---
+
+# AUI Date Picker
+
+A date picker takes one date two ways: typed into a field, or picked from a calendar. Deadline fields, booking forms, and report filters all need it — the hard part is never the grid, it is **keeping typed text from choosing anything**, **landing focus on the saved day when the calendar opens**, **letting the arrows travel without committing**, and **handing focus back to the field on close**.
+
+**AUI Date Picker** does all of that for you, and leaves the markup and the styling entirely yours. The root holds the date, the month shown, and the popup; the field, the trigger, the calendar, its days, and its steppers find it in scope, so nothing is wired by hand.
+
+Styling is optional. Without AUI CSS the Date Picker stays a correct, operable combobox; with it, the same markup gets the AUI treatment through the full library.
+
+:::interactive[Date picker demo]
+
+```tsx
+import {
+  DatePicker,
+  DatePickerCalendar,
+  DatePickerInput,
+  DatePickerNav,
+  DatePickerTrigger,
+  DatePickerYearInput,
+  Toggle,
+} from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+
+const DatePickerDemo = setup(() => {
+  const state = mutable({
+    date: '2026-10-14',
+    disabled: false,
+  });
+
+  return () => (
+    <div className="demo-button">
+      <div className="flex gap-xs w-full flex-wrap">
+        <Toggle size="sm" pressed={$bind(state, 'disabled')}>
+          {() => (state.disabled ? 'Locked' : 'Unlocked')}
+        </Toggle>
+        <div className="flex-1"></div>
+        <Snippet>{() => <span>{state.date ? state.date.slice(0, 10) : 'No date yet'}</span>}</Snippet>
+      </div>
+      <div className="aui-card flex flex-col gap-lg p-xl">
+        <Snippet>
+          {() => (
+            <DatePicker
+              value={$bind(state, 'date')}
+              min="2026-10-01"
+              max="2026-10-31"
+              disabled={state.disabled}
+              label="Choose a date"
+            >
+              {(picker) => (
+                <>
+                  <DatePickerInput aria-label="Date" placeholder="YYYY-MM-DD" />
+                  <DatePickerTrigger aria-label="Open calendar">Open</DatePickerTrigger>
+                  <DatePickerCalendar>
+                    <DatePickerNav type="month" direction={-1} aria-label="Previous month">
+                      ‹
+                    </DatePickerNav>
+                    <Snippet>
+                      {() => (
+                        <span className="flex items-center gap-xs">
+                          <span>{picker.range.monthStr}</span>
+                          <DatePickerYearInput aria-label="Year" />
+                        </span>
+                      )}
+                    </Snippet>
+                    <DatePickerNav type="month" direction={1} aria-label="Next month">
+                      ›
+                    </DatePickerNav>
+                  </DatePickerCalendar>
+                </>
+              )}
+            </DatePicker>
+          )}
+        </Snippet>
+      </div>
+    </div>
+  );
+}, 'DatePickerDemo');
+```
+
+```html
+<DatePickerDemo />
+```
+
+<DatePickerDemo />
+
+:::
+
+## Usage
+
+The root takes the date and the calendar takes the composition. Everything in between — the field, the trigger, the month header, the days — is yours to arrange:
+
+```tsx
+import {
+  DatePicker,
+  DatePickerCalendar,
+  DatePickerInput,
+  DatePickerNav,
+  DatePickerTrigger,
+  DatePickerYearInput,
+} from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/date-picker.css';
+
+export const DeadlineField = ({ onPick }: { onPick: (date: string | undefined) => void }) => (
+  <DatePicker label="Deadline" onchange={(event) => onPick(event.detail)}>
+    {(picker) => (
+      <>
+        <DatePickerInput aria-label="Deadline" placeholder="YYYY-MM-DD" />
+        <DatePickerTrigger aria-label="Open calendar">Open</DatePickerTrigger>
+        <DatePickerCalendar>
+          <DatePickerNav type="month" direction={-1} aria-label="Previous month">
+            ‹
+          </DatePickerNav>
+          <span>{picker.range.monthStr}</span>
+          <DatePickerNav type="month" direction={1} aria-label="Next month">
+            ›
+          </DatePickerNav>
+        </DatePickerCalendar>
+      </>
+    )}
+  </DatePicker>
+);
+```
+
+For the full library — tokens, base defaults, every component, and the utilities — load `import '@airlib/aui';` instead. A lone component stylesheet carries only that component's rules.
+
+Every part is optional except the root: a picker with only a trigger and a calendar is a button that opens a calendar, and a picker with only a field is a date input with a calendar that never opens.
+
+### The value
+
+A pick stores that day as an ISO timestamp — `2026-10-14T00:00:00.000Z` — and the field shows only its `YYYY-MM-DD` part. You may hand the root either shape: any string `Date` can parse is read, and the calendar opens on its month:
+
+```tsx
+<DatePicker value="2026-10-14" label="Deadline">
+  {(picker) => (
+    <>
+      <DatePickerInput aria-label="Deadline" />
+      <DatePickerTrigger aria-label="Open calendar">Open</DatePickerTrigger>
+      <DatePickerCalendar>{/* header */}</DatePickerCalendar>
+    </>
+  )}
+</DatePicker>
+```
+
+`min` and `max` take `YYYY-MM-DD` and are inclusive. Days outside them read disabled and refuse clicks, `Enter`, and `Space`:
+
+```tsx
+<DatePicker value="2026-10-14" min="2026-10-01" max="2026-10-31" label="Deadline">
+  {/* field, trigger, calendar */}
+</DatePicker>
+```
+
+### The month shown
+
+The calendar shows the chosen date's month, or this month while nothing is chosen. `month` and `year` move it from outside — a "jump to today" button is one line — and the steppers move it from inside without choosing anything:
+
+```tsx
+const calendar = mutable({ month: 10, year: 2026, date: undefined as string | undefined });
+
+<DatePicker value={$bind(calendar, 'date')} month={$bind(calendar, 'month')} year={$bind(calendar, 'year')} label="Deadline">
+  {/* field, trigger, calendar */}
+</DatePicker>
+```
+
+`grid` is fixed when the picker is created: `'fixed'` (default) keeps six rows so the panel never changes height while you travel months, and `'dynamic'` drops the rows that hold no day of the shown month.
+
+### The field
+
+`DatePickerInput` is a native `input` with the popup contract. Typing fires `oninput` with the raw text and chooses nothing; the value changes on blur once the text parses, or when the text is cleared:
+
+```tsx
+<DatePickerInput aria-label="Deadline" placeholder="YYYY-MM-DD" oninput={(event) => console.log(event.detail)} />
+```
+
+Unparsable text on blur falls back to the chosen date instead of saving garbage.
+
+### The days
+
+`DatePickerCalendar` renders the header you give it and then the day grid: the weekday labels and one `DatePickerDay` per cell, both compiled from the calendar itself. Days are `gridcell`s, not buttons — the calendar owns the tab stop and the arrow keys, and activation chooses:
+
+```tsx
+<DatePickerCalendar>
+  <DatePickerNav type="month" direction={-1} aria-label="Previous month">‹</DatePickerNav>
+  <span>{picker.range.monthStr}</span>
+  <DatePickerNav type="month" direction={1} aria-label="Next month">›</DatePickerNav>
+</DatePickerCalendar>
+```
+
+The panel is portalled while open, so a calendar inside a scrolling card or an `overflow: hidden` parent never gets clipped. Cells from the neighbouring months carry `data-offside="true"`, days between the two ends of a range carry `data-in-range="true"`, and the cell for today carries `aria-current="date"`. Each day renders its own number; pass children to replace that content.
+
+### The header
+
+`DatePickerNav` steps a month or a year in a direction, and `DatePickerYearInput` jumps straight to a four-digit year. Neither chooses a date:
+
+```tsx
+<DatePickerNav type="year" direction={-1} aria-label="Previous year">«</DatePickerNav>
+<DatePickerYearInput aria-label="Year" />
+<DatePickerNav type="year" direction={1} aria-label="Next year">»</DatePickerNav>
+```
+
+The year field commits once four digits are in it, so typing `2027` over `2026` never churns the grid on the intermediate `202`.
+
+### Properties
+
+#### DatePicker
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `value` | `Bindable<string>` | — | The chosen day. Any string `Date` can parse; a pick stores an ISO timestamp. |
+| `open` | `Bindable<boolean>` | `false` | Calendar visibility. Bind it to open from outside. |
+| `month` | `Bindable<number>` | chosen month | The shown month as `1`–`12`. Writing it moves the grid. |
+| `year` | `Bindable<number>` | chosen year | The shown year as `YYYY`. Writing it moves the grid. |
+| `min` / `max` | `string` | — | Inclusive `YYYY-MM-DD` bounds; days outside refuse every choosing path. |
+| `label` | `string` | — | The calendar's name for screen readers. Leave it out and the dialog is unnamed. |
+| `locales` | `string[]` | runtime locale | The locale stack every label is formatted with. |
+| `grid` | `'fixed'`, `'dynamic'` | `'fixed'` | Creation-time option: keep six rows, or drop empty ones. |
+| `disabled` | `boolean` | `false` | Locks typing, opening, and choosing across the whole picker. |
+| `required` | `boolean` | `false` | Marks the field as required. |
+| `id` | `string` | generated | The prefix the field, trigger, and calendar are linked through. |
+| `oninput` | `(event: CustomEvent<string>) => void` | — | The raw field text as it is typed. |
+| `onchange` | `(event: CustomEvent<string \| undefined>) => void` | — | The chosen day; `undefined` once it is cleared. |
+| `onopen` / `onclose` | `(event: CustomEvent<true \| false>) => void` | — | The popup's edges, through every path. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `children` | `ReactNode \| (picker) => ReactNode` | — | The field, trigger, and calendar. A function child receives the picker itself. |
+| `ref` | `Ref<HTMLDivElement>` | — | Access to the root element. |
+
+#### DatePickerInput
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `slot` | `'start'`, `'end'` | — | Under a range picker, which end of the pair this field types. |
+| `disabled` | `boolean` | `false` | Locks typing and opening for this field. |
+| `oninput` | `(event: CustomEvent<string>) => void` | — | The raw text as it is typed. |
+| `className` | `string` | — | Added alongside the built-in classes. |
+| `ref` | `Ref<HTMLInputElement>` | — | Access to the input element. |
+
+#### DatePickerTrigger, DatePickerCalendar, DatePickerDay, DatePickerNav, DatePickerYearInput
+
+The trigger, the calendar, and the year field take the standard attributes for their host plus `className` and `ref`; the trigger accepts `disabled` and children, the calendar accepts children, and a day takes `date` (a grid cell or a `YYYY-MM-DD` string) with optional children in place of its number. The steppers take `type` (`'month'` or `'year'`, default `'month'`) and `direction` (`-1` or `1`, default `-1`).
+
+Your own classes are added next to the built-in ones:
+
+```tsx
+// class="aui-date-picker my-picker"
+<DatePicker className="my-picker" label="Deadline">
+  {/* field, trigger, calendar */}
+</DatePicker>
+```
+
+To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+
+Keyboard: the field is a `combobox` — typing goes to it, and `ArrowDown` opens the calendar. Inside the grid the arrows travel days, `PageUp`/`PageDown` flip the month, `Home`/`End` jump to the week's edges, and `Enter` or `Space` saves the focused day. `Escape` closes and returns focus to whatever opened the calendar.
+
+## Next Steps
+
+- [Date Range Picker](/docs/widgets/date-range-picker) — Two picks that only count together.
+- [Text Input](/docs/widgets/text-input) — The typed field on its own, without a calendar behind it.
+- [Dialog](/docs/widgets/dialog) — The popup contract every calendar rides on.

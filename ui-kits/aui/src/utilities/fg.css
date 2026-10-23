@@ -1,0 +1,164 @@
+@layer utility {
+  /*
+   * Foreground primitives. One concern per class so apps compose
+   * (e.g. `bg-primary-container fg-on-primary-container`).
+   * Each class maps a theme `--color-*` token to `color`;
+   * light/dark adaptation lives in the token, not here.
+   * Tier 1 only: flat selectors, cascade-layered, no color functions.
+   */
+
+  /* ---- core palette ---- */
+  .fg-primary {
+    color: var(--color-primary);
+  }
+  .fg-on-primary {
+    color: var(--color-on-primary);
+  }
+  .fg-secondary {
+    color: var(--color-secondary);
+  }
+  .fg-on-secondary {
+    color: var(--color-on-secondary);
+  }
+  .fg-tertiary {
+    color: var(--color-tertiary);
+  }
+  .fg-on-tertiary {
+    color: var(--color-on-tertiary);
+  }
+  .fg-error {
+    color: var(--color-error);
+  }
+  .fg-on-error {
+    color: var(--color-on-error);
+  }
+  .fg-success {
+    color: var(--color-success);
+  }
+  .fg-on-success {
+    color: var(--color-on-success);
+  }
+  .fg-warning {
+    color: var(--color-warning);
+  }
+  .fg-on-warning {
+    color: var(--color-on-warning);
+  }
+  .fg-info {
+    color: var(--color-info);
+  }
+  .fg-on-info {
+    color: var(--color-on-info);
+  }
+
+  /* ---- surfaces ---- */
+  .fg-surface {
+    color: var(--color-surface);
+  }
+  .fg-on-surface {
+    color: var(--color-on-surface);
+  }
+  .fg-ghost-surface {
+    color: var(--color-ghost-surface);
+  }
+  .fg-surface-lowest {
+    color: var(--color-surface-lowest);
+  }
+  .fg-surface-low {
+    color: var(--color-surface-low);
+  }
+  .fg-surface-container {
+    color: var(--color-surface-container);
+  }
+  .fg-surface-high {
+    color: var(--color-surface-high);
+  }
+  .fg-surface-highest {
+    color: var(--color-surface-highest);
+  }
+  .fg-surface-variant {
+    color: var(--color-surface-variant);
+  }
+  .fg-on-surface-variant {
+    color: var(--color-on-surface-variant);
+  }
+
+  /* ---- containers ---- */
+  .fg-primary-container {
+    color: var(--color-primary-container);
+  }
+  .fg-on-primary-container {
+    color: var(--color-on-primary-container);
+  }
+  .fg-secondary-container {
+    color: var(--color-secondary-container);
+  }
+  .fg-on-secondary-container {
+    color: var(--color-on-secondary-container);
+  }
+  .fg-tertiary-container {
+    color: var(--color-tertiary-container);
+  }
+  .fg-on-tertiary-container {
+    color: var(--color-on-tertiary-container);
+  }
+  .fg-error-container {
+    color: var(--color-error-container);
+  }
+  .fg-on-error-container {
+    color: var(--color-on-error-container);
+  }
+  .fg-success-container {
+    color: var(--color-success-container);
+  }
+  .fg-on-success-container {
+    color: var(--color-on-success-container);
+  }
+  .fg-warning-container {
+    color: var(--color-warning-container);
+  }
+  .fg-on-warning-container {
+    color: var(--color-on-warning-container);
+  }
+  .fg-info-container {
+    color: var(--color-info-container);
+  }
+  .fg-on-info-container {
+    color: var(--color-on-info-container);
+  }
+
+  /* ---- outline ---- */
+  .fg-outline {
+    color: var(--color-outline);
+  }
+  .fg-outline-variant {
+    color: var(--color-outline-variant);
+  }
+
+  /* ---- inverse ---- */
+  .fg-inverse-surface {
+    color: var(--color-inverse-surface);
+  }
+  .fg-inverse-on-surface {
+    color: var(--color-inverse-on-surface);
+  }
+  .fg-inverse-primary {
+    color: var(--color-inverse-primary);
+  }
+
+  /* ---- scrim / shadow / overlay ---- */
+  .fg-scrim {
+    color: var(--color-scrim);
+  }
+  .fg-shadow {
+    color: var(--color-shadow);
+  }
+  .fg-overlay-container {
+    color: var(--color-overlay-container);
+  }
+
+  /* ---- transparent escape hatch ---- */
+  .fg-transparent {
+    color: transparent;
+  }
+}

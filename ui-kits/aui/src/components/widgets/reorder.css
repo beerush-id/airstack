@@ -1,0 +1,90 @@
+@layer theme {
+  :root {
+    --aui-reorder-gap: var(--spacing-xs);
+    --aui-reorder-item-radius: var(--radius-sm);
+    --aui-reorder-item-padding-block: calc(var(--spacing) * 1.5);
+    --aui-reorder-item-padding-inline: var(--spacing-md);
+    --aui-reorder-outline: var(--color-outline-variant);
+    --aui-reorder-active-outline: var(--color-primary);
+    --aui-reorder-active-bg: color-mix(in oklch, var(--color-primary) 10%, var(--color-surface));
+    --aui-reorder-active-ring: color-mix(in oklch, var(--color-primary) 35%, transparent);
+  }
+}
+
+@layer component {
+  .aui-reorder {
+    display: flex;
+    flex-direction: column;
+    gap: var(--aui-reorder-gap);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .aui-reorder-horizontal {
+    flex-direction: row;
+  }
+
+  .aui-reorder-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-sm);
+    padding: var(--aui-reorder-item-padding-block) var(--aui-reorder-item-padding-inline);
+    border: 1px solid var(--aui-reorder-outline);
+    border-radius: var(--aui-reorder-item-radius);
+    background: var(--color-surface);
+    color: var(--color-on-surface);
+    transition-property: border-color, background-color, box-shadow, opacity;
+    transition-duration: var(--duration-short);
+    transition-timing-function: var(--ease-emphasized);
+
+    &:hover {
+      border-color: var(--color-outline);
+    }
+
+    &[data-active='true'] {
+      border-color: var(--aui-reorder-active-outline);
+      background: var(--aui-reorder-active-bg);
+      box-shadow: 0 0 0 var(--focus-ring-width) var(--aui-reorder-active-ring);
+    }
+
+    &[aria-disabled='true'] {
+      color: var(--color-disabled-fg);
+    }
+  }
+
+  .aui-reorder-horizontal > .aui-reorder-item {
+    flex: 1 1 0;
+    min-inline-size: 0;
+  }
+
+  .aui-control.aui-reorder-handle {
+    --aui-control-bg: transparent;
+    --aui-control-outline-color: transparent;
+    --aui-control-height: calc(var(--spacing) * 8);
+    --aui-control-padding-x: var(--spacing-sm);
+    cursor: grab;
+    touch-action: none;
+
+    &:hover:not([aria-disabled='true']) {
+      background-color: var(--color-surface-high);
+    }
+
+    &:focus-visible {
+      outline: var(--focus-ring-width) var(--focus-ring-style) var(--focus-ring-color);
+      outline-offset: var(--focus-ring-offset);
+    }
+
+    &[data-active='true'] {
+      cursor: grabbing;
+      background-color: var(--color-primary);
+      color: var(--color-on-primary);
+    }
+
+    &[aria-disabled='true'] {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+  }
+}

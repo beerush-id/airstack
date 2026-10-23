@@ -33,7 +33,7 @@
     flex-direction: column;
     gap: var(--aui-menu-panel-gap);
     position: fixed;
-    z-index: 1;
+    z-index: var(--z-index-popover);
     position-area: bottom span-right;
     position-try-fallbacks:
       flip-block,
@@ -51,10 +51,6 @@
     overflow-y: auto;
     box-shadow: var(--elevation-3);
     animation: menu-pop-up var(--duration-medium) var(--ease-emphasized-decelerate) forwards;
-
-    &:not([open]) {
-      display: none;
-    }
 
     .aui-menu-item:first-child {
       border-start-start-radius: calc(
@@ -79,6 +75,52 @@
     }
   }
 
+  .aui-menu-panel[hidden] {
+    display: none;
+  }
+
+  .aui-menu-button {
+    cursor: pointer;
+
+    &:disabled,
+    &[aria-disabled='true'] {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+
+  .aui-menu-item-checkbox[aria-checked='true']::after,
+  .aui-menu-item-radio[aria-checked='true']::after {
+    content: '';
+    inline-size: var(--spacing-sm);
+    block-size: var(--spacing-sm);
+    margin-inline-start: auto;
+    border-radius: var(--radius-full);
+    background-color: currentColor;
+  }
+
+  .aui-menu-item-group {
+    display: flex;
+    flex-direction: column;
+    gap: inherit;
+
+    &[aria-disabled='true'] {
+      opacity: 0.6;
+    }
+  }
+
+  .aui-menu-bar {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--spacing-xs);
+  }
+
+  .aui-menu-bar[aria-orientation='vertical'] {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
   .aui-menu-item {
     --aui-state-layer-color: var(--aui-menu-item-bg);
     display: flex;
@@ -93,10 +135,36 @@
     transition-timing-function: var(--ease-emphasized);
     transition-property: background-color, color, border-radius;
 
+    &:hover {
+      background: color-mix(
+        in oklch,
+        var(--aui-menu-item-bg) var(--tone-hover-strength),
+        transparent
+      );
+    }
+
+    &:active {
+      background: color-mix(
+        in oklch,
+        var(--aui-menu-item-bg) var(--tone-pressed-strength),
+        transparent
+      );
+    }
+
+    &:focus-visible {
+      outline: var(--focus-ring-width) var(--focus-ring-style) var(--focus-ring-color);
+      outline-offset: calc(var(--focus-ring-offset) * -1);
+    }
+
     &[aria-current='true'],
     &[aria-selected='true'] {
       color: var(--aui-menu-item-fg);
       background: var(--aui-menu-item-bg);
+    }
+
+    &[aria-disabled='true'] {
+      opacity: 0.6;
+      cursor: not-allowed;
     }
 
     & > .aui-icon {

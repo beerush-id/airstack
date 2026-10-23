@@ -1,0 +1,75 @@
+@layer theme {
+  :root {
+    --aui-splitter-hit: calc(var(--spacing) * 2.5);
+    --aui-splitter-line: 1px;
+    --aui-splitter-idle: var(--color-outline-variant);
+    --aui-splitter-active: var(--color-primary);
+    --aui-splitter-radius: var(--radius-xs);
+  }
+}
+
+@layer component {
+  .aui-splitter {
+    position: relative;
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    color: var(--aui-splitter-idle);
+    touch-action: none;
+
+    &::before {
+      content: '';
+      border-radius: var(--aui-splitter-radius);
+      background: currentColor;
+      transition:
+        background-color var(--duration-short) var(--ease-emphasized),
+        transform var(--duration-short) var(--ease-emphasized);
+    }
+
+    &[aria-orientation='vertical'] {
+      inline-size: var(--aui-splitter-hit);
+      block-size: auto;
+      cursor: col-resize;
+
+      &::before {
+        inline-size: var(--aui-splitter-line);
+        block-size: 100%;
+      }
+    }
+
+    &:not([aria-orientation='vertical']) {
+      inline-size: 100%;
+      block-size: var(--aui-splitter-hit);
+      cursor: row-resize;
+
+      &::before {
+        inline-size: 100%;
+        block-size: var(--aui-splitter-line);
+      }
+    }
+
+    &:hover,
+    &:active {
+      color: var(--aui-splitter-active);
+    }
+
+    &:hover::before {
+      transform: scale(3);
+    }
+
+    &:focus-visible {
+      outline: var(--focus-ring-width) var(--focus-ring-style) var(--focus-ring-color);
+      outline-offset: calc(var(--focus-ring-offset) * -1);
+    }
+
+    &[aria-disabled='true'] {
+      cursor: not-allowed;
+      opacity: 0.5;
+
+      &::before {
+        transform: none;
+      }
+    }
+  }
+}

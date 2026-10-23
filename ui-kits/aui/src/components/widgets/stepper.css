@@ -1,0 +1,74 @@
+@layer theme {
+  :root {
+    --aui-stepper-radius: var(--radius-full);
+    --aui-stepper-outline: var(--color-outline);
+    --aui-stepper-gap: calc(var(--spacing) * 0.5);
+    --aui-stepper-button-size: calc(var(--spacing) * 8);
+    --aui-stepper-input-width: calc(var(--spacing) * 11);
+  }
+}
+
+@layer component {
+  .aui-stepper {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--aui-stepper-gap);
+    padding: calc(var(--spacing) * 0.5);
+    border: 1px solid var(--aui-stepper-outline);
+    border-radius: var(--aui-stepper-radius);
+    background: var(--color-surface);
+    color: var(--color-on-surface);
+
+    &:focus-within {
+      border-color: var(--color-primary);
+    }
+  }
+
+  .aui-stepper-input {
+    inline-size: var(--aui-stepper-input-width);
+    padding-block: var(--spacing-sm);
+    padding-inline: var(--spacing-xs);
+    border: 0;
+    border-radius: var(--radius-xs);
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+
+    &:focus-visible {
+      outline: var(--focus-ring-width) var(--focus-ring-style) var(--focus-ring-color);
+      outline-offset: calc(var(--focus-ring-offset) * -1);
+    }
+
+    &:disabled,
+    &[aria-disabled='true'] {
+      color: var(--color-disabled-fg);
+      cursor: not-allowed;
+    }
+  }
+
+  .aui-control.aui-stepper-button {
+    --aui-control-height: var(--aui-stepper-button-size);
+    --aui-control-padding-x: 0;
+    --aui-control-bg: transparent;
+    --aui-control-outline-color: transparent;
+    inline-size: var(--aui-stepper-button-size);
+    border-radius: var(--radius-full);
+    font-size: var(--font-title-sm-size);
+    line-height: 1;
+
+    &:hover:not(:disabled) {
+      background-color: var(--color-surface-high);
+    }
+
+    &:active:not(:disabled) {
+      background-color: var(--color-surface-highest);
+    }
+
+    &:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+  }
+}

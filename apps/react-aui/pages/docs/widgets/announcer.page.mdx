@@ -1,0 +1,170 @@
+---
+title: AUI Announcer
+nav: Announcer
+nav-priority: 306
+description: Visually hidden live region for messages with no surface — polite, assertive, or silent, atomic by default, and never focusable.
+---
+
+# AUI Announcer
+
+Not every message has somewhere to live. A filter applied, a background job finished, a count that changes every second: they matter to a screen reader and have no panel, list, or toast to hang from. An announcer is the region that carries them.
+
+**AUI Announcer** does that for you, and leaves the markup and the styling entirely yours. It compiles a live region that is removed from the layout and the tab order, reads a replacement as one unit by default, and flips from `status` to `alert` when the message is urgent. Writing the message writes the content and nothing else — the announcement settings stay put.
+
+Styling is optional. Without AUI CSS the Announcer is still a correct live region; with it, the region is visually hidden through the library.
+
+:::interactive[Announcer demo]
+
+```tsx
+import { Announcer, Select, TextInput, Toggle } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+
+const AnnouncerDemo = setup(() => {
+  const state = mutable({
+    message: 'Draft saved',
+    politeness: 'polite',
+    atomic: true,
+    busy: false,
+    relevant: 'additions text',
+  });
+
+  return () => (
+    <div className="demo-button">
+      <div className="flex gap-xs w-full flex-wrap">
+        <Select
+          size="sm"
+          placeholder="Politeness"
+          options={{ polite: 'Polite', assertive: 'Assertive', off: 'Off' }}
+          value={$bind(state, 'politeness')}
+        />
+        <Select
+          size="sm"
+          placeholder="Relevant"
+          options={{ 'additions text': 'Additions and text', additions: 'Additions only', text: 'Text only' }}
+          value={$bind(state, 'relevant')}
+        />
+        <div className="flex-1"></div>
+        <Toggle size="sm" pressed={$bind(state, 'atomic')}>
+          {() => (state.atomic ? 'Read as one unit' : 'Read changes only')}
+        </Toggle>
+        <Toggle size="sm" pressed={$bind(state, 'busy')}>
+          {() => (state.busy ? 'Busy — holds announcements' : 'Not busy')}
+        </Toggle>
+      </div>
+      <div className="aui-card flex flex-col gap-lg p-xl">
+        <TextInput value={$bind(state, 'message')} label="Message" placeholder="What should be announced?" />
+        <span>The region below stays invisible; the card shows the text it currently carries.</span>
+        <Snippet>
+          {() => (
+            <Announcer
+              politeness={state.politeness}
+              atomic={state.atomic}
+              busy={state.busy}
+              relevant={state.relevant}
+            >
+              {state.message}
+            </Announcer>
+          )}
+        </Snippet>
+        <span>{state.message}</span>
+      </div>
+    </div>
+  );
+}, 'AnnouncerDemo');
+```
+
+```html
+<AnnouncerDemo />
+```
+
+<AnnouncerDemo />
+
+:::
+
+## Usage
+
+Place one region per kind of message and write the text into it. Nothing else is required — no trigger, no state, no focus:
+
+```tsx
+import { Announcer, Button } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/announcer.css';
+
+export const SavedNotice = ({ message }: { message: string }) => (
+  <>
+    <Button>Save draft</Button>
+    <Announcer>{message}</Announcer>
+  </>
+);
+```
+
+For the full library — tokens, base defaults, every component, and the utilities — load `import '@airlib/aui';` instead. A lone component stylesheet carries only that component's rules.
+
+### Politeness
+
+`politeness` decides how the message is delivered. `polite` waits for the current utterance, `assertive` interrupts it, and `off` keeps the region identified but silent:
+
+```tsx
+<Announcer politeness="assertive">Upload failed — retrying</Announcer>
+```
+
+An assertive region compiles `role="alert"` in place of `status`. Nothing remounts and no second region is needed, so an urgency change is a prop change.
+
+`atomic` is `true` by default: a replacement is read in full. A stream turns it off and watches additions, so each appended entry is read on its own and the history is not:
+
+```tsx
+<Announcer atomic={false} relevant="additions">
+  {log.map((line) => (
+    <div key={line.id}>{line.text}</div>
+  ))}
+</Announcer>
+```
+
+Append at the end: entries are heard in source order.
+
+`busy` holds announcements back while the region is mid-update. Leaving it out writes no `aria-busy` at all, while `busy={false}` is a deliberate idle signal:
+
+```tsx
+<Announcer busy={isStreaming}>{draft}</Announcer>
+```
+
+### Silence
+
+`politeness="off"` is for displays that change too fast to narrate. The region stays identified, so its milestones can still be announced from a polite or assertive region of your own:
+
+```tsx
+<Announcer politeness="off" aria-label="Render count">
+  {frames}
+</Announcer>
+```
+
+The region compiles no accessible name of its own, so bind `aria-label` on the host when the message needs one beyond its text.
+
+### Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `politeness` | `'polite' \| 'assertive' \| 'off'` | `'polite'` | Delivery mode, compiled to `aria-live`. Assertive also compiles `role="alert"`. |
+| `atomic` | `boolean` | `true` | Whether the whole region is read as one unit. Always written, so `false` is an explicit stream setting. |
+| `busy` | `boolean` | — | Holds announcements while set. `aria-busy` is written only when you pass it. |
+| `relevant` | `string` | — | Which change kinds are watched, written straight to `aria-relevant`. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `children` | `ReactNode` | — | The message. Writing it announces; it adds no attributes of its own. |
+| `ref` | `Ref<HTMLDivElement>` | — | Access to the region element. |
+
+The region takes no focus, claims no keys, and never appears in the tab order. A message update is the only thing that changes.
+
+Your own classes are added next to the built-in ones:
+
+```tsx
+// class="aui-announcer my-live"
+<Announcer className="my-live">Saved</Announcer>
+```
+
+To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+
+## Next Steps
+
+- [Toast](/docs/widgets/toast) — A visible message with a lifetime and a dismissal.
+- [Progress](/docs/widgets/progress) — Ongoing work reported as a value instead of as narration.
+- [Text Input](/docs/widgets/text-input) — The validation states that usually trigger an assertive message.
+- [Section](/docs/landmarks/section) — A named landmark for a region that persists.

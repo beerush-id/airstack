@@ -7,6 +7,7 @@ export * from './Close.js';
 export * from './ContentPaste.js';
 export * from './DarkMode.js';
 export * from './DragHandle.js';
+export * from './DragIndicator.js';
 export * from './DropDown.js';
 export * from './DropUp.js';
 export * from './Error.js';

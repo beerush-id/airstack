@@ -1,0 +1,148 @@
+---
+title: AUI Disclosure
+nav: Disclosure
+nav-priority: 292
+description: Collapsible section with trigger and panel — one shared state, announced expansion, single toggle per gesture.
+---
+
+# AUI Disclosure
+
+A disclosure hides a section of content behind a single trigger: shipping details, return policies, locked sections. Getting it right means deriving both ends from one identifier, announcing the expansion on the trigger without owning it, and committing one toggle per gesture across pointer, `Enter`, and `Space` — and the panel keeps its meaning while collapsed instead of dropping its semantics.
+
+**AUI Disclosure** does all of that for you, and leaves the markup and the styling entirely yours. One state drives both ends: the trigger compiles `aria-expanded` and `aria-controls`, the panel compiles `role="region"`, `aria-labelledby`, and `hidden`, and both addresses come from the container's id.
+
+Styling is optional. Without AUI CSS the Disclosure stays a correct, operable collapsible; with it, the same markup gets the AUI treatment through the full library.
+
+:::interactive[Disclosure demo]
+
+```tsx
+import { Disclosure, DisclosurePanel, DisclosureTrigger, Toggle } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+
+const DisclosureDemo = setup(() => {
+  const state = mutable({ open: true, disabled: false });
+
+  return () => (
+    <div className="demo-button">
+      <div className="flex gap-xs w-full">
+        <div className="flex-1"></div>
+        <Toggle size="sm" pressed={$bind(state, 'open')}>
+          {() => (state.open ? 'Collapse' : 'Expand')}
+        </Toggle>
+        <Toggle size="sm" pressed={$bind(state, 'disabled')}>
+          {() => (state.disabled ? 'Set Enabled' : 'Set Disabled')}
+        </Toggle>
+      </div>
+      <div className="aui-card flex flex-col gap-lg justify-center p-xl">
+        <span>Starts expanded — the toggle above drives the live state</span>
+        <Snippet>
+          {() => (
+            <Disclosure expanded={$bind(state, 'open')} disabled={state.disabled}>
+              <DisclosureTrigger>Shipping details</DisclosureTrigger>
+              <DisclosurePanel>Arrives in 2–3 business days, tracked door to door.</DisclosurePanel>
+            </Disclosure>
+          )}
+        </Snippet>
+        <span>Starts collapsed — keeps its own state until you bind one</span>
+        <Snippet>
+          {() => (
+            <Disclosure disabled={state.disabled}>
+              <DisclosureTrigger>Return policy</DisclosureTrigger>
+              <DisclosurePanel>Unused items come back within 30 days for a full refund.</DisclosurePanel>
+            </Disclosure>
+          )}
+        </Snippet>
+        <span>Locked — refuses activation and announces itself as disabled</span>
+        <Snippet>
+          {() => (
+            <Disclosure disabled>
+              <DisclosureTrigger>Locked section</DisclosureTrigger>
+              <DisclosurePanel>Membership unlocks this content.</DisclosurePanel>
+            </Disclosure>
+          )}
+        </Snippet>
+      </div>
+    </div>
+  );
+}, 'DisclosureDemo');
+```
+
+```html
+<DisclosureDemo />
+```
+
+<DisclosureDemo />
+
+:::
+
+## Usage
+
+The unit as a whole holds the expansion state and the namespace the trigger and the panel address each other with. Put exactly one trigger and one panel inside:
+
+```tsx
+import { Disclosure, DisclosurePanel, DisclosureTrigger } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/disclosure.css';
+
+export const ShippingDetails = () => (
+  <Disclosure>
+    <DisclosureTrigger>Shipping details</DisclosureTrigger>
+    <DisclosurePanel>Arrives in 2–3 business days, tracked door to door.</DisclosurePanel>
+  </Disclosure>
+);
+```
+
+For the full library — tokens, base defaults, every component, and the utilities — load `import '@airlib/aui';` instead. A lone component stylesheet carries only that component's rules.
+
+Leave `expanded` out and the unit keeps its own state; set it and the unit follows yours. Bind it to drive the section from outside, in either direction:
+
+```tsx
+import { $bind, mutable } from '@airlib/react';
+
+const state = mutable({ open: false });
+
+<Disclosure expanded={$bind(state, 'open')}>
+  <DisclosureTrigger>Shipping details</DisclosureTrigger>
+  <DisclosurePanel>Arrives in 2–3 business days, tracked door to door.</DisclosurePanel>
+</Disclosure>
+```
+
+A disabled unit refuses activation and state change on every part, announces `aria-disabled="true"` on the trigger, and moves no panel — quietly, with no event:
+
+```tsx
+<Disclosure disabled>
+  <DisclosureTrigger>Locked section</DisclosureTrigger>
+  <DisclosurePanel>Membership unlocks this content.</DisclosurePanel>
+</Disclosure>
+```
+
+### Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `id` | `string` | `disclosure-<n>` | The namespace both ends derive their identifiers from. Generated when you leave it out. |
+| `expanded` | `Bindable<boolean>` | `false` | Whether the panel is open. Written through the instance it commits and announces; written straight on the props it moves silently. Bind it to read and write the state from outside. |
+| `disabled` | `boolean` | `false` | Refuses activation and state change on every part, announcing `aria-disabled="true"` on the trigger without moving the panel. |
+| `ontoggle` | `(event: CustomEvent<boolean>) => void` | — | Called after the expansion commits, with the new state in `detail`. A cancelled gesture fires nothing. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `children` | `ReactNode` | — | Exactly one trigger and one panel: the control and the content it opens. |
+| `ref` | `Ref<HTMLDivElement>` | — | Access to the disclosure root element. |
+
+The trigger is a native `button`: it keeps its own role, reflects `disabled`, and synthesizes nothing. `Enter` toggles on key-down, `Space` suppresses scrolling on key-down and toggles on key-up, so a full press commits one toggle. Every other key is left to the browser and assistive technology.
+
+Your own classes are added next to the built-in ones:
+
+```tsx
+// class="aui-disclosure my-section"
+<Disclosure className="my-section">
+  <DisclosureTrigger>Shipping details</DisclosureTrigger>
+  <DisclosurePanel>Arrives in 2–3 business days, tracked door to door.</DisclosurePanel>
+</Disclosure>
+```
+
+To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+
+## Next Steps
+
+- [Accordion](/docs/widgets/accordion) — Stacked disclosures with header focus travel and single or multiple expansion.
+- [Tabs](/docs/widgets/tabs) — Paired triggers and panels that swap instead of collapsing.
+- [Divider](/docs/widgets/divider) — The static structural rule that stays out of the tab order.

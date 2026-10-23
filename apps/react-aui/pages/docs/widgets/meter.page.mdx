@@ -1,0 +1,165 @@
+---
+title: AUI Meter
+nav: Meter
+nav-priority: 308
+description: Gauge reporting a steady reading inside its bounds — original units, a required name, a published fill fraction, six sizes, and seven colors.
+---
+
+# AUI Meter
+
+A meter reports a reading that already exists: disk used, battery left, a quality score. Nothing is completing, and nobody is moving it. That is the difference from a [Progress](/docs/widgets/progress) bar, and from a [Slider](/docs/widgets/slider).
+
+**AUI Meter** does all of that for you, and leaves the markup and the styling entirely yours. The host carries the meter role, the reading, and the declared bounds in the same units you supplied; it publishes one fill fraction for the stylesheet to size. Writes commit clamped, so the number the reader hears, the number you read back, and the fill all agree.
+
+Styling is optional. Without AUI CSS the Meter stays a correct, operable gauge; with it, the same markup gets the AUI treatment through the full library.
+
+:::interactive[Meter demo]
+
+```tsx
+import { Meter, Select, Slider } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { COLOR_LABELS, SIZE_LABELS } from '@airlib/aui/utils';
+
+const MeterDemo = setup(() => {
+  const state = mutable({
+    reading: 72,
+    max: 128,
+    size: 'md',
+    color: 'primary',
+  });
+
+  return () => (
+    <div className="demo-button">
+      <div className="flex gap-xs w-full flex-wrap">
+        <Select size="sm" placeholder="Size" options={SIZE_LABELS} value={$bind(state, 'size')} />
+        <Select size="sm" placeholder="Color" options={COLOR_LABELS} value={$bind(state, 'color')} />
+      </div>
+      <div className="aui-card flex flex-col gap-lg p-xl">
+        <Slider
+          min={0}
+          max={state.max}
+          value={$bind(state, 'reading')}
+          aria-label="Storage used"
+        />
+        <Snippet>
+          {() => (
+            <Meter
+              value={state.reading}
+              max={state.max}
+              size={state.size}
+              color={state.color}
+              label="Storage"
+              valuetext={`${Math.round(state.reading)} GB of ${state.max} GB`}
+            />
+          )}
+        </Snippet>
+        <span>{`${Math.round(state.reading)} GB of ${state.max} GB`}</span>
+      </div>
+    </div>
+  );
+}, 'MeterDemo');
+```
+
+```html
+<MeterDemo />
+```
+
+<MeterDemo />
+
+:::
+
+## Usage
+
+A meter needs a reading and a name. The name is required: the gauge has no visible label of its own, and a silent gauge is a number with no meaning:
+
+```tsx
+import { Meter } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/meter.css';
+
+export const StorageUsed = ({ gigs }: { gigs: number }) => (
+  <Meter value={gigs} max={128} label="Storage" valuetext={`${gigs} GB of 128 GB`} />
+);
+```
+
+For the full library — tokens, base defaults, every component, and the utilities — load `import '@airlib/aui';` instead. A lone component stylesheet carries only that component's rules.
+
+Readings stay in the units you declared. Nothing is rescaled to a fixed range, so `45` between `10` and `90` is `45` everywhere — announced, read back, and laid out:
+
+```tsx
+<Meter value={45} min={10} max={90} label="Quality" />
+```
+
+A reading past a bound commits that bound, and narrowing the interval under a live reading re-clamps what is reported without moving the number you wrote. Leave the value out and the gauge reports its lower bound:
+
+```tsx
+<Meter min={10} max={90} label="Quality" />
+// aria-valuenow="10"
+```
+
+`valuetext` spells the reading out when the number alone would be cryptic — units, a fraction, a band name:
+
+```tsx
+<Meter value={72} max={128} label="Storage" valuetext="72 GB of 128 GB" />
+```
+
+Update the reading as the underlying value changes:
+
+```tsx
+import { $bind, mutable } from '@airlib/react';
+
+const state = mutable({ gigs: 72 });
+
+<Meter value={$bind(state, 'gigs')} max={128} label="Storage" />
+```
+
+The gauge takes no focus and claims no input. You write the reading; it reports.
+
+### Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `value` | `number` | — | The reading, committed clamped to the declared interval. Omitted, it reports `min`. |
+| `min` | `number` | `0` | Lower bound, in the same units as the reading. |
+| `max` | `number` | `100` | Upper bound, in the same units. |
+| `label` | `string` | **required** | The accessible name, compiled to `aria-label`. |
+| `valuetext` | `string` | — | The reading spelled out, compiled to `aria-valuetext` beside the number. |
+| `size` | shared size | `md` | Track thickness. |
+| `color` | shared color | `primary` | Fill color. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `ref` | `Ref<HTMLDivElement>` | — | Access to the track element. |
+
+The host publishes `--aria-meter-offset` — the reading as a percentage of the interval — and the shipped stylesheet sizes the fill with it. An interval with no span reports `0` rather than dividing by zero.
+
+### Sizes
+
+`xs`, `sm`, `md`, `lg`, `xl`, `xxl`, defaulting to `md`:
+
+```tsx
+<Meter value={30} label="Storage" size="xs" />
+<Meter value={30} label="Storage" size="lg" />
+```
+
+### Color Variants
+
+`primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info`, defaulting to `primary`. A gauge usually picks the color that matches its band — success while healthy, warning near the limit, error past it:
+
+```tsx
+<Meter value={20} label="Storage" color="success" />
+<Meter value={95} label="Storage" color="error" />
+```
+
+Your own classes are added next to the built-in ones:
+
+```tsx
+// class="aui-meter aui-meter-md aui-meter-primary my-gauge"
+<Meter value={30} className="my-gauge" label="Storage" />
+```
+
+To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+
+## Next Steps
+
+- [Progress](/docs/widgets/progress) — Task completion, which rescales into its own interval and can report an unknown state.
+- [Slider](/docs/widgets/slider) — Bounded numeric entry the reader can move.
+- [Number Stepper](/docs/widgets/number-stepper) — Discrete stepping over the same kind of range.
+- [Announcer](/docs/widgets/announcer) — Narrating a threshold the gauge crosses.

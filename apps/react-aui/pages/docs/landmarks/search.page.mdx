@@ -1,0 +1,128 @@
+---
+title: AUI Search
+nav: Search
+nav-priority: 260
+description: Search landmark on a plain container with the search role — names the facility when a page holds more than one and leaves the query, the submit, and the focus to you.
+---
+
+# AUI Search
+
+A search landmark marks the facility people jump to first, wherever it sits in the page. The hard part is never the field — it is **publishing the search role on a host that does not imply it**, **naming the facility when a page holds more than one**, **leaving the query and the submit alone**, and **taking no focus of its own**.
+
+**AUI Search** does all of that for you, and leaves the query and the styling entirely yours. The container carries the role and the name; the field and the button inside stay ordinary controls.
+
+Styling is optional. Without AUI CSS the Search stays a correct, operable landmark; with it, the same markup becomes the AUI search bar.
+
+:::interactive[Search demo]
+
+```tsx
+import { Button, Search } from '@airlib/react-aui';
+import { setup } from '@airlib/react';
+
+const SearchDemo = setup(
+  () => (
+    <div className="aui-card flex flex-col gap-lg p-xl">
+      <Search label="Documentation">
+        <input type="search" aria-label="Search documentation" placeholder="Search documentation" />
+        <Button size="sm">Search</Button>
+      </Search>
+    </div>
+  ),
+  'SearchDemo'
+);
+```
+
+```html
+<SearchDemo />
+```
+
+<SearchDemo />
+
+:::
+
+## Usage
+
+The landmark wraps a field and, usually, a submit button:
+
+```tsx
+import { Button, Search } from '@airlib/react-aui';
+import '@airlib/aui/components/landmarks/search.css';
+
+export const DocsSearch = () => (
+  <Search label="Documentation">
+    <input type="search" aria-label="Search documentation" placeholder="Search documentation" />
+    <Button size="sm">Search</Button>
+  </Search>
+);
+```
+
+For the full library — tokens, base defaults, every component, and the utilities — load `import '@airlib/aui';` instead. A lone component stylesheet carries only that component's rules.
+
+### Naming the facility
+
+`label` is the facility's name, compiled to `aria-label`. A page with one search needs none, but a page with a header search and a docs search should name both so screen readers can tell them apart:
+
+```tsx
+<Search label="Site">...</Search>
+<Search label="Documentation">...</Search>
+```
+
+`labelledby` takes the name from an element instead, which is what you want when the heading already says it:
+
+```tsx
+<h2 id="docs-search">Documentation search</h2>
+<Search labelledby="docs-search">
+  <input type="search" aria-label="Query" />
+</Search>
+```
+
+### What it does not own
+
+The landmark publishes the role and the name and stops there. It compiles no `action`, no `method`, and no value; typing and submitting stay with the field and the button inside. It also compiles no tab stop and claims no keys, so the field remains the way in:
+
+```tsx
+<form role="search" aria-label="Documentation">
+  <input type="search" name="q" />
+  <button type="submit">Search</button>
+</form>
+```
+
+A `<form>` keeps its own submission and validation; the landmark only marks it. If you would rather use a real `<form>` together with the landmark, wrap the form's fields in `Search` — or style the form with the AUI search shell and let it submit as usual.
+
+### A host that stays a container
+
+The controller compiles `role="search"` because the host is a plain `<div>`; no element changes its meaning under you. `label` and `labelledby` never leak onto the DOM as attributes of their own:
+
+```tsx
+// role="search" aria-label="Documentation"
+<Search label="Documentation">...</Search>
+```
+
+### Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `label` | `string` | — | The facility's name. |
+| `labelledby` | `string` | — | An element id that names the facility instead. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `children` | `ReactNode` | — | The field and, usually, the submit button. |
+| `ref` | `Ref<HTMLDivElement>` | — | Access to the container element. |
+
+The container also takes the standard attributes for a `div` host, so `id`, `aria-*`, and event handlers pass through.
+
+Your own classes are added next to the built-in ones:
+
+```tsx
+// class="aui-search my-search"
+<Search className="my-search" label="Documentation">
+  {/* field and button */}
+</Search>
+```
+
+To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+
+## Next Steps
+
+- [Text Input](/docs/widgets/text-input) — The typed field on its own.
+- [Form](/docs/landmarks/form) — The other named container, for forms that are not search.
+- [Navigation](/docs/widgets/navigation) — The header the facility usually sits in.

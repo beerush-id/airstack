@@ -1,0 +1,205 @@
+---
+title: AUI Dialog
+nav: Dialog
+nav-priority: 302
+description: Modal or nonmodal overlay with trigger, panel, title, description, and close button — trapped focus, cancellable Escape, and focus returned on close.
+---
+
+# AUI Dialog
+
+A dialog interrupts the page to ask for something: account settings, a rename, a short form. Getting it right means one state driving the whole unit, a panel that names and explains itself, focus that stays inside while modal and returns where it came from on close, and a dismissal policy the page can veto.
+
+**AUI Dialog** does all of that for you, and leaves the markup and the styling entirely yours. The dialog holds the open state, the modality, and the dismissal policy; the trigger, the panel, the title, the description, and the close button all follow it. Identifiers derive from one namespace, so `aria-controls`, `aria-labelledby`, and `aria-describedby` are linked without a prop crossing between the parts.
+
+Styling is optional. Without AUI CSS the Dialog stays a correct, operable overlay; with it, the same markup gets the AUI treatment through the full library.
+
+:::interactive[Dialog demo]
+
+```tsx
+import { Button, Dialog, DialogClose, DialogDescription, DialogPanel, DialogTitle, DialogTrigger, Select, Toggle } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+
+const DialogDemo = setup(() => {
+  const state = mutable({ open: false, modality: 'modal', dismissable: true });
+
+  return () => (
+    <div className="demo-button">
+      <div className="flex gap-xs w-full flex-wrap">
+        <Select
+          size="sm"
+          placeholder="Modality"
+          options={{ modal: 'Modal', nonmodal: 'Nonmodal' }}
+          value={$bind(state, 'modality')}
+        />
+        <div className="flex-1"></div>
+        <Toggle size="sm" pressed={$bind(state, 'dismissable')}>
+          {() => (state.dismissable ? 'Escape closes' : 'Escape ignored')}
+        </Toggle>
+        <Toggle size="sm" pressed={$bind(state, 'open')}>
+          {() => (state.open ? 'Close dialog' : 'Open dialog')}
+        </Toggle>
+      </div>
+      <div className="aui-card flex flex-col gap-lg items-center justify-center p-xl">
+        <span>One state drives every part — the toggle above opens the same panel</span>
+        <Snippet>
+          {() => (
+            <Dialog open={$bind(state, 'open')} modality={state.modality} dismissable={state.dismissable}>
+              <DialogTrigger>Account settings</DialogTrigger>
+              <DialogPanel>
+                <DialogTitle>Account settings</DialogTitle>
+                <DialogDescription>
+                  Change the details tied to your account. Nothing is saved until you confirm.
+                </DialogDescription>
+                <div className="flex gap-xs justify-end">
+                  <DialogClose>Cancel</DialogClose>
+                  <DialogClose>Save changes</DialogClose>
+                </div>
+              </DialogPanel>
+            </Dialog>
+          )}
+        </Snippet>
+        <Snippet>
+          {() => (
+            <Dialog>
+              <DialogTrigger>Unbound dialog</DialogTrigger>
+              <DialogPanel>
+                <DialogTitle>Newsletter</DialogTitle>
+                <DialogDescription>Each issue arrives on the first Tuesday of the month.</DialogDescription>
+                <Button size="sm">Subscribe</Button>
+                <DialogClose>Not now</DialogClose>
+              </DialogPanel>
+            </Dialog>
+          )}
+        </Snippet>
+      </div>
+    </div>
+  );
+}, 'DialogDemo');
+```
+
+```html
+<DialogDemo />
+```
+
+<DialogDemo />
+
+:::
+
+## Usage
+
+Keep the panel mounted. A closed panel carries `hidden`, so the same instance keeps managing its edges, focus return, and dismissal:
+
+```tsx
+import { Dialog, DialogClose, DialogDescription, DialogPanel, DialogTitle, DialogTrigger } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/dialog.css';
+
+export const AccountSettings = () => (
+  <Dialog>
+    <DialogTrigger>Account settings</DialogTrigger>
+    <DialogPanel>
+      <DialogTitle>Account settings</DialogTitle>
+      <DialogDescription>Change the details tied to your account.</DialogDescription>
+      <DialogClose>Close</DialogClose>
+    </DialogPanel>
+  </Dialog>
+);
+```
+
+For the full library — tokens, base defaults, every component, and the utilities — load `import '@airlib/aui';` instead. A lone component stylesheet carries only that component's rules.
+
+Leave `open` out and the trigger and close button drive the unit; set it and the unit follows yours. Bind it to drive the dialog from outside:
+
+```tsx
+import { $bind, mutable } from '@airlib/react';
+
+const state = mutable({ open: false });
+
+<Dialog open={$bind(state, 'open')}>
+  <DialogTrigger>Account settings</DialogTrigger>
+  <DialogPanel>
+    <DialogTitle>Account settings</DialogTitle>
+    <DialogDescription>Change the details tied to your account.</DialogDescription>
+  </DialogPanel>
+</Dialog>
+```
+
+### Modality
+
+`modality` chooses how much of the page the dialog owns. A modal panel traps `Tab` and `Shift+Tab` inside itself and announces `aria-modal="true"`; a nonmodal panel leaves the page reachable and announces `aria-modal="false"`:
+
+```tsx
+<Dialog modality="nonmodal">
+  <DialogTrigger>Keyboard shortcuts</DialogTrigger>
+  <DialogPanel>
+    <DialogTitle>Keyboard shortcuts</DialogTitle>
+    <DialogDescription>The editor stays usable while this panel is open.</DialogDescription>
+    <DialogClose>Close</DialogClose>
+  </DialogPanel>
+</Dialog>
+```
+
+### Dismissal
+
+`dismissable` gates both `Escape` and outside clicks. Escape passes through a `cancel` event first, so a consumer can veto it while an async check runs:
+
+```tsx
+<Dialog dismissable={false}>
+  <DialogTrigger>Review changes</DialogTrigger>
+  <DialogPanel>
+    <DialogTitle>Unsaved changes</DialogTitle>
+    <DialogDescription>Pick Save or Discard — Escape will not answer for you.</DialogDescription>
+    <DialogClose>Discard</DialogClose>
+    <DialogClose>Save</DialogClose>
+  </DialogPanel>
+</Dialog>
+```
+
+Closing by any path — `Escape`, an outside press, the close button, a write to `open` — returns focus to what opened the panel.
+
+### Parts
+
+| Part | Host | Role | What it does |
+| --- | --- | --- | --- |
+| `Dialog` | `div` | — | Holds `open`, `modality`, `dismissable`, and the identifier namespace. |
+| `DialogTrigger` | `button` | — | Opens the panel. Carries `aria-haspopup="dialog"`, `aria-expanded`, and `aria-controls`. |
+| `DialogPanel` | `div` | `dialog` | The overlay container. Carries `aria-modal`, `aria-labelledby`, `aria-describedby`, and `hidden` while closed. |
+| `DialogTitle` | `div` | — | Names the panel. Its id becomes the panel's `aria-labelledby`. |
+| `DialogDescription` | `div` | — | Explains the panel. Its id becomes the panel's `aria-describedby`. |
+| `DialogClose` | `button` | — | Closes the panel. |
+
+### Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `id` | `string` | `dialog-<n>` | The prefix every part's identifier derives from. Generated when omitted. |
+| `open` | `Bindable<boolean>` | `false` | Whether the panel is showing. Bind it to open or close from code. |
+| `modality` | `'modal' \| 'nonmodal'` | `'modal'` | Modal traps focus inside the panel; nonmodal leaves the page reachable. |
+| `dismissable` | `boolean` | `true` | Whether `Escape` and outside presses close the panel. |
+| `onopen` / `onclose` | `(event: CustomEvent<void>) => void` | — | Called once per visibility change, whichever path caused it. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `children` | `ReactNode` | — | One trigger and one panel, in either order. |
+| `ref` | `Ref<HTMLDivElement>` | — | Access to the dialog root element. |
+
+`DialogTrigger`, `DialogClose`, `DialogTitle`, `DialogDescription`, and `DialogPanel` take the presentation props and `className`; the two buttons also take `disabled`. The panel takes a `ref`; the trigger and close button are native buttons, so `Enter` and `Space` activate them the way any button does.
+
+Your own classes are added next to the built-in ones:
+
+```tsx
+// class="aui-dialog my-settings"
+<Dialog className="my-settings">
+  <DialogTrigger>Account settings</DialogTrigger>
+  <DialogPanel className="my-panel">
+    <DialogTitle>Account settings</DialogTitle>
+    <DialogClose>Close</DialogClose>
+  </DialogPanel>
+</Dialog>
+```
+
+To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+
+## Next Steps
+
+- [Confirm](/docs/widgets/confirm) — The non-dismissable decision built on this composite.
+- [Popover](/docs/widgets/popover) — An anchored panel that leaves the page usable, with no trap.
+- [Disclosure](/docs/widgets/disclosure) — Inline expansion that interrupts nothing.
+- [Menu](/docs/widgets/menu) — A popup of commands for the actions a dialog is not needed for.

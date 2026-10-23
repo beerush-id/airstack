@@ -259,6 +259,8 @@ export type MauiConfig = typeof DEFAULT_CONFIG & {
   fieldError?: ComponentStyles;
   textInput?: ComponentStyles;
   searchInput?: ComponentStyles;
+  codeInput?: ComponentStyles;
+  codeInputCell?: ComponentStyles;
   numberStepper?: ComponentStyles;
   form?: ComponentStyles;
   filePicker?: ComponentStyles;
@@ -268,6 +270,79 @@ export type MauiConfig = typeof DEFAULT_CONFIG & {
   comboboxInput?: ComponentStyles;
   comboboxPanel?: ComponentStyles;
   comboboxOption?: ComponentStyles;
+  disclosure?: ComponentStyles;
+  disclosureTrigger?: ComponentStyles;
+  disclosurePanel?: ComponentStyles;
+  accordion?: ComponentStyles;
+  accordionButton?: ComponentStyles;
+  accordionPanel?: ComponentStyles;
+  tab?: ComponentStyles;
+  tabList?: ComponentStyles;
+  tabButton?: ComponentStyles;
+  tabPanel?: ComponentStyles;
+  popover?: ComponentStyles;
+  tooltip?: ComponentStyles;
+  dialog?: ComponentStyles;
+  dialogTrigger?: ComponentStyles;
+  dialogPanel?: ComponentStyles;
+  dialogTitle?: ComponentStyles;
+  dialogDescription?: ComponentStyles;
+  dialogClose?: ComponentStyles;
+  confirm?: ComponentStyles;
+  confirmTrigger?: ComponentStyles;
+  confirmPanel?: ComponentStyles;
+  confirmTitle?: ComponentStyles;
+  confirmDescription?: ComponentStyles;
+  confirmAction?: ComponentStyles;
+  confirmCancel?: ComponentStyles;
+  menu?: ComponentStyles;
+  menuButton?: ComponentStyles;
+  menuPanel?: ComponentStyles;
+  menuItem?: ComponentStyles;
+  menuItemCheckbox?: ComponentStyles;
+  menuItemRadio?: ComponentStyles;
+  menuItemGroup?: ComponentStyles;
+  menuBar?: ComponentStyles;
+  contextMenu?: ComponentStyles;
+  contextMenuPanel?: ComponentStyles;
+  announcer?: ComponentStyles;
+  progress?: ComponentStyles;
+  meter?: ComponentStyles;
+  toast?: ComponentStyles;
+  toastClose?: ComponentStyles;
+  datePicker?: ComponentStyles;
+  datePickerInput?: ComponentStyles;
+  datePickerTrigger?: ComponentStyles;
+  datePickerCalendar?: ComponentStyles;
+  datePickerDay?: ComponentStyles;
+  datePickerNav?: ComponentStyles;
+  datePickerYearInput?: ComponentStyles;
+  dateRangePicker?: ComponentStyles;
+  grid?: ComponentStyles;
+  treeGrid?: ComponentStyles;
+  gridRow?: ComponentStyles;
+  gridCell?: ComponentStyles;
+  gridColumnHeader?: ComponentStyles;
+  gridRowHeader?: ComponentStyles;
+  tree?: ComponentStyles;
+  treeItem?: ComponentStyles;
+  treeGroup?: ComponentStyles;
+  feed?: ComponentStyles;
+  feedArticle?: ComponentStyles;
+  reorder?: ComponentStyles;
+  reorderItem?: ComponentStyles;
+  reorderHandle?: ComponentStyles;
+  search?: ComponentStyles;
+  carousel?: ComponentStyles;
+  carouselViewport?: ComponentStyles;
+  carouselSlide?: ComponentStyles;
+  carouselNav?: ComponentStyles;
+  carouselPicker?: ComponentStyles;
+  carouselPlayer?: ComponentStyles;
+  stepper?: ComponentStyles;
+  stepperInput?: ComponentStyles;
+  stepperButton?: ComponentStyles;
+  splitter?: ComponentStyles;
 };
 
 export const AUI_CLASS = {
@@ -320,6 +395,8 @@ export const AUI_CLASS = {
   FIELD_ERROR: branded('field-error'),
   TEXT_INPUT: branded('text-input'),
   SEARCH_INPUT: branded('search-input'),
+  CODE_INPUT: branded('code-input'),
+  CODE_INPUT_CELL: branded('code-input-cell'),
   NUMBER_STEPPER: branded('number-stepper'),
   FORM: branded('form'),
   FILE_PICKER: branded('file-picker'),
@@ -329,4 +406,81 @@ export const AUI_CLASS = {
   COMBOBOX_INPUT: branded('combobox-input'),
   COMBOBOX_PANEL: branded('combobox-panel'),
   COMBOBOX_OPTION: branded('combobox-option'),
+  DISCLOSURE: branded('disclosure'),
+  DISCLOSURE_TRIGGER: branded('disclosure-trigger'),
+  DISCLOSURE_PANEL: branded('disclosure-panel'),
+  ACCORDION: branded('accordion'),
+  ACCORDION_BUTTON: branded('accordion-button'),
+  ACCORDION_PANEL: branded('accordion-panel'),
+  TAB: branded('tab'),
+  TAB_LIST: branded('tab-list'),
+  TAB_BUTTON: branded('tab-button'),
+  TAB_PANEL: branded('tab-panel'),
+  POPOVER: branded('popover'),
+  TOOLTIP: branded('tooltip'),
+  DIALOG: branded('dialog'),
+  DIALOG_TRIGGER: branded('dialog-trigger'),
+  DIALOG_PANEL: branded('dialog-panel'),
+  DIALOG_TITLE: branded('dialog-title'),
+  DIALOG_DESCRIPTION: branded('dialog-description'),
+  DIALOG_CLOSE: branded('dialog-close'),
+  CONFIRM: branded('confirm'),
+  CONFIRM_TRIGGER: branded('confirm-trigger'),
+  CONFIRM_PANEL: branded('confirm-panel'),
+  CONFIRM_TITLE: branded('confirm-title'),
+  CONFIRM_DESCRIPTION: branded('confirm-description'),
+  CONFIRM_ACTION: branded('confirm-action'),
+  CONFIRM_CANCEL: branded('confirm-cancel'),
+  MENU: branded('menu'),
+  MENU_BUTTON: branded('menu-button'),
+  MENU_ITEM_CHECKBOX: branded('menu-item-checkbox'),
+  MENU_ITEM_RADIO: branded('menu-item-radio'),
+  MENU_ITEM_GROUP: branded('menu-item-group'),
+  MENU_BAR: branded('menu-bar'),
+  CONTEXT_MENU: branded('context-menu'),
+  CONTEXT_MENU_PANEL: branded('context-menu-panel'),
+  ANNOUNCER: branded('announcer'),
+  PROGRESS: branded('progress'),
+  PROGRESS_FILL: branded('progress-fill'),
+  METER: branded('meter'),
+  METER_FILL: branded('meter-fill'),
+  TOAST: branded('toast'),
+  TOAST_CLOSE: branded('toast-close'),
+  DATE_PICKER: branded('date-picker'),
+  DATE_PICKER_INPUT: branded('date-picker-input'),
+  DATE_PICKER_TRIGGER: branded('date-picker-trigger'),
+  DATE_PICKER_CALENDAR: branded('date-picker-calendar'),
+  DATE_PICKER_HEADER: branded('date-picker-header'),
+  DATE_PICKER_GRID: branded('date-picker-grid'),
+  DATE_PICKER_WEEKDAY: branded('date-picker-weekday'),
+  DATE_PICKER_DAY: branded('date-picker-day'),
+  DATE_PICKER_NAV: branded('date-picker-nav'),
+  DATE_PICKER_YEAR: branded('date-picker-year'),
+  DATE_RANGE_PICKER: branded('date-range-picker'),
+  GRID: branded('grid'),
+  TREE_GRID: branded('tree-grid'),
+  GRID_ROW: branded('grid-row'),
+  GRID_CELL: branded('grid-cell'),
+  GRID_COLUMN_HEADER: branded('grid-column-header'),
+  GRID_ROW_HEADER: branded('grid-row-header'),
+  TREE: branded('tree'),
+  TREE_ITEM: branded('tree-item'),
+  TREE_GROUP: branded('tree-group'),
+  FEED: branded('feed'),
+  FEED_ARTICLE: branded('feed-article'),
+  REORDER: branded('reorder'),
+  REORDER_HORIZONTAL: branded('reorder-horizontal'),
+  REORDER_ITEM: branded('reorder-item'),
+  REORDER_HANDLE: branded('reorder-handle'),
+  SEARCH: branded('search'),
+  CAROUSEL: branded('carousel'),
+  CAROUSEL_VIEWPORT: branded('carousel-viewport'),
+  CAROUSEL_SLIDE: branded('carousel-slide'),
+  CAROUSEL_NAV: branded('carousel-nav'),
+  CAROUSEL_PICKER: branded('carousel-picker'),
+  CAROUSEL_PLAYER: branded('carousel-player'),
+  STEPPER: branded('stepper'),
+  STEPPER_INPUT: branded('stepper-input'),
+  STEPPER_BUTTON: branded('stepper-button'),
+  SPLITTER: branded('splitter'),
 };

@@ -1,0 +1,342 @@
+---
+title: AUI Menu
+nav: Menu
+nav-priority: 304
+description: Popup of commands with button, panel, command items, checkbox and radio items, groups, and a menu bar — roving focus, one owner of the open state.
+---
+
+# AUI Menu
+
+A menu is a list of commands collapsed behind a button: document actions, row actions, a format menu. Getting it right means the trigger and the panel stay linked without hand-wired ids, the arrows move across the items while `Tab` leaves the popup, a command closes the menu on the same activation, and disabling the root reaches every part.
+
+**AUI Menu** does all of that for you, and leaves the markup and the styling entirely yours. The trigger writes one `open` value and everything else follows it; the panel compiles `role="menu"` with a vertical orientation; commands, checkboxes, and radios share one traversal. Items carry `role="menuitem"`, `role="menuitemcheckbox"`, and `role="menuitemradio"` respectively, and the panel holds the tab stop.
+
+Styling is optional. Without AUI CSS the Menu stays a correct, operable popup; with it, the same markup gets the AUI treatment through the full library.
+
+:::interactive[Menu demo]
+
+```tsx
+import { Divider, Menu, MenuBar, MenuButton, MenuItem, MenuItemCheckbox, MenuItemGroup, MenuItemRadio, MenuPanel, Select, Toggle } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { SIZE_LABELS } from '@airlib/aui/utils';
+
+const MenuDemo = setup(() => {
+  const state = mutable({
+    open: false,
+    size: 'md',
+    disabled: false,
+    wrap: true,
+    alignment: 'left',
+    last: 'No command yet',
+  });
+
+  return () => (
+    <div className="demo-button">
+      <div className="flex gap-xs w-full flex-wrap">
+        <Select size="sm" placeholder="Item size" options={SIZE_LABELS} value={$bind(state, 'size')} />
+        <div className="flex-1"></div>
+        <Toggle size="sm" pressed={$bind(state, 'open')}>
+          {() => (state.open ? 'Close menu' : 'Open menu')}
+        </Toggle>
+        <Toggle size="sm" pressed={$bind(state, 'disabled')}>
+          {() => (state.disabled ? 'Set Enabled' : 'Set Disabled')}
+        </Toggle>
+      </div>
+      <div className="aui-card flex flex-col gap-lg items-center justify-center p-xl">
+        <span>Every item role in one panel — commands, checkboxes, and a radio group</span>
+        <Snippet>
+          {() => (
+            <Menu
+              label="Document actions"
+              open={$bind(state, 'open')}
+              disabled={state.disabled}
+              oncommand={(event) => (state.last = `Command: ${event.detail}`)}
+            >
+              <MenuButton>Options</MenuButton>
+              <MenuPanel>
+                <MenuItem name="new-file" size={state.size}>
+                  New document
+                </MenuItem>
+                <MenuItem name="open-file" size={state.size}>
+                  Open…
+                </MenuItem>
+                <MenuItem name="save-file" size={state.size} disabled>
+                  Save
+                </MenuItem>
+                <Divider />
+                <MenuItemCheckbox name="word-wrap" size={state.size} checked={$bind(state, 'wrap')}>
+                  Word wrap
+                </MenuItemCheckbox>
+                <Divider />
+                <MenuItemGroup label="Alignment" value={$bind(state, 'alignment')}>
+                  <MenuItemRadio value="left" size={state.size}>
+                    Align left
+                  </MenuItemRadio>
+                  <MenuItemRadio value="center" size={state.size}>
+                    Align center
+                  </MenuItemRadio>
+                  <MenuItemRadio value="right" size={state.size}>
+                    Align right
+                  </MenuItemRadio>
+                </MenuItemGroup>
+              </MenuPanel>
+            </Menu>
+          )}
+        </Snippet>
+        <span>{state.last}</span>
+        <Snippet>
+          {() => (
+            <MenuBar label="Main">
+              <Menu label="File">
+                <MenuButton>File</MenuButton>
+                <MenuPanel>
+                  <MenuItem name="new-file">New document</MenuItem>
+                  <MenuItem name="open-file">Open…</MenuItem>
+                </MenuPanel>
+              </Menu>
+              <Menu label="Edit">
+                <MenuButton>Edit</MenuButton>
+                <MenuPanel>
+                  <MenuItem name="undo">Undo</MenuItem>
+                  <MenuItem name="redo">Redo</MenuItem>
+                </MenuPanel>
+              </Menu>
+            </MenuBar>
+          )}
+        </Snippet>
+      </div>
+    </div>
+  );
+}, 'MenuDemo');
+```
+
+```html
+<MenuDemo />
+```
+
+<MenuDemo />
+
+:::
+
+## Usage
+
+Put the trigger and the panel inside the root. They find each other; no ids or handlers cross between them:
+
+```tsx
+import { Menu, MenuButton, MenuItem, MenuPanel } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/menu.css';
+
+export const DocumentActions = () => (
+  <Menu label="Document actions" oncommand={(event) => run(event.detail)}>
+    <MenuButton>Options</MenuButton>
+    <MenuPanel>
+      <MenuItem name="new-file">New document</MenuItem>
+      <MenuItem name="open-file">Open…</MenuItem>
+      <MenuItem name="save-file">Save</MenuItem>
+    </MenuPanel>
+  </Menu>
+);
+```
+
+For the full library — tokens, base defaults, every component, and the utilities — load `import '@airlib/aui';` instead. A lone component stylesheet carries only that component's rules.
+
+Pass `label` on the root: the root and the panel share one name, and the panel compiles it as `aria-label`.
+
+### Visibility
+
+The trigger writes `open`, so the click, `Escape`, an outside press, and a command all land on the same value. Leave `open` out and the trigger owns it; set it and the menu follows yours. Bind it to open the menu from code:
+
+```tsx
+import { $bind, mutable } from '@airlib/react';
+
+const state = mutable({ open: false });
+
+<Menu label="Document actions" open={$bind(state, 'open')}>
+  <MenuButton>Options</MenuButton>
+  <MenuPanel>
+    <MenuItem name="new-file">New document</MenuItem>
+  </MenuPanel>
+</Menu>
+```
+
+`Escape` closes the panel and returns focus to the trigger. A press outside closes it too. `Tab` leaves the panel, stopping on each checkbox item and on the checked radio item first.
+
+### Commands
+
+Activation dispatches a command carrying the item's `name` and closes the panel on the same activation:
+
+```tsx
+<Menu label="Document actions" oncommand={(event) => run(event.detail)}>
+  <MenuButton>Options</MenuButton>
+  <MenuPanel>
+    <MenuItem name="duplicate">Duplicate</MenuItem>
+    <MenuItem name="delete" disabled>
+      Delete
+    </MenuItem>
+  </MenuPanel>
+</Menu>
+```
+
+A disabled item stays in the list but refuses activation. Disable the root to lock the trigger and every item together:
+
+```tsx
+<Menu label="Document actions" disabled>
+  <MenuButton>Options</MenuButton>
+  <MenuPanel>
+    <MenuItem name="new-file">New document</MenuItem>
+  </MenuPanel>
+</Menu>
+```
+
+### Checkbox and radio items
+
+A checkbox item keeps its own state and leaves the panel open, so a run of toggles is one visit to the menu. Bind `checked` to read and write it:
+
+```tsx
+<MenuItemCheckbox name="word-wrap" checked={$bind(state, 'wrap')}>
+  Word wrap
+</MenuItemCheckbox>
+```
+
+A radio item is checked when its group's value matches, and selecting it moves that value. `MenuItemGroup` holds the value its radios share:
+
+```tsx
+<MenuItemGroup label="Alignment" value={$bind(state, 'alignment')}>
+  <MenuItemRadio value="left">Align left</MenuItemRadio>
+  <MenuItemRadio value="center">Align center</MenuItemRadio>
+  <MenuItemRadio value="right">Align right</MenuItemRadio>
+</MenuItemGroup>
+```
+
+### Menu bar
+
+`MenuBar` holds several menus at one tab stop and moves across their triggers with the arrows. The arrows move focus only — opening stays with each trigger:
+
+```tsx
+<MenuBar label="Main">
+  <Menu label="File">
+    <MenuButton>File</MenuButton>
+    <MenuPanel>
+      <MenuItem name="new-file">New document</MenuItem>
+    </MenuPanel>
+  </Menu>
+  <Menu label="Edit">
+    <MenuButton>Edit</MenuButton>
+    <MenuPanel>
+      <MenuItem name="undo">Undo</MenuItem>
+    </MenuPanel>
+  </Menu>
+</MenuBar>
+```
+
+### Properties
+
+#### Menu
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `id` | `string` | `menu-<n>` | The namespace the trigger and panel identifiers derive from. |
+| `label` | `string` | — | The panel's accessible name. Pass it on the root. |
+| `open` | `Bindable<boolean>` | `false` | Popup visibility. Bind it to open or close from code. |
+| `disabled` | `boolean` | `false` | Locks the whole tree — the trigger refuses to open and every item refuses to invoke. |
+| `onopen` / `onclose` | `(event: CustomEvent<true \| false>) => void` | — | Called after the panel opens or closes, through every dismissal path. |
+| `oncommand` | `(event: CustomEvent<string>) => void` | — | Receives every item command, with the item's `name` in `detail`. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `children` | `ReactNode` | — | The trigger and the panel. |
+| `ref` | `Ref<HTMLDivElement>` | — | Access to the root element. |
+
+#### MenuButton
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `disabled` | `boolean` | `false` | Refuses this trigger. The root's `disabled` applies on top of it. |
+| `size` | shared size | `md` | Maps to the control size classes on the trigger. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `ref` | `Ref<HTMLButtonElement>` | — | Access to the trigger element. |
+
+#### MenuPanel
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `children` | `ReactNode` | — | The items, groups, and dividers. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+
+The panel reads the root's name, visibility, and disablement, and compiles `role="menu"`, `aria-orientation="vertical"`, and `hidden` while closed.
+
+#### MenuItem
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `name` | `string` | — | The command identity, carried in `detail`. |
+| `disabled` | `boolean` | `false` | Refuses this item. The root's `disabled` applies on top of it. |
+| `size` | shared size | `md` | Maps to the item size classes. |
+| `oncommand` | `(event: CustomEvent<string>) => void` | — | Called on this item's own activation. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `children` | `ReactNode` | — | The item label. |
+| `ref` | `Ref<HTMLButtonElement>` | — | Access to the item element. |
+
+#### MenuItemCheckbox
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `name` | `string` | — | Identity carried for form-style consumers. |
+| `checked` | `Bindable<boolean>` | `false` | The toggle state. Activation writes it back. |
+| `indeterminate` | `boolean` | `false` | Compiles `aria-checked="mixed"`. Activation from mixed commits `true`. |
+| `disabled` | `boolean` | `false` | Refuses this item. |
+| `required` | `boolean` | `false` | Announces the item as required. |
+| `oninput` / `onchange` | `(event: CustomEvent<boolean>) => void` | — | Called as the activation lands and after the state commits. |
+| `size` | shared size | `md` | Maps to the item size classes. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+
+#### MenuItemRadio
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `value` | `string` | — | The value this item contributes to its group. |
+| `checked` | `Bindable<boolean>` | `false` | Whether the group's value matches this item. |
+| `disabled` | `boolean` | `false` | Refuses this item. |
+| `onchange` | `(event: CustomEvent<boolean>) => void` | — | Called after the selection commits. |
+| `size` | shared size | `md` | Maps to the item size classes. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+
+#### MenuItemGroup
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `label` | `string` | — | The name announced for the section. |
+| `labelledby` | `string` | — | The id of an element that provides that name. |
+| `value` | `Bindable<string>` | — | The checked value the radios inside are measured against. Selecting one writes it. |
+| `multiple` | `boolean` | `false` | Declares that more than one member may be selected. |
+| `required` | `boolean` | `false` | Announces the group as required. |
+| `disabled` | `boolean` | `false` | Locks the group. |
+
+#### MenuBar
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `label` / `labelledby` | `string` | — | The bar's accessible name. |
+| `orientation` | `'horizontal' \| 'vertical'` | `'horizontal'` | Chooses the direction the roving arrows travel. The role still announces a menubar. |
+| `disabled` | `boolean` | `false` | Refuses the bar's own roving keys. Does not reach the triggers inside it. |
+
+Your own classes are added next to the built-in ones:
+
+```tsx
+// class="aui-menu my-menu"
+<Menu className="my-menu" label="Document actions">
+  <MenuButton>Options</MenuButton>
+  <MenuPanel className="my-panel">
+    <MenuItem name="new-file" className="my-item">
+      New document
+    </MenuItem>
+  </MenuPanel>
+</Menu>
+```
+
+To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+
+## Next Steps
+
+- [Context Menu](/docs/widgets/context-menu) — The same items anchored to a pointer or a keyboard shortcut.
+- [Select](/docs/widgets/select) — A list of values behind a trigger, with the chosen one committed.
+- [Popover](/docs/widgets/popover) — A panel that holds content rather than commands.
+- [Dialog](/docs/widgets/dialog) — A decision that needs the page's full attention.

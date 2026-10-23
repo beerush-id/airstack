@@ -1,0 +1,149 @@
+@layer theme {
+  :root {
+    --aui-grid-radius: var(--radius-md);
+    --aui-grid-outline: var(--color-outline-variant);
+    --aui-grid-head-bg: var(--color-surface-container);
+    --aui-grid-head-fg: var(--color-on-surface-variant);
+    --aui-grid-cell-padding-block: calc(var(--spacing) * 2);
+    --aui-grid-cell-padding-inline: calc(var(--spacing) * 3);
+    --aui-grid-hover-bg: color-mix(in oklch, var(--color-on-surface) 7%, var(--color-surface));
+    --aui-grid-selected-bg: var(--color-primary);
+    --aui-grid-selected-fg: var(--color-on-primary);
+    --aui-grid-row-selected-bg: color-mix(in oklch, var(--color-primary) 16%, var(--color-surface));
+    --aui-grid-sort-size: calc(var(--spacing) * 1.2);
+  }
+}
+
+@layer component {
+  .aui-grid {
+    display: flex;
+    flex-direction: column;
+    inline-size: 100%;
+    border: 1px solid var(--aui-grid-outline);
+    border-radius: var(--aui-grid-radius);
+    background: var(--color-surface);
+    color: var(--color-on-surface);
+    overflow: hidden;
+
+    &:focus-visible {
+      outline: var(--focus-ring-width) var(--focus-ring-style) var(--focus-ring-color);
+      outline-offset: var(--focus-ring-offset);
+    }
+  }
+
+  .aui-grid-row {
+    display: flex;
+    align-items: stretch;
+    border-block-start: 1px solid var(--aui-grid-outline);
+
+    &:first-child {
+      border-block-start: 0;
+    }
+
+    &[aria-selected='true'] {
+      background-color: var(--aui-grid-row-selected-bg);
+    }
+
+    &[aria-disabled='true'] {
+      color: var(--color-disabled-fg);
+    }
+  }
+
+  .aui-grid-cell {
+    flex: 1 1 0;
+    min-inline-size: 0;
+    padding: var(--aui-grid-cell-padding-block) var(--aui-grid-cell-padding-inline);
+    color: inherit;
+    text-align: start;
+    overflow-wrap: anywhere;
+
+    &:focus-visible {
+      position: relative;
+      z-index: 1;
+      outline: var(--focus-ring-width) var(--focus-ring-style) var(--focus-ring-color);
+      outline-offset: calc(var(--focus-ring-offset) * -1);
+    }
+
+    &:hover:not([aria-selected='true']):not([aria-disabled='true']) {
+      background-color: var(--aui-grid-hover-bg);
+    }
+
+    &:active:not([aria-selected='true']):not([aria-disabled='true']) {
+      background-color: color-mix(in oklch, var(--color-on-surface) 11%, var(--color-surface));
+    }
+
+    &[aria-selected='true'] {
+      background-color: var(--aui-grid-selected-bg);
+      color: var(--aui-grid-selected-fg);
+      font-weight: 600;
+    }
+
+    &[aria-selected='true']:hover:not([aria-disabled='true']) {
+      background-color: color-mix(
+        in oklch,
+        var(--aui-grid-selected-bg) 88%,
+        var(--color-on-primary)
+      );
+    }
+
+    &[aria-disabled='true'] {
+      color: var(--color-disabled-fg);
+      cursor: not-allowed;
+
+      &:hover {
+        background-color: transparent;
+      }
+    }
+
+    &[contenteditable='true'] {
+      cursor: text;
+      box-shadow: inset 0 0 0 var(--focus-ring-width) var(--aui-grid-selected-bg);
+    }
+  }
+
+  .aui-grid-column-header,
+  .aui-grid-row-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    background-color: var(--aui-grid-head-bg);
+    color: var(--aui-grid-head-fg);
+    font-size: var(--font-label-md-size);
+    font-weight: 600;
+    letter-spacing: var(--font-label-md-tracking);
+    text-transform: none;
+  }
+
+  .aui-grid-column-header[aria-sort]::after {
+    content: '';
+    flex: none;
+    inline-size: var(--aui-grid-sort-size);
+    block-size: var(--aui-grid-sort-size);
+    border: 1px solid var(--aui-grid-head-fg);
+    border-radius: var(--radius-full);
+    opacity: 0.5;
+  }
+
+  .aui-grid-column-header[aria-sort='ascending']::after {
+    inline-size: 0;
+    block-size: 0;
+    border: 0;
+    border-inline: calc(var(--aui-grid-sort-size) * 0.5) solid transparent;
+    border-block-end: var(--aui-grid-sort-size) solid var(--aui-grid-head-fg);
+    opacity: 1;
+  }
+
+  .aui-grid-column-header[aria-sort='descending']::after {
+    inline-size: 0;
+    block-size: 0;
+    border: 0;
+    border-inline: calc(var(--aui-grid-sort-size) * 0.5) solid transparent;
+    border-block-start: var(--aui-grid-sort-size) solid var(--aui-grid-head-fg);
+    opacity: 1;
+  }
+
+  .aui-grid-column-header[aria-disabled='true'],
+  .aui-grid-row-header[aria-disabled='true'] {
+    opacity: 0.5;
+  }
+}

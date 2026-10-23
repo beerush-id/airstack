@@ -1,0 +1,260 @@
+---
+title: AUI Reorder
+nav: Reorder
+nav-priority: 397
+description: A collection that rearranges existing entries — preview order kept apart from the committed order, clamped movement, and Escape to put everything back.
+---
+
+# AUI Reorder
+
+A reorderable list lets people rearrange entries before committing the new sequence. The hard part is never the drag — it is **keeping the live preview away from the committed order**, **clamping movement at the ends**, **restoring the original sequence when the user cancels**, and **telling a preview move, a drop, and a cancel apart**.
+
+**AUI Reorder** does all of that for you, and leaves the markup, the announcements, and the styling entirely yours. The collection holds the committed order, the preview, and the held entry; each item publishes itself, and its handle drives the gesture.
+
+Styling is optional. Without AUI CSS the Reorder stays a correct, operable collection; with it, the same markup gets the AUI treatment through the full library.
+
+:::interactive[Reorder demo]
+
+```tsx
+import { Reorder, ReorderHandle, ReorderItem } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+
+const STEPS = ['build', 'lint', 'test', 'deploy'];
+const COLUMNS = ['todo', 'doing', 'done'];
+const TITLES: Record<string, string> = {
+  build: 'Build',
+  lint: 'Lint',
+  test: 'Test',
+  deploy: 'Deploy',
+  todo: 'To Do',
+  doing: 'In Progress',
+  done: 'Done',
+};
+
+const ReorderDemo = setup(() => {
+  const state = mutable({
+    steps: [...STEPS],
+    stepPreview: [...STEPS],
+    stepActive: null as string | null,
+    columns: [...COLUMNS],
+    columnPreview: [...COLUMNS],
+    columnActive: null as string | null,
+  });
+
+  return () => (
+    <div className="demo-button">
+      <div className="flex gap-xs w-full flex-wrap">
+        <Snippet>{() => <span className="text-sm">{state.steps.join(' → ')}</span>}</Snippet>
+      </div>
+      <div className="aui-card flex flex-col gap-lg p-xl">
+        <Snippet>
+          {() => (
+            <Reorder
+              label="Release checklist"
+              value={$bind(state, 'steps')}
+              preview={$bind(state, 'stepPreview')}
+              active={$bind(state, 'stepActive')}
+            >
+              {() =>
+                (state.stepActive ? state.stepPreview : state.steps).map((value) => (
+                  <ReorderItem key={value} value={value} disabled={value === 'lint'}>
+                    <span className="flex items-center gap-xs">
+                      <span className="text-sm">{state.stepPreview.indexOf(value) + 1}</span>
+                      <span>{TITLES[value]}</span>
+                    </span>
+                    <ReorderHandle label={`Move ${TITLES[value]}`}>
+                      {state.stepActive === value ? 'Drop' : 'Move'}
+                    </ReorderHandle>
+                  </ReorderItem>
+                ))
+              }
+            </Reorder>
+          )}
+        </Snippet>
+      </div>
+
+      <div className="aui-card flex flex-col gap-lg p-xl">
+        <Snippet>{() => <span className="text-sm">{state.columns.join(' → ')}</span>}</Snippet>
+        <Snippet>
+          {() => (
+            <Reorder
+              label="Board columns"
+              orientation="horizontal"
+              value={$bind(state, 'columns')}
+              preview={$bind(state, 'columnPreview')}
+              active={$bind(state, 'columnActive')}
+            >
+              {() =>
+                (state.columnActive ? state.columnPreview : state.columns).map((value) => (
+                  <ReorderItem key={value} value={value}>
+                    <span>{TITLES[value]}</span>
+                    <ReorderHandle label={`Move ${TITLES[value]}`}>
+                      {state.columnActive === value ? 'Drop' : 'Move'}
+                    </ReorderHandle>
+                  </ReorderItem>
+                ))
+              }
+            </Reorder>
+          )}
+        </Snippet>
+      </div>
+    </div>
+  );
+}, 'ReorderDemo');
+```
+
+```html
+<ReorderDemo />
+```
+
+<ReorderDemo />
+
+:::
+
+## Usage
+
+The collection takes the committed order; every item names the value it holds and carries its own handle:
+
+```tsx
+import { Reorder, ReorderHandle, ReorderItem } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/reorder.css';
+
+export const ReleaseChecklist = ({ order, onReorder }: { order: string[]; onReorder: (next: string[]) => void }) => (
+  <Reorder label="Release checklist" value={order} onchange={(event) => onReorder(event.detail)}>
+    {order.map((step) => (
+      <ReorderItem key={step} value={step}>
+        <span>{step}</span>
+        <ReorderHandle label={`Move ${step}`}>Move</ReorderHandle>
+      </ReorderItem>
+    ))}
+  </Reorder>
+);
+```
+
+For the full library — tokens, base defaults, every component, and the utilities — load `import '@airlib/aui';` instead. A lone component stylesheet carries only that component's rules.
+
+### The committed order, the preview, and the held entry
+
+`value` is the committed sequence. `preview` is the pending one while an entry is held, and `active` names that entry. Bind all three when the collection should follow the gesture visually:
+
+```tsx
+const state = mutable({ order: ['build', 'test'], preview: ['build', 'test'], active: null as string | null });
+
+<Reorder
+  label="Release checklist"
+  value={$bind(state, 'order')}
+  preview={$bind(state, 'preview')}
+  active={$bind(state, 'active')}
+>
+  {() =>
+    (state.active ? state.preview : state.order).map((step) => (
+      <ReorderItem key={step} value={step}>
+        <span>{step}</span>
+        <ReorderHandle label={`Move ${step}`}>Move</ReorderHandle>
+      </ReorderItem>
+    ))
+  }
+</Reorder>;
+```
+
+Moving rewrites only `preview`. `value` changes on drop, and only when the order actually differs — picking an entry up and putting it back fires nothing at all.
+
+### Orientation
+
+`orientation` is fixed when the collection is created: `'vertical'` (the default) moves entries with `ArrowUp` and `ArrowDown`, `'horizontal'` with `ArrowLeft` and `ArrowRight`. AUI adds the horizontal class the flex row needs:
+
+```tsx
+<Reorder label="Board columns" orientation="horizontal" value={columns}>
+  {/* items */}
+</Reorder>
+```
+
+### Locking entries
+
+`disabled` on the collection locks the whole gesture. `disabled` on an item keeps that entry from being picked up while the others can still move past it:
+
+```tsx
+<ReorderItem value="lint" disabled>
+  <span>Lint</span>
+  <ReorderHandle label="Move Lint">Move</ReorderHandle>
+</ReorderItem>
+```
+
+### The handle
+
+`ReorderHandle` is the grip: a real `<button type="button">` named by `label`. Activating it picks the entry up, activating it again drops it, and a pointer drag is the same gesture — press picks up, crossing a sibling's midpoint rewrites the preview, release drops:
+
+```tsx
+<ReorderHandle label="Move Build">Move</ReorderHandle>
+```
+
+`Escape` cancels and restores the committed order. `Tab` cancels too, then lets focus move on naturally instead of trapping it.
+
+### Events
+
+| Event | Fires when | Detail |
+| --- | --- | --- |
+| `oninput` | The held entry moves to a new slot | The preview array |
+| `onchange` | A drop commits a changed order | The committed array |
+| `oncancel` | `Escape` or `Tab` aborts the gesture | The canceled entry's value |
+
+A programmatic write to `value` is silent, because no one acted.
+
+### Properties
+
+#### Reorder
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `label` | `string` | — | The collection's accessible name. |
+| `labelledby` | `string` | — | An element id that labels the collection instead. |
+| `value` | `Bindable<string[]>` | `[]` | The committed sequence. |
+| `preview` | `Bindable<string[]>` | — | The live sequence while an entry is held. |
+| `active` | `Bindable<string \| null>` | `null` | The held entry's value. |
+| `orientation` | `'vertical'`, `'horizontal'` | `'vertical'` | Which arrow pair moves the held entry. |
+| `disabled` | `boolean` | `false` | Locks pickup and movement across the collection. |
+| `id` | `string` | generated | The collection's DOM identifier. |
+| `oninput` | `(event: CustomEvent<string[]>) => void` | — | Each preview move. |
+| `onchange` | `(event: CustomEvent<string[]>) => void` | — | Each committed drop. |
+| `oncancel` | `(event: CustomEvent<string>) => void` | — | Each cancel, with the entry that was held. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `children` | `ReactNode \| (reorder) => ReactNode` | — | Items, or a function child that receives the collection. |
+| `ref` | `Ref<HTMLUListElement>` | — | Access to the collection element. |
+
+#### ReorderItem
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `value` | `string` | required | The identity matched against `value` and `preview`. |
+| `label` | `string` | — | The item's accessible name. |
+| `disabled` | `boolean` | `false` | Keeps this entry from being picked up. |
+| `id` | `string` | — | The item's DOM identifier. |
+| `children` | `ReactNode \| (item) => ReactNode` | — | Content and the handle; a function child receives the item, including its index. |
+
+#### ReorderHandle
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `label` | `string` | — | The handle's accessible name, such as `"Move Build"`. |
+| `disabled` | `boolean` | `false` | Disables this handle directly. |
+| `id` | `string` | — | The handle's DOM identifier. |
+| `children` | `ReactNode` | — | The handle's content. |
+
+Your own classes are added next to the built-in ones:
+
+```tsx
+// class="aui-reorder my-checklist"
+<Reorder className="my-checklist" label="Release checklist" value={order}>
+  {/* items */}
+</Reorder>
+```
+
+To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+
+Keyboard: `Enter` or `Space` picks the held entry up and drops it again; the arrows move it one slot, `Home` and `End` take it to the ends, `Escape` cancels, and `Tab` cancels while letting focus leave.
+
+## Next Steps
+
+- [Tree](/docs/widgets/tree) — A hierarchy where order is stable and movement is expansion.
+- [Listbox](/docs/widgets/listbox) — Selection across a flat collection.
+- [Accordion](/docs/widgets/accordion) — Reordering-free disclosure stacks.

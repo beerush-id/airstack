@@ -1,0 +1,163 @@
+---
+title: AUI Accordion
+nav: Accordion
+nav-priority: 320
+description: Stacked collapsible sections with paired headers and panels — single or multiple expansion, arrow-key travel.
+---
+
+# AUI Accordion
+
+An accordion stacks sections that open and close behind their headers: shipping, returns, and support answers on one page. Getting it right means pairing every header with its panel, announcing which sections are open, letting the arrow keys travel the headers, and telling your code when the expansion changes.
+
+**AUI Accordion** does all of that for you, and leaves the markup and the styling entirely yours. The pairing is derived, not tracked: give a header and a panel the same `name` and both sides of `aria-controls` and `aria-labelledby` are built from it — no identifiers to keep in step, and no mount order to respect.
+
+Styling is optional. Without AUI CSS the Accordion stays a correct, operable group; with it, the same markup gets the AUI treatment through the full library.
+
+:::interactive[Accordion demo]
+
+```tsx
+import { Accordion, AccordionButton, AccordionPanel, Toggle } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+
+const AccordionDemo = setup(() => {
+  const state = mutable({ section: 'shipping', stops: ['payment'], disabled: false });
+
+  return () => (
+    <div className="demo-button">
+      <div className="flex gap-xs w-full">
+        <div className="flex-1"></div>
+        <Toggle size="sm" pressed={$bind(state, 'disabled')}>
+          {() => (state.disabled ? 'Set Enabled' : 'Set Disabled')}
+        </Toggle>
+      </div>
+      <div className="aui-card flex flex-col gap-lg justify-center p-xl">
+        <span>One section open at a time — click it again to close</span>
+        <Snippet>
+          {() => (
+            <Accordion value={$bind(state, 'section')} disabled={state.disabled}>
+              <AccordionButton name="shipping">Shipping</AccordionButton>
+              <AccordionPanel name="shipping">Orders leave the warehouse within two business days.</AccordionPanel>
+              <AccordionButton name="returns">Returns</AccordionButton>
+              <AccordionPanel name="returns">Send anything back within 30 days for a full refund.</AccordionPanel>
+            </Accordion>
+          )}
+        </Snippet>
+        <span>Each section opens and closes on its own</span>
+        <Snippet>
+          {() => (
+            <Accordion multiple value={$bind(state, 'stops')} disabled={state.disabled}>
+              <AccordionButton name="payment">Payment</AccordionButton>
+              <AccordionPanel name="payment">Cards, bank transfer, and split payments.</AccordionPanel>
+              <AccordionButton name="insurance">Insurance</AccordionButton>
+              <AccordionPanel name="insurance">Coverage can be added any time before departure.</AccordionPanel>
+            </Accordion>
+          )}
+        </Snippet>
+        <span>Locked — nothing activates and the arrow keys stay put</span>
+        <Snippet>
+          {() => (
+            <Accordion value="shipping" disabled>
+              <AccordionButton name="shipping">Shipping</AccordionButton>
+              <AccordionPanel name="shipping">Orders leave the warehouse within two business days.</AccordionPanel>
+            </Accordion>
+          )}
+        </Snippet>
+      </div>
+    </div>
+  );
+}, 'AccordionDemo');
+```
+
+```html
+<AccordionDemo />
+```
+
+<AccordionDemo />
+
+:::
+
+## Usage
+
+The group as a whole holds which sections are open, and the headers and the panels all follow it. The root is a plain container with no role of its own, so your layout stays yours:
+
+```tsx
+import { Accordion, AccordionButton, AccordionPanel } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/accordion.css';
+
+export const ShippingFaq = () => (
+  <Accordion value="shipping">
+    <AccordionButton name="shipping">Shipping</AccordionButton>
+    <AccordionPanel name="shipping">Orders leave the warehouse within two business days.</AccordionPanel>
+    <AccordionButton name="returns">Returns</AccordionButton>
+    <AccordionPanel name="returns">Send anything back within 30 days for a full refund.</AccordionPanel>
+  </Accordion>
+);
+```
+
+For the full library — tokens, base defaults, every component, and the utilities — load `import '@airlib/aui';` instead. A lone component stylesheet carries only that component's rules.
+
+Single expansion collapses freely: activating the open section closes it and the value reads `undefined`. Pass `required` to keep one section open instead — with no value of your own, the first header to mount takes it:
+
+```tsx
+<Accordion required>
+  {/* one section always stays open */}
+</Accordion>
+```
+
+For several sections open at once, declare the array archetype. `multiple` and `value` narrow together, so each section toggles on its own and `onchange` carries the whole list:
+
+```tsx
+<Accordion multiple value={['payment', 'insurance']}>
+  <AccordionButton name="payment">Payment</AccordionButton>
+  <AccordionPanel name="payment">Cards, bank transfer, and split payments.</AccordionPanel>
+  <AccordionButton name="insurance">Insurance</AccordionButton>
+  <AccordionPanel name="insurance">Coverage can be added any time before departure.</AccordionPanel>
+</Accordion>
+```
+
+Leave `value` out and the group keeps its own expansion; set it and the group follows your state. Bind it to drive the sections from outside:
+
+```tsx
+import { $bind, mutable } from '@airlib/react';
+
+const state = mutable({ section: 'shipping' });
+
+<Accordion value={$bind(state, 'section')}>
+  {/* ... */}
+</Accordion>
+```
+
+### Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `id` | `string` | `accordion-<n>` | The prefix both sides of the pairing are built from. Generated when you leave it out. |
+| `value` | `Bindable<string \| string[] \| null>` | — | The open section name, or the list of names with `multiple` (`[]` means none, `null` means everything closed in single mode). Bind it to read and write the expansion from outside. |
+| `multiple` | `boolean` | `false` | Declares the array archetype, where `value` is a list of names and each section toggles on its own. |
+| `required` | `boolean` | `false` | Single expansion only: keeps one section open and refuses the collapse. |
+| `disabled` | `boolean` | `false` | Locks activation and the arrow keys across the whole group. |
+| `orientation` | `'horizontal' \| 'vertical'` | `'vertical'` | Which arrow keys travel the headers. Reaches the keys only — the root compiles no `aria-orientation`. |
+| `manual` | `boolean` | `true` | Whether moving focus leaves the sections alone. Pass `false` and each header opens as focus reaches it. |
+| `onchange` | `(event: CustomEvent<string \| string[] \| null>) => void` | — | Fires once per commit with the whole value in `detail`. A vetoed activation fires nothing. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `children` | `ReactNode` | — | Headers and panels paired by matching `name` values. |
+| `ref` | `Ref<HTMLDivElement>` | — | Access to the accordion root element. |
+
+Each header is a native `button` announced with `aria-expanded` plus `aria-controls` pointing at its paired panel. Every enabled header stays in the tab order — no roving tabindex. `ArrowDown` / `ArrowUp` focus the next / previous enabled header (or `ArrowLeft` / `ArrowRight` when horizontal), wrapping at the ends; `Home` / `End` jump to the first / last. A standalone header with no accordion above it toggles its own section.
+
+Your own classes are added next to the built-in ones:
+
+```tsx
+// class="aui-accordion my-faq"
+<Accordion className="my-faq">
+  {/* ... */}
+</Accordion>
+```
+
+To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+
+## Next Steps
+
+- [Disclosure](/docs/widgets/disclosure) — The single-section unit this group is built from.
+- [Tabs](/docs/widgets/tabs) — Paired triggers and panels that swap instead of collapsing.
+- [Divider](/docs/widgets/divider) — The static structural rule between stacked sections.

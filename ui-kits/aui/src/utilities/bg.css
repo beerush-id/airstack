@@ -1,0 +1,164 @@
+@layer utility {
+  /*
+   * Background primitives. One concern per class so apps compose
+   * (e.g. `bg-primary-container fg-on-primary-container`).
+   * Each class maps a theme `--color-*` token to `background-color`;
+   * light/dark adaptation lives in the token, not here.
+   * Tier 1 only: flat selectors, cascade-layered, no color functions.
+   */
+
+  /* ---- core palette ---- */
+  .bg-primary {
+    background-color: var(--color-primary);
+  }
+  .bg-on-primary {
+    background-color: var(--color-on-primary);
+  }
+  .bg-secondary {
+    background-color: var(--color-secondary);
+  }
+  .bg-on-secondary {
+    background-color: var(--color-on-secondary);
+  }
+  .bg-tertiary {
+    background-color: var(--color-tertiary);
+  }
+  .bg-on-tertiary {
+    background-color: var(--color-on-tertiary);
+  }
+  .bg-error {
+    background-color: var(--color-error);
+  }
+  .bg-on-error {
+    background-color: var(--color-on-error);
+  }
+  .bg-success {
+    background-color: var(--color-success);
+  }
+  .bg-on-success {
+    background-color: var(--color-on-success);
+  }
+  .bg-warning {
+    background-color: var(--color-warning);
+  }
+  .bg-on-warning {
+    background-color: var(--color-on-warning);
+  }
+  .bg-info {
+    background-color: var(--color-info);
+  }
+  .bg-on-info {
+    background-color: var(--color-on-info);
+  }
+
+  /* ---- surfaces ---- */
+  .bg-surface {
+    background-color: var(--color-surface);
+  }
+  .bg-on-surface {
+    background-color: var(--color-on-surface);
+  }
+  .bg-ghost-surface {
+    background-color: var(--color-ghost-surface);
+  }
+  .bg-surface-lowest {
+    background-color: var(--color-surface-lowest);
+  }
+  .bg-surface-low {
+    background-color: var(--color-surface-low);
+  }
+  .bg-surface-container {
+    background-color: var(--color-surface-container);
+  }
+  .bg-surface-high {
+    background-color: var(--color-surface-high);
+  }
+  .bg-surface-highest {
+    background-color: var(--color-surface-highest);
+  }
+  .bg-surface-variant {
+    background-color: var(--color-surface-variant);
+  }
+  .bg-on-surface-variant {
+    background-color: var(--color-on-surface-variant);
+  }
+
+  /* ---- containers ---- */
+  .bg-primary-container {
+    background-color: var(--color-primary-container);
+  }
+  .bg-on-primary-container {
+    background-color: var(--color-on-primary-container);
+  }
+  .bg-secondary-container {
+    background-color: var(--color-secondary-container);
+  }
+  .bg-on-secondary-container {
+    background-color: var(--color-on-secondary-container);
+  }
+  .bg-tertiary-container {
+    background-color: var(--color-tertiary-container);
+  }
+  .bg-on-tertiary-container {
+    background-color: var(--color-on-tertiary-container);
+  }
+  .bg-error-container {
+    background-color: var(--color-error-container);
+  }
+  .bg-on-error-container {
+    background-color: var(--color-on-error-container);
+  }
+  .bg-success-container {
+    background-color: var(--color-success-container);
+  }
+  .bg-on-success-container {
+    background-color: var(--color-on-success-container);
+  }
+  .bg-warning-container {
+    background-color: var(--color-warning-container);
+  }
+  .bg-on-warning-container {
+    background-color: var(--color-on-warning-container);
+  }
+  .bg-info-container {
+    background-color: var(--color-info-container);
+  }
+  .bg-on-info-container {
+    background-color: var(--color-on-info-container);
+  }
+
+  /* ---- outline ---- */
+  .bg-outline {
+    background-color: var(--color-outline);
+  }
+  .bg-outline-variant {
+    background-color: var(--color-outline-variant);
+  }
+
+  /* ---- inverse ---- */
+  .bg-inverse-surface {
+    background-color: var(--color-inverse-surface);
+  }
+  .bg-inverse-on-surface {
+    background-color: var(--color-inverse-on-surface);
+  }
+  .bg-inverse-primary {
+    background-color: var(--color-inverse-primary);
+  }
+
+  /* ---- scrim / shadow / overlay ---- */
+  .bg-scrim {
+    background-color: var(--color-scrim);
+  }
+  .bg-shadow {
+    background-color: var(--color-shadow);
+  }
+  .bg-overlay-container {
+    background-color: var(--color-overlay-container);
+  }
+
+  /* ---- transparent escape hatch ---- */
+  .bg-transparent {
+    background-color: transparent;
+  }
+}

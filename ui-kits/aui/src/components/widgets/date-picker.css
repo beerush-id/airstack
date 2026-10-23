@@ -1,0 +1,207 @@
+@layer theme {
+  :root {
+    --aui-date-picker-gap: var(--spacing-sm);
+    --aui-date-picker-padding: var(--spacing-md);
+    --aui-date-picker-bar-gap: var(--spacing-xs);
+
+    --aui-date-picker-fg: var(--color-on-surface);
+    --aui-date-picker-muted: var(--color-on-surface-variant);
+    --aui-date-picker-outline: var(--color-outline);
+    --aui-date-picker-hover-bg: var(--color-surface-high);
+
+    --aui-date-picker-selected-bg: var(--color-primary);
+    --aui-date-picker-selected-fg: var(--color-on-primary);
+    --aui-date-picker-range-bg: color-mix(in oklch, var(--color-primary) 18%, transparent);
+    --aui-date-picker-today-ring: var(--color-primary);
+
+    --aui-date-picker-day-size: calc(var(--spacing) * 9);
+    --aui-date-picker-day-radius: var(--radius-full);
+    --aui-date-picker-year-width: calc(var(--spacing) * 18);
+  }
+}
+
+@layer component {
+  .aui-date-picker,
+  .aui-date-range-picker {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--aui-date-picker-bar-gap);
+    position: relative;
+    color: var(--aui-date-picker-fg);
+  }
+
+  .aui-date-picker-input {
+    flex: 1 1 calc(var(--spacing) * 32);
+    min-inline-size: 0;
+    padding: calc(var(--spacing) * 2) calc(var(--spacing) * 3);
+    border: 1px solid var(--aui-date-picker-outline);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    color: inherit;
+    font: inherit;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
+
+    &::placeholder {
+      color: var(--aui-date-picker-muted);
+    }
+
+    &:focus-visible {
+      outline: var(--focus-ring-width) var(--focus-ring-style) var(--focus-ring-color);
+      outline-offset: var(--focus-ring-offset);
+      border-color: var(--aui-date-picker-selected-bg);
+    }
+
+    &[aria-invalid='true'] {
+      border-color: var(--color-error);
+    }
+
+    &:disabled,
+    &[aria-disabled='true'] {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  .aui-control.aui-date-picker-trigger {
+    --aui-control-height: calc(var(--spacing) * 11);
+    --aui-control-padding-x: calc(var(--spacing) * 3);
+    --aui-control-bg: var(--color-surface-container);
+  }
+
+  /* The calendar rides on the menu-panel surface; this only adds its layout. */
+  .aui-date-picker-calendar {
+    gap: var(--aui-date-picker-gap);
+    padding: var(--aui-date-picker-padding);
+    inline-size: max-content;
+
+    &[hidden] {
+      display: none;
+    }
+  }
+
+  .aui-date-picker-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--aui-date-picker-bar-gap);
+    min-block-size: var(--aui-date-picker-day-size);
+  }
+
+  .aui-control.aui-date-picker-nav {
+    --aui-control-height: var(--aui-date-picker-day-size);
+    --aui-control-padding-x: var(--spacing-sm);
+    --aui-control-bg: transparent;
+    --aui-control-outline-color: transparent;
+    color: var(--aui-date-picker-fg);
+    font-size: var(--font-title-sm-size);
+
+    &:hover {
+      background-color: var(--aui-date-picker-hover-bg);
+    }
+
+    &:active {
+      background-color: var(--aui-date-picker-range-bg);
+    }
+
+    &[aria-disabled='true'] {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+  }
+
+  .aui-date-picker-year {
+    inline-size: var(--aui-date-picker-year-width);
+    padding-block: var(--spacing-xs);
+    padding-inline: var(--spacing-sm);
+    border: 0;
+    border-radius: var(--radius-xs);
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+
+    &:hover {
+      background-color: var(--aui-date-picker-hover-bg);
+    }
+
+    &:focus-visible {
+      outline: var(--focus-ring-width) var(--focus-ring-style) var(--focus-ring-color);
+      outline-offset: var(--focus-ring-offset);
+    }
+  }
+
+  .aui-date-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(7, var(--aui-date-picker-day-size));
+    justify-content: center;
+    gap: var(--spacing-xs);
+  }
+
+  .aui-date-picker-weekday {
+    display: grid;
+    place-items: center;
+    color: var(--aui-date-picker-muted);
+    font-size: var(--font-label-sm-size);
+    font-weight: 600;
+    text-transform: capitalize;
+  }
+
+  .aui-date-picker-day {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 1;
+    min-block-size: var(--aui-date-picker-day-size);
+    padding: 0;
+    border-radius: var(--aui-date-picker-day-radius);
+    color: var(--aui-date-picker-fg);
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    user-select: none;
+    transition-property: background-color, color, box-shadow;
+    transition-duration: var(--duration-short);
+    transition-timing-function: var(--ease-emphasized);
+
+    &:hover {
+      background-color: var(--aui-date-picker-hover-bg);
+    }
+
+    &:focus-visible {
+      outline: var(--focus-ring-width) var(--focus-ring-style) var(--focus-ring-color);
+      outline-offset: var(--focus-ring-offset);
+    }
+
+    &[data-offside='true'] {
+      color: var(--aui-date-picker-muted);
+      opacity: 0.65;
+    }
+
+    &[data-in-range='true'] {
+      background-color: var(--aui-date-picker-range-bg);
+      border-radius: var(--radius-xs);
+    }
+
+    &[aria-current='date'] {
+      box-shadow: inset 0 0 0 1px var(--aui-date-picker-today-ring);
+      font-weight: 700;
+    }
+
+    &[aria-selected='true'] {
+      background-color: var(--aui-date-picker-selected-bg);
+      color: var(--aui-date-picker-selected-fg);
+      font-weight: 700;
+      box-shadow: none;
+    }
+
+    &[aria-disabled='true'] {
+      opacity: 0.35;
+      cursor: not-allowed;
+
+      &:hover {
+        background-color: transparent;
+      }
+    }
+  }
+}

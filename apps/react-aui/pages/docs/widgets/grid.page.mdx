@@ -1,0 +1,355 @@
+---
+title: AUI Grid
+nav: Grid
+nav-priority: 352
+description: A two-dimensional table a keyboard can drive — one roving tab stop, arrows that only move focus, and Enter to commit the cell or its row.
+---
+
+# AUI Grid
+
+A grid is a table with a keyboard contract: every row and cell is reachable, but only one of them is a tab stop. The hard part is never the markup — it is **keeping one roving stop for the whole table**, **letting the arrows travel without choosing anything**, **stepping over locked cells without losing the column math**, and **committing through the same path a click takes**.
+
+**AUI Grid** does all of that for you, and leaves the markup and the styling entirely yours. The root holds the value and the mode; rows, cells, and headers find it in scope, so nothing is wired by hand.
+
+Styling is optional. Without AUI CSS the Grid stays a correct, operable table; with it, the same markup gets the AUI treatment through the full library.
+
+:::interactive[Grid demo]
+
+```tsx
+import {
+  Grid,
+  GridCell,
+  GridColumnHeader,
+  GridRow,
+  GridRowHeader,
+  Toggle,
+} from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+
+const GridDemo = setup(() => {
+  const state = mutable({
+    cell: 'ber',
+    row: 'front',
+    stock: 'none',
+    locked: false,
+  });
+
+  return () => (
+    <div className="demo-button">
+      <div className="flex gap-xs w-full flex-wrap">
+        <Toggle size="sm" pressed={$bind(state, 'locked')}>
+          {() => (state.locked ? 'Locked' : 'Unlocked')}
+        </Toggle>
+        <div className="flex-1"></div>
+        <Snippet>{() => <span>{state.cell}</span>}</Snippet>
+      </div>
+      <div className="aui-card flex flex-col gap-lg p-xl">
+        <Snippet>
+          {() => (
+            <Grid label="Departure board" value={$bind(state, 'cell')} disabled={state.locked}>
+              <GridRow name="head">
+                <GridColumnHeader name="city" colindex={1} sort="ascending">
+                  City
+                </GridColumnHeader>
+                <GridColumnHeader name="gate" colindex={2}>
+                  Gate
+                </GridColumnHeader>
+                <GridColumnHeader name="time" colindex={3}>
+                  Departs
+                </GridColumnHeader>
+              </GridRow>
+              <GridRow name="west">
+                <GridCell name="ams" colindex={1}>
+                  Amsterdam
+                </GridCell>
+                <GridCell name="ams-gate" colindex={2}>
+                  12
+                </GridCell>
+                <GridCell name="ams-time" colindex={3}>
+                  09:40
+                </GridCell>
+              </GridRow>
+              <GridRow name="east">
+                <GridCell name="ber" colindex={1}>
+                  Berlin
+                </GridCell>
+                <GridCell name="ber-gate" colindex={2} disabled>
+                  TBD
+                </GridCell>
+                <GridCell name="ber-time" colindex={3}>
+                  10:15
+                </GridCell>
+              </GridRow>
+            </Grid>
+          )}
+        </Snippet>
+      </div>
+
+      <div className="aui-card flex flex-col gap-lg p-xl">
+        <Snippet>
+          {() => (
+            <Grid
+              label="Cabin seats"
+              selectionMode="row"
+              value={$bind(state, 'row')}
+              onchange={(event) => (state.row = String(event.detail))}
+            >
+              <GridRow name="front">
+                <GridRowHeader name="r-front" rowindex={1}>
+                  Front
+                </GridRowHeader>
+                <GridCell name="f-a" colindex={2}>
+                  1A
+                </GridCell>
+                <GridCell name="f-b" colindex={3}>
+                  1B
+                </GridCell>
+              </GridRow>
+              <GridRow name="back">
+                <GridRowHeader name="r-back" rowindex={2}>
+                  Back
+                </GridRowHeader>
+                <GridCell name="b-a" colindex={2}>
+                  2A
+                </GridCell>
+                <GridCell name="b-b" colindex={3}>
+                  2B
+                </GridCell>
+              </GridRow>
+            </Grid>
+          )}
+        </Snippet>
+      </div>
+
+      <div className="aui-card flex flex-col gap-lg p-xl">
+        <Snippet>
+          {() => (
+            <Grid
+              label="Stock list"
+              editable
+              value={$bind(state, 'stock')}
+              onchange={(event) => (state.stock = String(event.detail))}
+            >
+              <GridRow name="head">
+                <GridColumnHeader name="h-item" colindex={1}>
+                  Item
+                </GridColumnHeader>
+                <GridColumnHeader name="h-count" colindex={2}>
+                  In stock
+                </GridColumnHeader>
+              </GridRow>
+              <GridRow name="fruit">
+                <GridCell name="apples" colindex={1} value="Apples">
+                  Apples
+                </GridCell>
+                <GridCell name="apples-count" colindex={2} value="12">
+                  12
+                </GridCell>
+              </GridRow>
+              <GridRow name="veg">
+                <GridCell name="carrots" colindex={1} value="Carrots">
+                  Carrots
+                </GridCell>
+                <GridCell name="carrots-count" colindex={2} value="30">
+                  30
+                </GridCell>
+              </GridRow>
+            </Grid>
+          )}
+        </Snippet>
+      </div>
+    </div>
+  );
+}, 'GridDemo');
+```
+
+```html
+<GridDemo />
+```
+
+<GridDemo />
+
+:::
+
+## Usage
+
+The root takes the value and the mode; rows and cells declare their own names. Everything in between — the headers, the columns, the cell content — is yours to arrange:
+
+```tsx
+import {
+  Grid,
+  GridCell,
+  GridColumnHeader,
+  GridRow,
+} from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/grid.css';
+
+export const Departures = ({ onPick }: { onPick: (name: string) => void }) => (
+  <Grid label="Departure board" onchange={(event) => onPick(String(event.detail))}>
+    <GridRow name="head">
+      <GridColumnHeader name="city" colindex={1}>
+        City
+      </GridColumnHeader>
+      <GridColumnHeader name="gate" colindex={2}>
+        Gate
+      </GridColumnHeader>
+    </GridRow>
+    <GridRow name="west">
+      <GridCell name="ams" colindex={1}>
+        Amsterdam
+      </GridCell>
+      <GridCell name="ams-gate" colindex={2}>
+        12
+      </GridCell>
+    </GridRow>
+  </Grid>
+);
+```
+
+For the full library — tokens, base defaults, every component, and the utilities — load `import '@airlib/aui';` instead. A lone component stylesheet carries only that component's rules.
+
+### The value
+
+`value` holds the committed cell name in `cell` mode, or the committed row name in `row` mode. Writing it moves the selection and dispatches nothing; only an activation reports a change:
+
+```tsx
+const board = mutable({ seat: 'ber' });
+
+<Grid label="Departure board" value={$bind(board, 'seat')} onchange={(event) => console.log(event.detail)}>
+  {/* rows and cells */}
+</Grid>
+```
+
+### Selection modes
+
+`selectionMode="cell"` (the default) commits the cell you activate. `selectionMode="row"` lifts activation to the enclosing row, so clicking or pressing `Enter` anywhere in the line commits its `name`. Rows carry `aria-selected`, `aria-disabled`, and the tab stop only in row mode; in cell mode the cells do:
+
+```tsx
+<Grid label="Cabin seats" selectionMode="row">
+  <GridRow name="front">
+    <GridRowHeader name="r-front" rowindex={1}>
+      Front
+    </GridRowHeader>
+    <GridCell name="f-a" colindex={2}>
+      1A
+    </GridCell>
+  </GridRow>
+</Grid>
+```
+
+### Editable cells
+
+`editable` turns the picked cell into a text session: it compiles `contenteditable`, takes the caret at the end of its text, and freezes the arrows until `Escape` or a blur commits what was typed. A repeated click mid-edit is swallowed so the session survives it:
+
+```tsx
+<Grid label="Stock list" editable>
+  <GridRow name="fruit">
+    <GridCell name="apples-count" colindex={1} value="12">
+      12
+    </GridCell>
+  </GridRow>
+</Grid>
+```
+
+### Headers
+
+`GridColumnHeader` names a column and carries `aria-sort` (`ascending`, `descending`, `none`, or `other`); leave `sort` off a column that is not sortable and no `aria-sort` is written at all. `GridRowHeader` labels a line without joining its cells. Neither is a tab stop, and neither commits anything:
+
+```tsx
+<GridColumnHeader name="city" colindex={1} sort="ascending">
+  City
+</GridColumnHeader>
+```
+
+Wiring a header to your own sorting is yours; `disabled` is announced, not enforced.
+
+### Sizing the table
+
+`colcount` and `rowcount` describe the full extent of the table even when only part of it is rendered, so screen readers announce positions against the real grid:
+
+```tsx
+<Grid label="Orders" colcount={6} rowcount={480}>
+  {/* the rendered window */}
+</Grid>
+```
+
+### Treegrid
+
+`TreeGrid` is the same coordinator with the `treegrid` role. Expansion is your markup: which rows are open, and the attributes that say so, stay with you:
+
+```tsx
+import { TreeGrid } from '@airlib/react-aui';
+
+<TreeGrid label="Files">
+  <GridRow name="src">
+    <GridCell name="src-cell">src</GridCell>
+  </GridRow>
+</TreeGrid>;
+```
+
+### Properties
+
+#### Grid and TreeGrid
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `label` | `string` | — | The grid's name. A grid without one is unidentifiable, so pass it. |
+| `value` | `Bindable<string>` | — | The committed cell (or row) name. |
+| `selectionMode` | `'cell'`, `'row'` | `'cell'` | Whether activation commits the cell or lifts to its row. |
+| `colcount` | `number` | — | The full column extent, even when partly rendered. |
+| `rowcount` | `number` | — | The full row extent. |
+| `editable` | `boolean` | `false` | Lets a pick open a text session. |
+| `disabled` | `boolean` | `false` | Locks keys and commits across the grid. |
+| `id` | `string` | generated | The grid's DOM identifier. |
+| `onchange` | `(event: CustomEvent<unknown>) => void` | — | The committed value. Narrow `detail` where you read it. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `children` | `ReactNode` | — | Rows. |
+| `ref` | `Ref<HTMLDivElement>` | — | Access to the grid element. |
+
+#### GridRow
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `name` | `string` | — | The identity row mode commits. |
+| `rowindex` | `number` | — | The 1-based row position. |
+| `selected` | `Bindable<boolean>` | — | The initial hint, in row mode only. |
+| `disabled` | `boolean` | `false` | This line refuses commits. |
+
+#### GridCell
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `name` | `string` | required | The identity cell mode commits. |
+| `value` | `string` | — | The cell's text when an editable session starts. |
+| `colindex` | `number` | — | The 1-based column position. |
+| `readonly` | `boolean` | `false` | Announced as read-only; stays focusable and selectable. |
+| `selected` | `Bindable<boolean>` | — | The initial hint, in cell mode only. |
+| `disabled` | `boolean` | `false` | This cell refuses commits and leaves the tab order. |
+
+#### GridColumnHeader and GridRowHeader
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `name` | `string` | — | The header's identity. It never enters the grid value. |
+| `colindex` / `rowindex` | `number` | — | The 1-based position on its axis. |
+| `sort` | `'ascending'`, `'descending'`, `'none'`, `'other'` | — | Column headers only; compiled to `aria-sort`. |
+| `disabled` | `boolean` | `false` | Announced, not enforced. |
+
+Your own classes are added next to the built-in ones:
+
+```tsx
+// class="aui-grid my-grid"
+<Grid className="my-grid" label="Departures">
+  {/* rows */}
+</Grid>
+```
+
+To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+
+Keyboard: arrows move focus and never select. `Home` and `End` reach the row's ends, `PageUp` and `PageDown` the first and last row, and `Enter` commits the focused cell — or its row — while re-activating the same holder releases it. `Space` stays inert. `Tab` enters at the roving stop and leaves for the next thing on the page.
+
+## Next Steps
+
+- [Tree](/docs/widgets/tree) — The same hierarchy without the two-dimensional columns.
+- [Listbox](/docs/widgets/listbox) — One-dimensional selection with typeahead.
+- [Toolbar](/docs/widgets/toolbar) — The rover that takes over grid arrows when nested.

@@ -1,0 +1,197 @@
+---
+title: AUI Popover
+nav: Popover
+nav-priority: 300
+description: Floating panel anchored to its trigger — popup contract, focus handoff, Escape and outside-press dismissal, with placement left to CSS.
+---
+
+# AUI Popover
+
+A popover is a panel that floats next to the control that opened it: a shortcuts sheet, a filter form, a small inspector. Getting it right means linking the panel to its trigger without hand-wired ids, announcing whether it is open, moving focus in and handing it back on dismiss, and leaving the rest of the page usable while it shows.
+
+**AUI Popover** does all of that for you, and leaves the markup and the styling entirely yours. Render it inside the control it belongs to and the trigger is refined with `aria-haspopup`, `aria-expanded`, and `aria-controls`; the panel carries its own role, id, and `hidden` state. Placement arrives as `data-popover-x` and `data-popover-y` tokens for your stylesheet — nothing is positioned in JavaScript.
+
+Styling is optional. Without AUI CSS the Popover stays a correct, operable overlay; with it, the same markup gets the AUI treatment through the full library.
+
+:::interactive[Popover demo]
+
+```tsx
+import { Button, Popover, Toggle } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+
+const PopoverDemo = setup(() => {
+  const state = mutable({ open: false, dismissable: true, autofocus: true, above: false });
+
+  return () => (
+    <div className="demo-button">
+      <div className="flex gap-xs w-full flex-wrap">
+        <Toggle size="sm" pressed={$bind(state, 'open')}>
+          {() => (state.open ? 'Close panel' : 'Open panel')}
+        </Toggle>
+        <Toggle size="sm" pressed={$bind(state, 'dismissable')}>
+          {() => (state.dismissable ? 'Outside press closes' : 'Outside press ignored')}
+        </Toggle>
+        <Toggle size="sm" pressed={$bind(state, 'autofocus')}>
+          {() => (state.autofocus ? 'Focus moves in' : 'Focus stays put')}
+        </Toggle>
+        <Toggle size="sm" pressed={$bind(state, 'above')}>
+          {() => (state.above ? 'Placed above' : 'Placed below')}
+        </Toggle>
+      </div>
+      <div className="aui-card flex flex-wrap gap-lg items-center justify-center p-xl">
+        <Snippet>
+          {() => (
+            <Button>
+              Workspace shortcuts
+              <Popover
+                open={$bind(state, 'open')}
+                dismissable={state.dismissable}
+                autofocus={state.autofocus}
+                yDir={state.above ? 'above' : undefined}
+              >
+                <span>Find anything</span>
+                <span>Save</span>
+                <span>Command palette</span>
+                <small>Press Escape, or click outside, to dismiss.</small>
+              </Popover>
+            </Button>
+          )}
+        </Snippet>
+        <Snippet>
+          {() => (
+            <Button disabled>
+              Locked trigger
+              <Popover>Never shown while the control is disabled.</Popover>
+            </Button>
+          )}
+        </Snippet>
+      </div>
+    </div>
+  );
+}, 'PopoverDemo');
+```
+
+```html
+<PopoverDemo />
+```
+
+<PopoverDemo />
+
+:::
+
+## Usage
+
+Render the panel inside the actionable control that owns it — a button, link, or toggle. The panel finds that trigger, refines it, and links the two ends without any props crossing between them:
+
+```tsx
+import { Button, Popover } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/popover.css';
+
+export const Shortcuts = () => (
+  <Button>
+    Workspace shortcuts
+    <Popover>
+      <span>Find anything</span>
+      <span>Save</span>
+    </Popover>
+  </Button>
+);
+```
+
+For the full library — tokens, base defaults, every component, and the utilities — load `import '@airlib/aui';` instead. A lone component stylesheet carries only that component's rules.
+
+The trigger always announces `dialog`, whatever the panel's own role is. Panel content should read as a small dialog: a heading, the content, and the controls the reader needs. `popupRole` changes the panel's role when the content is really a listbox or a menu — the usual choice for either is the dedicated [Menu](/docs/widgets/menu) or [Listbox](/docs/widgets/listbox) instead.
+
+Leave `open` out and the trigger drives the panel; set it and the panel follows yours. Bind it to read and write the state from outside:
+
+```tsx
+import { $bind, mutable } from '@airlib/react';
+
+const state = mutable({ open: false });
+
+<Button>
+  Workspace shortcuts
+  <Popover open={$bind(state, 'open')}>
+    <span>Find anything</span>
+    <span>Save</span>
+  </Popover>
+</Button>
+```
+
+Opening moves focus into the panel — a child marked `aria-selected`, then one with `aria-current`, then the first focusable control, then the panel itself. Closing hands focus back to whatever held it before. Turn `autofocus` off when the panel is purely informational and stealing focus would be noise:
+
+```tsx
+<Button>
+  Workspace shortcuts
+  <Popover autofocus={false}>
+    <span>Find anything</span>
+  </Popover>
+</Button>
+```
+
+`Escape` closes an open panel and stops the key from reaching the page, whatever `dismissable` says. Outside presses are the ones the prop gates:
+
+```tsx
+<Button>
+  Workspace shortcuts
+  <Popover dismissable={false}>
+    <span>Stays put until you press Escape</span>
+  </Popover>
+</Button>
+```
+
+Nothing is trapped: `Tab` walks out of the panel into the page, and the content around it stays clickable. A disabled trigger locks the panel — `show()`, `close()`, and `toggle()` all refuse while it is disabled, and no gesture opens it.
+
+Placement never leaves the component. `xDir` and `yDir` emit `data-popover-x` and `data-popover-y` on the panel; the stylesheet decides the side and its fallbacks:
+
+```tsx
+<Button>
+  Filters
+  <Popover yDir="above" xDir="after">
+    <span>Status</span>
+    <span>Owner</span>
+  </Popover>
+</Button>
+```
+
+### Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `id` | `string` | `popover-<n>` | The panel identifier. Generated when omitted, and the value the trigger points `aria-controls` at. |
+| `open` | `Bindable<boolean>` | `false` | Whether the panel is showing. Bind it to drive the panel from outside, in either direction. |
+| `popupRole` | `'dialog' \| 'menu' \| 'tooltip' \| 'listbox'` | `'dialog'` | The role compiled onto the panel. Fixed when the panel is created. The trigger always announces `dialog`. |
+| `mode` | `('click' \| 'hover' \| 'focus' \| 'rove' \| 'combo')[]` | `['click']` | Which gestures open the panel. Rove and combo also claim the arrow keys. |
+| `delay` | `number` | `0` | Milliseconds the hover mode waits before opening. Focus and click never wait. |
+| `dismissable` | `boolean` | `true` | Whether an outside press closes the panel. `Escape` closes it either way. |
+| `autofocus` | `boolean` | `true` | Whether opening moves focus into the panel and dismissal returns it to the trigger. |
+| `xDir` | `'before' \| 'after' \| 'left' \| 'between' \| 'right'` | — | Horizontal placement token, emitted as `data-popover-x`. |
+| `yDir` | `'top' \| 'bottom' \| 'above' \| 'below' \| 'between'` | — | Vertical placement token, emitted as `data-popover-y`. |
+| `onopen` / `onclose` | `(event: CustomEvent<boolean>) => void` | — | Called with `true` when the panel opens and `false` when it closes. |
+| `ontoggle` | `(event: CustomEvent<boolean>) => void` | — | Called alongside either edge, with the resulting state. Does not bubble. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `children` | `ReactNode` | — | The panel content. |
+| `ref` | `Ref<HTMLDivElement>` | — | Access to the panel element. |
+
+Focus lands in the panel on open and comes back on close, so the sequence `trigger → panel → trigger` never drops the reader in the page. `Tab` enters the panel's controls and leaves again; the page around it stays reachable. `ArrowDown` and `ArrowUp` are claimed only in `rove` and `combo` modes.
+
+Your own classes are added next to the built-in ones:
+
+```tsx
+// class="aui-popover my-shortcuts"
+<Button>
+  Workspace shortcuts
+  <Popover className="my-shortcuts">
+    <span>Find anything</span>
+  </Popover>
+</Button>
+```
+
+To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+
+## Next Steps
+
+- [Tooltip](/docs/widgets/tooltip) — The advisory panel for one line of text, with no focus handoff.
+- [Dialog](/docs/widgets/dialog) — The modal surface that traps focus and shades the page.
+- [Menu](/docs/widgets/menu) — A popup of commands with its own roving and dismissal.
+- [Confirm](/docs/widgets/confirm) — The always-modal decision built on the dialog composite.

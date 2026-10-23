@@ -1,0 +1,167 @@
+---
+title: AUI Progress
+nav: Progress
+nav-priority: 307
+description: Task completion inside a declared interval — clamped readings, an unmeasurable state, a published fill fraction, six sizes, and seven colors.
+---
+
+# AUI Progress
+
+A progress bar answers one question: how far along is this? An upload, an export, a first-load bundle. It is not a gauge of a steady reading — that is a [Meter](/docs/widgets/meter) — and it is not an input.
+
+**AUI Progress** does all of that for you, and leaves the markup and the styling entirely yours. The host carries the progressbar role, the clamped reading, and the declared bounds; it publishes one fill fraction for the stylesheet to size. An unknown reading reports no position at all instead of inventing one, and a reading past a bound is clamped for announcement while the prop keeps the number the task wrote.
+
+Styling is optional. Without AUI CSS the Progress stays a correct, operable indicator; with it, the same markup gets the AUI treatment through the full library.
+
+:::interactive[Progress demo]
+
+```tsx
+import { Progress, Select, Slider, Toggle } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { COLOR_LABELS, SIZE_LABELS } from '@airlib/aui/utils';
+
+const ProgressDemo = setup(() => {
+  const state = mutable({
+    value: 45,
+    unknown: false,
+    size: 'md',
+    color: 'primary',
+  });
+
+  return () => (
+    <div className="demo-button">
+      <div className="flex gap-xs w-full flex-wrap">
+        <Select size="sm" placeholder="Size" options={SIZE_LABELS} value={$bind(state, 'size')} />
+        <Select size="sm" placeholder="Color" options={COLOR_LABELS} value={$bind(state, 'color')} />
+        <div className="flex-1"></div>
+        <Toggle size="sm" pressed={$bind(state, 'unknown')}>
+          {() => (state.unknown ? 'Unknown duration' : 'Known duration')}
+        </Toggle>
+      </div>
+      <div className="aui-card flex flex-col gap-lg p-xl">
+        <Slider min={0} max={100} value={$bind(state, 'value')} aria-label="Progress value" />
+        <Snippet>
+          {() => (
+            <Progress
+              value={state.unknown ? null : state.value}
+              size={state.size}
+              color={state.color}
+              label="Exporting archive"
+              valuetext={state.unknown ? 'Working' : `${Math.round(state.value)} percent`}
+            />
+          )}
+        </Snippet>
+        <Snippet>
+          {() => <Progress value={100} size={state.size} color="success" label="Upload complete" />}
+        </Snippet>
+      </div>
+    </div>
+  );
+}, 'ProgressDemo');
+```
+
+```html
+<ProgressDemo />
+```
+
+<ProgressDemo />
+
+:::
+
+## Usage
+
+Give the bar a reading and a name. The name is what assistive technology announces, so describe the task rather than the control:
+
+```tsx
+import { Progress } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/progress.css';
+
+export const ExportProgress = ({ done }: { done: number }) => (
+  <Progress value={done} label="Exporting archive" />
+);
+```
+
+For the full library — tokens, base defaults, every component, and the utilities — load `import '@airlib/aui';` instead. A lone component stylesheet carries only that component's rules.
+
+The default interval is `0` to `100`. Declare another when your task counts in its own units:
+
+```tsx
+<Progress value={45} min={20} max={60} label="Quota used" valuetext="45 of 60 GB" />
+```
+
+Within a custom interval the reading is reported in those units and the fill is still one fraction of the span. `valuetext` spells the position out when the number alone would be cryptic.
+
+A task of unknown length reports `null` or no value. The bar then states its bounds and no position, and the fill sweeps instead of filling a fraction:
+
+```tsx
+<Progress value={null} label="Scanning files" />
+```
+
+A reading past a bound is clamped for announcement and for the fill, while the prop keeps what the task wrote. Narrowing the interval under a live reading lowers what is reported; widening it back does not resurrect the old number:
+
+```tsx
+<Progress value={140} max={100} label="Upload" />
+// aria-valuenow="100"
+```
+
+Bind a value that changes as the task runs:
+
+```tsx
+import { $bind, mutable } from '@airlib/react';
+
+const state = mutable({ percent: 0 });
+
+<Progress value={$bind(state, 'percent')} label="Exporting archive" />
+```
+
+The bar is never focusable and has no keys: it reports, and the task moves it.
+
+### Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `value` | `number \| null` | — | The completion number, clamped for announcement. `null` reports an unmeasurable task. |
+| `min` | `number` | `0` | Lower bound of the declared interval. |
+| `max` | `number` | `100` | Upper bound of the declared interval. |
+| `label` | `string` | — | The accessible name, compiled to `aria-label` on the custom host. |
+| `valuetext` | `string` | — | A human-readable position, compiled to `aria-valuetext`. |
+| `size` | shared size | `md` | Track thickness. |
+| `color` | shared color | `primary` | Fill color. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `ref` | `Ref<HTMLDivElement>` | — | Access to the track element. |
+
+The host publishes `--aria-progress-offset` — the fill percentage — so the shipped stylesheet sizes the fill with `width: var(--aria-progress-offset)`. There is no matching JavaScript calculation in the component.
+
+### Sizes
+
+`xs`, `sm`, `md`, `lg`, `xl`, `xxl`, defaulting to `md`:
+
+```tsx
+<Progress value={30} size="xs" label="Upload" />
+<Progress value={30} size="lg" label="Upload" />
+```
+
+### Color Variants
+
+`primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info`, defaulting to `primary`:
+
+```tsx
+<Progress value={30} color="success" label="Upload" />
+<Progress value={30} color="error" label="Upload failed" />
+```
+
+Your own classes are added next to the built-in ones:
+
+```tsx
+// class="aui-progress aui-progress-md aui-progress-primary my-track"
+<Progress value={30} className="my-track" label="Upload" />
+```
+
+To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+
+## Next Steps
+
+- [Meter](/docs/widgets/meter) — A steady reading inside its bounds, without completion semantics.
+- [Slider](/docs/widgets/slider) — Bounded numeric entry the reader can move.
+- [Announcer](/docs/widgets/announcer) — Milestones narrated while the bar changes.
+- [Toast](/docs/widgets/toast) — The completion message after the bar reaches its end.
