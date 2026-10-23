@@ -3,7 +3,30 @@
 
 @layer component {
   .aui-select-trigger {
+    min-inline-size: 0;
+    max-inline-size: 100%;
     cursor: pointer;
+
+    /* The chosen text takes what room is left and ends with an ellipsis instead of widening the trigger. */
+    & > .aui-select-value {
+      flex: 0 1 auto;
+      min-inline-size: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      text-align: start;
+    }
+
+    /* "+2": how many more are chosen, kept whole beside the cut text. */
+    & > .aui-select-count {
+      flex: none;
+      padding-inline: var(--spacing-xs);
+      border-radius: var(--radius-full);
+      background-color: color-mix(in oklch, currentColor 14%, transparent);
+      font-size: var(--font-label-sm-size);
+      font-variant-numeric: tabular-nums;
+      line-height: 1.5;
+    }
 
     /*
      * The caret rides the trailing edge however wide the trigger grows.

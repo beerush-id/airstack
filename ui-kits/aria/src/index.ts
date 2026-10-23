@@ -158,6 +158,18 @@ import {
   type TreeProps,
 } from './composites/index.js';
 import {
+  WindowAria,
+  WindowCloseAria,
+  WindowDesktopAria,
+  WindowDragAria,
+  WindowMaximizeAria,
+  WindowMinimizeAria,
+  type WindowProps,
+  WindowResizeAria,
+  type WindowResizeProps,
+  WindowTitleAria,
+} from './composites/window/index.js';
+import {
   FooterAria,
   type FooterOptions,
   type FooterProps,
@@ -259,6 +271,7 @@ export * from './translators/jsx.js';
 export * from './types.js';
 export * from './utils/attributes.js';
 export * from './utils/calendar.js';
+export * from './utils/drag.js';
 export * from './utils/label.js';
 export * from './utils/navigation.js';
 export * from './utils/overlay.js';
@@ -803,6 +816,47 @@ export function aria<E extends BaseElement = HTMLButtonElement>(
   options?: ReorderHandleOptions
 ): ReorderHandleAria<E>;
 
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'window-desktop',
+  props?: AriaProps,
+  options?: AriaOptions
+): WindowDesktopAria<E>;
+export function aria<E extends HTMLElement = HTMLElement>(
+  role: 'window',
+  props?: WindowProps,
+  options?: AriaOptions
+): WindowAria<E>;
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'window-drag',
+  props?: AriaProps,
+  options?: AriaOptions
+): WindowDragAria<E>;
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'window-resize',
+  props: WindowResizeProps,
+  options?: AriaOptions
+): WindowResizeAria<E>;
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'window-title',
+  props?: AriaProps,
+  options?: AriaOptions
+): WindowTitleAria<E>;
+export function aria<E extends BaseElement = HTMLButtonElement>(
+  role: 'window-close',
+  props?: AriaProps,
+  options?: AriaOptions
+): WindowCloseAria<E>;
+export function aria<E extends BaseElement = HTMLButtonElement>(
+  role: 'window-minimize',
+  props?: AriaProps,
+  options?: AriaOptions
+): WindowMinimizeAria<E>;
+export function aria<E extends BaseElement = HTMLButtonElement>(
+  role: 'window-maximize',
+  props?: AriaProps,
+  options?: AriaOptions
+): WindowMaximizeAria<E>;
+
 export function aria(role: string, init?: unknown, options?: unknown): unknown {
   switch (role) {
     case 'text-input':
@@ -1011,6 +1065,22 @@ export function aria(role: string, init?: unknown, options?: unknown): unknown {
       return new ReorderItemAria(init as never);
     case 'reorder-handle':
       return new ReorderHandleAria(init as never, options as never);
+    case 'window-desktop':
+      return new WindowDesktopAria(init as never, options as never);
+    case 'window':
+      return new WindowAria(init as never, options as never);
+    case 'window-drag':
+      return new WindowDragAria(init as never, options as never);
+    case 'window-resize':
+      return new WindowResizeAria(init as never, options as never);
+    case 'window-title':
+      return new WindowTitleAria(init as never, options as never);
+    case 'window-close':
+      return new WindowCloseAria(init as never, options as never);
+    case 'window-minimize':
+      return new WindowMinimizeAria(init as never, options as never);
+    case 'window-maximize':
+      return new WindowMaximizeAria(init as never, options as never);
     case 'menu':
       return new MenuAria(init as never);
     case 'menu-bar':

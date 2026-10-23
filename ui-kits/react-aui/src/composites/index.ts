@@ -21,3 +21,6 @@ export * from './CodeInput.js';
 export * from './CommandPalette.js';
 export * from './Drawer.js';
 export * from './TagInput.js';
+export * from './Window.js';
+export * from './WindowManager.js';
+export * from './Dock.js';

@@ -6,6 +6,12 @@
     display: block;
   }
 
+  /* A field never grows with its text; a long chosen value shows an ellipsis until the field is focused. */
+  .aui-combobox-input {
+    min-inline-size: 0;
+    text-overflow: ellipsis;
+  }
+
   .aui-combobox-panel {
     width: anchor-size(width);
     max-width: calc(100dvw - calc(var(--spacing) * 4));

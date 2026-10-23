@@ -46,6 +46,8 @@
 @import './dialog.css';
 @import './confirm.css';
 @import './drawer.css';
+@import './window.css';
+@import './dock.css';
 @import './command-palette.css';
 @import './context-menu.css';
 @import './announcer.css';

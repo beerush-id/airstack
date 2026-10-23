@@ -44,8 +44,10 @@
     gap: var(--spacing-xs);
     padding-inline-end: calc(var(--spacing) * 1);
 
+    /* The date text fills the field's height, so a press anywhere above or below it still lands in it. */
     & > .aui-date-picker-input {
       flex: 1 1 0;
+      align-self: stretch;
       min-inline-size: 0;
       padding: 0;
       border: 0;
@@ -58,6 +60,20 @@
       &::placeholder {
         color: var(--aui-input-placeholder);
       }
+    }
+
+    /* In a range, both dates hug their text so the arrow sits evenly between them; the button keeps the end. */
+    .aui-date-range-picker & {
+      gap: var(--spacing-sm);
+    }
+
+    .aui-date-range-picker & > .aui-date-picker-input {
+      flex: 0 1 auto;
+      field-sizing: content;
+    }
+
+    .aui-date-range-picker & > .aui-date-picker-trigger {
+      margin-inline-start: auto;
     }
 
     /* Inside the field the icon button shrinks to leave one spacing step to every edge. */
@@ -74,10 +90,16 @@
     transform: none;
   }
 
+  /* A small arrow reads as "from → to" in any language; it points the other way in right-to-left text. */
   .aui-date-picker-separator {
+    --aui-icon-size: 1em;
     flex: none;
-    color: var(--aui-input-placeholder);
+    color: var(--aui-input-placeholder, var(--color-on-surface-variant));
     user-select: none;
+
+    &:dir(rtl) {
+      scale: -1 1;
+    }
   }
 
   /* The calendar opens under the field's trailing button, so it aligns to the field's end. */

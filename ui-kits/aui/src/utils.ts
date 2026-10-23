@@ -366,6 +366,12 @@ export type MauiConfig = typeof DEFAULT_CONFIG & {
   commandPalette?: ComponentStyles;
   commandPaletteInput?: ComponentStyles;
   commandPaletteItem?: ComponentStyles;
+  desktop?: ComponentStyles;
+  window?: ComponentStyles;
+  windowButton?: ComponentStyles;
+  windowTaskbar?: ComponentStyles;
+  dock?: ComponentStyles;
+  dockButton?: ComponentStyles;
 };
 
 export const AUI_CLASS = {
@@ -417,6 +423,8 @@ export const AUI_CLASS = {
   SELECT_PANEL: branded('select-panel'),
   SELECT_PLACEHOLDER: branded('select-placeholder'),
   SELECT_TRIGGER: branded('select-trigger'),
+  SELECT_VALUE: branded('select-value'),
+  SELECT_COUNT: branded('select-count'),
   SELECT_OPTION: branded('select-option'),
   NAVIGATION: branded('navigation'),
   BREADCRUMB: branded('breadcrumb'),

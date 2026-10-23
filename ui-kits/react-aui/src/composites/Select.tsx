@@ -87,7 +87,7 @@ export const Select = setup<SelectProps, SelectSlots>((props, slots) => {
       return (
         <>
           <SelectTrigger label={props.label} placeholder={props.placeholder}>
-            <Slot for={() => slots.trigger?.(select.value)}>{select.label || props.placeholder}</Slot>
+            {slots.trigger ? <Slot for={() => slots.trigger?.(select.value)} /> : undefined}
           </SelectTrigger>
           <SelectPanel>
             <For each={() => toOptions(props.options)}>
@@ -116,14 +116,50 @@ export const SelectTrigger = setup<SelectTriggerProps>((props) => {
   const trigger = aria(SELECT_TRIGGER_ROLE, props);
   const className = () => $families([AUI_CLASS.CONTROL, AUI_CLASS.SELECT_TRIGGER], styles, auiConfig.selectTrigger);
 
-  return () => (
-    <button ref={trigger.ref} {...trigger.restProps(OMIT_KEYS)} className={className()}>
-      {props.label && <span className={AUI_CLASS.SELECT_PLACEHOLDER}>{props.label}</span>}
-      {renderDynamic(props.children || trigger.label || props.placeholder, trigger)}
-      <ArrowDown className={AUI_CLASS.SELECT_CARET} aria-hidden="true" />
-    </button>
-  );
+  // One line, never wider than the trigger: the first choice, cut with an ellipsis, plus a count of the rest.
+  return () => {
+    const chosen = chosenLabels(trigger);
+
+    return (
+      <button ref={trigger.ref} {...trigger.restProps(OMIT_KEYS)} className={className()}>
+        {props.label && <span className={AUI_CLASS.SELECT_PLACEHOLDER}>{props.label}</span>}
+        {props.children ? (
+          <span className={AUI_CLASS.SELECT_VALUE}>{renderDynamic(props.children, trigger)}</span>
+        ) : (
+          <>
+            <span className={AUI_CLASS.SELECT_VALUE}>{chosen[0] ?? props.placeholder}</span>
+            {chosen.length > 1 && <span className={AUI_CLASS.SELECT_COUNT}>+{chosen.length - 1}</span>}
+          </>
+        )}
+        <ArrowDown className={AUI_CLASS.SELECT_CARET} aria-hidden="true" />
+      </button>
+    );
+  };
 }, 'SelectTrigger');
+
+/**
+ * The labels of the current choices, in selection order.
+ *
+ * @param trigger - The select trigger whose select holds the value and options.
+ * @returns One label per chosen option; empty when nothing is chosen.
+ */
+function chosenLabels(trigger: SelectTriggerAria): string[] {
+  const host = trigger.host;
+  const value = host?.value as string | string[] | undefined;
+  const keys = Array.isArray(value) ? value : value === undefined || value === '' ? [] : [value];
+  const labels = host?.labels as OptionsInput | undefined;
+  return keys.map((key) => labelOf(labels, String(key))).filter((label): label is string => !!label);
+}
+
+function labelOf(labels: OptionsInput | undefined, key: string): string | undefined {
+  if (!labels) return undefined;
+  if (Array.isArray(labels)) {
+    const entry = labels.find((option) => option.key === key);
+    return entry ? (entry.label ?? entry.key) : undefined;
+  }
+  const label = labels[key];
+  return label === undefined ? undefined : String(label);
+}
 
 export const SelectPanel = setup<SelectPanelProps>((props) => {
   const styles = selectScope.inherit(props);

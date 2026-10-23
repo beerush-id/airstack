@@ -1,0 +1,306 @@
+@import './button.css';
+
+/*
+ * A window is a raised surface positioned by the CSS variables its controller
+ * emits (`--window-x/y/width/height/z` and the size limits). Inside a desktop
+ * it is positioned in the desktop; on its own it is fixed to the viewport.
+ * The window in front lifts higher; maximized fills its area; minimized is
+ * put away. Resize grips are invisible strips along the edges and corners.
+ *
+ * `glass` (default) is the same frosted sheet as menus and popovers; `solid`
+ * is opaque. Opening and restoring grow the window in, minimizing shrinks it
+ * away, and maximizing glides its geometry — except while it is being dragged,
+ * where it follows the pointer exactly.
+ */
+@layer theme {
+  :root {
+    --aui-window-bg: var(--color-surface-container-low);
+    --aui-window-fg: var(--color-on-surface);
+    --aui-window-bar-bg: var(--color-surface-container);
+    --aui-window-radius: var(--radius-xxl);
+    --aui-window-bar-inset: var(--spacing-xs);
+    /* Glass: how much surface color covers what's behind, and how strongly it is blurred. */
+    --aui-window-glass-tint: 55%;
+    --aui-window-glass-blur: var(--size-sm);
+    /* The hairline catching light along a glass edge. */
+    --aui-window-edge: light-dark(rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.06));
+    --aui-window-z: 100;
+    --aui-window-grip: calc(var(--spacing) * 1.5);
+    --aui-window-corner: calc(var(--spacing) * 3);
+    --aui-window-default-width: calc(var(--spacing) * 120);
+    --aui-window-default-height: calc(var(--spacing) * 80);
+    /* Desktop wallpaper: an image (`url(…)`) or any background image; the dark one shows in a dark color scheme. */
+    --aui-desktop-wallpaper: none;
+    --aui-desktop-wallpaper-dark: none;
+  }
+}
+
+@layer component {
+  .aui-desktop {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    min-block-size: calc(var(--spacing) * 100);
+
+    /* The wallpaper sits behind the windows in two layers: light below, dark above. */
+    &::before,
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      background-size: cover;
+      background-position: center;
+      border-radius: inherit;
+      corner-shape: inherit;
+    }
+
+    &::before {
+      background-image: var(--aui-desktop-wallpaper);
+    }
+
+    /* Shown only in a dark color scheme: `light-dark()` only resolves colors, so it drives a mask, not the image. */
+    &::after {
+      background-image: var(--aui-desktop-wallpaper-dark);
+      mask-image: linear-gradient(light-dark(transparent, black), light-dark(transparent, black));
+    }
+  }
+
+  .aui-window {
+    position: fixed;
+    inset-inline-start: var(--window-x, calc(50% - var(--window-width, var(--aui-window-default-width)) / 2));
+    inset-block-start: var(--window-y, calc(50% - var(--window-height, var(--aui-window-default-height)) / 2));
+    z-index: calc(var(--aui-window-z) + var(--window-z, 0));
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    inline-size: var(--window-width, var(--aui-window-default-width));
+    block-size: var(--window-height, var(--aui-window-default-height));
+    min-inline-size: var(--window-min-width, calc(var(--spacing) * 50));
+    min-block-size: var(--window-min-height, calc(var(--spacing) * 24));
+    max-inline-size: var(--window-max-width, none);
+    max-block-size: var(--window-max-height, none);
+    background-color: color-mix(in oklch, var(--aui-window-bg) var(--aui-window-glass-tint), transparent);
+    border: 1px solid var(--aui-window-edge);
+    backdrop-filter: blur(var(--aui-window-glass-blur)) saturate(1.4);
+    color: var(--aui-window-fg);
+    border-radius: var(--aui-window-radius);
+    box-shadow: var(--elevation-2);
+    transition-property:
+      box-shadow, opacity, scale, translate, display, inset-inline-start, inset-block-start, inline-size, block-size,
+      border-radius;
+    transition-duration: var(--duration-medium);
+    transition-timing-function: var(--ease-emphasized);
+    transition-behavior: allow-discrete;
+
+    /* Opening, and coming back from minimized, grow the window in. */
+    @starting-style {
+      opacity: 0;
+      scale: 0.96;
+    }
+
+    &:focus-visible {
+      outline: var(--focus-ring-width) var(--focus-ring-style) var(--focus-ring-color);
+      outline-offset: var(--focus-ring-offset);
+    }
+
+    &[data-active='true'] {
+      box-shadow: var(--elevation-4);
+    }
+
+    /* Only the start edges and size change, so maximize and restore glide between them. */
+    &[data-maximized='true'] {
+      inset-inline-start: 0;
+      inset-block-start: 0;
+      inline-size: 100%;
+      block-size: 100%;
+      max-inline-size: none;
+      max-block-size: none;
+      border-radius: 0;
+    }
+
+    &[hidden] {
+      display: none;
+      opacity: 0;
+      scale: 0.96;
+    }
+
+    /* Minimizing shrinks the window down and away before it leaves the layout. */
+    &[data-minimized='true'] {
+      display: none;
+      opacity: 0;
+      scale: 0.9;
+      translate: 0 calc(var(--spacing) * 6);
+    }
+
+    /* While dragging, nothing inside should select or catch the pointer, and geometry follows the pointer with no easing. */
+    &[data-interaction] {
+      transition-property: box-shadow;
+      user-select: none;
+
+      & .aui-window-body {
+        pointer-events: none;
+      }
+    }
+  }
+
+  .aui-desktop > .aui-window {
+    position: absolute;
+  }
+
+  .aui-window-solid {
+    background-color: var(--aui-window-bg);
+    border-color: transparent;
+    backdrop-filter: none;
+  }
+
+  /* On glass the title bar is part of the same frosted sheet; solid windows get a toned bar. */
+  .aui-window:not(.aui-window-solid) > .aui-window-title-bar {
+    background-color: transparent;
+  }
+
+  /* One inset above, below, and after the buttons, so the last button sits evenly in the window's corner. */
+  .aui-window-title-bar {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding-block: var(--aui-window-bar-inset);
+    padding-inline: var(--spacing-md) var(--aui-window-bar-inset);
+    background-color: var(--aui-window-bar-bg);
+    border-start-start-radius: inherit;
+    border-start-end-radius: inherit;
+    corner-shape: inherit;
+    user-select: none;
+    touch-action: none;
+
+    &[data-movable='true'] {
+      cursor: grab;
+    }
+
+    .aui-window[data-interaction='move'] & {
+      cursor: grabbing;
+    }
+  }
+
+  .aui-window-title {
+    flex: 1 1 auto;
+    min-inline-size: 0;
+    margin: 0;
+    overflow: hidden;
+    font-size: var(--font-title-sm-size);
+    font-weight: var(--font-title-sm-weight);
+    line-height: var(--font-title-sm-line-height);
+    letter-spacing: var(--font-title-sm-tracking);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+
+    /* The window in front reads at full strength; the rest step back. */
+    .aui-window:not([data-active='true']) & {
+      color: var(--color-on-surface-variant);
+    }
+  }
+
+  .aui-window-controls {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: var(--spacing-xxs, 2px);
+    margin-inline-start: auto;
+    cursor: default;
+  }
+
+  .aui-window-body {
+    flex: 1 1 auto;
+    min-block-size: 0;
+    overflow: auto;
+    padding: var(--spacing-md);
+    border-end-start-radius: inherit;
+    border-end-end-radius: inherit;
+  }
+
+  .aui-window-resize {
+    position: absolute;
+    z-index: 1;
+    touch-action: none;
+
+    &[hidden] {
+      display: none;
+    }
+
+    &[data-edge='n'],
+    &[data-edge='s'] {
+      inset-inline: var(--aui-window-corner);
+      block-size: var(--aui-window-grip);
+      cursor: ns-resize;
+    }
+
+    &[data-edge='e'],
+    &[data-edge='w'] {
+      inset-block: var(--aui-window-corner);
+      inline-size: var(--aui-window-grip);
+      cursor: ew-resize;
+    }
+
+    &[data-edge='n'] {
+      inset-block-start: calc(var(--aui-window-grip) / -2);
+    }
+
+    &[data-edge='s'] {
+      inset-block-end: calc(var(--aui-window-grip) / -2);
+    }
+
+    &[data-edge='e'] {
+      inset-inline-end: calc(var(--aui-window-grip) / -2);
+    }
+
+    &[data-edge='w'] {
+      inset-inline-start: calc(var(--aui-window-grip) / -2);
+    }
+
+    &:is([data-edge='ne'], [data-edge='nw'], [data-edge='se'], [data-edge='sw']) {
+      inline-size: var(--aui-window-corner);
+      block-size: var(--aui-window-corner);
+    }
+
+    &[data-edge='ne'] {
+      inset-block-start: calc(var(--aui-window-grip) / -2);
+      inset-inline-end: calc(var(--aui-window-grip) / -2);
+      cursor: nesw-resize;
+    }
+
+    &[data-edge='sw'] {
+      inset-block-end: calc(var(--aui-window-grip) / -2);
+      inset-inline-start: calc(var(--aui-window-grip) / -2);
+      cursor: nesw-resize;
+    }
+
+    &[data-edge='nw'] {
+      inset-block-start: calc(var(--aui-window-grip) / -2);
+      inset-inline-start: calc(var(--aui-window-grip) / -2);
+      cursor: nwse-resize;
+    }
+
+    &[data-edge='se'] {
+      inset-block-end: calc(var(--aui-window-grip) / -2);
+      inset-inline-end: calc(var(--aui-window-grip) / -2);
+      cursor: nwse-resize;
+    }
+  }
+
+  .aui-window-taskbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--spacing-xs);
+
+    & > .aui-button[aria-pressed='true'] {
+      background-color: color-mix(in oklch, var(--aui-control-bg) var(--tone-container-strength), transparent);
+    }
+
+    & > .aui-button[data-minimized='true'] {
+      color: var(--color-on-surface-variant);
+    }
+  }
+}

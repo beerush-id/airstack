@@ -24,3 +24,4 @@ export * from './toast/index.js';
 export * from './toggle-group.js';
 export * from './toolbar.js';
 export * from './tree/index.js';
+export * from './window/index.js';

@@ -3,6 +3,7 @@ import { AUI_CLASS, register } from '@airlib/aui/utils';
 import { $static, type AnyType, type Bindable, renderDynamic, setup } from '@airlib/react';
 import type { ReactNode } from 'react';
 import { $families, auiConfig, type FieldStyles, OMIT_KEYS } from '../config.js';
+import { ArrowRight } from '../icons/index.js';
 import {
   type DatePickerGrid,
   type DatePickerLabels,
@@ -65,9 +66,7 @@ export const DateRangePicker = setup<DateRangePickerProps>((props) => {
         <>
           <DatePickerField>
             <DatePickerInput slot="start" placeholder={props.placeholder} aria-label={props.labels?.start} />
-            <span className={AUI_CLASS.DATE_PICKER_SEPARATOR} aria-hidden="true">
-              –
-            </span>
+            <ArrowRight className={AUI_CLASS.DATE_PICKER_SEPARATOR} aria-hidden="true" />
             <DatePickerInput slot="end" placeholder={props.placeholder} aria-label={props.labels?.end} />
             <DatePickerTrigger aria-label={props.labels?.open} />
           </DatePickerField>

@@ -1,3 +1,4 @@
+export * from './Apps.js';
 export * from './ArrowDown.js';
 export * from './ArrowLeft.js';
 export * from './ArrowRight.js';
@@ -28,3 +29,5 @@ export * from './UnfoldLess.js';
 export * from './UnfoldMore.js';
 export * from './Warning.js';
 export * from './Window.js';
+export * from './Mic.js';
+export * from './Send.js';

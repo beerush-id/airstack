@@ -48,8 +48,8 @@ const BUTTON_ROLE = 'tab-button';
 const TAB_PANEL_ROLE = 'tab-panel';
 
 register('tab', {});
-register('tabList', { size: SIZES.MD, color: COLORS.PRIMARY, variant: VARIANTS.FILLED });
-register('tabButton', { size: SIZES.MD, color: COLORS.PRIMARY, variant: VARIANTS.FILLED });
+register('tabList', { size: SIZES.SM, color: COLORS.PRIMARY, variant: VARIANTS.FILLED });
+register('tabButton', { size: SIZES.SM, color: COLORS.PRIMARY, variant: VARIANTS.FILLED });
 register('tabPanel', {});
 
 const tabsScope = createStyleScope();
