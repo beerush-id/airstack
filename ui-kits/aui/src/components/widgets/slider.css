@@ -5,6 +5,9 @@
     --aui-slider-track-bg: var(--color-surface-highest);
     --aui-slider-active-bg: var(--color-primary);
     --aui-slider-active-fg: var(--color-on-primary);
+
+    --aria-slider-start: 0;
+    --aria-slider-end: 0;
   }
 }
 
@@ -13,7 +16,7 @@
     display: flex;
     position: relative;
     border-radius: var(--aui-slider-radius);
-    overflow: hidden;
+    overflow: unset;
     cursor: pointer;
     touch-action: none;
     user-select: none;
@@ -29,6 +32,16 @@
     &:focus-visible {
       background-color: color-mix(in oklch, var(--aui-slider-track-bg) 95%, var(--light-down));
     }
+  }
+
+  .aui-slider-track {
+    display: block;
+    inset: 0;
+    position: absolute;
+    z-index: 0;
+    border-radius: inherit;
+    overflow: hidden;
+    pointer-events: none;
 
     &::before {
       content: '';
@@ -44,8 +57,8 @@
     background-color: var(--color-disabled-bg);
     cursor: not-allowed;
 
-    &::before {
-      background-color: color-mix(in oklch, var(--color-disabled-bg) 90%, var(--light-down));
+    .aui-slider-track::before {
+      background-color: color-mix(in oklch, var(--color-disabled-bg) 50%, var(--light-down));
     }
   }
 
@@ -62,7 +75,7 @@
     background-color: var(--aui-slider-active-bg);
     transition-duration: var(--duration-short);
     transition-timing-function: var(--ease-standard);
-    transition-property: background;
+    transition-property: background, box-shadow;
 
     &:not(:disabled, [aria-disabled='true']) {
       cursor: grab;
@@ -70,6 +83,8 @@
 
     &:hover:not(:disabled, [aria-disabled='true']) {
       background-color: color-mix(in oklch, var(--aui-slider-active-bg) 90%, var(--light-up));
+      box-shadow: 0 0 0 calc(var(--spacing) * 3)
+        color-mix(in oklch, var(--aui-control-bg) 12%, black 10%);
     }
 
     &:disabled,
@@ -86,27 +101,35 @@
     justify-content: space-between;
     padding-inline: var(--spacing-md);
 
-    &::before {
-      width: var(--aria-slider-start, 0);
+    .aui-slider-track::before {
+      width: var(--aria-slider-start);
     }
 
     .aui-slider-thumb {
       top: 0;
-      left: var(--aria-slider-start, 0);
+      left: clamp(
+        calc(var(--aui-slider-height) / 2),
+        var(--aria-slider-start),
+        calc(100% - var(--aui-slider-height) / 2)
+      );
       translate: -50%;
       height: 100%;
       rotate: 90deg;
     }
 
     &[role='group'] {
-      &::before {
-        left: var(--aria-slider-start, 0);
-        width: calc(100% - (100% - var(--aria-slider-end, 0)) - var(--aria-slider-start, 0));
+      .aui-slider-track::before {
+        left: var(--aria-slider-start);
+        width: calc(100% - (100% - var(--aria-slider-end, 0)) - var(--aria-slider-start));
       }
 
       .aui-slider-thumb:last-of-type {
         translate: -50% 0;
-        left: var(--aria-slider-end, 100%);
+        left: clamp(
+          calc(var(--aui-slider-height) / 2),
+          var(--aria-slider-end, 100%),
+          calc(100% - var(--aui-slider-height) / 2)
+        );
       }
     }
   }
@@ -119,27 +142,35 @@
     flex-direction: column-reverse;
     padding-block: var(--spacing-md);
 
-    &::before {
-      height: var(--aria-slider-start, 0);
+    .aui-slider-track::before {
+      height: var(--aria-slider-start);
       top: unset;
       bottom: 0;
     }
 
     .aui-slider-thumb {
       left: 0;
-      bottom: var(--aria-slider-start, 0);
+      bottom: clamp(
+        calc(var(--aui-slider-height) / 2),
+        var(--aria-slider-start),
+        calc(100% - var(--aui-slider-height) / 2)
+      );
       width: var(--aui-slider-height);
       translate: 0 50%;
     }
 
     &[role='group'] {
-      &::before {
-        bottom: var(--aria-slider-start, 0);
-        height: calc(100% - (100% - var(--aria-slider-end, 0)) - var(--aria-slider-start, 0));
+      .aui-slider-track::before {
+        bottom: var(--aria-slider-start);
+        height: calc(100% - (100% - var(--aria-slider-end, 0)) - var(--aria-slider-start));
       }
 
       .aui-slider-thumb:last-of-type {
-        bottom: var(--aria-slider-end, 100%);
+        bottom: clamp(
+          calc(var(--aui-slider-height) / 2),
+          var(--aria-slider-end, 100%),
+          calc(100% - var(--aui-slider-height) / 2)
+        );
       }
     }
   }

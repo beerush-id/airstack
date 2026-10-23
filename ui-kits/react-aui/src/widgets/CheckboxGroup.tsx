@@ -1,8 +1,9 @@
 import { aria } from '@airlib/aria';
 import { AUI_CLASS, register } from '@airlib/aui/utils';
-import { type AnyType, type Bindable, type ComponentProps, createContext, setup } from '@airlib/react';
+import { type AnyType, type Bindable, setup } from '@airlib/react';
 import type { ReactNode } from 'react';
 import { $families, auiConfig, type AuiProps, type ComponentStyles, OMIT_KEYS } from '../config.js';
+import { checkboxGroupProps } from './context.js';
 
 export interface CheckboxGroupProps extends Omit<AuiProps<'div'>, 'variant'> {
   value?: Bindable<string[]>;
@@ -16,8 +17,6 @@ export interface CheckboxGroupProps extends Omit<AuiProps<'div'>, 'variant'> {
 const CHECKBOX_GROUP_ROLE = 'checkbox-group';
 
 const checkboxGroupStyles: ComponentStyles = {};
-
-export const checkboxGroupProps = createContext<ComponentProps<ComponentStyles>>();
 
 register('checkboxGroup', checkboxGroupStyles);
 

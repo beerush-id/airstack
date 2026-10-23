@@ -288,6 +288,7 @@ export const AUI_CLASS = {
   RADIO_GROUP: branded('radio-group'),
   SLIDER: branded('slider'),
   SLIDER_THUMB: branded('slider-thumb'),
+  SLIDER_TRACK: branded('slider-track'),
   HEADER: branded('header'),
   MAIN: branded('main'),
   FOOTER: branded('footer'),

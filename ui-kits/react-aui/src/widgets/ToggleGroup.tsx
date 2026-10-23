@@ -1,8 +1,9 @@
 import { aria } from '@airlib/aria';
 import { AUI_CLASS, COLORS, register, SIZES } from '@airlib/aui/utils';
-import { type AnyType, type Bindable, type ComponentProps, createContext, setup } from '@airlib/react';
+import { type AnyType, type Bindable, setup } from '@airlib/react';
 import type { ReactNode } from 'react';
-import { $families, type AuiPrimitive, type AuiProps, auiConfig, type ComponentStyles, OMIT_KEYS } from '../config.js';
+import { $families, auiConfig, type AuiPrimitive, type AuiProps, type ComponentStyles, OMIT_KEYS } from '../config.js';
+import { toggleGroupProps } from './context.js';
 
 export type ToggleGroupValue = AuiPrimitive | AuiPrimitive[];
 
@@ -19,8 +20,6 @@ const toggleGroupStyles: ComponentStyles = {
   size: SIZES.SM,
   color: COLORS.PRIMARY,
 };
-
-export const toggleGroupProps = createContext<ComponentProps<ComponentStyles>>();
 
 register('toggleGroup', toggleGroupStyles);
 

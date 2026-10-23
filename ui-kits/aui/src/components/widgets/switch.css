@@ -6,7 +6,7 @@
 }
 
 @layer component {
-  .aui-control.aui-switch {
+  .aui-switch {
     flex: none;
     flex-shrink: 0;
     block-size: var(--aui-switch-size);
@@ -18,7 +18,11 @@
 
     &:hover:not(:disabled, [aria-disabled='true']) .aui-switch-thumb {
       box-shadow: 0 0 0 calc(var(--spacing) * 3)
-        color-mix(in oklch, var(--aui-control-bg) 12%, transparent);
+        color-mix(in oklch, var(--aui-control-bg) 12%, black 10%);
+    }
+
+    &.aui-control:active {
+      overflow: unset;
     }
   }
 

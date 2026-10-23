@@ -1,8 +1,9 @@
 import { aria } from '@airlib/aria';
 import { AUI_CLASS, register } from '@airlib/aui/utils';
-import { type AnyType, type Bindable, type ComponentProps, createContext, setup } from '@airlib/react';
+import { type AnyType, type Bindable, setup } from '@airlib/react';
 import type { ReactNode } from 'react';
-import { $families, type AuiPrimitive, type AuiProps, auiConfig, type ComponentStyles, OMIT_KEYS } from '../config.js';
+import { $families, auiConfig, type AuiPrimitive, type AuiProps, type ComponentStyles, OMIT_KEYS } from '../config.js';
+import { radioGroupProps } from './context.js';
 
 export type RadioGroupValue = AuiPrimitive;
 
@@ -21,8 +22,6 @@ export interface RadioGroupProps extends Omit<AuiProps<'div'>, 'variant'> {
 const RADIO_GROUP_ROLE = 'radio-group';
 
 const radioGroupStyles: ComponentStyles = {};
-
-export const radioGroupProps = createContext<ComponentProps<ComponentStyles & { name?: string }>>();
 
 register('radioGroup', radioGroupStyles);
 

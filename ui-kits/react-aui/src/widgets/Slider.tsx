@@ -1,9 +1,10 @@
 import { aria } from '@airlib/aria';
 import { AUI_CLASS, COLORS, register, SIZES } from '@airlib/aui/utils';
-import { type AnyType, type Bindable, type ComponentProps, createContext, renderDynamic, setup } from '@airlib/react';
+import { type AnyType, type Bindable, renderDynamic, setup } from '@airlib/react';
 import type { ReactNode } from 'react';
-import { $families, type AuiProps, auiConfig, type ComponentStyles, OMIT_KEYS } from '../config.js';
-import { DragHandle } from '../icons/DragHandle.js';
+import { $families, auiConfig, type AuiProps, type ComponentStyles, OMIT_KEYS } from '../config.js';
+import { DragHandle } from '../icons/index.js';
+import { sliderProps } from './context.js';
 
 export type SliderValue = number | [number, number];
 
@@ -34,8 +35,6 @@ const sliderStyles: ComponentStyles = {
   className: AUI_CLASS.FOCUSABLE,
 };
 
-export const sliderProps = createContext<ComponentProps<ComponentStyles>>();
-
 register('slider', sliderStyles);
 register('sliderThumb', sliderStyles);
 
@@ -56,6 +55,7 @@ export const Slider = setup<SliderProps>((props) => {
     if (!props.children) {
       return (
         <div ref={slider.ref} {...slider.restProps([...OMIT_KEYS])} className={className()}>
+          <span className={AUI_CLASS.SLIDER_TRACK} aria-hidden="true"></span>
           <SliderThumb />
           {slider.isDual && <SliderThumb />}
         </div>

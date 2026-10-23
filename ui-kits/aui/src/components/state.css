@@ -8,7 +8,9 @@
     --pointer-x: 0;
     --pointer-y: 0;
   }
+}
 
+@layer component {
   @keyframes state-ripple {
     from {
       width: 0;
@@ -18,6 +20,7 @@
       left: var(--pointer-x);
       transform: translate3d(-50%, -50%, 0);
       opacity: var(--tone-pressed-strength);
+      corner-shape: unset;
     }
     to {
       width: 512px;
@@ -27,11 +30,10 @@
       top: var(--pointer-y);
       left: var(--pointer-x);
       transform: translate3d(-50%, -50%, 0);
+      corner-shape: unset;
     }
   }
-}
 
-@layer component {
   .aui-state-layer,
   .aui-control,
   .aui-menu-item {

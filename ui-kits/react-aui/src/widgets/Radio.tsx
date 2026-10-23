@@ -2,8 +2,9 @@ import { aria } from '@airlib/aria';
 import { AUI_CLASS, COLORS, register, SIZES } from '@airlib/aui/utils';
 import { type Bindable, renderDynamic, setup } from '@airlib/react';
 import type { ReactNode } from 'react';
-import { $families, type AuiPrimitive, type AuiProps, auiConfig, type ComponentStyles, OMIT_KEYS } from '../config.js';
-import { radioGroupProps } from './RadioGroup.js';
+import { $families, auiConfig, type AuiPrimitive, type AuiProps, type ComponentStyles, OMIT_KEYS } from '../config.js';
+
+import { radioGroupProps } from './context.js';
 
 export type RadioValue = AuiPrimitive;
 

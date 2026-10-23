@@ -51,7 +51,8 @@
         "noBlankTarget": "off"
       },
       "style": {
-        "noNonNullAssertion": "off"
+        "noNonNullAssertion": "off",
+        "noDescendingSpecificity": "off"
       }
     }
   },

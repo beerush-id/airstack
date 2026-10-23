@@ -38,15 +38,15 @@
     --air-mdx-font-mono: var(--font-mono), ui-monospace, monospace;
 
     .air-mdx-sidebar-children {
-      padding-inline: 0.75rem;
+      /*padding-inline: 0.75rem;*/
 
       .air-mdx-sidebar-link {
-        padding-inline-start: 1.75rem;
+        /*padding-inline-start: 1.75rem;*/
       }
     }
 
     .air-mdx-sidebar-link {
-      width: 100%;
+      /*width: 100%;*/
       border-radius: var(--radius-sm);
 
       &:hover {

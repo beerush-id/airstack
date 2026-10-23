@@ -362,21 +362,21 @@
     --font-title-lg-tracking: 0;
     --font-title-lg-line-height: calc(var(--font-base) * 1.75);
   }
-}
 
-@supports (corner-shape: squircle) {
-  :root {
-    --radius-base: calc(var(--spacing) * 6);
-    --radius-sm: calc(var(--radius-base) * 1);
-    --radius-md: calc(var(--radius-base) * 1.25);
-    --radius-lg: calc(var(--radius-base) * 1.25);
-    --radius-xl: calc(var(--radius-base) * 1.5);
-    --radius-xxl: calc(var(--radius-base) * 1.5);
+  @supports (corner-shape: squircle) {
+    :root {
+      --radius-base: calc(var(--spacing) * 6);
+      --radius-sm: calc(var(--radius-base) * 1);
+      --radius-md: calc(var(--radius-base) * 1.25);
+      --radius-lg: calc(var(--radius-base) * 1.25);
+      --radius-xl: calc(var(--radius-base) * 1.5);
+      --radius-xxl: calc(var(--radius-base) * 1.5);
 
-    --focus-ring-offset: 1px;
-  }
+      --focus-ring-offset: 1px;
+    }
 
-  [class] {
-    corner-shape: superellipse(1.5);
+    [class] {
+      corner-shape: superellipse(1.5);
+    }
   }
 }
