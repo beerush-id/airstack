@@ -45,7 +45,9 @@
         "noSvgWithoutTitle": "off",
         "useButtonType": "off",
         "noLabelWithoutControl": "off",
-        "noStaticElementInteractions": "off"
+        "noStaticElementInteractions": "off",
+        "useAriaPropsSupportedByRole": "off",
+        "noNoninteractiveTabindex": "off"
       },
       "security": {
         "noBlankTarget": "off"

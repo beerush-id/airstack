@@ -1,0 +1,50 @@
+{
+  "name": "@irpclib/ai-kit",
+  "version": "2.2.0",
+  "type": "module",
+  "author": "Nanang Mahdaen El Agung <mahdaen@gmail.com>",
+  "license": "MIT",
+  "sideEffects": false,
+  "types": "./dist/index.d.ts",
+  "module": "./dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./worker": {
+      "types": "./dist/worker.d.ts",
+      "import": "./dist/worker.js"
+    }
+  },
+  "files": ["dist"],
+  "directories": {
+    "dist": "./dist"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "dev": "rimraf dist && tsdown --watch ./src",
+    "clean": "rimraf dist",
+    "build": "bun run clean && tsdown && publint",
+    "format": "biome format --write",
+    "test": "rimraf coverage && vitest --run",
+    "test:run": "rimraf coverage && vitest --run",
+    "test:preview": "rimraf coverage && vitest --run && vite preview --outDir coverage",
+    "prepublish": "bun run format && bun run build"
+  },
+  "dependencies": {
+    "@irpclib/http": "workspace:*",
+    "@irpclib/irpc": "workspace:*"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "catalog:",
+    "@types/bun": "catalog:",
+    "publint": "catalog:",
+    "rimraf": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
