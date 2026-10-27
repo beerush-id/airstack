@@ -756,6 +756,13 @@ export function intercept(
     reader.bindAsk((type, askArgs) => result.dispatchAnswer(type, askArgs));
     result.bindAsk((type, askArgs) => reader.dispatchAnswer(type, askArgs));
 
+    // A caller closing a local call closes the handler's state too, as a cancel packet would remotely.
+    const closeCaller = reader.onClose;
+    reader.onClose = () => {
+      closeCaller?.();
+      result.close();
+    };
+
     if (result.status !== IRPC_STATUS.PENDING) {
       reader.close();
       return reader;

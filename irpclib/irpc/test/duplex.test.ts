@@ -1,6 +1,17 @@
 import { createLifecycle, isReactive, mutable, setReactive } from '@airlib/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { type IRPCCall, createPackage, IRPCResolver, IRPCRouter, IRPCStream, IRPCTransport, type RemoteState, stream } from '../src/index.js';
+import {
+  createPackage,
+  IRPC_BASE_CONTEXT,
+  type IRPCCall,
+  IRPCResolver,
+  IRPCRouter,
+  IRPCStream,
+  IRPCTransport,
+  type RemoteState,
+  stream,
+  withContext,
+} from '../src/index.js';
 
 class LoopbackTransport extends IRPCTransport {
   public router?: IRPCRouter;
@@ -171,6 +182,77 @@ describe('IRPC Duplex (ask / answer)', () => {
 
       expect(hint).toBeUndefined();
       expect(final.received).toBe('fallback');
+    });
+
+    it('runs the handler cleanup when the caller closes the call', async () => {
+      const irpc = createPackage({ name: 'close-local', version: '1.0.0' });
+      const watch = irpc.declare<() => RemoteState<{ ticks: number }>>({
+        name: 'watch',
+        stream: true,
+        seed: () => ({ ticks: 0 }),
+        coalesce: false,
+      });
+      const cleanup = vi.fn();
+
+      irpc.construct(watch, () => stream(() => cleanup, { ticks: 0 }));
+
+      const msg = watch();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(cleanup).not.toHaveBeenCalled();
+
+      msg.close();
+      expect(cleanup).toHaveBeenCalledTimes(1);
+    });
+
+    it('settles the handler pending ask with undefined when the caller closes the call', async () => {
+      type Queries = { confirm: () => boolean };
+      const irpc = createPackage({ name: 'close-local-ask', version: '1.0.0' });
+      const task = irpc.declare<() => RemoteState<{ done: boolean }, Queries>>({
+        name: 'task',
+        stream: true,
+        seed: () => ({ done: false }),
+        coalesce: false,
+      });
+      let answered: boolean | undefined | 'pending' = 'pending';
+
+      irpc.construct(task, () =>
+        stream((state) => {
+          state.ask('confirm').then((value) => {
+            answered = value;
+          });
+        }, { done: false })
+      );
+
+      const msg = task();
+      msg.answer('confirm', () => new Promise<boolean>(() => {}));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      msg.close();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(answered).toBeUndefined();
+    });
+
+    it('runs the handler cleanup only once when a close and an abort both arrive', async () => {
+      const irpc = createPackage({ name: 'close-local-once', version: '1.0.0' });
+      const watch = irpc.declare<() => RemoteState<{ ticks: number }>>({
+        name: 'watch',
+        stream: true,
+        seed: () => ({ ticks: 0 }),
+        coalesce: false,
+      });
+      const cleanup = vi.fn();
+      const controller = new AbortController();
+
+      irpc.construct(watch, () => stream(() => cleanup, { ticks: 0 }));
+
+      await withContext([[IRPC_BASE_CONTEXT.ABORT_SIGNAL, controller.signal]], async () => {
+        const msg = watch();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        msg.close();
+        controller.abort();
+      });
+
+      expect(cleanup).toHaveBeenCalledTimes(1);
     });
   });
 

@@ -37,6 +37,7 @@ export class RemoteState<T, Q extends IRPCQueryMap = IRPCQueryMap> extends Promi
   #inflightAsks = new Set<(value?: undefined) => void>();
   #askQueue: Array<{ type: string; args: IRPCData[]; resolve: (v: unknown) => void; reject: (e: Error) => void }> = [];
   #askBridge?: IRPCAskBridge;
+  #destroyHandlers = new Set<() => void>();
   #closed = false;
   #locked?: this['then'];
 
@@ -357,9 +358,26 @@ export class RemoteState<T, Q extends IRPCQueryMap = IRPCQueryMap> extends Promi
         return;
       }
 
-      if (anchor.has(target.state)) replay(target.state, event);
+      if (!anchor.has(target.state)) return;
+      // Init and object sets hand the target the source's own objects. A change made inside a shared
+      // object has already happened in the target; replaying it would apply a push or splice twice,
+      // and the replay would re-emit on the source, forever.
+      if (sharesMutated(this.state, target.state, event.keys)) return;
+      replay(target.state, event);
     });
 
+    return this;
+  }
+
+  /**
+   * Registers a handler to run once when this state is torn down: closed, accepted, rejected or
+   * aborted. Lets a stream release its resources however the call ends.
+   *
+   * @param handler - Runs once, before pending asks are settled.
+   * @returns The current instance for chaining.
+   */
+  public onDestroy(handler: () => void): this {
+    this.#destroyHandlers.add(handler);
     return this;
   }
 
@@ -367,6 +385,12 @@ export class RemoteState<T, Q extends IRPCQueryMap = IRPCQueryMap> extends Promi
    * Destroys the reactive state bindings.
    */
   protected destroy() {
+    if (this.#destroyHandlers.size) {
+      const handlers = Array.from(this.#destroyHandlers);
+      this.#destroyHandlers.clear();
+      for (const handler of handlers) handler();
+    }
+
     if (this.#askQueue.length) {
       const pending = this.#askQueue.splice(0, this.#askQueue.length);
       for (const item of pending) {
@@ -441,27 +465,71 @@ export function stream<T, Q extends IRPCQueryMap = IRPCQueryMap>(
     if (cleanup instanceof Promise) {
       cleanup
         .then((futureCleanup) => {
-          if (typeof futureCleanup === 'function') {
-            if (abortSignal?.aborted || state.status !== IRPC_STATUS.PENDING) {
-              $do(futureCleanup);
-            } else {
-              abortSignal?.addEventListener('abort', () => $do(futureCleanup), { once: true });
-            }
-          }
+          if (typeof futureCleanup === 'function') registerCleanup(state, futureCleanup, abortSignal);
         })
         .catch(reject);
-    } else {
-      if (typeof cleanup === 'function') {
-        if (abortSignal?.aborted || state.status !== IRPC_STATUS.PENDING) {
-          $do(cleanup);
-        } else {
-          abortSignal?.addEventListener('abort', () => $do(cleanup), { once: true });
-        }
-      }
+    } else if (typeof cleanup === 'function') {
+      registerCleanup(state, cleanup, abortSignal);
     }
   } catch (error) {
     reject(error as Error);
   }
 
   return state;
+}
+
+/**
+ * Whether the object a mutation changed is the very same object in both states: the value at the
+ * event's path (an array that was pushed into), or its parent (an object whose key was set).
+ *
+ * @param source - The state the event came from.
+ * @param target - The state it would be replayed onto.
+ * @param keys - The event's path from the state root.
+ * @returns True when the target already holds the changed object.
+ */
+function sharesMutated(source: unknown, target: unknown, keys: unknown[]): boolean {
+  if (!keys.length) return false;
+  const parentKeys = keys.slice(0, -1);
+  const sameAt = (path: unknown[]) => {
+    const fromSource = valueAt(source, path);
+    return typeof fromSource === 'object' && fromSource !== null && fromSource === valueAt(target, path);
+  };
+  return sameAt(keys) || (parentKeys.length > 0 && sameAt(parentKeys));
+}
+
+/** Reads the value at a path, through plain objects, arrays and Maps. */
+function valueAt(root: unknown, keys: unknown[]): unknown {
+  let current = root;
+  for (const key of keys) {
+    if (current === null || typeof current !== 'object') return undefined;
+    current = current instanceof Map ? current.get(key) : (current as Record<PropertyKey, unknown>)[key as PropertyKey];
+  }
+  return current;
+}
+
+/**
+ * Runs a stream's cleanup exactly once, when its state is torn down: immediately if that already
+ * happened, otherwise on whichever comes first, the abort signal or the state being destroyed
+ * (closed by the caller, accepted, rejected or aborted).
+ */
+function registerCleanup<T, Q extends IRPCQueryMap>(
+  state: RemoteState<T, Q>,
+  cleanup: () => void,
+  abortSignal?: AbortSignal
+): void {
+  let done = false;
+  const run = () => {
+    if (done) return;
+    done = true;
+    abortSignal?.removeEventListener('abort', run);
+    $do(cleanup);
+  };
+
+  if (abortSignal?.aborted || state.status !== IRPC_STATUS.PENDING) {
+    run();
+    return;
+  }
+
+  abortSignal?.addEventListener('abort', run, { once: true });
+  state.onDestroy(run);
 }

@@ -17,6 +17,7 @@ IMPORTANT: Read only what you need. Match your problem or goal to the matrix bel
 |---|---|
 | **"How do I define remote functions (colocated `function.ts`), call them from UI components, or configure caching and retries?"** | [contents/declarations.md](./contents/declarations.md) |
 | **"How do I write colocated server logic (`constructor.ts`), stream live updates continuously, push data progressively, or clean up resources on disconnect?"** | [contents/handlers.md](./contents/handlers.md) |
+| **"How do I let the server ask the caller a question mid-call (or the caller ask the server), and wait for the answer?"** | [contents/duplex.md](./contents/duplex.md) |
 | **"How do I choose network protocols (HTTP, WebSocket, Web Workers), send credentials, or handle connection lifecycles?"** | [contents/transports.md](./contents/transports.md) |
 | **"How do I generate standard database operations (create, read, update, delete) for an entity, connect database drivers, or chain caching layers?"** | [contents/crud.md](./contents/crud.md) |
 | **"How do I authenticate users, enforce role permissions, build request session context, or validate arguments before sending?"** | [contents/interceptors.md](./contents/interceptors.md) |
@@ -33,6 +34,7 @@ Saw an unfamiliar symbol, method, or class in existing code? Look it up here to 
 |---|---|
 | `irpc.declare`, `.once()`, `.with()`, `.when()`, `.later()`, `standalone`, `keepAlive`, `coalesce`, `bypassLocal`, `IRPCReader`, `IRPCFile`, `IRPCBlob`, `irpc.invalidate` | [contents/declarations.md](./contents/declarations.md) |
 | `irpc.construct`, `stream()`, `reader.pipe()`, `createContext()`, `getContext()`, `setContext()`, `withContext()`, `envCtx`, `getEnv()`, `cookies` | [contents/handlers.md](./contents/handlers.md) |
+| `state.ask()`, `state.answer()`, `reader.ask()`, `reader.answer()`, `RemoteState<T, Q>`, `IRPCQueryMap`, duplex | [contents/duplex.md](./contents/duplex.md) |
 | `HTTPTransport`, `HTTPRouter`, `WebSocketTransport`, `WebSocketRouter`, `BroadcastTransport`, `BroadcastRouter`, `UnhandledCall`, `transport.sign()` | [contents/transports.md](./contents/transports.md) |
 | `irpc.crud`, `irpc.exclude`, `IRPCCrudDriver`, `IRPCCrudAdapter`, `IRPCCrudMeta`, `IRPCCrudAdapter.next()` | [contents/crud.md](./contents/crud.md) |
 | `router.use()`, `irpc.guard()`, `GuardError`, `irpc.hook()`, `getAbortSignal()` | [contents/interceptors.md](./contents/interceptors.md) |
@@ -109,6 +111,15 @@ Load this topic when you need to answer:
 - How do I handle incoming webhooks in traditional Node.js servers (Express, Fastify)?
 - How do I return specific HTTP status codes (like 200 OK or plain text) required by webhook providers to acknowledge receipt?
 - How do I verify HMAC signatures or security headers on incoming webhook requests?
+
+### [Duplex: Ask & Answer](./contents/duplex.md)
+Load this topic when you need to answer:
+- How does a server handler ask the caller for data or a decision while the call is still running?
+- How does the caller ask the server something during an active call?
+- How do I type the questions both sides can ask and answer?
+- What does an ask resolve to when no answer is registered, the call closes, or the answer handler throws?
+- Who decides how long to wait for an answer?
+- Why can an answer get lost when running multiple server instances?
 
 ### [Distribution, Monitoring & Durable State](./contents/distribution.md)
 Load this topic when you need to answer:
