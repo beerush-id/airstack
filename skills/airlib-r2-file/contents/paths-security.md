@@ -104,7 +104,7 @@ Use `setContext()` from `@irpclib/irpc` within `worker.router.use()` to attach c
 ```ts
 import { setContext } from '@irpclib/irpc';
 import { createWorker } from '@irpclib/r2-file/worker';
-import { fsContext } from '@irpclib/r2-file';
+import { fsContext } from '@irpclib/r2-file/context';
 
 const fileWorker = createWorker({
   endpoint: '/r2-file-irpc',
@@ -185,6 +185,12 @@ const accessRules: AccessRuleEntry[] = [
 ```
 
 When an operation accesses an unauthorized path or attempts an unlisted capability, the request rejects immediately with `HandlerError('EACCES', 'Permission denied')`.
+
+IMPORTANT: Rules are enforced only when `accessRules` is an array. Leaving it unset means no restriction at all, including outside `homeDir`. To confine a user to their home, set `accessRules: []`.
+
+### Ownership Is Recorded, Not Enforced
+
+`ownerId` (or `onBehalf`) is stamped on every write, but it never filters `list()` or `search()`. Isolation between users comes only from paths: a `mountPoint` per tenant, or a `homeDir` plus an `accessRules` array. Never rely on the owner field to hide one user's files from another.
 
 ---
 

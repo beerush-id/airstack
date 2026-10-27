@@ -137,6 +137,36 @@ export default {
 };
 ```
 
+Path resolution and owner stamping still read the ambient `fsContext`, so set it for the request before calling `fs` directly.
+
+### Observing Changes (Custom Drivers)
+
+The filesystem emits no events. To react to changes (indexing, auditing, syncing), append your own `FileDriver` to the chain with `use()`. Registration order is execution order, and `createFs()` registers Normalizer → D1 → R2, so a driver appended afterwards runs after storage has succeeded:
+
+```typescript
+import { createFs } from '@irpclib/r2-file/fs';
+import type { FileDriver } from '@irpclib/r2-file/adapter';
+
+const indexer: FileDriver = {
+  async write(ctx) {
+    await env.QUEUE.send({ op: 'write', path: ctx.path });
+  },
+  async move(ctx) {
+    await env.QUEUE.send({ op: 'move', path: ctx.path, destination: ctx.destination });
+  },
+  async remove(ctx) {
+    await env.QUEUE.send({ op: 'remove', path: ctx.path });
+  },
+};
+
+const fs = createFs({ bucket: env.BUCKET, indexer: env.DB }).use(indexer);
+```
+
+- A driver implements only the operations it cares about; the rest are skipped.
+- `ctx.path` and `ctx.destination` are storage paths, including any `mountPoint`.
+- A driver that throws aborts the operation, and earlier drivers roll back in reverse order. Throw only when the change must not happen; swallow errors for best-effort side effects.
+- An observer must not set `ctx.result`; that belongs to the storage driver that fulfils the operation.
+
 ---
 
 ## Standalone File Microservice

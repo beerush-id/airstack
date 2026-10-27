@@ -520,9 +520,22 @@ export const FileExplorer = setup<{ path: string }>((props) => {
 
 ---
 
+## File Identity
+
+A file's identity is its path. There is no separate stable id: `move()` and renames write the entry at the new path and delete the old one. Anything that references files from outside the filesystem (indexes, links stored in other files) must key by path and re-key on move.
+
+`FileInfo` carries `path`, `name`, `size`, `type`, `mtime`, `etag?`, `isDirectory`, `public?`, `hidden?`, `link?`, `deletedAt?`, and `metadata?`. Directories report type `inode/directory`, symlinks `inode/symlink`. `etag` is empty when the info comes from the D1 index.
+
+---
+
 ## Indexed Search (`search`)
 
-When D1 is attached, `search()` executes fast SQL queries across file names and indexed tags:
+When D1 is attached, `search()` executes fast SQL queries across file names and indexed tags.
+
+- It matches file **names** (substring) and the values of metadata keys listed in the driver's `indexableKeys` option. It never searches file contents.
+- It covers `cwd` and everything below it; `cwd` defaults to the user's home.
+- Without D1, `search()` returns no results.
+- `list()` and `search()` paginate with an offset-based `nextCursor`; `list()` returns direct children unless `recursive: true`.
 
 ```typescript
 import { search } from '@irpclib/r2-file';

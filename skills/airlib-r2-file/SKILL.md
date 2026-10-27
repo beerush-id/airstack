@@ -28,8 +28,8 @@ Saw an unfamiliar symbol, method, or configuration option in filesystem code? Lo
 | Symbol / Keyword Seen in Code | Topic Guide to Read |
 |---|---|
 | `write`, `read`, `stat`, `exists`, `mkdir`, `list`, `search`, `copy`, `move`, `link`, `remove`, `restore`, `IRPCFile`, `IRPCBlob`, `@irpclib/r2-file` | [contents/file-operations.md](./contents/file-operations.md) |
-| `fsContext`, `setContext`, `homeDir`, `mountPoint`, `accessRules`, `FileOperation`, `strict`, `enforced`, `@irpclib/r2-file` | [contents/paths-security.md](./contents/paths-security.md) |
-| `createWorker`, `createFs`, `resolveBinding`, `FileWorkerConfig`, `BUCKET`, `DB`, `FILE_API_KEY`, `FILE_SECRET`, `@irpclib/r2-file/worker`, `@irpclib/r2-file/fs`, `@irpclib/irpc/wrangler` | [contents/worker-deployment.md](./contents/worker-deployment.md) |
+| `fsContext`, `setContext`, `homeDir`, `mountPoint`, `accessRules`, `ownerId`, `FileOperation`, `strict`, `enforced`, `@irpclib/r2-file/context` | [contents/paths-security.md](./contents/paths-security.md) |
+| `createWorker`, `createFs`, `FileAdapter.use`, `FileDriver`, `@irpclib/r2-file/adapter`, `resolveBinding`, `FileWorkerConfig`, `BUCKET`, `DB`, `FILE_API_KEY`, `FILE_SECRET`, `@irpclib/r2-file/worker`, `@irpclib/r2-file/fs`, `@irpclib/irpc/wrangler` | [contents/worker-deployment.md](./contents/worker-deployment.md) |
 
 ---
 
@@ -41,6 +41,7 @@ Load this topic when you need to answer:
 - How do I read file content as parsed JSON or stream binary bytes with reactive progress tracking?
 - How do I check if a file exists or inspect its metadata without downloading its content?
 - How do I list directory contents with multi-field sorting, filtering, and pagination?
+- What identifies a file, and what happens to that identity on move or rename?
 - How do I search files by name and indexed metadata using D1 B-tree indexes?
 - How do I duplicate or move file and directory trees without table locks or database migrations?
 - How do I create symbolic links that dynamically resolve to target resources?
@@ -52,6 +53,7 @@ Load this topic when you need to answer:
 - How does universal root clamping (`/.. === /`) prevent path traversal and silent redirection?
 - How do I isolate tenant workspaces (`mountPoint`) while returning clean canonical paths to clients?
 - How do I inject ambient security context (`fsContext`) in authentication middleware?
+- Does the owner field isolate users, and when are access rules actually enforced?
 - How do I grant granular capability rules across team folders and public assets?
 - How do I prevent accidental catastrophic deletion using the strict deletion policy?
 
@@ -61,6 +63,7 @@ Load this topic when you need to answer:
 - How do I colocate the filesystem service inside an existing full-stack AirLib application in `src/worker.ts`?
 - How do I configure `wrangler.jsonc` with R2 bucket bindings and D1 database IDs?
 - How do I run filesystem operations directly inside Cloudflare Workers using `createFs`?
+- How do I react to file changes (indexing, auditing) when the filesystem emits no events?
 - How do I deliver files with HTTP 206 Partial Content range seeking for video and audio scrubbing?
 - How do I generate signed, expiring download URLs for private assets?
 - How do I handle typed errors (`ENOENT`, `EEXIST`, `EACCES`, `EFBIG`, `ENOTEMPTY`)?
