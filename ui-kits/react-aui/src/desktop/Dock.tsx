@@ -1,15 +1,12 @@
 import { aria, dialogCtx, handleRovingKey } from '@airlib/aria';
 import { AUI_CLASS, COLORS, register, SIZES, VARIANTS } from '@airlib/aui/utils';
-import { $bind, $use, type AnyType, type Bindable, For, Show, Slot, setup, shadowPortal } from '@airlib/react';
+import { $bind, $use, type AnyType, type Bindable, For, setup, shadowPortal, Show, Slot } from '@airlib/react';
 import type { KeyboardEvent, ReactNode } from 'react';
-import { $families, auiConfig, type ComponentStyles, OMIT_KEYS } from '../config.js';
-import { AppsIcon, MicIcon, SendIcon, StopIcon } from '../icons/index.js';
-import { AppIcon, AppIconTile } from '../widgets/AppIcon.js';
-import { Button } from '../widgets/Button.js';
-import { Spinner } from '../widgets/Spinner.js';
-import { Toggle } from '../widgets/Toggle.js';
 import { Dialog, DialogTrigger } from '../composites/Dialog.js';
-import { createAppCtx } from './system/context.js';
+import { $families, auiConfig, type ComponentStyles, OMIT_KEYS } from '../config.js';
+import { AppsIcon } from '../icons/index.js';
+import { AppIcon, AppIconTile } from '../widgets/AppIcon.js';
+import { DockPrompt, type DockSubmitEvent, type DockSuggestionFilters } from './DockPrompt.js';
 import { system } from './system/system.js';
 import { appLabel, focusApp, isFrontWindow, type WindowApp, type WindowInstance } from './window/registry.js';
 import { openWindows, windowApps } from './window/store.js';
@@ -55,6 +52,10 @@ export type DockProps = ComponentStyles & {
   speaking?: boolean;
   /** Announced once when speaking starts, e.g. "The assistant is speaking". */
   speakingLabel?: string;
+  /** What each trigger character offers for the word it starts in the prompt, e.g. `{ '/': commands, '@': files }`. */
+  filters?: DockSuggestionFilters;
+  /** Names the prompt's suggestions for screen readers, e.g. "Suggestions". */
+  suggestionsLabel?: string;
   /**
    * Called with the prompt's text when it is sent, and the window that was active then — what the
    * prompt is about. The prompt clears afterwards.
@@ -64,32 +65,6 @@ export type DockProps = ComponentStyles & {
   onstop?: (event: CustomEvent<void>) => void;
   /** Your own dock parts, when you compose instead of using the props above. */
   children?: ReactNode;
-};
-
-export type DockPromptProps = ComponentStyles & {
-  /** Names the field for screen readers. */
-  label?: string;
-  placeholder?: string;
-  voiceLabel?: string;
-  submitLabel?: string;
-  value?: Bindable<string>;
-  listening?: Bindable<boolean>;
-  busy?: boolean;
-  busyLabel?: string;
-  stopLabel?: string;
-  speaking?: boolean;
-  speakingLabel?: string;
-  onsubmit?: (event: DockSubmitEvent) => void;
-  onstop?: (event: CustomEvent<void>) => void;
-};
-
-/**
- * A prompt sent from the dock: its text in `detail`, and the window that was active when it was
- * sent, so the request can be about what the person is looking at.
- */
-export type DockSubmitEvent = CustomEvent<string> & {
-  /** The window in front when the prompt was sent; undefined when none was. */
-  readonly activeWindow?: WindowInstance;
 };
 
 export type DockLauncherProps = ComponentStyles & {
@@ -112,13 +87,10 @@ export type DockTasksProps = ComponentStyles & {
 
 const DOCK = 'aui-dock';
 const CLASS = {
-  PROMPT: `${DOCK}-prompt`,
-  INPUT: `${DOCK}-input`,
-  STOP: `${DOCK}-stop`,
   EXTENSIONS: `${DOCK}-extensions`,
   FLOAT: `${DOCK}-float`,
   FLOAT_FRAME: `${DOCK}-float-frame`,
-  STATUS: `${DOCK}-status`,
+  FLOAT_APP: `${DOCK}-float-app`,
   START: `${DOCK}-start`,
   LAUNCH: `${DOCK}-launch`,
   LAUNCHER: 'aui-launcher',
@@ -144,6 +116,8 @@ const DOCK_OMIT = [
   'stopLabel',
   'speaking',
   'speakingLabel',
+  'filters',
+  'suggestionsLabel',
   'onsubmit',
   'onstop',
 ];
@@ -189,13 +163,15 @@ export const Dock = setup<DockProps, DockSlots>((props, slots) => {
                 placeholder={props.placeholder}
                 voiceLabel={props.voiceLabel}
                 submitLabel={props.submitLabel}
-                value={$bind(props, 'value')}
-                listening={$bind(props, 'listening')}
+                value={$bind(props as AnyType, 'value')}
+                listening={$bind(props as AnyType, 'listening')}
                 busy={$use(() => props.busy)}
                 busyLabel={props.busyLabel}
                 stopLabel={props.stopLabel}
                 speaking={$use(() => props.speaking)}
                 speakingLabel={props.speakingLabel}
+                filters={props.filters}
+                suggestionsLabel={props.suggestionsLabel}
                 onsubmit={props.onsubmit}
                 onstop={props.onstop}
                 size={props.size}
@@ -218,117 +194,6 @@ export const Dock = setup<DockProps, DockSlots>((props, slots) => {
     </>
   );
 }, 'Dock');
-
-/**
- * The prompt: a field that grows with its text, an optional voice toggle,
- * and an optional send button. Enter sends; Shift+Enter adds a line. While
- * `busy`, a spinner leads the field, the send button becomes a stop button
- * when it's named, and Escape stops too; what's typed and sent meanwhile is a
- * follow-up for your app. While `speaking`, the voice button pulses, and
- * turning voice on then is how someone speaks over the assistant.
- */
-export const DockPrompt = setup<DockPromptProps>((props) => {
-  const input = aria('text-input', props as AnyType);
-
-  const submit = () => {
-    const text = input.value.trim();
-    if (!text) return;
-    props.onsubmit?.(Object.assign(new CustomEvent('submit', { detail: text }), { activeWindow: system.activeWindow }));
-    input.value = '';
-    const element = input.current as HTMLTextAreaElement | null;
-    if (element) element.value = '';
-  };
-
-  const stop = () => {
-    if (!props.busy) return;
-    props.onstop?.(new CustomEvent('stop'));
-  };
-
-  // Enter sends like a chat field, Escape stops a running request; the part has no keymap of its own for either.
-  const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key === 'Escape' && props.busy && props.onstop) {
-      event.preventDefault();
-      stop();
-      return;
-    }
-    if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) return;
-    event.preventDefault();
-    submit();
-  };
-
-  return () => (
-    <div className={CLASS.PROMPT}>
-      <Show when={() => props.busy}>
-        {() => <Spinner label={props.busyLabel as string} size={props.size} color={props.color} />}
-      </Show>
-      <textarea
-        ref={input.ref as AnyType}
-        {...input.restProps([
-          ...OMIT_KEYS,
-          'value',
-          'voiceLabel',
-          'submitLabel',
-          'listening',
-          'busy',
-          'busyLabel',
-          'stopLabel',
-          'speaking',
-          'speakingLabel',
-          'onsubmit',
-          'onstop',
-        ] as never)}
-        placeholder={props.placeholder}
-        rows={1}
-        className={CLASS.INPUT}
-        onKeyDown={handleKeyDown}
-      />
-      <Show when={() => props.voiceLabel}>
-        {(label) => (
-          <Toggle
-            aria-label={label}
-            pressed={$bind(props, 'listening')}
-            data-speaking={$use(() => (props.speaking ? 'true' : undefined))}
-            size={props.size}
-            color={props.color}
-            className={AUI_CLASS.CONTROL_ICON}
-          >
-            <MicIcon />
-          </Toggle>
-        )}
-      </Show>
-      <Show when={() => props.busy && props.stopLabel}>
-        {(label) => (
-          <Button
-            aria-label={label as string}
-            size={props.size}
-            color={props.color}
-            className={`${CLASS.STOP} ${AUI_CLASS.CONTROL_ICON}`}
-            onClick={stop}
-          >
-            <StopIcon />
-          </Button>
-        )}
-      </Show>
-      <Show when={() => !(props.busy && props.stopLabel) && props.submitLabel}>
-        {(label) => (
-          <Button
-            aria-label={label as string}
-            size={props.size}
-            color={props.color}
-            className={AUI_CLASS.CONTROL_ICON}
-            onClick={submit}
-          >
-            <SendIcon />
-          </Button>
-        )}
-      </Show>
-      {/* Says once that the assistant has started talking; the pulse alone isn't seen by everyone. */}
-      <span className={CLASS.STATUS} role="status">
-        <Show when={() => props.speaking && props.speakingLabel}>{(label) => label as string}</Show>
-      </span>
-    </div>
-  );
-}, 'DockPrompt');
 
 /**
  * The front window's options, floating above the dock on a glass pane of their own with a solid
@@ -355,10 +220,19 @@ const DockExtensionsPane = setup<{ front: WindowInstance }>((props) => {
 
   return () => {
     const Extensions = props.front.dockExtensions!;
+    const app = props.front.app;
 
     return (
       <div ref={region.ref} {...region.restProps([...OMIT_KEYS] as never)} className={CLASS.FLOAT}>
-        <div role="group" aria-label={`${appLabel(props.front.app)} options`} className={`${CLASS.FLOAT_FRAME} ${AUI_CLASS.GLASS_FRAME}`}>
+        <div
+          role="group"
+          aria-label={`${appLabel(app)} options`}
+          className={`${CLASS.FLOAT_FRAME} ${AUI_CLASS.GLASS_FRAME}`}
+        >
+          {/* Whose options these are: the app's tile on the glass, before its surface; the group's name says it aloud. */}
+          <span className={CLASS.FLOAT_APP}>
+            <AppIconTile alt={appLabel(app)} src={app.image} icon={app.icon} aria-hidden="true" />
+          </span>
           <div className={`${CLASS.EXTENSIONS} ${AUI_CLASS.GLASS_SURFACE}`}>
             <Extensions instance={props.front} />
           </div>
@@ -433,7 +307,7 @@ export const DockLauncherPanel = setup<DockLauncherProps>((props) => {
       return installed.map((entry) => ({
         label: entry.manifest.label,
         image: entry.manifest.icon,
-        launch: () => entry.main(createAppCtx()),
+        launch: () => system.launch(entry.manifest.name),
       }));
     }
     return (props.apps ?? windowApps).map((app) => ({
@@ -451,7 +325,11 @@ export const DockLauncherPanel = setup<DockLauncherProps>((props) => {
 
   // The grid's rows come from layout, not markup, so the rover reads them from the tiles' positions.
   const rove = (event: KeyboardEvent<HTMLDivElement>) => {
-    handleRovingKey(event.currentTarget, event.nativeEvent, { selector: `.${CLASS.APP_ICON}`, flow: true, manual: true });
+    handleRovingKey(event.currentTarget, event.nativeEvent, {
+      selector: `.${CLASS.APP_ICON}`,
+      flow: true,
+      manual: true,
+    });
   };
 
   return () =>
@@ -483,7 +361,9 @@ export const DockLauncherPanel = setup<DockLauncherProps>((props) => {
 export const DockTasks = setup<DockTasksProps>((props) => {
   const strip = aria('toolbar', props as AnyType);
   const running = () =>
-    (props.apps ?? windowApps).filter((app) => [...openWindows.values()].some((instance) => instance.app.name === app.name));
+    (props.apps ?? windowApps).filter((app) =>
+      [...openWindows.values()].some((instance) => instance.app.name === app.name)
+    );
 
   return () => (
     <div ref={strip.ref} {...strip.restProps([...OMIT_KEYS, 'apps'] as never)} className={CLASS.TASKS}>

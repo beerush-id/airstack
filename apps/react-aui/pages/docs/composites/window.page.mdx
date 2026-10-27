@@ -376,7 +376,9 @@ Pressing a running app's icon brings it forward, puts its window away when it is
 
 Like a window, the dock keeps `Tab` among its own controls: past the last running app it wraps to the launcher button, and `Shift` + `Tab` wraps back. People leave it by pressing a window or the desktop. Arrow keys move between the running apps. In the launcher they follow the grid as it wraps to the space it has: left and right go through the apps in order, up and down go to the closest app in the row above or below.
 
-For your own layout, compose `DockLauncher` (named with `aria-label`), `DockPrompt` (named with `label`), and `DockTasks` inside `Dock`, or replace the launcher and the running apps with the `start` and `tasks` slots.
+- `filters` — what the prompt suggests as people type. Each key is a character that starts a word, such as `/` for commands or `@` for files. Each value takes the rest of the word and returns what matches, each item with a `value`, a `label`, and an optional `hint`. The arrows move through the suggestions and Enter or Tab picks one. A pick goes into the prompt as one piece, and `onsubmit` gets every pick still in the text in `references`. `suggestionsLabel` names the list for screen readers.
+
+To change a part, fill its slot: `start` for the launcher (a `DockLauncher` named with `aria-label`) and `tasks` for the running apps. A filled slot replaces that part whole.
 
 ### A taskbar
 

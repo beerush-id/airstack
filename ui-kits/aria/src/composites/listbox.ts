@@ -34,6 +34,12 @@ interface ListboxBaseProps extends AriaProps {
    * Whether a non-empty selection is required.
    */
   required?: boolean;
+
+  /**
+   * Whether the options wrap into visual rows, like a grid of tiles: the arrows then move by
+   * reading order and by row instead of along one line.
+   */
+  flow?: boolean;
 }
 
 /**
@@ -107,6 +113,7 @@ export interface ListboxAttributes<E extends BaseElement = HTMLElement> extends 
  * The selected option holds the single tab stop through the shared `SelectionAria` roving
  * rule, and the container takes that stop only while nothing is selected so an empty list
  * stays reachable. Traversal moves focus only; selection changes on click, `Space`, or `Enter`.
+ * With `multiple`, Shift-click adds the range from the last option clicked.
  *
  * @template E - Target Element type (defaults to HTMLElement)
  * @template T - Reactive props type
@@ -120,15 +127,13 @@ export class ListboxAria<
   private queryTimer?: ReturnType<typeof setTimeout>;
   private parentRover = roverCtx.get();
   private searchQuery = '';
+  /** The option last clicked without Shift: where the next Shift-click's range starts. */
+  private anchor?: HTMLElement;
+  /** Set while a range is being clicked in, so those clicks don't move the anchor. */
+  private extending = false;
 
   protected selector = OPTION_SELECTOR.join(',');
   protected enabledSelector = ENABLED_OPTION_SELECTOR;
-
-  /**
-   * Whether options wrap into visual rows, like a grid of tiles: the arrows then move by reading
-   * order and by row instead of along one line.
-   */
-  protected flow = false;
 
   public get id() {
     return this.properties.id;
@@ -149,7 +154,7 @@ export class ListboxAria<
     roverCtx.set(this as unknown as Aria<BaseElement>);
     selectionGroup.set(this.properties as Record<string, unknown>);
 
-    this.omittedAttrs.push('id', 'label', 'value', 'multiple', 'disabled', 'required', 'oninput', 'onchange');
+    this.omittedAttrs.push('id', 'label', 'value', 'multiple', 'disabled', 'required', 'flow', 'oninput', 'onchange');
     this.on('keydown', this.handleKeyDown);
 
     if (!deferred) {
@@ -207,18 +212,54 @@ export class ListboxAria<
   /**
    * Forwards the announcements made inside the container: the option that took the cursor
    * carries its own value as `input`, and a member commit is announced as `change` with the
-   * whole value. Also keeps a pending typeahead query from outliving the container.
+   * whole value. Also keeps a pending typeahead query from outliving the container, and reads
+   * clicks before the options do, for Shift-click ranges.
    */
   protected override attach(): DetachFn {
+    const host = this.element!;
+    host.addEventListener('click', this.handleRangeClick, true);
+
     return () => {
       clearTimeout(this.queryTimer);
+      host.removeEventListener('click', this.handleRangeClick, true);
     };
   }
+
+  /**
+   * In a multiple listbox, Shift-click selects every option from the anchor to the one clicked,
+   * leaving the rest as they are; any other click makes its option the next anchor. The range is
+   * selected through each option's own click, so every option announces its change as usual.
+   */
+  private readonly handleRangeClick = (event: MouseEvent): void => {
+    if (this.extending || this.disabled) return;
+    const option = (event.target as Element | null)?.closest<HTMLElement>(this.enabledSelector);
+    if (!option || !this.element!.contains(option)) return;
+
+    const options = this.enabledOptions();
+    const from = this.anchor ? options.indexOf(this.anchor) : -1;
+    if (!event.shiftKey || !this.properties.multiple || from < 0) {
+      this.anchor = option;
+      return;
+    }
+
+    event.preventDefault();
+    const to = options.indexOf(option);
+    const range = options.slice(Math.min(from, to), Math.max(from, to) + 1);
+    this.extending = true;
+    try {
+      for (const each of range) {
+        if (each.getAttribute('aria-selected') !== 'true') each.click();
+      }
+    } finally {
+      this.extending = false;
+    }
+  };
 
   private readonly handleKeyDown = (event: KeyboardEvent): void => {
     if (this.disabled || event.defaultPrevented || this.parentRover) return;
 
-    if (handleRovingKey(this.element, event, { selector: this.enabledSelector, manual: true, flow: this.flow })) return;
+    const flow = !!this.properties.flow;
+    if (handleRovingKey(this.element, event, { selector: this.enabledSelector, manual: true, flow })) return;
 
     if (ACTIVATION_KEYS.includes(event.key)) {
       const target = this.focusedOption() ?? this.enabledOptions()[0];

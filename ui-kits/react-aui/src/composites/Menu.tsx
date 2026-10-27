@@ -1,6 +1,6 @@
 import { aria } from '@airlib/aria';
 import { AUI_CLASS, COLORS, register, SIZES, VARIANTS } from '@airlib/aui/utils';
-import { type AnyType, type Bindable, For, renderDynamic, Slot, setup, shadowPortal } from '@airlib/react';
+import { type AnyType, type Bindable, For, renderDynamic, setup, shadowPortal, Slot } from '@airlib/react';
 import type { ReactNode } from 'react';
 import { $families, auiConfig, type ComponentStyles, OMIT_KEYS } from '../config.js';
 import { ArrowDown } from '../icons/index.js';
@@ -12,8 +12,8 @@ import { menuScope } from './scopes.js';
 export type MenuEntry = ItemEntry & { shortcut?: string };
 
 export type MenuSlots = {
-  trigger: () => ReactNode;
-  item: (entry: MenuEntry) => ReactNode;
+  item?: (entry: MenuEntry) => ReactNode;
+  trigger?: () => ReactNode;
 };
 
 export type MenuProps = ComponentStyles & {
@@ -216,8 +216,7 @@ export const MenuItem = setup<MenuItemProps>((props) => {
 export const MenuItemCheckbox = setup<MenuItemCheckboxProps>((props) => {
   const styles = menuScope.inherit(props);
   const item = aria(ITEM_CHECKBOX_ROLE, props as AnyType);
-  const className = () =>
-    $families([AUI_CLASS.ITEM, AUI_CLASS.MENU_ITEM_CHECKBOX], styles, auiConfig.menuItemCheckbox);
+  const className = () => $families([AUI_CLASS.ITEM, AUI_CLASS.MENU_ITEM_CHECKBOX], styles, auiConfig.menuItemCheckbox);
 
   return () => (
     <div ref={item.ref} {...withTabIndex(item.restProps(OMIT_KEYS))} className={className()}>

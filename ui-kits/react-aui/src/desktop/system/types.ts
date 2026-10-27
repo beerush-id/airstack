@@ -1,4 +1,5 @@
 import type { AnyType } from '@airlib/react';
+import type { DockSuggestion } from '../dock/prompt.js';
 import type { arrangeWindows, WindowApp, WindowInstance } from '../window/registry.js';
 
 /**
@@ -8,12 +9,17 @@ import type { arrangeWindows, WindowApp, WindowInstance } from '../window/regist
 export type AUITools = Record<string, (...args: AnyType[]) => unknown>;
 
 /**
- * What an app hands the system along with a view: the data the window shows and the tools it makes
- * reachable. Both stay reachable as the window lives, at `window[id]` and `activeWindow`.
+ * What an app hands the system along with a view: the data the window shows, the tools it makes
+ * reachable, and what it adds to the prompt while it's in front. All stay reachable as the window
+ * lives, at `window[id]` and `activeWindow`.
  */
 export interface AUIOpenOptions<D = AnyType, T extends AUITools = AUITools> {
   data?: D;
   tools?: T;
+  /** What the window adds to the prompt's commands while it's in front, e.g. its own `search`. */
+  commands?: DockSuggestion[];
+  /** What the prompt can mention while the window is in front, e.g. its files. */
+  contexts?: DockSuggestion[];
 }
 
 /**
@@ -117,6 +123,14 @@ export interface AUISystemState {
   /** Every tool on the system to call by name — the system's and each app's isomorphic stubs. */
   readonly tools: AUITools;
   /**
+   * Launches an installed app by name, as the launcher does. Only installed apps launch: the
+   * system makes each one's context, so what an app is granted stays the system's to decide.
+   *
+   * @param name - The app's manifest name, e.g. `photos`.
+   * @returns What its boot returns, now or once booted; undefined when no installed app has that name.
+   */
+  launch(name: string): ReturnType<AUIBoot> | undefined;
+  /**
    * Reads the value at a path through this tree, never throwing.
    *
    * @param path - Dot and bracket steps, e.g. `activeWindow.state.width`.
@@ -128,7 +142,7 @@ export interface AUISystemState {
 /**
  * What the system starts with: top-level keys of its state, each replacing the system's own.
  */
-export type AUISystemSeed = Partial<Omit<AUISystemState, 'get'>> & {
+export type AUISystemSeed = Partial<Omit<AUISystemState, 'get' | 'launch'>> & {
   /**
    * Lets later boots reseed the running system and get it back, as reloading code during
    * development does. Read from the first seed only; never on in production.

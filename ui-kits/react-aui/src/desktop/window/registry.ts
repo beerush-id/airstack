@@ -2,7 +2,8 @@ import type { WindowProps as WindowAriaProps } from '@airlib/aria';
 import { type AnyType, anchor, proxyProps, setup } from '@airlib/react';
 import type { ComponentType, ReactNode } from 'react';
 import { activateWindow, deactivateWindow, system } from '../system/system.js';
-import type { AUITools } from '../system/types.js';
+import type { DockSuggestion } from '../dock/prompt.js';
+import type { AUIOpenOptions, AUITools } from '../system/types.js';
 import type { WindowLayoutLabels, WindowProps, WindowVariant } from '../Window.js';
 import { openWindows, stackOrder, windowApps, windowInstanceCtx } from './store.js';
 
@@ -62,6 +63,10 @@ export type WindowInstance<D = AnyType> = {
   readonly dockExtensions?: ComponentType<WindowRenderProps<D>>;
   /** What it was opened with to call: its view's buttons and the agent reach the same functions here. */
   readonly tools: AUITools;
+  /** What it adds to the prompt's commands while it's in front. */
+  readonly commands: DockSuggestion[];
+  /** What the prompt can mention while it's in front. */
+  readonly contexts: DockSuggestion[];
   /** Brings it to the front (restoring it if minimized) and focuses it. */
   focus(): void;
   close(): void;
@@ -123,8 +128,8 @@ export type WindowApp<D = AnyType> = WindowDefinition<D> & {
   readonly view?: ComponentType;
   /** Sets how each copy draws itself. */
   render(render: WindowRender<D>): WindowApp<D>;
-  /** Opens a copy with data and tools, or focuses the open one when `multiple` is off. */
-  open(data?: D, tools?: AUITools): WindowInstance<D>;
+  /** Opens a copy with data, tools, and what it adds to the prompt, or focuses the open one when `multiple` is off. */
+  open(data?: D, options?: Omit<AUIOpenOptions<D>, 'data'>): WindowInstance<D>;
   /** Closes every copy. */
   closeAll(): void;
 };
@@ -328,13 +333,13 @@ function createApp<D>(definition: WindowDefinition<D>): WindowApp<D> {
       ) as ComponentType;
       return app;
     },
-    open(data?: D, tools: AUITools = {}) {
+    open(data?: D, options: Omit<AUIOpenOptions<D>, 'data'> = {}) {
       const existing = app.instances[0];
       if (!definition.multiple && existing) {
         existing.focus();
         return existing;
       }
-      return spawn(app as WindowApp<D>, data as D, tools);
+      return spawn(app as WindowApp<D>, data as D, options);
     },
     closeAll() {
       for (const instance of app.instances) instance.close();
@@ -344,7 +349,7 @@ function createApp<D>(definition: WindowDefinition<D>): WindowApp<D> {
   return app;
 }
 
-function spawn<D>(app: WindowApp<D>, data: D, tools: AUITools): WindowInstance<D> {
+function spawn<D>(app: WindowApp<D>, data: D, options: Omit<AUIOpenOptions<D>, 'data'>): WindowInstance<D> {
   const id = `window-${app.name}-${++counter}`;
   const saved = app.remember ? fitToScreen(load(app.name)) : undefined;
   const offset = (openWindows.size % 8) * CASCADE + CASCADE;
@@ -391,7 +396,9 @@ function spawn<D>(app: WindowApp<D>, data: D, tools: AUITools): WindowInstance<D
     title,
     state,
     dockExtensions: app.dockExtensions,
-    tools,
+    tools: options.tools ?? {},
+    commands: options.commands ?? [],
+    contexts: options.contexts ?? [],
     focus() {
       state.minimized = false;
       activateWindow(instance as WindowInstance);

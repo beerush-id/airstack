@@ -41,7 +41,7 @@ export class DockAria<E extends BaseElement = HTMLElement> extends Aria<E, DockP
   }
 
   protected attach() {
-    return publishBlockSize(this.element as HTMLElement, DOCK_BLOCK_SIZE);
+    return publishBlockSize(this.element as unknown as HTMLElement, DOCK_BLOCK_SIZE);
   }
 
   protected createAttributes(): DockAttributes<E> {
@@ -93,8 +93,7 @@ export interface DockRegionAttributes<E extends BaseElement = HTMLElement> exten
 export class DockRegionAria<E extends BaseElement = HTMLElement> extends Aria<
   E,
   DockRegionProps,
-  DockRegionAttributes<E>,
-  AriaOptions
+  DockRegionAttributes<E>
 > {
   public constructor(props: Partial<DockRegionProps> = {}, options: AriaOptions = {}) {
     super(props, options);
@@ -105,7 +104,7 @@ export class DockRegionAria<E extends BaseElement = HTMLElement> extends Aria<
   protected attach() {
     const name = this.properties.publish;
     if (!name) return;
-    return publishBlockSize(this.element as HTMLElement, name);
+    return publishBlockSize(this.element as unknown as HTMLElement, name);
   }
 
   protected createAttributes(): DockRegionAttributes<E> {

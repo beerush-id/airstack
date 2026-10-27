@@ -1,13 +1,13 @@
 import { aria, type OptionAria, type SelectAria, type SelectPanelAria, type SelectTriggerAria } from '@airlib/aria';
 import { AUI_CLASS, COLORS, register, SIZES, VARIANTS } from '@airlib/aui/utils';
-import { type AnyType, type Bindable, For, renderDynamic, Slot, setup, shadowPortal } from '@airlib/react';
+import { type AnyType, type Bindable, For, renderDynamic, setup, shadowPortal, Slot } from '@airlib/react';
 import type { ReactNode } from 'react';
 import {
   $families,
+  auiConfig,
   type AuiFieldProps,
   type AuiPrimitive,
   type AuiProps,
-  auiConfig,
   type ComponentStyles,
   type FieldStyles,
   OMIT_KEYS,
@@ -80,7 +80,7 @@ const selectScope = createStyleScope<SelectProps>();
 export const Select = setup<SelectProps, SelectSlots>((props, slots) => {
   const select = aria(SELECT_ROLE, props as AnyType);
 
-  selectScope.provide(props);
+  selectScope.provide(props as SelectProps);
 
   return () => {
     if (hasEntries(props.options)) {

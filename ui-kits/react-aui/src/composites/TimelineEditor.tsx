@@ -1,10 +1,11 @@
-import { aria, formatTime } from '@airlib/aria';
+import { aria } from '@airlib/aria';
 import { AUI_CLASS, branded, register } from '@airlib/aui/utils';
 import { $static, type AnyType, type Bindable, For, Snippet, setup, stylex } from '@airlib/react';
 import type { Timeline, TimelineSegment, TimelineTrack } from '@airlib/react/timeline';
 import type { ReactNode } from 'react';
 import { $families, auiConfig, type ComponentStyles, OMIT_KEYS } from '../config.js';
 import { AudioFileIcon, FormatAlignLeftIcon, ImageIcon, MovieIcon } from '../icons/index.js';
+import { formatTime, playheadSlider } from '../utils/time.js';
 
 export type TimelineEditorSlots = {
   /** Content of each clip, replacing its picture and name. */
@@ -28,7 +29,7 @@ export type TimelineEditorProps = ComponentStyles & {
 
 const CLIPS_ROLE = 'listbox';
 const CLIP_ROLE = 'option';
-const RULER_ROLE = 'timeline-ruler';
+const SLIDER_ROLE = 'slider';
 
 const CLASS = {
   BODY: branded('timeline-body'),
@@ -124,7 +125,8 @@ export const TimelineEditor = setup<TimelineEditorProps, TimelineEditorSlots>((p
  * many as keep the times apart at this zoom.
  */
 const TimelineRuler = setup<{ timeline: Timeline; label?: string; zoom: number }>((props) => {
-  const ruler = aria(RULER_ROLE, props as AnyType);
+  // The ruler spans the whole composition, so a point on it is a time at any zoom.
+  const ruler = aria(SLIDER_ROLE, playheadSlider(() => props.timeline));
   const every = () => [1, 2, 5, 10, 15, 30, 60].find((seconds) => seconds * props.zoom >= 64) ?? 60;
   const marks = () =>
     Array.from({ length: Math.floor(props.timeline.state.totalTime / every()) + 1 }, (_, index) => index * every());
@@ -132,7 +134,8 @@ const TimelineRuler = setup<{ timeline: Timeline; label?: string; zoom: number }
   return () => (
     <div
       ref={ruler.ref}
-      {...ruler.restProps([...OMIT_KEYS, 'zoom'] as never)}
+      {...ruler.restProps([...OMIT_KEYS] as never)}
+      aria-label={props.label ?? 'Playhead'}
       className={CLASS.RULER}
       style={stylex({ '--aui-timeline-every': String(every()) })}
     >

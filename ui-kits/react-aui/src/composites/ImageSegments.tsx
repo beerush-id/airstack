@@ -1,7 +1,14 @@
-import { aria, type SegmentPoint } from '@airlib/aria';
+import { aria } from '@airlib/aria';
 import { AUI_CLASS, branded, COLORS, register } from '@airlib/aui/utils';
-import { $static, type AnyType, type Bindable, For, Show, setup } from '@airlib/react';
+import { $static, type AnyType, type Bindable, For, setup, Show } from '@airlib/react';
+import type { PointerEvent } from 'react';
 import { $families, auiConfig, type ComponentStyles, OMIT_KEYS } from '../config.js';
+
+/**
+ * A prompt point on an image, in the image's own pixels: where to look, and whether what's there
+ * belongs to the object or not.
+ */
+export type SegmentPoint = { x: number; y: number; include: boolean };
 
 /** One segment of the image: a mask as a model returns it, named so people and agents can refer to it. */
 export type ImageSegment = {
@@ -43,7 +50,7 @@ export type ImageSegmentsProps = ComponentStyles & {
   onchange?: (event: CustomEvent<string | string[]>) => void;
 };
 
-const SEGMENTS_ROLE = 'image-segments';
+const LISTBOX_ROLE = 'listbox';
 const OPTION_ROLE = 'option';
 
 const CLASS = {
@@ -65,9 +72,14 @@ register('imageSegments', { color: COLORS.PRIMARY });
  * The image and the masks share one frame in the image's own pixels, so they line up at any size.
  */
 export const ImageSegments = setup<ImageSegmentsProps>((props) => {
-  const segments = aria(SEGMENTS_ROLE, props as AnyType);
+  // The segments are a listbox's options; placing points is this composition's own pointer work.
+  const segments = aria<SVGSVGElement>(LISTBOX_ROLE, props as AnyType);
   const className = () =>
-    $families([AUI_CLASS.SCALE, AUI_CLASS.IMAGE_SEGMENTS], { color: props.color, className: props.className }, auiConfig.imageSegments);
+    $families(
+      [AUI_CLASS.SCALE, AUI_CLASS.IMAGE_SEGMENTS],
+      { color: props.color, className: props.className },
+      auiConfig.imageSegments
+    );
   const picked = () => {
     const value = segments.value;
     return new Set(Array.isArray(value) ? value : value ? [value] : []);
@@ -75,15 +87,46 @@ export const ImageSegments = setup<ImageSegmentsProps>((props) => {
   const spotlightId = () => `${segments.id}-spotlight`;
   const unit = () => Math.max(props.width, props.height) / 100;
 
+  // In point mode a press places a point, measured in the image's pixels through the svg's own
+  // transform so its size and zoom never skew it; Alt marks the point as excluded.
+  const placePoint = (event: PointerEvent<SVGSVGElement>) => {
+    if (props.mode !== 'point' || event.button !== 0 || event.defaultPrevented) return;
+    const matrix = event.currentTarget.getScreenCTM();
+    if (!matrix) return;
+
+    const at = new DOMPoint(event.clientX, event.clientY).matrixTransform(matrix.inverse());
+    const point: SegmentPoint = { x: Math.round(at.x), y: Math.round(at.y), include: !event.altKey };
+    event.preventDefault();
+    props.points = [...(props.points ?? []), point] as AnyType;
+    props.onpoint?.(new CustomEvent('point', { detail: point }));
+  };
+
   return () => (
     <div className={className()} data-mode={props.mode ?? 'select'}>
       <svg
         ref={segments.ref}
-        {...segments.restProps([...OMIT_KEYS, 'src', 'alt', 'width', 'height', 'segments'] as never)}
+        {...segments.restProps([
+          ...OMIT_KEYS,
+          'src',
+          'alt',
+          'width',
+          'height',
+          'segments',
+          'mode',
+          'points',
+          'onpoint',
+        ] as never)}
         viewBox={`0 0 ${props.width} ${props.height}`}
         className={CLASS.CANVAS}
+        onPointerDown={placePoint}
       >
-        <image className={CLASS.IMAGE} href={props.src} width={props.width} height={props.height} aria-label={props.alt} role="img" />
+        <image
+          className={CLASS.IMAGE}
+          href={props.src}
+          width={props.width}
+          height={props.height}
+          aria-label={props.alt}
+        />
         <Show when={() => picked().size > 0}>
           {() => (
             <>
@@ -95,7 +138,12 @@ export const ImageSegments = setup<ImageSegmentsProps>((props) => {
                   </For>
                 </mask>
               </defs>
-              <rect className={CLASS.SPOTLIGHT} width={props.width} height={props.height} mask={`url(#${spotlightId()})`} />
+              <rect
+                className={CLASS.SPOTLIGHT}
+                width={props.width}
+                height={props.height}
+                mask={`url(#${spotlightId()})`}
+              />
             </>
           )}
         </Show>
@@ -109,7 +157,6 @@ export const ImageSegments = setup<ImageSegmentsProps>((props) => {
               fontSize={unit() * 3}
               // On the right half a label runs back from its anchor, so it never leaves the picture.
               textAnchor={segment.anchor![0] > props.width / 2 ? 'end' : 'start'}
-              aria-hidden="true"
             >
               {segment.label}
             </text>
@@ -123,7 +170,6 @@ export const ImageSegments = setup<ImageSegmentsProps>((props) => {
               cy={point.y}
               r={unit() * 1.2}
               data-include={point.include ? 'true' : 'false'}
-              aria-hidden="true"
             />
           )}
         </For>

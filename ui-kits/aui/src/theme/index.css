@@ -300,6 +300,9 @@
     --radius-xxl: calc(var(--radius-base) * 6);
     --radius-full: 9999px;
 
+    /* A hint in an empty field: its own ink at half strength, over whatever the field sits on. */
+    --color-placeholder: color-mix(in oklch, currentColor 50%, transparent);
+
     --color-disabled-bg: color-mix(
       in oklch,
       var(--color-on-surface) var(--tone-faint-strength),
@@ -394,10 +397,12 @@
       --radius-xxl: calc(var(--radius-base) * 1.5);
 
       --focus-ring-offset: 1px;
+      /* The corners every part takes, for a part with a shape of its own to return to. */
+      --corner-shape: superellipse(1.5);
     }
 
     [class] {
-      corner-shape: superellipse(1.5);
+      corner-shape: var(--corner-shape);
     }
   }
 }

@@ -8,9 +8,9 @@ import {
   classx,
   mutable,
   onMount,
+  setup,
   Show,
   Snippet,
-  setup,
 } from '@airlib/react';
 import type { ReactNode } from 'react';
 import { OMIT_KEYS } from '../config.js';
@@ -83,7 +83,11 @@ export const DesktopWidgets = setup<DesktopWidgetsProps>((props) => {
   const layer = aria('desktop-widgets', props as AnyType);
 
   return () => (
-    <div ref={layer.ref} {...layer.restProps([...OMIT_KEYS, 'label'] as never)} className={classx(CLASS.WIDGETS, props.className)}>
+    <div
+      ref={layer.ref}
+      {...layer.restProps([...OMIT_KEYS, 'label'] as never)}
+      className={classx(CLASS.WIDGETS, props.className)}
+    >
       {props.children}
     </div>
   );
@@ -150,8 +154,8 @@ export const DesktopClock = setup<DesktopClockProps>((props) => {
     <DesktopWidget
       title={props.title}
       span={props.span ?? '3x1'}
-      column={$bind(props, 'column')}
-      row={$bind(props, 'row')}
+      column={$bind(props as AnyType, 'column')}
+      row={$bind(props as AnyType, 'row')}
       movable={props.movable}
       bare={props.bare ?? true}
       className={props.className}
@@ -183,8 +187,8 @@ export const DesktopNotes = setup<DesktopNotesProps>((props) => {
     <DesktopWidget
       title={props.title}
       span={props.span ?? '3x1'}
-      column={$bind(props, 'column')}
-      row={$bind(props, 'row')}
+      column={$bind(props as AnyType, 'column')}
+      row={$bind(props as AnyType, 'row')}
       movable={props.movable}
       className={props.className}
     >

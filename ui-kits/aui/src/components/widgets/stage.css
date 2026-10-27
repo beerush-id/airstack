@@ -126,7 +126,7 @@
       position: absolute;
       inset-block: 0;
       inset-inline-start: 0;
-      inline-size: calc(var(--aria-timeline-progress, 0) * 100%);
+      inline-size: var(--aria-slider-start, 0%);
       border-radius: inherit;
       background-color: var(--color-primary);
     }
@@ -135,7 +135,7 @@
       content: '';
       position: absolute;
       inset-block-start: 50%;
-      inset-inline-start: calc(var(--aria-timeline-progress, 0) * 100%);
+      inset-inline-start: var(--aria-slider-start, 0%);
       inline-size: 12px;
       block-size: 12px;
       translate: -50% -50%;

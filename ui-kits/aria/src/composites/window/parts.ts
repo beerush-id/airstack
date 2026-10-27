@@ -18,12 +18,7 @@ export interface WindowDragAttributes<E extends BaseElement = HTMLElement> exten
  * Double-clicking it maximizes or restores. Controls inside it keep their own
  * behavior.
  */
-export class WindowDragAria<E extends BaseElement = HTMLElement> extends Aria<
-  E,
-  AriaProps,
-  WindowDragAttributes<E>,
-  AriaOptions
-> {
+export class WindowDragAria<E extends BaseElement = HTMLElement> extends Aria<E, AriaProps, WindowDragAttributes<E>> {
   protected window?: WindowAria = windowCtx.get();
 
   public constructor(props: Partial<AriaProps> = {}, options: AriaOptions = {}) {
@@ -72,8 +67,7 @@ export interface WindowResizeAttributes<E extends BaseElement = HTMLElement> ext
 export class WindowResizeAria<E extends BaseElement = HTMLElement> extends Aria<
   E,
   WindowResizeProps,
-  WindowResizeAttributes<E>,
-  AriaOptions
+  WindowResizeAttributes<E>
 > {
   protected window?: WindowAria = windowCtx.get();
 
@@ -112,12 +106,7 @@ export interface WindowTitleAttributes<E extends BaseElement = HTMLElement> exte
 /**
  * The window's heading; the window is named by it.
  */
-export class WindowTitleAria<E extends BaseElement = HTMLElement> extends Aria<
-  E,
-  AriaProps,
-  WindowTitleAttributes<E>,
-  AriaOptions
-> {
+export class WindowTitleAria<E extends BaseElement = HTMLElement> extends Aria<E, AriaProps, WindowTitleAttributes<E>> {
   protected window?: WindowAria = windowCtx.get();
 
   public constructor(props: Partial<AriaProps> = {}, options: AriaOptions = {}) {
@@ -150,8 +139,7 @@ export interface WindowButtonAttributes<E extends BaseElement = HTMLElement> ext
 abstract class WindowButtonAria<E extends BaseElement = HTMLButtonElement> extends Aria<
   E,
   AriaProps,
-  WindowButtonAttributes<E>,
-  AriaOptions
+  WindowButtonAttributes<E>
 > {
   protected window?: WindowAria = windowCtx.get();
 

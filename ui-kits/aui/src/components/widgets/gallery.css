@@ -64,20 +64,40 @@
       opacity: 0.5;
     }
 
-    /* The check sits on the picture's corner, inside the tile's padding. */
-    & > .aui-icon {
-      --aui-icon-size: 1rem;
-      position: absolute;
-      inset-block-start: calc(var(--aui-gallery-padding) + var(--spacing-xs));
-      inset-inline-end: calc(var(--aui-gallery-padding) + var(--spacing-xs));
-      inline-size: calc(var(--aui-icon-size) + var(--spacing-xs));
-      block-size: calc(var(--aui-icon-size) + var(--spacing-xs));
-      padding: calc(var(--spacing-xs) / 2);
-      border-radius: var(--radius-full);
+  }
+
+  /*
+   * The check sits on the picture's corner, clear of its rounding, inside the tile's padding: an
+   * empty circle that shows under the pointer while one tile is picked, and on every tile while
+   * several are, filled once its tile is checked.
+   */
+  .aui-gallery-check {
+    --aui-icon-size: 1rem;
+    position: absolute;
+    inset-block-start: calc(var(--aui-gallery-padding) + var(--spacing-sm));
+    inset-inline-end: calc(var(--aui-gallery-padding) + var(--spacing-sm));
+    display: grid;
+    place-items: center;
+    box-sizing: border-box;
+    inline-size: calc(var(--aui-icon-size) + var(--spacing-xs) * 1.5);
+    block-size: calc(var(--aui-icon-size) + var(--spacing-xs) * 1.5);
+    border: 2px solid var(--color-surface-lowest);
+    border-radius: var(--radius-full);
+    background-color: color-mix(in oklch, var(--color-scrim, #000) 25%, transparent);
+    color: transparent;
+    box-shadow: var(--elevation-1);
+    visibility: hidden;
+    cursor: pointer;
+
+    &[data-checked='true'] {
       background-color: var(--aui-item-bg);
       color: var(--aui-item-fg);
-      box-shadow: var(--elevation-1);
     }
+  }
+
+  .aui-gallery-item:is(:hover, :focus-visible) > .aui-gallery-check,
+  .aui-gallery[aria-multiselectable='true'] .aui-gallery-check {
+    visibility: visible;
   }
 
   .aui-gallery-media {
@@ -95,43 +115,45 @@
     scale: 1.04;
   }
 
-  /* The check keeps a ring of the tile's own surface, so it holds up on a bright picture. */
-  .aui-gallery-item[aria-selected='true'] > .aui-icon {
-    box-shadow:
-      0 0 0 2px var(--color-surface-lowest),
-      var(--elevation-1);
-  }
-
+  /*
+   * The title takes the tile's whole width, so a name shows as much as fits; the description and
+   * the meta share the line under it, one at each end.
+   */
+  /* The title on its own line; under it the description and meta, spread to either end, or the one there is at the start. */
   .aui-gallery-caption {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
     column-gap: var(--spacing-sm);
-    padding-inline: var(--spacing-xs);
-    padding-block-end: var(--spacing-xs);
+    row-gap: var(--spacing-xxs, 2px);
+    padding: var(--spacing-xs) var(--spacing-sm) var(--spacing-sm);
   }
 
   .aui-gallery-caption-title {
-    grid-column: 1;
+    flex-basis: 100%;
     overflow: hidden;
-    font-size: var(--font-label-lg-size);
+    font-size: var(--font-label-md-size);
     font-weight: 500;
-    line-height: var(--font-label-lg-line-height);
+    line-height: var(--font-label-md-line-height);
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
   .aui-gallery-caption-description {
-    grid-column: 1;
+    flex: 0 1 auto;
+    min-inline-size: 0;
+    overflow: hidden;
     color: var(--color-on-surface-variant);
-    font-size: var(--font-label-md-size);
-    line-height: var(--font-label-md-line-height);
+    font-size: var(--font-label-sm-size);
+    line-height: var(--font-label-sm-line-height);
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .aui-gallery-caption-meta {
-    grid-column: 2;
-    grid-row: 1 / span 2;
+    flex: none;
     color: var(--color-on-surface-variant);
-    font-size: var(--font-label-md-size);
-    line-height: var(--font-label-lg-line-height);
+    font-size: var(--font-label-sm-size);
+    line-height: var(--font-label-sm-line-height);
   }
 }

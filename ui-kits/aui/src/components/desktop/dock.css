@@ -4,6 +4,7 @@
 @import '../widgets/app-icon.css';
 @import '../widgets/toast.css';
 @import '../widgets/glass.css';
+@import '../widgets/item.css';
 @import './window.css';
 
 /*
@@ -129,8 +130,21 @@
   .aui-dock-float-frame {
     --aui-glass-radius: calc(var(--aui-control-height) / 2 + var(--aui-dock-padding));
     --aui-glass-shadow: var(--elevation-3);
+    display: flex;
+    align-items: center;
+    gap: var(--aui-glass-inset);
     padding: var(--aui-glass-inset);
     pointer-events: auto;
+  }
+
+  /* The front window's app tile, on the glass before the surface, as tall as a control, with the surface's corners. */
+  .aui-dock-float-app {
+    --aui-image-size: var(--aui-control-height);
+    --aui-icon-size: calc(var(--aui-image-size) * 0.5);
+    --aui-app-icon-radius: max(calc(var(--aui-glass-radius) - var(--aui-glass-inset) - 1px), var(--radius-sm));
+    --aui-app-icon-corner: var(--corner-shape, round);
+    display: inline-flex;
+    flex: none;
   }
 
   /*
@@ -158,6 +172,7 @@
    */
   .aui-dock-prompt {
     anchor-name: --aui-dock-prompt;
+    position: relative;
     display: flex;
     align-items: flex-end;
     gap: var(--spacing-xs);
@@ -325,25 +340,99 @@
     white-space: nowrap;
   }
 
+  /* Where the prompt is written: it grows with its text up to a few lines, then scrolls. */
   .aui-dock-input {
     flex: 1 1 auto;
     box-sizing: border-box;
     min-inline-size: 0;
     min-block-size: calc(var(--aui-control-height) - var(--aui-dock-prompt-inset) * 2);
-    max-block-size: calc(var(--aui-dock-prompt-lines) * 1lh);
+    max-block-size: calc(var(--aui-dock-prompt-lines) * 1lh + var(--aui-control-height) - var(--aui-dock-prompt-inset) * 2 - 1lh);
+    overflow-y: auto;
     padding: calc((var(--aui-control-height) - var(--aui-dock-prompt-inset) * 2 - 1lh) / 2) 0;
-    border: 0;
-    background: transparent;
     color: inherit;
     font: inherit;
     line-height: var(--font-body-md-line-height, 1.5);
-    resize: none;
-    field-sizing: content;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    position: relative;
+    cursor: text;
     outline: none;
 
-    &::placeholder {
-      color: var(--color-on-surface-variant);
+    /* Out of the flow, so it takes no room in the line and the caret stays at the start. */
+    &[data-empty]::before {
+      content: attr(aria-placeholder);
+      position: absolute;
+      inset-inline: 0;
+      overflow: hidden;
+      color: var(--color-placeholder);
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      pointer-events: none;
     }
+  }
+
+  /* A suggestion picked into the prompt: one piece, tinted as a reference to something, its icon before its name. */
+  .aui-dock-token {
+    padding-inline: var(--spacing-xs);
+    border-radius: var(--radius-sm);
+    background-color: color-mix(in oklch, var(--color-primary) 14%, transparent);
+    color: var(--color-primary);
+    white-space: nowrap;
+
+    /* At the text's size: a glyph and a picture both read the icon size. */
+    & > .aui-dock-suggestion-icon {
+      --aui-icon-size: 1em;
+      margin-inline-end: 0.25em;
+      vertical-align: -0.15em;
+    }
+  }
+
+  /* A suggestion's icon leads its row: a glyph, or a picture cropped square. */
+  .aui-dock-suggestion-icon {
+    display: inline-flex;
+    flex: none;
+
+    & > img {
+      inline-size: var(--aui-icon-size, 1.25em);
+      aspect-ratio: 1;
+      object-fit: cover;
+      border-radius: var(--radius-xs);
+    }
+  }
+
+  /*
+   * The suggestions for the word being typed: the shared panel, teleported to the page and anchored
+   * to the prompt, as wide as it, just above the dock where the front window's options would be,
+   * rising out of it.
+   */
+  .aui-panel.aui-dock-suggestions {
+    position-anchor: --aui-dock-prompt;
+    position-area: none;
+    left: anchor(left);
+    bottom: calc(anchor(--aui-dock top) + var(--aui-dock-offset));
+    box-sizing: border-box;
+    inline-size: anchor-size(width);
+    min-width: 0;
+    max-block-size: 40dvh;
+    margin-block: 0;
+    z-index: calc(var(--aui-window-z) + 1001);
+    animation-name: aui-panel-pop-above;
+  }
+
+  :root:has(.aui-dock-suggestions) .aui-dock-float {
+    visibility: hidden;
+  }
+
+  /* A blank gap where one set of suggestions ends and the next begins, e.g. the front window's after the system's. */
+  .aui-dock-suggestion[data-group-start] {
+    margin-block-start: var(--spacing-sm);
+  }
+
+  /* A suggestion's hint sits at the end of its row, a fainter wash of the row's ink, so it reads on a highlighted row too. */
+  .aui-dock-suggestion-hint {
+    margin-inline-start: auto;
+    color: color-mix(in oklch, currentColor 70%, transparent);
+    font-size: var(--font-label-sm-size);
   }
 
   /* The start button: a quiet round icon, as tall as the prompt. */
@@ -351,6 +440,14 @@
     flex: none;
     border-radius: var(--radius-full);
     color: var(--color-on-surface-variant);
+  }
+
+  /* App tiles on the dock take the prompt's corners, concentric with the dock's pane like everything on it. */
+  .aui-dock-start,
+  .aui-dock-launch > .aui-app-icon,
+  .aui-dock-tasks {
+    --aui-app-icon-radius: calc(var(--aui-control-height) / 2);
+    --aui-app-icon-corner: var(--corner-shape, round);
   }
 
   /* The launcher's dialog wraps the start button; as a flex item it adds no line box, so the button sits level with the prompt. */

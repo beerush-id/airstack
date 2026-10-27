@@ -387,6 +387,11 @@ export type MauiConfig = typeof DEFAULT_CONFIG & {
   dock?: ComponentStyles;
   dockButton?: ComponentStyles;
   dockWidgets?: ComponentStyles;
+  gallery?: ComponentStyles;
+  galleryItem?: ComponentStyles;
+  imageViewer?: ComponentStyles;
+  imageSegments?: ComponentStyles;
+  fullscreenButton?: ComponentStyles;
 };
 
 export const AUI_CLASS = {

@@ -216,7 +216,7 @@
     line-height: 1.5;
 
     &::placeholder {
-      color: var(--color-on-surface-variant);
+      color: var(--color-placeholder);
     }
   }
 

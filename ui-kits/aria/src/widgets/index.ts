@@ -3,7 +3,6 @@ export * from './checkbox.js';
 export * from './disclosure.js';
 export * from './divider.js';
 export * from './file-picker.js';
-export * from './fullscreen.js';
 export * from './image.js';
 export * from './label.js';
 export * from './link.js';

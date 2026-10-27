@@ -6,6 +6,7 @@
 import { mutable } from '@airlib/react';
 import { arrangeWindows, type WindowInstance } from '../window/registry.js';
 import { openWindows, stackOrder } from '../window/store.js';
+import { launchApp } from './context.js';
 import type { AUISystemState } from './types.js';
 
 export const system: AUISystemState = mutable<AUISystemState>(
@@ -15,6 +16,10 @@ export const system: AUISystemState = mutable<AUISystemState>(
     activeWindow: undefined,
     tools: {},
     get: (path: string) => readPath(system, path),
+    launch: (name: string) => {
+      const entry = system.system.apps?.find((app) => app.manifest.name === name);
+      return entry ? launchApp(entry) : undefined;
+    },
   },
   { recursive: false }
 );

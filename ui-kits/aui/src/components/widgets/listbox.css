@@ -36,4 +36,34 @@
       block-size: max(var(--aui-control-height), calc(var(--aui-listbox-inner-radius) * 2));
     }
   }
+
+  /*
+   * A checkable row's check, leading it: an empty circle that shows under the pointer while one
+   * row is picked, and on every row while several are, filled once its row is checked.
+   */
+  .aui-listbox-check {
+    --aui-icon-size: 0.875rem;
+    display: grid;
+    flex: none;
+    place-items: center;
+    box-sizing: border-box;
+    inline-size: calc(var(--aui-icon-size) + var(--spacing-xs) * 1.5);
+    block-size: calc(var(--aui-icon-size) + var(--spacing-xs) * 1.5);
+    border: 1.5px solid color-mix(in oklch, currentColor 40%, transparent);
+    border-radius: var(--radius-full);
+    color: transparent;
+    visibility: hidden;
+    cursor: pointer;
+
+    &[data-checked='true'] {
+      border-color: var(--aui-item-bg);
+      background-color: var(--aui-item-bg);
+      color: var(--aui-item-fg);
+    }
+  }
+
+  .aui-item:is(:hover, :focus-visible) > .aui-listbox-check,
+  .aui-listbox[aria-multiselectable='true'] .aui-listbox-check {
+    visibility: visible;
+  }
 }

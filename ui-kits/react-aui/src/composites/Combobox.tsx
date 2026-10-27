@@ -1,14 +1,14 @@
 import { aria, type ComboboxAria, type ComboboxInputAria, type ComboboxPanelAria, type OptionAria } from '@airlib/aria';
 import { AUI_CLASS, COLORS, register, SIZES, VARIANTS } from '@airlib/aui/utils';
-import { type AnyType, type Bindable, For, renderDynamic, Slot, setup, shadowPortal } from '@airlib/react';
+import { type AnyType, type Bindable, For, renderDynamic, setup, shadowPortal, Slot } from '@airlib/react';
 import { derived } from '@airlib/react/core';
 import type { ComponentProps, ReactNode, RefObject } from 'react';
 import {
   $families,
+  auiConfig,
   type AuiFieldProps,
   type AuiPrimitive,
   type AuiProps,
-  auiConfig,
   type ComponentStyles,
   type FieldStyles,
   OMIT_KEYS,
@@ -95,7 +95,7 @@ export const Combobox = setup<ComboboxProps, ComboboxSlots>((props, slots) => {
   const combobox = aria(COMBOBOX_ROLE, props as AnyType);
   const className = () => $families(AUI_CLASS.COMBOBOX, props as ComponentStyles, auiConfig.combobox);
 
-  comboboxScope.provide(props);
+  comboboxScope.provide(props as ComboboxProps);
 
   const options = derived(() => {
     const q = (props.query ?? '').toLocaleLowerCase();

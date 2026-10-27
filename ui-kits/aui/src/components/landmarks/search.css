@@ -36,7 +36,7 @@
       font: inherit;
 
       &::placeholder {
-        color: var(--color-on-surface-variant);
+        color: var(--color-placeholder);
       }
 
       &:focus-visible {

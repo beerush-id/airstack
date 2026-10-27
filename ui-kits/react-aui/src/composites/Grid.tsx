@@ -87,10 +87,10 @@ export const Grid = setup<GridProps>((props) => {
   const grid = aria(GRID_ROLE, props as AnyType);
   const className = () => $families([AUI_CLASS.SCALE, AUI_CLASS.GRID], props, auiConfig.grid);
 
-  gridProps.set(props);
+  gridProps.set(props as GridProps);
 
   return () => (
-    <div ref={grid.ref} {...grid.restProps(OMIT_KEYS)} style={gridColumns(props)} className={className()}>
+    <div ref={grid.ref} {...grid.restProps(OMIT_KEYS)} style={gridColumns(props as GridProps)} className={className()}>
       {props.children}
     </div>
   );
@@ -102,13 +102,12 @@ export const Grid = setup<GridProps>((props) => {
  */
 export const TreeGrid = setup<TreeGridProps>((props) => {
   const grid = aria(TREE_GRID_ROLE, props as AnyType);
-  const className = () =>
-    $families([AUI_CLASS.SCALE, AUI_CLASS.GRID, AUI_CLASS.TREE_GRID], props, auiConfig.treeGrid);
+  const className = () => $families([AUI_CLASS.SCALE, AUI_CLASS.GRID, AUI_CLASS.TREE_GRID], props, auiConfig.treeGrid);
 
-  gridProps.set(props);
+  gridProps.set(props as GridProps);
 
   return () => (
-    <div ref={grid.ref} {...grid.restProps(OMIT_KEYS)} style={gridColumns(props)} className={className()}>
+    <div ref={grid.ref} {...grid.restProps(OMIT_KEYS)} style={gridColumns(props as GridProps)} className={className()}>
       {props.children}
     </div>
   );

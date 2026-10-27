@@ -86,16 +86,6 @@ import {
   GridRowHeaderAria,
   ListboxAria,
   type ListboxProps,
-  GalleryAria,
-  type GalleryProps,
-  ImageSegmentsAria,
-  type ImageSegmentsProps,
-  ImageViewerAria,
-  type ImageViewerProps,
-  StageAria,
-  type StageProps,
-  TimelineRulerAria,
-  type TimelineRulerProps,
   MenuAria,
   MenubarAria,
   type MenubarProps,
@@ -172,7 +162,6 @@ import {
   TreeItemAria,
   type TreeItemProps,
   type TreeProps,
-  TreeToggleAria,
 } from './composites/index.js';
 import {
   DesktopWidgetAria,
@@ -288,8 +277,6 @@ import {
   TooltipAria,
   type TooltipOptions,
   type TooltipProps,
-  FullscreenToggleAria,
-  type FullscreenToggleProps,
 } from './widgets/index.js';
 
 export * from './composites/index.js';
@@ -363,25 +350,6 @@ export function aria<E extends BaseElement = HTMLElement>(
 ): CheckboxGroupAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement>(role: 'listbox', props?: ListboxProps): ListboxAria<E>;
-export function aria<E extends BaseElement = HTMLElement>(role: 'gallery', props?: GalleryProps): GalleryAria<E>;
-export function aria<E extends BaseElement = SVGSVGElement>(
-  role: 'image-segments',
-  props?: ImageSegmentsProps
-): ImageSegmentsAria<E>;
-export function aria<E extends BaseElement = HTMLElement>(
-  role: 'image-viewer',
-  props?: ImageViewerProps
-): ImageViewerAria<E>;
-export function aria<E extends BaseElement = HTMLElement>(role: 'stage', props?: StageProps): StageAria<E>;
-export function aria<E extends BaseElement = HTMLElement>(
-  role: 'timeline-ruler',
-  props?: TimelineRulerProps
-): TimelineRulerAria<E>;
-export function aria<E extends BaseElement = HTMLElement>(
-  role: 'fullscreen-toggle',
-  props?: FullscreenToggleProps,
-  options?: AriaOptions
-): FullscreenToggleAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement>(role: 'grid', props?: GridProps): GridAria<E>;
 
@@ -877,7 +845,6 @@ export function aria<E extends BaseElement = HTMLElement>(
 export function aria<E extends BaseElement = HTMLElement>(role: 'tree', props?: TreeProps): TreeAria<E>;
 export function aria<E extends BaseElement = HTMLElement>(role: 'tree-item', props?: TreeItemProps): TreeItemAria<E>;
 export function aria<E extends BaseElement = HTMLElement>(role: 'tree-group', props?: TreeGroupProps): TreeGroupAria<E>;
-export function aria<E extends BaseElement = HTMLElement>(role: 'tree-toggle', props?: AriaProps): TreeToggleAria<E>;
 export function aria<E extends BaseElement = HTMLElement>(role: 'reorder', props?: ReorderProps): ReorderAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement>(
@@ -1045,18 +1012,6 @@ export function aria(role: string, init?: unknown, options?: unknown): unknown {
       return new CheckboxGroupAria(init as never);
     case 'listbox':
       return new ListboxAria(init as never);
-    case 'gallery':
-      return new GalleryAria(init as never);
-    case 'image-segments':
-      return new ImageSegmentsAria(init as never);
-    case 'image-viewer':
-      return new ImageViewerAria(init as never);
-    case 'stage':
-      return new StageAria(init as never);
-    case 'timeline-ruler':
-      return new TimelineRulerAria(init as never);
-    case 'fullscreen-toggle':
-      return new FullscreenToggleAria(init as never, options as never);
     case 'grid':
       return new GridAria(init as never);
     case 'treegrid':
@@ -1171,8 +1126,6 @@ export function aria(role: string, init?: unknown, options?: unknown): unknown {
       return new TreeItemAria(init as never);
     case 'tree-group':
       return new TreeGroupAria(init as never);
-    case 'tree-toggle':
-      return new TreeToggleAria(init as never);
     case 'reorder':
       return new ReorderAria(init as never);
     case 'reorder-item':

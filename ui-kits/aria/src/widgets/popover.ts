@@ -258,11 +258,10 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
       attrs.popover = this.dismissable ? 'auto' : 'manual';
     }
 
-    if (this.open) {
-      attrs.style = {
-        positionAnchor: `--${this.anchorPrefix}-anchor-${this.id}`,
-      } as StyleInput;
-    }
+    // Kept while closed too: a closing panel stays on the page until its view takes it off, and stays put.
+    attrs.style = {
+      positionAnchor: `--${this.anchorPrefix}-anchor-${this.id}`,
+    } as StyleInput;
 
     if (this.properties.xDir) {
       attrs[`data-${this.anchorPrefix}-x`] = this.properties.xDir;
@@ -495,13 +494,11 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
     if (!this.target) return;
 
     const release = this.target.refine(() => {
+      // The trigger names its anchor whether or not the panel is open: a closing panel is still on the
+      // page until its view takes it off, and it must not lose its anchor and jump for that moment.
       const attrs: AriaAttributes = {
         ...this.createTriggerAttributes(),
-        style: this.open
-          ? ({
-              anchorName: triggerAnchorName(`--${this.anchorPrefix}-anchor-${this.id}`),
-            } as StyleInput)
-          : undefined,
+        style: { anchorName: triggerAnchorName(`--${this.anchorPrefix}-anchor-${this.id}`) } as StyleInput,
       };
 
       if (this.mode.includes('click')) {

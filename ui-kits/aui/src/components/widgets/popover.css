@@ -1,9 +1,8 @@
 @import './panel.css';
 
-/* The surface comes from the shared panel; this file adds the content padding and placement. */
+/* The surface comes from the shared panel; this file adds the placement. A floating container, so its content brings its own padding. */
 @layer theme {
   :root {
-    --aui-popover-padding: var(--spacing-md);
     --aui-popover-gap: var(--spacing-sm);
   }
 }
@@ -12,7 +11,6 @@
   /* A popover usually lives inside its trigger: it sheds the control's label typography. */
   .aui-popover {
     gap: var(--aui-popover-gap);
-    padding: var(--aui-popover-padding);
     max-inline-size: min(calc(var(--spacing) * 80), calc(100dvi - (var(--spacing-md) * 2)));
     color: var(--color-on-surface);
     cursor: auto;

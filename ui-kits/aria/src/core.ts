@@ -453,7 +453,7 @@ export class Aria<
    * @param event - The pointer event to place.
    */
   protected writePointer(event: PointerEvent) {
-    const element = this.element as HTMLElement | undefined;
+    const element = this.element as unknown as HTMLElement | undefined;
     this.pendingPointer = undefined;
     if (this.pointerFrame) {
       cancelAnimationFrame(this.pointerFrame);
@@ -698,7 +698,7 @@ export class Aria<
   /**
    * Registers this controller as an actionable interactive candidate on itself and its parent scope.
    */
-  protected markActionable(): void {
+  public markActionable(): void {
     this.isActionable = true;
     this.actionable = this as unknown as Aria<BaseElement, AriaProps, AriaAttributes<BaseElement>>;
 

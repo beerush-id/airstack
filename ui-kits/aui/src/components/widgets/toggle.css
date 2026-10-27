@@ -16,5 +16,16 @@
       color: var(--aui-control-fg);
       background-color: var(--aui-control-bg);
     }
+
+    /* The text variant has no surface at rest, and only a tint of its role color while pressed. */
+    &.aui-toggle-text {
+      --aui-state-layer-color: var(--aui-control-bg);
+      background-color: transparent;
+
+      &[aria-pressed='true'] {
+        color: var(--aui-control-bg);
+        background-color: color-mix(in oklch, var(--aui-control-bg) var(--tone-container-strength), transparent);
+      }
+    }
   }
 }

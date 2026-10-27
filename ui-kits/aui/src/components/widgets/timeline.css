@@ -73,7 +73,7 @@
       content: '';
       position: absolute;
       inset-block-end: 0;
-      inset-inline-start: calc(var(--aria-timeline-progress, 0) * var(--aui-timeline-length, 0) * var(--aui-timeline-zoom));
+      inset-inline-start: var(--aria-slider-start, 0%);
       inline-size: 12px;
       block-size: 60%;
       translate: -50% 0;

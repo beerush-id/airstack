@@ -1,7 +1,7 @@
 import { aria, type TreeItemAria } from '@airlib/aria';
 import { AUI_CLASS, COLORS, register, SIZES } from '@airlib/aui/utils';
 import { type AnyType, type Bindable, For, renderDynamic, Slot, setup } from '@airlib/react';
-import type { ReactNode } from 'react';
+import type { MouseEvent, ReactNode } from 'react';
 import { $families, auiConfig, type ComponentStyles, OMIT_KEYS } from '../config.js';
 import { ArrowRight } from '../icons/index.js';
 import { createStyleScope } from '../utils/common.js';
@@ -58,7 +58,6 @@ export type TreeGroupProps = ComponentStyles & {
 const TREE_ROLE = 'tree';
 const TREE_ITEM_ROLE = 'tree-item';
 const TREE_GROUP_ROLE = 'tree-group';
-const TREE_TOGGLE_ROLE = 'tree-toggle';
 
 const ITEM_OMIT = [...OMIT_KEYS, 'labelledby', 'ontoggle'];
 
@@ -117,12 +116,24 @@ export const Tree = setup<TreeProps, TreeSlots>((props, slots) => {
 export const TreeItem = setup<TreeItemProps>((props) => {
   const styles = treeScope.inherit(props);
   const item = aria(TREE_ITEM_ROLE, props as AnyType);
-  const toggle = aria(TREE_TOGGLE_ROLE);
   const className = () => $families([AUI_CLASS.SCALE, AUI_CLASS.TREE_ITEM], styles, auiConfig.treeItem);
+
+  // The arrow opens and closes a branch. It claims the press during capture, before the row's own
+  // listener runs, so pressing it never selects the row too.
+  const handleToggle = (event: MouseEvent<HTMLSpanElement>) => {
+    if (!item.isBranch) return;
+    event.preventDefault();
+    if (event.type === 'click') item.toggleExpand();
+  };
 
   return () => (
     <li ref={item.ref} {...item.restProps(ITEM_OMIT)} className={className()}>
-      <span ref={toggle.ref} {...toggle.restProps(OMIT_KEYS)} className={AUI_CLASS.TREE_TOGGLE}>
+      <span
+        aria-hidden="true"
+        className={AUI_CLASS.TREE_TOGGLE}
+        onClickCapture={handleToggle}
+        onDoubleClickCapture={handleToggle}
+      >
         <ArrowRight />
       </span>
       {renderDynamic(props.children, item)}

@@ -40,8 +40,7 @@ export interface DesktopWidgetsAttributes<E extends BaseElement = HTMLElement> e
 export class DesktopWidgetsAria<E extends BaseElement = HTMLElement> extends Aria<
   E,
   DesktopWidgetsProps,
-  DesktopWidgetsAttributes<E>,
-  AriaOptions
+  DesktopWidgetsAttributes<E>
 > {
   public constructor(props: Partial<DesktopWidgetsProps> = {}, options: AriaOptions = {}) {
     super(props, options);
@@ -116,8 +115,7 @@ export interface DesktopWidgetAttributes<E extends BaseElement = HTMLElement> ex
 export class DesktopWidgetAria<E extends BaseElement = HTMLElement> extends Aria<
   E,
   DesktopWidgetProps,
-  DesktopWidgetAttributes<E>,
-  AriaOptions
+  DesktopWidgetAttributes<E>
 > {
   public readonly id: string;
 
@@ -176,7 +174,7 @@ export class DesktopWidgetAria<E extends BaseElement = HTMLElement> extends Aria
     const last = Math.max(1, lines.xs.length - across + 1);
     if (column < 1 || column > last || row < 1) return false;
 
-    for (const other of layer.querySelectorAll<HTMLElement>(WIDGET_SELECTOR)) {
+    for (const other of layer.querySelectorAll(WIDGET_SELECTOR) as never as HTMLElement[]) {
       if (other === element || !other.getClientRects().length) continue;
       const rect = other.getBoundingClientRect();
       const [otherAcross, otherDown] = spanOf(other);
@@ -213,7 +211,7 @@ export class DesktopWidgetAria<E extends BaseElement = HTMLElement> extends Aria
   }
 
   protected attach() {
-    const element = this.element as HTMLElement;
+    const element = this.element as unknown as HTMLElement;
     element.addEventListener('pointerdown', this.handlePointerDown);
     return () => element.removeEventListener('pointerdown', this.handlePointerDown);
   }
@@ -225,12 +223,15 @@ export class DesktopWidgetAria<E extends BaseElement = HTMLElement> extends Aria
     if (!element || !layer) return undefined;
     const lines = gridLines(layer);
     const rect = element.getBoundingClientRect();
-    return { column: nearestLine(lines.xs, rect.left, lines.pitchX), row: nearestLine(lines.ys, rect.top, lines.pitchY) };
+    return {
+      column: nearestLine(lines.xs, rect.left, lines.pitchX),
+      row: nearestLine(lines.ys, rect.top, lines.pitchY),
+    };
   }
 
   /** A press on the widget's glass or title starts a drag; its controls and fields keep their own presses. */
   private readonly handlePointerDown = (event: PointerEvent): void => {
-    const element = this.element as HTMLElement;
+    const element = this.element as unknown as HTMLElement;
     const target = event.target as Element | null;
     if (!this.movable || event.button !== 0 || event.defaultPrevented) return;
     const control = target?.closest?.(WINDOW_INTERACTIVE);
@@ -245,7 +246,8 @@ export class DesktopWidgetAria<E extends BaseElement = HTMLElement> extends Aria
       startX: event.clientX,
       startY: event.clientY,
       onMove: (moveEvent) => {
-        if (dragging || Math.hypot(moveEvent.clientX - event.clientX, moveEvent.clientY - event.clientY) < DRAG_SLOP) return;
+        if (dragging || Math.hypot(moveEvent.clientX - event.clientX, moveEvent.clientY - event.clientY) < DRAG_SLOP)
+          return;
         dragging = true;
         this.session.dragging = true;
       },

@@ -56,7 +56,7 @@ const PopoverDemo = setup(() => {
                   yDir={state.above ? 'above' : undefined}
                   xDir="before"
                 >
-                  <div className="flex flex-col gap-sm">
+                  <div className="flex flex-col gap-sm p-sm">
                     <Label label="Show finished tasks">
                       <Checkbox checked={$bind(state, 'showDone')} />
                     </Label>
@@ -111,7 +111,7 @@ import '@airlib/aui/components/widgets/popover.css';
 export const Shortcuts = () => (
   <Button>
     Workspace shortcuts
-    <Popover>
+    <Popover className="p-sm">
       <span>Find anything — ⌘K</span>
       <span>Save — ⌘S</span>
     </Popover>
@@ -119,7 +119,7 @@ export const Shortcuts = () => (
 );
 ```
 
-Write the content like a small dialog: a heading if it helps, the content, and any controls people need. For a list of commands or options, use [Menu](/docs/composites/menu) or [Select](/docs/composites/select) instead — they bring the right keyboard behavior with them.
+Write the content like a small dialog: a heading if it helps, the content, and any controls people need. The panel adds no padding of its own, so give the content the room it needs, as `p-sm` does here. For a list of commands or options, use [Menu](/docs/composites/menu) or [Select](/docs/composites/select) instead — they bring the right keyboard behavior with them.
 
 ### Choose how it opens and closes
 

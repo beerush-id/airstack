@@ -154,8 +154,7 @@ export interface WindowDesktopAttributes<E extends BaseElement = HTMLElement> ex
 export class WindowDesktopAria<E extends BaseElement = HTMLElement> extends Aria<
   E,
   WindowDesktopProps,
-  WindowDesktopAttributes<E>,
-  AriaOptions
+  WindowDesktopAttributes<E>
 > {
   public readonly stack = new WindowStack();
 
@@ -190,7 +189,7 @@ export class WindowDesktopAria<E extends BaseElement = HTMLElement> extends Aria
    * — doesn't: using the dock is not leaving the window being worked in.
    */
   protected attach() {
-    const element = this.element as HTMLElement;
+    const element = this.element as unknown as HTMLElement;
     const handlePointerDown = (event: PointerEvent) => {
       if (event.target !== element) return;
 

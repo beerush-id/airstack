@@ -1,13 +1,6 @@
-import { $static, $symbol, createContext, mutable, uIndex, untrack } from '@airlib/core';
+import { $static, $symbol, type AnyType, createContext, mutable, uIndex, untrack } from '@airlib/core';
 import { Aria } from '../../core.js';
-import type {
-  AriaAttributes,
-  AriaEvent,
-  AriaEventHandler,
-  AriaOptions,
-  AriaProps,
-  BaseElement,
-} from '../../types.js';
+import type { AriaAttributes, AriaEvent, AriaEventHandler, AriaOptions, AriaProps, BaseElement } from '../../types.js';
 import {
   type DragBox,
   type DragConstraints,
@@ -19,7 +12,7 @@ import {
 } from '../../utils/drag.js';
 import { FOCUSABLE_SELECTOR, trapTab } from '../../utils/navigation.js';
 import { openDragSession } from '../../utils/pointer.js';
-import { pageWindowStack, type WindowDesktopAria, type WindowStack, windowDesktopCtx } from './desktop.js';
+import { pageWindowStack, type WindowDesktopAria, windowDesktopCtx, type WindowStack } from './desktop.js';
 
 const WINDOW_SYMBOL = $symbol('window');
 
@@ -430,7 +423,7 @@ export class WindowAria<E extends HTMLElement = HTMLElement> extends Aria<
     const mine = (bottom ? 2 : 0) + (right ? 1 : 0);
 
     const behind = this.stack.all
-      .filter((win) => win !== this && win.open && !win.minimized)
+      .filter((win) => win !== (this as AnyType) && win.open && !win.minimized)
       .reverse()
       .slice(0, 3);
     const rest = quarters.filter((_, index) => index !== mine);
@@ -744,7 +737,7 @@ function tilingArea(element: HTMLElement, gap?: number): TilingArea {
     const origin = positioningOrigin(element);
     const scope: ParentNode = fixed ? element.ownerDocument : (parent as HTMLElement);
 
-    for (const dock of scope.querySelectorAll<HTMLElement>(DOCK_SELECTOR)) {
+    for (const dock of scope.querySelectorAll(DOCK_SELECTOR) as never as HTMLElement[]) {
       if (!dock.getClientRects().length) continue;
       const rect = dock.getBoundingClientRect();
       const top = rect.top - origin.y;

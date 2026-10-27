@@ -65,7 +65,8 @@
   .aui-desktop {
     position: relative;
     isolation: isolate;
-    overflow: hidden;
+    /* Clipped, not hidden: a hidden box still scrolls when something in it takes focus, and the desktop never scrolls. */
+    overflow: clip;
     /* What sits on the desktop can size itself by the desktop's width, like the widgets' grid. */
     container-type: inline-size;
     min-block-size: calc(var(--spacing) * 100);
@@ -271,8 +272,9 @@
     }
   }
 
+  /* As wide as its text, so what the title slot adds after it sits beside it; the controls keep to the end. */
   .aui-window-title {
-    flex: 1 1 auto;
+    flex: 0 1 auto;
     min-inline-size: 0;
     margin: 0;
     overflow: hidden;
@@ -379,7 +381,8 @@
 
   /*
    * An invisible grip centered in the seam, running between the window's rounded corners: the
-   * resize cursor alone shows it, and the focus ring when the keyboard reaches it.
+   * resize cursor alone shows it. When the keyboard reaches it, the seam shows a faint line of the
+   * focus color instead of a ring around the gap.
    */
   .aui-splitter.aui-window-sidebar-resizer[aria-orientation='vertical'] {
     position: absolute;
@@ -391,6 +394,16 @@
 
     &::before {
       display: none;
+    }
+
+    &:focus-visible {
+      outline: none;
+      color: color-mix(in oklch, var(--focus-ring-color) 25%, transparent);
+
+      &::before {
+        display: block;
+        inline-size: calc(var(--aui-splitter-line) * 3);
+      }
     }
   }
 
@@ -433,9 +446,11 @@
     min-block-size: 0;
     overflow: auto;
     padding: var(--spacing-md);
+    /* What's inside can size itself by the visible area: a side pane as tall as the window shows, `100cqb`. */
+    container-type: size;
 
     .aui-window-body:has(> .aui-window-toolbar) & {
-      padding-block-start: var(--aui-window-toolbar-size);
+      padding-block-start: calc(var(--aui-window-toolbar-size) + var(--spacing-md));
     }
   }
 
@@ -517,6 +532,11 @@
     font-weight: var(--font-label-sm-weight, 500);
     letter-spacing: var(--font-label-sm-tracking, normal);
     user-select: none;
+  }
+
+  /* A sidebar section's name stands a step clear of the items under it. */
+  .aui-window-sidebar-label {
+    padding-block-end: var(--spacing-sm);
   }
 
   /* The maximize button's layout popup: the shared panel holding a group of layouts per kind, each headed and ruled off from the last. */
