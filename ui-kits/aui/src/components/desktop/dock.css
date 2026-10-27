@@ -369,6 +369,27 @@
       text-overflow: ellipsis;
       pointer-events: none;
     }
+
+    /* The keys that bring the prompt back, at the empty field's end while it's elsewhere: a faint key chip. */
+    &[data-empty][data-shortcut]:not(:focus)::after {
+      content: attr(data-shortcut);
+      position: absolute;
+      inset-block-start: 50%;
+      inset-inline-end: var(--spacing-xs);
+      translate: 0 -50%;
+      padding: var(--spacing-xxs, 2px) var(--spacing-sm);
+      border-radius: var(--radius-sm);
+      background-color: color-mix(in oklch, currentColor 8%, transparent);
+      color: var(--color-placeholder);
+      font-size: var(--font-label-lg-size);
+      line-height: var(--font-label-lg-line-height);
+      letter-spacing: 0.04em;
+      pointer-events: none;
+    }
+
+    &[data-empty][data-shortcut]:not(:focus)::before {
+      inset-inline-end: calc(var(--spacing) * 16);
+    }
   }
 
   /* A suggestion picked into the prompt: one piece, tinted as a reference to something, its icon before its name. */

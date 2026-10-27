@@ -56,6 +56,8 @@ export type DockProps = ComponentStyles & {
   filters?: DockSuggestionFilters;
   /** Names the prompt's suggestions for screen readers, e.g. "Suggestions". */
   suggestionsLabel?: string;
+  /** The keys that bring the prompt into focus, shown at its empty field's end, e.g. "⌘K"; your app handles the keys. */
+  shortcut?: string;
   /**
    * Called with the prompt's text when it is sent, and the window that was active then — what the
    * prompt is about. The prompt clears afterwards.
@@ -118,6 +120,7 @@ const DOCK_OMIT = [
   'speakingLabel',
   'filters',
   'suggestionsLabel',
+  'shortcut',
   'onsubmit',
   'onstop',
 ];
@@ -172,6 +175,7 @@ export const Dock = setup<DockProps, DockSlots>((props, slots) => {
                 speakingLabel={props.speakingLabel}
                 filters={props.filters}
                 suggestionsLabel={props.suggestionsLabel}
+                shortcut={props.shortcut}
                 onsubmit={props.onsubmit}
                 onstop={props.onstop}
                 size={props.size}

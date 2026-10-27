@@ -51,14 +51,22 @@
     block-size: calc(var(--aui-icon-size) + var(--spacing-xs) * 1.5);
     border: 1.5px solid color-mix(in oklch, currentColor 40%, transparent);
     border-radius: var(--radius-full);
-    color: transparent;
     visibility: hidden;
     cursor: pointer;
+
+    /* The tick shows only once checked; the circle keeps the row's ink for its outline. */
+    & > .aui-icon {
+      visibility: hidden;
+    }
 
     &[data-checked='true'] {
       border-color: var(--aui-item-bg);
       background-color: var(--aui-item-bg);
       color: var(--aui-item-fg);
+
+      & > .aui-icon {
+        visibility: inherit;
+      }
     }
   }
 

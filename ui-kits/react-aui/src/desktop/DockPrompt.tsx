@@ -42,6 +42,8 @@ export type DockPromptProps = ComponentStyles & {
   filters?: DockSuggestionFilters;
   /** Names the suggestions for screen readers, e.g. "Suggestions". */
   suggestionsLabel?: string;
+  /** The keys that bring the prompt into focus, shown at the empty field's end while it's elsewhere, e.g. "⌘K"; your app handles the keys. */
+  shortcut?: string;
   onsubmit?: (event: DockSubmitEvent) => void;
   onstop?: (event: CustomEvent<void>) => void;
 };
@@ -155,6 +157,7 @@ const DockPromptField = setup(() => {
       aria-multiline="true"
       aria-label={prompt.props.label}
       aria-placeholder={prompt.props.placeholder}
+      data-shortcut={prompt.props.shortcut}
       contentEditable="plaintext-only"
       data-empty=""
       className={CLASS.INPUT}

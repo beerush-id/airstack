@@ -357,7 +357,10 @@ export class DockPromptEditor {
     const field = this.state.field;
     if (!field) return;
     const text = this.text;
-    field.toggleAttribute('data-empty', field.textContent === '');
+    const empty = /^\n*$/.test(field.textContent ?? '');
+    // Editing leaves a stray line break (a `<br>` or a newline) in an emptied field; it would hold a second line open.
+    if (empty && field.childNodes.length) field.replaceChildren();
+    field.toggleAttribute('data-empty', empty);
     this.props.value = text;
   }
 
