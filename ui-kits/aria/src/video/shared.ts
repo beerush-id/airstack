@@ -3,6 +3,38 @@ import type { VideoStageAria } from './stage.js';
 
 export const videoStageCtx = createContext<VideoStageAria>();
 
+/**
+ * A piece of media a clip plays, decoded by whatever the app provides — the stage needs no decoder
+ * of its own. It says how long it runs, hands over its picture at any moment, and its sound, whole.
+ * Each clip opens its own, so two clips of one file read their pictures apart.
+ */
+export interface VideoMedia {
+  /** How long it runs, in seconds. */
+  readonly duration: number;
+  /**
+   * Its picture at a moment, in seconds: the frame showing then, held past its end. Nothing when
+   * it has no pictures, or the signal aborted while it was decoding.
+   */
+  frame?(time: number, signal?: AbortSignal): Promise<CanvasImageSource | undefined>;
+  /** Its sound, decoded whole; nothing when it has none. */
+  sound?(): Promise<AudioBuffer | undefined>;
+  /** Lets go of what reading it holds. */
+  dispose?(): void;
+}
+
+/**
+ * Opens media by its address, for one clip.
+ *
+ * @param src - Where the media is.
+ * @returns The media, or nothing when it can't be read.
+ */
+export type VideoMediaLoader = (src: string) => Promise<VideoMedia | undefined>;
+
+/**
+ * How a clip's picture fills its box: cropped to cover it, or fitted whole inside it.
+ */
+export type VideoMediaFit = 'cover' | 'contain';
+
 export const VIDEO_STAGE = 'video-stage';
 export const VIDEO_CLIP = 'video-clip';
 
@@ -15,6 +47,18 @@ export const PAINT_TIMEOUT = 1000;
 
 /** How far, in seconds, a playing media clip may drift from the timeline before it is re-seeked. */
 export const MEDIA_DRIFT = 0.25;
+
+/**
+ * How much faster or slower, at most, a playing media clip plays to catch up with the timeline
+ * within the drift it's allowed: 0.1 makes up a tenth of a second each second, too little to hear.
+ */
+export const MEDIA_CATCHUP = 0.1;
+
+/**
+ * How far, in seconds, the stage's sound may come apart from its timeline before it's scheduled
+ * again from where the timeline is — a seek while playing, or a frame held up.
+ */
+export const SOUND_DRIFT = 0.15;
 
 /** How long before its segment starts, in seconds, a previewed clip is put on stage, painted but unseen. */
 export const VIDEO_PREROLL = 2;

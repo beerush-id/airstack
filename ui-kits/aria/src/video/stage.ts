@@ -1,8 +1,18 @@
-import type { Timeline } from '@airlib/core/timeline';
+import type { FrameState, Timeline } from '@airlib/core/timeline';
 import { Aria } from '../core.js';
 import type { AriaAttributes, AriaOptions, AriaProps, BaseElement } from '../types.js';
 import type { VideoClipAria } from './clip.js';
-import { PAINT_TIMEOUT, settleAll, VIDEO_HEIGHT, VIDEO_PREROLL, VIDEO_WIDTH, videoStageCtx } from './shared.js';
+import {
+  PAINT_TIMEOUT,
+  SOUND_DRIFT,
+  settleAll,
+  VIDEO_HEIGHT,
+  VIDEO_PREROLL,
+  VIDEO_WIDTH,
+  type VideoMedia,
+  type VideoMediaLoader,
+  videoStageCtx,
+} from './shared.js';
 
 /**
  * Reactive input properties for VideoStageAria.
@@ -40,6 +50,13 @@ export interface VideoStageOptions extends AriaOptions {
    * Without it the clips are shown as they are.
    */
   capture?: boolean;
+
+  /**
+   * Opens the media clips name by `media`: the app's own decoder, so the stage draws each frame's
+   * picture exactly and plays every clip's sound on one clock, rather than leaving each to a
+   * media element of its own, which drifts.
+   */
+  media?: VideoMediaLoader;
 }
 
 /**
@@ -68,7 +85,9 @@ export function canCaptureVideo(): boolean {
  * scaled to fit its container, that presents every frame of a timeline without the view framework
  * re-rendering anything. Each frame, every clip writes its own element; with `capture`, the stage
  * then waits for the browser to paint them and draws them, in DOM order, into itself, so the frame
- * can be read back. A composition is a picture, not a control, so it is hidden from assistive tech.
+ * can be read back. Given the app's `media` loader, it decodes the media its clips name, and plays
+ * all their sound on one audio clock, scheduled from the timeline as it plays. A composition is a
+ * picture, not a control, so it is hidden from assistive tech.
  *
  * @template E - Target Element type: any element, or a canvas for capture
  * @template T - Reactive props type
@@ -88,6 +107,14 @@ export class VideoStageAria<
   protected context?: CanvasRenderingContext2D | null;
   /** How many clips are still loading. */
   protected loading = 0;
+  /** Where the stage's sound plays, made once something is to be heard. */
+  protected audio?: AudioContext;
+  /** Each clip's sound, to schedule while the timeline plays. */
+  protected voices = new Map<VideoClipAria, AudioBuffer>();
+  /** The sounds scheduled now, by the clip they belong to. */
+  protected sounding: { clip: VideoClipAria; node: AudioBufferSourceNode }[] = [];
+  /** When the sound now scheduled started: the audio clock's time, and the timeline frame then. */
+  protected session?: { at: number; frame: number };
 
   public constructor(props: Partial<T> = {}, options: O = {} as O) {
     super(props, options);
@@ -171,6 +198,39 @@ export class VideoStageAria<
   }
 
   /**
+   * Opens a clip's media with the app's loader.
+   *
+   * @param src - Where the media is.
+   * @returns The media, or nothing without a loader or when it can't be read.
+   */
+  public open(src: string): Promise<VideoMedia | undefined> {
+    return this.options.media ? this.options.media(src).catch(() => undefined) : Promise.resolve(undefined);
+  }
+
+  /**
+   * Adds a clip's sound to what the stage plays: scheduled with the others on the stage's one
+   * audio clock while the timeline plays, from where the timeline is.
+   *
+   * @param clip - The clip.
+   * @param sound - Its decoded sound.
+   */
+  public listen(clip: VideoClipAria, sound: AudioBuffer): void {
+    this.voices.set(clip, sound);
+    if (this.session) this.voice(clip, sound);
+  }
+
+  /**
+   * Takes a clip's sound out of what the stage plays, stopping it if it's sounding.
+   *
+   * @param clip - The clip.
+   */
+  public unlisten(clip: VideoClipAria): void {
+    this.voices.delete(clip);
+    for (const each of this.sounding.filter((entry) => entry.clip === clip)) each.node.stop();
+    this.sounding = this.sounding.filter((entry) => entry.clip !== clip);
+  }
+
+  /**
    * Presents a frame: every clip writes its element for it, then, while capturing, the stage
    * waits for the browser to paint them and draws them into itself.
    *
@@ -247,13 +307,89 @@ export class VideoStageAria<
     if (element.parentElement) resize?.observe(element.parentElement);
     fit();
 
-    const unsubscribe = this.timeline.subscribe((state, signal) => this.present(state.frame, signal));
+    const unsubscribe = this.timeline.subscribe((state, signal) => {
+      this.hear(state);
+      return this.present(state.frame, signal);
+    });
 
     return () => {
       unsubscribe();
       resize?.disconnect();
+      this.silence();
+      void this.audio?.close();
+      this.audio = undefined;
       this.context = undefined;
     };
+  }
+
+  /**
+   * Keeps the stage's sound with its timeline. Playing, every clip's sound is scheduled on the
+   * audio clock from the frame the timeline is at, once, and again only when the two come apart —
+   * a seek, a held frame — so the sound runs on undisturbed; paused, it stops. Capture is silent.
+   */
+  protected hear(state: FrameState): void {
+    if (this.capture || !this.voices.size) return;
+    if (state.status !== 'playing') return this.silence();
+
+    this.audio ??= new AudioContext();
+    // The clock stands still until a press lets the page play sound; until then, nothing is scheduled.
+    if (this.audio.state !== 'running') {
+      void this.audio.resume();
+      return;
+    }
+
+    const frameRate = this.timeline.frameRate;
+    if (this.session && Math.abs(this.heard() - state.frame) / frameRate <= SOUND_DRIFT) return;
+
+    this.silence();
+    this.session = { at: this.audio.currentTime, frame: state.frame };
+    for (const [clip, sound] of this.voices) this.voice(clip, sound);
+  }
+
+  /**
+   * The timeline frame the audio clock is at, by the sound now scheduled.
+   */
+  protected heard(): number {
+    const { audio, session } = this;
+    if (!audio || !session) return 0;
+    return session.frame + (audio.currentTime - session.at) * this.timeline.frameRate * this.timeline.speed;
+  }
+
+  /**
+   * Schedules one clip's sound for the rest of its segment, from the frame heard now: what's
+   * started now is heard after the output's latency, so it starts that much further in.
+   */
+  protected voice(clip: VideoClipAria, sound: AudioBuffer): void {
+    const audio = this.audio;
+    const speed = this.timeline.speed;
+    if (!audio || !this.session || speed <= 0) return;
+
+    const frameRate = this.timeline.frameRate;
+    const segment = clip.segment;
+    const latency = (audio.outputLatency || audio.baseLatency || 0) * frameRate * speed;
+    const heard = this.heard() + latency;
+    const from = Math.max(heard, segment.startFrame);
+    const to = segment.endFrame + 1;
+    if (from >= to) return;
+
+    const node = audio.createBufferSource();
+    node.buffer = sound;
+    node.playbackRate.value = speed;
+    node.connect(audio.destination);
+    const offset = (from - segment.startFrame + segment.offsetFrame) / frameRate + clip.offset;
+    node.start(audio.currentTime + (from - heard) / frameRate / speed, offset, (to - from) / frameRate);
+    const entry = { clip, node };
+    node.onended = () => (this.sounding = this.sounding.filter((each) => each !== entry));
+    this.sounding.push(entry);
+  }
+
+  /**
+   * Stops every sound scheduled.
+   */
+  protected silence(): void {
+    for (const { node } of this.sounding) node.stop();
+    this.sounding = [];
+    this.session = undefined;
   }
 
   /**

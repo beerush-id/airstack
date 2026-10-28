@@ -2,7 +2,16 @@ import type { AnyType } from '@airlib/core';
 import { isSegmentOn, type MotionBox, sampleSegment, segmentTime, type TimelineSegment } from '@airlib/core/timeline';
 import { Aria } from '../core.js';
 import type { AriaAttributes, AriaOptions, AriaProps, BaseElement } from '../types.js';
-import { MEDIA_DRIFT, PAINTED_OPACITY, settleAll, VIDEO_CLIP, videoStageCtx } from './shared.js';
+import {
+  MEDIA_CATCHUP,
+  MEDIA_DRIFT,
+  PAINTED_OPACITY,
+  settleAll,
+  VIDEO_CLIP,
+  type VideoMedia,
+  type VideoMediaFit,
+  videoStageCtx,
+} from './shared.js';
 
 /**
  * One frame of a clip, handed to its `draw` so it can update its own content.
@@ -42,6 +51,18 @@ export interface VideoClipProps extends AriaProps {
    * Seconds into its media a media clip starts at (defaults to 0).
    */
   offset?: number;
+
+  /**
+   * Media the stage decodes for this clip, by address, with the stage's `media` loader: its
+   * pictures drawn into the clip's canvas frame by frame, its sound played on the stage's clock.
+   */
+  media?: string;
+
+  /** How the media's picture fills the clip's box (defaults to `cover`). */
+  fit?: VideoMediaFit;
+
+  /** Keeps the media's sound out of what the stage plays. */
+  muted?: boolean;
 }
 
 /**
@@ -74,9 +95,11 @@ export interface VideoClipAttributes<E extends BaseElement = HTMLElement> extend
  * on one of the timeline's tracks. Each frame it shows while its segment is on, places
  * itself by the segment's sampled motion — its box, growth, turn and opacity — and, for media,
  * follows the timeline: seeked to the frame while capturing or paused, playing along while the
- * timeline plays. It loads its content as it mounts, goes on stage painted but unseen just before
- * its segment starts, and is ready once its images are decoded and its media shows the frame,
- * which an async timeline waits for.
+ * timeline plays. Media the stage decodes, named by `media`, is exact instead: its picture for each
+ * frame drawn into the clip's canvas, its sound played on the stage's clock, its length capping its
+ * segment. It loads its content as it mounts, goes on stage painted but unseen just before its
+ * segment starts, and is ready once its images are decoded and its media shows the frame, which an
+ * async timeline waits for.
  *
  * @template E - Target Element type
  * @template T - Reactive props type
@@ -96,6 +119,8 @@ export class VideoClipAria<
   protected primed = false;
   /** While hidden: the element's own inline display, to put back when it shows. */
   protected display?: { value: string; priority: string };
+  /** The media the stage decodes for this clip, once open. */
+  protected source?: VideoMedia;
 
   /**
    * Whether the clip is on the stage at the frame last presented.
@@ -115,7 +140,7 @@ export class VideoClipAria<
 
   public constructor(props: Partial<T> = {}, options: O = {} as O) {
     super(props, options);
-    this.omittedAttrs.push('offset');
+    this.omittedAttrs.push('offset', 'media', 'fit');
     this.update();
   }
 
@@ -124,6 +149,13 @@ export class VideoClipAria<
    */
   public get segment(): TimelineSegment {
     return this.options.segment;
+  }
+
+  /**
+   * Seconds into its media the clip starts at.
+   */
+  public get offset(): number {
+    return this.properties.offset ?? 0;
   }
 
   /**
@@ -157,7 +189,7 @@ export class VideoClipAria<
 
     // Content first: what `draw` adds, e.g. an SVG image, is then waited for like the rest.
     const drawn = this.options.draw?.({ values, frame, time, element, signal });
-    return settleAll([drawn, this.decode(element), this.follow(element, time, signal)]);
+    return settleAll([drawn, this.decode(element), this.follow(element, time, signal), this.paint(element, time, signal)]);
   }
 
   /**
@@ -179,9 +211,62 @@ export class VideoClipAria<
   protected override attach() {
     const element = this.element as HTMLElement | null;
     if (!element || !this.stage) return;
-    this.loaded = this.preload(element);
+    this.loaded = Promise.allSettled([this.preload(element), this.open(element)]);
     this.stage.add(this as never, element);
-    return () => this.stage?.remove(element);
+    return () => {
+      this.stage?.unlisten(this as never);
+      this.stage?.remove(element);
+      this.source?.dispose?.();
+      this.source = undefined;
+    };
+  }
+
+  /**
+   * Opens the clip's media through the stage, when it names some: tells its segment how long the
+   * media runs, which caps how far it can be trimmed out, hands its sound to the stage, unless
+   * muted, and paints its first picture, so the clip shows it before it plays.
+   */
+  protected async open(element: HTMLElement): Promise<unknown> {
+    const src = this.properties.media;
+    if (!src || !this.stage) return;
+    const source = await this.stage.open(src);
+    if (!source || !this.element) return source?.dispose?.();
+    this.source = source;
+
+    const frames = Math.round(source.duration * this.segment.timeline.frameRate);
+    if (frames > 0 && this.segment.contentFrames !== frames) this.segment.contentFrames = frames;
+
+    const sound = this.properties.muted ? undefined : await source.sound?.();
+    if (sound && this.source === source) this.stage.listen(this as never, sound);
+    return this.paint(element, segmentTime(this.segment, this.segment.startFrame), new AbortController().signal);
+  }
+
+  /**
+   * Draws the media's picture at a moment into the clip's canvas, sized to the clip's box and
+   * filling it as `fit` says. A newer frame aborting this one leaves the canvas to it.
+   */
+  protected async paint(element: HTMLElement, time: number, signal: AbortSignal): Promise<unknown> {
+    const source = this.source;
+    if (!source?.frame || !(element instanceof HTMLCanvasElement)) return;
+    const picture = await source.frame(time + this.offset, signal);
+    if (!picture || signal.aborted) return;
+
+    // The box as last placed, or, before the clip has been, as its segment sets it.
+    const box = this.motion.width ? this.motion : (this.segment.props as MotionBox);
+    const width = Math.round(box.width ?? 0);
+    const height = Math.round(box.height ?? 0);
+    if (!width || !height) return;
+    if (element.width !== width) element.width = width;
+    if (element.height !== height) element.height = height;
+    const context = element.getContext('2d');
+    if (!context) return;
+
+    const [sourceWidth, sourceHeight] = sizeOf(picture);
+    const scale = (this.properties.fit === 'contain' ? Math.min : Math.max)(width / sourceWidth, height / sourceHeight);
+    const drawnWidth = sourceWidth * scale;
+    const drawnHeight = sourceHeight * scale;
+    context.clearRect(0, 0, width, height);
+    context.drawImage(picture, (width - drawnWidth) / 2, (height - drawnHeight) / 2, drawnWidth, drawnHeight);
   }
 
   /**
@@ -202,8 +287,9 @@ export class VideoClipAria<
       element.currentTime = this.properties.offset ?? 0;
     }
 
-    const drawn = this.options.draw?.({ values, frame, time: 0, element, signal: new AbortController().signal });
-    return settleAll([drawn, this.decode(element)]);
+    const signal = new AbortController().signal;
+    const drawn = this.options.draw?.({ values, frame, time: 0, element, signal });
+    return settleAll([drawn, this.decode(element), this.paint(element, segmentTime(this.segment, frame), signal)]);
   }
 
   /**
@@ -304,23 +390,33 @@ export class VideoClipAria<
   }
 
   /**
-   * Keeps a media clip on the timeline: plays along while the timeline plays, correcting drift;
-   * otherwise, and always while capturing, seeks to the frame and waits until the media shows it.
+   * Keeps a media clip on the timeline: plays along while the timeline plays — catching up on a
+   * small drift, such as the moment media takes to start, by playing a touch faster or slower,
+   * since a seek would show as a jump, and seeking only once it has drifted far — otherwise, and
+   * always while capturing, seeks to the frame and waits until the media shows it.
    */
   protected follow(element: HTMLElement, time: number, signal: AbortSignal): Promise<unknown> | undefined {
     if (!(element instanceof HTMLMediaElement)) return;
 
     const target = Math.max(0, time + (this.properties.offset ?? 0));
     const playing = this.stage?.timeline.status === 'playing' && !this.stage.capture;
+    const halfFrame = 0.5 / (this.stage?.timeline.frameRate ?? 30);
 
     if (playing) {
       if (element.paused) element.play().catch(() => {});
-      if (Math.abs(element.currentTime - target) > MEDIA_DRIFT) element.currentTime = target;
+      const drift = target - element.currentTime;
+      if (Math.abs(drift) <= halfFrame) element.playbackRate = 1;
+      else if (Math.abs(drift) <= MEDIA_DRIFT) {
+        element.playbackRate = 1 + Math.max(-MEDIA_CATCHUP, Math.min(MEDIA_CATCHUP, drift));
+      } else if (!element.seeking) {
+        element.playbackRate = 1;
+        element.currentTime = target;
+      }
       return;
     }
 
     if (!element.paused) element.pause();
-    const halfFrame = 0.5 / (this.stage?.timeline.frameRate ?? 30);
+    element.playbackRate = 1;
     if (Math.abs(element.currentTime - target) <= halfFrame && element.readyState >= 2) return;
 
     return new Promise<void>((resolve) => {
@@ -347,6 +443,20 @@ export class VideoClipAria<
  */
 function imageSource(image: HTMLImageElement | SVGImageElement): string {
   return image instanceof HTMLImageElement ? image.currentSrc || image.src : (image.getAttribute('href') ?? '');
+}
+
+/**
+ * A picture's own size, in pixels, whatever kind of picture it is.
+ *
+ * @param picture - The picture.
+ * @returns Its width and height.
+ */
+function sizeOf(picture: CanvasImageSource): [width: number, height: number] {
+  if (picture instanceof HTMLVideoElement) return [picture.videoWidth, picture.videoHeight];
+  if (picture instanceof HTMLImageElement) return [picture.naturalWidth, picture.naturalHeight];
+  if (typeof VideoFrame !== 'undefined' && picture instanceof VideoFrame) return [picture.displayWidth, picture.displayHeight];
+  if (picture instanceof SVGImageElement) return [picture.width.baseVal.value, picture.height.baseVal.value];
+  return [(picture as HTMLCanvasElement).width, (picture as HTMLCanvasElement).height];
 }
 
 /**
