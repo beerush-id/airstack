@@ -1,11 +1,19 @@
 import type { D1Database, R2Bucket } from '@cloudflare/workers-types';
 import { createContextStore, SESSION_STORE, withContext } from '@irpclib/irpc';
-import { createLifecycle } from '@irpclib/irpc/core';
+import { createLifecycle, mutable } from '@irpclib/irpc/core';
 import { resolveBinding } from '@irpclib/irpc/wrangler';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { implement } from '../../src/constructor.js';
 import { fsContext } from '../../src/context.js';
-import { createPipe, PERSIST_DELAY, type PipeData, persistent, read, write } from '../../src/index.js';
+import {
+  createPipe,
+  PERSIST_DELAY,
+  type PersistentOptions,
+  type PipeData,
+  persistent,
+  read,
+  write,
+} from '../../src/index.js';
 
 let bucket!: R2Bucket;
 let db!: D1Database;
@@ -38,7 +46,13 @@ function inSession<T>(user: string, session: string, fn: () => T): Promise<T> {
  * Opens a live file in a session. Its context stays open until `close`, as a page's does while the
  * file is shown, then the file's scope is cleaned up and what it still sends is let through.
  */
-async function open<T>(user: string, session: string, path: string, encoding?: 'text' | 'json') {
+async function open<T>(
+  user: string,
+  session: string,
+  path: string,
+  encoding?: 'text' | 'json',
+  options?: PersistentOptions
+) {
   let close!: () => void;
   const closed = new Promise<void>((resolve) => {
     close = resolve;
@@ -46,7 +60,7 @@ async function open<T>(user: string, session: string, path: string, encoding?: '
   const file = await new Promise<PipeData<T>>((opened) => {
     void inSession(user, session, async () => {
       const life = createLifecycle();
-      opened(life.run(() => persistent<T>(path, encoding)));
+      opened(life.run(() => persistent<T>(path, encoding, options)));
       await closed;
       life.destroy();
       await settle();
@@ -183,6 +197,92 @@ describe('persistent — a file kept as live state', () => {
 
     expect(await inSession(user, 's1', () => read('~/quiet.txt', { encoding: 'text' }))).toBe('changed around it');
     close();
+  });
+});
+
+describe('persistent — autosave', () => {
+  const readText = (user: string, path: string) => inSession(user, 's1', () => read(path, { encoding: 'text' }));
+
+  it('writes nothing while autosave is off', async () => {
+    const user = newUser();
+    await inSession(user, 's1', () => write('~/draft.txt', 'v1'));
+    const { file, close } = await open<string>(user, 's1', '~/draft.txt', 'text', { autosave: false });
+    await until(() => file.ready === true);
+
+    file.content = 'unsaved';
+    await settle();
+
+    expect(await readText(user, '~/draft.txt')).toBe('v1');
+    close();
+    await settle();
+    expect(await readText(user, '~/draft.txt')).toBe('v1');
+  });
+
+  it('writes again from the next change once turned back on, never what changed while off', async () => {
+    const user = newUser();
+    await inSession(user, 's1', () => write('~/toggle.txt', 'v1'));
+    const options = mutable<PersistentOptions>({ autosave: false });
+    const { file, close } = await open<string>(user, 's1', '~/toggle.txt', 'text', options);
+    await until(() => file.ready === true);
+
+    file.content = 'while off';
+    await settle();
+    options.autosave = true;
+    await settle();
+    expect(await readText(user, '~/toggle.txt')).toBe('v1');
+
+    file.content = 'after on';
+    await settle();
+    expect(await readText(user, '~/toggle.txt')).toBe('after on');
+    close();
+  });
+
+  it('drops a write still waiting when turned off', async () => {
+    const user = newUser();
+    await inSession(user, 's1', () => write('~/late.txt', 'v1'));
+    const options = mutable<PersistentOptions>({ autosave: true });
+    const { file, close } = await open<string>(user, 's1', '~/late.txt', 'text', options);
+    await until(() => file.ready === true);
+
+    file.content = 'changed';
+    options.autosave = false;
+    await settle();
+
+    expect(await readText(user, '~/late.txt')).toBe('v1');
+    close();
+  });
+
+  it('writes after the delay it is given', async () => {
+    const user = newUser();
+    const { file, close } = await open<string>(user, 's1', '~/quick.txt', 'text', { autosave: 20 });
+    await until(() => file.ready === true);
+
+    file.content = 'quick';
+
+    // Written well before the default delay would have let it.
+    const started = Date.now();
+    let written: string | undefined;
+    while (written !== 'quick' && Date.now() - started < PERSIST_DELAY) {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      written = await readText(user, '~/quick.txt');
+    }
+    expect(written).toBe('quick');
+    close();
+  });
+
+  it('takes in no other copy’s write while autosave is off', async () => {
+    const user = newUser();
+    await inSession(user, 's1', () => write('~/shared-off.txt', 'v1'));
+    const writer = await open<string>(user, 's1', '~/shared-off.txt');
+    const reader = await open<string>(user, 's1', '~/shared-off.txt', 'text', { autosave: false });
+    await until(() => writer.file.ready === true && reader.file.ready === true);
+
+    writer.file.content = 'v2';
+    await settle();
+
+    expect(reader.file.content).toBe('v1');
+    writer.close();
+    reader.close();
   });
 });
 

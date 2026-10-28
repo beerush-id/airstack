@@ -547,6 +547,17 @@ export const createPipe = fileModule.declare<CreatePipeFn>({
 /** How long a live file waits for changes to stop before writing them. */
 export const PERSIST_DELAY = 300;
 
+/** How a live file keeps in step. */
+export type PersistentOptions = {
+  /**
+   * Whether changes are written, and other copies' writes taken in: `true` (the default) writes
+   * once changes stop for `PERSIST_DELAY`, a number for that many milliseconds, `false` neither
+   * writes nor takes in. Read at every change, so the app can toggle it on a reactive options object;
+   * nothing that happened while it was off is written or taken in later.
+   */
+  autosave?: boolean | number;
+};
+
 /**
  * Keeps a file as live state: read once, written back when the state changes, and updated when
  * another live copy of the file in the session writes it. Change `content` and it is saved once the
@@ -555,13 +566,31 @@ export const PERSIST_DELAY = 300;
  *
  * @param path File path (`~`, absolute, or relative to the working directory)
  * @param encoding How the content is kept: `text` (the default), or parsed `json`
+ * @param options Whether, and how soon, it saves; toggled live on a reactive object
  * @returns The file's live state
  */
-export function persistent<T = AnyType>(path: string, encoding: PipeEncoding = 'text'): PipeData<T> {
+export function persistent<T = AnyType>(
+  path: string,
+  encoding: PipeEncoding = 'text',
+  options: PersistentOptions = {}
+): PipeData<T> {
   const state = mutable<PipeData<T>>({ ready: false });
   const pipe = createPipe(path, encoding);
-  const [schedule, cancel] = microtask(PERSIST_DELAY);
   let syncing = false;
+
+  // How long to wait before writing, or undefined while autosave is off.
+  const delayOf = () =>
+    options.autosave === false ? undefined : typeof options.autosave === 'number' ? options.autosave : PERSIST_DELAY;
+
+  // One scheduler per delay, so a changed delay takes effect from the next change.
+  let scheduler: { delay: number; task: ReturnType<typeof microtask> } | undefined;
+  const schedule = (delay: number, fn: () => void) => {
+    if (scheduler?.delay !== delay) {
+      scheduler?.task[1]();
+      scheduler = { delay, task: microtask(delay) };
+    }
+    scheduler.task[0](fn);
+  };
 
   // What the file already holds: assigned without writing it back.
   const sync = (content: T | undefined, ready?: true) => {
@@ -576,15 +605,20 @@ export function persistent<T = AnyType>(path: string, encoding: PipeEncoding = '
     sync(pipe.data.content as T | undefined, true);
   });
 
-  void pipe.answer('fs.update', (content: T) => sync(content));
+  void pipe.answer('fs.update', (content: T) => {
+    if (delayOf() !== undefined) sync(content);
+  });
 
   // The last change not written yet, kept to write it if the file closes first.
   let unsaved: PipeData<T> | undefined;
   const unwatchState = subscribe(state, (snap, change) => {
-    if (change.type === 'init' || syncing || !state.ready) return;
+    const delay = delayOf();
+    if (change.type === 'init' || syncing || !state.ready || delay === undefined) return;
     unsaved = snap as PipeData<T>;
-    schedule(() => {
+    schedule(delay, () => {
       unsaved = undefined;
+      // Turned off while waiting: off means nothing is written.
+      if (delayOf() === undefined) return;
       pipe
         .ask('fs.write', { path, content: (snap as PipeData<T>).content, encoding })
         .catch((error: Error) => IRPC_STORE.error(error, [{ path }]));
@@ -592,12 +626,12 @@ export function persistent<T = AnyType>(path: string, encoding: PipeEncoding = '
   });
 
   onCleanup(() => {
-    cancel();
+    scheduler?.task[1]();
     unwatchPipe();
     unwatchState();
     pipe.close();
     // Written on its own call, since the pipe is closing.
-    if (unsaved) void writeStub(path, unsaved.content as FileInput, { encoding } as never);
+    if (unsaved && delayOf() !== undefined) void writeStub(path, unsaved.content as FileInput, { encoding } as never);
   });
 
   return state;
