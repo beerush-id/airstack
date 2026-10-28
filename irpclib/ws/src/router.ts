@@ -14,6 +14,7 @@ import {
   IRPCRouter,
   IRPCStream,
   IRPCTransport,
+  setScope,
   withContext,
 } from '@irpclib/irpc';
 import { FILE_BUFFER_TTL, WS_MESSAGE_TYPE } from './enum.js';
@@ -105,12 +106,14 @@ export class WebSocketRouter extends IRPCRouter {
    * @param message - The incoming WebSocket message
    * @param ws - The WebSocket connection instance
    * @param initContext - Optional initial context entries to inject
+   * @param initScope - Optional initial scope entries to inject
    * @returns void (responses are sent via WebSocket)
    */
   public async resolve(
     message: string | ArrayBuffer,
     ws: WebSocket,
-    initContext: [string | symbol, unknown][] = []
+    initContext: [string | symbol, unknown][] = [],
+    initScope: [string | symbol, unknown][] = []
   ): Promise<void> {
     if (message instanceof ArrayBuffer) {
       const frame = decodeFileFrame(message);
@@ -126,7 +129,7 @@ export class WebSocketRouter extends IRPCRouter {
     // Handle cancel
     const req = parsed.call as IRPCRequest & { type?: string; files?: IRPCFilePointer[] };
 
-    if (req.type === WS_MESSAGE_TYPE.CANCEL) {
+    if (req.type === (WS_MESSAGE_TYPE.CANCEL as never)) {
       const entry = this.abortControllers.get(req.id);
       if (entry) entry.controller.abort();
       this.abortControllers.delete(req.id);
@@ -165,6 +168,9 @@ export class WebSocketRouter extends IRPCRouter {
     this.abortControllers.set(resolver.req.id, { controller: abortController, ws });
 
     await withContext(ctx, async () => {
+      for (const [key, value] of initScope) {
+        setScope(key, value);
+      }
       const error = await this.resolveHooks(resolver.req);
 
       if (error) {

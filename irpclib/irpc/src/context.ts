@@ -1,9 +1,18 @@
-import { AsyncStore, createContext, getContext, setAsyncScope, setContext, withIsolation } from '@airlib/core';
+import {
+  AsyncStore,
+  createContext,
+  getContext,
+  getScope,
+  setAsyncScope,
+  setContext,
+  setScope,
+  withIsolation,
+} from '@airlib/core';
 import { IRPC_BASE_CONTEXT } from './enum.js';
 import type { DeferredHook } from './router.ts';
 import type { AnyType, IRPCContext, IRPCContextProvider } from './types.js';
 
-export { createContext, getContext, setContext };
+export { createContext, getContext, getScope, setContext, setScope };
 
 /**
  * Sets the global context store for the IRPC system.

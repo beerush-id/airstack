@@ -1,4 +1,12 @@
-import { type AnyType, COOKIE_JAR_WRITABLE, decodeCookies, isBrowser, setCookieContext, setScope } from '@airlib/core';
+import {
+  type AnyType,
+  COOKIE_JAR_KEY,
+  COOKIE_JAR_WRITABLE,
+  decodeCookies,
+  isBrowser,
+  setCookieContext,
+  setScope,
+} from '@airlib/core';
 import type { HTTPTransport } from '@irpclib/http';
 import type { HTTPRouter } from '@irpclib/http/router';
 import { createAssetResolver, resolveCacheControl } from './assets.js';
@@ -240,6 +248,8 @@ export function createFullWorker<E = AnyType>(
       }
 
       const cookie = request.headers.get('cookie') ?? '';
+      const cookieJar = decodeCookies(cookie);
+
       const url = new URL(request.url);
       const contextSeed: SSRContextSeed = (await options.resolveContext?.(request, url, env)) ?? [];
       if (env) contextSeed.push([SSR_ENV_KEY, env as E]);
@@ -247,7 +257,7 @@ export function createFullWorker<E = AnyType>(
 
       // Return the generic message resolver function
       const resolve = (message: string | ArrayBuffer, sender: WsSender) => {
-        return options.wsRouter!.resolve(message, sender, contextSeed);
+        return options.wsRouter!.resolve(message, sender, contextSeed, [[COOKIE_JAR_KEY, cookieJar]]);
       };
       const close = (sender: WsSender) => {
         return options.wsRouter!.disconnect!(sender);

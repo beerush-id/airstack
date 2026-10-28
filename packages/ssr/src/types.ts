@@ -69,7 +69,12 @@ export type CacheControl = string | CacheControlInit | CacheControlResolver | fa
 export type WsSender = { send: (message: string) => void };
 
 export interface WsRouter {
-  resolve(message: string | ArrayBuffer, ws: WsSender, initContext?: SSRContextSeed): Promise<void>;
+  resolve(
+    message: string | ArrayBuffer,
+    ws: WsSender,
+    initContext?: SSRContextSeed,
+    initScope?: SSRContextSeed
+  ): Promise<void>;
   disconnect?(ws?: WsSender): void;
 }
 
