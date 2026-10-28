@@ -100,6 +100,14 @@ const seedFileInfo = (): FileInfo => ({
  */
 const seedListResult = (): ListResult => ({ entries: [] });
 
+/** How every path argument reads, told to agents in each tool description. */
+const PATHS = 'Paths start with ~ for the home directory, /, or are relative to options.cwd.';
+
+/** MCP hints: lookups change nothing; additions never destroy; overwrites and deletions may. */
+const LOOKUP = { readOnlyHint: true, openWorldHint: false };
+const ADDITION = { readOnlyHint: false, destructiveHint: false, openWorldHint: false };
+const OVERWRITE = { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false };
+
 /**
  * Creates a directory.
  *
@@ -235,13 +243,21 @@ export type RestoreFn = (path: string, options?: FileOptions) => Promise<FileInf
  * @param options Visibility and custom metadata for the new directory
  * @returns Metadata of the created directory
  */
-export const mkdir = fileModule.declare<MkdirFn>('mkdir', seedFileInfo);
+export const mkdir = fileModule.declare<MkdirFn>('mkdir', seedFileInfo, {
+  description: `Creates a directory. options: { public?, metadata? }. ${PATHS}`,
+  mcp: { args: ['path', 'options'], ...ADDITION },
+});
 
 /**
  * Wire-level write stub the public `write` overloads delegate to;
  * server implementations register their handler on this stub.
  */
-export const writeStub = fileModule.declare<WriteStubFn>('write', seedFileInfo);
+export const writeStub = fileModule.declare<WriteStubFn>('write', seedFileInfo, {
+  description:
+    'Writes a file, replacing any file at the path. data is text, or an object/array stored as JSON. ' +
+    `options: { type?, public?, hidden?, metadata?, encoding?: 'base64' | 'data-url' when data is encoded }. ${PATHS}`,
+  mcp: { args: ['path', 'data', 'options'], ...OVERWRITE },
+});
 
 // Bundled on both client and server: the size budget is enforced before upload and again on arrival.
 fileModule.hook(writeStub, (req) => {
@@ -321,7 +337,12 @@ export function write(path: string, data: FileInput, options?: WriteOptions): Pr
  * Wire-level read stub the public `read` overloads delegate to;
  * server implementations register their handler on this stub.
  */
-export const readStub = fileModule.declare<ReadStubFn>('read');
+export const readStub = fileModule.declare<ReadStubFn>('read', {
+  description:
+    "Reads a file. options: { encoding?: 'text' | 'json' | 'base64' | 'data-url' }; " +
+    `without an encoding the file comes back as is. ${PATHS}`,
+  mcp: { args: ['path', 'options'], ...LOOKUP },
+});
 
 /**
  * Reads a file as an `IRPCBlob`. Get its content with `.text()`,
@@ -363,7 +384,10 @@ export function read(path: string, options?: ReadOptions): Promise<IRPCBlob | st
  * @param options Lookup scope, including the `trash` opt-in
  * @returns Entry metadata, or `undefined` when nothing is there
  */
-export const stat = fileModule.declare<StatFn>('stat');
+export const stat = fileModule.declare<StatFn>('stat', {
+  description: `Gets a file or directory's metadata without its content. options: { trash? } to find a trashed entry. ${PATHS}`,
+  mcp: { args: ['path', 'options'], ...LOOKUP },
+});
 
 /**
  * Checks whether a file or directory exists. Soft-deleted entries
@@ -373,7 +397,10 @@ export const stat = fileModule.declare<StatFn>('stat');
  * @param options Lookup scope
  * @returns `true` when the entry exists
  */
-export const exists = fileModule.declare<ExistsFn>('exists', () => false);
+export const exists = fileModule.declare<ExistsFn>('exists', () => false, {
+  description: `Checks whether a file or directory exists; trashed entries count as missing. ${PATHS}`,
+  mcp: { args: ['path', 'options'], ...LOOKUP },
+});
 
 /**
  * Lists the entries inside a directory, one page at a time.
@@ -382,7 +409,12 @@ export const exists = fileModule.declare<ExistsFn>('exists', () => false);
  * @param options Page size, cursor, ordering, filters, hidden and trash visibility
  * @returns One page of entries, plus a cursor when more pages follow
  */
-export const list = fileModule.declare<ListFn>('list', seedListResult);
+export const list = fileModule.declare<ListFn>('list', seedListResult, {
+  description:
+    'Lists a directory, one page at a time; pass the returned cursor for the next page. ' +
+    `options: { recursive?, limit?, cursor?, all? (include hidden), trash?, sort?, filter? }. ${PATHS}`,
+  mcp: { args: ['path', 'options'], ...LOOKUP },
+});
 
 /**
  * Finds files by a name or metadata fragment. Without an index
@@ -392,7 +424,12 @@ export const list = fileModule.declare<ListFn>('list', seedListResult);
  * @param options Page size, cursor, ordering, and filters
  * @returns One page of matches, plus a cursor when more pages follow
  */
-export const search = fileModule.declare<SearchFn>('search', seedListResult);
+export const search = fileModule.declare<SearchFn>('search', seedListResult, {
+  description:
+    'Finds files whose name or metadata matches a fragment, one page at a time. ' +
+    'options: { limit?, cursor?, all?, trash?, sort?, filter?, cwd? }.',
+  mcp: { args: ['query', 'options'], ...LOOKUP },
+});
 
 /**
  * Copies a file, or a directory with everything inside it. Rejects
@@ -403,7 +440,10 @@ export const search = fileModule.declare<SearchFn>('search', seedListResult);
  * @param options Visibility for the copy
  * @returns `true` when the copy completes
  */
-export const copy = fileModule.declare<CopyFn>('copy', () => false);
+export const copy = fileModule.declare<CopyFn>('copy', () => false, {
+  description: `Copies a file or a whole directory; fails when the destination exists. options: { public? }. ${PATHS}`,
+  mcp: { args: ['source', 'destination', 'options'], ...ADDITION },
+});
 
 /**
  * Moves a file, or a directory with everything inside it. Rejects
@@ -414,7 +454,10 @@ export const copy = fileModule.declare<CopyFn>('copy', () => false);
  * @param options Move scope
  * @returns `true` when the move completes
  */
-export const move = fileModule.declare<MoveFn>('move', () => false);
+export const move = fileModule.declare<MoveFn>('move', () => false, {
+  description: `Moves or renames a file or a whole directory; fails when the destination exists. ${PATHS}`,
+  mcp: { args: ['source', 'destination', 'options'], ...ADDITION },
+});
 
 /**
  * Creates a shortcut (symbolic link) to another path. Reading or
@@ -426,7 +469,10 @@ export const move = fileModule.declare<MoveFn>('move', () => false);
  * @param options Visibility and custom metadata for the link
  * @returns Metadata of the created link, including the target path
  */
-export const link = fileModule.declare<LinkFn>('link', seedFileInfo);
+export const link = fileModule.declare<LinkFn>('link', seedFileInfo, {
+  description: `Creates a shortcut at path pointing to target. options: { public?, metadata? }. ${PATHS}`,
+  mcp: { args: ['target', 'path', 'options'], ...ADDITION },
+});
 
 /**
  * Deletes a file, or with `recursive: true` a directory and everything
@@ -437,7 +483,12 @@ export const link = fileModule.declare<LinkFn>('link', seedFileInfo);
  * @param options Recursion and trash behavior
  * @returns `true` when something was deleted, `false` when it was already gone
  */
-export const remove = fileModule.declare<RemoveFn>('remove', () => false);
+export const remove = fileModule.declare<RemoveFn>('remove', () => false, {
+  description:
+    'Deletes a file, or a directory with options.recursive. options.soft moves it to the trash instead, ' +
+    `so restore can bring it back. ${PATHS}`,
+  mcp: { args: ['path', 'options'], ...OVERWRITE },
+});
 
 /**
  * Brings a soft-deleted entry back from the trash, with its original
@@ -447,7 +498,10 @@ export const remove = fileModule.declare<RemoveFn>('remove', () => false);
  * @param options Restoration scope
  * @returns Metadata of the restored entry
  */
-export const restore = fileModule.declare<RestoreFn>('restore', seedFileInfo);
+export const restore = fileModule.declare<RestoreFn>('restore', seedFileInfo, {
+  description: `Brings a trashed entry back to its path. ${PATHS}`,
+  mcp: { args: ['path', 'options'], ...ADDITION },
+});
 
 export default {
   configure,
