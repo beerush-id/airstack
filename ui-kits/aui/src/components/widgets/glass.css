@@ -25,6 +25,8 @@
     --aui-glass-blur: var(--size-sm);
     /* The light caught along the edge, plain white; a glint under the pointer carries the theme's tint. */
     --aui-glass-edge: light-dark(rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.12));
+    /* A glass control's edge: fainter, since it's small and usually sits on glass already. */
+    --aui-glass-control-edge: light-dark(rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.08));
     --aui-glass-radius: var(--radius-xxl);
     --aui-glass-shadow: var(--elevation-2);
     /* A frosted panel's further tint, a solid surface's color, and how either lifts off its frame. */

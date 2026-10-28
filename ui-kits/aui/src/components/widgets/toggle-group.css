@@ -58,10 +58,11 @@
     }
   }
 
-  /* For a group floating over other content: its track is the shared glass (`aui-glass-frame`), lifted. */
+  /* For a group floating over other content: its track is the shared glass (`aui-glass-frame`), lifted just off it. */
   .aui-toggle-group-glass {
     --aui-glass-radius: var(--aui-toggle-group-radius);
-    --aui-glass-shadow: var(--elevation-3);
+    --aui-glass-shadow: var(--elevation-1);
+    --aui-glass-edge: var(--aui-glass-control-edge);
   }
 
   /*

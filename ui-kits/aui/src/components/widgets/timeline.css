@@ -4,22 +4,30 @@
  * A composition laid out in time. One second is `--aui-timeline-zoom` wide, so a clip's place
  * and length, the ticks, and the playhead all come from seconds times the zoom. Track headers
  * stay put while the lanes scroll sideways; the ruler stays on top while they scroll down.
- * Each lane wears its role color: pictures for video and image, a waveform for audio, words for
- * text.
+ * Lanes are bands a small gap apart rather than rows between rules, and run the full width
+ * however short the composition. Each lane wears its role color: pictures for video and image,
+ * a waveform for audio, words for text.
  */
 @layer theme {
   :root {
     --aui-timeline-header: 9rem;
     --aui-timeline-ruler: 2rem;
     --aui-timeline-lane: 3.25rem;
+    --aui-timeline-gap: var(--spacing);
+    --aui-timeline-ruler-gap: calc(var(--spacing) * 2);
+    /* A track's padding, the same on every side: its clips sit this far in, and so does the time they're on. */
+    --aui-timeline-inset: var(--spacing-xs);
     --aui-timeline-bg: var(--color-surface-low);
+    --aui-timeline-band: color-mix(in oklch, var(--color-on-surface) 4%, transparent);
     --aui-timeline-radius: var(--radius-lg);
     --aui-timeline-rule: color-mix(in oklch, var(--color-outline-variant) 70%, transparent);
   }
 }
 
 @layer component {
+  /* The timeline's Tab stop while no clip is picked, where the keys move the playhead; it shows no ring of its own. */
   .aui-timeline {
+    outline: none;
     overflow: auto;
     border-radius: var(--aui-timeline-radius);
     background-color: var(--aui-timeline-bg);
@@ -31,59 +39,69 @@
     display: grid;
     grid-template-columns:
       var(--aui-timeline-header)
-      calc(var(--aui-timeline-length, 0) * var(--aui-timeline-zoom) + var(--spacing-xl));
+      minmax(
+        calc(var(--aria-timeline-length, 0) * var(--aui-timeline-zoom) + var(--aui-timeline-inset) + var(--spacing-xl)),
+        1fr
+      );
     grid-template-rows: var(--aui-timeline-ruler) auto;
+    row-gap: var(--aui-timeline-ruler-gap);
+    position: relative;
     min-inline-size: 100%;
   }
 
+  /* Beside the ruler, above the track names: whatever settings the timeline is given, in a row. */
   .aui-timeline-corner {
     position: sticky;
     inset-inline-start: 0;
     inset-block-start: 0;
-    z-index: 3;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding-inline: var(--spacing-xs);
     background-color: var(--aui-timeline-bg);
-    border-block-end: 1px solid var(--aui-timeline-rule);
   }
 
-  /* Ticks each second, a time every few; the playhead's handle rides on it. */
+  /* A time each second or few, frame ticks between; the playhead's handle rides over it. */
   .aui-timeline-ruler {
     position: sticky;
     inset-block-start: 0;
     z-index: 2;
     background-color: var(--aui-timeline-bg);
-    /* Major ticks where the times are, minor ticks each second between them. */
+    /* Major ticks where the times are, minor ticks every few frames between them (`--aui-timeline-minor`, in seconds). */
     background-image:
       repeating-linear-gradient(
         to right,
         color-mix(in oklch, var(--color-on-surface-variant) 55%, transparent) 0 1px,
         transparent 1px calc(var(--aui-timeline-zoom) * var(--aui-timeline-every, 1))
       ),
-      repeating-linear-gradient(to right, var(--aui-timeline-rule) 0 1px, transparent 1px var(--aui-timeline-zoom));
+      repeating-linear-gradient(
+        to right,
+        var(--aui-timeline-rule) 0 1px,
+        transparent 1px calc(var(--aui-timeline-zoom) * var(--aui-timeline-minor, 1))
+      );
     background-size:
       100% 55%,
       100% 25%;
-    background-position: bottom left;
+    background-position: var(--aui-timeline-inset) bottom;
     background-repeat: no-repeat;
-    border-block-end: 1px solid var(--aui-timeline-rule);
+    /* A drag along it scrubs; it never selects the times. */
+    user-select: none;
+  }
+
+  /*
+   * The playhead's slider, drawn by the playhead itself: as long as the composition, from its
+   * start, so a point on it is the time under the same point on the lanes. Past its end the ruler
+   * only marks seconds; a drag carried past it holds at the end.
+   */
+  .aui-timeline-scrub {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: var(--aui-timeline-inset);
+    inline-size: calc(var(--aria-timeline-length, 0) * var(--aui-timeline-zoom));
     cursor: pointer;
     touch-action: none;
     outline: none;
-
-    &::after {
-      content: '';
-      position: absolute;
-      inset-block-end: 0;
-      inset-inline-start: var(--aria-slider-start, 0%);
-      inline-size: 12px;
-      block-size: 60%;
-      translate: -50% 0;
-      border-radius: var(--radius-xs) var(--radius-xs) var(--radius-full) var(--radius-full);
-      background-color: var(--color-primary);
-    }
-
-    &:focus-visible::after {
-      box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring-color);
-    }
   }
 
   .aui-timeline-tick {
@@ -100,9 +118,10 @@
   .aui-timeline-headers {
     position: sticky;
     inset-inline-start: 0;
-    z-index: 1;
+    z-index: 4;
     display: grid;
     grid-auto-rows: var(--aui-timeline-lane);
+    row-gap: var(--aui-timeline-gap);
     background-color: var(--aui-timeline-bg);
   }
 
@@ -111,7 +130,6 @@
     align-items: center;
     gap: var(--spacing-xs);
     padding-inline: var(--spacing-sm);
-    border-block-end: 1px solid var(--aui-timeline-rule);
     color: var(--color-on-surface-variant);
     font-size: var(--font-label-sm-size);
     font-weight: 500;
@@ -127,24 +145,34 @@
     position: relative;
     display: grid;
     grid-auto-rows: var(--aui-timeline-lane);
+    row-gap: var(--aui-timeline-gap);
     outline: none;
   }
 
+  /* A track, and a Tab stop: focused from the keyboard, it's ringed inside its band, clear of its neighbours. */
   .aui-timeline-lane {
     position: relative;
-    border-block-end: 1px solid var(--aui-timeline-rule);
+    border-radius: var(--radius-sm);
+    background-color: var(--aui-timeline-band);
+    outline: none;
 
-    /* Every other lane a shade apart, so long rows stay easy to follow. */
-    &:nth-child(even) {
-      background-color: color-mix(in oklch, var(--color-on-surface) 2.5%, transparent);
+    &:focus-visible {
+      outline: var(--focus-ring-width) solid var(--focus-ring-color);
+      outline-offset: calc(var(--focus-ring-width) * -1);
     }
   }
 
+  /*
+   * A clip, at its start and as long as it runs. Dragged or resized, it takes the start and length
+   * the drag gives it ahead of the next render, and rides over its neighbours.
+   */
   .aui-timeline-clip {
     position: absolute;
-    inset-block: var(--spacing-xs);
-    inset-inline-start: calc(var(--aui-timeline-start) * var(--aui-timeline-zoom));
-    inline-size: calc(var(--aui-timeline-span) * var(--aui-timeline-zoom) - 2px);
+    inset-block: var(--aui-timeline-inset);
+    inset-inline-start: calc(
+      var(--aui-timeline-inset) + var(--aria-timeline-start, var(--aui-timeline-start)) * var(--aui-timeline-zoom)
+    );
+    inline-size: calc(var(--aria-timeline-span, var(--aui-timeline-span)) * var(--aui-timeline-zoom) - 2px);
     display: flex;
     align-items: center;
     overflow: hidden;
@@ -155,25 +183,38 @@
     box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18);
     color: var(--aui-item-fg);
     font-size: var(--font-label-md-size);
-    cursor: pointer;
+    cursor: grab;
     user-select: none;
+    touch-action: none;
     outline: none;
-    transition-property: box-shadow, filter;
+    transition-property: filter;
     transition-duration: var(--duration-short);
     transition-timing-function: var(--ease-emphasized);
+
+    &[data-dragging] {
+      z-index: 1;
+      cursor: grabbing;
+    }
 
     &:hover {
       filter: brightness(1.06);
     }
 
+    /*
+     * Picked and focused are two states, each shown its own way so either can stand alone or both
+     * at once: the pick lifts the clip off its lane in its full color, focus rings it. Neither
+     * eases in, so moving between clips switches them rather than fading.
+     */
     &[aria-selected='true'] {
+      background-color: var(--aui-item-bg);
       box-shadow:
-        inset 0 0 0 2px var(--aui-item-fg),
-        0 0 0 2px var(--aui-item-bg);
+        inset 0 1px 0 rgb(255 255 255 / 0.18),
+        var(--elevation-2);
     }
 
     &:focus-visible {
-      box-shadow: 0 0 0 var(--focus-ring-width) var(--focus-ring-color);
+      outline: var(--focus-ring-width) solid var(--focus-ring-color);
+      outline-offset: 3px;
     }
 
     /* Pictures repeat along a video or image clip like a filmstrip, the name over a soft shade. */
@@ -192,6 +233,11 @@
       background-color: color-mix(in oklch, var(--aui-item-bg) 22%, var(--aui-timeline-bg));
       color: var(--color-on-surface);
 
+      /* Picked, the strip deepens but stays light enough for its waveform to read. */
+      &[aria-selected='true'] {
+        background-color: color-mix(in oklch, var(--aui-item-bg) 40%, var(--aui-timeline-bg));
+      }
+
       &::before {
         content: '';
         position: absolute;
@@ -200,6 +246,23 @@
         mask: var(--aui-timeline-wave) repeat-x left center / 160px 100%;
         opacity: 0.75;
       }
+    }
+  }
+
+  /* A clip's ends, a thin strip each, to resize it by; the rest of it moves it. */
+  .aui-timeline-clip-edge {
+    position: absolute;
+    inset-block: 0;
+    z-index: 1;
+    inline-size: var(--aui-timeline-edge, 6px);
+    cursor: ew-resize;
+
+    &[data-edge='start'] {
+      inset-inline-start: 0;
+    }
+
+    &[data-edge='end'] {
+      inset-inline-end: 0;
     }
   }
 
@@ -217,14 +280,34 @@
     background-color: color-mix(in oklch, var(--aui-timeline-bg) 80%, transparent);
   }
 
+  /*
+   * The playhead: one piece from the ruler down through the lanes, at the timeline's time, so its
+   * handle and its line can't part. The line starts under the handle; the handle stays on the
+   * ruler while the lanes scroll down. Presses pass through it to the ruler's scrub.
+   */
   .aui-timeline-playhead {
+    --aui-timeline-handle-top: calc(var(--aui-timeline-ruler) * 0.4);
     position: absolute;
+    grid-column: 2;
+    grid-row: 1 / -1;
     inset-block: 0;
-    inset-inline-start: calc(var(--aui-timeline-time, 0) * var(--aui-timeline-zoom));
-    z-index: 1;
+    inset-inline-start: calc(var(--aui-timeline-inset) + var(--aria-timeline-time, 0) * var(--aui-timeline-zoom));
+    z-index: 3;
     inline-size: 2px;
     translate: -50% 0;
-    background-color: var(--color-primary);
+    background: linear-gradient(to bottom, transparent var(--aui-timeline-handle-top), var(--color-primary) 0);
     pointer-events: none;
+  }
+
+  .aui-timeline-playhead-handle {
+    position: sticky;
+    inset-block-start: var(--aui-timeline-handle-top);
+    display: block;
+    inline-size: 12px;
+    block-size: calc(var(--aui-timeline-ruler) - var(--aui-timeline-handle-top));
+    margin-block-start: var(--aui-timeline-handle-top);
+    margin-inline-start: -5px;
+    border-radius: var(--radius-xs) var(--radius-xs) var(--radius-full) var(--radius-full);
+    background-color: var(--color-primary);
   }
 }

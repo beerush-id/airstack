@@ -138,11 +138,13 @@
    * Glass: the frosted pane windows and the dock sit on, for a control floating over other content.
    * The role color tints the pane and inks what's on it. Every glass surface sets
    * `--aui-glass-backdrop: none` for what's inside it, so a glass control on glass keeps its tint
-   * but not a second blur, which would only muddy it. Asked for less transparency, it turns solid.
+   * but not a second blur, which would only muddy it; its lift is what keeps it a pane of its own
+   * there. Asked for less transparency, it turns solid.
    */
   .aui-control-glass {
-    --aui-control-outline-color: var(--aui-glass-edge, transparent);
+    --aui-control-outline-color: var(--aui-glass-control-edge, transparent);
     border-width: 1px;
+    box-shadow: var(--aui-glass-lift, var(--elevation-1));
     color: var(--aui-control-bg);
     background-color: color-mix(
       in oklch,
