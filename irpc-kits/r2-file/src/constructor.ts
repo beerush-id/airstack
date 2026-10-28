@@ -73,8 +73,9 @@ const DELIVERY_URL_TTL = 3600;
  * the decoded content inline.
  *
  * @param options Storage bindings and constraints, or a prebuilt `adapter`
+ * @returns The adapter the handlers run on, to append drivers to with `use()`
  */
-export function implement(options: FileImplementOptions): void {
+export function implement(options: FileImplementOptions): FileAdapter {
   const adapter = options.adapter ?? createFs(options);
 
   fileModule.guard(async () => {
@@ -158,4 +159,6 @@ export function implement(options: FileImplementOptions): void {
       { ready: false }
     );
   });
+
+  return adapter;
 }

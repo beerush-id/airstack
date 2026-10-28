@@ -283,3 +283,20 @@ describe('write stub — constraint gates reject before storage', () => {
     });
   });
 });
+
+describe('write stub — drivers appended to the implemented adapter', () => {
+  it('runs an appended driver after storage, with the stored path and the data', async () => {
+    await withFs({ ownerId: 'alice', homeDir: '/users/alice' }, async () => {
+      const seen: Array<{ path: string; data: unknown; stored: boolean }> = [];
+      implement({ bucket, indexer: db }).use({
+        async write(ctx, _path, data) {
+          seen.push({ path: ctx.path, data, stored: await createFs({ bucket, indexer: db }).exists(ctx.path) });
+        },
+      });
+
+      await write('~/w-drivers/notes.txt', 'observed');
+
+      expect(seen).toEqual([{ path: '/users/alice/w-drivers/notes.txt', data: 'observed', stored: true }]);
+    });
+  });
+});

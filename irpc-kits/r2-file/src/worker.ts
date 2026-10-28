@@ -1,7 +1,7 @@
 import type { ExecutionContext } from '@cloudflare/workers-types';
 import { HTTPRouter } from '@irpclib/http/router';
 import { type AnyType, envCtx, getEnv, HandlerError } from '@irpclib/irpc';
-import type { FileAdapter } from './adapter.js';
+import type { FileAdapter, FileDriver } from './adapter.js';
 import type { FileWorkerEnv } from './constructor.js';
 import { implement } from './constructor.js';
 import { transport } from './index.js';
@@ -50,7 +50,7 @@ const DEFAULT_EDGE_TTL = 2592000;
  * is refused.
  *
  * @param config Filesystem wiring plus topology, signing, cache, and CORS controls
- * @returns Standard Cloudflare Worker handler
+ * @returns Standard Cloudflare Worker handler, with `use()` to append drivers to its filesystem
  */
 export function createWorker(config: FileWorkerConfig = {}) {
   const callable = config.callable !== false;
@@ -60,18 +60,29 @@ export function createWorker(config: FileWorkerConfig = {}) {
 
   const router = new HTTPRouter(transport, { endpoint });
 
-  if (callable) {
-    // A worker is made before any request, but only gets its bindings with one: without bindings in
-    // the config, each call uses the ones in its own environment.
-    implement({
-      ...config,
-      bucket: config.bucket ?? envBinding<FileWorkerEnv['BUCKET']>('BUCKET'),
-      indexer: config.indexer ?? envBinding<FileWorkerEnv['DB']>('DB'),
-    });
-  }
+  // A worker is made before any request, but only gets its bindings with one: without bindings in
+  // the config, each call uses the ones in its own environment.
+  const adapter = callable
+    ? implement({
+        ...config,
+        bucket: config.bucket ?? envBinding<FileWorkerEnv['BUCKET']>('BUCKET'),
+        indexer: config.indexer ?? envBinding<FileWorkerEnv['DB']>('DB'),
+      })
+    : undefined;
 
-  return {
+  const worker = {
     router,
+    /**
+     * Appends a driver to the filesystem the calls run on, after storage: to observe changes
+     * (indexing, auditing). A delivery-only worker runs no calls, so it has nothing to observe.
+     *
+     * @param driver The driver to append
+     * @returns The worker, to chain
+     */
+    use(driver: FileDriver) {
+      adapter?.use(driver);
+      return worker;
+    },
     async fetch(request: Request, env: FileWorkerEnv, ctx: AnyType): Promise<Response> {
       const url = new URL(request.url);
 
@@ -97,6 +108,7 @@ export function createWorker(config: FileWorkerConfig = {}) {
       return new Response('Method Not Allowed', { status: 405 });
     },
   };
+  return worker;
 }
 
 /**
