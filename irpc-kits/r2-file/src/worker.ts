@@ -1,6 +1,6 @@
 import type { ExecutionContext } from '@cloudflare/workers-types';
 import { HTTPRouter } from '@irpclib/http/router';
-import type { AnyType } from '@irpclib/irpc';
+import { type AnyType, envCtx, getEnv, HandlerError } from '@irpclib/irpc';
 import type { FileAdapter } from './adapter.js';
 import type { FileWorkerEnv } from './constructor.js';
 import { implement } from './constructor.js';
@@ -61,7 +61,13 @@ export function createWorker(config: FileWorkerConfig = {}) {
   const router = new HTTPRouter(transport, { endpoint });
 
   if (callable) {
-    implement(config);
+    // A worker is made before any request, but only gets its bindings with one: without bindings in
+    // the config, each call uses the ones in its own environment.
+    implement({
+      ...config,
+      bucket: config.bucket ?? envBinding<FileWorkerEnv['BUCKET']>('BUCKET'),
+      indexer: config.indexer ?? envBinding<FileWorkerEnv['DB']>('DB'),
+    });
   }
 
   return {
@@ -78,7 +84,7 @@ export function createWorker(config: FileWorkerConfig = {}) {
           return new Response('Not Found', { status: 404 });
         }
         return router.resolve(request, [
-          ['env', env],
+          [envCtx.key, env],
           ['ctx', ctx],
           ['config', config],
         ]);
@@ -249,4 +255,23 @@ function isPublicPath(canonical: string, configured: boolean | string[] | undefi
     return configured.some((pattern) => matchPattern(bare, pattern));
   }
   return false;
+}
+
+/**
+ * A binding that is looked up in the current call's environment (`envCtx`) each time it is used,
+ * so a worker made at module level reaches the bindings of whichever request it serves.
+ *
+ * @param key - The binding's name in the environment, e.g. `BUCKET`.
+ * @returns A stand-in that forwards every use to the call's binding.
+ * @throws When the call's environment has no such binding.
+ */
+function envBinding<T extends object>(key: keyof FileWorkerEnv): T {
+  return new Proxy({} as T, {
+    get(_, property) {
+      const binding = getEnv<Partial<FileWorkerEnv>>()[key] as AnyType;
+      if (!binding) throw new HandlerError('EIO', `No ${key} binding in this call's environment`);
+      const value = binding[property];
+      return typeof value === 'function' ? value.bind(binding) : value;
+    },
+  });
 }

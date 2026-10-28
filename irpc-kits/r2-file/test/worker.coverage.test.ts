@@ -1,5 +1,5 @@
 import type { D1Database, R2Bucket } from '@cloudflare/workers-types';
-import { setContext } from '@irpclib/irpc';
+import { envCtx } from '@irpclib/irpc';
 import { resolveBinding } from '@irpclib/irpc/wrangler';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { write, remove } from '../src/index.js';
@@ -26,7 +26,7 @@ beforeEach(() => {
 describe('worker coverage — delivery edge cases', () => {
   it('serves the second identical GET from the edge cache', async () => {
     await withFs({ ownerId: 'alice', homeDir: '/users/alice' }, async () => {
-      setContext('env', { BUCKET: bucket, DB: db });
+      envCtx.set({ BUCKET: bucket, DB: db });
       const worker = createWorker({ bucket, indexer: db, public: true });
       await write('~/wc-cache/notes.txt', 'hello');
 
@@ -77,7 +77,7 @@ describe('worker coverage — delivery edge cases', () => {
 
   it('answers 400 for a Range in an unsupported unit', async () => {
     await withFs({ ownerId: 'alice', homeDir: '/users/alice' }, async () => {
-      setContext('env', { BUCKET: bucket, DB: db });
+      envCtx.set({ BUCKET: bucket, DB: db });
       const worker = createWorker({ bucket, indexer: db, public: true });
       await write('~/wc-range/bytes.txt', '0123456789');
 
@@ -93,7 +93,7 @@ describe('worker coverage — delivery edge cases', () => {
 
   it('answers 416 with the total size for an unsatisfiable Range', async () => {
     await withFs({ ownerId: 'alice', homeDir: '/users/alice' }, async () => {
-      setContext('env', { BUCKET: bucket, DB: db });
+      envCtx.set({ BUCKET: bucket, DB: db });
       const worker = createWorker({ bucket, indexer: db, public: true });
       await write('~/wc-range/bytes.txt', '0123456789');
 
@@ -110,7 +110,7 @@ describe('worker coverage — delivery edge cases', () => {
 
   it('answers 404 when the object vanishes between head and get', async () => {
     await withFs({ ownerId: 'alice', homeDir: '/users/alice' }, async () => {
-      setContext('env', { BUCKET: bucket, DB: db });
+      envCtx.set({ BUCKET: bucket, DB: db });
       const worker = createWorker({ bucket, indexer: db, public: true });
       await write('~/wc-race/notes.txt', 'hello');
 
@@ -130,7 +130,7 @@ describe('worker coverage — delivery edge cases', () => {
   });
   it('answers 404 when the object vanishes between head and ranged get', async () => {
     await withFs({ ownerId: 'alice', homeDir: '/users/alice' }, async () => {
-      setContext('env', { BUCKET: bucket, DB: db });
+      envCtx.set({ BUCKET: bucket, DB: db });
       const worker = createWorker({ bucket, indexer: db, public: true });
       await write('~/wc-race/bytes.txt', '0123456789');
 
@@ -151,7 +151,7 @@ describe('worker coverage — delivery edge cases', () => {
 
   it('answers 404 for a soft-deleted file even under public delivery', async () => {
     await withFs({ ownerId: 'alice', homeDir: '/users/alice' }, async () => {
-      setContext('env', { BUCKET: bucket, DB: db });
+      envCtx.set({ BUCKET: bucket, DB: db });
       const worker = createWorker({ bucket, indexer: db, public: true });
       await write('~/wc-trashed/notes.txt', 'hello');
       await remove('~/wc-trashed/notes.txt', { soft: true });
@@ -168,7 +168,7 @@ describe('worker coverage — delivery edge cases', () => {
 
   it('answers 404 for a directory marker path', async () => {
     await withFs({ ownerId: 'alice', homeDir: '/users/alice' }, async () => {
-      setContext('env', { BUCKET: bucket, DB: db });
+      envCtx.set({ BUCKET: bucket, DB: db });
       const worker = createWorker({ bucket, indexer: db, public: true });
       await write('~/wc-dir/inside.txt', 'hello');
 
@@ -183,7 +183,7 @@ describe('worker coverage — delivery edge cases', () => {
   });
   it('serves an open-ended range to the end of the file', async () => {
     await withFs({ ownerId: 'alice', homeDir: '/users/alice' }, async () => {
-      setContext('env', { BUCKET: bucket, DB: db });
+      envCtx.set({ BUCKET: bucket, DB: db });
       const worker = createWorker({ bucket, indexer: db, public: true });
       await write('~/wc-openrange/bytes.txt', '0123456789');
 
@@ -201,7 +201,7 @@ describe('worker coverage — delivery edge cases', () => {
 
   it('falls back to a quoted raw etag when head carries no httpEtag', async () => {
     await withFs({ ownerId: 'alice', homeDir: '/users/alice' }, async () => {
-      setContext('env', { BUCKET: bucket, DB: db });
+      envCtx.set({ BUCKET: bucket, DB: db });
       const worker = createWorker({ bucket, indexer: db, public: true });
       await write('~/wc-etag/notes.txt', 'hello');
 
@@ -223,7 +223,7 @@ describe('worker coverage — delivery edge cases', () => {
 
   it('applies the default edge TTL when only browserTtl is configured', async () => {
     await withFs({ ownerId: 'alice', homeDir: '/users/alice' }, async () => {
-      setContext('env', { BUCKET: bucket, DB: db });
+      envCtx.set({ BUCKET: bucket, DB: db });
       const worker = createWorker({ bucket, indexer: db, public: true, cache: { browserTtl: 30 } });
       await write('~/wc-ttl/notes.txt', 'hello');
 
@@ -240,7 +240,7 @@ describe('worker coverage — delivery edge cases', () => {
 
   it('defaults to octet-stream when the stored object carries no content type', async () => {
     await withFs({ ownerId: 'alice', homeDir: '/users/alice' }, async () => {
-      setContext('env', { BUCKET: bucket, DB: db });
+      envCtx.set({ BUCKET: bucket, DB: db });
       const worker = createWorker({ bucket, indexer: db, public: true });
       await write('~/wc-notype/notes.bin', 'hello');
 

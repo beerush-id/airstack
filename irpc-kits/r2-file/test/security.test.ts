@@ -1,5 +1,5 @@
 import type { D1Database, R2Bucket } from '@cloudflare/workers-types';
-import { setContext } from '@irpclib/irpc';
+import { envCtx } from '@irpclib/irpc';
 import { resolveBinding } from '@irpclib/irpc/wrangler';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { write } from '../src/index.js';
@@ -29,7 +29,7 @@ const guardedEnv = () => ({ BUCKET: bucket, DB: db, FILE_SECRET: 'security-secre
 describe('perimeter defense — path escapes', () => {
   it('rejects percent-encoded traversal with 403 and serves nothing', async () => {
     await withFs({ ownerId: 'alice', homeDir: '/users/alice' }, async () => {
-      setContext('env', { BUCKET: bucket, DB: db });
+      envCtx.set({ BUCKET: bucket, DB: db });
       const worker = createWorker({ bucket, indexer: db, public: true });
       await write('/s-escape/secret.txt', 'top-secret');
 
@@ -59,7 +59,7 @@ describe('perimeter defense — path escapes', () => {
 
   it('rejects a null byte in the path with 400', async () => {
     await withFs({ ownerId: 'alice', homeDir: '/users/alice' }, async () => {
-      setContext('env', { BUCKET: bucket, DB: db });
+      envCtx.set({ BUCKET: bucket, DB: db });
       const worker = createWorker({ bucket, indexer: db, public: true });
       await write('~/s-null/notes.txt', 'hello');
 
@@ -77,7 +77,7 @@ describe('perimeter defense — path escapes', () => {
 describe('perimeter defense — signed token attacks', () => {
   it('rejects a forged token with a valid expiry — 403', async () => {
     await withFs({ ownerId: 'alice', homeDir: '/users/alice' }, async () => {
-      setContext('env', { BUCKET: bucket, DB: db });
+      envCtx.set({ BUCKET: bucket, DB: db });
       const worker = createWorker({ bucket, indexer: db });
       await write('~/s-token/notes.txt', 'hello');
 
@@ -92,7 +92,7 @@ describe('perimeter defense — signed token attacks', () => {
 
   it('rejects an expired signature — 403', async () => {
     await withFs({ ownerId: 'alice', homeDir: '/users/alice' }, async () => {
-      setContext('env', { BUCKET: bucket, DB: db });
+      envCtx.set({ BUCKET: bucket, DB: db });
       const worker = createWorker({ bucket, indexer: db });
       await write('~/s-expired/notes.txt', 'hello');
 
@@ -106,7 +106,7 @@ describe('perimeter defense — signed token attacks', () => {
 
   it('rejects a genuine token replayed against a different path — 403', async () => {
     await withFs({ ownerId: 'alice', homeDir: '/users/alice' }, async () => {
-      setContext('env', { BUCKET: bucket, DB: db });
+      envCtx.set({ BUCKET: bucket, DB: db });
       const worker = createWorker({ bucket, indexer: db });
       await write('~/s-replay/mine.txt', 'hello');
       await write('~/s-replay/yours.txt', 'private');
@@ -124,7 +124,7 @@ describe('perimeter defense — signed token attacks', () => {
 describe('perimeter defense — access control', () => {
   it('refuses direct unauthenticated access to another user home — 403', async () => {
     await withFs({ ownerId: 'alice', homeDir: '/users/alice' }, async () => {
-      setContext('env', { BUCKET: bucket, DB: db });
+      envCtx.set({ BUCKET: bucket, DB: db });
       const worker = createWorker({ bucket, indexer: db });
       await write('~/s-direct/private.txt', 'alice private');
 
@@ -140,7 +140,7 @@ describe('perimeter defense — access control', () => {
 
   it('never leaks non-matching paths under a public pattern list — 403', async () => {
     await withFs({ ownerId: 'alice', homeDir: '/users/alice' }, async () => {
-      setContext('env', { BUCKET: bucket, DB: db });
+      envCtx.set({ BUCKET: bucket, DB: db });
       const worker = createWorker({ bucket, indexer: db, public: ['banners/**'] });
       await write('/banners/s-leak/hero.txt', 'public hero');
       await write('~/s-leak/private.txt', 'alice private');

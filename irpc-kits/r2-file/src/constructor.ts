@@ -1,5 +1,5 @@
 import type { D1Database, R2Bucket } from '@cloudflare/workers-types';
-import { type AnyType, credential, getContext, GuardError, IRPCBlob, type IRPCStub } from '@irpclib/irpc';
+import { type AnyType, credential, getEnv, GuardError, IRPCBlob, type IRPCStub } from '@irpclib/irpc';
 import type { FileAdapter } from './adapter.js';
 import { createFs } from './fs/index.js';
 import {
@@ -62,7 +62,7 @@ export function implement(options: FileImplementOptions): void {
   const adapter = options.adapter ?? createFs(options);
 
   fileModule.guard(async () => {
-    const required = getContext<FileWorkerEnv | undefined>('env')?.FILE_API_KEY;
+    const required = getEnv<Partial<FileWorkerEnv>>().FILE_API_KEY;
     if (required === undefined) return;
     if (credential<string>('apiKey') !== required) {
       throw GuardError.failed('Unauthorized: Valid API key required');
@@ -82,7 +82,7 @@ export function implement(options: FileImplementOptions): void {
     /* istanbul ignore next */
     if (info === undefined || info.isDirectory) return undefined;
 
-    const secret = getContext<FileWorkerEnv | undefined>('env')?.FILE_SECRET;
+    const secret = getEnv<Partial<FileWorkerEnv>>().FILE_SECRET;
     const url = secret === undefined ? info.path : await signUrl(info.path, secret, DELIVERY_URL_TTL);
     return new IRPCBlob(url, { type: info.type, size: info.size, name: info.name });
   });

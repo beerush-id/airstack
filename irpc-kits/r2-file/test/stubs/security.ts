@@ -1,5 +1,5 @@
 import type { D1Database, R2Bucket } from '@cloudflare/workers-types';
-import { createCredentials, IRPC_BASE_CONTEXT, setContext } from '@irpclib/irpc';
+import { createCredentials, envCtx, IRPC_BASE_CONTEXT, setContext } from '@irpclib/irpc';
 import { resolveBinding } from '@irpclib/irpc/wrangler';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { implement } from '../../src/constructor.js';
@@ -104,7 +104,7 @@ describe('security — identity isolation', () => {
 describe('security — API key perimeter', () => {
   it('rejects a mutation whose credential does not match FILE_API_KEY', async () => {
     await withFs({}, async () => {
-      setContext('env', { FILE_API_KEY: 'test-key' });
+      envCtx.set({ FILE_API_KEY: 'test-key' });
       setContext(IRPC_BASE_CONTEXT.CREDENTIALS, createCredentials([['apiKey', 'wrong-key']]));
       implement({ bucket, indexer: db });
 
@@ -114,7 +114,7 @@ describe('security — API key perimeter', () => {
 
   it('rejects a query whose credential does not match FILE_API_KEY — no read-shaped gap', async () => {
     await withFs({}, async () => {
-      setContext('env', { FILE_API_KEY: 'test-key' });
+      envCtx.set({ FILE_API_KEY: 'test-key' });
       setContext(IRPC_BASE_CONTEXT.CREDENTIALS, createCredentials([['apiKey', 'wrong-key']]));
       implement({ bucket, indexer: db });
 
@@ -126,7 +126,7 @@ describe('security — API key perimeter', () => {
 
   it('accepts every call carrying the configured key', async () => {
     await withFs({}, async () => {
-      setContext('env', { FILE_API_KEY: 'test-key' });
+      envCtx.set({ FILE_API_KEY: 'test-key' });
       setContext(IRPC_BASE_CONTEXT.CREDENTIALS, createCredentials([['apiKey', 'test-key']]));
       implement({ bucket, indexer: db });
 

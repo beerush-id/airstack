@@ -1,5 +1,5 @@
 import type { D1Database, R2Bucket } from '@cloudflare/workers-types';
-import { setContext } from '@irpclib/irpc';
+import { envCtx } from '@irpclib/irpc';
 import { resolveBinding } from '@irpclib/irpc/wrangler';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { implement } from '../../src/constructor.js';
@@ -61,7 +61,7 @@ describe('read stub — multi-tenant system, options entrance', () => {
 
   it('delivers through a signed URL when FILE_SECRET is configured', async () => {
     await withFs({ ownerId: 'alice', homeDir: '/users/alice' }, async () => {
-      setContext('env', { FILE_SECRET: 'delivery-secret' });
+      envCtx.set({ FILE_SECRET: 'delivery-secret' });
       implement({ bucket, indexer: db, mountPoint: '/tenants/acme' });
       await write('~/r-signed/notes.txt', 'hello');
 

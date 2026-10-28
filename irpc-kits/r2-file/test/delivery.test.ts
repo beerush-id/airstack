@@ -1,5 +1,5 @@
 import type { D1Database, R2Bucket } from '@cloudflare/workers-types';
-import { setContext } from '@irpclib/irpc';
+import { envCtx } from '@irpclib/irpc';
 import { resolveBinding } from '@irpclib/irpc/wrangler';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { read, write } from '../src/index.js';
@@ -27,7 +27,7 @@ beforeEach(() => {
 describe('delivery plane — full responses', () => {
   it('serves a stored file with type, ETag, cache headers, and body', async () => {
     await withFs({ ownerId: 'alice', homeDir: '/users/alice' }, async () => {
-      setContext('env', { BUCKET: bucket, DB: db });
+      envCtx.set({ BUCKET: bucket, DB: db });
       const worker = createWorker({ bucket, indexer: db, public: true, cache: { browserTtl: 60, edgeTtl: 120 } });
       await write('~/d-basic/notes.txt', 'hello');
 
@@ -47,7 +47,7 @@ describe('delivery plane — full responses', () => {
 
   it('answers a conditional request with 304 when the ETag matches', async () => {
     await withFs({ ownerId: 'alice', homeDir: '/users/alice' }, async () => {
-      setContext('env', { BUCKET: bucket, DB: db });
+      envCtx.set({ BUCKET: bucket, DB: db });
       const worker = createWorker({ bucket, indexer: db, public: true });
       await write('~/d-etag/notes.txt', 'hello');
 
@@ -70,7 +70,7 @@ describe('delivery plane — full responses', () => {
 
   it('serves a byte range with 206 and Content-Range', async () => {
     await withFs({ ownerId: 'alice', homeDir: '/users/alice' }, async () => {
-      setContext('env', { BUCKET: bucket, DB: db });
+      envCtx.set({ BUCKET: bucket, DB: db });
       const worker = createWorker({ bucket, indexer: db, public: true });
       await write('~/d-range/bytes.txt', '0123456789');
 
@@ -88,7 +88,7 @@ describe('delivery plane — full responses', () => {
 
   it('serves a download request with Content-Disposition attachment', async () => {
     await withFs({ ownerId: 'alice', homeDir: '/users/alice' }, async () => {
-      setContext('env', { BUCKET: bucket, DB: db });
+      envCtx.set({ BUCKET: bucket, DB: db });
       const worker = createWorker({ bucket, indexer: db, public: true });
       await write('~/d-download/notes.txt', 'hello');
 
@@ -121,7 +121,7 @@ describe('delivery plane — full responses', () => {
 describe('delivery plane — signed tokens', () => {
   it('refuses an unsigned request for a protected file with 403', async () => {
     await withFs({ ownerId: 'alice', homeDir: '/users/alice' }, async () => {
-      setContext('env', { BUCKET: bucket, DB: db });
+      envCtx.set({ BUCKET: bucket, DB: db });
       const worker = createWorker({ bucket, indexer: db });
       await write('~/d-protected/notes.txt', 'hello');
 
@@ -137,7 +137,7 @@ describe('delivery plane — signed tokens', () => {
 
   it('serves the signed URL that the read stub delivered', async () => {
     await withFs({ ownerId: 'alice', homeDir: '/users/alice' }, async () => {
-      setContext('env', { BUCKET: bucket, DB: db, FILE_SECRET: 'delivery-secret' });
+      envCtx.set({ BUCKET: bucket, DB: db, FILE_SECRET: 'delivery-secret' });
       const worker = createWorker({ bucket, indexer: db });
       await write('~/d-signed/notes.txt', 'hello');
 
@@ -164,7 +164,7 @@ describe('delivery plane — signed tokens', () => {
 
   it('honors a signing secret given through worker config', async () => {
     await withFs({ ownerId: 'alice', homeDir: '/users/alice' }, async () => {
-      setContext('env', { BUCKET: bucket, DB: db });
+      envCtx.set({ BUCKET: bucket, DB: db });
       const worker = createWorker({ bucket, indexer: db, secret: 'config-secret' });
       await write('~/d-config-secret/notes.txt', 'hello');
 
@@ -185,7 +185,7 @@ describe('delivery plane — signed tokens', () => {
 describe('delivery plane — public topology', () => {
   it('serves everything unsigned when public is true', async () => {
     await withFs({ ownerId: 'alice', homeDir: '/users/alice' }, async () => {
-      setContext('env', { BUCKET: bucket, DB: db });
+      envCtx.set({ BUCKET: bucket, DB: db });
       const worker = createWorker({ bucket, indexer: db, public: true });
       await write('~/d-public/notes.txt', 'hello');
 
@@ -202,7 +202,7 @@ describe('delivery plane — public topology', () => {
 
   it('serves only matching patterns when public is a list', async () => {
     await withFs({ ownerId: 'alice', homeDir: '/users/alice' }, async () => {
-      setContext('env', { BUCKET: bucket, DB: db });
+      envCtx.set({ BUCKET: bucket, DB: db });
       const worker = createWorker({ bucket, indexer: db, public: ['banners/**'] });
       await write('/banners/d-patterns/hero.png', 'hero-bytes');
       await write('~/d-patterns/private.txt', 'secret');
@@ -228,7 +228,7 @@ describe('delivery plane — public topology', () => {
 describe('delivery plane — callable topology', () => {
   it('refuses the RPC plane entirely when callable is false, still delivers files', async () => {
     await withFs({ ownerId: 'alice', homeDir: '/users/alice' }, async () => {
-      setContext('env', { BUCKET: bucket, DB: db });
+      envCtx.set({ BUCKET: bucket, DB: db });
       const worker = createWorker({ bucket, indexer: db, callable: false, public: true });
       await write('~/d-cdn/notes.txt', 'hello');
 
