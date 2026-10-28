@@ -23,6 +23,8 @@ export const STUB_ERROR = {
   NOT_FOUND: 'not_found',
   INVALID_NAME: 'invalid_name',
   INVALID_VERSION: 'invalid_version',
+  NOT_DECLARED: 'not_declared',
+  INVALID_TOOL: 'invalid_tool',
 } as const;
 
 export const HANDLER_ERROR = {
@@ -133,6 +135,15 @@ export class StubError extends IRPCError {
   }
   static invalidVersion(version: string) {
     return new StubError(STUB_ERROR.INVALID_VERSION, `Invalid version: ${version}`);
+  }
+  static notDeclared(name: string, href: string) {
+    return new StubError(STUB_ERROR.NOT_DECLARED, `IRPC "${name}" is not declared in ${href}.`);
+  }
+  static invalidTool(name: string) {
+    return new StubError(
+      STUB_ERROR.INVALID_TOOL,
+      `IRPC "${name}" takes positional arguments, so its mcp options must name them (args).`
+    );
   }
 }
 

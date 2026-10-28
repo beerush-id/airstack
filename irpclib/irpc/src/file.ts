@@ -97,6 +97,9 @@ export class IRPCBlob {
     public meta?: { type?: string; size?: number; name?: string }
   ) {
     this.data = new Blob([], { type: meta?.type ?? '' });
+    // A blob is a pointer its caller loads. Where it is made (a handler), awaiting it or returning it
+    // from an async function must not load it, so it stays unawaitable until delivered (`deliverBlob`).
+    Object.defineProperty(this, 'then', { value: undefined, configurable: true, writable: true });
   }
 
   public load(): Promise<Blob> {
@@ -173,6 +176,18 @@ export class IRPCBlob {
   ): Promise<Blob | TResult> {
     return this.load().catch(onrejected);
   }
+}
+
+/**
+ * Hands a blob to its caller: from here on, awaiting it loads it. Transports deliver blobs as they
+ * reach the caller, so only the caller ever loads one.
+ *
+ * @param blob - The blob reaching its caller.
+ * @returns The same blob, now awaitable.
+ */
+export function deliverBlob(blob: IRPCBlob): IRPCBlob {
+  delete (blob as { then?: unknown }).then;
+  return blob;
 }
 
 export class IRPCFileStream<T extends IRPCFileMeta = IRPCFileMeta> extends IRPCFile<T> {

@@ -298,6 +298,8 @@ export type IRPCInit<R, I extends IRPCInputs, O extends IRPCOutput> = {
 
   /** Optional schema for input/output validation */
   schema?: IRPCSchema<I, O>;
+  /** Marks the function as a tool agents may call, described the way MCP describes tools. */
+  mcp?: boolean | MCPOptions;
   /** Optional maximum age of a call in milliseconds */
   maxAge?: number;
   /** Mark the spec as continues stream with no timeout */
@@ -314,6 +316,40 @@ export type IRPCInit<R, I extends IRPCInputs, O extends IRPCOutput> = {
   IRPCInferInit<R>;
 
 export type IRPCInferInit<R> = R extends IRPCDefined ? { seed: () => R } : { seed?: () => R };
+
+/**
+ * How a function is described as a tool, following MCP's tool definition. The tool's name is
+ * always the function's name, so it can be called by that name.
+ */
+export type MCPOptions = {
+  /** A human-readable title. */
+  title?: string;
+  /** What the tool does, for the model; defaults to the function's description. */
+  description?: string;
+  /**
+   * Names the positional arguments in order, so a router can describe them as one input object and
+   * place each named value back in its position. Not needed when the function takes one object.
+   */
+  args?: string[];
+  /** The tool does not change anything. */
+  readOnlyHint?: boolean;
+  /** The tool may destroy or overwrite something, so a caller may want consent first. */
+  destructiveHint?: boolean;
+  /** Calling it again with the same input has no further effect. */
+  idempotentHint?: boolean;
+  /** The tool reaches beyond its own system (the web, other services). */
+  openWorldHint?: boolean;
+};
+
+/** A function described as an MCP tool: what agents are given to call. */
+export type IRPCTool = {
+  name: string;
+  title?: string;
+  description?: string;
+  /** JSON Schema of the single input object, generated from the function's input schema. */
+  inputSchema: Record<string, unknown>;
+  annotations?: Pick<MCPOptions, 'readOnlyHint' | 'destructiveHint' | 'idempotentHint' | 'openWorldHint'>;
+};
 
 /**
  * Determines whether an RPC function stub requires a seed factory.
@@ -361,6 +397,7 @@ export type IRPCReturnOf<F> = F extends (...args: infer _A) => infer R
 export type IRPCDeclareConfig<I extends IRPCInputs = IRPCInputs, O extends IRPCOutput = IRPCOutput> = {
   description?: string;
   schema?: IRPCSchema<I, O>;
+  mcp?: boolean | MCPOptions;
   maxAge?: number;
   keepAlive?: boolean;
   coalesce?: boolean;

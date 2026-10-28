@@ -1,10 +1,19 @@
 import { createContextStore, withContext } from './context.js';
 import { IRPC_BASE_CONTEXT, IRPC_PACKET_TYPE, IRPC_STATUS } from './enum.js';
-import { HookError } from './error.js';
+import { HookError, StubError } from './error.js';
 import type { IRPCPackage } from './package.js';
 import { IRPC_STORE } from './store.js';
 import { IRPCTransport } from './transport.js';
-import type { IRPCData, IRPCRequest, IRPCSubRequest } from './types.js';
+import type {
+  IRPCData,
+  IRPCInputs,
+  IRPCOutput,
+  IRPCRequest,
+  IRPCSpec,
+  IRPCSubRequest,
+  IRPCTool,
+  MCPOptions,
+} from './types.js';
 import type { IRPCStream } from './stream.js';
 
 export type IRPCHook = () => void | Promise<void>;
@@ -18,6 +27,19 @@ export class IRPCRouter {
 
   public get packages() {
     return this.transport.packages;
+  }
+
+  /**
+   * Describes the tools of every package this router serves as MCP tools, for agents calling in
+   * from outside: the name to call, the description, the input object's JSON Schema (generated from
+   * the input schemas) and the hints.
+   *
+   * @returns The MCP tool descriptions, package by package in declaration order.
+   */
+  public getTools(): IRPCTool[] {
+    return [...this.packages].flatMap((pkg) =>
+      [...pkg.entries()].map(([name]) => pkg.get(name)!).filter((spec) => spec.mcp).map(toTool)
+    );
   }
 
   /**
@@ -136,6 +158,76 @@ export class IRPCRouter {
       }
     }
   }
+}
+
+/** A schema as a router reads it for tools: zod schemas report their type and convert themselves to JSON Schema. */
+type DescribedSchema = { type?: string; toJSONSchema?: () => Record<string, unknown> };
+
+/**
+ * Describes a function as an MCP tool. The JSON Schema comes from the schemas themselves, so irpc
+ * needs no schema library of its own.
+ *
+ * @param spec - The function's spec, marked `mcp`.
+ * @returns The tool description.
+ */
+function toTool(spec: IRPCSpec<IRPCInputs, IRPCOutput>): IRPCTool {
+  const options: MCPOptions = spec.mcp === true || !spec.mcp ? {} : spec.mcp;
+  const description = options.description ?? spec.description;
+  const annotations: IRPCTool['annotations'] = {};
+  for (const hint of ['readOnlyHint', 'destructiveHint', 'idempotentHint', 'openWorldHint'] as const) {
+    if (options[hint] !== undefined) annotations[hint] = options[hint];
+  }
+
+  return {
+    name: spec.name,
+    ...(options.title ? { title: options.title } : {}),
+    ...(description ? { description } : {}),
+    inputSchema: toInputSchema(spec.name, spec.schema?.input, options.args),
+    ...(Object.keys(annotations).length ? { annotations } : {}),
+  };
+}
+
+/**
+ * The JSON Schema of a tool's one input object: an object of the named positional arguments, the
+ * function's own object input, or an empty object when it takes nothing.
+ *
+ * @param name - The function's name, for the error.
+ * @param inputs - The function's input schemas, if any.
+ * @param args - The positional argument names from the mcp options, if any.
+ * @returns The input object's JSON Schema.
+ * @throws StubError when the function takes positional arguments its mcp options don't name.
+ */
+function toInputSchema(name: string, inputs: IRPCInputs = [], args?: string[]): Record<string, unknown> {
+  if (args) {
+    if (inputs.length && inputs.length !== args.length) throw StubError.invalidTool(name);
+
+    const properties: Record<string, unknown> = {};
+    const required: string[] = [];
+    args.forEach((arg, i) => {
+      const schema = inputs[i] as DescribedSchema | undefined;
+      properties[arg] = schema ? jsonSchemaOf(schema) : {};
+      // Without a schema, optionality is unknown, so nothing is claimed required.
+      if (schema && schema.type !== 'optional') required.push(arg);
+    });
+    return { type: 'object', properties, ...(required.length ? { required } : {}) };
+  }
+
+  if (!inputs.length) return { type: 'object', properties: {} };
+  if (inputs.length === 1 && (inputs[0] as DescribedSchema).type === 'object') {
+    return jsonSchemaOf(inputs[0] as DescribedSchema);
+  }
+  throw StubError.invalidTool(name);
+}
+
+/**
+ * A schema's JSON Schema, without the `$schema` dialect marker tools don't carry.
+ *
+ * @param schema - A schema that converts itself to JSON Schema.
+ * @returns Its JSON Schema, or an empty schema when it can't convert itself.
+ */
+function jsonSchemaOf(schema: DescribedSchema): Record<string, unknown> {
+  const { $schema: _, ...json } = schema.toJSONSchema?.() ?? {};
+  return json;
 }
 
 /**

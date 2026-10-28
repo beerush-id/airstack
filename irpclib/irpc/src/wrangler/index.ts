@@ -1,6 +1,7 @@
 /* istanbul ignore file */
 
 import type { AnyType } from '@airlib/core';
+import type { GetPlatformProxyOptions } from 'wrangler';
 
 let envResolver: Promise<AnyType> | undefined;
 
@@ -9,17 +10,25 @@ let envResolver: Promise<AnyType> | undefined;
  * to local emulation via `getPlatformProxy()` during development when
  * bindings are absent.
  *
+ * The platform proxy starts once per process, so `options` apply to the
+ * first call only; restart the process to change them (e.g. another
+ * wrangler `environment`).
+ *
  * @param env - Ambient or passed-in worker environment.
+ * @param options - Options for `getPlatformProxy()`, such as the wrangler `environment` to read bindings from.
  * @returns Effective environment containing active or emulated bindings.
  */
-export async function resolveBinding<T extends object = Record<string, AnyType>>(env?: T): Promise<T> {
+export async function resolveBinding<T extends object = Record<string, AnyType>>(
+  env?: T,
+  options?: GetPlatformProxyOptions
+): Promise<T> {
   if (typeof process === 'undefined' || process.env.NODE_ENV === 'production') {
     return { ...env } as T;
   }
 
   try {
     envResolver ??= import('wrangler').then(async ({ getPlatformProxy }) => {
-      return (await getPlatformProxy()).env;
+      return (await getPlatformProxy(options)).env;
     });
 
     const resolved = await envResolver;

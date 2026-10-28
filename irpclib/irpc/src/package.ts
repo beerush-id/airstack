@@ -13,6 +13,7 @@ import { IRPCCacher } from './cache.js';
 import { getAbortSignal, getRouterHooks } from './context.js';
 import { IRPC_PACKET_TYPE, IRPC_STATUS } from './enum.js';
 import { GuardError, HandlerError, HookError, ResolveError, StubError, TransportError } from './error.js';
+import { deliverBlobs } from './packet.js';
 import { IRPCReader } from './reader.js';
 import { RemoteState } from './state.js';
 import { IRPC_STORE } from './store.js';
@@ -47,6 +48,7 @@ import type {
 } from './types.js';
 
 const DEFAULT_TIMEOUT = 20000;
+
 const NAME_CONSTRAINT = /^[a-zA-Z0-9\-_]+$/;
 const VERSION_CONSTRAINT = /^[0-9]+\.[0-9]+\.[0-9]+$/;
 
@@ -73,6 +75,11 @@ export class IRPCPackage<K extends string = 'id'> {
    * A weak map linking stub functions to their corresponding specifications
    */
   private stubs: IRPCStubStore = new WeakMap();
+
+  /**
+   * Every declared function's stub by name, in declaration order
+   */
+  private functions = new Map<string, IRPCHandler>();
 
   /**
    * A map storing caches for each IRPC Entry
@@ -429,10 +436,46 @@ export class IRPCPackage<K extends string = 'id'> {
 
     this.specs.set($options.name, spec);
     this.stubs.set(stub, spec);
+    this.functions.set($options.name, stub);
     this.cache.set(stub, caches);
     this.hooks.set(spec, new Set());
 
     return stub as IRPCFunction<F>;
+  }
+
+  /**
+   * Calls the function declared under a name: looks up its stub and calls it with the arguments,
+   * exactly as calling the stub directly. Whether that runs a local handler or goes over the
+   * transport is the stub's own behavior.
+   *
+   * @param name - The function's declared name.
+   * @param args - The arguments, as the stub takes them.
+   * @returns What the stub returns: a promise, or a remote state for a streaming function.
+   * @throws StubError when nothing is declared under the name.
+   */
+  public call(name: string, ...args: unknown[]): unknown {
+    const stub = this.functions.get(name);
+    if (!stub) throw StubError.notDeclared(name, this.href);
+    return stub(...args);
+  }
+
+  /**
+   * Every declared function, CRUD functions included, as `[name, stub]` in declaration order.
+   *
+   * @returns An iterator over the name and stub pairs.
+   */
+  public entries(): IterableIterator<[string, IRPCHandler]> {
+    return this.functions.entries();
+  }
+
+  /**
+   * Every declared function as its stub keyed by name, so a caller can collect them into its own
+   * tool set and call them like any stub.
+   *
+   * @returns The stubs by name, in declaration order.
+   */
+  public tools(): Record<string, IRPCHandler> {
+    return Object.fromEntries(this.functions);
   }
 
   /**
@@ -731,7 +774,7 @@ export function intercept(
     const result = spec.handler(...args) as RemoteState<IRPCData>;
 
     if (!(result instanceof Promise)) {
-      reader.accept(result);
+      reader.accept(deliverBlobs(result));
       signal?.removeEventListener('abort', abort);
       return reader;
     }
@@ -739,7 +782,7 @@ export function intercept(
     if (!(result instanceof RemoteState)) {
       (result as Promise<IRPCData>)
         .then((value) => {
-          reader.accept(value);
+          reader.accept(deliverBlobs(value));
         })
         .catch((err) => {
           reader.reject(err);

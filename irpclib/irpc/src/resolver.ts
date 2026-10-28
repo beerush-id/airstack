@@ -1,6 +1,7 @@
 import { getAbortSignal } from './context.js';
 import { IRPC_PACKET_TYPE } from './enum.js';
 import { HandlerError, ResolveError } from './error.js';
+import { IRPCBlob } from './file.js';
 import type { IRPCPackage } from './package.js';
 import { RemoteState } from './state.js';
 import { IRPC_STORE } from './store.js';
@@ -127,6 +128,9 @@ export class IRPCResolver {
 
         return { id, name, result };
       }
+
+      // A blob is a pointer the caller loads; awaiting it here would load it on the server.
+      if (result instanceof IRPCBlob) return { id, name, result };
 
       const data = await result;
 
