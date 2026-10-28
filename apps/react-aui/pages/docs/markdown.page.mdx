@@ -89,9 +89,14 @@ Give `MarkdownRenderer` the text:
 
 ```tsx
 import { MarkdownRenderer } from '@airlib/react-aui/markdown';
-import '@airlib/aui/components/widgets/markdown.css';
 
 <MarkdownRenderer text={note.body} />
+```
+
+Its styles come with AUI's: `@airlib/aui/index.css` already holds them, in the `aui` layer. An app that picks AUI's styles file by file imports this one into that layer too, so it sits under the design system rather than over it:
+
+```css
+@import '@airlib/aui/components/widgets/markdown.css' layer(aui);
 ```
 
 It draws CommonMark with GitHub's additions — tables, task lists, strikethrough, autolinks, and footnotes — plus math: `$…$` within a line and `$$…$$` on lines of their own. Task lists show as checkboxes people can see but not change.
