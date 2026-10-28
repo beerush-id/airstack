@@ -4,10 +4,16 @@ import { transport } from '../src/index.js';
 
 describe('r2-file as MCP tools', () => {
   const tools = new IRPCRouter(transport).getTools();
-  const byName = Object.fromEntries(tools.map((tool) => [tool.name, tool]));
+  // Tool names are `r2-file.<function>`; the tests read them by function.
+  const fn = (name: string) => name.replace('r2-file.', '');
+  const byName = Object.fromEntries(tools.map((tool) => [fn(tool.name), tool]));
+
+  it('names every tool after its package and function', () => {
+    expect(tools.every((tool) => tool.name.startsWith('r2-file.'))).toBe(true);
+  });
 
   it('describes every filesystem function, with its own argument names', () => {
-    expect(Object.fromEntries(tools.map((tool) => [tool.name, Object.keys(tool.inputSchema.properties as object)])))
+    expect(Object.fromEntries(tools.map((tool) => [fn(tool.name), Object.keys(tool.inputSchema.properties as object)])))
       .toEqual({
         mkdir: ['path', 'options'],
         write: ['path', 'data', 'options'],
@@ -29,7 +35,7 @@ describe('r2-file as MCP tools', () => {
   });
 
   it('marks lookups read-only and the rest by what they can destroy', () => {
-    const hints = Object.fromEntries(tools.map((tool) => [tool.name, tool.annotations]));
+    const hints = Object.fromEntries(tools.map((tool) => [fn(tool.name), tool.annotations]));
 
     for (const name of ['read', 'stat', 'exists', 'list', 'search']) {
       expect(hints[name], name).toEqual({ readOnlyHint: true, openWorldHint: false });
