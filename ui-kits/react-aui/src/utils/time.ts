@@ -20,9 +20,10 @@ export function formatTime(seconds: number): string {
  * seeks there. The arrows step a frame, Page Up and Page Down a second, and the value reads as a time.
  *
  * @param timeline - Reads the timeline the playhead moves.
+ * @param land - Where a move to a time lands instead, e.g. a point it snaps to; the time itself without it.
  * @returns Props for `aria('slider', …)`.
  */
-export function playheadSlider(timeline: () => Timeline): AnyType {
+export function playheadSlider(timeline: () => Timeline, land?: (time: number) => number): AnyType {
   return {
     min: 0,
     page: 1,
@@ -31,7 +32,7 @@ export function playheadSlider(timeline: () => Timeline): AnyType {
       return timeline().state.time;
     },
     set value(time: number) {
-      timeline().seek(Math.max(0, time));
+      timeline().seek(Math.max(0, land ? land(time) : time));
     },
     get max() {
       return timeline().state.totalTime;
