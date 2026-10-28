@@ -13,6 +13,40 @@ const ARROW_STEP = 1;
 const ARROW_LEAP = 5;
 
 /**
+ * Cuts a clip in two at a timeline frame. The clip keeps everything before the cut; a new clip on
+ * its track takes the rest, from the cut on. The new one shows the same content — the same
+ * keyframes, props and meta, its offset advanced past what the first half shows — so the motion
+ * and the media carry on through the cut as if it weren't there. A repeating clip, or a frame not
+ * inside the clip past its first, isn't cut.
+ *
+ * @param segment - The clip's segment.
+ * @param frame - The timeline frame the second half starts at.
+ * @returns The second half, or nothing when the clip wasn't cut.
+ */
+export function splitSegment(segment: TimelineSegment, frame: number): TimelineSegment | undefined {
+  if (segment.repeat || frame <= segment.startFrame || frame > segment.endFrame) return;
+
+  const rate = segment.timeline.frameRate;
+  const before = frame - segment.startFrame;
+  const after = segment.endFrame + 1 - frame;
+  const { options, props, scenes } = segment.snapshot();
+
+  segment.duration = before / rate;
+  const rest = segment.track.addSegment(
+    {
+      ...options,
+      meta: options.meta ? { ...options.meta } : undefined,
+      startFrame: frame,
+      duration: after / rate,
+      offsetFrame: segment.offsetFrame + Math.round(before * segment.speed),
+    },
+    props ? structuredClone(props) : undefined
+  );
+  for (const scene of scenes ?? []) rest.addScene({ ...scene.options }, structuredClone(scene.data));
+  return rest;
+}
+
+/**
  * Reactive input properties for VideoTimelineAria.
  */
 export interface VideoTimelineProps extends AriaProps {
@@ -91,6 +125,7 @@ type Moving = { segment: TimelineSegment; clip?: HTMLElement | null; from: numbe
  * their new start and length in seconds as `--aria-timeline-start` and `--aria-timeline-span`,
  * ahead of any re-render; the segments and what's shown at the current time move with them.
  * Escape puts them back. A clip `locked` says is locked is left alone: not picked, moved, or resized.
+ * Cmd or Ctrl and B cuts the picked clips in two at the playhead (`split`).
  *
  * The keys act on what has focus, and come to it before anything inside handles them. Space plays
  * or pauses. Left and Right move the playhead by a second — or move a focused clip, with every
@@ -239,7 +274,13 @@ export class VideoTimelineAria<
     const vertical = event.key === 'ArrowUp' || event.key === 'ArrowDown';
     // A button inside — a track's grip, its lock — keeps its own keys.
     const button = (event.target as Element).closest?.('button');
-    if (event.defaultPrevented || (command && !vertical) || isTyping(event.target) || button) return;
+    if (event.defaultPrevented || isTyping(event.target) || button) return;
+    if (command && event.key.toLowerCase() === 'b') {
+      event.preventDefault();
+      this.split();
+      return;
+    }
+    if (command && !vertical) return;
     const timeline = this.timeline;
     const clip = (event.target as Element).closest<HTMLElement>('[data-segment]');
     const segment = clip ? this.segmentOf(clip.dataset.segment) : undefined;
@@ -286,6 +327,21 @@ export class VideoTimelineAria<
     }
     event.preventDefault();
   };
+
+  /**
+   * Cuts the picked clips at the playhead — those it's inside of, past their first frame, and not
+   * locked — each in two, as `splitSegment` does. The pick stays on the first halves.
+   *
+   * @returns The second halves.
+   */
+  public split(): TimelineSegment[] {
+    const frame = this.timeline.state.frame;
+    return this.picked
+      .map((id) => this.segmentOf(id))
+      .filter((segment): segment is TimelineSegment => !!segment && !this.isLocked(segment))
+      .map((segment) => splitSegment(segment, frame))
+      .filter((rest): rest is TimelineSegment => !!rest);
+  }
 
   /**
    * How many frames an arrow moves: a second, five with Shift, one frame with Alt.
