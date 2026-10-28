@@ -107,6 +107,15 @@ describe('OpenAIDriver chat', () => {
     expect(texts).toEqual(['Good morning.']);
   });
 
+  it('sends the reasoning effort as reasoning_effort', async () => {
+    const vendor = mockVendor(sse([chunk({ content: 'ok' }, 'stop')]));
+    const ctx = askContext('Hi', { model: 'muse-spark-1.3', reasoningEffort: 'low' });
+
+    await meta().ask(ctx);
+
+    expect(vendor.bodies[0].reasoning_effort).toBe('low');
+  });
+
   it('keeps reasoning out of the text', async () => {
     mockVendor(sse([chunk({ reasoning_content: 'The user greets.' }), chunk({ content: 'Hello.' }, 'stop')]));
     const ctx = askContext('Hi', { model: 'muse-spark-1.3' });
@@ -292,13 +301,188 @@ describe('OpenAIDriver chat', () => {
     expect(vendor.spy.mock.calls[0][1]?.signal).toBe(controller.signal);
   });
 
-  it('raises an upstream error on a failed response', async () => {
+  it('raises an upstream error on a failed response, for chat', async () => {
     mockVendor(new Response('rate limited', { status: 429 }));
     const ctx = askContext('Hi', { model: 'muse-spark-1.3' });
 
     await expect(meta().ask(ctx)).rejects.toBeInstanceOf(DriverError);
     await expect(meta().ask(askContext('Hi', { model: 'muse-spark-1.3' }))).rejects.toMatchObject({
       code: 'UPSTREAM_ERROR',
+    });
+  });
+});
+
+/** A Responses API stream: one `event:` and `data:` frame per event, as the Meta Model API sends it. */
+const responsesStream = (events: Array<Record<string, unknown>>) =>
+  new Response(events.map((event) => `event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`).join(''), {
+    headers: { 'Content-Type': 'text/event-stream' },
+  });
+
+const messageAdded = (id: string, phase?: string) => ({
+  type: 'response.output_item.added',
+  item: { id, type: 'message', role: 'assistant', status: 'in_progress', content: [], ...(phase ? { phase } : {}) },
+});
+const textDelta = (itemId: string, delta: string) => ({ type: 'response.output_text.delta', item_id: itemId, delta });
+const callDone = (callId: string, name: string, args: string) => ({
+  type: 'response.output_item.done',
+  item: { type: 'function_call', id: `fc_${callId}`, call_id: callId, name, arguments: args, status: 'completed' },
+});
+const summaryPart = (index: number) => ({ type: 'response.reasoning_summary_part.added', summary_index: index });
+const summaryDelta = (delta: string) => ({ type: 'response.reasoning_summary_text.delta', delta });
+const completed = { type: 'response.completed', response: { status: 'completed' } };
+
+const responsesMeta = () =>
+  new OpenAIDriver({
+    name: 'meta',
+    baseUrl: 'https://api.meta.test/v1',
+    apiKey: 'key-1',
+    models: ['muse-spark-1.3'],
+    api: 'responses',
+  });
+
+describe('OpenAIDriver responses', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('posts instructions, input items, flat tools and a reasoning summary request', async () => {
+    const vendor = mockVendor(responsesStream([messageAdded('m1'), textDelta('m1', 'ok'), completed]));
+    const ctx = askContext('Read it', {
+      model: 'muse-spark-1.3',
+      system: 'You are Lita.',
+      tools: [{ name: 'sys.fs.read', description: 'Reads a file', parameters: { type: 'object' } }],
+    });
+
+    await responsesMeta().ask(ctx);
+
+    expect(vendor.requests[0].url).toBe('https://api.meta.test/v1/responses');
+    expect(vendor.bodies[0]).toEqual({
+      model: 'muse-spark-1.3',
+      stream: true,
+      instructions: 'You are Lita.',
+      input: [{ role: 'user', content: 'Read it' }],
+      tools: [{ type: 'function', name: 'sys__fs__read', description: 'Reads a file', parameters: { type: 'object' } }],
+      reasoning: { summary: 'auto' },
+    });
+  });
+
+  it('sends the reasoning effort with the summary request', async () => {
+    const vendor = mockVendor(responsesStream([messageAdded('m1'), textDelta('m1', 'ok'), completed]));
+    const ctx = askContext('Hi', { model: 'muse-spark-1.3', reasoningEffort: 'minimal' });
+
+    await responsesMeta().ask(ctx);
+
+    expect(vendor.bodies[0].reasoning).toEqual({ summary: 'auto', effort: 'minimal' });
+  });
+
+  it('streams the answer into chunks and sets the text once at the end', async () => {
+    mockVendor(responsesStream([messageAdded('m1'), textDelta('m1', 'Good '), textDelta('m1', 'morning.'), completed]));
+    const ctx = askContext('Hi', { model: 'muse-spark-1.3' });
+
+    await responsesMeta().ask(ctx);
+
+    expect(ctx.state.data.chunks?.join('')).toBe('Good morning.');
+    expect(ctx.state.data.text).toBe('Good morning.');
+  });
+
+  it('keeps commentary written around tool calls apart from the answer', async () => {
+    mockVendor(
+      responsesStream([
+        messageAdded('c1', 'commentary'),
+        textDelta('c1', "I'll read your note now."),
+        callDone('call_1', 'sys__fs__read', '{"path":"~/notes/today.md"}'),
+        completed,
+      ])
+    );
+    const ctx = askContext('Read it', { model: 'muse-spark-1.3', tools: [{ name: 'sys.fs.read' }] });
+
+    await responsesMeta().ask(ctx);
+
+    expect(ctx.state.data.commentary?.join('')).toBe("I'll read your note now.");
+    expect(ctx.state.data.chunks ?? []).toEqual([]);
+    expect(ctx.state.data.text).toBe('');
+  });
+
+  it('streams reasoning summaries, separating summary parts with a blank line', async () => {
+    mockVendor(
+      responsesStream([
+        summaryPart(0),
+        summaryDelta('Checking the queue.'),
+        summaryPart(1),
+        summaryDelta('Picking the top three.'),
+        messageAdded('m1'),
+        textDelta('m1', 'Morning.'),
+        completed,
+      ])
+    );
+    const ctx = askContext('Brief me', { model: 'muse-spark-1.3' });
+
+    await responsesMeta().ask(ctx);
+
+    expect(ctx.state.data.reasoning?.join('')).toBe('Checking the queue.\n\nPicking the top three.');
+    expect(ctx.state.data.text).toBe('Morning.');
+  });
+
+  it('returns completed function calls with decoded names and parsed arguments', async () => {
+    mockVendor(
+      responsesStream([
+        callDone('call_1', 'sys__fs__read', '{"path":"~/a.txt"}'),
+        callDone('call_2', 'handoff', '{"agent":"photos"'),
+        completed,
+      ])
+    );
+    const ctx = askContext('x', { model: 'muse-spark-1.3', tools: [{ name: 'sys.fs.read' }, { name: 'handoff' }] });
+
+    await responsesMeta().ask(ctx);
+
+    expect(ctx.state.data.toolCalls).toEqual([
+      { id: 'call_1', name: 'sys.fs.read', args: { path: '~/a.txt' } },
+      { id: 'call_2', name: 'handoff', args: '{"agent":"photos"' },
+    ]);
+  });
+
+  it('replays earlier calls, their results and images as input items', async () => {
+    const vendor = mockVendor(responsesStream([messageAdded('m1'), textDelta('m1', 'Done.'), completed]));
+    const history: ChatMessage[] = [
+      { role: 'user', type: 'text', text: 'What is this?', attachments: ['https://x.test/cat.png'] },
+      {
+        role: 'assistant',
+        type: 'text',
+        text: 'Looking.',
+        toolCalls: [{ id: 'call_1', name: 'sys.fs.read', args: { path: '~/a.txt' } }],
+      },
+      { role: 'tool', type: 'object', toolCallId: 'call_1', data: { content: 'hello' } },
+    ];
+    const ctx = askContext(history, { model: 'muse-spark-1.3', tools: [{ name: 'sys.fs.read' }] });
+
+    await responsesMeta().ask(ctx);
+
+    expect(vendor.bodies[0].input).toEqual([
+      {
+        role: 'user',
+        content: [
+          { type: 'input_text', text: 'What is this?' },
+          { type: 'input_image', image_url: 'https://x.test/cat.png' },
+        ],
+      },
+      { role: 'assistant', content: 'Looking.' },
+      { type: 'function_call', call_id: 'call_1', name: 'sys__fs__read', arguments: '{"path":"~/a.txt"}' },
+      { type: 'function_call_output', call_id: 'call_1', output: '{"content":"hello"}' },
+    ]);
+  });
+
+  it('raises an upstream error when the response fails mid-stream', async () => {
+    mockVendor(
+      responsesStream([
+        messageAdded('m1'),
+        { type: 'response.failed', response: { status: 'failed', error: { message: 'model overloaded' } } },
+      ])
+    );
+    const ctx = askContext('Hi', { model: 'muse-spark-1.3' });
+
+    await expect(responsesMeta().ask(ctx)).rejects.toMatchObject({
+      code: 'UPSTREAM_ERROR',
+      message: 'meta response failed: model overloaded',
     });
   });
 });

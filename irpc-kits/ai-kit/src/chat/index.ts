@@ -92,6 +92,8 @@ export interface ChatOptions {
   attachments?: string[];
   /** Tools the model may call this turn; the results return as `tool` turns in the next call. */
   tools?: ChatTool[];
+  /** How hard the model reasons before answering, in the provider's terms (e.g. `minimal`, `low`, `high`). */
+  reasoningEffort?: string;
   [key: string]: unknown;
 }
 
@@ -131,4 +133,14 @@ export interface ChatOutput<T extends IRPCData = IRPCData, M extends IRPCData = 
   attachments?: string[];
   /** Tool calls the model made in this turn, complete once the output succeeds. */
   toolCalls?: ToolCall[];
+  /**
+   * Text the provider marks as commentary on its tool calls, kept apart from the answer. Absent when
+   * the provider doesn't separate it.
+   */
+  commentary?: string[];
+  /**
+   * Reasoning summaries as they stream; separate summaries are divided by a blank line. Absent when
+   * the provider gives none.
+   */
+  reasoning?: string[];
 }
