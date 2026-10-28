@@ -1,15 +1,31 @@
 import type { D1Database, R2Bucket } from '@cloudflare/workers-types';
-import { type AnyType, credential, getEnv, GuardError, IRPCBlob, type IRPCStub } from '@irpclib/irpc';
+import {
+  type AnyType,
+  credential,
+  GuardError,
+  getEnv,
+  IRPCBlob,
+  type IRPCStub,
+  type RemoteState,
+  SESSION_STORE,
+  stream,
+  withContext,
+} from '@irpclib/irpc';
+import { getContextStore } from '@irpclib/irpc/core';
 import type { FileAdapter } from './adapter.js';
 import { createFs } from './fs/index.js';
 import {
   copy,
+  createPipe,
   exists,
   fileModule,
   link,
   list,
   mkdir,
   move,
+  type PipeData,
+  type PipePayload,
+  type PipeQueries,
   readStub,
   remove,
   restore,
@@ -104,4 +120,42 @@ export function implement(options: FileImplementOptions): void {
   fileModule.construct(remove, (path, options) => adapter.remove(path, options));
 
   fileModule.construct(restore, (path, options) => adapter.restore(path, options));
+
+  // A live file: read once, then written with what its client sends, and kept in step with every
+  // other live copy of the same file in the session.
+  fileModule.construct(createPipe, (path, encoding = 'text') => {
+    let pipe: RemoteState<PipeData, PipeQueries> | undefined;
+    const context = getContextStore();
+    // Joined before the pipe opens, so a call outside a session fails like any other.
+    const member = SESSION_STORE.join<PipePayload>('fs.write', (payload) => {
+      if (payload.path !== path || payload.encoding !== encoding) return;
+      void pipe?.ask('fs.update', payload.content);
+    });
+
+    return stream<PipeData, PipeQueries>(
+      (state, _resolve, reject) => {
+        pipe = state;
+
+        // Only the content comes from the client: the pipe writes its own path, in its own encoding.
+        // Written as the caller who opened the pipe, whatever context the client's change arrives in.
+        state.answer('fs.write', ({ content }) =>
+          withContext(context, async () => {
+            await adapter.write(path, content, { encoding } as never);
+            member.broadcast({ path, content, encoding });
+            return true;
+          })
+        );
+
+        adapter.read(path, { encoding } as never).then(
+          (content) => {
+            state.data = { ready: true, content };
+          },
+          (error: Error) => reject(error)
+        );
+
+        return () => member.leave();
+      },
+      { ready: false }
+    );
+  });
 }

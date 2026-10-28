@@ -7,3 +7,4 @@ import './stubs/mutation.js';
 import './stubs/remove.js';
 import './stubs/link.js';
 import './stubs/security.js';
+import './stubs/pipe.js';

@@ -1,6 +1,7 @@
 import { HTTPTransport } from '@irpclib/http';
-import type { IRPCBlob } from '@irpclib/irpc';
-import { createPackage, HandlerError, IRPCFile } from '@irpclib/irpc';
+import type { IRPCBlob, RemoteState } from '@irpclib/irpc';
+import { createPackage, HandlerError, IRPC_STORE, IRPCFile } from '@irpclib/irpc';
+import { microtask, mutable, onCleanup, subscribe } from '@irpclib/irpc/core';
 import type {
   AnyType,
   CopyOptions,
@@ -503,6 +504,105 @@ export const restore = fileModule.declare<RestoreFn>('restore', seedFileInfo, {
   mcp: { args: ['path', 'options'], ...ADDITION },
 });
 
+/** The encodings a file is kept live in: as text, or parsed as JSON. */
+export type PipeEncoding = 'text' | 'json';
+
+/** A live file: its content, and whether it has been read yet. */
+export type PipeData<T = AnyType> = { ready?: boolean; content?: T };
+
+/** What travels between a file's live copies: its whole content, as written. */
+export type PipePayload<T = AnyType> = { path: string; content: T; encoding: PipeEncoding };
+
+/**
+ * The questions on a pipe: the client asks the handler to write a change (`fs.write`), and the
+ * handler asks the client to take a change another copy wrote (`fs.update`).
+ */
+export type PipeQueries = {
+  'fs.write': (payload: PipePayload) => Promise<boolean>;
+  'fs.update': (content: AnyType) => void;
+};
+
+/**
+ * Opens a pipe to a file: a live call that reads it once, writes what the client sends, and passes
+ * on what other copies of it in the session write.
+ *
+ * @param path File path (`~`, absolute, or relative to the working directory)
+ * @param encoding How the content is kept: `text`, or parsed `json`
+ * @returns The live call: the file's `{ ready, content }`, and its questions
+ */
+export type CreatePipeFn = (path: string, encoding?: PipeEncoding) => RemoteState<PipeData, PipeQueries>;
+
+/**
+ * Wire-level pipe stub `persistent` opens; server implementations register its handler. Each open
+ * file is its own call, never shared with another.
+ */
+export const createPipe = fileModule.declare<CreatePipeFn>({
+  name: 'pipe',
+  stream: true,
+  keepAlive: true,
+  coalesce: false,
+  seed: () => ({ ready: false }),
+});
+
+/** How long a live file waits for changes to stop before writing them. */
+export const PERSIST_DELAY = 300;
+
+/**
+ * Keeps a file as live state: read once, written back when the state changes, and updated when
+ * another live copy of the file in the session writes it. Change `content` and it is saved once the
+ * changes stop; `ready` turns true once the file has been read, its `content` `undefined` when the
+ * file doesn't exist yet. The file stays live until the scope it was opened in is cleaned up.
+ *
+ * @param path File path (`~`, absolute, or relative to the working directory)
+ * @param encoding How the content is kept: `text` (the default), or parsed `json`
+ * @returns The file's live state
+ */
+export function persistent<T = AnyType>(path: string, encoding: PipeEncoding = 'text'): PipeData<T> {
+  const state = mutable<PipeData<T>>({ ready: false });
+  const pipe = createPipe(path, encoding);
+  const [schedule, cancel] = microtask(PERSIST_DELAY);
+  let syncing = false;
+
+  // What the file already holds: assigned without writing it back.
+  const sync = (content: T | undefined, ready?: true) => {
+    syncing = true;
+    state.content = content;
+    if (ready) state.ready = ready;
+    syncing = false;
+  };
+
+  const unwatchPipe = subscribe(pipe.state, () => {
+    if (state.ready || !pipe.data?.ready) return;
+    sync(pipe.data.content as T | undefined, true);
+  });
+
+  void pipe.answer('fs.update', (content: T) => sync(content));
+
+  // The last change not written yet, kept to write it if the file closes first.
+  let unsaved: PipeData<T> | undefined;
+  const unwatchState = subscribe(state, (snap, change) => {
+    if (change.type === 'init' || syncing || !state.ready) return;
+    unsaved = snap as PipeData<T>;
+    schedule(() => {
+      unsaved = undefined;
+      pipe
+        .ask('fs.write', { path, content: (snap as PipeData<T>).content, encoding })
+        .catch((error: Error) => IRPC_STORE.error(error, [{ path }]));
+    });
+  });
+
+  onCleanup(() => {
+    cancel();
+    unwatchPipe();
+    unwatchState();
+    pipe.close();
+    // Written on its own call, since the pipe is closing.
+    if (unsaved) void writeStub(path, unsaved.content as FileInput, { encoding } as never);
+  });
+
+  return state;
+}
+
 export default {
   configure,
   mkdir,
@@ -517,4 +617,5 @@ export default {
   link,
   remove,
   restore,
+  persistent,
 };
