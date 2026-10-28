@@ -16,6 +16,8 @@
     --aui-timeline-ruler: 2rem;
     --aui-timeline-lane: 3.25rem;
     --aui-timeline-gap: var(--spacing);
+    /* Between the picture lanes and the sound lanes below them. */
+    --aui-timeline-split: var(--spacing-lg);
     --aui-timeline-ruler-gap: calc(var(--spacing) * 2);
     /* A track's padding above and below its clips. */
     --aui-timeline-inset: var(--spacing-xs);
@@ -155,27 +157,52 @@
     position: sticky;
     inset-inline-start: 0;
     z-index: 4;
-    display: grid;
+    /* The picture tracks' names, then the sound tracks', set apart as their lanes are. */
+    display: flex;
+    flex-direction: column;
+    gap: var(--aui-timeline-split);
     /* As wide as its column and no wider, however long a name: names give way to an ellipsis. */
-    grid-template-columns: minmax(0, 1fr);
-    grid-auto-rows: var(--aui-timeline-lane);
-    row-gap: var(--aui-timeline-gap);
+    min-inline-size: 0;
     background-color: var(--aui-timeline-bg);
   }
 
-  /* A track's glyph and name, then its lock and its hiding. */
+  /*
+   * The track names are a reorder list, each row as tall as its lane and as far from the next: a
+   * track dragged by its glyph lifts off on the timeline's own background.
+   */
+  .aui-timeline-headers > .aui-reorder {
+    --aui-reorder-gap: var(--aui-timeline-gap);
+    --aui-reorder-item-bg: var(--aui-timeline-bg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--aui-timeline-gap);
+
+    & > .aui-reorder-item {
+      block-size: var(--aui-timeline-lane);
+    }
+
+    & .aui-reorder-card {
+      min-block-size: 0;
+      padding: 0;
+      border-radius: var(--radius-sm);
+    }
+  }
+
+  /* A track's glyph — its grip — and name, then its lock and its hiding. */
   .aui-timeline-header {
+    flex: 1 1 auto;
+    align-self: stretch;
     display: flex;
     align-items: center;
     gap: var(--spacing-xs);
-    padding-inline: var(--spacing-sm) var(--spacing-xs);
+    min-inline-size: 0;
+    padding-inline: var(--spacing-xs);
     color: var(--color-on-surface-variant);
     font-size: var(--font-label-md-size);
     font-weight: 500;
 
-    & > .aui-icon {
+    & > .aui-reorder-handle {
       --aui-icon-size: 1rem;
-      flex: none;
     }
   }
 
@@ -193,6 +220,11 @@
     color: var(--color-on-surface-variant);
   }
 
+  /* The sound lanes start apart from the pictures above them. */
+  .aui-timeline-lane[data-split] {
+    margin-block-start: calc(var(--aui-timeline-split) - var(--aui-timeline-gap));
+  }
+
   /* A hidden track's clips fade back, being off the stage; a locked one's don't take the pointer. */
   .aui-timeline-lane[data-hidden] > .aui-timeline-clip {
     opacity: 0.4;
@@ -204,15 +236,17 @@
 
   .aui-timeline-lanes {
     position: relative;
-    display: grid;
-    grid-auto-rows: var(--aui-timeline-lane);
-    row-gap: var(--aui-timeline-gap);
+    display: flex;
+    flex-direction: column;
+    gap: var(--aui-timeline-gap);
     outline: none;
   }
 
   /* A track, and a Tab stop: focused from the keyboard, it's ringed inside its band, clear of its neighbours. */
   .aui-timeline-lane {
     position: relative;
+    flex: none;
+    block-size: var(--aui-timeline-lane);
     border-radius: var(--radius-sm);
     background-color: var(--aui-timeline-band);
     outline: none;
