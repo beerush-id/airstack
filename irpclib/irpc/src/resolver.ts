@@ -162,30 +162,32 @@ export class IRPCResolver {
 }
 
 /**
- * Parses and validates input arguments against their schemas
+ * Parses and validates input arguments against their schemas, the same check at both ends of a
+ * call: where it is made, and where it is resolved. Trailing arguments may be left out when their
+ * schemas accept `undefined` (optional ones); more arguments than schemas is invalid.
  *
  * @param args - Array of input arguments
  * @param schema - Optional schema for validating the arguments
  * @returns Parsed result with success status and any error messages
  */
-function parseInput(args: unknown[], schema?: IRPCInputs) {
-  // Check if argument count matches schema length
-  if (schema && args.length !== schema.length) {
+export function parseInput(args: unknown[], schema?: IRPCInputs) {
+  if (schema && args.length > schema.length) {
     return {
-      data: args,
+      data: args as IRPCData[],
       success: false,
       error: 'Invalid arguments',
     };
   }
 
-  // Parse each argument according to its schema
-  const parsed = args.map((arg, i) => {
+  // Every schema is checked, so a left-out argument still has to be optional.
+  const parsed = (schema ?? args).map((_, i) => {
     const input = schema?.[i];
-    return input ? input.safeParse(arg) : { success: true, data: arg };
+    return input ? input.safeParse(args[i]) : { success: true, data: args[i] };
   }) as IRPCParseResult[];
 
   return {
-    data: parsed.map((arg) => arg.data) as IRPCData[],
+    // Only the arguments given, so a left-out one stays absent rather than becoming undefined.
+    data: parsed.slice(0, args.length).map((arg) => arg.data) as IRPCData[],
     error: parsed
       .filter((arg) => !arg.success)
       .map((arg) => arg.error?.message)

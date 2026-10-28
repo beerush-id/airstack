@@ -5,6 +5,7 @@ import type { IRPCPackage } from './package.js';
 import { IRPC_STORE } from './store.js';
 import { IRPCTransport } from './transport.js';
 import type {
+  AnyType,
   IRPCData,
   IRPCInputs,
   IRPCOutput,
@@ -58,10 +59,10 @@ export class IRPCRouter {
     const tool = this.toolOf(name);
     if (!tool) return;
 
-    const names = tool.spec.mcp === true ? undefined : tool.spec.mcp?.args;
+    const names = tool.spec.mcp === true ? undefined : (tool.spec.mcp as AnyType)?.args;
     if (!names) return [input];
 
-    const args = names.map((arg) => input[arg]);
+    const args = names.map((arg: AnyType) => input[arg]);
     while (args.length && args[args.length - 1] === undefined) args.pop();
     return args;
   }

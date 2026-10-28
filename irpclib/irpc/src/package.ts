@@ -15,6 +15,7 @@ import { IRPC_PACKET_TYPE, IRPC_STATUS } from './enum.js';
 import { GuardError, HandlerError, HookError, ResolveError, StubError, TransportError } from './error.js';
 import { deliverBlobs } from './packet.js';
 import { IRPCReader } from './reader.js';
+import { parseInput } from './resolver.js';
 import { RemoteState } from './state.js';
 import { IRPC_STORE } from './store.js';
 import { IRPCTransport } from './transport.js';
@@ -383,11 +384,20 @@ export class IRPCPackage<K extends string = 'id'> {
       return reader;
     }
 
-    const runAsync = async (args: IRPCData[], reader: IRPCReader<IRPCData>) => {
+    const runAsync = async (givenArgs: IRPCData[], reader: IRPCReader<IRPCData>) => {
       if (!this.transport && typeof spec.handler !== 'function') {
         reader.reject(TransportError.missing());
         return;
       }
+
+      // Validated where the call is made, before the handler or the transport; the router validates
+      // again where it arrives.
+      const inputs = parseInput(givenArgs, spec.schema?.input);
+      if (!inputs.success) {
+        reader.reject(ResolveError.invalidInput(inputs.error));
+        return;
+      }
+      const args = inputs.data;
 
       const req = { id: reader.id, name: spec.name, args };
       const hooks = this.hooks.get(spec)!;
