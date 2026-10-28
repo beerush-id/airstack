@@ -438,8 +438,11 @@ export class VideoStageAria<
     if (!ctx) return;
 
     ctx.reset();
-    for (const element of canvas.children) {
-      const clip = this.clips.get(element);
+    // Drawn as the preview stacks them: by track, a later track's clips over an earlier one's.
+    const stacked = Array.from(canvas.children)
+      .map((element) => ({ element, clip: this.clips.get(element) }))
+      .sort((a, b) => (a.clip?.layer ?? 0) - (b.clip?.layer ?? 0));
+    for (const { element, clip } of stacked) {
       if (!clip?.showing) continue;
 
       const { x = 0, y = 0, width = 0, height = 0, scale = 1, rotate = 0, opacity = 1 } = clip.motion;

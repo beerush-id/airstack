@@ -153,6 +153,14 @@ export class VideoClipAria<
   }
 
   /**
+   * Where the clip stacks on the stage: its track's place among the timeline's tracks, so a later
+   * track's clips sit over an earlier one's, whatever order the clips' elements are in.
+   */
+  public get layer(): number {
+    return [...this.segment.timeline.tracks].indexOf(this.segment.track);
+  }
+
+  /**
    * Seconds into its media the clip starts at.
    */
   public get offset(): number {
@@ -355,6 +363,7 @@ export class VideoClipAria<
 
     const style = element.style;
     style.position = 'absolute';
+    style.zIndex = String(this.layer);
     style.left = `${x}px`;
     style.top = `${y}px`;
     if (width !== undefined) style.width = `${width}px`;

@@ -237,7 +237,9 @@ export class VideoTimelineAria<
   private readonly handleKey = (event: KeyboardEvent): void => {
     const command = event.ctrlKey || event.metaKey;
     const vertical = event.key === 'ArrowUp' || event.key === 'ArrowDown';
-    if (event.defaultPrevented || (command && !vertical) || isTyping(event.target)) return;
+    // A button inside — a track's grip, its lock — keeps its own keys.
+    const button = (event.target as Element).closest?.('button');
+    if (event.defaultPrevented || (command && !vertical) || isTyping(event.target) || button) return;
     const timeline = this.timeline;
     const clip = (event.target as Element).closest<HTMLElement>('[data-segment]');
     const segment = clip ? this.segmentOf(clip.dataset.segment) : undefined;
