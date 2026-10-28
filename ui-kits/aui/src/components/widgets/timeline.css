@@ -10,17 +10,26 @@
  */
 @layer theme {
   :root {
-    --aui-timeline-header: 9rem;
+    --aui-timeline-header: 11rem;
+    /* Between the track names, with their controls, and the lanes. */
+    --aui-timeline-header-gap: var(--spacing-sm);
     --aui-timeline-ruler: 2rem;
     --aui-timeline-lane: 3.25rem;
     --aui-timeline-gap: var(--spacing);
     --aui-timeline-ruler-gap: calc(var(--spacing) * 2);
-    /* A track's padding, the same on every side: its clips sit this far in, and so does the time they're on. */
+    /* A track's padding above and below its clips. */
     --aui-timeline-inset: var(--spacing-xs);
+    /*
+     * How far in time starts, on the ruler and the lanes alike: far enough for the playhead's handle,
+     * centred on the start, to clear the track names beside it.
+     */
+    --aui-timeline-lead: calc(var(--spacing) * 2);
     --aui-timeline-bg: var(--color-surface-low);
     --aui-timeline-band: color-mix(in oklch, var(--color-on-surface) 4%, transparent);
     --aui-timeline-radius: var(--radius-lg);
     --aui-timeline-rule: color-mix(in oklch, var(--color-outline-variant) 70%, transparent);
+    /* The picked clip's edge: one red in either scheme, to read over any picture or lane color. */
+    --aui-timeline-pick: oklch(62% 0.25 27);
   }
 }
 
@@ -40,11 +49,12 @@
     grid-template-columns:
       var(--aui-timeline-header)
       minmax(
-        calc(var(--aria-timeline-length, 0) * var(--aui-timeline-zoom) + var(--aui-timeline-inset) + var(--spacing-xl)),
+        calc(var(--aria-timeline-length, 0) * var(--aui-timeline-zoom) + var(--aui-timeline-lead) + var(--spacing-xl)),
         1fr
       );
     grid-template-rows: var(--aui-timeline-ruler) auto;
     row-gap: var(--aui-timeline-ruler-gap);
+    column-gap: var(--aui-timeline-header-gap);
     position: relative;
     min-inline-size: 100%;
   }
@@ -83,7 +93,7 @@
     background-size:
       100% 55%,
       100% 25%;
-    background-position: var(--aui-timeline-inset) bottom;
+    background-position: var(--aui-timeline-lead) bottom;
     background-repeat: no-repeat;
     /* A drag along it scrubs; it never selects the times. */
     user-select: none;
@@ -97,11 +107,23 @@
   .aui-timeline-scrub {
     position: absolute;
     inset-block: 0;
-    inset-inline-start: var(--aui-timeline-inset);
+    inset-inline-start: var(--aui-timeline-lead);
     inline-size: calc(var(--aria-timeline-length, 0) * var(--aui-timeline-zoom));
     cursor: pointer;
     touch-action: none;
     outline: none;
+
+    /*
+     * Its reach runs a little past either end, so the playhead or a mark at the very start or end,
+     * centred on it and half over the edge, takes a press anywhere on it; a press there holds at
+     * that end.
+     */
+    &::before {
+      content: '';
+      position: absolute;
+      inset-block: 0;
+      inset-inline: calc(var(--aui-timeline-scrub-reach, 8px) * -1);
+    }
   }
 
   .aui-timeline-tick {
@@ -115,30 +137,69 @@
     pointer-events: none;
   }
 
+  /* A picked clip's keyframe: a small diamond at the foot of the ruler, at its time. */
+  .aui-timeline-keyframe {
+    position: absolute;
+    inset-block-end: var(--spacing-xs);
+    inset-inline-start: calc(var(--aui-timeline-at) * var(--aui-timeline-zoom));
+    inline-size: 7px;
+    block-size: 7px;
+    translate: -50% 0;
+    rotate: 45deg;
+    border-radius: 1px;
+    background-color: var(--color-primary);
+    pointer-events: none;
+  }
+
   .aui-timeline-headers {
     position: sticky;
     inset-inline-start: 0;
     z-index: 4;
     display: grid;
+    /* As wide as its column and no wider, however long a name: names give way to an ellipsis. */
+    grid-template-columns: minmax(0, 1fr);
     grid-auto-rows: var(--aui-timeline-lane);
     row-gap: var(--aui-timeline-gap);
     background-color: var(--aui-timeline-bg);
   }
 
+  /* A track's glyph and name, then its lock and its hiding. */
   .aui-timeline-header {
     display: flex;
     align-items: center;
     gap: var(--spacing-xs);
-    padding-inline: var(--spacing-sm);
+    padding-inline: var(--spacing-sm) var(--spacing-xs);
     color: var(--color-on-surface-variant);
-    font-size: var(--font-label-sm-size);
+    font-size: var(--font-label-md-size);
     font-weight: 500;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
 
     & > .aui-icon {
       --aui-icon-size: 1rem;
+      flex: none;
     }
+  }
+
+  .aui-timeline-header-name {
+    flex: 1 1 auto;
+    min-inline-size: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .aui-timeline-header-actions {
+    display: flex;
+    flex: none;
+    color: var(--color-on-surface-variant);
+  }
+
+  /* A hidden track's clips fade back, being off the stage; a locked one's don't take the pointer. */
+  .aui-timeline-lane[data-hidden] > .aui-timeline-clip {
+    opacity: 0.4;
+  }
+
+  .aui-timeline-lane[data-locked] > .aui-timeline-clip {
+    cursor: default;
   }
 
   .aui-timeline-lanes {
@@ -170,7 +231,7 @@
     position: absolute;
     inset-block: var(--aui-timeline-inset);
     inset-inline-start: calc(
-      var(--aui-timeline-inset) + var(--aria-timeline-start, var(--aui-timeline-start)) * var(--aui-timeline-zoom)
+      var(--aui-timeline-lead) + var(--aria-timeline-start, var(--aui-timeline-start)) * var(--aui-timeline-zoom)
     );
     inline-size: calc(var(--aria-timeline-span, var(--aui-timeline-span)) * var(--aui-timeline-zoom) - 2px);
     display: flex;
@@ -202,13 +263,15 @@
 
     /*
      * Picked and focused are two states, each shown its own way so either can stand alone or both
-     * at once: the pick lifts the clip off its lane in its full color, focus rings it. Neither
-     * eases in, so moving between clips switches them rather than fading.
+     * at once: the pick lifts the clip off its lane in its full color, edged 2px inside in
+     * `--aui-timeline-pick` — a clip covered by its pictures shows the pick by that edge — and focus
+     * rings it outside.
+     * Neither eases in, so moving between clips switches them rather than fading.
      */
     &[aria-selected='true'] {
       background-color: var(--aui-item-bg);
       box-shadow:
-        inset 0 1px 0 rgb(255 255 255 / 0.18),
+        inset 0 0 0 2px var(--aui-timeline-pick),
         var(--elevation-2);
     }
 
@@ -313,10 +376,13 @@
     grid-column: 2;
     grid-row: 1 / -1;
     inset-block: 0;
-    inset-inline-start: calc(var(--aui-timeline-inset) + var(--aria-timeline-time, 0) * var(--aui-timeline-zoom));
+    inset-inline-start: calc(var(--aui-timeline-lead) + var(--aria-timeline-time, 0) * var(--aui-timeline-zoom));
     z-index: 3;
     inline-size: 2px;
     translate: -50% 0;
+    /* The line's ends are rounded, like the handle it hangs from. */
+    border-radius: var(--radius-full);
+    corner-shape: round;
     background: linear-gradient(to bottom, transparent var(--aui-timeline-handle-top), var(--color-primary) 0);
     pointer-events: none;
   }
@@ -329,7 +395,13 @@
     block-size: calc(var(--aui-timeline-ruler) - var(--aui-timeline-handle-top));
     margin-block-start: var(--aui-timeline-handle-top);
     margin-inline-start: -5px;
-    border-radius: var(--radius-xs) var(--radius-xs) var(--radius-full) var(--radius-full);
+    /*
+     * A pill: one radius all round. Unequal ones that overflow the handle are scaled down together,
+     * so a full bottom would flatten the top. Round, not the theme's squircle, which reads square
+     * this small.
+     */
+    border-radius: var(--radius-full);
+    corner-shape: round;
     background-color: var(--color-primary);
   }
 }
