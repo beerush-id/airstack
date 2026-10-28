@@ -17,8 +17,8 @@ afterEach(() => {
 function buildCut() {
   const timeline = new Timeline({ frameRate: 30 });
   const track = timeline.addTrack({ name: 'video', type: 'video' });
-  const segment = track.addSegment({ name: 'story', duration: 4, startFrame: uiFrame(1) });
-  segment.addScene({ atFrame: uiFrame(1), name: 'wide' }, { shot: 'wide' });
+  const segment = track.addSegment({ name: 'story', duration: 4, startFrame: 0 });
+  segment.addScene({ atFrame: 0, name: 'wide' }, { shot: 'wide' });
   segment.addScene({ atFrame: uiFrame(60), name: 'close' }, { shot: 'close' });
   timeline.addMarker({ atFrame: uiFrame(90), name: 'ending' });
   timeline.refresh();

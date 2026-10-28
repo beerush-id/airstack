@@ -18,7 +18,7 @@ afterEach(() => {
 function buildChapters() {
   const timeline = new Timeline({ frameRate: 30 });
   const track = timeline.addTrack({ name: 'video' });
-  track.addSegment({ name: 'part-1', duration: 2, startFrame: uiFrame(1) });
+  track.addSegment({ name: 'part-1', duration: 2, startFrame: 0 });
   track.addSegment({ name: 'part-2', duration: 2, startFrame: uiFrame(60) });
   timeline.addMarker({ atFrame: uiFrame(30), name: 'verse' });
   timeline.addMarker({ atFrame: uiFrame(90), name: 'chorus' });
@@ -29,7 +29,7 @@ function buildChapters() {
 describe('chapter skip journey', () => {
   it('viewer starts at 0 and skips to verse cue', () => {
     const timeline = buildChapters();
-    timeline.scrub(uiFrame(1));
+    timeline.scrub(0);
     timeline.next();
     expect(timeline.frame).toBe(uiFrame(30));
     timeline.destroy();

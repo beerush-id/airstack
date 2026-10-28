@@ -51,10 +51,10 @@ describe('frame / time conversion edge cases', () => {
     expect(frameToTime(-100, 30)).toBe(0);
   });
 
-  it('converts 0-indexed frames to the time when the frame completes', () => {
-    expect(frameToTime(0, 30)).toBeCloseTo(1 / 30, 10);
-    expect(frameToTime(29, 30)).toBe(1);
-    expect(frameToTime(59, 30)).toBe(2);
+  it('converts 0-indexed frames to the time the frame starts at', () => {
+    expect(frameToTime(0, 30)).toBe(0);
+    expect(frameToTime(30, 30)).toBe(1);
+    expect(frameToTime(60, 30)).toBe(2);
   });
 
   it('clamps non-positive times to frame zero', () => {
@@ -62,8 +62,8 @@ describe('frame / time conversion edge cases', () => {
     expect(timeToFrame(-1, 30)).toBe(0);
   });
 
-  it('converts continuous time to the 0-indexed frame that completes at that time', () => {
-    expect(timeToFrame(1, 30)).toBe(29);
-    expect(timeToFrame(2, 30)).toBe(59);
+  it('converts continuous time to the 0-indexed frame starting at that time', () => {
+    expect(timeToFrame(1, 30)).toBe(30);
+    expect(timeToFrame(2, 30)).toBe(60);
   });
 });

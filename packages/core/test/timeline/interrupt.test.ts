@@ -18,7 +18,7 @@ afterEach(() => {
 function buildWatch() {
   const timeline = new Timeline({ frameRate: 30 });
   const track = timeline.addTrack({ name: 'video' });
-  track.addSegment({ name: 'feature', duration: 5, startFrame: uiFrame(1) });
+  track.addSegment({ name: 'feature', duration: 5, startFrame: 0 });
   timeline.refresh();
   return timeline;
 }
@@ -49,7 +49,7 @@ describe('interrupt journey', () => {
     timeline.play();
     timeline.scrub(uiFrame(90));
     timeline.stop();
-    expect(timeline.frame).toBe(uiFrame(1));
+    expect(timeline.frame).toBe(0);
     expect(timeline.time).toBe(0);
     expect(timeline.status).toBe('idle');
     timeline.destroy();

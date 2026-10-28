@@ -18,8 +18,8 @@ afterEach(() => {
 function buildBlend() {
   const timeline = new Timeline({ frameRate: 30 });
   const track = timeline.addTrack({ name: 'fx' });
-  const segment = track.addSegment({ name: 'move', duration: 3, startFrame: uiFrame(1) });
-  segment.addScene({ atFrame: uiFrame(1), name: 'left' }, { x: 0 });
+  const segment = track.addSegment({ name: 'move', duration: 3, startFrame: 0 });
+  segment.addScene({ atFrame: 0, name: 'left' }, { x: 0 });
   segment.addScene({ atFrame: uiFrame(60), name: 'right' }, { x: 100 });
   timeline.refresh();
   return { timeline, segment };

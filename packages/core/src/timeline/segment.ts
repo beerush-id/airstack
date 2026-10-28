@@ -3,9 +3,9 @@ import { assign } from '../engine/helper.js';
 import { mutable, passive } from '../reactive/index.js';
 import type { AnyType } from '../types.js';
 import { uuid } from '../utils/uuid.js';
-import { frameToTime, timeToFrame } from './helper.js';
+import { frameToTime, IDLE_SIGNAL, timeToFrame } from './helper.js';
 import { TimelineScene, type TimelineSceneInit, type TimelineSceneSnapshot } from './scene.js';
-import type { FrameState, Timeline, TimelineSubscriber } from './timeline.js';
+import type { FrameState, Timeline, TimelineDelivery, TimelineSubscriber } from './timeline.js';
 import type { TimelineTrack } from './track.js';
 
 export type TimelineSegmentOptions = {
@@ -17,6 +17,17 @@ export type TimelineSegmentOptions = {
   speed: number;
   duration: number;
   startFrame: number;
+  /**
+   * How far into its content, in frames, the segment begins: what its first frame shows, and where
+   * its keyframes and media are read from. A clip trimmed at its head keeps its content in place
+   * by advancing it. 0 when unset.
+   */
+  offsetFrame?: number;
+  /**
+   * How many frames of content there are, e.g. a video's length: a clip can't show past its end,
+   * so from its offset it runs at most this long. No limit when unset.
+   */
+  contentFrames?: number;
 };
 
 /**
@@ -44,9 +55,14 @@ export type TimelineTransitionState<P extends Record<string, AnyType> = Record<s
   time: number;
 };
 
+/**
+ * Receives each keyframe transition update. In an async timeline, a promise it returns holds the
+ * frame until it settles; the signal aborts once a later frame replaces this one or it runs late.
+ */
 export type TimelineTransitionSubscriber<P extends Record<string, AnyType> = Record<string, AnyType>> = (
-  state: TimelineTransitionState<P>
-) => void;
+  state: TimelineTransitionState<P>,
+  signal: AbortSignal
+) => unknown;
 
 /**
  * Individual bounded segment synchronized by subscribing to a master Timeline clock.
@@ -117,6 +133,8 @@ export class TimelineSegment<P extends Record<string, AnyType> = Record<string, 
           : 0;
 
     const { startTime, ...rest } = options;
+    if (rest.offsetFrame !== undefined) rest.offsetFrame = Math.max(0, Math.round(rest.offsetFrame));
+    if (rest.contentFrames !== undefined) rest.contentFrames = Math.max(1, Math.round(rest.contentFrames));
     this.options = mutable({ speed: 1, duration: 0, ...rest, startFrame });
 
     this.state = mutable<FrameState>({
@@ -241,6 +259,31 @@ export class TimelineSegment<P extends Record<string, AnyType> = Record<string, 
   }
 
   /**
+   * How far into its content, in frames, this segment begins: its keyframes and media are read
+   * from here at its first frame. 0 unless trimmed at its head.
+   */
+  public get offsetFrame(): number {
+    return this.options.offsetFrame ?? 0;
+  }
+
+  public set offsetFrame(value: number) {
+    this.options.offsetFrame = Math.max(0, Math.round(value));
+    this.refresh();
+  }
+
+  /**
+   * How many frames of content there are, e.g. a video's length, which a clip can't show past; no
+   * limit when unset.
+   */
+  public get contentFrames(): number | undefined {
+    return this.options.contentFrames;
+  }
+
+  public set contentFrames(value: number | undefined) {
+    this.options.contentFrames = value === undefined ? undefined : Math.max(1, Math.round(value));
+  }
+
+  /**
    * Number of finite playback cycles laid out on the master timeline: 1 plus a numeric repeat count.
    * Infinite loops (`repeat: true`) count as a single cycle.
    */
@@ -259,14 +302,14 @@ export class TimelineSegment<P extends Record<string, AnyType> = Record<string, 
   }
 
   /**
-   * Current local playback position in seconds, derived from current local frame.
+   * Current local playback position in seconds, derived from current local frame: a time in its content.
    */
   public get time(): number {
     return this.state.time;
   }
 
   /**
-   * Current local frame index within the active cycle (0 to totalFrames).
+   * Current local frame index within the active cycle, in its content: from offsetFrame to offsetFrame + totalFrames.
    */
   public get frame(): number {
     return this.state.frame;
@@ -382,15 +425,23 @@ export class TimelineSegment<P extends Record<string, AnyType> = Record<string, 
       if (this.options.startFrame && this.frameRate > 0) {
         this.options.startFrame = Math.round((this.options.startFrame / this.frameRate) * frameRate);
       }
+      if (this.options.offsetFrame && this.frameRate > 0) {
+        this.options.offsetFrame = Math.round((this.options.offsetFrame / this.frameRate) * frameRate);
+      }
+      if (this.options.contentFrames && this.frameRate > 0) {
+        this.options.contentFrames = Math.round((this.options.contentFrames / this.frameRate) * frameRate);
+      }
       for (const scene of this.scenes) {
         scene.atFrame = Math.round((scene.atFrame / this.frameRate) * frameRate);
       }
       this.frameRate = frameRate;
     }
 
+    // Keyframes are placed in the content, which shows from the offset for as long as the segment runs.
+    const lastFrame = this.offsetFrame + totalFrames;
     for (const scene of this.scenes) {
-      if (scene.atFrame > totalFrames) {
-        scene.atFrame = totalFrames;
+      if (scene.atFrame > lastFrame) {
+        scene.atFrame = lastFrame;
       }
     }
 
@@ -406,15 +457,7 @@ export class TimelineSegment<P extends Record<string, AnyType> = Record<string, 
    */
   @passive
   public reset(): void {
-    this.activeScene = undefined;
-    this.nextScene = undefined;
-    this.sceneSpanValid = false;
-    this.progress = 0;
-
-    if (this.state.frame !== 0 || this.state.time !== 0 || this.state.status !== 'idle') {
-      assign(this.state, { time: 0, frame: 0, status: 'idle' });
-      this.notify();
-    }
+    this.clear();
   }
 
   /**
@@ -485,11 +528,12 @@ export class TimelineSegment<P extends Record<string, AnyType> = Record<string, 
    * Applies a single tick from the parent track.
    *
    * @param {FrameState} timelineState - Current master timeline playback state.
+   * @param {TimelineDelivery} [delivery] - The frame being delivered, collecting what handlers return so an async timeline can wait for it.
    */
   @passive
-  public tick(timelineState: FrameState): void {
+  public tick(timelineState: FrameState, delivery?: TimelineDelivery): void {
     if (this.disabled) {
-      this.reset();
+      this.clear(delivery);
       return;
     }
 
@@ -499,15 +543,15 @@ export class TimelineSegment<P extends Record<string, AnyType> = Record<string, 
     if (baseFrames <= 0) {
       if (elapsed === 0) {
         assign(this.state, { time: 0, frame: 0, status: timelineState.status });
-        this.notify();
+        this.notify(delivery);
       } else {
-        this.reset();
+        this.clear(delivery);
       }
       return;
     }
 
     if (elapsed < 0) {
-      this.reset();
+      this.clear(delivery);
       return;
     }
 
@@ -515,17 +559,12 @@ export class TimelineSegment<P extends Record<string, AnyType> = Record<string, 
     const maxElapsed = this.cycles * baseFrames;
 
     if (!isLooping && elapsed >= maxElapsed) {
-      this.reset();
+      this.clear(delivery);
       return;
     }
 
-    let frame: number;
-
-    if (isLooping) {
-      frame = elapsed % baseFrames;
-    } else {
-      frame = elapsed % baseFrames;
-    }
+    // The frame of its content, which starts at the offset.
+    const frame = this.offsetFrame + (elapsed % baseFrames);
 
     const time = frameToTime(frame, this.timeline.frameRate);
     const status = timelineState.status;
@@ -556,19 +595,19 @@ export class TimelineSegment<P extends Record<string, AnyType> = Record<string, 
 
       this.progress =
         this.activeScene && this.nextScene && this.nextScene.atFrame > this.activeScene.atFrame
-          ? (frame - this.activeScene.atFrame + 1) / (this.nextScene.atFrame - this.activeScene.atFrame + 1)
+          ? (frame - this.activeScene.atFrame) / (this.nextScene.atFrame - this.activeScene.atFrame)
           : this.activeScene
             ? 1
             : 0;
 
-      this.notifyTransition();
+      this.notifyTransition(delivery);
     } else {
       this.activeScene = undefined;
       this.nextScene = undefined;
       this.progress = 0;
     }
 
-    this.notify();
+    this.notify(delivery);
   }
 
   private frameRate: number;
@@ -577,13 +616,26 @@ export class TimelineSegment<P extends Record<string, AnyType> = Record<string, 
   private subscribers = new Set<TimelineSubscriber>();
   private transitionSubscribers = new Set<TimelineTransitionSubscriber<P>>();
 
-  private notify(): void {
-    for (const subscriber of this.subscribers) {
-      subscriber(this.state);
+  private clear(delivery?: TimelineDelivery): void {
+    this.activeScene = undefined;
+    this.nextScene = undefined;
+    this.sceneSpanValid = false;
+    this.progress = 0;
+
+    if (this.state.frame !== 0 || this.state.time !== 0 || this.state.status !== 'idle') {
+      assign(this.state, { time: 0, frame: 0, status: 'idle' });
+      this.notify(delivery);
     }
   }
 
-  private notifyTransition(): void {
+  private notify(delivery?: TimelineDelivery): void {
+    for (const subscriber of this.subscribers) {
+      const result = subscriber(this.state, delivery?.signal ?? IDLE_SIGNAL);
+      delivery?.pending.push(result);
+    }
+  }
+
+  private notifyTransition(delivery?: TimelineDelivery): void {
     if (this.transitionSubscribers.size === 0 || !this.activeScene) {
       return;
     }
@@ -598,7 +650,8 @@ export class TimelineSegment<P extends Record<string, AnyType> = Record<string, 
     };
 
     for (const subscriber of this.transitionSubscribers) {
-      subscriber(transitionState);
+      const result = subscriber(transitionState, delivery?.signal ?? IDLE_SIGNAL);
+      delivery?.pending.push(result);
     }
   }
 

@@ -19,7 +19,7 @@ function buildSync() {
   const timeline = new Timeline({ frameRate: 30 });
   const video = timeline.addTrack({ name: 'video' });
   const audio = timeline.addTrack({ name: 'audio' });
-  const picture = video.addSegment({ name: 'picture', duration: 3, startFrame: uiFrame(1) });
+  const picture = video.addSegment({ name: 'picture', duration: 3, startFrame: 0 });
   const song = audio.addSegment({ name: 'song', duration: 3, startFrame: uiFrame(30) });
   timeline.refresh();
   return { timeline, picture, song };

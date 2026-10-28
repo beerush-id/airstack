@@ -18,7 +18,7 @@ afterEach(() => {
 function buildSkim() {
   const timeline = new Timeline({ frameRate: 30, speed: 2 });
   const track = timeline.addTrack({ name: 'video' });
-  track.addSegment({ name: 'rough', duration: 10, startFrame: uiFrame(1) });
+  track.addSegment({ name: 'rough', duration: 10, startFrame: 0 });
   timeline.refresh();
   return timeline;
 }

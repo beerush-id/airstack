@@ -64,7 +64,7 @@ describe('live playback journey', () => {
     const timeline = buildFeature();
     timeline.play();
     vi.advanceTimersByTime(1000);
-    expect(timeline.frame).toBe(uiFrame(30));
+    expect(timeline.frame).toBe(29); // the last tick lands just before 1s, so frame 30 hasn't started
     timeline.stop();
     timeline.destroy();
   });
@@ -74,7 +74,7 @@ describe('live playback journey', () => {
     timeline.speed = 2;
     timeline.play();
     vi.advanceTimersByTime(1000);
-    expect(timeline.frame).toBe(uiFrame(60));
+    expect(timeline.frame).toBe(59); // the last tick lands just before 1s, so frame 60 hasn't started
     timeline.stop();
     timeline.destroy();
   });
@@ -86,8 +86,8 @@ describe('live playback journey', () => {
     timeline.refresh();
     timeline.play();
     vi.advanceTimersByTime(1000);
-    expect(timeline.frame).toBe(uiFrame(30));
-    expect(segment.frame).toBe(uiFrame(30));
+    expect(timeline.frame).toBe(29);
+    expect(segment.frame).toBe(29);
     expect(segment.active).toBe(true);
     timeline.stop();
     timeline.destroy();

@@ -24,7 +24,7 @@ function buildEpisode() {
     const track = timeline.addTrack({ name: lane });
     for (let i = 0; i < 6; i++) {
       const segment = track.addSegment({ name: `${lane}-clip-${i}`, duration: 5, startFrame: start + i * 150 });
-      segment.addScene({ atFrame: uiFrame(1), name: 'in' }, { v: 0 });
+      segment.addScene({ atFrame: 0, name: 'in' }, { v: 0 });
       segment.addScene({ atFrame: uiFrame(75), name: 'mid' }, { v: 1 });
     }
     start += 30;

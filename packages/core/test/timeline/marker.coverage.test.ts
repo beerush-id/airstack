@@ -36,7 +36,7 @@ describe('marker property setters', () => {
 
   it('atTime setter converts seconds to the 0-indexed frame at the timeline frame rate', () => {
     const timeline = new Timeline({ frameRate: 30 });
-    const marker = timeline.addMarker({ atFrame: uiFrame(1) });
+    const marker = timeline.addMarker({ atFrame: 0 });
 
     marker.atTime = 2;
     expect(marker.atFrame).toBe(uiFrame(60));

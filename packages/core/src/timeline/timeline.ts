@@ -3,7 +3,7 @@ import { assign } from '../engine/helper.js';
 import { mutable, passive } from '../reactive/index.js';
 import type { AnyType } from '../types.js';
 import { uuid } from '../utils/uuid.js';
-import { animationFrame, cancelFrame, type FrameId, frameToTime, timeToFrame } from './helper.js';
+import { animationFrame, cancelFrame, type FrameId, frameToTime, isThenable, timeToFrame } from './helper.js';
 import { TimelineMarker, type TimelineMarkerInit, type TimelineMarkerSnapshot } from './marker.js';
 import { TimelineTrack, type TimelineTrackOptions, type TimelineTrackSnapshot } from './track.js';
 
@@ -15,12 +15,30 @@ export type FrameState = {
   totalFrames: number;
 };
 
+/**
+ * The master timeline's state: the frame state, plus the last frame every handler finished with.
+ * Without async ticking `presented` follows `frame` at once; with it, `presented` trails `frame`
+ * while handlers are still working on it.
+ */
+export type TimelineState = FrameState & {
+  presented: number;
+};
+
+/**
+ * Whether each frame waits for what its handlers return. `false` follows the clock alone, so heavy
+ * handlers drop frames. `true` holds every frame until all its handlers settle, so time stretches
+ * and no frame is skipped, e.g. to export. `{ tolerance }` waits at most that many milliseconds per
+ * frame, then aborts it and follows the clock again, e.g. for a live preview with heavy layers.
+ */
+export type TimelineAsync = boolean | { tolerance: number };
+
 export type TimelineOptions = {
   repeat?: boolean | number;
   frameRate: number;
   startFrame?: number;
   endFrame?: number;
   speed?: number;
+  async?: TimelineAsync;
 };
 
 /**
@@ -34,7 +52,28 @@ export type TimelineInit = Omit<Partial<TimelineOptions>, 'startFrame' | 'endFra
   endTime?: number;
 };
 
-export type TimelineSubscriber = (state: FrameState) => void;
+/**
+ * Receives each clock update. In an async timeline, a promise it returns holds the frame until it
+ * settles; the signal aborts once a later frame replaces this one or it runs past its tolerance.
+ */
+export type TimelineSubscriber = (state: FrameState, signal: AbortSignal) => unknown;
+
+/**
+ * Receives a handler's failure while a frame was being delivered, and the frame it happened on.
+ * The frame still counts as finished, so one failing handler never stalls the timeline.
+ */
+export type TimelineErrorListener = (error: unknown, frame: number) => void;
+
+/**
+ * One frame on its way to every handler: the signal that aborts it, and what the handlers
+ * returned, so an async timeline can wait for it.
+ */
+export type TimelineDelivery = {
+  signal: AbortSignal;
+  pending: unknown[];
+};
+
+const RESOLVED = Promise.resolve();
 
 export type TimelineSnapshot = {
   id: string;
@@ -62,9 +101,10 @@ export class Timeline<P extends Record<string, AnyType> = Record<string, AnyType
   /**
    * Reactive playback and timing state of the master timeline.
    */
-  public state = mutable<FrameState>({
+  public state = mutable<TimelineState>({
     time: 0,
     frame: 0,
+    presented: 0,
     status: 'idle',
     totalTime: 0,
     totalFrames: 0,
@@ -128,7 +168,7 @@ export class Timeline<P extends Record<string, AnyType> = Record<string, AnyType
 
     this.options.frameRate = nextRate;
     this.state.frame = Math.round((this.state.frame / prevRate) * nextRate);
-    this.state.time = this.state.frame === 0 ? 0 : frameToTime(this.state.frame, nextRate);
+    this.state.time = frameToTime(this.state.frame, nextRate);
 
     if (this.options.startFrame !== undefined) {
       this.options.startFrame = Math.round((this.options.startFrame / prevRate) * nextRate);
@@ -226,6 +266,25 @@ export class Timeline<P extends Record<string, AnyType> = Record<string, AnyType
   }
 
   /**
+   * Whether each frame waits for what its handlers return; see {@link TimelineAsync}.
+   */
+  public get async(): TimelineAsync {
+    return this.options.async ?? false;
+  }
+
+  public set async(value: TimelineAsync) {
+    this.options.async = value;
+  }
+
+  /**
+   * The last frame every handler finished with. Equal to `frame` unless async ticking is on and
+   * handlers are still working on the current frame.
+   */
+  public get presented(): number {
+    return this.state.presented;
+  }
+
+  /**
    * Current master timeline position in seconds.
    */
   public get time(): number {
@@ -277,6 +336,18 @@ export class Timeline<P extends Record<string, AnyType> = Record<string, AnyType
   public subscribe(subscriber: TimelineSubscriber): () => void {
     this.subscribers.add(subscriber);
     return () => this.subscribers.delete(subscriber);
+  }
+
+  /**
+   * Listens for handlers failing while a frame is delivered. Without a listener, failures go to
+   * `console.error`.
+   *
+   * @param {TimelineErrorListener} listener - Callback receiving the failure and its frame.
+   * @returns {() => void} Teardown function to stop listening.
+   */
+  public onError(listener: TimelineErrorListener): () => void {
+    this.errorListeners.add(listener);
+    return () => this.errorListeners.delete(listener);
   }
 
   /**
@@ -341,6 +412,7 @@ export class Timeline<P extends Record<string, AnyType> = Record<string, AnyType
 
     this.cancel();
 
+    const loop = this.loop;
     const minFrame = this.minFrame;
     const maxFrame = this.maxFrame;
     const isEnded = this.state.frame >= maxFrame;
@@ -363,17 +435,44 @@ export class Timeline<P extends Record<string, AnyType> = Record<string, AnyType
     }
 
     assign(this.state, { frame: currentFrame, time: currentTime, status: 'playing' });
-    this.notify();
+    const started = this.notify();
 
     let startTimestamp = performance.now();
     const jitterMargin = (1000 / this.options.frameRate) * 0.15;
+    const frameAt = (now: number) =>
+      currentFrame + Math.floor(((now - startTimestamp + jitterMargin) / 1000) * this.speed * this.options.frameRate);
+
+    // The frame a held frame's wait ended on, so the next tick continues right after it.
+    let resume: number | undefined;
+
+    // Schedules the next tick once the frame just delivered allows it. Without async ticking that is
+    // at once. With it, the frame's handlers settle first; when they must all finish (`async: true`),
+    // the next tick continues from that frame, so the wait stretches time instead of skipping frames.
+    const schedule = (delivered: Promise<void>, frame: number) => {
+      if (!this.options.async) {
+        this.frameId = animationFrame(tick, this.options.frameRate);
+        return;
+      }
+
+      delivered.then(() => {
+        if (loop !== this.loop || this.state.status !== 'playing') return;
+        if (this.options.async === true) resume = frame;
+        this.frameId = animationFrame(tick, this.options.frameRate);
+      });
+    };
 
     const tick = (now: number) => {
-      if (this.state.status !== 'playing') return;
+      if (this.state.status !== 'playing' || loop !== this.loop) return;
 
-      const elapsedMs = now - startTimestamp + jitterMargin;
-      const speed = this.options.speed ?? 1;
-      const targetFrame = currentFrame + Math.floor((elapsedMs / 1000) * speed * this.options.frameRate);
+      if (resume !== undefined) {
+        if (this.speed > 0 && frameAt(now) > resume + 1) {
+          currentFrame = resume;
+          startTimestamp = now - 1000 / (this.speed * this.options.frameRate);
+        }
+        resume = undefined;
+      }
+
+      const targetFrame = frameAt(now);
       const maxFrame = this.maxFrame;
 
       if (targetFrame >= maxFrame) {
@@ -387,8 +486,7 @@ export class Timeline<P extends Record<string, AnyType> = Record<string, AnyType
           currentFrame = minFrame;
           currentTime = frameToTime(minFrame, this.options.frameRate);
           assign(this.state, { frame: minFrame, time: currentTime });
-          this.notify();
-          this.frameId = animationFrame(tick, this.options.frameRate);
+          schedule(this.notify(), minFrame);
           return;
         } else {
           assign(this.state, { frame: maxFrame, time: frameToTime(maxFrame, this.options.frameRate), status: 'idle' });
@@ -401,13 +499,14 @@ export class Timeline<P extends Record<string, AnyType> = Record<string, AnyType
       if (targetFrame !== this.state.frame) {
         const time = frameToTime(targetFrame, this.options.frameRate);
         assign(this.state, { frame: targetFrame, time });
-        this.notify();
+        schedule(this.notify(), targetFrame);
+        return;
       }
 
       this.frameId = animationFrame(tick, this.options.frameRate);
     };
 
-    this.frameId = animationFrame(tick, this.options.frameRate);
+    schedule(started, currentFrame);
 
     return () => this.pause();
   }
@@ -431,7 +530,7 @@ export class Timeline<P extends Record<string, AnyType> = Record<string, AnyType
     this.iteration = 0;
     const minFrame = this.minFrame;
     assign(this.state, {
-      time: minFrame === 0 ? 0 : frameToTime(minFrame, this.options.frameRate),
+      time: frameToTime(minFrame, this.options.frameRate),
       frame: minFrame,
       status: 'idle',
     });
@@ -442,72 +541,80 @@ export class Timeline<P extends Record<string, AnyType> = Record<string, AnyType
    * Seeks timeline to a specific position in seconds.
    *
    * @param {number} time - Target position in seconds.
+   * @returns {Promise<void>} Settles once that frame's handlers are done, or a later frame replaces it.
    */
   @passive
-  public seek(time: number): void {
-    this.scrub(timeToFrame(time, this.options.frameRate));
+  public seek(time: number): Promise<void> {
+    return this.scrub(timeToFrame(time, this.options.frameRate));
   }
 
   /**
    * Scrubs timeline to a specific frame number.
    *
    * @param {number} frame - Target frame number.
+   * @returns {Promise<void>} Settles once that frame's handlers are done, or a later frame replaces it.
    */
   @passive
-  public scrub(frame: number): void {
+  public scrub(frame: number): Promise<void> {
     const frameRate = this.options.frameRate;
     const clampedFrame = Math.min(Math.max(this.minFrame, Math.round(frame)), this.maxFrame);
 
     if (this.state.status === 'playing') {
       this.play(clampedFrame);
-    } else {
-      const time = clampedFrame === 0 ? 0 : frameToTime(clampedFrame, frameRate);
-      assign(this.state, { frame: clampedFrame, time });
-      this.notify();
+      return this.delivered;
     }
+
+    const time = frameToTime(clampedFrame, frameRate);
+    assign(this.state, { frame: clampedFrame, time });
+    return this.notify();
   }
 
   /**
    * Advances or rewinds the timeline by a relative frame offset.
    *
    * @param {number} [delta=1] - Number of frames to advance (negative to rewind).
+   * @returns {Promise<void>} Settles once that frame's handlers are done, or a later frame replaces it.
    */
   @passive
-  public step(delta = 1): void {
-    this.scrub(this.state.frame + delta);
+  public step(delta = 1): Promise<void> {
+    return this.scrub(this.state.frame + delta);
   }
 
   /**
    * Advances playback to the next landmark (track boundary).
+   *
+   * @returns {Promise<void>} Settles once that frame's handlers are done; at once when there is no later landmark.
    */
   @passive
-  public next(): void {
+  public next(): Promise<void> {
     const current = this.state.frame;
     const landmarks = this.getLandmarks();
 
     for (const frame of landmarks) {
       if (frame > current) {
-        this.scrub(frame);
-        return;
+        return this.scrub(frame);
       }
     }
+    return RESOLVED;
   }
 
   /**
    * Rewinds playback to the previous landmark (track boundary).
+   *
+   * @returns {Promise<void>} Settles once that frame's handlers are done; at once when there is no earlier landmark.
    */
   @passive
-  public prev(): void {
+  public prev(): Promise<void> {
     const current = this.state.frame;
     const landmarks = this.getLandmarks();
 
     for (let i = landmarks.length - 1; i >= 0; i--) {
       const frame = landmarks[i];
       if (frame < current) {
-        this.scrub(frame);
-        return;
+        return this.scrub(frame);
       }
     }
+    return RESOLVED;
   }
 
   /**
@@ -524,7 +631,8 @@ export class Timeline<P extends Record<string, AnyType> = Record<string, AnyType
     for (const track of this.tracks) {
       for (const segment of track.segments) {
         frames.add(segment.startFrame);
-        frames.add(segment.endFrame);
+        // A clip's far edge is where its last frame ends, which is where a clip butted after it starts.
+        frames.add(Math.min(segment.startFrame + segment.totalFrames * segment.cycles, this.maxFrame));
 
         for (const scene of segment.scenes) {
           for (let i = 0; i < segment.cycles; i++) {
@@ -595,7 +703,7 @@ export class Timeline<P extends Record<string, AnyType> = Record<string, AnyType
 
       if (frameRateChanged) {
         this.state.frame = Math.round((this.state.frame / prevRate) * this.options.frameRate);
-        this.state.time = this.state.frame === 0 ? 0 : frameToTime(this.state.frame, this.options.frameRate);
+        this.state.time = frameToTime(this.state.frame, this.options.frameRate);
         for (const track of this.tracks) {
           for (const segment of track.segments) {
             segment.refresh(false);
@@ -657,6 +765,12 @@ export class Timeline<P extends Record<string, AnyType> = Record<string, AnyType
   private frameId?: FrameId;
   private iteration = 0;
   private subscribers = new Set<TimelineSubscriber>();
+  private errorListeners = new Set<TimelineErrorListener>();
+  // The frame still being delivered, aborted when a later one replaces it.
+  private delivery?: AbortController;
+  private delivered: Promise<void> = RESOLVED;
+  // Bumped whenever playback is cancelled, so a tick still waiting on its frame stops.
+  private loop = 0;
 
   private get minFrame(): number {
     return Math.max(0, this.options.startFrame ?? 0);
@@ -671,16 +785,88 @@ export class Timeline<P extends Record<string, AnyType> = Record<string, AnyType
     return new TimelineTrack(this, options, props);
   }
 
-  private notify(): void {
+  /**
+   * Delivers the current frame to every track and subscriber. The frame before it, if still being
+   * delivered, is aborted first: the latest frame always wins.
+   *
+   * @returns {Promise<void>} Settles once the handlers are done with this frame (at once without async
+   * ticking), it runs past its tolerance, or a later frame replaces it.
+   */
+  private notify(): Promise<void> {
+    this.delivery?.abort();
+
+    const controller = new AbortController();
+    const frame = this.state.frame;
+    const delivery: TimelineDelivery = { signal: controller.signal, pending: [] };
+    this.delivery = controller;
+
     for (const track of this.tracks) {
-      track.tick(this.state);
+      track.tick(this.state, delivery);
     }
     for (const subscriber of this.subscribers) {
-      subscriber(this.state);
+      delivery.pending.push(subscriber(this.state, controller.signal));
+    }
+
+    const waiting = this.options.async ? delivery.pending.filter(isThenable) : [];
+    if (!waiting.length) {
+      this.delivery = undefined;
+      this.state.presented = frame;
+      this.delivered = RESOLVED;
+    } else {
+      this.delivered = this.settle(waiting, controller, frame);
+    }
+    return this.delivered;
+  }
+
+  /**
+   * Waits for a frame's handlers, at most its tolerance, then marks the frame presented when they
+   * all finished. A frame that ran late is aborted so its handlers can stop.
+   */
+  private async settle(waiting: PromiseLike<unknown>[], controller: AbortController, frame: number): Promise<void> {
+    const tolerance = typeof this.options.async === 'object' ? this.options.async.tolerance : Infinity;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    const finished = Promise.allSettled(waiting).then((results) => {
+      if (controller.signal.aborted) return 'replaced' as const;
+      for (const result of results) {
+        if (result.status === 'rejected') this.report(result.reason, frame);
+      }
+      return 'finished' as const;
+    });
+    const replaced = new Promise<'replaced'>((resolve) => {
+      controller.signal.addEventListener('abort', () => resolve('replaced'), { once: true });
+    });
+    const late = Number.isFinite(tolerance)
+      ? new Promise<'late'>((resolve) => {
+          timer = setTimeout(() => resolve('late'), Math.max(0, tolerance));
+        })
+      : undefined;
+
+    const outcome = await Promise.race(late ? [finished, replaced, late] : [finished, replaced]);
+    clearTimeout(timer);
+
+    if (this.delivery !== controller) return;
+    this.delivery = undefined;
+
+    if (outcome === 'finished') {
+      this.state.presented = frame;
+    } else if (outcome === 'late') {
+      controller.abort();
+    }
+  }
+
+  private report(error: unknown, frame: number): void {
+    if (!this.errorListeners.size) {
+      console.error(error);
+      return;
+    }
+    for (const listener of this.errorListeners) {
+      listener(error, frame);
     }
   }
 
   private cancel(): void {
+    this.loop++;
     if (this.frameId !== undefined) {
       cancelFrame(this.frameId);
       this.frameId = undefined;

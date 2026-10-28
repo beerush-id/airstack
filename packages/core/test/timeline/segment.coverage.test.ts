@@ -26,7 +26,7 @@ afterEach(() => {
 function buildSegment(duration = 2) {
   const timeline = new Timeline({ frameRate: 30 });
   const track = timeline.addTrack({ name: 'video' });
-  const segment = track.addSegment({ name: 'clip', duration, startFrame: uiFrame(1) });
+  const segment = track.addSegment({ name: 'clip', duration, startFrame: 0 });
   return { timeline, track, segment };
 }
 
@@ -121,13 +121,13 @@ describe('scene collection guards', () => {
 
   it('clamps existing keyframes when the clip is retimed shorter', () => {
     const { timeline, segment } = buildSegment(2);
-    segment.addScene({ atFrame: uiFrame(31), name: 'edge' });
-    segment.addScene({ atFrame: uiFrame(46), name: 'beyond' });
+    segment.addScene({ atFrame: 30, name: 'edge' });
+    segment.addScene({ atFrame: 45, name: 'beyond' });
 
     segment.duration = 1; // totalFrames 30 — 'beyond' must clamp back onto the clip
 
     expect(segment.totalFrames).toBe(30);
-    expect(segment.scenes.map((scene) => scene.atFrame)).toEqual([uiFrame(31), uiFrame(31)]);
+    expect(segment.scenes.map((scene) => scene.atFrame)).toEqual([30, 30]);
     timeline.destroy();
   });
 });
@@ -136,13 +136,13 @@ describe('frame rate migration', () => {
   it('rescales start frame and keyframes when the project frame rate changes', () => {
     const timeline = new Timeline({ frameRate: 30 });
     const track = timeline.addTrack({ name: 'video' });
-    const segment = track.addSegment({ name: 'clip', duration: 2, startFrame: uiFrame(31) });
-    segment.addScene({ atFrame: uiFrame(31), name: 'mid' });
+    const segment = track.addSegment({ name: 'clip', duration: 2, startFrame: 30 });
+    segment.addScene({ atFrame: 30, name: 'mid' });
 
     timeline.frameRate = 60;
 
-    expect(segment.startFrame).toBe(uiFrame(61));
-    expect(segment.scenes[0].atFrame).toBe(uiFrame(61));
+    expect(segment.startFrame).toBe(60);
+    expect(segment.scenes[0].atFrame).toBe(60);
     expect(segment.totalFrames).toBe(120);
     timeline.destroy();
   });

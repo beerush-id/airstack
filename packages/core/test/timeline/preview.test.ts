@@ -18,8 +18,8 @@ afterEach(() => {
 function buildPreviewProject() {
   const timeline = new Timeline({ frameRate: 30 });
   const video = timeline.addTrack({ name: 'video', type: 'video' });
-  const clip = video.addSegment({ name: 'intro', duration: 3, startFrame: uiFrame(1) });
-  clip.addScene({ atFrame: uiFrame(1), name: 'open' }, { opacity: 0 });
+  const clip = video.addSegment({ name: 'intro', duration: 3, startFrame: 0 });
+  clip.addScene({ atFrame: 0, name: 'open' }, { opacity: 0 });
   clip.addScene({ atFrame: uiFrame(60), name: 'reveal' }, { opacity: 1 });
   timeline.addMarker({ atFrame: uiFrame(30), name: 'beat' });
   timeline.refresh();
@@ -29,7 +29,7 @@ function buildPreviewProject() {
 describe('build-then-preview journey', () => {
   it('scrub to start shows first keyframe active', () => {
     const { timeline, clip } = buildPreviewProject();
-    timeline.scrub(uiFrame(1));
+    timeline.scrub(0);
     expect(clip.activeScene?.name).toBe('open');
     expect(timeline.status).toBe('idle');
     timeline.destroy();

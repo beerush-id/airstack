@@ -40,7 +40,7 @@ describe('loop to practice journey', () => {
   it('infinite loop stays single laid-out cycle for endless jam', () => {
     const timeline = new Timeline({ frameRate: 30 });
     const track = timeline.addTrack({ name: 'drums' });
-    const jam = track.addSegment({ name: 'groove', duration: 1, startFrame: uiFrame(1), repeat: true });
+    const jam = track.addSegment({ name: 'groove', duration: 1, startFrame: 0, repeat: true });
     expect(jam.cycles).toBe(1);
     timeline.destroy();
   });

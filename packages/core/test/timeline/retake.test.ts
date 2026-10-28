@@ -19,8 +19,8 @@ afterEach(() => {
 function buildRetake() {
   const timeline = new Timeline({ frameRate: 30 });
   const track = timeline.addTrack({ name: 'video' });
-  const clip = track.addSegment({ name: 'take', duration: 3, startFrame: uiFrame(1) });
-  clip.addScene({ atFrame: uiFrame(1), name: 'slate' }, { take: 1 });
+  const clip = track.addSegment({ name: 'take', duration: 3, startFrame: 0 });
+  clip.addScene({ atFrame: 0, name: 'slate' }, { take: 1 });
   clip.addScene({ atFrame: uiFrame(45), name: 'action' }, { take: 1 });
   timeline.refresh();
   return { timeline, clip };
@@ -31,7 +31,7 @@ describe('retake from head journey', () => {
     const { timeline, clip } = buildRetake();
     timeline.scrub(uiFrame(60));
     clip.reset();
-    expect(clip.frame).toBe(uiFrame(1));
+    expect(clip.frame).toBe(0);
     expect(clip.time).toBe(0);
     timeline.destroy();
   });
@@ -40,7 +40,7 @@ describe('retake from head journey', () => {
     const { timeline, clip } = buildRetake();
     timeline.scrub(uiFrame(60));
     clip.reset();
-    timeline.scrub(uiFrame(1));
+    timeline.scrub(0);
     expect(clip.activeScene?.name).toBe('slate');
     timeline.destroy();
   });
@@ -48,7 +48,7 @@ describe('retake from head journey', () => {
   it('keyless clip previews active with no active key', () => {
     const timeline = new Timeline({ frameRate: 30 });
     const track = timeline.addTrack({ name: 'b-roll' });
-    const ambient = track.addSegment({ name: 'room-tone', duration: 2, startFrame: uiFrame(1) });
+    const ambient = track.addSegment({ name: 'room-tone', duration: 2, startFrame: 0 });
     timeline.refresh();
     timeline.scrub(uiFrame(30));
     expect(ambient.active).toBe(true);

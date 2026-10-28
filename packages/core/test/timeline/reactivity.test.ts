@@ -22,7 +22,7 @@ describe('timeline.subscribe — preview clock', () => {
   it('receives frame 30 with time 1 after scrub(30) at 30fps', () => {
     const timeline = new Timeline({ frameRate: 30 });
     const track = timeline.addTrack({ name: 'video' });
-    track.addSegment({ name: 'main', duration: 4, startFrame: uiFrame(1) });
+    track.addSegment({ name: 'main', duration: 4, startFrame: 0 });
     timeline.refresh();
     const seen: number[] = [];
     const off = timeline.subscribe((state) => {
@@ -37,7 +37,7 @@ describe('timeline.subscribe — preview clock', () => {
   it('state carries time, frame, status, totalTime and totalFrames', () => {
     const timeline = new Timeline({ frameRate: 30 });
     const track = timeline.addTrack({ name: 'video' });
-    track.addSegment({ name: 'main', duration: 4, startFrame: uiFrame(1) });
+    track.addSegment({ name: 'main', duration: 4, startFrame: 0 });
     timeline.refresh();
     let last: { time: number; frame: number; status: string; totalTime: number; totalFrames: number } | undefined;
     const off = timeline.subscribe((state) => {
@@ -56,7 +56,7 @@ describe('timeline.subscribe — preview clock', () => {
   it('teardown stops further notifications', () => {
     const timeline = new Timeline({ frameRate: 30 });
     const track = timeline.addTrack({ name: 'video' });
-    track.addSegment({ name: 'main', duration: 4, startFrame: uiFrame(1) });
+    track.addSegment({ name: 'main', duration: 4, startFrame: 0 });
     timeline.refresh();
     let calls = 0;
     const off = timeline.subscribe(() => {
@@ -73,7 +73,7 @@ describe('timeline.subscribe — preview clock', () => {
   it('segment.subscribe receives local frame after seek into its window', () => {
     const timeline = new Timeline({ frameRate: 30 });
     const track = timeline.addTrack({ name: 'video' });
-    const segment = track.addSegment({ name: 'clip', duration: 2, startFrame: uiFrame(1) });
+    const segment = track.addSegment({ name: 'clip', duration: 2, startFrame: 0 });
     const frames: number[] = [];
     const off = segment.subscribe((state) => {
       frames.push(state.frame);
@@ -89,8 +89,8 @@ describe('segment.onTransition — keyframe blending', () => {
   it('between scenes at 0 and 30, scrub to 15 reports progress 0.5', () => {
     const timeline = new Timeline({ frameRate: 30 });
     const track = timeline.addTrack({ name: 'webgl' });
-    const segment = track.addSegment({ name: 'fx', duration: 2, startFrame: uiFrame(1) });
-    segment.addScene({ atFrame: uiFrame(1), name: 'from' }, { opacity: 0 });
+    const segment = track.addSegment({ name: 'fx', duration: 2, startFrame: 0 });
+    segment.addScene({ atFrame: 0, name: 'from' }, { opacity: 0 });
     segment.addScene({ atFrame: uiFrame(30), name: 'to' }, { opacity: 1 });
 
     let progress = -1;
@@ -106,8 +106,8 @@ describe('segment.onTransition — keyframe blending', () => {
   it('exposes from at 0 and to at 30 with frame 15 and time 0.5', () => {
     const timeline = new Timeline({ frameRate: 30 });
     const track = timeline.addTrack({ name: 'webgl' });
-    const segment = track.addSegment({ name: 'fx', duration: 2, startFrame: uiFrame(1) });
-    const from = segment.addScene({ atFrame: uiFrame(1), name: 'from' });
+    const segment = track.addSegment({ name: 'fx', duration: 2, startFrame: 0 });
+    const from = segment.addScene({ atFrame: 0, name: 'from' });
     const to = segment.addScene({ atFrame: uiFrame(30), name: 'to' });
 
     let snapshot: { fromFrame: number; toFrame?: number; frame: number; time: number } | undefined;
@@ -131,8 +131,8 @@ describe('segment.onTransition — keyframe blending', () => {
   it('activeScene is the keyframe at or before the playhead', () => {
     const timeline = new Timeline({ frameRate: 30 });
     const track = timeline.addTrack({ name: 'webgl' });
-    const segment = track.addSegment({ name: 'fx', duration: 3, startFrame: uiFrame(1) });
-    const first = segment.addScene({ atFrame: uiFrame(1), name: 'first' });
+    const segment = track.addSegment({ name: 'fx', duration: 3, startFrame: 0 });
+    const first = segment.addScene({ atFrame: 0, name: 'first' });
     segment.addScene({ atFrame: uiFrame(60), name: 'second' });
     timeline.scrub(uiFrame(30));
     expect(segment.activeScene?.id).toBe(first.id);
@@ -143,8 +143,8 @@ describe('segment.onTransition — keyframe blending', () => {
   it('onTransition teardown stops blending callbacks', () => {
     const timeline = new Timeline({ frameRate: 30 });
     const track = timeline.addTrack({ name: 'webgl' });
-    const segment = track.addSegment({ name: 'fx', duration: 2, startFrame: uiFrame(1) });
-    segment.addScene({ atFrame: uiFrame(1), name: 'a' });
+    const segment = track.addSegment({ name: 'fx', duration: 2, startFrame: 0 });
+    segment.addScene({ atFrame: 0, name: 'a' });
     segment.addScene({ atFrame: uiFrame(30), name: 'b' });
     let calls = 0;
     const off = segment.onTransition(() => {

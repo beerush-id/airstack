@@ -18,8 +18,8 @@ function buildMuteProject() {
   const timeline = new Timeline({ frameRate: 30 });
   const video = timeline.addTrack({ name: 'video' });
   const music = timeline.addTrack({ name: 'music' });
-  const clip = video.addSegment({ name: 'picture', duration: 3, startFrame: uiFrame(1) });
-  const song = music.addSegment({ name: 'song', duration: 3, startFrame: uiFrame(1) });
+  const clip = video.addSegment({ name: 'picture', duration: 3, startFrame: 0 });
+  const song = music.addSegment({ name: 'song', duration: 3, startFrame: 0 });
   timeline.refresh();
   return { timeline, clip, song, music };
 }

@@ -33,7 +33,7 @@ describe('disabled — muting lanes and clips', () => {
   it('segment disabled round-trips', () => {
     const timeline = new Timeline({ frameRate: 30 });
     const track = timeline.addTrack({ name: 'video' });
-    const segment = track.addSegment({ name: 'clip', duration: 2, startFrame: uiFrame(1) });
+    const segment = track.addSegment({ name: 'clip', duration: 2, startFrame: 0 });
     expect(segment.disabled).toBe(false);
     segment.disabled = true;
     expect(segment.disabled).toBe(true);
@@ -43,7 +43,7 @@ describe('disabled — muting lanes and clips', () => {
   it('disabled segment stays idle when playhead moves inside its window', () => {
     const timeline = new Timeline({ frameRate: 30 });
     const track = timeline.addTrack({ name: 'video' });
-    const segment = track.addSegment({ name: 'muted', duration: 2, startFrame: uiFrame(1), disabled: true });
+    const segment = track.addSegment({ name: 'muted', duration: 2, startFrame: 0, disabled: true });
     timeline.scrub(uiFrame(30));
     expect(segment.disabled).toBe(true);
     expect(segment.status).toBe('idle');
@@ -53,7 +53,7 @@ describe('disabled — muting lanes and clips', () => {
   it('enabled segment is active when playhead moves inside its window', () => {
     const timeline = new Timeline({ frameRate: 30 });
     const track = timeline.addTrack({ name: 'video' });
-    const segment = track.addSegment({ name: 'live', duration: 2, startFrame: uiFrame(1) });
+    const segment = track.addSegment({ name: 'live', duration: 2, startFrame: 0 });
     timeline.scrub(uiFrame(30));
     expect(segment.active).toBe(true);
     expect(timeline.status).toBe('idle');
@@ -89,10 +89,10 @@ describe('reset and destroy lifecycle', () => {
   it('segment.reset() returns local playhead to 0 and idle', () => {
     const timeline = new Timeline({ frameRate: 30 });
     const track = timeline.addTrack({ name: 'video' });
-    const segment = track.addSegment({ name: 'clip', duration: 2, startFrame: uiFrame(1) });
+    const segment = track.addSegment({ name: 'clip', duration: 2, startFrame: 0 });
     timeline.scrub(uiFrame(30));
     segment.reset();
-    expect(segment.frame).toBe(uiFrame(1));
+    expect(segment.frame).toBe(0);
     expect(segment.time).toBe(0);
     expect(segment.status).toBe('idle');
     timeline.destroy();
@@ -110,7 +110,7 @@ describe('reset and destroy lifecycle', () => {
   it('track.destroy() clears its segments', () => {
     const timeline = new Timeline({ frameRate: 30 });
     const track = timeline.addTrack({ name: 'video' });
-    track.addSegment({ name: 'a', duration: 1, startFrame: uiFrame(1) });
+    track.addSegment({ name: 'a', duration: 1, startFrame: 0 });
     track.addSegment({ name: 'b', duration: 1, startFrame: uiFrame(30) });
     track.destroy();
     expect(track.segments.size).toBe(0);

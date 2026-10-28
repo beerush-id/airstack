@@ -22,7 +22,7 @@ afterEach(() => {
 function buildSegment() {
   const timeline = new Timeline({ frameRate: 30 });
   const track = timeline.addTrack({ name: 'webgl' });
-  const segment = track.addSegment({ name: 'fx', duration: 2, startFrame: uiFrame(1) });
+  const segment = track.addSegment({ name: 'fx', duration: 2, startFrame: 0 });
   return { timeline, segment };
 }
 

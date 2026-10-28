@@ -67,7 +67,7 @@ describe('segments — clips on a lane', () => {
   it('addSegment registers a clip on its track', () => {
     const timeline = new Timeline({ frameRate: 30 });
     const track = timeline.addTrack({ name: 'video' });
-    const segment = track.addSegment({ name: 'intro', duration: 2, startFrame: uiFrame(1) });
+    const segment = track.addSegment({ name: 'intro', duration: 2, startFrame: 0 });
     expect(segment.id).toBeTruthy();
     expect(track.segments.size).toBe(1);
     expect(track.segments.has(segment)).toBe(true);
@@ -82,7 +82,7 @@ describe('segments — clips on a lane', () => {
       type: 'video',
       meta: { src: 'intro.mp4' },
       duration: 2,
-      startFrame: uiFrame(1),
+      startFrame: 0,
     });
     expect(segment.type).toBe('video');
     expect(segment.name).toBe('intro');
@@ -93,7 +93,7 @@ describe('segments — clips on a lane', () => {
   it('removeSegment detaches the clip', () => {
     const timeline = new Timeline({ frameRate: 30 });
     const track = timeline.addTrack({ name: 'video' });
-    const segment = track.addSegment({ name: 'drop-me', duration: 1, startFrame: uiFrame(1) });
+    const segment = track.addSegment({ name: 'drop-me', duration: 1, startFrame: 0 });
     track.removeSegment(segment);
     expect(track.segments.size).toBe(0);
     timeline.destroy();
@@ -102,7 +102,7 @@ describe('segments — clips on a lane', () => {
   it('segment.remove() detaches itself from its track', () => {
     const timeline = new Timeline({ frameRate: 30 });
     const track = timeline.addTrack({ name: 'video' });
-    const segment = track.addSegment({ name: 'self-drop', duration: 1, startFrame: uiFrame(1) });
+    const segment = track.addSegment({ name: 'self-drop', duration: 1, startFrame: 0 });
     segment.remove();
     expect(track.segments.size).toBe(0);
     timeline.destroy();
@@ -113,9 +113,9 @@ describe('scenes — keyframes inside a clip', () => {
   it('addScene registers keyframes ordered by atFrame', () => {
     const timeline = new Timeline({ frameRate: 30 });
     const track = timeline.addTrack({ name: 'webgl' });
-    const segment = track.addSegment({ name: 'fx', duration: 4, startFrame: uiFrame(1) });
+    const segment = track.addSegment({ name: 'fx', duration: 4, startFrame: 0 });
     const first = segment.addScene({ atFrame: uiFrame(30), name: 'mid' });
-    const zero = segment.addScene({ atFrame: uiFrame(1), name: 'start' });
+    const zero = segment.addScene({ atFrame: 0, name: 'start' });
     segment.sortScenes();
     expect(segment.scenes.length).toBe(2);
     expect(segment.scenes[0].id).toBe(zero.id);
@@ -126,7 +126,7 @@ describe('scenes — keyframes inside a clip', () => {
   it('scene type / name / meta / data round-trip as driver payload', () => {
     const timeline = new Timeline({ frameRate: 30 });
     const track = timeline.addTrack({ name: 'webgl' });
-    const segment = track.addSegment({ name: 'fx', duration: 2, startFrame: uiFrame(1) });
+    const segment = track.addSegment({ name: 'fx', duration: 2, startFrame: 0 });
     const scene = segment.addScene({ atFrame: uiFrame(10), type: 'shader', name: 'glow' }, { intensity: 0.8 });
     expect(scene.type).toBe('shader');
     expect(scene.name).toBe('glow');
@@ -145,7 +145,7 @@ describe('scenes — keyframes inside a clip', () => {
   it('removeScene detaches the keyframe', () => {
     const timeline = new Timeline({ frameRate: 30 });
     const track = timeline.addTrack({ name: 'webgl' });
-    const segment = track.addSegment({ name: 'fx', duration: 2, startFrame: uiFrame(1) });
+    const segment = track.addSegment({ name: 'fx', duration: 2, startFrame: 0 });
     const scene = segment.addScene({ atFrame: uiFrame(5), name: 'drop' });
     expect(segment.scenes.length).toBe(1);
     segment.removeScene(scene);
@@ -156,7 +156,7 @@ describe('scenes — keyframes inside a clip', () => {
   it('scene.remove() detaches itself from its segment', () => {
     const timeline = new Timeline({ frameRate: 30 });
     const track = timeline.addTrack({ name: 'webgl' });
-    const segment = track.addSegment({ name: 'fx', duration: 2, startFrame: uiFrame(1) });
+    const segment = track.addSegment({ name: 'fx', duration: 2, startFrame: 0 });
     const scene = segment.addScene({ atFrame: uiFrame(5), name: 'self-drop' });
     scene.remove();
     expect(segment.scenes.length).toBe(0);

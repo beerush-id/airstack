@@ -19,7 +19,7 @@ afterEach(() => {
 function buildEdgeCut() {
   const timeline = new Timeline({ frameRate: 30 });
   const track = timeline.addTrack({ name: 'video' });
-  track.addSegment({ name: 'cut', duration: 3, startFrame: uiFrame(1) });
+  track.addSegment({ name: 'cut', duration: 3, startFrame: 0 });
   timeline.addMarker({ atFrame: uiFrame(45), name: 'mid' });
   timeline.refresh();
   return timeline;
@@ -57,8 +57,8 @@ describe('edges journey', () => {
   it('single-scene clip blends with no next key', () => {
     const timeline = new Timeline({ frameRate: 30 });
     const track = timeline.addTrack({ name: 'fx' });
-    const segment = track.addSegment({ name: 'hold', duration: 2, startFrame: uiFrame(1) });
-    segment.addScene({ atFrame: uiFrame(1), name: 'only' }, { v: 1 });
+    const segment = track.addSegment({ name: 'hold', duration: 2, startFrame: 0 });
+    segment.addScene({ atFrame: 0, name: 'only' }, { v: 1 });
     timeline.refresh();
     timeline.scrub(uiFrame(30));
     expect(segment.activeScene?.name).toBe('only');

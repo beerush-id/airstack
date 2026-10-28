@@ -22,7 +22,7 @@ afterEach(() => {
 function freshTransportTimeline() {
   const timeline = new Timeline({ frameRate: 30 });
   const track = timeline.addTrack({ name: 'video', type: 'video' });
-  track.addSegment({ name: 'main', duration: 4, startFrame: uiFrame(1) });
+  track.addSegment({ name: 'main', duration: 4, startFrame: 0 });
   timeline.refresh();
   return timeline;
 }
@@ -30,7 +30,7 @@ function freshTransportTimeline() {
 describe('timeline transport — play / pause / stop', () => {
   it('starts idle at frame 0 and time 0', () => {
     const timeline = freshTransportTimeline();
-    expect(timeline.frame).toBe(uiFrame(1));
+    expect(timeline.frame).toBe(0);
     expect(timeline.time).toBe(0);
     expect(timeline.status).toBe('idle');
     timeline.destroy();
@@ -61,7 +61,7 @@ describe('timeline transport — play / pause / stop', () => {
     timeline.scrub(uiFrame(45));
     timeline.play();
     timeline.stop();
-    expect(timeline.frame).toBe(uiFrame(1));
+    expect(timeline.frame).toBe(0);
     expect(timeline.time).toBe(0);
     expect(timeline.status).toBe('idle');
     timeline.destroy();
@@ -97,8 +97,8 @@ describe('timeline transport — seek / scrub / step', () => {
   it('scrub(0) returns to start', () => {
     const timeline = freshTransportTimeline();
     timeline.scrub(uiFrame(90));
-    timeline.scrub(uiFrame(1));
-    expect(timeline.frame).toBe(uiFrame(1));
+    timeline.scrub(0);
+    expect(timeline.frame).toBe(0);
     expect(timeline.time).toBe(0);
     timeline.destroy();
   });

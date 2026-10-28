@@ -126,7 +126,7 @@ describe('speed', () => {
 
     timeline.play();
     vi.advanceTimersByTime(1000);
-    expect(timeline.frame).toBe(uiFrame(30)); // fallback speed advances at the normal rate
+    expect(timeline.frame).toBe(29); // fallback speed advances at the normal rate; frame 30 starts at 1s
     timeline.stop();
     timeline.destroy();
   });
@@ -198,8 +198,8 @@ describe('play transport edges', () => {
     const teardown = timeline.play(9999);
 
     expect(timeline.status).toBe('idle');
-    expect(timeline.frame).toBe(uiFrame(60)); // duration 2 @ 30fps → last frame 59
-    expect(timeline.time).toBe(2);
+    expect(timeline.frame).toBe(59); // duration 2 @ 30fps → last frame 59
+    expect(timeline.time).toBe(frameToTime(59, 30));
     teardown();
     timeline.destroy();
   });
@@ -209,7 +209,7 @@ describe('play transport edges', () => {
     timeline.play();
     vi.advanceTimersByTime(2200);
     expect(timeline.status).toBe('idle');
-    expect(timeline.frame).toBe(uiFrame(60));
+    expect(timeline.frame).toBe(59);
 
     timeline.play();
 
@@ -228,7 +228,7 @@ describe('end-of-timeline handling', () => {
     vi.advanceTimersByTime(2200);
 
     expect(timeline.status).toBe('idle');
-    expect(timeline.frame).toBe(uiFrame(60));
+    expect(timeline.frame).toBe(59);
     timeline.destroy();
   });
 
@@ -258,7 +258,7 @@ describe('end-of-timeline handling', () => {
 
     vi.advanceTimersByTime(2200);
     expect(timeline.status).toBe('idle'); // third cycle exhausted
-    expect(timeline.frame).toBe(uiFrame(60));
+    expect(timeline.frame).toBe(59);
     timeline.destroy();
   });
 
@@ -319,13 +319,13 @@ describe('hydrate partials', () => {
     timeline.hydrate({ options: { frameRate: 60 } });
     expect(timeline.frame).toBe(0); // playhead at head stays at head
     expect(marker.atFrame).toBe(60);
-    expect(timeline.totalFrames).toBe(uiFrame(120)); // 2s @ 60fps → last frame 119
+    expect(timeline.totalFrames).toBe(119); // 2s @ 60fps → last frame 119
 
     timeline.scrub(18);
     timeline.hydrate({ options: { frameRate: 30 } });
     expect(timeline.frame).toBe(9); // 18 @ 60fps → 9 @ 30fps
     expect(marker.atFrame).toBe(30);
-    expect(timeline.totalFrames).toBe(uiFrame(60));
+    expect(timeline.totalFrames).toBe(59);
     expect(track.segments.size).toBe(1);
     timeline.destroy();
   });

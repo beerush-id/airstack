@@ -21,7 +21,7 @@ afterEach(() => {
 function chapterTimeline() {
   const timeline = new Timeline({ frameRate: 30 });
   const track = timeline.addTrack({ name: 'video' });
-  track.addSegment({ name: 'intro', duration: 1, startFrame: uiFrame(1) });
+  track.addSegment({ name: 'intro', duration: 1, startFrame: 0 });
   track.addSegment({ name: 'main', duration: 2, startFrame: uiFrame(30) });
   timeline.addMarker({ atFrame: uiFrame(60), name: 'chorus' });
   timeline.refresh();
@@ -32,7 +32,7 @@ describe('getLandmarks — ruler snap boundaries', () => {
   it('includes segment starts 0 and 30 and marker 60 in sorted order', () => {
     const timeline = chapterTimeline();
     const landmarks = timeline.getLandmarks();
-    expect(landmarks).toContain(uiFrame(1));
+    expect(landmarks).toContain(0);
     expect(landmarks).toContain(uiFrame(30));
     expect(landmarks).toContain(uiFrame(60));
     expect([...landmarks].sort((a, b) => a - b)).toEqual(landmarks);
@@ -42,21 +42,21 @@ describe('getLandmarks — ruler snap boundaries', () => {
   it('returns unique frames with no duplicates', () => {
     const timeline = new Timeline({ frameRate: 30 });
     const track = timeline.addTrack({ name: 'video' });
-    track.addSegment({ name: 'a', duration: 1, startFrame: uiFrame(1) });
-    track.addSegment({ name: 'b', duration: 1, startFrame: uiFrame(1) });
-    timeline.addMarker({ atFrame: uiFrame(1), name: 'dup-cue' });
+    track.addSegment({ name: 'a', duration: 1, startFrame: 0 });
+    track.addSegment({ name: 'b', duration: 1, startFrame: 0 });
+    timeline.addMarker({ atFrame: 0, name: 'dup-cue' });
     timeline.refresh();
     const landmarks = timeline.getLandmarks();
     const unique = Array.from(new Set(landmarks));
     expect(landmarks).toEqual(unique);
-    expect(landmarks).toContain(uiFrame(1));
+    expect(landmarks).toContain(0);
     timeline.destroy();
   });
 
   it('grows when a new cue is added', () => {
     const timeline = new Timeline({ frameRate: 30 });
     const track = timeline.addTrack({ name: 'video' });
-    track.addSegment({ name: 'main', duration: 3, startFrame: uiFrame(1) });
+    track.addSegment({ name: 'main', duration: 3, startFrame: 0 });
     timeline.addMarker({ atFrame: uiFrame(30), name: 'existing' });
     timeline.refresh();
     const before = timeline.getLandmarks().length;
@@ -72,7 +72,7 @@ describe('getLandmarks — ruler snap boundaries', () => {
 describe('next / prev — chapter skip', () => {
   it('next() jumps from frame 0 to frame 30', () => {
     const timeline = chapterTimeline();
-    timeline.scrub(uiFrame(1));
+    timeline.scrub(0);
     timeline.next();
     expect(timeline.frame).toBe(uiFrame(30));
     timeline.destroy();
@@ -98,7 +98,7 @@ describe('next / prev — chapter skip', () => {
     const timeline = chapterTimeline();
     timeline.scrub(uiFrame(29));
     timeline.prev();
-    expect(timeline.frame).toBe(uiFrame(1));
+    expect(timeline.frame).toBe(0);
     timeline.destroy();
   });
 });

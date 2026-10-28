@@ -62,7 +62,7 @@ export class TimelineScene {
     options: TimelineSceneInit = {},
     data: Record<string, AnyType> = {}
   ) {
-    const maxFrame = segment.state.totalFrames;
+    const maxFrame = segment.offsetFrame + segment.state.totalFrames;
     const rawFrame = options.atFrame !== undefined
       ? options.atFrame
       : options.atTime !== undefined
@@ -86,7 +86,7 @@ export class TimelineScene {
   }
 
   public set atFrame(value: number) {
-    const maxFrame = this.segment.state.totalFrames;
+    const maxFrame = this.segment.offsetFrame + this.segment.state.totalFrames;
     this.options.atFrame = Math.min(maxFrame, Math.max(0, Math.round(value)));
     this.segment.sortScenes();
   }

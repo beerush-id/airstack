@@ -28,7 +28,7 @@ function buildProject() {
     duration: 2,
     startFrame: uiFrame(30),
   });
-  segment.addScene({ atFrame: uiFrame(1), type: 'fade', name: 'in' }, { opacity: 0 });
+  segment.addScene({ atFrame: 0, type: 'fade', name: 'in' }, { opacity: 0 });
   segment.addScene({ atFrame: uiFrame(30), type: 'fade', name: 'out' }, { opacity: 1 });
   timeline.addMarker({ atFrame: uiFrame(60), type: 'chapter', name: 'chorus', meta: { bar: 8 } });
   timeline.refresh();
@@ -141,7 +141,7 @@ describe('leaf snapshots', () => {
   it('track snapshot captures identity, options and segments', () => {
     const timeline = new Timeline({ frameRate: 30 });
     const track = timeline.addTrack({ name: 'lanes', type: 'video' });
-    track.addSegment({ name: 's1', duration: 1, startFrame: uiFrame(1) });
+    track.addSegment({ name: 's1', duration: 1, startFrame: 0 });
     const snap = track.snapshot();
     expect(snap.id).toBe(track.id);
     expect(snap.options.name).toBe('lanes');

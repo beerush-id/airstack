@@ -4,7 +4,7 @@ import { mutable, passive } from '../reactive/index.js';
 import type { AnyType } from '../types.js';
 import { uuid } from '../utils/uuid.js';
 import { TimelineSegment, type TimelineSegmentInit, type TimelineSegmentSnapshot } from './segment.js';
-import type { FrameState, Timeline } from './timeline.js';
+import type { FrameState, Timeline, TimelineDelivery } from './timeline.js';
 
 export type TimelineTrackOptions = {
   type?: string;
@@ -126,11 +126,12 @@ export class TimelineTrack<P extends Record<string, AnyType> = Record<string, An
    * Applies a single tick from the master timeline to all child segments.
    *
    * @param {FrameState} state - Current master timeline playback state.
+   * @param {TimelineDelivery} [delivery] - The frame being delivered, collecting what handlers return so an async timeline can wait for it.
    */
   @passive
-  public tick(state: FrameState): void {
+  public tick(state: FrameState, delivery?: TimelineDelivery): void {
     for (const segment of this.segments) {
-      segment.tick(state);
+      segment.tick(state, delivery);
     }
   }
 
