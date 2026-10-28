@@ -3,6 +3,7 @@ import {
   $symbol,
   type AnyType,
   anchor,
+  type AsyncStore,
   captureStack,
   createObserver,
   getContextStore,
@@ -12,9 +13,9 @@ import {
   setContextStore,
   setStaticTracker,
 } from '@airlib/core';
-import { type FC, Fragment, type FunctionComponent, type ReactElement, type ReactNode } from 'react';
+import { createContext, type FC, Fragment, type FunctionComponent, type ReactElement, type ReactNode } from 'react';
 import type { RenderContext } from './context.js';
-import { createEffect, createState, memoize } from './hooks.js';
+import { createEffect, createState, memoize, readContext } from './hooks.js';
 import { createLifecycle } from './lifecycle.js';
 import { getProps, proxyProps } from './props.js';
 import type {
@@ -35,6 +36,17 @@ import type {
 const RENDERER_INIT_VERSION = 1;
 const CLEANUP_DEBOUNCE_TIME = 0;
 const COMPONENT_SNIPPET_KEY = $symbol('component-snippet');
+
+/**
+ * The nearest component's context store, handed down the React tree as well as through the
+ * render-order global. The global is only right while a parent is rendering; a component that
+ * renders alone — re-mounted, or swapped by Fast Refresh — finds its parent's store here instead.
+ * Each component provides one box for its whole life and updates what's in it, so the provided
+ * value never changes and never re-renders anything below.
+ */
+type ContextBox = { current: AsyncStore };
+const ParentContext = createContext<ContextBox | undefined>(undefined);
+ParentContext.displayName = 'Context';
 
 /**
  * Higher-Order Component that creates a stable setup component following the modern component lifecycle.
@@ -117,8 +129,14 @@ export function setup<P, S extends ComponentSlots>(
     const [scheduleMount, cancelMount] = microtask(CLEANUP_DEBOUNCE_TIME);
     const [scheduleCleanup, cancelCleanup] = microtask(CLEANUP_DEBOUNCE_TIME);
 
+    // The parent's store, from the tree: right however this render came about, not only inside the parent's.
+    const parent = readContext(ParentContext);
+    if (parent) setContextStore(parent.current);
+
     const lifecycle = createLifecycle(currentProps, componentName);
     const { props, stack, propsRef } = lifecycle;
+    const [box] = createState<ContextBox>(() => ({ current: lifecycle.context }));
+    box.current = lifecycle.context;
 
     propsMap.set(currentProps, propsRef);
 
@@ -192,10 +210,10 @@ export function setup<P, S extends ComponentSlots>(
     setContextStore(lifecycle.context);
 
     return (
-      <>
+      <ParentContext.Provider value={box}>
         {children()}
         <Finish context={lifecycle.context.parent!} />
-      </>
+      </ParentContext.Provider>
     );
   };
 
@@ -340,6 +358,8 @@ export function snippet<P, SP extends GenericProps = GenericProps>(
   Finish.displayName = `Return(${viewName})`;
 
   function SnippetBody(props: P) {
+    // A snippet renders in its component's store, found in the tree as a component's own parent is.
+    const parent = readContext(ParentContext);
     const [, setVersion] = createState(RENDERER_INIT_VERSION);
     const [{ context, observer, scheduleCleanup, cancelCleanup }] = createState(() => {
       const [scheduleCleanup, cancelCleanup] = microtask(CLEANUP_DEBOUNCE_TIME);
@@ -355,7 +375,7 @@ export function snippet<P, SP extends GenericProps = GenericProps>(
       });
 
       observer.name = snippetName;
-      return { context: getContextStore(), observer, cancelCleanup, scheduleCleanup };
+      return { context: parent?.current ?? getContextStore(), observer, cancelCleanup, scheduleCleanup };
     });
 
     createEffect(() => {
