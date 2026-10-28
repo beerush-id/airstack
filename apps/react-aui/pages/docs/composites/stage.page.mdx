@@ -2,64 +2,47 @@
 title: AUI Stage
 nav: Stage
 nav-priority: 342
-description: Play a composition — SVG layers in a fixed frame, driven by an AirLib timeline — with a transport, keyboard control, and full screen; the same timeline drives your editor and your agent.
-keywords: [React video player, SVG composition player, motion graphics player, timeline player, GSAP player React, accessible media player, AUI stage]
+description: Play a composition — HTML, SVG, canvas and media clips in a fixed frame, moved frame by frame by an AirLib timeline — with a transport, keyboard control, full screen, and rendering to video; the same timeline drives your editor and your agent.
+keywords: [React video player, motion graphics player, timeline player, HTML video composition, render video in browser, WebCodecs export, GSAP player React, accessible media player, AUI stage]
 ---
 
 # AUI Stage
 
-A title card, a cut, a caption sliding in: a short video built from layers doesn't need to be rendered to a file to be watched. It needs a frame that keeps every layer in place at any size, a clock everything follows, and controls people already know — play, pause, scrub, full screen — from the pointer and the keyboard.
+A title card, a cut, a caption sliding in: a short video built from clips doesn't need a render farm to be watched or exported. It needs a frame that keeps every clip in place at any size, a clock everything follows, controls people already know — play, pause, scrub, full screen — and a way to turn the same clips into a file.
 
-**Stage** is that player. It draws your SVG layers in a fixed frame and plays them on an AirLib `Timeline`. It keeps no time of its own, so the [Timeline Editor](/docs/composites/timeline-editor), your app, and an agent all move the same playback by moving the same timeline.
+**Stage** is that player. Each clip is a `StageClip` bound to one segment of an AirLib `Timeline`: it shows while its segment is on and moves by the segment's keyframes, frame by frame, without your components re-rendering. The stage keeps no time of its own, so the [Timeline Editor](/docs/composites/timeline-editor), your app, and an agent all move the same playback by moving the same timeline.
 
 :::interactive[Stage demo]
 
 ```tsx
-import { Stage, TimelineEditor } from '@airlib/react-aui';
-import { setup, Snippet } from '@airlib/react';
+import { Stage, StageClip, TimelineEditor } from '@airlib/react-aui';
+import { setup } from '@airlib/react';
 import { createTimeline } from '@airlib/react/timeline';
-
-const STAGE_W = 1920;
-const STAGE_H = 1080;
 
 const MotionDemo = setup(() => {
   const timeline = createTimeline({ frameRate: 30 });
+  const box = { x: 0, y: 0, width: 1920, height: 1080 };
 
   const video = timeline.addTrack({ type: 'video', name: 'Media 1' });
-  video.addSegment({ name: 'Morning.mp4', startTime: 0, duration: 4, meta: { thumbnail: 'https://picsum.photos/seed/aui-morning/320/180' } });
-  video.addSegment({ name: 'Cafe.mp4', startTime: 4, duration: 5, meta: { thumbnail: 'https://picsum.photos/seed/aui-cafe/320/180' } });
-
-  const audio = timeline.addTrack({ type: 'audio', name: 'Audio 1' });
-  audio.addSegment({ name: 'Intro.mp3', startTime: 0, duration: 9 });
+  const morning = video.addSegment({ name: 'Morning.mp4', startTime: 0, duration: 4, meta: { thumbnail: 'https://picsum.photos/seed/aui-morning/320/180' } }, box);
+  morning.addScene({ atTime: 0 }, { scale: 1 });
+  morning.addScene({ atTime: 4 }, { scale: 1.08 });
+  const cafe = video.addSegment({ name: 'Cafe.mp4', startTime: 4, duration: 5, meta: { thumbnail: 'https://picsum.photos/seed/aui-cafe/320/180' } }, box);
 
   const text = timeline.addTrack({ type: 'text', name: 'Text 1' });
-  text.addSegment({ name: 'Day one', startTime: 0.5, duration: 3 });
-  text.addSegment({ name: 'Meet me at three', startTime: 5, duration: 3.5 });
-
-  // Which caption the playhead is in, if any.
-  const caption = () => [...text.segments].find((s) => timeline.state.time >= s.startTime && timeline.state.time < s.startTime + s.totalTime);
+  const title = text.addSegment({ name: 'Day one', startTime: 0.5, duration: 3 }, { x: 160, y: 820, width: 1600, height: 140 });
+  title.addScene({ atTime: 0, meta: { ease: 'out' } }, { opacity: 0, y: 860 });
+  title.addScene({ atTime: 0.5 }, { opacity: 1, y: 820 });
+  timeline.refresh();
 
   return () => (
     <div className="flex flex-col gap-md w-full">
-      <Stage label="Short drama, episode 3" timeline={timeline} width={STAGE_W} height={STAGE_H}>
-        <rect width={STAGE_W} height={STAGE_H} fill="#1c1430" />
-        <Snippet>
-          {() => (
-            <circle
-              cx={240 + (timeline.state.time / Math.max(timeline.state.totalTime, 1)) * 1440}
-              cy={STAGE_H / 2}
-              r={140}
-              fill="#e8a4b4"
-            />
-          )}
-        </Snippet>
-        <Snippet>
-          {() => (
-            <text x={STAGE_W / 2} y={STAGE_H - 160} fill="#fff" fontSize={88} fontWeight={700} textAnchor="middle">
-              {caption()?.name ?? ''}
-            </text>
-          )}
-        </Snippet>
+      <Stage label="Short drama, episode 3" timeline={timeline}>
+        <StageClip as="img" segment={morning} src="https://picsum.photos/seed/aui-morning/1920/1080" alt="" />
+        <StageClip as="img" segment={cafe} src="https://picsum.photos/seed/aui-cafe/1920/1080" alt="" />
+        <StageClip segment={title} style={{ color: '#fff', font: '700 88px/140px system-ui', textAlign: 'center' }}>
+          Day one
+        </StageClip>
       </Stage>
       <TimelineEditor label="Clips in Short drama" timeline={timeline} zoom={64} />
     </div>
@@ -79,35 +62,94 @@ const MotionDemo = setup(() => {
 
 ### Play a composition
 
-Make a timeline, add its tracks and segments, and hand it to the stage with your layers as SVG children. Place the layers in the stage's own units — `width` by `height`, 1920 by 1080 unless you say otherwise — and they stay where you put them at any size:
+Make a timeline: its tracks are lanes of clips, and each segment on a track is a clip. Give each segment a `StageClip`. A segment's `props` are its clip's place in the stage's own units — `x`, `y`, `width`, `height`, plus `scale`, `rotate` (degrees) and `opacity` — in a frame of `width` by `height`, 1920 by 1080 unless you say otherwise. Clips draw in the order you write them, so write them track by track, the bottom one first:
 
 ```tsx
-import { Stage } from '@airlib/react-aui';
+import { Stage, StageClip } from '@airlib/react-aui';
 import { createTimeline } from '@airlib/react/timeline';
 import '@airlib/aui/components/widgets/stage.css';
 
 const timeline = createTimeline({ frameRate: 30 });
-timeline.addTrack({ type: 'text', name: 'Titles' }).addSegment({ name: 'Day one', startTime: 0, duration: 3 });
+const titles = timeline.addTrack({ type: 'text', name: 'Titles' });
+const dayOne = titles.addSegment({ name: 'Day one', startTime: 0, duration: 3 }, { x: 160, y: 820, width: 1600, height: 140 });
 
 <Stage label="Short drama, episode 3" timeline={timeline}>
-  <rect width={1920} height={1080} fill="#1c1430" />
+  <StageClip segment={dayOne} className="title-card">Day one</StageClip>
 </Stage>;
 ```
 
 The stage takes Space and K to play and pause, J and L to jump five seconds, the arrows to nudge a second, and Home and End to go to the ends. Its transport does the same by pointer, and its last button fills the screen.
 
-### Animate the layers with GSAP
+### Move clips with keyframes
 
-Build a paused GSAP timeline over your layers and seek it to the AirLib timeline whenever it moves. The AirLib timeline stays the one clock; GSAP only draws:
+Add scenes to a segment for the values its clip has at a moment; numbers blend toward the next scene, eased by the earlier one's `meta.ease` (`linear`, `in`, `out`, `in-out`):
+
+```ts
+dayOne.addScene({ atTime: 0, meta: { ease: 'out' } }, { opacity: 0, y: 860 });
+dayOne.addScene({ atTime: 0.5 }, { opacity: 1, y: 820 });
+```
+
+The clip reads them itself every frame and writes them straight onto its element, so a sliding title costs no re-render.
+
+### Change what's inside a clip over time
+
+Motion is the clip's; content is yours. When a clip's content changes as it plays — a counter, a painted canvas, a GSAP timeline over its children — update it in `draw`, which gets the clip's sampled values, its seconds in, and its element:
 
 ```tsx
-import gsap from 'gsap';
-
-const motion = gsap.timeline({ paused: true });
-motion.from('#title', { opacity: 0, y: 40, duration: 0.6 }, 0.5);
-
-timeline.subscribe((state) => motion.seek(state.time));
+<StageClip
+  as="canvas"
+  segment={sparks}
+  width={1920}
+  height={1080}
+  draw={({ element, time }) => paintSparks((element as HTMLCanvasElement).getContext('2d')!, time)}
+/>
 ```
+
+### Play media
+
+Video and audio clips follow the timeline: they play along while it plays and seek to the frame when it's scrubbed. `offset` starts them further into the file:
+
+```tsx
+<StageClip as="video" segment={cafe} src="/media/cafe.webm" muted offset={1.5} />
+```
+
+### Render it to a video
+
+With `capture`, the stage draws its clips into a canvas every frame, which the browser can read back — HTML, SVG, canvas and media alike. It needs HTML-in-Canvas, so check `canCaptureVideo()` and, where it's missing, ask people to turn on `chrome://flags/#canvas-draw-element` in Chrome. Then `renderVideo` seeks the timeline frame by frame, waits until each frame is drawn, and encodes it:
+
+```tsx
+import { canCaptureVideo, renderVideo, type VideoStageAria } from '@airlib/aria';
+
+let stage: VideoStageAria;
+
+<Stage timeline={timeline} capture controls={false} controller={(s) => (stage = s)}>
+  {clips}
+</Stage>;
+
+await renderVideo({
+  stage,
+  output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
+  progress: ({ done, total }) => (status.text = `${done} of ${total}`),
+});
+```
+
+While it renders, the capturing stage shows each frame as it's encoded, so it doubles as the render's preview. A render pauses while the page is hidden, since the browser stops painting it.
+
+### Render faster with several stages
+
+The browser paints a stage once per screen refresh, so one stage renders at the refresh rate — 120 frames a second on a 120 Hz screen. Give `renderVideo` several capturing stages, each on its own timeline of the same composition, and every refresh renders one frame per stage, encoded in order:
+
+```tsx
+const timelines = [0, 1, 2, 3].map(() => {
+  const copy = createTimeline({ frameRate: 30 });
+  copy.hydrate(timeline.snapshot());
+  return copy;
+});
+
+await renderVideo({ stage: stages, output });
+```
+
+Every stage must stay on screen and painted, but it can be small. Four stages render about four times as fast, until the scene's own cost — heavy filters, WebGL, video — catches up.
 
 ### Drive it from your app
 
@@ -124,14 +166,27 @@ The frame follows `--aui-stage-ratio` (`16 / 9` by default; `9 / 16` for a verti
 
 ## Properties
 
+### Stage
+
 | Prop | Type | Default | What it does |
 |---|---|---|---|
 | `label` | `string` | — | Names the stage for screen readers |
 | `timeline` | `Timeline` | — | The composition's clock and structure |
-| `width` / `height` | `number` | `1920` / `1080` | The frame, in the units layers are placed in |
+| `width` / `height` | `number` | `1920` / `1080` | The frame, in the units clips are placed in |
+| `capture` | `boolean` | `false` | Draws the clips into a canvas each frame, to render |
+| `controller` | `(stage) => void` | — | Receives the stage behavior, e.g. for `renderVideo` |
 | `controls` | `boolean` | `true` | Shows the transport |
 | `jump` | `number` | `5` | Seconds J and L jump |
 | `labels` | `StageLabels` | English | Names of the transport's controls |
+
+### StageClip
+
+| Prop | Type | Default | What it does |
+|---|---|---|---|
+| `segment` | `TimelineSegment` | — | When the clip shows, and its motion |
+| `as` | `'div' \| 'svg' \| 'canvas' \| 'img' \| 'video' \| 'audio'` | `'div'` | The element the clip is |
+| `draw` | `(frame) => unknown` | — | Updates the clip's content each frame |
+| `offset` | `number` | `0` | Seconds into its media a media clip starts at |
 
 ## Next Steps
 
