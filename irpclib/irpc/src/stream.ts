@@ -130,6 +130,8 @@ export class IRPCStream<T extends IRPCData> {
 
       if (result instanceof RemoteState) {
         this.remoteState = result;
+        // The handler's failure reaches the caller as an error packet; its own rejection is handled here.
+        result.catch(() => undefined);
         this.value = encodeBlobs(result.data) as T;
 
         if (result.status === IRPC_STATUS.SUCCESS || result.status === IRPC_STATUS.ERROR) {

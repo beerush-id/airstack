@@ -391,8 +391,14 @@ export class IRPCPackage<K extends string = 'id'> {
       }
 
       // Validated where the call is made, before the handler or the transport; the router validates
-      // again where it arrives.
-      const inputs = parseInput(givenArgs, spec.schema?.input);
+      // again where it arrives. Arguments that can't even be read fail the call like invalid ones.
+      let inputs: ReturnType<typeof parseInput>;
+      try {
+        inputs = parseInput(givenArgs, spec.schema?.input);
+      } catch (error) {
+        reader.reject(ResolveError.invalidInput((error as Error).message));
+        return;
+      }
       if (!inputs.success) {
         reader.reject(ResolveError.invalidInput(inputs.error));
         return;
@@ -818,8 +824,16 @@ export function intercept(
       result.close();
     };
 
+    // A stream that already ended settles the caller the same way: closing it would turn a failure
+    // into a success.
     if (result.status !== IRPC_STATUS.PENDING) {
-      reader.close();
+      if (result.status === IRPC_STATUS.ERROR) {
+        // The caller gets the error; the handler's own rejected state is then handled, not left loose.
+        result.catch(() => undefined);
+        reader.reject(result.error);
+      } else {
+        reader.close();
+      }
       return reader;
     }
 
@@ -833,11 +847,13 @@ export function intercept(
 
     result
       .pipeTo(reader)
+      .then(
+        () => reader.close(),
+        (error: Error) => reader.reject(error)
+      )
       .finally(() => {
-        reader.close();
         signal?.removeEventListener('abort', abortAll);
-      })
-      .catch((_err) => {});
+      });
   } catch (error) {
     reader.reject(error as Error);
     signal?.removeEventListener('abort', abort);

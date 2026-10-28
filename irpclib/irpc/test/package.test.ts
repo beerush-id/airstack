@@ -959,6 +959,63 @@ describe('IRPCPackage', () => {
       await expect(() => hello()).rejects.toThrow('Hello World');
     });
 
+    it.each([
+      [
+        'rejects later',
+        () => stream((_s, _resolve, reject) => void setTimeout(() => reject(new Error('Failed')), 5), {}),
+      ],
+      ['rejects at once', () => stream((_s, _resolve, reject) => reject(new Error('Failed')), {})],
+      [
+        'throws',
+        () =>
+          stream(() => {
+            throw new Error('Failed');
+          }, {}),
+      ],
+    ])('rejects the caller of a local stream that %s, with its error and status', async (name, handler) => {
+      for (const keepAlive of [false, true]) {
+        const failing = rpc.declare<() => RemoteState<Record<string, never>>>({
+          name: `failingStream-${name}-${keepAlive}`,
+          stream: true,
+          keepAlive,
+          seed: () => ({}),
+        });
+        rpc.construct(failing, handler as never);
+
+        const call = failing();
+        const failed = expect(call).rejects.toThrow('Failed');
+        await vi.advanceTimersByTimeAsync(5);
+
+        await failed;
+        expect(call.status).toBe(IRPC_STATUS.ERROR);
+      }
+    });
+
+    it('resolves the caller of a local stream that ends well, with its data', async () => {
+      const done = rpc.declare<() => RemoteState<{ n: number }>>({
+        name: 'endingStream',
+        stream: true,
+        seed: () => ({ n: 0 }),
+      });
+      rpc.construct(done, () =>
+        stream<{ n: number }>(
+          (state, resolve) => {
+            setTimeout(() => {
+              state.data.n = 2;
+              resolve();
+            }, 5);
+          },
+          { n: 1 }
+        )
+      );
+
+      const call = done();
+      await vi.advanceTimersByTimeAsync(5);
+
+      await expect(call).resolves.toEqual({ n: 2 });
+      expect(call.status).toBe(IRPC_STATUS.SUCCESS);
+    });
+
     it('should return an IRPCReader when handler is a local stream', async () => {
       const hello = rpc.declare<(name: string) => RemoteState<{ message: string }>>({
         name: 'helloLocalStream',

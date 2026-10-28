@@ -265,6 +265,33 @@ describe('IRPC Duplex (ask / answer)', () => {
       return { irpc, transport, router };
     }
 
+    it.each([
+      [
+        'rejects later',
+        () => stream((_s, _resolve, reject) => void setTimeout(() => reject(new Error('Failed')), 5), {}),
+      ],
+      ['rejects at once', () => stream((_s, _resolve, reject) => reject(new Error('Failed')), {})],
+      [
+        'throws',
+        () =>
+          stream(() => {
+            throw new Error('Failed');
+          }, {}),
+      ],
+    ])('rejects the caller of a stream that %s over transport, with its error', async (name, handler) => {
+      const { irpc } = setupRemote(`failing-${name.replace(/\s/g, '-')}`);
+      const failing = irpc.declare<() => RemoteState<Record<string, never>>>({
+        name: 'failing',
+        seed: () => ({}),
+        stream: true,
+        keepAlive: true,
+        coalesce: false,
+      });
+      irpc.construct(failing, handler as never);
+
+      await expect(failing()).rejects.toThrow('Failed');
+    });
+
     it('allows server to ask client and receive answer over transport', async () => {
       type AIQueries = {
         getState: () => { app: string };
