@@ -18,6 +18,10 @@
       "types": "./dist/context.d.ts",
       "import": "./dist/context.js"
     },
+    "./path": {
+      "types": "./dist/utils/path.d.ts",
+      "import": "./dist/utils/path.js"
+    },
     "./adapter": {
       "types": "./dist/adapter.d.ts",
       "import": "./dist/adapter.js"
