@@ -123,6 +123,8 @@ export type GetReportFn = (reportId: string) => Promise<IRPCBlob | undefined>;
 export const getReport = irpc.declare<GetReportFn>('report.get');
 ```
 
+An `IRPCBlob` is a pointer: the server never holds the binary, only the caller loads it. Give it a URL the caller can reach (a temporary signed URL, for example). Where it is made, it can't be awaited: a handler, `async` or not, returns it as is, and awaiting it on the server gives the blob back without loading anything. It becomes awaitable when it reaches the caller, remotely or in a local call, so `await getReport(id)` on the caller loads the content.
+
 ---
 
 ## Return Types & Initial Seed Data
