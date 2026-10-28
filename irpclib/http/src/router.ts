@@ -348,16 +348,15 @@ export class HTTPRouter extends IRPCRouter {
         return reply(message.id, { result: { tools: this.getTools() } });
       case 'tools/call': {
         const name = message.params?.name as string;
-        const pkg = [...this.packages].find((pkg) => pkg.get(name)?.mcp);
-        const options = pkg?.get(name)?.mcp;
-        if (!pkg || !options) return reply(message.id, { error: { code: -32602, message: `Unknown tool: ${name}` } });
+        const tool = this.toolOf(name);
+        if (!tool) return reply(message.id, { error: { code: -32602, message: `Unknown tool: ${name}` } });
 
         const result = await this.answerOf(
           {
-            name,
+            name: tool.spec.name,
             id: crypto.randomUUID(),
-            args: toArgs(message.params?.arguments as Record<string, unknown>, options === true ? undefined : options.args),
-            package: pkg.info,
+            args: this.argsOf(name, message.params?.arguments as Record<string, unknown>)!,
+            package: tool.pkg.info,
           },
           context,
           builder
@@ -632,23 +631,6 @@ export class HTTPRouter extends IRPCRouter {
       });
     }
   }
-}
-
-/**
- * Turns a tool's input object into the function's arguments: each named value into its position when
- * the arguments are named, otherwise the object itself as the one argument. Trailing omitted arguments
- * are dropped, so optional ones stay absent rather than undefined.
- *
- * @param input - The tool input object, as the agent sent it
- * @param names - The positional argument names from the function's mcp options, if any
- * @returns The arguments to call the function with
- */
-function toArgs(input: Record<string, unknown> = {}, names?: string[]): unknown[] {
-  if (!names) return [input];
-
-  const args = names.map((name) => input[name]);
-  while (args.length && args[args.length - 1] === undefined) args.pop();
-  return args;
 }
 
 /**

@@ -83,13 +83,13 @@ describe('HTTPRouter resolveMcp', () => {
     const response = await router.resolveMcp(rpc({ id: 3, method: 'tools/list' }));
     const { result } = await response.json();
 
-    expect(result.tools.map((tool: { name: string }) => tool.name)).toEqual(['fs.read', 'fs.copy', 'fs.open']);
+    expect(result.tools.map((tool: { name: string }) => tool.name)).toEqual(['files.fs.read', 'files.fs.copy', 'files.fs.open']);
     expect(result.tools[1].inputSchema).toMatchObject({ required: ['src', 'dest'] });
   });
 
   it('calls a tool that takes one object with the arguments as that object', async () => {
     const response = await router.resolveMcp(
-      rpc({ id: 4, method: 'tools/call', params: { name: 'fs.read', arguments: { path: '~/a.txt' } } })
+      rpc({ id: 4, method: 'tools/call', params: { name: 'files.fs.read', arguments: { path: '~/a.txt' } } })
     );
 
     expect(await response.json()).toEqual({
@@ -101,7 +101,7 @@ describe('HTTPRouter resolveMcp', () => {
 
   it('calls a tool with named arguments in their positions, and returns object results as structured content', async () => {
     const response = await router.resolveMcp(
-      rpc({ id: 5, method: 'tools/call', params: { name: 'fs.copy', arguments: { dest: '~/b', src: '~/a' } } })
+      rpc({ id: 5, method: 'tools/call', params: { name: 'files.fs.copy', arguments: { dest: '~/b', src: '~/a' } } })
     );
 
     expect(await response.json()).toEqual({
@@ -117,7 +117,7 @@ describe('HTTPRouter resolveMcp', () => {
 
   it('returns a blob result as a link to its content, resolved against the request', async () => {
     const response = await router.resolveMcp(
-      rpc({ id: 9, method: 'tools/call', params: { name: 'fs.open', arguments: { path: '/a.png' } } })
+      rpc({ id: 9, method: 'tools/call', params: { name: 'files.fs.open', arguments: { path: '/a.png' } } })
     );
 
     expect(await response.json()).toEqual({
@@ -140,7 +140,7 @@ describe('HTTPRouter resolveMcp', () => {
 
   it('reports a failing tool as a tool error, so the model can see it', async () => {
     const response = await router.resolveMcp(
-      rpc({ id: 6, method: 'tools/call', params: { name: 'fs.read', arguments: { path: '~/missing' } } })
+      rpc({ id: 6, method: 'tools/call', params: { name: 'files.fs.read', arguments: { path: '~/missing' } } })
     );
     const { result } = await response.json();
 
@@ -150,13 +150,13 @@ describe('HTTPRouter resolveMcp', () => {
 
   it('refuses functions that are not tools, as unknown tools', async () => {
     const response = await router.resolveMcp(
-      rpc({ id: 7, method: 'tools/call', params: { name: 'fs.internal', arguments: {} } })
+      rpc({ id: 7, method: 'tools/call', params: { name: 'files.fs.internal', arguments: {} } })
     );
 
     expect(await response.json()).toEqual({
       jsonrpc: '2.0',
       id: 7,
-      error: { code: -32602, message: 'Unknown tool: fs.internal' },
+      error: { code: -32602, message: 'Unknown tool: files.fs.internal' },
     });
   });
 
