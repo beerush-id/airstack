@@ -22,7 +22,7 @@ import {
   setup,
   template,
 } from '@airlib/react';
-import type { ComponentType, FocusEvent, KeyboardEvent, PointerEvent, ReactNode } from 'react';
+import type { ComponentType, FocusEvent, HTMLAttributes, KeyboardEvent, PointerEvent, ReactNode, UIEvent } from 'react';
 import { $families, auiConfig, type ComponentStyles, OMIT_KEYS } from '../config.js';
 import {
   CloseIcon,
@@ -139,6 +139,12 @@ export type WindowPartProps = ComponentStyles & {
   children?: ReactNode;
 };
 
+export type WindowPanelProps = WindowPartProps &
+  Omit<HTMLAttributes<HTMLDivElement>, 'className' | 'color' | 'children'> & {
+    /** Frosted glass (`glass`, the default), or a solid surface for what's read or judged on it. */
+    surface?: 'glass' | 'solid';
+  };
+
 export type WindowButtonProps = ComponentStyles & {
   disabled?: boolean;
   'aria-label'?: string;
@@ -224,6 +230,7 @@ const CLASS = {
   SIDEBAR_TRACK: `${WINDOW}-sidebar-track`,
   SIDEBAR_RESIZER: `${WINDOW}-sidebar-resizer`,
   CONTENT: `${WINDOW}-content`,
+  PANEL: `${WINDOW}-panel`,
   LAYOUTS: `${WINDOW}-layouts`,
   LAYOUT_GROUP: `${WINDOW}-layouts-group`,
   LAYOUT_LABEL: `${WINDOW}-layouts-label`,
@@ -555,6 +562,27 @@ export const WindowSidebarLabel = template<WindowPartProps>(
 );
 
 /**
+ * A panel of your own on the window's glass, for a body you lay out yourself — a list beside a
+ * view, a picture above a timeline: frosted (`glass`, the default) or solid, with the corners of
+ * the window's panels. It is a surface, so pressing it never moves the window. Size and place it
+ * in your layout; it scrolls what overflows it. It is a tab stop, so the keyboard reaches and
+ * scrolls it; give it a `tabIndex` of your own to change that.
+ */
+export const WindowPanel = template<WindowPanelProps>(
+  (props) => (
+    <div
+      {...props.$omit(['className', 'children', 'surface'])}
+      tabIndex={props.tabIndex ?? 0}
+      data-window-surface="true"
+      className={`${$families(CLASS.PANEL, props)} ${props.surface === 'solid' ? AUI_CLASS.GLASS_SURFACE : AUI_CLASS.GLASS_PANEL}`}
+    >
+      {props.children}
+    </div>
+  ),
+  'WindowPanel'
+);
+
+/**
  * The window's main content on a solid panel, inset from the window's edges
  * with corners that follow the window's. Your content scrolls inside it, and
  * under a toolbar floating over it, fading as it goes. It is a surface, so
@@ -567,7 +595,9 @@ export const WindowContent = template<WindowPartProps>(
       data-window-surface="true"
       className={$families(CLASS.CONTENT, props)}
     >
-      <div className={CLASS.SCROLL}>{props.children}</div>
+      <div ref={settle} className={CLASS.SCROLL} onScroll={lift}>
+        {props.children}
+      </div>
     </div>
   ),
   'WindowContent'
@@ -804,4 +834,37 @@ function sidebarWidthVar(state?: WindowProps): { ref: (element: HTMLElement | nu
 function buttonClass(styles: ComponentStyles, children?: ReactNode): string {
   const families = $families([AUI_CLASS.CONTROL, AUI_CLASS.BUTTON, CLASS.BUTTON], styles, auiConfig.windowButton);
   return children ? families : `${families} ${AUI_CLASS.CONTROL_ICON}`;
+}
+
+/**
+ * Measures the scroller as it appears, so a view coming in at its top starts with the toolbar down.
+ *
+ * @param scroller - The content's scroller, once mounted.
+ */
+function settle(scroller: HTMLDivElement | null): void {
+  if (scroller) liftBy(scroller);
+}
+
+/**
+ * Follows the content's scroll with the toolbar's lift.
+ *
+ * @param event - The scroller's scroll.
+ */
+function lift(event: UIEvent<HTMLDivElement>): void {
+  liftBy(event.currentTarget);
+}
+
+/**
+ * Tells the window's body how far its content has scrolled beneath the floating toolbar, as
+ * `--aui-window-lift`: 0 at the top, 1 once it has scrolled the toolbar's height, which the
+ * toolbar's lift fades by. Read from the scroller itself, so content that stops scrolling — a
+ * shorter view swapped in — lands the toolbar back down, which a scroll timeline doesn't do.
+ *
+ * @param scroller - The content's scroller.
+ */
+function liftBy(scroller: HTMLElement): void {
+  const body = scroller.closest<HTMLElement>(`.${CLASS.BODY}`);
+  const toolbar = body?.querySelector<HTMLElement>(`:scope > .${CLASS.TOOLBAR}`);
+  if (!body || !toolbar) return;
+  body.style.setProperty('--aui-window-lift', String(Math.min(scroller.scrollTop / toolbar.offsetHeight, 1)));
 }

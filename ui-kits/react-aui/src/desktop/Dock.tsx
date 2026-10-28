@@ -204,7 +204,7 @@ export const Dock = setup<DockProps, DockSlots>((props, slots) => {
  * surface inside — for what's sent with the prompt: a model, a size, a reference. It sizes to its
  * content, shares the dock's `Tab` loop, and publishes its height so the answers above the dock
  * keep clear of it. The window's `dockExtensions` draws everything inside; nothing shows while
- * the front window has none, or no window is in front.
+ * the front window has none, no window is in front, or its `dockExtensions` draws nothing.
  */
 export const DockExtensions = setup(
   () => () => (

@@ -5,7 +5,7 @@ import type { Timeline, TimelineSegment, TimelineTrack } from '@airlib/react/tim
 import type { KeyboardEvent, MouseEvent, ReactNode } from 'react';
 import { $families, auiConfig, type ComponentStyles, OMIT_KEYS } from '../config.js';
 import { AudioFileIcon, AutoAwesomeIcon, DraftIcon, FormatAlignLeftIcon, ImageIcon, MovieIcon } from '../icons/index.js';
-import { formatTime, playheadSlider } from '../utils/time.js';
+import { formatTime, holdWhileDragging, playheadSlider } from '../utils/time.js';
 
 export type TimelineEditorSlots = {
   /** Content of each clip, replacing its picture and name. */
@@ -37,6 +37,13 @@ export type TimelineEditorProps = ComponentStyles & {
    * nothing else is near. Off by default.
    */
   snap?: boolean;
+  /** Takes focus as it appears, on its first track, so its keys — Space to play — work at once. */
+  autofocus?: boolean;
+  /**
+   * Work under way on a clip, from 0 to 1 — its media buffering, say, or the clip being generated:
+   * a bar along the clip fills as it goes, and the clip reads as busy. Nothing while there's none.
+   */
+  progress?: (segment: TimelineSegment) => number | undefined;
   /** Hears the pick change: the value as it is now. */
   onchange?: (event: CustomEvent<string | string[]>) => void;
 };
@@ -69,6 +76,7 @@ const CLASS = {
   CLIP: branded('timeline-clip'),
   CLIP_NAME: branded('timeline-clip-name'),
   CLIP_EDGE: branded('timeline-clip-edge'),
+  CLIP_PROGRESS: branded('timeline-clip-progress'),
   PLAYHEAD: branded('timeline-playhead'),
   PLAYHEAD_HANDLE: branded('timeline-playhead-handle'),
 };
@@ -147,6 +155,7 @@ export const TimelineEditor = setup<TimelineEditorProps, TimelineEditorSlots>((p
   clips.refine(pointerFocusOnly);
   const className = () => $families(AUI_CLASS.TIMELINE_EDITOR, { className: props.className }, auiConfig.timelineEditor);
   const tracks = () => [...props.timeline.tracks];
+  const focusLane = (lane: HTMLElement | null) => lane?.focus({ preventScroll: true });
 
   // Letting go of the picked clip: Escape on a clip, which hands the keys back to its track, or a
   // press anywhere off the clips and the ruler, which seeks without dropping the pick.
@@ -197,12 +206,13 @@ export const TimelineEditor = setup<TimelineEditorProps, TimelineEditorSlots>((p
             </div>
             <div
               ref={clips.ref}
-              {...clips.restProps([...OMIT_KEYS, 'timeline', 'zoom', 'playheadLabel', 'snap'] as never)}
+              {...clips.restProps([...OMIT_KEYS, 'timeline', 'zoom', 'playheadLabel', 'snap', 'autofocus', 'progress'] as never)}
               className={CLASS.LANES}
             >
               <For each={tracks}>
                 {(track) => (
                   <div
+                    ref={props.autofocus && track.id === tracks()[0]?.id ? focusLane : undefined}
                     className={`${CLASS.LANE} ${AUI_CLASS.SCALE}-${laneKind(track.type).color}`}
                     data-type={track.type}
                     data-track={track.id}
@@ -212,7 +222,7 @@ export const TimelineEditor = setup<TimelineEditorProps, TimelineEditorSlots>((p
                   >
                     <For each={() => [...track.segments]}>
                       {(segment) => (
-                        <TimelineClip segment={segment} track={track}>
+                        <TimelineClip segment={segment} track={track} progress={props.progress}>
                           {slots.clip?.(segment, track)}
                         </TimelineClip>
                       )}
@@ -258,6 +268,7 @@ const TimelineRuler = setup<TimelineRulerProps>((props) => {
   );
   // The editor takes the playhead's keys itself, so the scrub is for the pointer alone.
   scrub.refine(pointerFocusOnly);
+  const hold = holdWhileDragging(() => props.timeline);
   const every = () => TIME_STEPS.find((seconds) => seconds * props.zoom >= TIME_GAP) ?? TIME_STEPS.at(-1)!;
   // Frames go in steps that divide a second, so every second lands on a tick.
   const minor = () => {
@@ -278,6 +289,7 @@ const TimelineRuler = setup<TimelineRulerProps>((props) => {
         {...scrub.restProps([...OMIT_KEYS] as never)}
         aria-label={props.label ?? 'Playhead'}
         className={CLASS.SCRUB}
+        onPointerDownCapture={hold}
       >
         <For each={marks}>
           {(seconds) => (
@@ -295,7 +307,14 @@ const TimelineRuler = setup<TimelineRulerProps>((props) => {
  * One clip: a segment at its start and length on its lane, pickable like any listbox option.
  * Without content of its own it shows the segment's picture — `meta.thumbnail` — and its name.
  */
-const TimelineClip = setup<{ segment: TimelineSegment; track: TimelineTrack; children?: ReactNode }>((props) => {
+type TimelineClipProps = {
+  segment: TimelineSegment;
+  track: TimelineTrack;
+  progress?: (segment: TimelineSegment) => number | undefined;
+  children?: ReactNode;
+};
+
+const TimelineClip = setup<TimelineClipProps>((props) => {
   // A clip stands for one segment for its whole life; its id is what the selection holds.
   const id = $static(() => props.segment.id);
   const clip = aria(CLIP_ROLE, { value: id } as AnyType);
@@ -304,12 +323,14 @@ const TimelineClip = setup<{ segment: TimelineSegment; track: TimelineTrack; chi
   return () => {
     const { segment } = props;
     const thumbnail = segment.meta?.thumbnail as string | undefined;
+    const progress = props.progress?.(segment);
 
     return (
       <div
         ref={clip.ref}
         {...clip.restProps([...OMIT_KEYS] as never)}
         aria-label={`${segment.name ?? 'Clip'}, ${formatTime(segment.startTime)} to ${formatTime(segment.startTime + segment.totalTime)}`}
+        aria-busy={progress === undefined ? undefined : 'true'}
         className={CLASS.CLIP}
         data-type={props.track.type}
         data-segment={id}
@@ -318,9 +339,11 @@ const TimelineClip = setup<{ segment: TimelineSegment; track: TimelineTrack; chi
           '--aui-timeline-span': String(segment.totalTime),
           '--aui-timeline-thumbnail': thumbnail ? `url("${thumbnail}")` : undefined,
           '--aui-timeline-wave': props.track.type === 'audio' ? wave : undefined,
+          '--aui-timeline-progress': progress === undefined ? undefined : String(progress),
         })}
       >
         {props.children ?? <span className={CLASS.CLIP_NAME}>{segment.name}</span>}
+        {progress !== undefined && <span className={CLASS.CLIP_PROGRESS} aria-hidden="true" />}
         {/* Its edges, to resize it from either end. */}
         <span className={CLASS.CLIP_EDGE} data-edge="start" aria-hidden="true" />
         <span className={CLASS.CLIP_EDGE} data-edge="end" aria-hidden="true" />

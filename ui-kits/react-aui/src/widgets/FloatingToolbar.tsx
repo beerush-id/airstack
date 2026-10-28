@@ -1,5 +1,5 @@
 import { AUI_CLASS, COLORS, register, VARIANTS } from '@airlib/aui/utils';
-import { effect, renderDynamic, setup, uIndex } from '@airlib/react';
+import { effect, mutable, renderDynamic, setup, uIndex } from '@airlib/react';
 import { LIVE_SELECTION } from '@airlib/react/browser';
 import type { MouseEvent, ReactNode } from 'react';
 import { $class, auiConfig, type ComponentStyles } from '../config.js';
@@ -34,18 +34,21 @@ const FLOATING_TOOLBAR_SYMBOL = Symbol('aui-floating-toolbar');
 export const FloatingToolbar = setup<FloatingToolbarProps>((props) => {
   const anchorName = `--aui-floating-toolbar-${uIndex(FLOATING_TOOLBAR_SYMBOL, true)}`;
   let scope: Element | null = null;
+  // Until it's mounted, the toolbar doesn't know its scope, so it can't tell which selections are its own.
+  const where = mutable({ located: false });
   // The element lending its anchor, and the anchor names it had before.
   let lender: { element: HTMLElement; names: string } | undefined;
 
   // Where the toolbar lives decides whether it is limited to a scope or free.
   const locate = (anchor: HTMLElement | null) => {
     scope = anchor?.parentElement?.closest(SCOPE) ?? null;
+    where.located = !!anchor;
   };
 
   // The selection, while a non-empty one lies where the toolbar may act.
   const selected = () => {
     const { size, rect, target } = LIVE_SELECTION;
-    if (props.disabled || !size || !rect || !target) return;
+    if (!where.located || props.disabled || !size || !rect || !target) return;
     if (scope && !scope.contains(target)) return;
     return { rect, target: target as HTMLElement };
   };
@@ -91,10 +94,16 @@ export const FloatingToolbar = setup<FloatingToolbarProps>((props) => {
     }
   };
 
+  // A selection in a text field is the field's own, so it's collapsed there; any other, in the document.
   const dismiss = (event: KeyboardEvent) => {
     if (event.key !== 'Escape') return;
     event.preventDefault();
-    (event.currentTarget as HTMLElement).ownerDocument.getSelection()?.collapseToEnd();
+    const target = selected()?.target;
+    if (target instanceof HTMLTextAreaElement || target instanceof HTMLInputElement) {
+      target.setSelectionRange(target.selectionEnd, target.selectionEnd);
+    } else {
+      (event.currentTarget as HTMLElement).ownerDocument.getSelection()?.collapseToEnd();
+    }
   };
 
   return () => {

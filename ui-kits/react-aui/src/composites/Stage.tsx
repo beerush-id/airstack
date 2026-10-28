@@ -1,11 +1,11 @@
-import { aria, type VideoClipFrame, type VideoStageAria } from '@airlib/aria';
+import { aria, type VideoClipFrame, type VideoMediaFit, type VideoMediaLoader, type VideoStageAria } from '@airlib/aria';
 import { AUI_CLASS, branded, register } from '@airlib/aui/utils';
 import { $static, type AnyType, renderDynamic, setup, Snippet } from '@airlib/react';
 import type { Timeline, TimelineSegment } from '@airlib/react/timeline';
 import type { HTMLAttributes, KeyboardEvent, ReactNode } from 'react';
 import { $families, auiConfig, type ComponentStyles, OMIT_KEYS } from '../config.js';
 import { PauseIcon, PlayArrowIcon } from '../icons/index.js';
-import { formatTime, playheadSlider } from '../utils/time.js';
+import { formatTime, holdWhileDragging, playheadSlider } from '../utils/time.js';
 import { Button } from '../widgets/Button.js';
 import { FullscreenButton } from '../widgets/FullscreenButton.js';
 import { fullscreenHostCtx } from '../widgets/index.js';
@@ -33,6 +33,11 @@ export type StageProps = ComponentStyles & {
    * video. Needs HTML-in-Canvas (`canCaptureVideo()`); without it the clips are shown as they are.
    */
   capture?: boolean;
+  /**
+   * Opens the media clips name by `media`, with your decoder: each frame's picture drawn exactly,
+   * and every clip's sound on one clock, so nothing drifts.
+   */
+  media?: VideoMediaLoader;
   /** Whether the transport shows under the picture. Defaults to true. */
   controls?: boolean;
   /** How far J and L jump, in seconds. */
@@ -61,6 +66,13 @@ export type StageClipProps<P extends Record<string, AnyType> = Record<string, An
   draw?: (frame: VideoClipFrame<P>) => unknown;
   /** Media and image source. */
   src?: string;
+  /**
+   * Media the stage decodes with its `media` loader, by address: its pictures drawn into the clip
+   * frame by frame — render the clip `as="canvas"` — and its sound played on the stage's clock.
+   */
+  media?: string;
+  /** How decoded media's picture fills the clip's box. Defaults to `cover`. */
+  fit?: VideoMediaFit;
   /** Lets media and images from another origin be read back while capturing. */
   crossOrigin?: '' | 'anonymous' | 'use-credentials';
   /** Mutes a media clip. */
@@ -75,7 +87,7 @@ export type StageClipProps<P extends Record<string, AnyType> = Record<string, An
 const SLIDER_ROLE = 'slider';
 const STAGE_ROLE = 'video-stage';
 const CLIP_ROLE = 'video-clip';
-const CLIP_OMIT_KEYS = [...OMIT_KEYS, 'segment', 'as', 'offset', 'draw'] as never[];
+const CLIP_OMIT_KEYS = [...OMIT_KEYS, 'segment', 'as', 'offset', 'draw', 'media', 'fit'] as never[];
 
 const CLASS = {
   CANVAS: branded('stage-canvas'),
@@ -106,7 +118,11 @@ export const Stage = setup<StageProps>((props) => {
   const className = () => $families(AUI_CLASS.STAGE, { className: props.className }, auiConfig.stage);
   const labels = () => ({ ...LABELS, ...props.labels });
   const capture = $static(() => !!props.capture);
-  const stage = aria(STAGE_ROLE, props as AnyType, { timeline: $static(() => props.timeline), capture });
+  const stage = aria(STAGE_ROLE, props as AnyType, {
+    timeline: $static(() => props.timeline),
+    capture,
+    media: $static(() => props.media),
+  });
   let root: HTMLDivElement | null = null;
 
   // The stage is what its fullscreen button fills the screen with.
@@ -222,6 +238,7 @@ export const StageClip = setup<StageClipProps>((props) => {
  */
 const StageScrubber = setup<{ timeline: Timeline; label: string }>((props) => {
   const scrubber = aria(SLIDER_ROLE, playheadSlider(() => props.timeline));
+  const hold = holdWhileDragging(() => props.timeline);
 
   return () => (
     <div
@@ -229,6 +246,7 @@ const StageScrubber = setup<{ timeline: Timeline; label: string }>((props) => {
       {...scrubber.restProps([...OMIT_KEYS] as never)}
       aria-label={props.label}
       className={CLASS.SCRUBBER}
+      onPointerDownCapture={hold}
     />
   );
 }, 'StageScrubber');
