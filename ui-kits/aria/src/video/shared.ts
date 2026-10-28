@@ -1,7 +1,19 @@
 import { createContext } from '@airlib/core';
+import type { TimelineSegment } from '@airlib/core/timeline';
 import type { VideoStageAria } from './stage.js';
 
 export const videoStageCtx = createContext<VideoStageAria>();
+
+/**
+ * Whether a segment is left off the stage — neither drawn nor heard — because it, or its whole
+ * track, is disabled: a hidden track.
+ *
+ * @param segment - The segment.
+ * @returns Whether it's left off.
+ */
+export function isSegmentOff(segment: TimelineSegment): boolean {
+  return !!(segment.disabled || segment.track.disabled);
+}
 
 /**
  * A piece of media a clip plays, decoded by whatever the app provides — the stage needs no decoder

@@ -5,6 +5,7 @@ import type { AriaAttributes, AriaOptions, AriaProps, BaseElement } from '../typ
 import {
   MEDIA_CATCHUP,
   MEDIA_DRIFT,
+  isSegmentOff,
   PAINTED_OPACITY,
   settleAll,
   VIDEO_CLIP,
@@ -169,13 +170,15 @@ export class VideoClipAria<
     const element = this.element as HTMLElement | null;
     if (!element) return;
 
-    const on = isSegmentOn(this.segment, frame);
+    // A hidden track's clips are off the stage throughout.
+    const off = isSegmentOff(this.segment);
+    const on = !off && isSegmentOn(this.segment, frame);
     this.showing = on;
     if (!on) {
       if (element instanceof HTMLMediaElement && !element.paused) element.pause();
       // Coming up soon: on stage at its first frame, painted but unseen, so it shows without a flicker.
       const ahead = this.segment.startFrame - frame;
-      if (ahead > 0 && ahead <= (this.stage?.preroll ?? 0)) return this.prime(element);
+      if (!off && ahead > 0 && ahead <= (this.stage?.preroll ?? 0)) return this.prime(element);
       this.primed = false;
       this.reveal(element, false);
       return;

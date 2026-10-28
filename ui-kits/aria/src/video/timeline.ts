@@ -59,6 +59,12 @@ export interface VideoTimelineOptions extends AriaOptions {
    * cuts into the content rather than sliding it. Clips are free unless it says so.
    */
   sourced?: (segment: TimelineSegment) => boolean;
+
+  /**
+   * Whether a clip is locked — on a locked track, say — so it can't be picked, moved, or resized,
+   * nor moves along with the picked clips. Clips are free unless it says so.
+   */
+  locked?: (segment: TimelineSegment) => boolean;
 }
 
 /** A clip being moved: its segment, its element, and where it started before the move. */
@@ -84,7 +90,7 @@ type Moving = { segment: TimelineSegment; clip?: HTMLElement | null; from: numbe
  * (`contentFrames`). While moving or resizing, clips are marked `data-dragging` and carry
  * their new start and length in seconds as `--aria-timeline-start` and `--aria-timeline-span`,
  * ahead of any re-render; the segments and what's shown at the current time move with them.
- * Escape puts them back.
+ * Escape puts them back. A clip `locked` says is locked is left alone: not picked, moved, or resized.
  *
  * The keys act on what has focus, and come to it before anything inside handles them. Space plays
  * or pauses. Left and Right move the playhead by a second — or move a focused clip, with every
@@ -182,7 +188,7 @@ export class VideoTimelineAria<
       if (event.button !== 0 || !this.zoom) return;
       const clip = (event.target as Element).closest<HTMLElement>('[data-segment]');
       const segment = clip && element.contains(clip) ? this.segmentOf(clip.dataset.segment) : undefined;
-      if (!clip || !segment) return;
+      if (!clip || !segment || this.isLocked(segment)) return;
       const edge = (event.target as Element).closest<HTMLElement>('[data-edge]')?.dataset.edge;
       if (edge === 'start' || edge === 'end') this.resize(event, segment, clip, edge);
       else this.drag(event, segment);
@@ -211,7 +217,9 @@ export class VideoTimelineAria<
     event.preventDefault();
     event.stopPropagation();
 
-    if (this.dragged) {
+    if (this.isLocked(segment)) {
+      this.dragged = false;
+    } else if (this.dragged) {
       this.dragged = false;
       if (!this.picked.includes(segment.id)) this.pickOnly(segment);
     } else if (this.properties.multiple && (event.metaKey || event.ctrlKey)) {
@@ -267,7 +275,7 @@ export class VideoTimelineAria<
         break;
       }
       case 'Enter':
-        if (!segment || !this.options.selection) return;
+        if (!segment || !this.options.selection || this.isLocked(segment)) return;
         if (this.properties.multiple) this.toggle(segment);
         else this.pickOnly(segment);
         break;
@@ -526,8 +534,18 @@ export class VideoTimelineAria<
     const ids = this.picked.includes(segment.id) ? this.picked : [segment.id];
     return ids
       .map((id) => this.segmentOf(id))
-      .filter((each): each is TimelineSegment => !!each)
+      .filter((each): each is TimelineSegment => !!each && !this.isLocked(each))
       .map((each) => ({ segment: each, clip: this.clipOf(each), from: each.startFrame }));
+  }
+
+  /**
+   * Whether a clip is locked against picking and editing.
+   *
+   * @param segment - The clip's segment.
+   * @returns Whether it's locked.
+   */
+  protected isLocked(segment: TimelineSegment): boolean {
+    return !!this.options.locked?.(segment);
   }
 
   /**

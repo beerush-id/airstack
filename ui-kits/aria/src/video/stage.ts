@@ -5,6 +5,7 @@ import type { VideoClipAria } from './clip.js';
 import {
   PAINT_TIMEOUT,
   SOUND_DRIFT,
+  isSegmentOff,
   settleAll,
   VIDEO_HEIGHT,
   VIDEO_PREROLL,
@@ -366,6 +367,7 @@ export class VideoStageAria<
 
     const frameRate = this.timeline.frameRate;
     const segment = clip.segment;
+    if (isSegmentOff(segment)) return;
     const latency = (audio.outputLatency || audio.baseLatency || 0) * frameRate * speed;
     const heard = this.heard() + latency;
     const from = Math.max(heard, segment.startFrame);

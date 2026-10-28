@@ -159,6 +159,8 @@ export class StepperAria<
     });
 
     stepperCtx.set(this as unknown as StepperAria);
+    // The field is what a tooltip inside it describes: hovering or focusing anywhere in it shows one.
+    this.markActionable();
     this.update();
   }
 
