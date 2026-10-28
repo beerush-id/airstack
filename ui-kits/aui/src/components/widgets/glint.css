@@ -4,7 +4,36 @@
  * hover and out where the pointer left. It reads the `--pointer-*` variables
  * a part writes with `trackPointer`, and needs a positioned host that is its
  * own stacking context (glass already is, through its backdrop filter).
+ *
+ * The `--pointer-*` variables don't inherit: a surface writes them every frame the pointer moves,
+ * and inherited they'd restyle everything inside it each time. The glint's own layers take them
+ * from the surface explicitly; nothing else inside reads them.
  */
+@property --pointer-x {
+  syntax: '*';
+  inherits: false;
+}
+
+@property --pointer-y {
+  syntax: '*';
+  inherits: false;
+}
+
+@property --pointer-fx {
+  syntax: '*';
+  inherits: false;
+}
+
+@property --pointer-fy {
+  syntax: '*';
+  inherits: false;
+}
+
+@property --pointer-angle {
+  syntax: '*';
+  inherits: false;
+}
+
 @layer theme {
   :root {
     --aui-glint-size: calc(var(--spacing) * 60);
@@ -41,6 +70,9 @@
   .aui-glint {
     &::before,
     &::after {
+      --pointer-x: inherit;
+      --pointer-y: inherit;
+      --pointer-angle: inherit;
       content: '';
       position: absolute;
       pointer-events: none;
