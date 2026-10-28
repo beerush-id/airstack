@@ -38,8 +38,46 @@ export class IRPCRouter {
    */
   public getTools(): IRPCTool[] {
     return [...this.packages].flatMap((pkg) =>
-      [...pkg.entries()].map(([name]) => pkg.get(name)!).filter((spec) => spec.mcp).map(toTool)
+      [...pkg.entries()]
+        .map(([name]) => pkg.get(name)!)
+        .filter((spec) => spec.mcp)
+        .map((spec) => toTool(`${pkg.config.name}.${spec.name}`, spec))
     );
+  }
+
+  /**
+   * Turns a tool's input object into the function's arguments: each named value into its position
+   * when the tool names its arguments (`mcp.args`), otherwise the object itself as the one argument.
+   * Trailing omitted arguments are dropped, so optional ones stay absent rather than undefined.
+   *
+   * @param name - The tool's name, as `getTools()` gives it (`package.function`).
+   * @param input - The tool input object, as the agent sent it.
+   * @returns The arguments to call the function with, or undefined when no tool has that name.
+   */
+  public argsOf(name: string, input: Record<string, unknown> = {}): unknown[] | undefined {
+    const tool = this.toolOf(name);
+    if (!tool) return;
+
+    const names = tool.spec.mcp === true ? undefined : tool.spec.mcp?.args;
+    if (!names) return [input];
+
+    const args = names.map((arg) => input[arg]);
+    while (args.length && args[args.length - 1] === undefined) args.pop();
+    return args;
+  }
+
+  /**
+   * Finds the function a tool name stands for, among the functions marked `mcp`.
+   *
+   * @param name - The tool's name (`package.function`).
+   * @returns The function's package and spec, or undefined when no tool has that name.
+   */
+  public toolOf(name: string): { pkg: IRPCPackage; spec: IRPCSpec<IRPCInputs, IRPCOutput> } | undefined {
+    const dot = name.indexOf('.');
+    const pkgName = name.slice(0, dot);
+    const pkg = [...this.packages].find((pkg) => pkg.config.name === pkgName);
+    const spec = pkg?.get(name.slice(dot + 1));
+    return pkg && spec?.mcp ? { pkg, spec } : undefined;
   }
 
   /**
@@ -167,10 +205,11 @@ type DescribedSchema = { type?: string; toJSONSchema?: () => Record<string, unkn
  * Describes a function as an MCP tool. The JSON Schema comes from the schemas themselves, so irpc
  * needs no schema library of its own.
  *
+ * @param name - The tool's name (`package.function`).
  * @param spec - The function's spec, marked `mcp`.
  * @returns The tool description.
  */
-function toTool(spec: IRPCSpec<IRPCInputs, IRPCOutput>): IRPCTool {
+function toTool(name: string, spec: IRPCSpec<IRPCInputs, IRPCOutput>): IRPCTool {
   const options: MCPOptions = spec.mcp === true || !spec.mcp ? {} : spec.mcp;
   const description = options.description ?? spec.description;
   const annotations: IRPCTool['annotations'] = {};
@@ -179,7 +218,7 @@ function toTool(spec: IRPCSpec<IRPCInputs, IRPCOutput>): IRPCTool {
   }
 
   return {
-    name: spec.name,
+    name,
     ...(options.title ? { title: options.title } : {}),
     ...(description ? { description } : {}),
     inputSchema: toInputSchema(spec.name, spec.schema?.input, options.args),

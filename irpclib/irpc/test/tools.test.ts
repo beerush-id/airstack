@@ -95,11 +95,11 @@ describe('IRPCPackage functions by name', () => {
   });
 
   describe('tools', () => {
-    it('gives every declared function as its stub, by name', () => {
+    it('gives every declared function as its stub, by package and function name', () => {
       const copy = irpc.declare<(src: string, dest: string) => Promise<boolean>>('fs.copy');
       const stat = irpc.declare<(path: string) => Promise<number>>('fs.stat', { mcp: { readOnlyHint: true } });
 
-      expect(irpc.tools()).toEqual({ 'fs.copy': copy, 'fs.stat': stat });
+      expect(irpc.tools()).toEqual({ 'tools.fs.copy': copy, 'tools.fs.stat': stat });
     });
 
     it('gives stubs that are called like any stub', async () => {
@@ -109,7 +109,7 @@ describe('IRPCPackage functions by name', () => {
       irpc.construct(copy, async (src, dest) => `${src} -> ${dest}`);
       const tools = Object.assign({}, irpc.tools());
 
-      await expect(tools['fs.copy']?.('~/a', '~/b')).resolves.toBe('~/a -> ~/b');
+      await expect(tools['tools.fs.copy']?.('~/a', '~/b')).resolves.toBe('~/a -> ~/b');
     });
   });
 });
@@ -135,7 +135,7 @@ describe('IRPCRouter getTools', () => {
 
     expect(new IRPCRouter(transport).getTools()).toEqual([
       {
-        name: 'fs.read',
+        name: 'files.fs.read',
         description: 'Reads a text file.',
         inputSchema: {
           type: 'object',
@@ -145,7 +145,7 @@ describe('IRPCRouter getTools', () => {
         },
         annotations: { readOnlyHint: true },
       },
-      { name: 'notes.list', description: 'Lists notes.', inputSchema: { type: 'object', properties: {} } },
+      { name: 'notes.notes.list', description: 'Lists notes.', inputSchema: { type: 'object', properties: {} } },
     ]);
   });
 
@@ -157,7 +157,7 @@ describe('IRPCRouter getTools', () => {
     });
 
     expect(new IRPCRouter(transport).getTools()[0]).toMatchObject({
-      name: 'fs.remove',
+      name: 'files.fs.remove',
       title: 'Delete file',
       description: 'Moves a file to the trash.',
       annotations: { destructiveHint: true },
@@ -206,6 +206,18 @@ describe('IRPCRouter getTools', () => {
     expect(() => new IRPCRouter(transport).getTools()).toThrow(
       'IRPC "math.add" takes positional arguments, so its mcp options must name them (args).'
     );
+  });
+
+  it('turns a tool input object into the function’s arguments', () => {
+    files.declare<(src: string, dest: string, opt?: object) => Promise<boolean>>('fs.copy', {
+      mcp: { args: ['src', 'dest', 'opt'] },
+    });
+    files.declare<(input: { path: string }) => Promise<string>>('fs.read', { mcp: true });
+    const router = new IRPCRouter(transport);
+
+    expect(router.argsOf('files.fs.copy', { dest: '~/b', src: '~/a' })).toEqual(['~/a', '~/b']);
+    expect(router.argsOf('files.fs.read', { path: '~/a' })).toEqual([{ path: '~/a' }]);
+    expect(router.argsOf('files.fs.missing', {})).toBeUndefined();
   });
 
   it('refuses names that do not match the input schemas', () => {

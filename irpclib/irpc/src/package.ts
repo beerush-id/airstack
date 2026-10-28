@@ -469,13 +469,15 @@ export class IRPCPackage<K extends string = 'id'> {
   }
 
   /**
-   * Every declared function as its stub keyed by name, so a caller can collect them into its own
-   * tool set and call them like any stub.
+   * Every declared function as its stub keyed by `package.function`, so a caller can collect the
+   * tools of several packages into one tool set and call them like any stub.
    *
-   * @returns The stubs by name, in declaration order.
+   * @returns The stubs by tool name, in declaration order.
    */
   public tools(): Record<string, IRPCHandler> {
-    return Object.fromEntries(this.functions);
+    const tools: Record<string, IRPCHandler> = {};
+    for (const [name, stub] of this.functions) tools[`${this.config.name}.${name}`] = stub;
+    return tools;
   }
 
   /**
