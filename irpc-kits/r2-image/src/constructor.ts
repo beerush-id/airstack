@@ -1,4 +1,4 @@
-import { credential, getContext, GuardError, HandlerError, type IRPCFile, plan, stream } from '@irpclib/irpc';
+import { credential, envCtx, GuardError, HandlerError, type IRPCFile, plan, stream } from '@irpclib/irpc';
 import { anchor } from '@irpclib/irpc/core';
 import { imageModule, info, remove, upload } from './index.js';
 import { resizeImage, resolveBucket, resolveResizer } from './lib/resizer.js';
@@ -37,7 +37,7 @@ export function implement<Env extends ImageWorkerEnv = ImageWorkerEnv>(
   imageModule.guard(async (req) => {
     /* istanbul ignore else */
     if (req.name === 'image.upload' || req.name === 'image.delete') {
-      const env = getContext<ImageWorkerEnv>('env');
+      const env = envCtx.get() as ImageWorkerEnv | undefined;
 
       /* istanbul ignore else */
       if (env?.R2_IMAGE_API_KEY) {
@@ -105,7 +105,7 @@ export function implement<Env extends ImageWorkerEnv = ImageWorkerEnv>(
  * @throws {HandlerError} If environment context is missing
  */
 function requireWorkerEnv<Env extends ImageWorkerEnv>(): Env {
-  const env = getContext<Env>('env');
+  const env = envCtx.get() as Env | undefined;
   if (!env) {
     throw HandlerError.failed(
       'Worker environment context is missing: execution requires valid Cloudflare Worker bindings'

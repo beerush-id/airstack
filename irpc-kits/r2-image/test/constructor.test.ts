@@ -1,4 +1,4 @@
-import { createContextStore, IRPCFile, setContext, withContext } from '@irpclib/irpc';
+import { createContextStore, envCtx, IRPCFile, withContext } from '@irpclib/irpc';
 import { Transformer } from '@napi-rs/image';
 import { describe, expect, it } from 'vitest';
 import { implement } from '../src/constructor.js';
@@ -71,7 +71,7 @@ describe('constructor implement() & workflow', () => {
         RESIZER: 'http://localhost:8080',
       };
 
-      setContext('env', mockEnv);
+      envCtx.set(mockEnv);
       implement({ variantPrefix: '.variants/' });
 
       const rawBuffer = await createTestImage(100, 100);
@@ -103,7 +103,7 @@ describe('constructor implement() & workflow', () => {
         RESIZER: 'http://localhost:8080',
       };
 
-      setContext('env', mockEnv);
+      envCtx.set(mockEnv);
       implement({ variantPrefix: '.variants/' });
 
       await mockBucket.put('test/image.png', new Uint8Array([1, 2, 3]));

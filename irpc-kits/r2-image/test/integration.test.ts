@@ -1,6 +1,7 @@
 import {
   createContextStore,
   createCredentials,
+  envCtx,
   IRPC_BASE_CONTEXT,
   IRPCFile,
   setContext,
@@ -160,7 +161,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
           IMAGES: mockBucket as unknown as R2Bucket,
           RESIZER: createContainerResizer(),
         };
-        setContext('env', env);
+        envCtx.set(env);
 
         const rawImage = await createTestImage(800, 800);
         const avatarFile = new IRPCFile(
@@ -200,7 +201,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
         createWorker({
           sizes: [{ width: 200, height: 200, format: 'webp' }],
         });
-        setContext('env', {
+        envCtx.set({
           IMAGES: mockBucket as unknown as R2Bucket,
           RESIZER: createContainerResizer(),
         });
@@ -240,7 +241,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
         createWorker({
           sizes: [{ width: 200, height: 200, format: 'webp' }],
         });
-        setContext('env', {
+        envCtx.set({
           IMAGES: mockBucket as unknown as R2Bucket,
           RESIZER: createContainerResizer(),
         });
@@ -276,7 +277,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
         createWorker({
           sizes: [{ width: 150, height: 150, format: 'webp' }],
         });
-        setContext('env', {
+        envCtx.set({
           IMAGES: mockBucket as unknown as R2Bucket,
           RESIZER: createContainerResizer(),
         });
@@ -307,7 +308,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
       await withContext(createContextStore(), async () => {
         const mockBucket = createMockBucket();
         createWorker();
-        setContext('env', {
+        envCtx.set({
           IMAGES: mockBucket as unknown as R2Bucket,
           RESIZER: createContainerResizer(),
         });
@@ -345,7 +346,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
           IMAGES: mockBucket as unknown as R2Bucket,
           RESIZER: createContainerResizer(),
         };
-        setContext('env', env);
+        envCtx.set(env);
 
         const rawImage = await createTestImage(800, 800);
         const avatarFile = new IRPCFile(
@@ -386,7 +387,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
           IMAGES: mockBucket as unknown as R2Bucket,
           RESIZER: createContainerResizer(),
         };
-        setContext('env', env);
+        envCtx.set(env);
 
         const rawImage = await createTestImage(600, 400);
         const file = new IRPCFile(
@@ -419,7 +420,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
           IMAGES: mockBucket as unknown as R2Bucket,
           RESIZER: createContainerResizer(),
         };
-        setContext('env', env);
+        envCtx.set(env);
 
         const rawImage = await createTestImage(400, 400);
         const file = new IRPCFile(
@@ -450,7 +451,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
           IMAGES: mockBucket as unknown as R2Bucket,
           RESIZER: createContainerResizer(),
         };
-        setContext('env', env);
+        envCtx.set(env);
 
         const rawImage = await createTestImage(800, 600);
         const file = new IRPCFile(
@@ -475,7 +476,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
       await withContext(createContextStore(), async () => {
         const mockBucket = createMockBucket();
         createWorker();
-        setContext('env', {
+        envCtx.set({
           IMAGES: mockBucket as unknown as R2Bucket,
           RESIZER: createContainerResizer(),
         });
@@ -498,7 +499,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
       await withContext(createContextStore(), async () => {
         const mockBucket = createMockBucket();
         createWorker();
-        setContext('env', {
+        envCtx.set({
           IMAGES: mockBucket as unknown as R2Bucket,
           RESIZER: createContainerResizer(),
         });
@@ -524,7 +525,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
       await withContext(createContextStore(), async () => {
         const mockBucket = createMockBucket();
         createWorker();
-        setContext('env', {
+        envCtx.set({
           IMAGES: mockBucket as unknown as R2Bucket,
           RESIZER: createContainerResizer(),
         });
@@ -548,7 +549,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
       await withContext(createContextStore(), async () => {
         const mockBucket = createMockBucket();
         createWorker();
-        setContext('env', {
+        envCtx.set({
           IMAGES: mockBucket as unknown as R2Bucket,
           RESIZER: createContainerResizer(),
         });
@@ -569,7 +570,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
       await withContext(createContextStore(), async () => {
         const mockBucket = createMockBucket();
         createWorker();
-        setContext('env', {
+        envCtx.set({
           IMAGES: mockBucket as unknown as R2Bucket,
           RESIZER: createContainerResizer(),
         });
@@ -764,7 +765,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
           IMAGES: mockBucket as unknown as R2Bucket,
           RESIZER: createContainerResizer(),
         };
-        setContext('env', env);
+        envCtx.set(env);
 
         const redPixels = new Uint8Array(400 * 400 * 4);
         for (let i = 0; i < redPixels.length; i += 4) {
@@ -831,7 +832,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
           IMAGES: mockBucket as unknown as R2Bucket,
           RESIZER: createContainerResizer(),
         };
-        setContext('env', env);
+        envCtx.set(env);
 
         const rawA = await createTestImage(200, 200);
         const fileA = new IRPCFile(
@@ -863,7 +864,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
       await withContext(createContextStore(), async () => {
         const mockBucket = createMockBucket();
         createWorker();
-        setContext('env', {
+        envCtx.set({
           IMAGES: mockBucket as unknown as R2Bucket,
           RESIZER: createContainerResizer(),
         });
@@ -901,7 +902,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
       await withContext(createContextStore(), async () => {
         const mockBucket = createMockBucket();
         createWorker();
-        setContext('env', {
+        envCtx.set({
           IMAGES: mockBucket as unknown as R2Bucket,
           RESIZER: createContainerResizer(),
         });
@@ -930,7 +931,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
       await withContext(createContextStore(), async () => {
         const mockBucket = createMockBucket();
         createWorker();
-        setContext('env', {
+        envCtx.set({
           IMAGES: mockBucket as unknown as R2Bucket,
           RESIZER: createContainerResizer(),
         });
@@ -944,7 +945,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
       await withContext(createContextStore(), async () => {
         const mockBucket = createMockBucket();
         createWorker();
-        setContext('env', {
+        envCtx.set({
           IMAGES: mockBucket as unknown as R2Bucket,
           RESIZER: createContainerResizer(),
         });
@@ -972,7 +973,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
       await withContext(createContextStore(), async () => {
         const mockBucket = createMockBucket();
         createWorker();
-        setContext('env', {
+        envCtx.set({
           IMAGES: mockBucket as unknown as R2Bucket,
           RESIZER: createContainerResizer(),
         });
@@ -1011,7 +1012,7 @@ describe('User Journey: Media Asset Lifecycle', () => {
       await withContext(createContextStore(), async () => {
         const mockBucket = createMockBucket();
         createWorker();
-        setContext('env', {
+        envCtx.set({
           IMAGES: mockBucket as unknown as R2Bucket,
           RESIZER: createContainerResizer(),
         });
@@ -1076,7 +1077,7 @@ describe('User Journey: Platform Security and Access Control', () => {
         RESIZER: createContainerResizer(),
         R2_IMAGE_API_KEY: 'admin-secret-token',
       };
-      setContext('env', env);
+      envCtx.set(env);
 
       const rawImage = await createTestImage(100, 100);
       const file = new IRPCFile(

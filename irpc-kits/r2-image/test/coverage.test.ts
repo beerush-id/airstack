@@ -1,4 +1,4 @@
-import { createContextStore, IRPCFile, setContext, withContext } from '@irpclib/irpc';
+import { createContextStore, envCtx, IRPCFile, withContext } from '@irpclib/irpc';
 import { Transformer } from '@napi-rs/image';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { implement } from '../src/constructor.js';
@@ -574,7 +574,7 @@ describe('Coverage: Edge Cases & Boundary Handling', () => {
           IMAGES: mockBucket as unknown as R2Bucket,
           RESIZER: 'http://localhost:8080',
         };
-        setContext('env', env);
+        envCtx.set(env);
         createWorker();
 
         const brokenFile = new IRPCFile({ name: 'broken.png', size: 10, type: 'image/png' }, {
@@ -599,7 +599,7 @@ describe('Coverage: Edge Cases & Boundary Handling', () => {
           IMAGES: mockBucket as unknown as R2Bucket,
           RESIZER: 'http://localhost:8080',
         };
-        setContext('env', env);
+        envCtx.set(env);
         createWorker();
 
         const namedFile = new IRPCFile(
@@ -649,7 +649,7 @@ describe('Coverage: Edge Cases & Boundary Handling', () => {
             fetch: async () => new Response(rawImage as never, { headers: { 'content-type': 'image/webp' } }),
           },
         };
-        setContext('env', env);
+        envCtx.set(env);
         createWorker();
 
         const file = new IRPCFile(
@@ -677,7 +677,7 @@ describe('Coverage: Edge Cases & Boundary Handling', () => {
             fetch: async () => new Response(rawImage as never, { headers: { 'content-type': 'image/webp' } }),
           },
         };
-        setContext('env', env);
+        envCtx.set(env);
 
         // Worker configured with sizes alias and allowedSizes whitelist
         createWorker({
@@ -709,7 +709,7 @@ describe('Coverage: Edge Cases & Boundary Handling', () => {
             fetch: async () => new Response(rawImage as never, { headers: { 'content-type': 'image/webp' } }),
           },
         };
-        setContext('env', env);
+        envCtx.set(env);
 
         createWorker({
           allowedSizes: [{ name: 'thumb', width: 64, height: 64 }],
@@ -809,7 +809,7 @@ describe('Coverage: Edge Cases & Boundary Handling', () => {
             },
           },
         };
-        setContext('env', env);
+        envCtx.set(env);
 
         const worker = createWorker({
           sizes: [

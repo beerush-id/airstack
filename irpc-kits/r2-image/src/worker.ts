@@ -1,4 +1,5 @@
 import { HTTPRouter } from '@irpclib/http/router';
+import { envCtx } from '@irpclib/irpc';
 import { implement } from './constructor.js';
 import { IMAGE_OPTIONS, transport } from './index.js';
 import { handleImageDelivery } from './lib/index.js';
@@ -49,7 +50,7 @@ export function createWorker<Env extends ImageWorkerEnv = ImageWorkerEnv>(
       // 3. IRPC Operations Plane (only POST to endpoint)
       if (request.method === 'POST' && url.pathname === endpoint) {
         return router.resolve(request, [
-          ['env', env],
+          [envCtx.key, env],
           ['config', config],
         ]);
       }
