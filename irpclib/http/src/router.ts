@@ -7,8 +7,10 @@ import {
   IRPC_PACKET_TYPE,
   IRPC_STATUS,
   IRPC_STORE,
+  type IRPCBlobPointer,
   type IRPCData,
   type IRPCPackage,
+  isBlobPointer,
   type IRPCPacketAnswer,
   type IRPCPacketEvent,
   type IRPCPacketStream,
@@ -52,6 +54,17 @@ export type HTTPResolveConfig = {
  * Custom response builder to override default response creation
  */
 export type HTTPResponseBuilder = (body: BodyInit, init: ResponseInit) => Response;
+
+/** The MCP protocol version answered when the client doesn't name one. */
+export const MCP_PROTOCOL_VERSION = '2025-06-18';
+
+/** One JSON-RPC message from an MCP client; a message without an id is a notification. */
+export type MCPMessage = {
+  jsonrpc: '2.0';
+  id?: string | number | null;
+  method: string;
+  params?: Record<string, unknown>;
+};
 
 /**
  * HTTP router that handles IRPC requests over HTTP transport
@@ -259,31 +272,17 @@ export class HTTPRouter extends IRPCRouter {
     };
 
     try {
-      const result = {} as IRPCPacketStream<IRPCData>;
-      const response = this.resolveRequests([this.config.resolver(req, this.packageOf(req))], context, builder);
-      const packets = (await response.text())
-        .split('\n')
-        .filter(Boolean)
-        .map((line) => JSON.parse(line) as IRPCPacketStream<IRPCData>);
-
-      for (const packet of packets) {
-        if (packet.type === IRPC_PACKET_TYPE.EVENT) {
-          replay.any(result, (packet as IRPCPacketEvent).data);
-          continue;
-        }
-
-        Object.assign(result, packet);
-      }
+      const result = await this.answerOf(req, context, builder);
 
       if (result.status === IRPC_STATUS.ERROR) {
-        const { error } = result as IRPCPacketAnswer<IRPCData>;
+        const { error } = result;
         return buildResponse(JSON.stringify(error), {
           status: error?.code === RESOLVE_ERROR.NOT_FOUND ? 404 : 500,
           headers: { 'Content-Type': 'application/json' },
         });
       }
 
-      return buildResponse(JSON.stringify((result as IRPCPacketAnswer<IRPCData>).data), {
+      return buildResponse(JSON.stringify(result.data), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       });
@@ -294,6 +293,113 @@ export class HTTPRouter extends IRPCRouter {
         headers: { 'Content-Type': 'application/json' },
       });
     }
+  }
+
+  /**
+   * Resolves MCP requests (Streamable HTTP, JSON responses), so agents outside can call the functions
+   * marked `mcp`. A tool call is translated into a regular call: the tool's arguments become the
+   * function's arguments, the call runs through the same resolver, and its answer becomes the tool result.
+   *
+   * @param req - The incoming HTTP request, one JSON-RPC message
+   * @param context - Optional context to initialize the resolver with
+   * @param builder - Optional custom response builder function
+   * @returns A Response carrying the JSON-RPC reply
+   */
+  public async resolveMcp(
+    req: Request,
+    context: [string | symbol, unknown][] = [],
+    builder?: HTTPResponseBuilder
+  ): Promise<Response> {
+    const buildResponse = (body: BodyInit | null, init: ResponseInit) => {
+      if (builder) return builder(body as BodyInit, init);
+      return new Response(body, init);
+    };
+    const reply = (id: MCPMessage['id'], body: Record<string, unknown>, status = 200) =>
+      buildResponse(JSON.stringify({ jsonrpc: '2.0', id: id ?? null, ...body }), {
+        status,
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+    if (req.method !== 'POST') return buildResponse(null, { status: 405, headers: { Allow: 'POST' } });
+
+    let message: MCPMessage;
+    try {
+      message = await req.json();
+    } catch (error) {
+      return reply(null, { error: { code: -32700, message: (error as Error).message } }, 400);
+    }
+
+    if (message.id === undefined) return buildResponse(null, { status: 202 });
+
+    switch (message.method) {
+      case 'initialize': {
+        const { name, version } = this.module?.info ?? { name: 'irpc', version: '0.0.0' };
+        return reply(message.id, {
+          result: {
+            protocolVersion: message.params?.protocolVersion ?? MCP_PROTOCOL_VERSION,
+            capabilities: { tools: {} },
+            serverInfo: { name, version },
+          },
+        });
+      }
+      case 'ping':
+        return reply(message.id, { result: {} });
+      case 'tools/list':
+        return reply(message.id, { result: { tools: this.getTools() } });
+      case 'tools/call': {
+        const name = message.params?.name as string;
+        const pkg = [...this.packages].find((pkg) => pkg.get(name)?.mcp);
+        const options = pkg?.get(name)?.mcp;
+        if (!pkg || !options) return reply(message.id, { error: { code: -32602, message: `Unknown tool: ${name}` } });
+
+        const result = await this.answerOf(
+          {
+            name,
+            id: crypto.randomUUID(),
+            args: toArgs(message.params?.arguments as Record<string, unknown>, options === true ? undefined : options.args),
+            package: pkg.info,
+          },
+          context,
+          builder
+        );
+        return reply(message.id, { result: toToolResult(result, req.url) });
+      }
+      default:
+        return reply(message.id, { error: { code: -32601, message: `Method not found: ${message.method}` } });
+    }
+  }
+
+  /**
+   * Runs one call through the resolver and collects its packets into the final answer, so callers
+   * outside the IRPC protocol get a plain result.
+   *
+   * @param req - The IRPC request to run
+   * @param context - Optional context to initialize the resolver with
+   * @param builder - Optional custom response builder function
+   * @returns The call's final answer, with stream events applied to its data
+   */
+  private async answerOf(
+    req: IRPCRequest,
+    context: [string | symbol, unknown][] = [],
+    builder?: HTTPResponseBuilder
+  ): Promise<IRPCPacketAnswer<IRPCData>> {
+    const result = {} as IRPCPacketStream<IRPCData>;
+    const response = this.resolveRequests([this.config.resolver(req, this.packageOf(req))], context, builder);
+    const packets = (await response.text())
+      .split('\n')
+      .filter(Boolean)
+      .map((line) => JSON.parse(line) as IRPCPacketStream<IRPCData>);
+
+    for (const packet of packets) {
+      if (packet.type === IRPC_PACKET_TYPE.EVENT) {
+        replay.any(result, (packet as IRPCPacketEvent).data);
+        continue;
+      }
+
+      Object.assign(result, packet);
+    }
+
+    return result as IRPCPacketAnswer<IRPCData>;
   }
 
   /**
@@ -526,4 +632,48 @@ export class HTTPRouter extends IRPCRouter {
       });
     }
   }
+}
+
+/**
+ * Turns a tool's input object into the function's arguments: each named value into its position when
+ * the arguments are named, otherwise the object itself as the one argument. Trailing omitted arguments
+ * are dropped, so optional ones stay absent rather than undefined.
+ *
+ * @param input - The tool input object, as the agent sent it
+ * @param names - The positional argument names from the function's mcp options, if any
+ * @returns The arguments to call the function with
+ */
+function toArgs(input: Record<string, unknown> = {}, names?: string[]): unknown[] {
+  if (!names) return [input];
+
+  const args = names.map((name) => input[name]);
+  while (args.length && args[args.length - 1] === undefined) args.pop();
+  return args;
+}
+
+/**
+ * Turns a call's answer into an MCP tool result. A failed call is a tool error the model can read,
+ * not a protocol error; a blob is a link to its content, not the content; an object result is also
+ * given as structured content.
+ *
+ * @param answer - The call's final answer
+ * @param base - The request URL, which a blob's relative URL resolves against
+ * @returns The MCP tool result
+ */
+function toToolResult(answer: IRPCPacketAnswer<IRPCData>, base: string) {
+  if (answer.status === IRPC_STATUS.ERROR) {
+    return { content: [{ type: 'text', text: answer.error?.message ?? 'The tool failed.' }], isError: true };
+  }
+
+  const { data } = answer;
+  if (isBlobPointer(data)) {
+    const { url, meta } = data as unknown as IRPCBlobPointer;
+    const uri = new URL(url, base).href;
+    const link = { type: 'resource_link', uri, name: meta?.name ?? uri, mimeType: meta?.type, size: meta?.size };
+    return { content: [link], isError: false };
+  }
+
+  const text = typeof data === 'string' ? data : JSON.stringify(data ?? null);
+  const structured = data !== null && typeof data === 'object' && !Array.isArray(data);
+  return { content: [{ type: 'text', text }], ...(structured ? { structuredContent: data } : {}), isError: false };
 }
