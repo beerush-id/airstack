@@ -2,6 +2,16 @@
 @import './item.css';
 
 @layer component {
+  /* A text trigger, as a text button: the color in its words alone, a tint under it on hover. */
+  .aui-select-trigger-text {
+    color: var(--aui-control-bg);
+    background-color: transparent;
+
+    &:hover:not(:disabled, [aria-disabled='true']) {
+      background-color: color-mix(in oklch, var(--aui-control-bg) var(--tone-elevation-low), var(--light-up));
+    }
+  }
+
   .aui-select-trigger {
     min-inline-size: 0;
     max-inline-size: 100%;

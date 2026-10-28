@@ -274,6 +274,28 @@
     white-space: nowrap;
   }
 
+  /* Work under way on a clip: a bar along its foot, filling as it goes, over a faint track of what's left. */
+  .aui-timeline-clip-progress {
+    position: absolute;
+    inset-inline: var(--spacing-xs);
+    inset-block-end: 3px;
+    block-size: 3px;
+    border-radius: 999px;
+    background: color-mix(in oklch, currentColor 25%, transparent);
+    pointer-events: none;
+
+    &::before {
+      content: '';
+      position: absolute;
+      inset-block: 0;
+      inset-inline-start: 0;
+      inline-size: calc(var(--aui-timeline-progress, 0) * 100%);
+      border-radius: inherit;
+      background: currentColor;
+      transition: inline-size var(--duration-short) linear;
+    }
+  }
+
   .aui-timeline-clip[data-type='audio'] > .aui-timeline-clip-name {
     padding: 0 var(--spacing-xs);
     border-radius: var(--radius-xs);

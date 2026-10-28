@@ -126,6 +126,11 @@
     position: absolute;
   }
 
+  /* An app with nothing to offer for what's in front right now shows no pane, nor its tile, at all. */
+  .aui-dock-float:has(.aui-dock-extensions:empty) {
+    display: none;
+  }
+
   /* Its own glass pane, shaped like the dock, with the glass's standard rim around the surface, as a window has. */
   .aui-dock-float-frame {
     --aui-glass-radius: calc(var(--aui-control-height) / 2 + var(--aui-dock-padding));

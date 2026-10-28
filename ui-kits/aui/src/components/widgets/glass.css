@@ -73,9 +73,16 @@
   .aui-glass-panel,
   .aui-window-sidebar-panel {
     background-color: color-mix(in oklch, var(--aui-glass-bg) var(--aui-glass-panel-tint), transparent);
-    outline: 1px solid var(--aui-glass-edge);
+    /* A pane's own edge, when what holds it gives one — e.g. a focused window panel — or the glass edge. */
+    outline: 1px solid var(--aui-glass-panel-edge, var(--aui-glass-edge));
     outline-offset: -1px;
     box-shadow: var(--aui-glass-lift);
+
+    /* The edge is drawn as an outline, so a pane that takes focus rings there instead, inside its edge. */
+    &:focus-visible {
+      outline: var(--focus-ring-width) solid var(--focus-ring-color);
+      outline-offset: calc(var(--focus-ring-width) * -1);
+    }
   }
 
   .aui-glass-surface,

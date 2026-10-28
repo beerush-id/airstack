@@ -429,6 +429,35 @@
     transition: border-radius var(--duration-medium) var(--ease-emphasized);
   }
 
+  /*
+   * A panel of your own, sized and placed by your layout: the window's panel corners, its own
+   * scrolling, and nothing taken from where it sits. Being a scroll container, it pans on touch,
+   * and being a tab stop, it scrolls by keyboard too, ringed inside its edge while it has focus.
+   * While focus is anywhere in it, its edge takes a muted primary, so which panel the keys reach
+   * shows at a glance; a glass panel draws its edge itself, so it's handed the color as its edge.
+   */
+  .aui-window-panel {
+    --aui-window-panel-focus-edge: color-mix(in oklch, var(--color-primary) 40%, transparent);
+    box-sizing: border-box;
+    min-inline-size: 0;
+    min-block-size: 0;
+    overflow: auto;
+    border-radius: var(--aui-window-panel-radius);
+    corner-shape: inherit;
+    touch-action: auto;
+
+    &:focus-within {
+      --aui-glass-panel-edge: var(--aui-window-panel-focus-edge);
+      outline: 1px solid var(--aui-window-panel-focus-edge);
+      outline-offset: -1px;
+    }
+
+    &:focus-visible {
+      outline: var(--focus-ring-width) solid var(--focus-ring-color);
+      outline-offset: calc(var(--focus-ring-width) * -1);
+    }
+  }
+
   /* The panel keeps its surface and corners; its scroller moves the content. */
   .aui-window-content {
     display: flex;
@@ -455,40 +484,21 @@
   }
 
   /*
-   * Once the content scrolls beneath it, the floating toolbar lifts off it: a highlight along its
-   * lower edge and a soft shadow, fading in over the first toolbar's height of scroll. The scroller lends its scroll position
-   * to the body, so the toolbar beside it can follow. Without scroll-driven animations, the bar
-   * simply has no shadow.
+   * Once the content scrolls beneath it, the floating toolbar lifts off it: the light catching its
+   * lower edge and a soft shadow on the content, fading in over the first toolbar's height of
+   * scroll. The scroller writes how far it has gone to the body, as `--aui-window-lift`; only while
+   * the content panel is there to scroll.
    */
-  @supports (animation-timeline: scroll()) {
-    .aui-window-body:has(> .aui-window-toolbar) {
-      timeline-scope: --aui-window-scroll;
-
-      & .aui-window-scroll {
-        scroll-timeline: --aui-window-scroll block;
-      }
-
-      & > .aui-window-toolbar {
-        animation: aui-window-toolbar-lift linear both;
-        animation-timeline: --aui-window-scroll;
-        animation-range: 0 var(--aui-window-toolbar-size);
-      }
-    }
-  }
-
-  /* The light catching the bar's lower edge, then its shadow on the content; the inset one comes first so the two pair up while fading. */
-  @keyframes aui-window-toolbar-lift {
-    from {
-      box-shadow:
-        inset 0 -1px 0 transparent,
-        0 0 0 0 transparent;
-    }
-
-    to {
-      box-shadow:
-        inset 0 -1px 0 var(--aui-window-toolbar-edge),
-        var(--aui-window-toolbar-shadow);
-    }
+  .aui-window-body:has(> .aui-window-content) > .aui-window-toolbar::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow:
+      inset 0 -1px 0 var(--aui-window-toolbar-edge),
+      var(--aui-window-toolbar-shadow);
+    opacity: var(--aui-window-lift, 0);
+    pointer-events: none;
   }
 
   /*
