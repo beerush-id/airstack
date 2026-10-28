@@ -15,6 +15,7 @@ export * from './packet.js';
 export * from './reader.js';
 export * from './resolver.js';
 export * from './router.js';
+export * from './session.js';
 export * from './state.js';
 export * from './store.js';
 export * from './stream.js';
