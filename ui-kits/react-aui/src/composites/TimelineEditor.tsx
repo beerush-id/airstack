@@ -18,6 +18,7 @@ import {
 } from '../icons/index.js';
 import { formatTime, holdWhileDragging, playheadSlider } from '../utils/time.js';
 import { Toggle } from '../widgets/Toggle.js';
+import { Reorder, ReorderHandle, ReorderItem } from './Reorder.js';
 
 export type TimelineEditorSlots = {
   /** Content of each clip, replacing its picture and name. */
@@ -110,6 +111,18 @@ const LANE_KINDS: Record<string, LaneKind> = {
 /** Lanes whose clips play their source's time: footage and sound. */
 const SOURCED_LANES = new Set(['video', 'audio']);
 
+/** Lanes heard rather than seen: they sit apart, below the pictures, and stack with nothing. */
+const SOUND_LANES = new Set(['audio']);
+
+/** The two groups of lanes: what's seen, stacked, and what's heard. */
+type TrackGroup = 'picture' | 'sound';
+
+/** The groups top to bottom, each named for screen readers. */
+const TRACK_GROUPS: { group: TrackGroup; label: string }[] = [
+  { group: 'picture', label: 'Picture tracks' },
+  { group: 'sound', label: 'Sound tracks' },
+];
+
 /** A lane carrying anything else: still marked, so every header reads alike. */
 const OTHER_LANE: LaneKind = { icon: DraftIcon, color: 'secondary' };
 
@@ -126,8 +139,10 @@ register('timelineEditor', {});
 /**
  * A composition laid out in time: a ruler with the playhead across the top, one lane per track
  * of a core `Timeline`, and each segment as a clip at its place and length — pictures on video
- * and image lanes, a waveform on audio lanes, words on text lanes. Press or drag the ruler to
- * seek; pick a clip by pointer or with the arrows. It holds no time of its own: the timeline does,
+ * and image lanes, a waveform on audio lanes, words on text lanes. The picture lanes stack as the
+ * stage does — the timeline's last track, drawn over the rest, is the top row — and the sound lanes
+ * sit apart below them; dragging a track by its glyph moves it within its group. Press or drag the ruler to seek; pick a clip by pointer or
+ * with the arrows. It holds no time of its own: the timeline does,
  * so a stage playing the same timeline moves the playhead here, and this playhead moves the stage.
  */
 export const TimelineEditor = setup<TimelineEditorProps, TimelineEditorSlots>((props, slots) => {
@@ -167,8 +182,38 @@ export const TimelineEditor = setup<TimelineEditorProps, TimelineEditorSlots>((p
       locked: (segment) => !!segment.track.meta?.locked,
     }
   );
-  // A track's hiding and locking aren't observed, so what shows them follows this count of changes.
-  const lanes = mutable({ changes: 0 });
+  // A track's hiding, locking and place aren't observed, so what shows them follows this count of
+  // changes. While a track is dragged to a new place, its group's rows follow the order it would
+  // drop into.
+  const lanes = mutable({ changes: 0, preview: [] as string[], moving: null as string | null });
+  // One group's rows as they stand, or as a track being dragged among them would leave them.
+  const rows = (group: TrackGroup): TimelineTrack[] => {
+    void lanes.changes;
+    const all = tracksOf(group);
+    if (!lanes.moving || !all.some((track) => track.id === lanes.moving)) return all;
+    return lanes.preview.map((id) => all.find((track) => track.id === id)).filter((track) => !!track);
+  };
+  const ordered = () => [...rows('picture'), ...rows('sound')];
+  // The first sound lane, set apart from the pictures above it; nothing when either group is empty.
+  const splitAt = () => (tracksOf('picture').length ? tracksOf('sound')[0]?.id : undefined);
+  // A group's order, by id, as a value its reorder list binds to: a drop rebuilds the timeline's
+  // tracks — the sound first, as it stacks with nothing, then the pictures bottom row first, the
+  // order the stage stacks them in — and draws the paused stage again in its new stacking.
+  const orderOf = (group: TrackGroup) => ({
+    get value() {
+      void lanes.changes;
+      return tracksOf(group).map((track) => track.id);
+    },
+    set value(ids: string[]) {
+      const moved = ids.map((id) => tracksOf(group).find((track) => track.id === id)).filter((track) => !!track);
+      const sound = group === 'sound' ? moved : tracksOf('sound');
+      const pictures = group === 'picture' ? moved : tracksOf('picture');
+      props.timeline.tracks.clear();
+      for (const track of [...sound, ...pictures.reverse()]) props.timeline.tracks.add(track);
+      lanes.changes++;
+      if (props.timeline.status !== 'playing') void props.timeline.scrub(props.timeline.frame);
+    },
+  });
   // A track hidden — its `disabled`, so the stage leaves its clips off — or locked — `meta.locked`,
   // so its clips can't be picked or edited — as values a toggle binds to.
   const laneState = (track: TimelineTrack) => ({
@@ -196,7 +241,58 @@ export const TimelineEditor = setup<TimelineEditorProps, TimelineEditorSlots>((p
   clips.refine(pointerFocusOnly);
   const className = () => $families(AUI_CLASS.TIMELINE_EDITOR, { className: props.className }, auiConfig.timelineEditor);
   const tracks = () => [...props.timeline.tracks];
-  const focusLane = (lane: HTMLElement | null) => lane?.focus({ preventScroll: true });
+  // A group's tracks, top to bottom: pictures first, a later track drawing over an earlier one, so
+  // the last is the top row; then sound, which stacks with nothing, in the timeline's order.
+  const tracksOf = (group: TrackGroup) =>
+    group === 'sound'
+      ? tracks().filter((track) => SOUND_LANES.has(track.type ?? ''))
+      : tracks()
+          .reverse()
+          .filter((track) => !SOUND_LANES.has(track.type ?? ''));
+  // Focus goes to the first lane once, as the editor appears: rows that re-render, or a track moved
+  // to the top, never pull it back from where it is.
+  let autofocused = false;
+  const focusLane = (lane: HTMLElement | null) => {
+    if (!lane || autofocused) return;
+    autofocused = true;
+    lane.focus({ preventScroll: true });
+  };
+  // A track's row of names: its glyph — the grip — its name, its lock and its hiding.
+  const trackHeader = (track: TimelineTrack) => {
+    const Icon = laneKind(track.type).icon;
+    const state = laneState(track);
+    return (
+      <ReorderItem value={track.id} label={track.name}>
+        <div className={CLASS.HEADER}>
+          {/* Drag the glyph, or press it and use the arrows, to move the track within its group. */}
+          <ReorderHandle label={`Move ${track.name}`} size="xs" className={AUI_CLASS.CONTROL_ICON}>
+            <Icon aria-hidden="true" />
+          </ReorderHandle>
+          <span className={CLASS.HEADER_NAME}>{track.name}</span>
+          <span className={CLASS.HEADER_ACTIONS}>
+            <Toggle
+              aria-label={`Lock ${track.name}`}
+              variant="text"
+              size="xs"
+              className={AUI_CLASS.CONTROL_ICON}
+              pressed={$bind(state, 'locked')}
+            >
+              {(locked) => (locked ? <LockIcon /> : <LockOpenIcon />)}
+            </Toggle>
+            <Toggle
+              aria-label={`Hide ${track.name}`}
+              variant="text"
+              size="xs"
+              className={AUI_CLASS.CONTROL_ICON}
+              pressed={$bind(state, 'hidden')}
+            >
+              {(hidden) => (hidden ? <VisibilityOffIcon /> : <VisibilityIcon />)}
+            </Toggle>
+          </span>
+        </div>
+      </ReorderItem>
+    );
+  };
 
   // Letting go of the picked clip: Escape on a clip, which hands the keys back to its track, or a
   // press on the lanes off the clips; the ruler, the track names and the corner's settings keep it.
@@ -252,52 +348,36 @@ export const TimelineEditor = setup<TimelineEditorProps, TimelineEditorSlots>((p
               land={(time) => root.snapTime(time)}
               keyframes={keyframes}
             />
+            {/* The track names in two lists, pictures over sound: a track moves within its own group. */}
             <div className={CLASS.HEADERS}>
-              <For each={tracks}>
-                {(track) => {
-                  const Icon = laneKind(track.type).icon;
-                  const state = laneState(track);
-                  return (
-                    <div className={CLASS.HEADER}>
-                      <Icon aria-hidden="true" />
-                      <span className={CLASS.HEADER_NAME}>{track.name}</span>
-                      <span className={CLASS.HEADER_ACTIONS}>
-                        <Toggle
-                          aria-label={`Lock ${track.name}`}
-                          variant="text"
-                          size="xs"
-                          className={AUI_CLASS.CONTROL_ICON}
-                          pressed={$bind(state, 'locked')}
-                        >
-                          {(locked) => (locked ? <LockIcon /> : <LockOpenIcon />)}
-                        </Toggle>
-                        <Toggle
-                          aria-label={`Hide ${track.name}`}
-                          variant="text"
-                          size="xs"
-                          className={AUI_CLASS.CONTROL_ICON}
-                          pressed={$bind(state, 'hidden')}
-                        >
-                          {(hidden) => (hidden ? <VisibilityOffIcon /> : <VisibilityIcon />)}
-                        </Toggle>
-                      </span>
-                    </div>
-                  );
-                }}
-              </For>
+              {TRACK_GROUPS.map(
+                ({ group, label }) =>
+                  tracksOf(group).length > 0 && (
+                    <Reorder
+                      key={group}
+                      label={label}
+                      value={$bind(orderOf(group), 'value')}
+                      preview={$bind(lanes, 'preview')}
+                      active={$bind(lanes, 'moving')}
+                    >
+                      <For each={() => rows(group)}>{(track) => trackHeader(track)}</For>
+                    </Reorder>
+                  )
+              )}
             </div>
             <div
               ref={clips.ref}
               {...clips.restProps([...OMIT_KEYS, 'timeline', 'zoom', 'playheadLabel', 'snap', 'autofocus', 'progress'] as never)}
               className={CLASS.LANES}
             >
-              <For each={tracks}>
+              <For each={ordered}>
                 {(track) => (
                   <div
-                    ref={props.autofocus && track.id === tracks()[0]?.id ? focusLane : undefined}
+                    ref={props.autofocus && track.id === ordered()[0]?.id ? focusLane : undefined}
                     className={`${CLASS.LANE} ${AUI_CLASS.SCALE}-${laneKind(track.type).color}`}
                     data-type={track.type}
                     data-track={track.id}
+                    data-split={track.id === splitAt() || undefined}
                     data-hidden={laneState(track).hidden || undefined}
                     data-locked={laneState(track).locked || undefined}
                     role="group"
