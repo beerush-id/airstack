@@ -278,6 +278,17 @@ import {
   type TooltipOptions,
   type TooltipProps,
 } from './widgets/index.js';
+import {
+  VideoClipAria,
+  type VideoClipOptions,
+  type VideoClipProps,
+  VideoStageAria,
+  type VideoStageOptions,
+  type VideoStageProps,
+  VideoTimelineAria,
+  type VideoTimelineOptions,
+  type VideoTimelineProps,
+} from './video/index.js';
 
 export * from './composites/index.js';
 export * from './context.js';
@@ -294,6 +305,7 @@ export * from './utils/label.js';
 export * from './utils/navigation.js';
 export * from './utils/overlay.js';
 export * from './utils/range.js';
+export * from './video/index.js';
 export * from './widgets/index.js';
 
 /**
@@ -842,6 +854,22 @@ export function aria<E extends BaseElement = HTMLElement>(
   options?: AnnouncerOptions
 ): AnnouncerAria<E>;
 
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'video-stage',
+  props: VideoStageProps | undefined,
+  options: VideoStageOptions
+): VideoStageAria<E>;
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'video-clip',
+  props: VideoClipProps | undefined,
+  options: VideoClipOptions
+): VideoClipAria<E>;
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'video-timeline',
+  props: VideoTimelineProps | undefined,
+  options: VideoTimelineOptions
+): VideoTimelineAria<E>;
+
 export function aria<E extends BaseElement = HTMLElement>(role: 'tree', props?: TreeProps): TreeAria<E>;
 export function aria<E extends BaseElement = HTMLElement>(role: 'tree-item', props?: TreeItemProps): TreeItemAria<E>;
 export function aria<E extends BaseElement = HTMLElement>(role: 'tree-group', props?: TreeGroupProps): TreeGroupAria<E>;
@@ -1190,6 +1218,12 @@ export function aria(role: string, init?: unknown, options?: unknown): unknown {
       return new SectionAria(init as never, options as never);
     case 'announcer':
       return new AnnouncerAria(init as never, options as never);
+    case 'video-stage':
+      return new VideoStageAria(init as never, options as never);
+    case 'video-clip':
+      return new VideoClipAria(init as never, options as never);
+    case 'video-timeline':
+      return new VideoTimelineAria(init as never, options as never);
     default:
       throw new Error(`Unsupported aria role: ${role}`);
   }
