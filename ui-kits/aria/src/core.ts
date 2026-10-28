@@ -427,13 +427,27 @@ export class Aria<
   /** The pointer event waiting for the next frame to be written, if any. */
   private pendingPointer?: PointerEvent;
   private pointerFrame = 0;
+  /** The element's box as last measured, reused while the pointer hovers it without pressing. */
+  private pointerBox?: DOMRect;
+  /** Where the pointer was last written on the element, so a move too small to see writes nothing. */
+  private pointerX = Number.NaN;
+  private pointerY = Number.NaN;
 
   /**
    * Follows the pointer over the element: moves are written at most once a
    * frame, and a press is written at once — touch has no hover, and the
-   * press must land exactly where it happened.
+   * press must land exactly where it happened. The element's box is measured
+   * again whenever it may have moved or changed size since: as the pointer
+   * comes in or leaves, and as a press ends.
    */
   protected trackPointer() {
+    const forget = () => {
+      this.pointerBox = undefined;
+    };
+    this.on('pointerenter', forget);
+    this.on('pointerleave', forget);
+    this.on('pointerup', forget);
+
     this.on('pointermove', (e) => {
       this.pendingPointer = e;
       if (this.pointerFrame) return;
@@ -461,9 +475,15 @@ export class Aria<
     }
     if (!element?.style) return;
 
-    const rect = element.getBoundingClientRect();
+    // Hovering, the box is measured once and reused: measuring it every frame makes the browser
+    // lay the page out again each time. With a button held, the element may be moving with the
+    // pointer — a window dragged by it — so it's measured afresh.
+    const rect = event.buttons || !this.pointerBox ? (this.pointerBox = element.getBoundingClientRect()) : this.pointerBox;
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
+    if (Math.abs(x - this.pointerX) < 1 && Math.abs(y - this.pointerY) < 1) return;
+    this.pointerX = x;
+    this.pointerY = y;
     const angle = (Math.atan2(y - rect.height / 2, x - rect.width / 2) * 180) / Math.PI;
 
     element.style.setProperty('--pointer-x', `${x}px`);
