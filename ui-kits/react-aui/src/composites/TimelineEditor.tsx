@@ -1,11 +1,23 @@
 import { aria } from '@airlib/aria';
 import { AUI_CLASS, branded, register } from '@airlib/aui/utils';
-import { $static, type AnyType, type Bindable, For, Snippet, setup, stylex } from '@airlib/react';
+import { $bind, $static, type AnyType, type Bindable, For, mutable, Snippet, setup, stylex } from '@airlib/react';
 import type { Timeline, TimelineSegment, TimelineTrack } from '@airlib/react/timeline';
-import type { KeyboardEvent, MouseEvent, ReactNode } from 'react';
+import type { KeyboardEvent, MouseEvent, PointerEvent, ReactNode } from 'react';
 import { $families, auiConfig, type ComponentStyles, OMIT_KEYS } from '../config.js';
-import { AudioFileIcon, AutoAwesomeIcon, DraftIcon, FormatAlignLeftIcon, ImageIcon, MovieIcon } from '../icons/index.js';
+import {
+  AudioFileIcon,
+  AutoAwesomeIcon,
+  DraftIcon,
+  FormatAlignLeftIcon,
+  ImageIcon,
+  LockIcon,
+  LockOpenIcon,
+  MovieIcon,
+  VisibilityIcon,
+  VisibilityOffIcon,
+} from '../icons/index.js';
 import { formatTime, holdWhileDragging, playheadSlider } from '../utils/time.js';
+import { Toggle } from '../widgets/Toggle.js';
 
 export type TimelineEditorSlots = {
   /** Content of each clip, replacing its picture and name. */
@@ -69,8 +81,11 @@ const CLASS = {
   RULER: branded('timeline-ruler'),
   SCRUB: branded('timeline-scrub'),
   TICK: branded('timeline-tick'),
+  KEYFRAME: branded('timeline-keyframe'),
   HEADERS: branded('timeline-headers'),
   HEADER: branded('timeline-header'),
+  HEADER_NAME: branded('timeline-header-name'),
+  HEADER_ACTIONS: branded('timeline-header-actions'),
   LANES: branded('timeline-lanes'),
   LANE: branded('timeline-lane'),
   CLIP: branded('timeline-clip'),
@@ -149,8 +164,34 @@ export const TimelineEditor = setup<TimelineEditorProps, TimelineEditorSlots>((p
       selection: { get: picked, set: pick },
       // Footage and sound play their source's time, so trimming their head cuts into it.
       sourced: (segment) => SOURCED_LANES.has(segment.track.type ?? ''),
+      locked: (segment) => !!segment.track.meta?.locked,
     }
   );
+  // A track's hiding and locking aren't observed, so what shows them follows this count of changes.
+  const lanes = mutable({ changes: 0 });
+  // A track hidden — its `disabled`, so the stage leaves its clips off — or locked — `meta.locked`,
+  // so its clips can't be picked or edited — as values a toggle binds to.
+  const laneState = (track: TimelineTrack) => ({
+    get hidden() {
+      void lanes.changes;
+      return !!track.disabled;
+    },
+    set hidden(hidden: boolean) {
+      track.disabled = hidden;
+      lanes.changes++;
+      // The stage draws a frame only as the timeline reaches it; paused, it draws this one again.
+      if (props.timeline.status !== 'playing') void props.timeline.scrub(props.timeline.frame);
+    },
+    get locked() {
+      void lanes.changes;
+      return !!track.meta?.locked;
+    },
+    set locked(locked: boolean) {
+      (track.meta ??= {}).locked = locked;
+      if (locked) pick(picked().filter((id) => ![...track.segments].some((segment) => segment.id === id)));
+      lanes.changes++;
+    },
+  });
   const clips = aria(CLIPS_ROLE, props as AnyType);
   clips.refine(pointerFocusOnly);
   const className = () => $families(AUI_CLASS.TIMELINE_EDITOR, { className: props.className }, auiConfig.timelineEditor);
@@ -158,7 +199,25 @@ export const TimelineEditor = setup<TimelineEditorProps, TimelineEditorSlots>((p
   const focusLane = (lane: HTMLElement | null) => lane?.focus({ preventScroll: true });
 
   // Letting go of the picked clip: Escape on a clip, which hands the keys back to its track, or a
-  // press anywhere off the clips and the ruler, which seeks without dropping the pick.
+  // press on the lanes off the clips; the ruler, the track names and the corner's settings keep it.
+  // The press must start there too: a drag let go over the lanes ends in a click there.
+  const offPick = (target: EventTarget) => {
+    const element = target as Element;
+    return !!element.closest(`.${CLASS.LANES}`) && !element.closest('[data-segment]');
+  };
+  let pressedOff = false;
+  const notePress = (event: PointerEvent<HTMLDivElement>) => {
+    pressedOff = offPick(event.target);
+  };
+  // The picked clips' keyframes, as times on the timeline, for the ruler to mark.
+  const keyframes = (): number[] => {
+    const ids = picked();
+    const rate = props.timeline.frameRate;
+    return tracks()
+      .flatMap((track) => [...track.segments])
+      .filter((segment) => ids.includes(segment.id))
+      .flatMap((segment) => segment.scenes.map((scene) => (segment.startFrame + scene.atFrame) / rate));
+  };
   const releaseOnEscape = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== 'Escape' || !picked().length) return;
     event.preventDefault();
@@ -166,7 +225,7 @@ export const TimelineEditor = setup<TimelineEditorProps, TimelineEditorSlots>((p
     (event.target as Element).closest<HTMLElement>('[data-track]')?.focus();
   };
   const releaseOnPress = (event: MouseEvent<HTMLDivElement>) => {
-    if (picked().length && !(event.target as Element).closest(`[data-segment], .${CLASS.RULER}`)) pick([]);
+    if (pressedOff && picked().length && offPick(event.target)) pick([]);
   };
 
   // Each track is a Tab stop, where the keys move the playhead and Up and Down pick its clips; the
@@ -179,6 +238,7 @@ export const TimelineEditor = setup<TimelineEditorProps, TimelineEditorSlots>((p
       style={stylex({ '--aui-timeline-zoom': `${zoom()}px` })}
       tabIndex={-1}
       onKeyDown={releaseOnEscape}
+      onPointerDownCapture={notePress}
       onClick={releaseOnPress}
     >
       <Snippet>
@@ -190,15 +250,37 @@ export const TimelineEditor = setup<TimelineEditorProps, TimelineEditorSlots>((p
               label={props.playheadLabel}
               zoom={zoom()}
               land={(time) => root.snapTime(time)}
+              keyframes={keyframes}
             />
             <div className={CLASS.HEADERS}>
               <For each={tracks}>
                 {(track) => {
                   const Icon = laneKind(track.type).icon;
+                  const state = laneState(track);
                   return (
                     <div className={CLASS.HEADER}>
                       <Icon aria-hidden="true" />
-                      <span>{track.name}</span>
+                      <span className={CLASS.HEADER_NAME}>{track.name}</span>
+                      <span className={CLASS.HEADER_ACTIONS}>
+                        <Toggle
+                          aria-label={`Lock ${track.name}`}
+                          variant="text"
+                          size="xs"
+                          className={AUI_CLASS.CONTROL_ICON}
+                          pressed={$bind(state, 'locked')}
+                        >
+                          {(locked) => (locked ? <LockIcon /> : <LockOpenIcon />)}
+                        </Toggle>
+                        <Toggle
+                          aria-label={`Hide ${track.name}`}
+                          variant="text"
+                          size="xs"
+                          className={AUI_CLASS.CONTROL_ICON}
+                          pressed={$bind(state, 'hidden')}
+                        >
+                          {(hidden) => (hidden ? <VisibilityOffIcon /> : <VisibilityIcon />)}
+                        </Toggle>
+                      </span>
                     </div>
                   );
                 }}
@@ -216,6 +298,8 @@ export const TimelineEditor = setup<TimelineEditorProps, TimelineEditorSlots>((p
                     className={`${CLASS.LANE} ${AUI_CLASS.SCALE}-${laneKind(track.type).color}`}
                     data-type={track.type}
                     data-track={track.id}
+                    data-hidden={laneState(track).hidden || undefined}
+                    data-locked={laneState(track).locked || undefined}
                     role="group"
                     aria-label={track.name}
                     tabIndex={0}
@@ -245,7 +329,7 @@ export const TimelineEditor = setup<TimelineEditorProps, TimelineEditorSlots>((p
 /**
  * The ruler: the playhead's slider, with a time every second — or every few, when seconds are too
  * close to name — and ticks between them every few frames, as few as keep the ticks apart at this
- * zoom, down to every frame.
+ * zoom, down to every frame. The picked clips' keyframes are marked along it.
  */
 type TimelineRulerProps = {
   timeline: Timeline;
@@ -253,6 +337,8 @@ type TimelineRulerProps = {
   zoom: number;
   /** Where a drag to a time puts the playhead, e.g. a point it snaps to. */
   land?: (time: number) => number;
+  /** The times to mark as keyframes. */
+  keyframes?: () => number[];
 };
 
 const TimelineRuler = setup<TimelineRulerProps>((props) => {
@@ -297,6 +383,9 @@ const TimelineRuler = setup<TimelineRulerProps>((props) => {
               {formatTime(seconds)}
             </span>
           )}
+        </For>
+        <For each={() => props.keyframes?.() ?? []}>
+          {(seconds) => <span className={CLASS.KEYFRAME} style={stylex({ '--aui-timeline-at': String(seconds) })} />}
         </For>
       </div>
     </div>
