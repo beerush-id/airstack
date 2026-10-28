@@ -23,7 +23,7 @@ import { Reorder, ReorderHandle, ReorderItem } from './Reorder.js';
 export type TimelineEditorSlots = {
   /** Content of each clip, replacing its picture and name. */
   clip: (segment: TimelineSegment, track: TimelineTrack) => ReactNode;
-  /** What sits beside the ruler, above the track names: the timeline's own settings, e.g. snapping. */
+  /** What sits beside the ruler, above the track names: e.g. the playhead's timecode. */
   corner: () => ReactNode;
 };
 
@@ -312,7 +312,14 @@ export const TimelineEditor = setup<TimelineEditorProps, TimelineEditorSlots>((p
     return tracks()
       .flatMap((track) => [...track.segments])
       .filter((segment) => ids.includes(segment.id))
-      .flatMap((segment) => segment.scenes.map((scene) => (segment.startFrame + scene.atFrame) / rate));
+      .flatMap((segment) =>
+        // Keyframes sit in the clip's content, from its offset and at its speed; a split clip's
+        // halves share them, each marking only those within it.
+        segment.scenes
+          .map((scene) => segment.startFrame + (scene.atFrame - segment.offsetFrame) / segment.speed)
+          .filter((frame) => frame >= segment.startFrame && frame <= segment.endFrame)
+          .map((frame) => frame / rate)
+      );
   };
   const releaseOnEscape = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== 'Escape' || !picked().length) return;
