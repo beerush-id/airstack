@@ -81,6 +81,9 @@ export type TimelineDelivery = {
 
 const RESOLVED = Promise.resolve();
 
+/** The marker type that makes a marker a page: where a presentation holds. */
+const PAGE_MARKER = 'page';
+
 export type TimelineSnapshot = {
   id: string;
   options: TimelineOptions;
@@ -533,6 +536,16 @@ export class Timeline<P extends Record<string, AnyType> = Record<string, AnyType
       const targetFrame = frameAt(now);
       const maxFrame = this.maxFrame;
 
+      // Playing a page holds at its marker, and settles whoever asked for it there.
+      if (this.hold && targetFrame >= this.hold.frame) {
+        const { frame, resolve } = this.hold;
+        this.hold = undefined;
+        assign(this.state, { frame, time: frameToTime(frame, this.options.frameRate), status: 'idle' });
+        void this.notify().then(resolve);
+        this.frameId = undefined;
+        return;
+      }
+
       if (targetFrame >= maxFrame) {
         const repeat = this.options.repeat;
         const canRepeat =
@@ -673,6 +686,71 @@ export class Timeline<P extends Record<string, AnyType> = Record<string, AnyType
       }
     }
     return RESOLVED;
+  }
+
+  /**
+   * The timeline's pages, in time order: its markers of type `page`. A page runs from the page
+   * before it, or the start, to its own marker, where a presentation holds — so one timeline plays
+   * through as a video, or a page at a time.
+   */
+  public get pages(): TimelineMarker[] {
+    return [...this.markers].filter((marker) => marker.type === PAGE_MARKER).sort((a, b) => a.atFrame - b.atFrame);
+  }
+
+  /**
+   * The page the playhead is on: the last one whose marker it has reached; -1 before the first.
+   */
+  public get page(): number {
+    const frame = this.state.frame;
+    return this.pages.reduce((at, page, index) => (page.atFrame <= frame ? index : at), -1);
+  }
+
+  /**
+   * Plays a page: from the page before it, or the start, to its own marker, and holds there.
+   *
+   * @param {number} page - The page, by its place in `pages`.
+   * @returns {Promise<void>} Settles once the playhead holds at the page, or once playback is moved or stopped first.
+   */
+  @passive
+  public goto(page: number): Promise<void> {
+    const pages = this.pages;
+    if (!pages[page]) return RESOLVED;
+
+    const from = page > 0 ? pages[page - 1].atFrame : this.minFrame;
+    const to = Math.min(pages[page].atFrame, this.maxFrame);
+    if (to <= from) return this.scrub(to);
+
+    return new Promise((resolve) => {
+      this.play(from);
+      this.hold = { frame: to, resolve };
+    });
+  }
+
+  /**
+   * Plays the next page, from the page the playhead is on to the next one's marker. While a page
+   * is still playing, goes straight to its end instead, as a presentation skips its animation.
+   *
+   * @returns {Promise<void>} Settles once the playhead holds at the page; at once when there is no later page.
+   */
+  @passive
+  public nextPage(): Promise<void> {
+    if (this.hold) {
+      const { frame } = this.hold;
+      this.pause();
+      return this.scrub(frame);
+    }
+    return this.goto(this.page + 1);
+  }
+
+  /**
+   * Plays the previous page, from the page before it, or the start, to its marker.
+   *
+   * @returns {Promise<void>} Settles once the playhead holds at the page; at once when there is no earlier page.
+   */
+  @passive
+  public prevPage(): Promise<void> {
+    const page = this.page;
+    return page > 0 ? this.goto(page - 1) : RESOLVED;
   }
 
   /**
@@ -826,6 +904,8 @@ export class Timeline<P extends Record<string, AnyType> = Record<string, AnyType
   }
 
   private frameId?: FrameId;
+  // The page being played to: the frame playback holds at, and who's waiting for it.
+  private hold?: { frame: number; resolve: () => void };
   private iteration = 0;
   private subscribers = new Set<TimelineSubscriber>();
   private errorListeners = new Set<TimelineErrorListener>();
@@ -933,6 +1013,11 @@ export class Timeline<P extends Record<string, AnyType> = Record<string, AnyType
     if (this.frameId !== undefined) {
       cancelFrame(this.frameId);
       this.frameId = undefined;
+    }
+    // A page left playing is let go: whoever asked for it is settled where playback stopped.
+    if (this.hold) {
+      this.hold.resolve();
+      this.hold = undefined;
     }
   }
 }
