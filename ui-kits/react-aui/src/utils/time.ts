@@ -1,4 +1,4 @@
-import type { AnyType } from '@airlib/react';
+import { type AnyType, proxyProps } from '@airlib/react';
 import { animationFrame, type FrameId, type Timeline } from '@airlib/react/timeline';
 
 /**
@@ -55,7 +55,7 @@ export function holdWhileDragging(timeline: () => Timeline): (event: { button: n
  *
  * @param timeline - Reads the timeline the playhead moves.
  * @param land - Where a move to a time lands instead, e.g. a point it snaps to; the time itself without it.
- * @returns Props for `aria('slider', …)`.
+ * @returns Props for `aria('slider', …)`, as component props, so the slider can leave out its own.
  */
 export function playheadSlider(timeline: () => Timeline, land?: (time: number) => number): AnyType {
   // Where the playhead was moved last and not yet sought, the frame waiting to seek it, and the last seek's moment.
@@ -76,7 +76,7 @@ export function playheadSlider(timeline: () => Timeline, land?: (time: number) =
     timeline().seek(Math.max(0, land ? land(time) : time));
   };
 
-  return {
+  return proxyProps({
     min: 0,
     page: 1,
     valuetext: formatTime,
@@ -93,5 +93,5 @@ export function playheadSlider(timeline: () => Timeline, land?: (time: number) =
     get step() {
       return 1 / (timeline().frameRate ?? 30);
     },
-  };
+  });
 }
