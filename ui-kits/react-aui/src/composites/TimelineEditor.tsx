@@ -517,7 +517,9 @@ export const TimelineEditor = setup<TimelineEditorProps, TimelineEditorSlots>((p
             </div>
             <div
               ref={clips.ref}
-              {...clips.restProps([...OMIT_KEYS, 'timeline', 'zoom', 'playheadLabel', 'snap', 'autofocus', 'progress'] as never)}
+              {...clips.restProps(
+                [...OMIT_KEYS, 'timeline', 'zoom', 'playheadLabel', 'snap', 'autofocus', 'progress', 'laneCommands', 'onlanecommand', 'onlanedrop'] as never
+              )}
               className={CLASS.LANES}
               onContextMenuCapture={aimLaneMenu}
               onDragOver={allowDrop}
