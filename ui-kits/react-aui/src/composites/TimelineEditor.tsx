@@ -253,8 +253,7 @@ export const TimelineEditor = setup<TimelineEditorProps, TimelineEditorSlots>((p
       const moved = ids.map((id) => tracksOf(group).find((track) => track.id === id)).filter((track) => !!track);
       const sound = group === 'sound' ? moved : tracksOf('sound');
       const pictures = group === 'picture' ? moved : tracksOf('picture');
-      props.timeline.tracks.clear();
-      for (const track of [...sound, ...pictures.reverse()]) props.timeline.tracks.add(track);
+      props.timeline.orderTracks([...sound, ...pictures.reverse()]);
       lanes.changes++;
       if (props.timeline.status !== 'playing') void props.timeline.scrub(props.timeline.frame);
     },
