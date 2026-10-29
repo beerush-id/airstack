@@ -326,6 +326,31 @@ describe('IRPC Duplex (ask / answer)', () => {
       });
     });
 
+    it('answers a client that asks straight after opening the call, before the stream has started', async () => {
+      const { irpc } = setupRemote('ask-at-once');
+      const open = irpc.declare<() => RemoteState<{ n: number }, { double: (n: number) => number }>>({
+        name: 'open',
+        seed: () => ({ n: 0 }),
+        stream: true,
+        keepAlive: true,
+        coalesce: false,
+      });
+      irpc.construct(open, () =>
+        stream(
+          (state) => {
+            state.answer('double', (n) => n * 2);
+          },
+          { n: 0 }
+        )
+      );
+
+      const call = open();
+      const answers = await Promise.all([call.ask('double', 2), call.ask('double', 5)]);
+
+      expect(answers).toEqual([4, 10]);
+      call.close();
+    });
+
     it('allows client to ask server and receive answer over transport', async () => {
       type JobQueries = {
         getStepDetail: (step: number) => { label: string };

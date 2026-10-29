@@ -72,7 +72,24 @@ export class IRPCTransport {
     const call = new IRPCCall(this, payload, { timeout, maxRetries, retryMode, retryDelay }, reader, spec);
     const childCalls = new Set<IRPCCall>();
 
+    // An ask goes once the server has answered the call: before that, its stream may not exist there
+    // yet, and an ask arriving first would be answered with nothing.
+    let started!: () => void;
+    const running = new Promise<void>((resolve) => {
+      started = resolve;
+    });
+    const unwatch = reader.packetSubscribe(() => {
+      started();
+      unwatch();
+    });
+    reader.onDestroy(() => {
+      started();
+      unwatch();
+    });
+
     reader.bindAsk(async (type, askArgs) => {
+      await running;
+      if (reader.status !== IRPC_STATUS.PENDING) return undefined;
       const askPayload: IRPCPayload = {
         name: spec.name,
         args: [type, ...askArgs],
