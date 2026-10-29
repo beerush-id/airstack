@@ -105,7 +105,8 @@ export class MenuPanelAria<E extends BaseElement = HTMLElement> extends ListboxA
     super(props, true);
 
     this.host = menuCtx.get();
-    this.omittedAttrs.push('labelledby', 'oncommand');
+    // Where the panel sits is its popover's to read, from the menu's properties it shares, never an attribute.
+    this.omittedAttrs.push('labelledby', 'oncommand', 'xDir', 'yDir');
     bindPanel(this as unknown as PopupPanel);
 
     selectionGroup.set(undefined);
