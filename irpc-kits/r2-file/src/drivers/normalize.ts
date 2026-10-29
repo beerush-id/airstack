@@ -1,6 +1,6 @@
 import { HandlerError } from '@irpclib/irpc';
 import type { FileDriver } from '../adapter.js';
-import { DEFAULT_MAX_ENCODING_SIZE } from '../context.js';
+import { DEFAULT_MAX_ENCODING_SIZE, DEFAULT_MAX_SIZE } from '../context.js';
 import type {
   CopyOptions,
   DriverContext,
@@ -18,10 +18,12 @@ import type {
   RemoveOptions,
   SearchOptions,
   StatOptions,
+  UrlContent,
   WriteOptions,
 } from '../types.js';
 import { resolve } from '../utils/path.js';
-import { isSizeAllowed, isTypeAllowed, resolveType, validateType } from '../utils/type.js';
+import { isSizeAllowed, isTypeAllowed, parseSize, resolveType, validateType } from '../utils/type.js';
+import { resolveUrl } from '../utils/url.js';
 
 const encoder = new TextEncoder();
 
@@ -58,11 +60,16 @@ export class NormalizerDriver implements FileDriver {
     ctx.cwd = info.cwd;
   }
 
-  /** Validates boundaries (`EACCES`), MIME format and `allowedTypes` (`EINVAL`), and payload size against `maxSize`/`maxEncodingSize` (`EFBIG`). Populates `ctx.path`, `ctx.dirname`, and `ctx.cwd`. */
+  /** Validates boundaries (`EACCES`), MIME format and `allowedTypes` (`EINVAL`), and payload size against `maxSize`/`maxEncodingSize` (`EFBIG`). Populates `ctx.path`, `ctx.dirname`, and `ctx.cwd`, and for a `url` write, `ctx.content`. */
   async write(ctx: DriverContext<FileInfo>, path: string, data: FileInput, options?: WriteOptions): Promise<void> {
     const info = resolve(this.mountPoint, path, options?.cwd, 'write');
-    this.checkType(resolveType(data, options));
-    this.checkWriteSize(data, options?.encoding);
+    if (options?.encoding === 'url') {
+      this.checkEncodedSize(data, options.encoding);
+      ctx.content = await this.resolveContent(ctx, data, options);
+    } else {
+      this.checkType(resolveType(data, options));
+      this.checkWriteSize(data, options?.encoding);
+    }
     ctx.path = info.path;
     ctx.name = info.name;
     ctx.dirname = info.directory;
@@ -174,6 +181,31 @@ export class NormalizerDriver implements FileDriver {
     }
   }
 
+  /**
+   * Resolves what a `url` write's URL serves, once, for every medium to store, and checks its type.
+   *
+   * @param ctx - Pipeline context, given a compensation that releases a stream no medium consumed.
+   * @param data - The URL.
+   * @param options - Write options; an explicit `type` overrides the one the URL gives.
+   * @returns The body, its byte size, and its type.
+   */
+  private async resolveContent(
+    ctx: DriverContext<FileInfo>,
+    data: FileInput,
+    options: WriteOptions
+  ): Promise<UrlContent> {
+    const content = await resolveUrl(data, parseSize(this.maxSize ?? DEFAULT_MAX_SIZE));
+    const body = content.body;
+    if (body instanceof ReadableStream) {
+      ctx.rollback.add(async () => {
+        if (!body.locked) await body.cancel();
+      });
+    }
+    content.type = options.type ?? content.type;
+    this.checkType(content.type);
+    return content;
+  }
+
   private checkWriteSize(data: FileInput, encoding: FileEncoding | undefined): void {
     const raw = byteSize(data);
     if (!isSizeAllowed(raw, this.maxSize)) {
@@ -184,6 +216,11 @@ export class NormalizerDriver implements FileDriver {
       );
     }
     if (encoding === undefined) return;
+    this.checkEncodedSize(data, encoding);
+  }
+
+  /** Refuses with `EFBIG` a payload whose wire representation exceeds `maxEncodingSize`. */
+  private checkEncodedSize(data: FileInput, encoding: FileEncoding): void {
     const encoded = encodedSize(data, encoding);
     if (!isSizeAllowed(encoded, this.maxEncodingSize)) {
       throw new HandlerError(

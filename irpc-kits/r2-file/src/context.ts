@@ -4,6 +4,8 @@ import type { AccessRuleEntry, DriverContext } from './types.js';
 export const DEFAULT_HOME_DIR = '/home';
 export const DEFAULT_OWNER_KEY = 'user_id';
 export const DEFAULT_MAX_ENCODING_SIZE = '500kb';
+/** Largest body a `url` write accepts when no `maxSize` is configured. */
+export const DEFAULT_MAX_SIZE = '25mb';
 
 /**
  * Ambient filesystem execution context for tenant, identity, and path scoping.

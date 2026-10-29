@@ -74,9 +74,24 @@ export type FsContext = {
  * Discriminated wire representation for encoded transfers.
  *
  * Concern: declares the representation crossing the wire independently
- * of stored bytes, keeping read and write encodings decoupled.
+ * of stored bytes, keeping read and write encodings decoupled. A `url`
+ * write sends only an `https:` or `data:` URL; the server stores what it serves.
  */
-export type FileEncoding = 'json' | 'text' | 'base64' | 'data-url';
+export type FileEncoding = 'json' | 'text' | 'base64' | 'data-url' | 'url';
+
+/**
+ * What a `url` write resolved to, ready for every medium to store.
+ *
+ * Concern: the URL is fetched or decoded once, so the index records the same
+ * size and type the blob medium stores, and a large body streams instead of
+ * being held in memory.
+ */
+export type UrlContent = {
+  /** The bytes, or a stream of exactly `size` bytes. */
+  body: Uint8Array | ReadableStream<Uint8Array>;
+  size: number;
+  type: string;
+};
 
 /**
  * Resolved path descriptor from inward resolution.
@@ -395,6 +410,7 @@ export type DriverContext<T = unknown> = {
   cwd: string;
   destination?: string;
   info?: FileInfo;
+  content?: UrlContent;
   rollback: Set<RollbackFn>;
   result?: T;
 };

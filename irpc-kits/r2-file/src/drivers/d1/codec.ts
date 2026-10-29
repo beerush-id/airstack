@@ -1,9 +1,12 @@
 import { type AnyType, HandlerError, IRPCFile } from '@irpclib/irpc';
 import { DEFAULT_MAX_ENCODING_SIZE } from '../../context.js';
-import type { FileEncoding, FileInfo, FileInput, WriteOptions } from '../../types.js';
+import type { FileEncoding, FileInfo, FileInput, UrlContent, WriteOptions } from '../../types.js';
 import { parseSize, resolveType } from '../../utils/type.js';
 
 const DEFAULT_MAX_ENCODING_BYTES = parseSize(DEFAULT_MAX_ENCODING_SIZE);
+
+/** Strict UTF-8 decoding: invalid bytes throw rather than turn into U+FFFD. */
+const utf8 = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true });
 
 /**
  * Encapsulates prepared payload details for relational metadata storage and inlining.
@@ -37,13 +40,18 @@ export function preparePayload(
     };
   }
 
+  if (options?.encoding === 'base64' && typeof data === 'string') {
+    return prepareBytes(Buffer.from(data, 'base64'), resolveType(data, options), maxEncodingBytes);
+  }
+  if (options?.encoding === 'data-url' && typeof data === 'string' && data.includes(';base64')) {
+    const raw = data.slice(data.indexOf(',') + 1);
+    return prepareBytes(Buffer.from(raw, 'base64'), resolveType(data, options), maxEncodingBytes);
+  }
+
   let content: string;
   try {
-    if (options?.encoding === 'base64' && typeof data === 'string') {
-      content = Buffer.from(data, 'base64').toString('utf-8');
-    } else if (options?.encoding === 'data-url' && typeof data === 'string') {
-      const raw = data.slice(data.indexOf(',') + 1);
-      content = data.includes(';base64') ? Buffer.from(raw, 'base64').toString('utf-8') : decodeURIComponent(raw);
+    if (options?.encoding === 'data-url' && typeof data === 'string') {
+      content = decodeURIComponent(data.slice(data.indexOf(',') + 1));
     } else if (typeof data === 'string') {
       content = data;
     } else {
@@ -59,6 +67,42 @@ export function preparePayload(
     size,
     type: resolveType(data, options),
     shouldInline: size <= maxEncodingBytes,
+  };
+}
+
+/**
+ * Prepares what a `url` write resolved to for the index: bytes in hand are inlined like any
+ * decoded payload, while a stream is left whole to the blob medium, recorded by its size.
+ *
+ * @param content - Resolved URL content.
+ * @param maxEncodingBytes - Maximum allowable size for SQLite payload inlining.
+ * @returns Serialized payload attributes.
+ */
+export function prepareContent(content: UrlContent, maxEncodingBytes: number): PreparedPayload {
+  if (content.body instanceof Uint8Array) {
+    return prepareBytes(content.body, content.type, maxEncodingBytes);
+  }
+  return { content: null, size: content.size, type: content.type, shouldInline: false };
+}
+
+/**
+ * Prepares decoded bytes for the index, inlining them only as the text they exactly are.
+ *
+ * Concern: inlined content is stored as text, and bytes that aren't valid UTF-8, such as an
+ * image, can't survive that round trip, so they are left to the blob medium to serve.
+ *
+ * @param bytes - Decoded payload bytes.
+ * @param type - MIME type to store.
+ * @param maxEncodingBytes - Maximum allowable size for SQLite payload inlining.
+ * @returns Serialized payload attributes, with `content` `null` when the bytes aren't text.
+ */
+export function prepareBytes(bytes: Uint8Array, type: string, maxEncodingBytes: number): PreparedPayload {
+  const content = textOf(bytes);
+  return {
+    content,
+    size: bytes.byteLength,
+    type,
+    shouldInline: content !== null && bytes.byteLength <= maxEncodingBytes,
   };
 }
 
@@ -126,5 +170,14 @@ function parseJson(raw: string, code: 'EINVAL' | 'EIO', message: string): AnyTyp
     return JSON.parse(raw);
   } catch (cause) {
     throw new HandlerError(code, message, cause as Error);
+  }
+}
+
+/** Decodes bytes as UTF-8 text, keeping a byte order mark, or answers `null` when they aren't text. */
+function textOf(bytes: Uint8Array): string | null {
+  try {
+    return utf8.decode(bytes);
+  } catch {
+    return null;
   }
 }

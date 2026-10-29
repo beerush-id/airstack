@@ -12,6 +12,27 @@ export type PreparedQuery = {
 };
 
 /**
+ * SQL condition matching the entries inside a folder, bound with {@link inside}.
+ *
+ * Concern: D1 refuses LIKE patterns longer than 50 bytes, which real folder paths exceed, so a
+ * folder's contents are matched as a range on the indexed `path` column instead of a LIKE prefix.
+ * A range also takes `%` and `_` in a path literally, and compares case-sensitively, as paths are.
+ */
+export const INSIDE = '(path > ? AND path < ?)';
+
+/**
+ * Bounds of the paths inside a folder, for {@link INSIDE}: every path that starts with
+ * `<folder>/` sorts strictly between `<folder>/` and `<folder>0`, since `0` is the character
+ * after `/`, and nothing else does.
+ *
+ * @param folder - Folder path.
+ * @returns The exclusive lower and upper bounds.
+ */
+export function inside(folder: string): [string, string] {
+  return [`${folder}/`, `${folder}0`];
+}
+
+/**
  * Builds the SQL SELECT statement and bound parameters for a directory listing query.
  *
  * @param target - Resolved directory path.
@@ -32,8 +53,8 @@ export function buildListQuery(target: string, options?: ListOptions): PreparedQ
       clauses.push('path != ?');
       params.push('/');
     } else {
-      clauses.push('(path LIKE ? OR directory = ? OR directory LIKE ?) AND path != ?');
-      params.push(`${normalizedTarget}/%`, normalizedTarget, `${normalizedTarget}/%`, normalizedTarget);
+      clauses.push(INSIDE);
+      params.push(...inside(normalizedTarget));
     }
   } else {
     clauses.push('directory = ?');
@@ -83,8 +104,8 @@ export function buildSearchQuery(
   const params: AnyType[] = [];
 
   if (normalizedCwd !== '/') {
-    clauses.push('(directory = ? OR directory LIKE ? OR path LIKE ?)');
-    params.push(normalizedCwd, `${normalizedCwd}/%`, `${normalizedCwd}/%`);
+    clauses.push(INSIDE);
+    params.push(...inside(normalizedCwd));
   }
 
   const searchConditions = ['name LIKE ?'];

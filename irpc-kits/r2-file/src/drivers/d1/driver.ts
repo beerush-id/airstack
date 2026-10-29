@@ -24,8 +24,8 @@ import type {
 } from '../../types.js';
 import { basename, dirname } from '../../utils/path.js';
 import { assertEncodingBudget, parseSize } from '../../utils/type.js';
-import { decodePayload, preparePayload, toFileInfo } from './codec.js';
-import { buildListQuery, buildSearchQuery, encodeCursor } from './query.js';
+import { decodePayload, prepareContent, preparePayload, toFileInfo } from './codec.js';
+import { buildListQuery, buildSearchQuery, encodeCursor, INSIDE, inside } from './query.js';
 import { ensureSchema } from './schema.js';
 
 /**
@@ -134,7 +134,9 @@ export class D1Driver implements FileDriver {
     const hidden = options?.hidden ? 1 : 0;
     const meta = options?.metadata ? JSON.stringify(options.metadata) : null;
 
-    const prepared = preparePayload(data, options, this.maxEncodingBytes);
+    const prepared = ctx.content
+      ? prepareContent(ctx.content, this.maxEncodingBytes)
+      : preparePayload(data, options, this.maxEncodingBytes);
 
     const statements = [
       this.db
@@ -548,9 +550,9 @@ export class D1Driver implements FileDriver {
     const childCountRow = await this.db
       .prepare(
         `SELECT COUNT(*) as cnt FROM _r2_files
-        WHERE (path LIKE ? OR directory = ? OR directory LIKE ?) AND path != ? AND deleted_at IS NULL`
+        WHERE (${INSIDE} OR directory = ?) AND path != ? AND deleted_at IS NULL`
       )
-      .bind(`${target}/%`, target, `${target}/%`, target)
+      .bind(...inside(target), target, target)
       .first<{ cnt: number }>();
 
     const hasChildren = childCountRow!.cnt > 0;
@@ -565,10 +567,10 @@ export class D1Driver implements FileDriver {
 
     const subtree = isRecursive || isSoft;
     const sqlFind = subtree
-      ? 'SELECT path, deleted_at FROM _r2_files WHERE path = ? OR path LIKE ?'
+      ? `SELECT path, deleted_at FROM _r2_files WHERE path = ? OR ${INSIDE}`
       : 'SELECT path, deleted_at FROM _r2_files WHERE path = ?';
 
-    const params = subtree ? [target, `${target}/%`] : [target];
+    const params = subtree ? [target, ...inside(target)] : [target];
     const existing = await this.db
       .prepare(sqlFind)
       .bind(...params)
@@ -582,8 +584,8 @@ export class D1Driver implements FileDriver {
     if (isSoft) {
       const now = Date.now();
       await this.db
-        .prepare('UPDATE _r2_files SET deleted_at = ? WHERE (path = ? OR path LIKE ?) AND deleted_at IS NULL')
-        .bind(now, target, `${target}/%`)
+        .prepare(`UPDATE _r2_files SET deleted_at = ? WHERE (path = ? OR ${INSIDE}) AND deleted_at IS NULL`)
+        .bind(now, target, ...inside(target))
         .run();
       ctx.rollback.add(async () => {
         for (const r of existing.results) {
@@ -593,10 +595,13 @@ export class D1Driver implements FileDriver {
     } else {
       if (isRecursive) {
         await this.db
-          .prepare('DELETE FROM _r2_contents WHERE path = ? OR path LIKE ?')
-          .bind(target, `${target}/%`)
+          .prepare(`DELETE FROM _r2_contents WHERE path = ? OR ${INSIDE}`)
+          .bind(target, ...inside(target))
           .run();
-        await this.db.prepare('DELETE FROM _r2_files WHERE path = ? OR path LIKE ?').bind(target, `${target}/%`).run();
+        await this.db
+          .prepare(`DELETE FROM _r2_files WHERE path = ? OR ${INSIDE}`)
+          .bind(target, ...inside(target))
+          .run();
       } else {
         await this.db.prepare('DELETE FROM _r2_contents WHERE path = ?').bind(target).run();
         await this.db.prepare('DELETE FROM _r2_files WHERE path = ?').bind(target).run();
@@ -617,8 +622,8 @@ export class D1Driver implements FileDriver {
     await ensureSchema(this.db, this.ownerKey);
     const target = ctx.path!;
     const trashed = await this.db
-      .prepare('SELECT * FROM _r2_files WHERE (path = ? OR path LIKE ?) AND deleted_at IS NOT NULL')
-      .bind(target, `${target}/%`)
+      .prepare(`SELECT * FROM _r2_files WHERE (path = ? OR ${INSIDE}) AND deleted_at IS NOT NULL`)
+      .bind(target, ...inside(target))
       .all<Record<string, AnyType>>();
     const row = trashed.results.find((r) => r.path === target);
 
@@ -631,8 +636,8 @@ export class D1Driver implements FileDriver {
     }
 
     await this.db
-      .prepare('UPDATE _r2_files SET deleted_at = NULL WHERE (path = ? OR path LIKE ?) AND deleted_at IS NOT NULL')
-      .bind(target, `${target}/%`)
+      .prepare(`UPDATE _r2_files SET deleted_at = NULL WHERE (path = ? OR ${INSIDE}) AND deleted_at IS NOT NULL`)
+      .bind(target, ...inside(target))
       .run();
 
     const prior = trashed.results.map((r) => ({ path: r.path as string, deleted_at: r.deleted_at }));
@@ -708,8 +713,8 @@ export class D1Driver implements FileDriver {
   private async subtreeRows(src: string, sourceRow: Record<string, AnyType>): Promise<Record<string, AnyType>[]> {
     if (sourceRow.type !== 'inode/directory') return [sourceRow];
     const { results } = await this.db
-      .prepare('SELECT * FROM _r2_files WHERE (path = ? OR path LIKE ?) AND deleted_at IS NULL')
-      .bind(src, `${src}/%`)
+      .prepare(`SELECT * FROM _r2_files WHERE (path = ? OR ${INSIDE}) AND deleted_at IS NULL`)
+      .bind(src, ...inside(src))
       .all<Record<string, AnyType>>();
     return results;
   }
@@ -731,8 +736,8 @@ export class D1Driver implements FileDriver {
   /** Maps each source path in the subtree to its inlined content, when present. */
   private async subtreeContents(src: string): Promise<Map<string, string>> {
     const { results } = await this.db
-      .prepare('SELECT path, content FROM _r2_contents WHERE path = ? OR path LIKE ?')
-      .bind(src, `${src}/%`)
+      .prepare(`SELECT path, content FROM _r2_contents WHERE path = ? OR ${INSIDE}`)
+      .bind(src, ...inside(src))
       .all<{ path: string; content: string }>();
     return new Map(results.map((row) => [row.path, row.content]));
   }

@@ -256,7 +256,8 @@ export const mkdir = fileModule.declare<MkdirFn>('mkdir', seedFileInfo, {
 export const writeStub = fileModule.declare<WriteStubFn>('write', seedFileInfo, {
   description:
     'Writes a file, replacing any file at the path. data is text, or an object/array stored as JSON. ' +
-    `options: { type?, public?, hidden?, metadata?, encoding?: 'base64' | 'data-url' when data is encoded }. ${PATHS}`,
+    `options: { type?, public?, hidden?, metadata?, encoding?: 'base64' | 'data-url' when data is encoded, ` +
+    `or 'url' to store what an https: or data: URL in data serves }. ${PATHS}`,
   mcp: { args: ['path', 'data', 'options'], ...OVERWRITE },
 });
 
@@ -303,18 +304,21 @@ export function write(path: string, data: IRPCFile, options?: WriteOptions): Pro
 /**
  * Writes a text file; its type is `text/plain` unless you give one.
  * Pass `encoding: 'base64'` or `'data-url'` when the string is in that
- * representation instead of plain text. Rejects with `EFBIG` before
- * upload when the string exceeds `FS_CONFIG.maxEncodingSize`.
+ * representation instead of plain text. Pass `encoding: 'url'` with an
+ * `https:` or `data:` URL to store what it serves, typed as it says: the
+ * URL travels and the server fetches it, refusing with `EFBIG` a body past
+ * its `maxSize`. Rejects with `EFBIG` before upload when the string exceeds
+ * `FS_CONFIG.maxEncodingSize`.
  *
  * @param path Target file path (`~`, absolute, or relative to the working directory)
- * @param data Text content
+ * @param data Text content, or the URL to store the content of
  * @param options Type, visibility, custom metadata, and string representation
  * @returns Metadata of the written file
  */
 export function write(
   path: string,
   data: string,
-  options?: WriteOptions<'text' | 'base64' | 'data-url'>
+  options?: WriteOptions<'text' | 'base64' | 'data-url' | 'url'>
 ): Promise<FileInfo>;
 /**
  * Writes a JSON file from an object or array; its type is
