@@ -2,8 +2,9 @@ import { aria } from '@airlib/aria';
 import { AUI_CLASS, branded, register } from '@airlib/aui/utils';
 import { $bind, $static, type AnyType, type Bindable, For, mutable, Snippet, setup, stylex } from '@airlib/react';
 import type { Timeline, TimelineSegment, TimelineTrack } from '@airlib/react/timeline';
-import type { KeyboardEvent, MouseEvent, PointerEvent, ReactNode } from 'react';
+import type { DragEvent, KeyboardEvent, MouseEvent, PointerEvent, ReactNode } from 'react';
 import { $families, auiConfig, type ComponentStyles, OMIT_KEYS } from '../config.js';
+import { hasEntries, type ItemsInput } from '../utils/common.js';
 import {
   AudioFileIcon,
   AutoAwesomeIcon,
@@ -62,7 +63,28 @@ export type TimelineEditorProps = ComponentStyles & {
   progress?: (segment: TimelineSegment) => number | undefined;
   /** Hears the pick change: the value as it is now. */
   onchange?: (event: CustomEvent<string | string[]>) => void;
+  /**
+   * What a secondary click on an empty spot of a track offers, by the track: adding a title there,
+   * say. A track with none offers nothing.
+   */
+  laneCommands?: (track: TimelineTrack) => ItemsInput | undefined;
+  /** Hears a lane command: its name, and the track and frame it was asked at. */
+  onlanecommand?: (event: CustomEvent<TimelineLaneCommand>) => void;
+  /**
+   * Takes what's dropped on a track — a source dragged in — with the track and frame it lands at,
+   * snapped as the playhead is. Without it, nothing can be dropped.
+   */
+  onlanedrop?: (event: CustomEvent<TimelineLaneDrop>) => void;
 };
+
+/** A point on the lanes: a track, and the frame under the pointer. */
+export type TimelineLanePoint = { track: TimelineTrack; frame: number };
+
+/** A lane command asked at a point on the lanes, by its name. */
+export type TimelineLaneCommand = TimelineLanePoint & { name: string };
+
+/** What's dropped at a point on the lanes. */
+export type TimelineLaneDrop = TimelineLanePoint & { data: DataTransfer };
 
 const CLIPS_ROLE = 'listbox';
 const CLIP_ROLE = 'option';
@@ -128,6 +150,9 @@ const TRACK_COMMANDS = [
   { name: 'add', label: 'Add track above' },
   { name: 'remove', label: 'Remove track' },
 ];
+
+/** What's done to a clip, from its context menu. */
+const CLIP_COMMANDS = [{ name: 'remove-clip', label: 'Remove clip' }];
 
 /** The groups top to bottom, each named for screen readers. */
 const TRACK_GROUPS: { group: TrackGroup; label: string }[] = [
@@ -407,6 +432,48 @@ export const TimelineEditor = setup<TimelineEditorProps, TimelineEditorSlots>((p
     if (pressedOff && picked().length && offPick(event.target)) pick([]);
   };
 
+  // A point on the lanes under the pointer: its track, and its frame read off the scrub, which
+  // spans the composition at the lanes' own offset, landing as the playhead would.
+  const pointAt = (event: MouseEvent): TimelineLanePoint | undefined => {
+    const id = (event.target as Element).closest<HTMLElement>(`.${CLASS.LANE}`)?.dataset.track;
+    const track = tracks().find((each) => each.id === id);
+    if (!track) return;
+    const left = root.current?.querySelector(`.${CLASS.SCRUB}`)?.getBoundingClientRect().left ?? 0;
+    const time = root.snapTime(Math.max(0, (event.clientX - left) / zoom()));
+    return { track, frame: Math.round(time * props.timeline.frameRate) };
+  };
+  // A secondary click on an empty spot of a track aims the lanes' menu there, with the track's own
+  // commands; on a track with none, the menu isn't told of it, and stays shut.
+  const laneMenu = mutable({ track: '' });
+  let lanePoint: TimelineLanePoint | undefined;
+  const aimLaneMenu = (event: MouseEvent<HTMLDivElement>) => {
+    if ((event.target as Element).closest('[data-segment]')) return;
+    lanePoint = pointAt(event);
+    if (!lanePoint || !hasEntries(props.laneCommands?.(lanePoint.track))) return event.stopPropagation();
+    laneMenu.track = lanePoint.track.id;
+  };
+  const laneMenuTrack = () => tracks().find((track) => track.id === laneMenu.track);
+  const laneCommand = (event: CustomEvent<string>) => {
+    if (!lanePoint) return;
+    props.onlanecommand?.(new CustomEvent('lanecommand', { detail: { ...lanePoint, name: event.detail } }));
+  };
+  // A drag over a track is taken only when something takes the drop.
+  const allowDrop = (event: DragEvent<HTMLDivElement>) => {
+    if (!props.onlanedrop || !(event.target as Element).closest(`.${CLASS.LANE}`)) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+  };
+  const drop = (event: DragEvent<HTMLDivElement>) => {
+    const point = pointAt(event);
+    if (!point || !props.onlanedrop) return;
+    event.preventDefault();
+    props.onlanedrop(new CustomEvent('lanedrop', { detail: { ...point, data: event.dataTransfer } }));
+  };
+  // Takes a clip off by its menu: with the rest of the pick when it's picked, else alone.
+  const removeClip = (segment: TimelineSegment) => {
+    root.removeClips(picked().includes(segment.id) ? undefined : [segment]);
+  };
+
   // Each track is a Tab stop, where the keys move the playhead and Up and Down pick its clips; the
   // picked clip is one too, right after its track. The lanes' list, the ruler and the editor itself
   // take focus only by pointer.
@@ -452,7 +519,21 @@ export const TimelineEditor = setup<TimelineEditorProps, TimelineEditorSlots>((p
               ref={clips.ref}
               {...clips.restProps([...OMIT_KEYS, 'timeline', 'zoom', 'playheadLabel', 'snap', 'autofocus', 'progress'] as never)}
               className={CLASS.LANES}
+              onContextMenuCapture={aimLaneMenu}
+              onDragOver={allowDrop}
+              onDrop={drop}
             >
+              {/* A secondary click on an empty spot of a track offers what can be put there. */}
+              <Snippet>
+                {() => (
+                  <ContextMenu
+                    label={`${laneMenuTrack()?.name ?? 'Track'} lane`}
+                    size="xs"
+                    items={(laneMenuTrack() && props.laneCommands?.(laneMenuTrack()!)) || []}
+                    oncommand={laneCommand}
+                  />
+                )}
+              </Snippet>
               <For each={ordered}>
                 {(track) => (
                   <div
@@ -469,7 +550,7 @@ export const TimelineEditor = setup<TimelineEditorProps, TimelineEditorSlots>((p
                   >
                     <For each={() => [...track.segments]}>
                       {(segment) => (
-                        <TimelineClip segment={segment} track={track} progress={props.progress}>
+                        <TimelineClip segment={segment} track={track} progress={props.progress} onremove={removeClip}>
                           {slots.clip?.(segment, track)}
                         </TimelineClip>
                       )}
@@ -563,6 +644,8 @@ type TimelineClipProps = {
   segment: TimelineSegment;
   track: TimelineTrack;
   progress?: (segment: TimelineSegment) => number | undefined;
+  /** Takes the clip off, from its context menu. */
+  onremove: (segment: TimelineSegment) => void;
   children?: ReactNode;
 };
 
@@ -576,17 +659,19 @@ const TimelineClip = setup<TimelineClipProps>((props) => {
     const { segment } = props;
     const thumbnail = segment.meta?.thumbnail as string | undefined;
     const progress = props.progress?.(segment);
+    const attrs = clip.restProps([...OMIT_KEYS] as never) as { style?: object };
 
     return (
       <div
         ref={clip.ref}
-        {...clip.restProps([...OMIT_KEYS] as never)}
+        {...attrs}
         aria-label={`${segment.name ?? 'Clip'}, ${formatTime(segment.startTime)} to ${formatTime(segment.startTime + segment.totalTime)}`}
         aria-busy={progress === undefined ? undefined : 'true'}
         className={CLASS.CLIP}
         data-type={props.track.type}
         data-segment={id}
         style={stylex({
+          ...attrs.style,
           '--aui-timeline-start': String(segment.startTime),
           '--aui-timeline-span': String(segment.totalTime),
           '--aui-timeline-thumbnail': thumbnail ? `url("${thumbnail}")` : undefined,
@@ -594,6 +679,12 @@ const TimelineClip = setup<TimelineClipProps>((props) => {
           '--aui-timeline-progress': progress === undefined ? undefined : String(progress),
         })}
       >
+        <ContextMenu
+          label={`${segment.name ?? 'Clip'} clip`}
+          size="xs"
+          items={CLIP_COMMANDS}
+          oncommand={(event) => event.detail === 'remove-clip' && props.onremove(segment)}
+        />
         {props.children ?? <span className={CLASS.CLIP_NAME}>{segment.name}</span>}
         {progress !== undefined && <span className={CLASS.CLIP_PROGRESS} aria-hidden="true" />}
         {/* Its edges, to resize it from either end. */}
