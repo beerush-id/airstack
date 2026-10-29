@@ -961,8 +961,19 @@
       background-color: var(--color-on-surface-variant);
     }
 
-    &[aria-pressed='true']::after {
+    &:is([aria-pressed='true'], [data-front='true'])::after {
       background-color: var(--color-primary);
     }
+  }
+
+  /* An app with several windows holds its icon in its menu; laid out as a box, the icon sits on no text line and keeps level with the others. */
+  .aui-dock-task-menu {
+    display: flex;
+  }
+
+  /* An open window in its app's list: a small picture of what it shows, then its title. */
+  .aui-dock-window {
+    --aui-app-icon-size: 1.75rem;
+    gap: var(--spacing-sm);
   }
 }

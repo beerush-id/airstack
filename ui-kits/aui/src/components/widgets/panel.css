@@ -100,6 +100,18 @@
     animation-name: aui-panel-pop-above;
   }
 
+  /*
+   * `data-popover-x='between'` centers the panel on its trigger, on whichever side it opens. It spans
+   * every column, centered on the anchor, so a narrow trigger never narrows the panel.
+   */
+  .aui-panel[data-popover-x='between'] {
+    position-area: bottom span-all;
+  }
+
+  .aui-panel[data-popover-x='between'][data-popover-y='above'] {
+    position-area: top span-all;
+  }
+
   /* The accent a panel's own content highlights with (chosen day, active row). */
   .aui-panel-primary {
     --aui-panel-accent: var(--color-primary);

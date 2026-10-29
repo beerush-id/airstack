@@ -30,8 +30,9 @@
     display: flex;
     gap: var(--aui-control-gap);
     align-items: center;
-    block-size: var(--aui-control-height);
-    padding-block: 0;
+    /* One line keeps the control's height; taller content, such as a picture, grows it. */
+    min-block-size: var(--aui-control-height);
+    padding-block: var(--spacing-xs);
     padding-inline: calc(var(--aui-control-padding-x) * 0.85);
     cursor: pointer;
     user-select: none;
