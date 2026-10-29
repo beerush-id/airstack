@@ -1,6 +1,7 @@
 import { getEnv, type IRPCData } from '@irpclib/irpc';
 import { type ChatMessage, type ChatOutput, type ChatTool, chatTurns, type ToolCall } from '../../chat/index.js';
-import type { AIEnv, AskContext } from '../../types/context.js';
+import type { ImageAspectRatio, ImageOptions } from '../../image/index.js';
+import type { AIEnv, AskContext, ImageContext } from '../../types/context.js';
 import type { AIDriver } from '../../types/driver.js';
 import { DriverError } from '../../types/errors.js';
 import type { OutputMeta } from '../../types/output.js';
@@ -19,6 +20,8 @@ export interface OpenAIOptions {
   models: string[];
   /** Model used when a call names none. */
   defaultModel?: string;
+  /** Image model used when a draw names none, e.g. `muse-image-1.0`; it must be among `models`. */
+  defaultImageModel?: string;
   /**
    * Which API to speak: `chat` (Chat Completions, the default) or `responses` (the Responses API,
    * which streams answers in real deltas, reasoning summaries, and commentary apart from the answer).
@@ -29,11 +32,12 @@ export interface OpenAIOptions {
 }
 
 /**
- * Chat driver for any OpenAI-compatible endpoint (Meta Model API, Baseten, and others), one instance
- * per endpoint, over Chat Completions or the Responses API. Streams the answer into `chunks`, keeps
+ * Driver for any OpenAI-compatible endpoint, one instance per endpoint, and the base a provider's
+ * own driver extends with its defaults and what only it does (`MuseDriver` for Meta, `BasetenDriver`).
+ * Chat runs over Chat Completions or the Responses API: it streams the answer into `chunks`, keeps
  * reasoning and commentary apart when the provider separates them, assembles tool calls, and
  * translates tool names to the provider's allowed form and back, so callers keep their own naming
- * (`sys.fs.read`).
+ * (`sys.fs.read`). Images are drawn from a prompt with the OpenAI images endpoint.
  */
 export class OpenAIDriver implements AIDriver {
   readonly name: string;
@@ -100,6 +104,75 @@ export class OpenAIDriver implements AIDriver {
         (call): ToolCall => ({ id: call.id, name: decode(call.name), args: parseArgs(call.args) })
       );
     }
+  }
+
+  /**
+   * Draws a new image from the prompt with the OpenAI images endpoint (`/images/generations`).
+   * Assigns `ctx.state.data.url`: the provider's URL, or a data URL when it returns the image
+   * inline. Draws with attachments are edits, whose request each provider shapes its own way: they
+   * are left to a driver extending this one with `edit`, or to another driver.
+   */
+  async draw(ctx: ImageContext): Promise<void> {
+    if (!this.canHandle(ctx.state.data.url)) return;
+    const payload = ctx.payload as ImageOptions;
+    const model = payload.model ?? this.options.defaultImageModel;
+    if (!model || !this.options.models.includes(model)) return;
+
+    const response = payload.attachments?.length
+      ? await this.edit(model, payload, ctx.signal)
+      : await this.post('/images/generations', this.imageRequest(model, payload), ctx.signal);
+    if (response) ctx.state.data.url = await this.imageOf(response, payload);
+  }
+
+  /**
+   * Edits the attached images by the prompt, for a provider that can: sends the request and returns
+   * the response, or `undefined` to leave the draw to another driver. The OpenAI endpoint takes the
+   * images as uploaded files, which this driver doesn't send, so it leaves every edit.
+   *
+   * @param _model - The image model.
+   * @param _payload - The draw, with its attachments.
+   * @param _signal - Aborts the request.
+   * @returns The images endpoint's response, or `undefined`.
+   */
+  protected async edit(_model: string, _payload: ImageOptions, _signal?: AbortSignal): Promise<Response | undefined> {
+    return undefined;
+  }
+
+  /**
+   * The fields every images request shares: the model, the prompt, the size its ratio gives, the
+   * file type, and the image returned as a URL where the provider hosts one.
+   *
+   * @param model - The image model.
+   * @param payload - The draw.
+   * @returns The request body, for a provider to add its own fields to.
+   */
+  protected imageRequest(model: string, payload: ImageOptions): Record<string, unknown> {
+    const size = sizeOf(payload.aspectRatio);
+    return {
+      model,
+      prompt: payload.prompt,
+      ...(size ? { size } : {}),
+      ...(payload.format ? { output_format: payload.format } : {}),
+      response_format: 'url',
+    };
+  }
+
+  /**
+   * The first image of an images response: its URL, or a data URL when it came inline.
+   *
+   * @param response - The images endpoint's response.
+   * @param payload - The draw, for the file type it asked for.
+   * @returns The image's URL.
+   * @throws DriverError When the response holds no image.
+   */
+  protected async imageOf(response: Response, payload: ImageOptions): Promise<string> {
+    const result = (await response.json()) as {
+      data?: Array<{ url?: string; b64_json?: string }>;
+      output_format?: string;
+    };
+    const [image] = result.data ?? [];
+    if (!image?.url && !image?.b64_json) throw new DriverError('The image endpoint returned no image', this.name);
+    return image.url ?? `data:image/${result.output_format ?? payload.format ?? 'webp'};base64,${image.b64_json}`;
   }
 
   /** Streams a Chat Completions response: answer deltas, and tool calls assembled from fragments. */
@@ -185,7 +258,7 @@ export class OpenAIDriver implements AIDriver {
   }
 
   /** Posts a streaming request, rejecting a failed HTTP status. */
-  private async post(path: string, body: Record<string, unknown>, signal?: AbortSignal): Promise<Response> {
+  protected async post(path: string, body: Record<string, unknown>, signal?: AbortSignal): Promise<Response> {
     const response = await fetch(`${this.options.baseUrl}${path}`, {
       method: 'POST',
       headers: {
@@ -202,12 +275,24 @@ export class OpenAIDriver implements AIDriver {
   }
 
   /** Reports whether this driver may serve: enabled, credentialed, allowed, and the output not yet served. */
-  private canHandle(served?: unknown): boolean {
+  protected canHandle(served?: unknown): boolean {
     if (this.options.enabled === false || !this.options.apiKey) return false;
     const allowed = getEnv<AIEnv>().allowedDrivers;
     if (allowed && !allowed.has(this.name)) return false;
     return !served;
   }
+}
+
+/** The pixels per ratio unit an aspect ratio is sent with; the endpoint reads only the ratio. */
+const RATIO_UNIT = 64;
+
+/**
+ * An aspect ratio as the images endpoint's `size`, width x height: the endpoint keeps only its
+ * ratio. `auto`, or anything that isn't a ratio, sends none.
+ */
+function sizeOf(ratio?: ImageAspectRatio): string | undefined {
+  const match = /^(\d+):(\d+)$/.exec(ratio ?? '');
+  return match ? `${Number(match[1]) * RATIO_UNIT}x${Number(match[2]) * RATIO_UNIT}` : undefined;
 }
 
 /** A tool call as it came off the wire: provider id, encoded name, raw argument text. */

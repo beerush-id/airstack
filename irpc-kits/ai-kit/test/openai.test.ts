@@ -1,7 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ChatMessage, ChatOptions, ChatOutput } from '../src/chat/index.js';
+import { BASETEN_API, BasetenDriver } from '../src/drivers/baseten/index.js';
+import { MUSE_API, MUSE_IMAGE_MODEL, MuseDriver } from '../src/drivers/muse/index.js';
 import { OpenAIDriver } from '../src/drivers/openai/index.js';
-import type { AskContext } from '../src/types/context.js';
+import type { ImageOptions, ImageOutput } from '../src/image/index.js';
+import type { AskContext, ImageContext } from '../src/types/context.js';
 import { DriverError } from '../src/types/errors.js';
 
 /** Builds an SSE response body from JSON events, ending with the `[DONE]` frame. */
@@ -483,6 +486,150 @@ describe('OpenAIDriver responses', () => {
     await expect(responsesMeta().ask(ctx)).rejects.toMatchObject({
       code: 'UPSTREAM_ERROR',
       message: 'meta response failed: model overloaded',
+    });
+  });
+});
+
+describe('OpenAIDriver draw', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const images = () =>
+    new OpenAIDriver({
+      name: 'meta',
+      baseUrl: 'https://api.meta.test/v1',
+      apiKey: 'key-1',
+      models: ['muse-spark-1.3', 'muse-image-1.0'],
+      defaultImageModel: 'muse-image-1.0',
+    });
+
+  function imageContext(payload: Record<string, unknown>): ImageContext {
+    const input = payload as ImageOptions;
+    return {
+      state: { data: { id: 'img-1', status: 'pending', input } as ImageOutput },
+      input,
+      payload: input,
+      rollbacks: new Set(),
+    };
+  }
+
+  const imagesResponse = (data: Array<Record<string, string>>, extra: Record<string, unknown> = {}) =>
+    new Response(JSON.stringify({ created: 1, data, ...extra }), { headers: { 'Content-Type': 'application/json' } });
+
+  it('generates from the prompt with the default image model, sending the ratio as a size', async () => {
+    const vendor = mockVendor(imagesResponse([{ url: 'https://cdn.meta.test/1.webp' }]));
+    const ctx = imageContext({ prompt: 'A grey sofa with an orange cat', aspectRatio: '4:3', format: 'jpeg' });
+
+    await images().draw(ctx);
+
+    expect(vendor.requests[0].url).toBe('https://api.meta.test/v1/images/generations');
+    expect(vendor.bodies[0]).toEqual({
+      model: 'muse-image-1.0',
+      prompt: 'A grey sofa with an orange cat',
+      size: '256x192',
+      output_format: 'jpeg',
+      response_format: 'url',
+    });
+    expect(ctx.state.data.url).toBe('https://cdn.meta.test/1.webp');
+  });
+
+  it('leaves edits to a driver that shapes them, since each provider does its own way', async () => {
+    const vendor = mockVendor();
+    const ctx = imageContext({ prompt: 'Remove the cat', attachments: ['https://cdn.test/sofa.jpg'] });
+
+    await images().draw(ctx);
+
+    expect(vendor.requests).toHaveLength(0);
+    expect(ctx.state.data.url).toBeUndefined();
+  });
+
+  it('gives an image returned inline as a data URL', async () => {
+    mockVendor(imagesResponse([{ b64_json: 'AAAA' }], { output_format: 'png' }));
+    const ctx = imageContext({ prompt: 'A lantern' });
+
+    await images().draw(ctx);
+
+    expect(ctx.state.data.url).toBe('data:image/png;base64,AAAA');
+  });
+
+  it('leaves draws it can’t serve to other drivers: another model, or no image model', async () => {
+    const vendor = mockVendor();
+    const other = imageContext({ prompt: 'A lantern', model: 'flux-2' });
+    await images().draw(other);
+    await meta().draw(imageContext({ prompt: 'A lantern' }));
+
+    expect(vendor.requests).toHaveLength(0);
+    expect(other.state.data.url).toBeUndefined();
+  });
+
+  it('fails when the endpoint returns no image', async () => {
+    mockVendor(imagesResponse([]));
+
+    await expect(images().draw(imageContext({ prompt: 'A lantern' }))).rejects.toThrow('returned no image');
+  });
+
+  describe('BasetenDriver', () => {
+    it('serves the models named by their Baseten slugs on Baseten, over Responses', async () => {
+      const vendor = mockVendor(
+        sse([
+          { type: 'response.output_item.added', item: { id: 'm1', type: 'message' } },
+          { type: 'response.output_text.delta', item_id: 'm1', delta: 'Hi.' },
+          { type: 'response.completed' },
+        ])
+      );
+      const baseten = new BasetenDriver({ apiKey: 'key-2', models: ['meta-models/muse-spark-open-1026'] });
+
+      await baseten.ask(askContext('Hi', { model: 'meta-models/muse-spark-open-1026' }));
+
+      expect(baseten.name).toBe('baseten');
+      expect(vendor.requests[0].url).toBe(`${BASETEN_API}/responses`);
+      expect(vendor.bodies[0]).toMatchObject({ model: 'meta-models/muse-spark-open-1026', stream: true });
+    });
+  });
+
+  describe('MuseDriver', () => {
+    it('serves Muse on the Meta Model API by default: its chat models over Responses, and Muse Image', async () => {
+      const vendor = mockVendor(imagesResponse([{ url: 'https://cdn.meta.test/1.webp' }]));
+      const muse = new MuseDriver({ apiKey: 'key-1' });
+      const ctx = imageContext({ prompt: 'A lantern' });
+
+      await muse.draw(ctx);
+
+      expect(muse.name).toBe('meta');
+      expect(vendor.requests[0].url).toBe(`${MUSE_API}/images/generations`);
+      expect(vendor.bodies[0]).toMatchObject({ model: MUSE_IMAGE_MODEL, prompt: 'A lantern' });
+      expect(ctx.state.data.url).toBe('https://cdn.meta.test/1.webp');
+    });
+
+    it('edits the attached images by the prompt, sent as URLs in JSON', async () => {
+      const vendor = mockVendor(imagesResponse([{ url: 'https://cdn.meta.test/2.webp' }]));
+      const ctx = imageContext({
+        prompt: 'Remove the cat',
+        attachments: ['https://cdn.test/sofa.jpg'],
+        aspectRatio: 'auto',
+      });
+
+      await new MuseDriver({ apiKey: 'key-1', baseUrl: 'https://api.meta.test/v1' }).draw(ctx);
+
+      expect(vendor.requests[0].url).toBe('https://api.meta.test/v1/images/edits');
+      expect(vendor.bodies[0]).toEqual({
+        model: MUSE_IMAGE_MODEL,
+        prompt: 'Remove the cat',
+        images: [{ image_url: 'https://cdn.test/sofa.jpg' }],
+        response_format: 'url',
+      });
+      expect(ctx.state.data.url).toBe('https://cdn.meta.test/2.webp');
+    });
+
+    it('leaves an edit whose attachment is a file still to upload', async () => {
+      const vendor = mockVendor();
+      const ctx = imageContext({ prompt: 'Remove the cat', attachments: [new File(['x'], 'a.png')] });
+
+      await new MuseDriver({ apiKey: 'key-1' }).draw(ctx);
+
+      expect(vendor.requests).toHaveLength(0);
+      expect(ctx.state.data.url).toBeUndefined();
     });
   });
 });
