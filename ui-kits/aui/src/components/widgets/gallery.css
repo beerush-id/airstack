@@ -101,6 +101,25 @@
     visibility: visible;
   }
 
+  /*
+   * What the tile is — a folder among photos — on the picture's other top corner, clear of the
+   * check. White over a darker shade, as the check is, so it reads on any picture.
+   */
+  .aui-gallery-badge {
+    --aui-icon-size: 1rem;
+    position: absolute;
+    inset-block-start: calc(var(--aui-gallery-padding) + var(--spacing-sm));
+    inset-inline-start: calc(var(--aui-gallery-padding) + var(--spacing-sm));
+    display: grid;
+    place-items: center;
+    padding: var(--spacing-xs);
+    border-radius: var(--radius-full);
+    background-color: rgb(0 0 0 / 0.4);
+    color: rgb(255 255 255 / 0.95);
+    box-shadow: var(--elevation-1);
+    pointer-events: none;
+  }
+
   .aui-gallery-media {
     --aui-image-size: 100%;
     aspect-ratio: var(--aui-gallery-ratio);

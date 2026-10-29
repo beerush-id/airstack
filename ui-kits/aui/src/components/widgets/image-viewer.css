@@ -104,6 +104,8 @@
     inset-inline-start: 50%;
     translate: -50% 0;
     display: flex;
+    /* Placed from the middle, it would only have the half past it to fit in, and wrap; it keeps its own width instead. */
+    inline-size: max-content;
     align-items: center;
     gap: var(--spacing-xxs, 2px);
     padding: var(--spacing-xs);
