@@ -71,6 +71,13 @@ export class TooltipAria<E extends HTMLElement = HTMLElement> extends PopoverAri
   public constructor(props: Partial<TooltipProps> = {}, options: PopoverOptions = {}) {
     super(props, options);
     this.omittedAttrs.push('onchange');
+
+    // A tooltip describes the part it's placed in: a control in that part when it has one, else the
+    // part itself — an avatar, an image — which nothing else would hand it.
+    if (!this.target && this.scope) {
+      this.target = this.scope as never;
+      this.attachTrigger();
+    }
   }
 
   public override get mode(): OverlayTriggerMode[] {
