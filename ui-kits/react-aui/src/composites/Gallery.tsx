@@ -34,6 +34,8 @@ export type GalleryEntry = {
   description?: string;
   /** What sits at the caption's end: a rating, a duration, a count. */
   meta?: string;
+  /** A glyph on the picture's corner saying what the tile is, e.g. a folder among photos. */
+  badge?: ReactNode;
   disabled?: boolean;
 };
 
@@ -84,6 +86,7 @@ const CAPTION = {
   META: branded('gallery-caption-meta'),
 };
 const CHECK_CLASS = branded('gallery-check');
+const BADGE_CLASS = branded('gallery-badge');
 
 register('gallery', {});
 register('galleryItem', { size: SIZES.MD, color: COLORS.PRIMARY });
@@ -186,6 +189,12 @@ function GalleryTile(entry: Omit<GalleryEntry, 'value'>): ReactNode {
   return (
     <>
       <Image src={entry.src} alt={entry.title ? '' : entry.alt} className={AUI_CLASS.GALLERY_MEDIA} />
+      {/* The caption says what the tile is in words; the badge only shows it. */}
+      {entry.badge && (
+        <span className={BADGE_CLASS} aria-hidden="true">
+          {entry.badge}
+        </span>
+      )}
       {(entry.title || entry.description || entry.meta) && (
         <div className={AUI_CLASS.GALLERY_CAPTION}>
           {entry.title && <span className={CAPTION.TITLE}>{entry.title}</span>}
