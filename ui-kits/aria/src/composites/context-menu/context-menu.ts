@@ -64,6 +64,18 @@ export class ContextMenuAria<E extends BaseElement = HTMLElement> extends MenuAr
   public anchorY?: number;
 
   /**
+   * The host's element: the menu renders none of its own, and its panel dismisses and returns focus
+   * against the part it belongs to.
+   */
+  public override get current(): E | null {
+    return (this.target?.current as E | null | undefined) ?? null;
+  }
+
+  public override set current(element: E | null) {
+    super.current = element;
+  }
+
+  /**
    * @param props - User-provided context menu properties.
    */
   public constructor(props: ContextMenuProps = {}) {
@@ -79,12 +91,17 @@ export class ContextMenuAria<E extends BaseElement = HTMLElement> extends MenuAr
       return;
     }
 
+    // The menu stands as its panel's trigger; without one, the panel takes the page as its host, so a
+    // press anywhere counts as inside and other menus never close.
+    this.actionable = this as never;
+
     const release = this.target.refine(() => ({
       'aria-haspopup': this.open ? 'menu' : undefined,
       'aria-expanded': this.open ? 'true' : undefined,
       'aria-controls': this.open ? this.panelId : undefined,
       style: { anchorName: triggerAnchorName(`--popover-anchor-${this.id}`) } as StyleInput,
       oncontextmenu: this.handleContextMenu,
+      onclick: this.handleClick,
       onkeydown: this.handleKeyDown,
     }));
     this.cleanups.add(() => release(true));
@@ -107,6 +124,14 @@ export class ContextMenuAria<E extends BaseElement = HTMLElement> extends MenuAr
     this.anchorY = event.clientY - top;
 
     this.open = true;
+  };
+
+  /**
+   * Shuts the menu on a primary click on its host: the host counts as inside for the panel's
+   * outside-press dismissal, so a click there would otherwise leave it open.
+   */
+  protected handleClick = (): void => {
+    if (this.open) this.open = false;
   };
 
   /**

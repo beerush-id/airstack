@@ -1,5 +1,5 @@
 import { selectionGroup } from '../../selection.js';
-import type { AriaProps, BaseElement } from '../../types.js';
+import type { AriaEvent, AriaProps, BaseElement } from '../../types.js';
 import { ENABLED_QUERY } from '../../utils/attributes.js';
 import type { PopoverAria } from '../../widgets/popover.js';
 import { ListboxAria, type ListboxAttributes } from '../listbox.js';
@@ -75,6 +75,17 @@ export class MenuPanelAria<E extends BaseElement = HTMLElement> extends ListboxA
   public override set current(element: E | null) {
     super.current = element;
     this.popup.current = element as unknown as HTMLElement;
+  }
+
+  /**
+   * Leaves a command to its menu: the panel shares the menu's properties, so answering it here as
+   * well would run the menu's `oncommand` twice for one command.
+   *
+   * @param event - The event to capture.
+   */
+  protected override capture(event: AriaEvent): void {
+    if (event.type === 'command') return;
+    super.capture(event);
   }
 
   /**
