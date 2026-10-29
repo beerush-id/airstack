@@ -8,13 +8,15 @@ import {
   AudioFileIcon,
   AutoAwesomeIcon,
   DraftIcon,
-  FormatAlignLeftIcon,
   ImageIcon,
   LockIcon,
   LockOpenIcon,
   MovieIcon,
+  TitleIcon,
   VisibilityIcon,
   VisibilityOffIcon,
+  VolumeOffIcon,
+  VolumeUpIcon,
 } from '../icons/index.js';
 import { formatTime, holdWhileDragging, playheadSlider } from '../utils/time.js';
 import { Toggle } from '../widgets/Toggle.js';
@@ -104,7 +106,7 @@ const LANE_KINDS: Record<string, LaneKind> = {
   video: { icon: MovieIcon, color: 'primary' },
   image: { icon: ImageIcon, color: 'primary' },
   audio: { icon: AudioFileIcon, color: 'info' },
-  text: { icon: FormatAlignLeftIcon, color: 'tertiary' },
+  text: { icon: TitleIcon, color: 'tertiary' },
   effect: { icon: AutoAwesomeIcon, color: 'secondary' },
 };
 
@@ -113,6 +115,9 @@ const SOURCED_LANES = new Set(['video', 'audio']);
 
 /** Lanes heard rather than seen: they sit apart, below the pictures, and stack with nothing. */
 const SOUND_LANES = new Set(['audio']);
+
+/** Picture lanes whose clips carry their own sound — footage — so they can be muted apart from hidden. */
+const VOICED_LANES = new Set(['video']);
 
 /** The two groups of lanes: what's seen, stacked, and what's heard. */
 type TrackGroup = 'picture' | 'sound';
@@ -236,6 +241,15 @@ export const TimelineEditor = setup<TimelineEditorProps, TimelineEditorSlots>((p
       if (locked) pick(picked().filter((id) => ![...track.segments].some((segment) => segment.id === id)));
       lanes.changes++;
     },
+    // Muted — `meta.muted` — a track keeps its pictures on the stage but isn't heard.
+    get muted() {
+      void lanes.changes;
+      return !!track.meta?.muted;
+    },
+    set muted(muted: boolean) {
+      (track.meta ??= {}).muted = muted;
+      lanes.changes++;
+    },
   });
   const clips = aria(CLIPS_ROLE, props as AnyType);
   clips.refine(pointerFocusOnly);
@@ -257,10 +271,13 @@ export const TimelineEditor = setup<TimelineEditorProps, TimelineEditorSlots>((p
     autofocused = true;
     lane.focus({ preventScroll: true });
   };
-  // A track's row of names: its glyph — the grip — its name, its lock and its hiding.
+  // A track's row of names: its glyph — the grip — its name, its lock, its muting when its pictures
+  // carry sound, and its hiding.
   const trackHeader = (track: TimelineTrack) => {
     const Icon = laneKind(track.type).icon;
     const state = laneState(track);
+    const sound = SOUND_LANES.has(track.type ?? '');
+    const voiced = VOICED_LANES.has(track.type ?? '');
     return (
       <ReorderItem value={track.id} label={track.name}>
         <div className={CLASS.HEADER}>
@@ -279,14 +296,34 @@ export const TimelineEditor = setup<TimelineEditorProps, TimelineEditorSlots>((p
             >
               {(locked) => (locked ? <LockIcon /> : <LockOpenIcon />)}
             </Toggle>
+            {voiced && (
+              <Toggle
+                aria-label={`Mute ${track.name}`}
+                variant="text"
+                size="xs"
+                className={AUI_CLASS.CONTROL_ICON}
+                pressed={$bind(state, 'muted')}
+              >
+                {(muted) => (muted ? <VolumeOffIcon /> : <VolumeUpIcon />)}
+              </Toggle>
+            )}
+            {/* Leaving a track off the stage hides what's seen and mutes what's heard. */}
             <Toggle
-              aria-label={`Hide ${track.name}`}
+              aria-label={`${sound ? 'Mute' : 'Hide'} ${track.name}`}
               variant="text"
               size="xs"
               className={AUI_CLASS.CONTROL_ICON}
               pressed={$bind(state, 'hidden')}
             >
-              {(hidden) => (hidden ? <VisibilityOffIcon /> : <VisibilityIcon />)}
+              {(hidden) =>
+                sound ? (
+                  hidden ? <VolumeOffIcon /> : <VolumeUpIcon />
+                ) : hidden ? (
+                  <VisibilityOffIcon />
+                ) : (
+                  <VisibilityIcon />
+                )
+              }
             </Toggle>
           </span>
         </div>

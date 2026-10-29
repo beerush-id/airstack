@@ -77,6 +77,10 @@ export type StageClipProps<P extends Record<string, AnyType> = Record<string, An
   crossOrigin?: '' | 'anonymous' | 'use-credentials';
   /** Mutes a media clip. */
   muted?: boolean;
+  /** How loud a media clip's sound plays, from 0; 1, its own level, unless set. Heard at once as it changes. */
+  volume?: number;
+  /** Where a media clip's sound sits, from -1 for left to 1 for right; 0, centred, unless set. Heard at once as it changes. */
+  pan?: number;
   /** An SVG clip's own coordinate box. */
   viewBox?: string;
   /** An image clip's description. */
@@ -87,7 +91,7 @@ export type StageClipProps<P extends Record<string, AnyType> = Record<string, An
 const SLIDER_ROLE = 'slider';
 const STAGE_ROLE = 'video-stage';
 const CLIP_ROLE = 'video-clip';
-const CLIP_OMIT_KEYS = [...OMIT_KEYS, 'segment', 'as', 'offset', 'draw', 'media', 'fit'] as never[];
+const CLIP_OMIT_KEYS = [...OMIT_KEYS, 'segment', 'as', 'offset', 'draw', 'media', 'fit', 'volume', 'pan'] as never[];
 
 const CLASS = {
   CANVAS: branded('stage-canvas'),

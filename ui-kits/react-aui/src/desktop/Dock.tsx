@@ -91,8 +91,8 @@ const DOCK = 'aui-dock';
 const CLASS = {
   EXTENSIONS: `${DOCK}-extensions`,
   FLOAT: `${DOCK}-float`,
+  FLOAT_SUBJECT: `${DOCK}-float-subject`,
   FLOAT_FRAME: `${DOCK}-float-frame`,
-  FLOAT_APP: `${DOCK}-float-app`,
   START: `${DOCK}-start`,
   LAUNCH: `${DOCK}-launch`,
   LAUNCHER: 'aui-launcher',
@@ -224,6 +224,7 @@ const DockExtensionsPane = setup<{ front: WindowInstance }>((props) => {
 
   return () => {
     const Extensions = props.front.dockExtensions!;
+    const Subject = props.front.dockSubject;
     const app = props.front.app;
 
     return (
@@ -233,10 +234,15 @@ const DockExtensionsPane = setup<{ front: WindowInstance }>((props) => {
           aria-label={`${appLabel(app)} options`}
           className={`${CLASS.FLOAT_FRAME} ${AUI_CLASS.GLASS_FRAME}`}
         >
-          {/* Whose options these are: the app's tile on the glass, before its surface; the group's name says it aloud. */}
-          <span className={CLASS.FLOAT_APP}>
-            <AppIconTile alt={appLabel(app)} src={app.image} icon={app.icon} aria-hidden="true" />
-          </span>
+          {/*
+           * Whose options these are, the dock's lit app icon shows; the group's name says it aloud.
+           * What they act on sits on the glass before them, apart from the tools on the surface.
+           */}
+          {Subject && (
+            <span className={CLASS.FLOAT_SUBJECT}>
+              <Subject instance={props.front} />
+            </span>
+          )}
           <div className={`${CLASS.EXTENSIONS} ${AUI_CLASS.GLASS_SURFACE}`}>
             <Extensions instance={props.front} />
           </div>

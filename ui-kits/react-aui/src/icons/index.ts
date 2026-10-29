@@ -68,6 +68,7 @@ export * from './Lock.js';
 export * from './LockOpen.js';
 export * from './Visibility.js';
 export * from './VisibilityOff.js';
+export * from './Title.js';
 export * from './AspectRatio.js';
 export * from './Timer.js';
 export * from './Hd.js';

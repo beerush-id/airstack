@@ -61,6 +61,8 @@ export type WindowInstance<D = AnyType> = {
   readonly state: WindowState;
   /** What the dock shows above its prompt while this window is in front; from the definition. */
   readonly dockExtensions?: ComponentType<WindowRenderProps<D>>;
+  /** What those controls act on, shown beside them; from the definition. */
+  readonly dockSubject?: ComponentType<WindowRenderProps<D>>;
   /** What it was opened with to call: its view's buttons and the agent reach the same functions here. */
   readonly tools: AUITools;
   /** What it adds to the prompt's commands while it's in front. */
@@ -116,6 +118,12 @@ export type WindowDefinition<D = AnyType> = {
    * reads and binds that copy's data; small controls only, in one row that wraps.
    */
   dockExtensions?: ComponentType<WindowRenderProps<D>>;
+  /**
+   * What the dock's controls act on right now — the picked item, as its picture — shown on the
+   * glass beside them, apart from the tools. Drawn with the copy it serves; nothing while it draws
+   * nothing.
+   */
+  dockSubject?: ComponentType<WindowRenderProps<D>>;
 };
 
 /**
@@ -396,6 +404,7 @@ function spawn<D>(app: WindowApp<D>, data: D, options: Omit<AUIOpenOptions<D>, '
     title,
     state,
     dockExtensions: app.dockExtensions,
+    dockSubject: app.dockSubject,
     tools: options.tools ?? {},
     commands: options.commands ?? [],
     contexts: options.contexts ?? [],
