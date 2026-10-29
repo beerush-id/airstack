@@ -27,6 +27,8 @@ import { Reorder, ReorderHandle, ReorderItem } from './Reorder.js';
 export type TimelineEditorSlots = {
   /** Content of each clip, replacing its picture and name. */
   clip: (segment: TimelineSegment, track: TimelineTrack) => ReactNode;
+  /** What sits on each clip at its end, over its picture and name: who it's assigned to, say. */
+  adornment: (segment: TimelineSegment, track: TimelineTrack) => ReactNode;
   /** What sits beside the ruler, above the track names: e.g. the playhead's timecode. */
   corner: () => ReactNode;
 };
@@ -118,6 +120,7 @@ const CLASS = {
   CLIP_NAME: branded('timeline-clip-name'),
   CLIP_EDGE: branded('timeline-clip-edge'),
   CLIP_PROGRESS: branded('timeline-clip-progress'),
+  CLIP_ADORNMENT: branded('timeline-clip-adornment'),
   PLAYHEAD: branded('timeline-playhead'),
   PLAYHEAD_HANDLE: branded('timeline-playhead-handle'),
 };
@@ -551,7 +554,13 @@ export const TimelineEditor = setup<TimelineEditorProps, TimelineEditorSlots>((p
                   >
                     <For each={() => [...track.segments]}>
                       {(segment) => (
-                        <TimelineClip segment={segment} track={track} progress={props.progress} onremove={removeClip}>
+                        <TimelineClip
+                          segment={segment}
+                          track={track}
+                          progress={props.progress}
+                          adornment={slots.adornment?.(segment, track)}
+                          onremove={removeClip}
+                        >
                           {slots.clip?.(segment, track)}
                         </TimelineClip>
                       )}
@@ -645,6 +654,8 @@ type TimelineClipProps = {
   segment: TimelineSegment;
   track: TimelineTrack;
   progress?: (segment: TimelineSegment) => number | undefined;
+  /** What sits on the clip at its end. */
+  adornment?: ReactNode;
   /** Takes the clip off, from its context menu. */
   onremove: (segment: TimelineSegment) => void;
   children?: ReactNode;
@@ -687,6 +698,7 @@ const TimelineClip = setup<TimelineClipProps>((props) => {
           oncommand={(event) => event.detail === 'remove-clip' && props.onremove(segment)}
         />
         {props.children ?? <span className={CLASS.CLIP_NAME}>{segment.name}</span>}
+        {props.adornment && <span className={CLASS.CLIP_ADORNMENT}>{props.adornment}</span>}
         {progress !== undefined && <span className={CLASS.CLIP_PROGRESS} aria-hidden="true" />}
         {/* Its edges, to resize it from either end. */}
         <span className={CLASS.CLIP_EDGE} data-edge="start" aria-hidden="true" />

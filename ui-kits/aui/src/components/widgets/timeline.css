@@ -371,6 +371,17 @@
     white-space: nowrap;
   }
 
+  /* What sits on a clip, at its end past its name: who it's assigned to, say. */
+  .aui-timeline-clip-adornment {
+    position: relative;
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: var(--spacing-xs);
+    margin-inline-start: auto;
+    padding-inline-start: var(--spacing-xs);
+  }
+
   /* Work under way on a clip: a bar along its foot, filling as it goes, over a faint track of what's left. */
   .aui-timeline-clip-progress {
     position: absolute;
