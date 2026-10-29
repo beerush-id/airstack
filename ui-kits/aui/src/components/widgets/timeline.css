@@ -10,7 +10,7 @@
  */
 @layer theme {
   :root {
-    --aui-timeline-header: 11rem;
+    --aui-timeline-header: 12.5rem;
     /* Between the track names, with their controls, and the lanes. */
     --aui-timeline-header-gap: var(--spacing-sm);
     --aui-timeline-ruler: 2rem;
@@ -401,8 +401,9 @@
 
   /*
    * The playhead: one piece from the ruler down through the lanes, at the timeline's time, so its
-   * handle and its line can't part. The line starts under the handle; the handle stays on the
-   * ruler while the lanes scroll down. Presses pass through it to the ruler's scrub.
+   * handle and its line can't part. The handle stays on the ruler while the lanes scroll down, and
+   * the line hangs from the handle, so it always starts there, never above it; the playhead's own
+   * box cuts it off at the lanes' end. Presses pass through it to the ruler's scrub.
    */
   .aui-timeline-playhead {
     --aui-timeline-handle-top: calc(var(--aui-timeline-ruler) * 0.4);
@@ -414,10 +415,8 @@
     z-index: 3;
     inline-size: 2px;
     translate: -50% 0;
-    /* The line's ends are rounded, like the handle it hangs from. */
-    border-radius: var(--radius-full);
-    corner-shape: round;
-    background: linear-gradient(to bottom, transparent var(--aui-timeline-handle-top), var(--color-primary) 0);
+    overflow-x: visible;
+    overflow-y: clip;
     pointer-events: none;
   }
 
@@ -437,5 +436,17 @@
     border-radius: var(--radius-full);
     corner-shape: round;
     background-color: var(--color-primary);
+
+    /* The line, from just inside the handle's foot down past any lanes, cut off by the playhead's box. */
+    &::after {
+      content: '';
+      position: absolute;
+      inset-block-start: calc(100% - 2px);
+      inset-inline-start: 50%;
+      inline-size: 2px;
+      block-size: 100000px;
+      translate: -50% 0;
+      background-color: var(--color-primary);
+    }
   }
 }

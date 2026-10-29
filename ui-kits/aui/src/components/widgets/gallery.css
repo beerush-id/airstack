@@ -69,7 +69,8 @@
   /*
    * The check sits on the picture's corner, clear of its rounding, inside the tile's padding: an
    * empty circle that shows under the pointer while one tile is picked, and on every tile while
-   * several are, filled once its tile is checked.
+   * several are, filled once its tile is checked. It's on a picture, not the page, so its ring is
+   * white in either scheme, over a light shade, to read on any picture.
    */
   .aui-gallery-check {
     --aui-icon-size: 1rem;
@@ -81,9 +82,9 @@
     box-sizing: border-box;
     inline-size: calc(var(--aui-icon-size) + var(--spacing-xs) * 1.5);
     block-size: calc(var(--aui-icon-size) + var(--spacing-xs) * 1.5);
-    border: 2px solid var(--color-surface-lowest);
+    border: 2px solid rgb(255 255 255 / 0.92);
     border-radius: var(--radius-full);
-    background-color: color-mix(in oklch, var(--color-scrim, #000) 25%, transparent);
+    background-color: rgb(0 0 0 / 0.25);
     color: transparent;
     box-shadow: var(--elevation-1);
     visibility: hidden;

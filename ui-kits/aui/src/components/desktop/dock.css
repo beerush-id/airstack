@@ -126,7 +126,7 @@
     position: absolute;
   }
 
-  /* An app with nothing to offer for what's in front right now shows no pane, nor its tile, at all. */
+  /* An app with nothing to offer for what's in front right now shows no pane at all. */
   .aui-dock-float:has(.aui-dock-extensions:empty) {
     display: none;
   }
@@ -142,14 +142,20 @@
     pointer-events: auto;
   }
 
-  /* The front window's app tile, on the glass before the surface, as tall as a control, with the surface's corners. */
-  .aui-dock-float-app {
-    --aui-image-size: var(--aui-control-height);
-    --aui-icon-size: calc(var(--aui-image-size) * 0.5);
-    --aui-app-icon-radius: max(calc(var(--aui-glass-radius) - var(--aui-glass-inset) - 1px), var(--radius-sm));
-    --aui-app-icon-corner: var(--corner-shape, round);
+  /*
+   * What the options act on, on the glass before the surface: as tall as a control, with the
+   * surface's corners, which the app's own subject takes up through these variables. Nothing while
+   * it draws nothing.
+   */
+  .aui-dock-float-subject {
+    --aui-dock-subject-size: var(--aui-control-height);
+    --aui-dock-subject-radius: max(calc(var(--aui-glass-radius) - var(--aui-glass-inset) - 1px), var(--radius-sm));
     display: inline-flex;
     flex: none;
+
+    &:empty {
+      display: none;
+    }
   }
 
   /*
