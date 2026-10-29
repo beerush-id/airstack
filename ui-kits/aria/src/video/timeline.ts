@@ -125,7 +125,8 @@ type Moving = { segment: TimelineSegment; clip?: HTMLElement | null; from: numbe
  * their new start and length in seconds as `--aria-timeline-start` and `--aria-timeline-span`,
  * ahead of any re-render; the segments and what's shown at the current time move with them.
  * Escape puts them back. A clip `locked` says is locked is left alone: not picked, moved, or resized.
- * Cmd or Ctrl and B cuts the picked clips in two at the playhead (`split`).
+ * Cmd or Ctrl and B cuts the picked clips in two at the playhead (`split`); Delete or Backspace
+ * takes them off (`removeClips`).
  *
  * The keys act on what has focus, and come to it before anything inside handles them. Space plays
  * or pauses. Left and Right move the playhead by a second — or move a focused clip, with every
@@ -317,6 +318,10 @@ export class VideoTimelineAria<
         this.pickAlong(event.target as Element, segment, event.key === 'ArrowUp' ? -1 : 1, how);
         break;
       }
+      case 'Delete':
+      case 'Backspace':
+        if (!this.removeClips().length) return;
+        break;
       case 'Enter':
         if (!segment || !this.options.selection || this.isLocked(segment)) return;
         if (this.properties.multiple) this.toggle(segment);
@@ -341,6 +346,28 @@ export class VideoTimelineAria<
       .filter((segment): segment is TimelineSegment => !!segment && !this.isLocked(segment))
       .map((segment) => splitSegment(segment, frame))
       .filter((rest): rest is TimelineSegment => !!rest);
+  }
+
+  /**
+   * Takes clips off their tracks — the picked ones unless told which — leaving locked ones, and
+   * lets go of them in the pick. Focus on a clip taken off goes to its track.
+   *
+   * @param segments - The clips to take off; the picked ones when left out.
+   * @returns The clips taken off.
+   */
+  public removeClips(segments?: TimelineSegment[]): TimelineSegment[] {
+    const gone = (segments ?? this.picked.map((id) => this.segmentOf(id))).filter(
+      (segment): segment is TimelineSegment => !!segment && !this.isLocked(segment)
+    );
+    if (!gone.length) return gone;
+
+    const focused = document.activeElement?.closest<HTMLElement>('[data-segment]');
+    const lane = focused?.closest<HTMLElement>('[data-track]');
+    const ids = new Set(gone.map((segment) => segment.id));
+    if (this.picked.some((id) => ids.has(id))) this.options.selection?.set(this.picked.filter((id) => !ids.has(id)));
+    for (const segment of gone) segment.remove();
+    if (focused && ids.has(focused.dataset.segment ?? '')) lane?.focus({ preventScroll: true });
+    return gone;
   }
 
   /**
