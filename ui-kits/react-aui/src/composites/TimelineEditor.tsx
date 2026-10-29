@@ -8,11 +8,12 @@ import { hasEntries, type ItemsInput } from '../utils/common.js';
 import {
   AudioFileIcon,
   AutoAwesomeIcon,
+  CodeIcon,
   DraftIcon,
-  ImageIcon,
   LockIcon,
   LockOpenIcon,
   MovieIcon,
+  ShapesIcon,
   TitleIcon,
   VisibilityIcon,
   VisibilityOffIcon,
@@ -130,14 +131,15 @@ type LaneKind = { icon: (props: { 'aria-hidden': 'true' }) => ReactNode; color: 
 /** Lanes by what they carry: their glyph and their role color. */
 const LANE_KINDS: Record<string, LaneKind> = {
   video: { icon: MovieIcon, color: 'primary' },
-  image: { icon: ImageIcon, color: 'primary' },
   audio: { icon: AudioFileIcon, color: 'info' },
-  text: { icon: TitleIcon, color: 'tertiary' },
-  effect: { icon: AutoAwesomeIcon, color: 'secondary' },
+  title: { icon: TitleIcon, color: 'tertiary' },
+  html: { icon: CodeIcon, color: 'secondary' },
+  svg: { icon: ShapesIcon, color: 'secondary' },
+  painter: { icon: AutoAwesomeIcon, color: 'secondary' },
 };
 
-/** Lanes whose clips play their source's time: footage and sound. */
-const SOURCED_LANES = new Set(['video', 'audio']);
+/** Clips that play their source's time — footage and sound — so trimming their head cuts into it. */
+const SOURCED_CLIPS = new Set(['video', 'audio']);
 
 /** Lanes heard rather than seen: they sit apart, below the pictures, and stack with nothing. */
 const SOUND_LANES = new Set(['audio']);
@@ -187,7 +189,7 @@ register('timelineEditor', {});
 /**
  * A composition laid out in time: a ruler with the playhead across the top, one lane per track
  * of a core `Timeline`, and each segment as a clip at its place and length — pictures on video
- * and image lanes, a waveform on audio lanes, words on text lanes. The picture lanes stack as the
+ * lanes, a waveform on audio lanes, words on title lanes. The picture lanes stack as the
  * stage does — the timeline's last track, drawn over the rest, is the top row — and the sound lanes
  * sit apart below them; dragging a track by its glyph moves it within its group. Press or drag the ruler to seek; pick a clip by pointer or
  * with the arrows. It holds no time of its own: the timeline does,
@@ -226,17 +228,14 @@ export const TimelineEditor = setup<TimelineEditorProps, TimelineEditorSlots>((p
       timeline: $static(() => props.timeline),
       selection: { get: picked, set: pick },
       // Footage and sound play their source's time, so trimming their head cuts into it.
-      sourced: (segment) => SOURCED_LANES.has(segment.track.type ?? ''),
+      sourced: (segment) => SOURCED_CLIPS.has(segment.type ?? ''),
       locked: (segment) => !!segment.track.meta?.locked,
     }
   );
-  // A track's hiding, locking and place aren't observed, so what shows them follows this count of
-  // changes. While a track is dragged to a new place, its group's rows follow the order it would
-  // drop into.
-  const lanes = mutable({ changes: 0, preview: [] as string[], moving: null as string | null });
+  // While a track is dragged to a new place, its group's rows follow the order it would drop into.
+  const lanes = mutable({ preview: [] as string[], moving: null as string | null });
   // One group's rows as they stand, or as a track being dragged among them would leave them.
   const rows = (group: TrackGroup): TimelineTrack[] => {
-    void lanes.changes;
     const all = tracksOf(group);
     if (!lanes.moving || !all.some((track) => track.id === lanes.moving)) return all;
     return lanes.preview.map((id) => all.find((track) => track.id === id)).filter((track) => !!track);
@@ -249,7 +248,6 @@ export const TimelineEditor = setup<TimelineEditorProps, TimelineEditorSlots>((p
   // order the stage stacks them in — and draws the paused stage again in its new stacking.
   const orderOf = (group: TrackGroup) => ({
     get value() {
-      void lanes.changes;
       return tracksOf(group).map((track) => track.id);
     },
     set value(ids: string[]) {
@@ -257,40 +255,36 @@ export const TimelineEditor = setup<TimelineEditorProps, TimelineEditorSlots>((p
       const sound = group === 'sound' ? moved : tracksOf('sound');
       const pictures = group === 'picture' ? moved : tracksOf('picture');
       props.timeline.orderTracks([...sound, ...pictures.reverse()]);
-      lanes.changes++;
       if (props.timeline.status !== 'playing') void props.timeline.scrub(props.timeline.frame);
     },
   });
-  // A track hidden — its `disabled`, so the stage leaves its clips off — or locked — `meta.locked`,
-  // so its clips can't be picked or edited — as values a toggle binds to.
+  // A track hidden — its `disabled`, so the stage leaves its clips off — locked — `meta.locked`, so
+  // its clips can't be picked or edited — or muted — `meta.muted` — as values a toggle binds to,
+  // read from the track itself. Locking and muting live in the track's `meta`, which the timeline's
+  // owner declares when it uses them: on a track without one, they stay off.
   const laneState = (track: TimelineTrack) => ({
     get hidden() {
-      void lanes.changes;
       return !!track.disabled;
     },
     set hidden(hidden: boolean) {
       track.disabled = hidden;
-      lanes.changes++;
       // The stage draws a frame only as the timeline reaches it; paused, it draws this one again.
       if (props.timeline.status !== 'playing') void props.timeline.scrub(props.timeline.frame);
     },
     get locked() {
-      void lanes.changes;
       return !!track.meta?.locked;
     },
     set locked(locked: boolean) {
-      (track.meta ??= {}).locked = locked;
+      if (!track.meta) return;
+      track.meta.locked = locked;
       if (locked) pick(picked().filter((id) => ![...track.segments].some((segment) => segment.id === id)));
-      lanes.changes++;
     },
-    // Muted — `meta.muted` — a track keeps its pictures on the stage but isn't heard.
+    // Muted, a track keeps its pictures on the stage but isn't heard.
     get muted() {
-      void lanes.changes;
       return !!track.meta?.muted;
     },
     set muted(muted: boolean) {
-      (track.meta ??= {}).muted = muted;
-      lanes.changes++;
+      if (track.meta) track.meta.muted = muted;
     },
   });
   // Takes a track off the timeline with its clips, letting go of any of them that were picked, and
@@ -299,14 +293,15 @@ export const TimelineEditor = setup<TimelineEditorProps, TimelineEditorSlots>((p
     const gone = new Set([...track.segments].map((segment) => segment.id));
     if (picked().some((id) => gone.has(id))) pick(picked().filter((id) => !gone.has(id)));
     props.timeline.removeTrack(track);
-    lanes.changes++;
     if (props.timeline.status !== 'playing') void props.timeline.scrub(props.timeline.frame);
   };
-  // Puts an empty track of the same type in the row above, named by how many of its type there are.
+  // Puts an empty track of the same type in the row above, named by how many of its type there are,
+  // with a `meta` of its own when the track beside it has one, as the timeline's owner keeps them.
   const addTrackAbove = (track: TimelineTrack) => {
     const type = track.type ?? 'track';
     const count = tracks().filter((other) => other.type === track.type).length;
-    const added = props.timeline.addTrack({ type: track.type, name: `${type[0].toUpperCase()}${type.slice(1)} ${count + 1}` });
+    const name = `${type[0].toUpperCase()}${type.slice(1)} ${count + 1}`;
+    const added = props.timeline.addTrack({ type: track.type, name, meta: track.meta ? {} : undefined });
     const group = groupOf(track);
     const ids = tracksOf(group)
       .map((other) => other.id)

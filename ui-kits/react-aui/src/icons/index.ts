@@ -52,6 +52,7 @@ export * from './Movie.js';
 export * from './AudioFile.js';
 export * from './PictureAsPdf.js';
 export * from './Code.js';
+export * from './Shapes.js';
 export * from './FolderZip.js';
 export * from './PlayArrow.js';
 export * from './Pause.js';
