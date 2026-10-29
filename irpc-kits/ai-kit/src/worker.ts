@@ -26,6 +26,11 @@ import type { VideoOptions, VideoOutput } from './video/index.js';
 export interface WorkerOptions {
   /** Instance-level defaults applied beneath call options across all dispatchers. */
   defaults?: Record<string, unknown>;
+  /**
+   * The adapter to serve calls with, shared with the server's own model calls so its drivers are
+   * set up once; a new adapter with `defaults` when unset.
+   */
+  adapter?: AIAdapter;
   [key: string]: unknown;
 }
 
@@ -55,7 +60,7 @@ export interface AIWorker {
  */
 export function createWorker(instance: AIInstance, options: WorkerOptions = {}): AIWorker {
   const router = new HTTPRouter(instance.transport as HTTPTransport);
-  const adapter = new AIAdapter(options.defaults);
+  const adapter = options.adapter ?? new AIAdapter(options.defaults);
 
   /** Resolves the declared procedure stub bound on the instance. */
   const procedure = (name: keyof AIInstance['procedures']): unknown => instance.procedures[name];

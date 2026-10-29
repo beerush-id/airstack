@@ -1,6 +1,7 @@
 import type { IRPCPackage } from '@irpclib/irpc';
 import { IRPCFile, withContext } from '@irpclib/irpc';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { AIAdapter } from '../src/adapter/index.js';
 import type { AIInstance } from '../src/client.js';
 import { createAI } from '../src/client.js';
 import { KIEDriver } from '../src/drivers/kie/index.js';
@@ -191,5 +192,12 @@ describe('AIWorker (real driver pipeline)', () => {
     expect(worker.useTool(toolModule)).toBe(worker);
     expect(worker.adapter.drivers).toContain(middleware);
     expect(worker.adapter.tools).toContain(toolModule);
+  });
+
+  it('serves with an adapter the server already runs, so its drivers are set up once', () => {
+    const shared = new AIAdapter();
+    const worker = createWorker(createAI({ name: 'ai-kit-shared-test' }), { adapter: shared });
+
+    expect(worker.adapter).toBe(shared);
   });
 });
