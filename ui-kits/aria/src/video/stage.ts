@@ -5,7 +5,8 @@ import type { VideoClipAria } from './clip.js';
 import {
   PAINT_TIMEOUT,
   SOUND_DRIFT,
-  isSegmentOff,
+  SOUND_GLIDE,
+  isSegmentMuted,
   settleAll,
   VIDEO_HEIGHT,
   VIDEO_PREROLL,
@@ -112,8 +113,9 @@ export class VideoStageAria<
   protected audio?: AudioContext;
   /** Each clip's sound, to schedule while the timeline plays. */
   protected voices = new Map<VideoClipAria, AudioBuffer>();
-  /** The sounds scheduled now, by the clip they belong to. */
-  protected sounding: { clip: VideoClipAria; node: AudioBufferSourceNode }[] = [];
+  /** The sounds scheduled now, by the clip they belong to, each through its own balance and volume. */
+  protected sounding: { clip: VideoClipAria; node: AudioBufferSourceNode; panner: StereoPannerNode; gain: GainNode }[] =
+    [];
   /** When the sound now scheduled started: the audio clock's time, and the timeline frame then. */
   protected session?: { at: number; frame: number };
 
@@ -367,7 +369,7 @@ export class VideoStageAria<
 
     const frameRate = this.timeline.frameRate;
     const segment = clip.segment;
-    if (isSegmentOff(segment)) return;
+    if (clip.muted || isSegmentMuted(segment)) return;
     const latency = (audio.outputLatency || audio.baseLatency || 0) * frameRate * speed;
     const heard = this.heard() + latency;
     const from = Math.max(heard, segment.startFrame);
@@ -377,12 +379,33 @@ export class VideoStageAria<
     const node = audio.createBufferSource();
     node.buffer = sound;
     node.playbackRate.value = speed;
-    node.connect(audio.destination);
+    // Through the clip's balance, then its volume, both set again live as the clip changes them.
+    const panner = audio.createStereoPanner();
+    const gain = audio.createGain();
+    panner.pan.value = clip.pan;
+    gain.gain.value = clip.volume;
+    node.connect(panner).connect(gain).connect(audio.destination);
     const offset = (from - segment.startFrame + segment.offsetFrame) / frameRate + clip.offset;
     node.start(audio.currentTime + (from - heard) / frameRate / speed, offset, (to - from) / frameRate);
-    const entry = { clip, node };
+    const entry = { clip, node, panner, gain };
     node.onended = () => (this.sounding = this.sounding.filter((each) => each !== entry));
     this.sounding.push(entry);
+  }
+
+  /**
+   * Sets a clip's sound to its volume and balance now, while it's sounding: a change — set by hand,
+   * or by keyframes frame by frame — is heard at once, glided over a few milliseconds so steps
+   * between frames don't click.
+   *
+   * @param clip - The clip.
+   */
+  public tune(clip: VideoClipAria): void {
+    const now = this.audio?.currentTime ?? 0;
+    for (const each of this.sounding) {
+      if (each.clip !== clip) continue;
+      each.panner.pan.setTargetAtTime(clip.pan, now, SOUND_GLIDE);
+      each.gain.gain.setTargetAtTime(clip.volume, now, SOUND_GLIDE);
+    }
   }
 
   /**

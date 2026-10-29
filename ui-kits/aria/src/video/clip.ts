@@ -1,4 +1,4 @@
-import type { AnyType } from '@airlib/core';
+import { type AnyType, effect } from '@airlib/core';
 import { isSegmentOn, type MotionBox, sampleSegment, segmentTime, type TimelineSegment } from '@airlib/core/timeline';
 import { Aria } from '../core.js';
 import type { AriaAttributes, AriaOptions, AriaProps, BaseElement } from '../types.js';
@@ -64,6 +64,12 @@ export interface VideoClipProps extends AriaProps {
 
   /** Keeps the media's sound out of what the stage plays. */
   muted?: boolean;
+
+  /** How loud the media's sound plays, from 0 for silent; 1, its own level, unless set. */
+  volume?: number;
+
+  /** Where the media's sound sits between the speakers, from -1 for left to 1 for right; 0, centred, unless set. */
+  pan?: number;
 }
 
 /**
@@ -139,9 +145,12 @@ export class VideoClipAria<
    */
   public motion: MotionBox = {};
 
+  /** The clip's sound levels its keyframes set at the frame last presented, if they set any. */
+  protected levels: { volume?: unknown; pan?: unknown } = {};
+
   public constructor(props: Partial<T> = {}, options: O = {} as O) {
     super(props, options);
-    this.omittedAttrs.push('offset', 'media', 'fit');
+    this.omittedAttrs.push('offset', 'media', 'fit', 'volume', 'pan');
     this.update();
   }
 
@@ -165,6 +174,32 @@ export class VideoClipAria<
    */
   public get offset(): number {
     return this.properties.offset ?? 0;
+  }
+
+  /**
+   * Whether the clip's sound is kept out of what the stage plays, read each time the stage
+   * schedules it, so muting and unmuting take effect as the stage next starts its sound.
+   */
+  public get muted(): boolean {
+    return !!this.properties.muted;
+  }
+
+  /**
+   * How loud the clip's sound plays now: its segment's `volume` at the frame last presented — so
+   * keyframes can fade it — else the clip's own; 1, its own level, unless set.
+   */
+  public get volume(): number {
+    const { volume } = this.levels;
+    return typeof volume === 'number' ? volume : (this.properties.volume ?? 1);
+  }
+
+  /**
+   * Where the clip's sound sits between the speakers now: its segment's `pan` at the frame last
+   * presented, else the clip's own; 0, centred, unless set.
+   */
+  public get pan(): number {
+    const { pan } = this.levels;
+    return typeof pan === 'number' ? pan : (this.properties.pan ?? 0);
   }
 
   /**
@@ -197,6 +232,9 @@ export class VideoClipAria<
     const values = sampleSegment(this.segment, frame);
     const time = segmentTime(this.segment, frame);
     this.place(element, values);
+    // Its sound follows the levels at this frame, so keyframed volume and balance play out.
+    this.levels = { volume: values.volume, pan: values.pan };
+    this.stage?.tune(this as never);
 
     // Content first: what `draw` adds, e.g. an SVG image, is then waited for like the rest.
     const drawn = this.options.draw?.({ values, frame, time, element, signal });
@@ -224,7 +262,14 @@ export class VideoClipAria<
     if (!element || !this.stage) return;
     this.loaded = Promise.allSettled([this.preload(element), this.open(element)]);
     this.stage.add(this as never, element);
+    // A change to the clip's volume or balance reaches its sound at once, while it's sounding.
+    const stopTuning = effect.client(() => {
+      void this.volume;
+      void this.pan;
+      this.stage?.tune(this as never);
+    });
     return () => {
+      stopTuning();
       this.stage?.unlisten(this as never);
       this.stage?.remove(element);
       this.source?.dispose?.();
@@ -234,8 +279,9 @@ export class VideoClipAria<
 
   /**
    * Opens the clip's media through the stage, when it names some: tells its segment how long the
-   * media runs, which caps how far it can be trimmed out, hands its sound to the stage, unless
-   * muted, and paints its first picture, so the clip shows it before it plays.
+   * media runs, which caps how far it can be trimmed out, hands its sound to the stage — muted or
+   * not, which the stage reads as it plays — and paints its first picture, so the clip shows it
+   * before it plays.
    */
   protected async open(element: HTMLElement): Promise<unknown> {
     const src = this.properties.media;
@@ -247,7 +293,7 @@ export class VideoClipAria<
     const frames = Math.round(source.duration * this.segment.timeline.frameRate);
     if (frames > 0 && this.segment.contentFrames !== frames) this.segment.contentFrames = frames;
 
-    const sound = this.properties.muted ? undefined : await source.sound?.();
+    const sound = await source.sound?.();
     if (sound && this.source === source) this.stage.listen(this as never, sound);
     return this.paint(element, segmentTime(this.segment, this.segment.startFrame), new AbortController().signal);
   }

@@ -16,6 +16,17 @@ export function isSegmentOff(segment: TimelineSegment): boolean {
 }
 
 /**
+ * Whether a segment's sound is left unheard: it's off the stage, or its track is muted —
+ * `meta.muted` — which keeps its pictures but silences it.
+ *
+ * @param segment - The segment.
+ * @returns Whether its sound is left unheard.
+ */
+export function isSegmentMuted(segment: TimelineSegment): boolean {
+  return isSegmentOff(segment) || !!segment.track.meta?.muted;
+}
+
+/**
  * A piece of media a clip plays, decoded by whatever the app provides — the stage needs no decoder
  * of its own. It says how long it runs, hands over its picture at any moment, and its sound, whole.
  * Each clip opens its own, so two clips of one file read their pictures apart.
@@ -71,6 +82,9 @@ export const MEDIA_CATCHUP = 0.1;
  * again from where the timeline is — a seek while playing, or a frame held up.
  */
 export const SOUND_DRIFT = 0.15;
+
+/** How quickly, in seconds, a sound glides to a new volume or balance: short enough to follow a fade, long enough not to click. */
+export const SOUND_GLIDE = 0.015;
 
 /** How long before its segment starts, in seconds, a previewed clip is put on stage, painted but unseen. */
 export const VIDEO_PREROLL = 2;
