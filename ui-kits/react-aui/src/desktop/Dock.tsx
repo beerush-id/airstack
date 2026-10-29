@@ -1,8 +1,9 @@
 import { aria, dialogCtx, handleRovingKey } from '@airlib/aria';
 import { AUI_CLASS, COLORS, register, SIZES, VARIANTS } from '@airlib/aui/utils';
-import { $bind, $use, type AnyType, type Bindable, For, setup, shadowPortal, Show, Slot } from '@airlib/react';
+import { $bind, $use, type AnyType, type Bindable, For, Snippet, setup, shadowPortal, Show, Slot } from '@airlib/react';
 import type { KeyboardEvent, ReactNode } from 'react';
 import { Dialog, DialogTrigger } from '../composites/Dialog.js';
+import { Menu, MenuItem, MenuPanel } from '../composites/Menu.js';
 import { $families, auiConfig, type ComponentStyles, OMIT_KEYS } from '../config.js';
 import { AppsIcon } from '../icons/index.js';
 import { AppIcon, AppIconTile } from '../widgets/AppIcon.js';
@@ -100,6 +101,8 @@ const CLASS = {
   APP_ICON: 'aui-app-icon',
   TASKS: `${DOCK}-tasks`,
   TASK: `${DOCK}-task`,
+  TASK_MENU: `${DOCK}-task-menu`,
+  WINDOW: `${DOCK}-window`,
 };
 
 const DOCK_OMIT = [
@@ -237,14 +240,16 @@ const DockExtensionsPane = setup<{ front: WindowInstance }>((props) => {
           {/*
            * Whose options these are, the dock's lit app icon shows; the group's name says it aloud.
            * What they act on sits on the glass before them, apart from the tools on the surface.
+           * Each copy draws its own, keyed by the copy, so moving between two copies of one app never
+           * keeps the first one's drawing.
            */}
           {Subject && (
             <span className={CLASS.FLOAT_SUBJECT}>
-              <Subject instance={props.front} />
+              <Subject key={props.front.id} instance={props.front} />
             </span>
           )}
           <div className={`${CLASS.EXTENSIONS} ${AUI_CLASS.GLASS_SURFACE}`}>
-            <Extensions instance={props.front} />
+            <Extensions key={props.front.id} instance={props.front} />
           </div>
         </div>
       </div>
@@ -363,10 +368,9 @@ export const DockLauncherPanel = setup<DockLauncherProps>((props) => {
 }, 'DockLauncherPanel');
 
 /**
- * Running apps, one icon each: pressing an icon brings the app
- * forward, puts its window away when it is already in front, and cycles
- * through its windows when it has several. A dot marks the app in front;
- * arrow keys move between the icons.
+ * Running apps, one icon each. Pressing an app with one window brings it forward, or puts it away
+ * when it is already in front; an app with several lists them to pick from. A dot marks the app in
+ * front; arrow keys move between the icons.
  */
 export const DockTasks = setup<DockTasksProps>((props) => {
   const strip = aria('toolbar', props as AnyType);
@@ -377,20 +381,76 @@ export const DockTasks = setup<DockTasksProps>((props) => {
 
   return () => (
     <div ref={strip.ref} {...strip.restProps([...OMIT_KEYS, 'apps'] as never)} className={CLASS.TASKS}>
-      <For each={running}>
-        {(app) => (
-          <AppIcon
-            alt={appLabel(app)}
-            src={app.image}
-            icon={app.icon}
-            aria-pressed={$use(() => (app.instances.some(isFrontWindow) ? 'true' : 'false'))}
-            size={props.size}
-            color={props.color}
-            className={CLASS.TASK}
-            onClick={() => focusApp(app)}
-          />
-        )}
-      </For>
+      <For each={running}>{(app) => <DockTask app={app} size={props.size} color={props.color} />}</For>
     </div>
   );
 }, 'DockTasks');
+
+/**
+ * One running app. With one window, its icon brings that window forward or puts it away. With
+ * several, its icon opens a list of them, each by its picture and title as they are now, and picking
+ * one brings it forward — so reaching a window never means cycling through the others first.
+ */
+const DockTask = setup<ComponentStyles & { app: WindowApp }>((props) => {
+  return () => (
+    <Show
+      when={() => props.app.instances.length > 1}
+      fallback={() => (
+        <AppIcon
+          alt={appLabel(props.app)}
+          src={props.app.image}
+          icon={props.app.icon}
+          aria-pressed={$use(() => (props.app.instances.some(isFrontWindow) ? 'true' : 'false'))}
+          size={props.size}
+          color={props.color}
+          className={CLASS.TASK}
+          onClick={() => focusApp(props.app)}
+        />
+      )}
+    >
+      {() => (
+        <Menu size="sm" xDir="between" className={CLASS.TASK_MENU}>
+          <DockTaskTrigger app={props.app} size={props.size} color={props.color} />
+          <MenuPanel>
+            <For each={() => props.app.instances}>
+              {(instance) => (
+                <MenuItem className={CLASS.WINDOW} oncommand={() => instance.focus()}>
+                  <Snippet>
+                    {() => (
+                      <>
+                        <AppIconTile alt="" src={instance.thumbnail ?? props.app.image} icon={props.app.icon} aria-hidden="true" />
+                        <span>{instance.title}</span>
+                      </>
+                    )}
+                  </Snippet>
+                </MenuItem>
+              )}
+            </For>
+          </MenuPanel>
+        </Menu>
+      )}
+    </Show>
+  );
+}, 'DockTask');
+
+/**
+ * The icon of an app with several windows: the menu's trigger, drawn as an app icon so it hovers and
+ * presses like the others, with the dot under it lit while one of its windows is in front.
+ */
+const DockTaskTrigger = setup<ComponentStyles & { app: WindowApp }>((props) => {
+  const trigger = aria('menu-button', props as AnyType);
+  const className = () => $families([AUI_CLASS.SCALE, CLASS.APP_ICON, CLASS.TASK], props, auiConfig.appIcon);
+
+  return () => (
+    <button
+      ref={trigger.ref}
+      {...trigger.restProps([...OMIT_KEYS, 'app'] as never)}
+      aria-label={appLabel(props.app)}
+      data-front={props.app.instances.some(isFrontWindow) ? 'true' : undefined}
+      className={className()}
+    >
+      {/* The button's label names the app, so the picture is decorative. */}
+      <AppIconTile alt="" src={props.app.image} icon={props.app.icon} aria-hidden="true" />
+    </button>
+  );
+}, 'DockTaskTrigger');

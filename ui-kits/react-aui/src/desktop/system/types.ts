@@ -11,10 +11,17 @@ export type AUITools = Record<string, (...args: AnyType[]) => unknown>;
 /**
  * What an app hands the system along with a view: the data the window shows, the tools it makes
  * reachable, and what it adds to the prompt while it's in front. All stay reachable as the window
- * lives, at `window[id]` and `activeWindow`.
+ * lives, at `window[id]` and `activeWindow`. The window keeps the object itself, so a getter or a
+ * mutable in it stays live, e.g. `get title() { return project.name }`.
  */
 export interface AUIOpenOptions<D = AnyType, T extends AUITools = AUITools> {
   data?: D;
+  /** Which of the app's windows this is, e.g. `launcher` or `project-view`; each name remembers its own size and place. */
+  name?: string;
+  /** What the window shows, naming it in the taskbar and the dock's list of open windows; the definition's title without one. */
+  title?: string;
+  /** A picture of what the window shows, beside its title in the dock's list of open windows; the app's picture without one. */
+  thumbnail?: string;
   tools?: T;
   /** What the window adds to the prompt's commands while it's in front, e.g. its own `search`. */
   commands?: DockSuggestion[];

@@ -6,6 +6,7 @@ import { $families, auiConfig, type ComponentStyles, OMIT_KEYS } from '../config
 import { ArrowDown } from '../icons/index.js';
 import { hasEntries, type ItemEntry, type ItemsInput, toEntries } from '../utils/common.js';
 import { withTabIndex } from './attributes.js';
+import type { OverlayXDirection } from './overlay.js';
 import { menuScope } from './scopes.js';
 
 /** One command row of an `items` menu: `name` is what `oncommand` receives, `shortcut` runs it from the keyboard. */
@@ -22,6 +23,8 @@ export type MenuProps = ComponentStyles & {
   open?: Bindable<boolean>;
   disabled?: boolean;
   items?: Array<MenuEntry> | ItemsInput;
+  /** Where the panel sits across its trigger, e.g. `between` to center it on a lone icon; its start edge by default. */
+  xDir?: OverlayXDirection;
   children?: ReactNode;
   onopen?: (event: CustomEvent<true>) => void;
   onclose?: (event: CustomEvent<false>) => void;
@@ -132,7 +135,7 @@ export const Menu = setup<MenuProps, MenuSlots>((props, slots) => {
   menuScope.provide(menuScope.inherit(props));
 
   return () => (
-    <div ref={menu.ref} {...menu.restProps([...OMIT_KEYS, 'items'])} className={className()}>
+    <div ref={menu.ref} {...menu.restProps([...OMIT_KEYS, 'items', 'xDir'])} className={className()}>
       {hasEntries(props.items) ? (
         <>
           {/* The slot replaces the whole default — label and arrow; `label` then names the trigger instead. */}

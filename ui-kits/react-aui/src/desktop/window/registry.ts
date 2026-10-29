@@ -53,10 +53,14 @@ export type WindowInstance<D = AnyType> = {
   readonly id: string;
   /** The definition this copy was opened from. */
   readonly app: WindowApp<D>;
+  /** Which of the app's windows it is, when opened with one; it remembers its geometry apart from the others. */
+  readonly name?: string;
   /** The data it was opened with. */
   readonly data: D;
-  /** Its title, from the definition and the data; names the window and its taskbar entry. */
+  /** Its title, live from what it was opened with, else from the definition and the data; names the window and its taskbar entry. */
   readonly title: string;
+  /** Its picture in the dock's list of open windows, live from what it was opened with; the app's picture without one. */
+  readonly thumbnail?: string;
   /** Live geometry and state. */
   readonly state: WindowState;
   /** What the dock shows above its prompt while this window is in front; from the definition. */
@@ -94,7 +98,7 @@ export type WindowRender<D = AnyType> = (props: WindowRenderProps<D>) => () => R
  * A window you define once and open as often as you need.
  */
 export type WindowDefinition<D = AnyType> = {
-  /** Stable name; keys remembered geometry. */
+  /** Stable name; keys remembered geometry, along with a copy's own name when it's opened with one. */
   name: string;
   /** The window's title, in the taskbar and for screen readers; a function to derive it from the open data. */
   title: string | ((data: D) => string);
@@ -313,7 +317,7 @@ function rememberWindow(instance: WindowInstance): void {
   const { x, y, width, height, maximized, sidebarWidth } = instance.state;
   try {
     localStorage.setItem(
-      storageKey(instance.app.name),
+      storageKey(instance.app.name, instance.name),
       JSON.stringify({ x, y, width, height, maximized, sidebarWidth })
     );
   } catch {
@@ -359,10 +363,10 @@ function createApp<D>(definition: WindowDefinition<D>): WindowApp<D> {
 
 function spawn<D>(app: WindowApp<D>, data: D, options: Omit<AUIOpenOptions<D>, 'data'>): WindowInstance<D> {
   const id = `window-${app.name}-${++counter}`;
-  const saved = app.remember ? fitToScreen(load(app.name)) : undefined;
+  const saved = app.remember ? fitToScreen(load(app.name, options.name)) : undefined;
   const offset = (openWindows.size % 8) * CASCADE + CASCADE;
 
-  const title = typeof app.title === 'function' ? app.title(data) : app.title;
+  const fallbackTitle = typeof app.title === 'function' ? app.title(data) : app.title;
 
   // The state is what the window part binds to, as real component props: the definition's behavior,
   // then the copy's own geometry, then what the copy does when the window acts — so nothing outside
@@ -371,7 +375,9 @@ function spawn<D>(app: WindowApp<D>, data: D, options: Omit<AUIOpenOptions<D>, '
     {
       ...app.window,
       id,
-      label: title,
+      get label() {
+        return options.title ?? fallbackTitle;
+      },
       open: true,
       x: saved?.x ?? app.rect?.x ?? offset,
       y: saved?.y ?? app.rect?.y ?? offset,
@@ -397,17 +403,32 @@ function spawn<D>(app: WindowApp<D>, data: D, options: Omit<AUIOpenOptions<D>, '
 
   const element = () => document.getElementById(id);
 
+  // Read through what it was opened with, never copied out, so a getter or a mutable there stays live.
   const instance: WindowInstance<D> = {
     id,
     app,
     data,
-    title,
     state,
     dockExtensions: app.dockExtensions,
     dockSubject: app.dockSubject,
-    tools: options.tools ?? {},
-    commands: options.commands ?? [],
-    contexts: options.contexts ?? [],
+    get name() {
+      return options.name;
+    },
+    get title() {
+      return options.title ?? fallbackTitle;
+    },
+    get thumbnail() {
+      return options.thumbnail;
+    },
+    get tools() {
+      return options.tools ?? {};
+    },
+    get commands() {
+      return options.commands ?? [];
+    },
+    get contexts() {
+      return options.contexts ?? [];
+    },
     focus() {
       state.minimized = false;
       activateWindow(instance as WindowInstance);
@@ -442,9 +463,9 @@ function spawn<D>(app: WindowApp<D>, data: D, options: Omit<AUIOpenOptions<D>, '
 
 type Saved = Pick<WindowState, 'x' | 'y' | 'width' | 'height' | 'maximized' | 'sidebarWidth'>;
 
-function load(name: string): Saved | undefined {
+function load(app: string, name?: string): Saved | undefined {
   try {
-    const raw = localStorage.getItem(storageKey(name));
+    const raw = localStorage.getItem(storageKey(app, name));
     return raw ? (JSON.parse(raw) as Saved) : undefined;
   } catch {
     return undefined;
@@ -479,6 +500,6 @@ function fitToScreen(saved: Saved | undefined): Saved | undefined {
   };
 }
 
-function storageKey(name: string): string {
-  return `aui-window:${name}`;
+function storageKey(app: string, name?: string): string {
+  return name ? `aui-window:${app}:${name}` : `aui-window:${app}`;
 }
