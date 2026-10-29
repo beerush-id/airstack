@@ -1,9 +1,9 @@
 import { anchor } from '../engine/anchor.js';
 import { assign } from '../engine/helper.js';
-import { mutable, passive } from '../reactive/index.js';
+import { $static, mutable, passive } from '../reactive/index.js';
 import type { AnyType } from '../types.js';
 import { uuid } from '../utils/uuid.js';
-import { animationFrame, cancelFrame, type FrameId, frameToTime, isThenable, timeToFrame } from './helper.js';
+import { animationFrame, cancelFrame, dropNode, type FrameId, frameToTime, isThenable, timeToFrame } from './helper.js';
 import { TimelineMarker, type TimelineMarkerInit, type TimelineMarkerSnapshot } from './marker.js';
 import { TimelineTrack, type TimelineTrackOptions, type TimelineTrackSnapshot } from './track.js';
 
@@ -50,6 +50,12 @@ export type TimelineInit = Omit<Partial<TimelineOptions>, 'startFrame' | 'endFra
   startTime?: number;
   endFrame?: number;
   endTime?: number;
+  /**
+   * The storage to act on in place — its options, props, tracks and markers, in the snapshot's
+   * shape — such as a document's composition: every edit lands in it. The other options are then
+   * read from it. Without it, the timeline makes its own storage from the other options and owns it.
+   */
+  source?: TimelineSnapshot;
 };
 
 /**
@@ -84,19 +90,39 @@ export type TimelineSnapshot = {
 };
 
 /**
- * Real-time master timeline controller driven by requestAnimationFrame.
+ * Real-time master timeline controller driven by requestAnimationFrame. Its tracks, segments, scenes
+ * and markers are kept in one storage, `source`, in the snapshot's shape: one it was given and acts
+ * on in place, or one it made itself. Only its playback state is its own.
  */
 export class Timeline<P extends Record<string, AnyType> = Record<string, AnyType>> {
   /**
+   * The timeline's storage, reactive throughout: its identity, options, props, and every track,
+   * segment, scene and marker, each instance acting on its own branch of it.
+   */
+  public readonly source!: TimelineSnapshot;
+
+  /**
    * Unique identifier for this timeline instance.
    */
-  public id = uuid();
+  public get id(): string {
+    return this.source.id;
+  }
+
+  public set id(value: string) {
+    this.source.id = value;
+  }
 
   /**
    * Reactive consumer-owned data slot (e.g. composition-wide defaults such as base CSS properties).
    * The timeline never reads or writes it; it only persists it through snapshot and hydrate.
    */
-  public props: P;
+  public get props(): P {
+    return this.source.props as P;
+  }
+
+  public set props(value: P) {
+    this.source.props = value;
+  }
 
   /**
    * Reactive playback and timing state of the master timeline.
@@ -121,13 +147,29 @@ export class Timeline<P extends Record<string, AnyType> = Record<string, AnyType
   public markers = mutable(new Set<TimelineMarker>(), { recursive: false });
 
   /**
-   * Creates a real-time master timeline coordinator.
+   * Creates a real-time master timeline coordinator: over the storage it's given, its tracks and
+   * markers made from what's there, or over storage of its own made from the options.
    *
-   * @param {TimelineInit} [options] - Initial configuration (framerate, speed, bounds, repeat).
-   * @param {P} [props] - Consumer-owned data slot.
+   * @param {TimelineInit} [options] - Initial configuration (framerate, speed, bounds, repeat), or the storage to act on.
+   * @param {P} [props] - Consumer-owned data slot, for storage of its own.
    */
   constructor(options: TimelineInit = {}, props: P = {} as P) {
-    this.props = mutable({ ...props });
+    if (options.source) {
+      const source = options.source;
+      this.source = (anchor.has(source) ? source : mutable(source)) as TimelineSnapshot;
+      // Making the instances over the storage is the timeline's own work, as its passive methods are.
+      $static(() => {
+        this.source.id ??= uuid();
+        this.source.options.frameRate ??= 30;
+        this.source.props ??= {};
+        this.source.tracks ??= [];
+        this.source.markers ??= [];
+        for (const node of [...this.source.tracks]) new TimelineTrack(this, undefined, undefined, node);
+        for (const node of [...this.source.markers]) new TimelineMarker(this, undefined, node);
+      });
+      this.refresh();
+      return;
+    }
 
     const frameRate = Math.max(1, options.frameRate ?? 30);
     const startFrame =
@@ -143,13 +185,13 @@ export class Timeline<P extends Record<string, AnyType> = Record<string, AnyType
           ? timeToFrame(options.endTime, frameRate)
           : undefined;
 
-    const { startTime, endTime, ...rest } = options;
-    this.options = mutable<TimelineOptions>({
-      frameRate,
-      speed: 1,
-      ...rest,
-      startFrame,
-      endFrame,
+    const { startTime, endTime, source, ...rest } = options;
+    this.source = mutable<TimelineSnapshot>({
+      id: uuid(),
+      options: { frameRate, speed: 1, ...rest, startFrame, endFrame },
+      props: { ...props },
+      tracks: [],
+      markers: [],
     });
     this.refresh();
   }
@@ -372,9 +414,25 @@ export class Timeline<P extends Record<string, AnyType> = Record<string, AnyType
   @passive
   public removeTrack(track: TimelineTrack): void {
     if (this.tracks.delete(track)) {
+      dropNode(this.source.tracks, track.id);
       track.destroy();
       this.refresh();
     }
+  }
+
+  /**
+   * Puts the tracks in a new order, which is the order they stack and are kept in: a later track
+   * draws over an earlier one.
+   *
+   * @param {TimelineTrack[]} order - The timeline's tracks in their new order.
+   */
+  @passive
+  public orderTracks(order: TimelineTrack[]): void {
+    const tracks = order.filter((track) => this.tracks.has(track));
+    this.tracks.clear();
+    for (const track of tracks) this.tracks.add(track);
+    this.source.tracks.splice(0, this.source.tracks.length, ...tracks.map((track) => track.source));
+    this.refresh();
   }
 
   /**
@@ -395,7 +453,7 @@ export class Timeline<P extends Record<string, AnyType> = Record<string, AnyType
    */
   @passive
   public removeMarker(marker: TimelineMarker): void {
-    this.markers.delete(marker);
+    if (this.markers.delete(marker)) dropNode(this.source.markers, marker.id);
   }
 
   /**
@@ -726,6 +784,7 @@ export class Timeline<P extends Record<string, AnyType> = Record<string, AnyType
         track.destroy();
       }
       this.tracks.clear();
+      this.source.tracks.length = 0;
       for (const trackSnapshot of snapshot.tracks) {
         const track = this.addTrack(trackSnapshot.options);
         if (trackSnapshot.id) {
@@ -737,6 +796,7 @@ export class Timeline<P extends Record<string, AnyType> = Record<string, AnyType
 
     if (snapshot.markers) {
       this.markers.clear();
+      this.source.markers = [];
       for (const markerSnapshot of snapshot.markers) {
         const marker = this.addMarker(markerSnapshot.options);
         if (markerSnapshot.id) {
@@ -761,7 +821,10 @@ export class Timeline<P extends Record<string, AnyType> = Record<string, AnyType
     this.refresh();
   }
 
-  private options: TimelineOptions;
+  private get options(): TimelineOptions {
+    return this.source.options;
+  }
+
   private frameId?: FrameId;
   private iteration = 0;
   private subscribers = new Set<TimelineSubscriber>();

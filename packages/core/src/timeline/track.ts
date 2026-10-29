@@ -3,6 +3,7 @@ import { assign } from '../engine/helper.js';
 import { mutable, passive } from '../reactive/index.js';
 import type { AnyType } from '../types.js';
 import { uuid } from '../utils/uuid.js';
+import { dropNode, keepNode } from './helper.js';
 import { TimelineSegment, type TimelineSegmentInit, type TimelineSegmentSnapshot } from './segment.js';
 import type { FrameState, Timeline, TimelineDelivery } from './timeline.js';
 
@@ -25,15 +26,32 @@ export type TimelineTrackSnapshot = {
  */
 export class TimelineTrack<P extends Record<string, AnyType> = Record<string, AnyType>> {
   /**
+   * The track's branch of the timeline's storage: its identity, options, props and segments.
+   */
+  public readonly source!: TimelineTrackSnapshot;
+
+  /**
    * Unique identifier for this track instance.
    */
-  public id = uuid();
+  public get id(): string {
+    return this.source.id;
+  }
+
+  public set id(value: string) {
+    this.source.id = value;
+  }
 
   /**
    * Reactive consumer-owned data slot (e.g. lane-wide defaults shared by every segment on this track).
    * The timeline never reads or writes it; it only persists it through snapshot and hydrate.
    */
-  public props: P;
+  public get props(): P {
+    return this.source.props as P;
+  }
+
+  public set props(value: P) {
+    this.source.props = value;
+  }
 
   /**
    * Collection of synchronized child segments belonging to this track.
@@ -41,20 +59,31 @@ export class TimelineTrack<P extends Record<string, AnyType> = Record<string, An
   public segments = mutable(new Set<TimelineSegment>(), { recursive: false });
 
   /**
-   * Creates an organizational track container on the master timeline.
+   * Creates an organizational track container on the master timeline: over its node in the
+   * timeline's storage when given one, its segments made from what's there, or over a new node.
    *
    * @param {Timeline} timeline - Master timeline coordinator owning this track.
-   * @param {Partial<TimelineTrackOptions>} [options] - Initial track configuration.
-   * @param {P} [props] - Consumer-owned data slot.
+   * @param {Partial<TimelineTrackOptions>} [options] - Initial track configuration, for a new node.
+   * @param {P} [props] - Consumer-owned data slot, for a new node.
+   * @param {TimelineTrackSnapshot} [source] - The track's existing node in the timeline's storage.
    */
   constructor(
     public readonly timeline: Timeline,
     options: Partial<TimelineTrackOptions> = {},
-    props: P = {} as P
+    props: P = {} as P,
+    source?: TimelineTrackSnapshot
   ) {
-    this.options = mutable({ ...options });
-    this.props = mutable({ ...props });
+    if (source) {
+      this.source = source;
+      source.id ??= uuid();
+      source.options ??= {};
+      source.props ??= {};
+      source.segments ??= [];
+    } else {
+      this.source = keepNode(timeline.source.tracks, { id: uuid(), options: { ...options }, props: { ...props }, segments: [] });
+    }
     timeline.tracks.add(this);
+    if (source) for (const node of [...this.source.segments]) new TimelineSegment(this, undefined, undefined, node);
   }
 
   /**
@@ -143,6 +172,7 @@ export class TimelineTrack<P extends Record<string, AnyType> = Record<string, An
   @passive
   public removeSegment(segment: TimelineSegment): void {
     if (this.segments.delete(segment)) {
+      dropNode(this.source.segments, segment.id);
       segment.destroy();
       if (this.timeline.tracks.has(this)) {
         this.timeline.refresh();
@@ -187,6 +217,7 @@ export class TimelineTrack<P extends Record<string, AnyType> = Record<string, An
         segment.destroy();
       }
       this.segments.clear();
+      this.source.segments.length = 0;
       for (const segmentSnapshot of snapshot.segments) {
         this.addSegment(segmentSnapshot.options).hydrate(segmentSnapshot);
       }
@@ -212,7 +243,9 @@ export class TimelineTrack<P extends Record<string, AnyType> = Record<string, An
     this.segments.clear();
   }
 
-  private options: TimelineTrackOptions;
+  private get options(): TimelineTrackOptions {
+    return this.source.options;
+  }
 
   @passive
   private createSegment(options: TimelineSegmentInit, props?: Record<string, AnyType>): TimelineSegment {

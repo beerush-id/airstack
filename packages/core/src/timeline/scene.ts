@@ -1,9 +1,9 @@
 import { anchor } from '../engine/anchor.js';
 import { assign } from '../engine/helper.js';
-import { mutable, passive } from '../reactive/index.js';
+import { passive } from '../reactive/index.js';
 import type { AnyType } from '../types.js';
 import { uuid } from '../utils/uuid.js';
-import { frameToTime, timeToFrame } from './helper.js';
+import { frameToTime, keepNode, timeToFrame } from './helper.js';
 import type { TimelineSegment } from './segment.js';
 import type { Timeline } from './timeline.js';
 
@@ -34,14 +34,31 @@ export type TimelineSceneSnapshot = {
  */
 export class TimelineScene {
   /**
+   * The scene's branch of the timeline's storage: its identity, options and data.
+   */
+  public readonly source!: TimelineSceneSnapshot;
+
+  /**
    * Unique identifier for this scene instance.
    */
-  public id = uuid();
+  public get id(): string {
+    return this.source.id;
+  }
+
+  public set id(value: string) {
+    this.source.id = value;
+  }
 
   /**
    * Opaque user-land payload (e.g. animation properties, styling targets, driver data).
    */
-  public data: Record<string, AnyType>;
+  public get data(): Record<string, AnyType> {
+    return this.source.data;
+  }
+
+  public set data(value: Record<string, AnyType>) {
+    this.source.data = value;
+  }
 
   /**
    * Reference to the master timeline coordinator.
@@ -51,28 +68,37 @@ export class TimelineScene {
   }
 
   /**
-   * Creates a declarative keyframe scene on a timeline segment.
+   * Creates a declarative keyframe scene on a timeline segment: over its node in the timeline's
+   * storage when given one, or over a new node.
    *
    * @param {TimelineSegment} segment - Parent segment owning this keyframe scene.
-   * @param {TimelineSceneInit} [options] - Initial scene configuration.
-   * @param {Record<string, AnyType>} [data] - User-land data payload.
+   * @param {TimelineSceneInit} [options] - Initial scene configuration, for a new node.
+   * @param {Record<string, AnyType>} [data] - User-land data payload, for a new node.
+   * @param {TimelineSceneSnapshot} [source] - The scene's existing node in the timeline's storage.
    */
   constructor(
     public readonly segment: TimelineSegment,
     options: TimelineSceneInit = {},
-    data: Record<string, AnyType> = {}
+    data: Record<string, AnyType> = {},
+    source?: TimelineSceneSnapshot
   ) {
-    const maxFrame = segment.offsetFrame + segment.state.totalFrames;
-    const rawFrame = options.atFrame !== undefined
-      ? options.atFrame
-      : options.atTime !== undefined
-        ? timeToFrame(options.atTime, this.timeline.frameRate)
-        : 0;
-    const atFrame = Math.min(maxFrame, Math.max(0, Math.round(rawFrame)));
+    if (source) {
+      this.source = source;
+      source.id ??= uuid();
+      source.options.atFrame ??= 0;
+      source.data ??= {};
+    } else {
+      const maxFrame = segment.offsetFrame + segment.state.totalFrames;
+      const rawFrame = options.atFrame !== undefined
+        ? options.atFrame
+        : options.atTime !== undefined
+          ? timeToFrame(options.atTime, this.timeline.frameRate)
+          : 0;
+      const atFrame = Math.min(maxFrame, Math.max(0, Math.round(rawFrame)));
 
-    const { atTime, ...rest } = options;
-    this.options = mutable({ ...rest, atFrame });
-    this.data = mutable({ ...data });
+      const { atTime, ...rest } = options;
+      this.source = keepNode(segment.source.scenes ??= [], { id: uuid(), options: { ...rest, atFrame }, data: { ...data } });
+    }
 
     segment.scenes.push(this);
     segment.sortScenes();
@@ -177,5 +203,7 @@ export class TimelineScene {
     this.segment.removeScene(this);
   }
 
-  private options: TimelineSceneOptions;
+  private get options(): TimelineSceneOptions {
+    return this.source.options;
+  }
 }

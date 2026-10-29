@@ -59,6 +59,31 @@ export function frameToTime(frame: number, frameRate: number): number {
 }
 
 /**
+ * Takes a node off its place in the timeline's storage — a track, segment, scene or marker, by id —
+ * when an instance acting on it is removed.
+ *
+ * @param {{ id: string }[] | undefined} nodes - The storage the node is kept in.
+ * @param {string} id - The node's id.
+ */
+export function dropNode(nodes: { id: string }[] | undefined, id: string): void {
+  const index = nodes?.findIndex((node) => node.id === id) ?? -1;
+  if (index !== -1) nodes?.splice(index, 1);
+}
+
+/**
+ * Takes a node into the timeline's storage — a track, segment, scene or marker — and hands back the
+ * reactive node there, which the instance made for it then acts on.
+ *
+ * @param {T[]} nodes - The storage to keep it in.
+ * @param {T} node - The node, as plain data.
+ * @returns {T} The node as kept.
+ */
+export function keepNode<T>(nodes: T[], node: T): T {
+  nodes.push(node);
+  return nodes[nodes.length - 1];
+}
+
+/**
  * Converts continuous time in seconds to the 0-indexed frame starting nearest to it.
  */
 export function timeToFrame(time: number, frameRate: number): number {

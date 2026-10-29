@@ -3,7 +3,7 @@ import { assign } from '../engine/helper.js';
 import { mutable, passive } from '../reactive/index.js';
 import type { AnyType } from '../types.js';
 import { uuid } from '../utils/uuid.js';
-import { frameToTime, IDLE_SIGNAL, timeToFrame } from './helper.js';
+import { dropNode, frameToTime, IDLE_SIGNAL, keepNode, timeToFrame } from './helper.js';
 import { TimelineScene, type TimelineSceneInit, type TimelineSceneSnapshot } from './scene.js';
 import type { FrameState, Timeline, TimelineDelivery, TimelineSubscriber } from './timeline.js';
 import type { TimelineTrack } from './track.js';
@@ -69,15 +69,32 @@ export type TimelineTransitionSubscriber<P extends Record<string, AnyType> = Rec
  */
 export class TimelineSegment<P extends Record<string, AnyType> = Record<string, AnyType>> {
   /**
+   * The segment's branch of the timeline's storage: its identity, options, props and scenes.
+   */
+  public readonly source!: TimelineSegmentSnapshot;
+
+  /**
    * Unique identifier for this segment instance.
    */
-  public id = uuid();
+  public get id(): string {
+    return this.source.id;
+  }
+
+  public set id(value: string) {
+    this.source.id = value;
+  }
 
   /**
    * Reactive consumer-owned data slot (e.g. base CSS properties merged with scene data to build transitions).
    * The timeline never reads or writes it; it only persists it through snapshot and hydrate.
    */
-  public props: P;
+  public get props(): P {
+    return this.source.props as P;
+  }
+
+  public set props(value: P) {
+    this.source.props = value;
+  }
 
   /**
    * Reactive playback and timing state of this segment.
@@ -112,30 +129,47 @@ export class TimelineSegment<P extends Record<string, AnyType> = Record<string, 
   }
 
   /**
-   * Creates an individual timeline segment belonging to a track.
+   * Creates an individual timeline segment belonging to a track: over its node in the timeline's
+   * storage when given one, its scenes made from what's there, or over a new node.
    *
    * @param {TimelineTrack} track - Parent track owning this segment.
-   * @param {TimelineSegmentInit} [options] - Initial segment configuration.
-   * @param {P} [props] - Consumer-owned data slot.
+   * @param {TimelineSegmentInit} [options] - Initial segment configuration, for a new node.
+   * @param {P} [props] - Consumer-owned data slot, for a new node.
+   * @param {TimelineSegmentSnapshot} [source] - The segment's existing node in the timeline's storage.
    */
   constructor(
     public readonly track: TimelineTrack,
     options: TimelineSegmentInit = {},
-    props: P = {} as P
+    props: P = {} as P,
+    source?: TimelineSegmentSnapshot
   ) {
-    this.props = mutable({ ...props });
     this.frameRate = this.track.timeline.frameRate;
-    const startFrame =
-      options.startFrame !== undefined
-        ? Math.max(0, Math.round(options.startFrame))
-        : options.startTime !== undefined
-          ? timeToFrame(options.startTime, this.frameRate)
-          : 0;
+    if (source) {
+      this.source = source;
+      source.id ??= uuid();
+      source.options.speed ??= 1;
+      source.options.duration ??= 0;
+      source.options.startFrame ??= 0;
+      source.props ??= {};
+      source.scenes ??= [];
+    } else {
+      const startFrame =
+        options.startFrame !== undefined
+          ? Math.max(0, Math.round(options.startFrame))
+          : options.startTime !== undefined
+            ? timeToFrame(options.startTime, this.frameRate)
+            : 0;
 
-    const { startTime, ...rest } = options;
-    if (rest.offsetFrame !== undefined) rest.offsetFrame = Math.max(0, Math.round(rest.offsetFrame));
-    if (rest.contentFrames !== undefined) rest.contentFrames = Math.max(1, Math.round(rest.contentFrames));
-    this.options = mutable({ speed: 1, duration: 0, ...rest, startFrame });
+      const { startTime, ...rest } = options;
+      if (rest.offsetFrame !== undefined) rest.offsetFrame = Math.max(0, Math.round(rest.offsetFrame));
+      if (rest.contentFrames !== undefined) rest.contentFrames = Math.max(1, Math.round(rest.contentFrames));
+      this.source = keepNode(track.source.segments, {
+        id: uuid(),
+        options: { speed: 1, duration: 0, ...rest, startFrame },
+        props: { ...props },
+        scenes: [],
+      });
+    }
 
     this.state = mutable<FrameState>({
       time: 0,
@@ -146,6 +180,7 @@ export class TimelineSegment<P extends Record<string, AnyType> = Record<string, 
     });
 
     track.segments.add(this as never);
+    if (source) for (const node of [...(this.source.scenes ?? [])]) new TimelineScene(this as never, undefined, undefined, node);
     this.refresh();
   }
 
@@ -396,6 +431,7 @@ export class TimelineSegment<P extends Record<string, AnyType> = Record<string, 
     const index = this.scenes.indexOf(scene);
     if (index !== -1) {
       this.scenes.splice(index, 1);
+      dropNode(this.source.scenes, scene.id);
       this.sceneSpanValid = false;
       this.tick(this.timeline.state);
     }
@@ -494,6 +530,7 @@ export class TimelineSegment<P extends Record<string, AnyType> = Record<string, 
     }
     if (snapshot.scenes) {
       this.scenes.length = 0;
+      this.source.scenes = [];
       for (const sceneSnapshot of snapshot.scenes) {
         const scene = this.addScene(sceneSnapshot.options, sceneSnapshot.data);
         if (sceneSnapshot.id) {
@@ -611,7 +648,11 @@ export class TimelineSegment<P extends Record<string, AnyType> = Record<string, 
   }
 
   private frameRate: number;
-  private options: TimelineSegmentOptions;
+
+  private get options(): TimelineSegmentOptions {
+    return this.source.options;
+  }
+
   private sceneSpanValid = false;
   private subscribers = new Set<TimelineSubscriber>();
   private transitionSubscribers = new Set<TimelineTransitionSubscriber<P>>();
@@ -658,5 +699,11 @@ export class TimelineSegment<P extends Record<string, AnyType> = Record<string, 
   private orderScenes(): void {
     this.scenes.sort((a, b) => a.atFrame - b.atFrame);
     this.sceneSpanValid = false;
+    // The storage keeps them in the same order, written only when it's out of it — and only once every
+    // node has its scene, as a segment over existing storage makes them one by one.
+    const nodes = this.source.scenes ?? [];
+    if (nodes.length === this.scenes.length && nodes.some((node, index) => node.id !== this.scenes[index].id)) {
+      nodes.splice(0, nodes.length, ...this.scenes.map((scene) => scene.source));
+    }
   }
 }

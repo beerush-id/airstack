@@ -1,9 +1,9 @@
 import { anchor } from '../engine/anchor.js';
 import { assign } from '../engine/helper.js';
-import { mutable, passive } from '../reactive/index.js';
+import { passive } from '../reactive/index.js';
 import type { AnyType } from '../types.js';
 import { uuid } from '../utils/uuid.js';
-import { frameToTime, timeToFrame } from './helper.js';
+import { frameToTime, keepNode, timeToFrame } from './helper.js';
 import type { Timeline } from './timeline.js';
 
 export type TimelineMarkerOptions = {
@@ -32,28 +32,48 @@ export type TimelineMarkerSnapshot = {
  */
 export class TimelineMarker {
   /**
-   * Unique identifier for this marker instance.
+   * The marker's branch of the timeline's storage: its identity and options.
    */
-  public id = uuid();
+  public readonly source!: TimelineMarkerSnapshot;
 
   /**
-   * Creates a cue point marker on the master timeline.
+   * Unique identifier for this marker instance.
+   */
+  public get id(): string {
+    return this.source.id;
+  }
+
+  public set id(value: string) {
+    this.source.id = value;
+  }
+
+  /**
+   * Creates a cue point marker on the master timeline: over its node in the timeline's storage
+   * when given one, or over a new node.
    *
    * @param {Timeline} timeline - Master timeline coordinator owning this marker.
-   * @param {TimelineMarkerInit} [options] - Initial marker configuration.
+   * @param {TimelineMarkerInit} [options] - Initial marker configuration, for a new node.
+   * @param {TimelineMarkerSnapshot} [source] - The marker's existing node in the timeline's storage.
    */
   constructor(
     public readonly timeline: Timeline,
-    options: TimelineMarkerInit = {}
+    options: TimelineMarkerInit = {},
+    source?: TimelineMarkerSnapshot
   ) {
-    const atFrame = options.atFrame !== undefined
-      ? Math.max(0, Math.round(options.atFrame))
-      : options.atTime !== undefined
-        ? timeToFrame(options.atTime, this.timeline.frameRate)
-        : 0;
+    if (source) {
+      this.source = source;
+      source.id ??= uuid();
+      source.options.atFrame ??= 0;
+    } else {
+      const atFrame = options.atFrame !== undefined
+        ? Math.max(0, Math.round(options.atFrame))
+        : options.atTime !== undefined
+          ? timeToFrame(options.atTime, this.timeline.frameRate)
+          : 0;
 
-    const { atTime, ...rest } = options;
-    this.options = mutable({ ...rest, atFrame });
+      const { atTime, ...rest } = options;
+      this.source = keepNode((timeline.source.markers ??= []), { id: uuid(), options: { ...rest, atFrame } });
+    }
     timeline.markers.add(this);
   }
 
@@ -147,5 +167,7 @@ export class TimelineMarker {
     this.timeline.removeMarker(this);
   }
 
-  private options: TimelineMarkerOptions;
+  private get options(): TimelineMarkerOptions {
+    return this.source.options;
+  }
 }
