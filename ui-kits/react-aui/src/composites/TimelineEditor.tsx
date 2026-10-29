@@ -20,6 +20,7 @@ import {
 } from '../icons/index.js';
 import { formatTime, holdWhileDragging, playheadSlider } from '../utils/time.js';
 import { Toggle } from '../widgets/Toggle.js';
+import { ContextMenu } from './ContextMenu.js';
 import { Reorder, ReorderHandle, ReorderItem } from './Reorder.js';
 
 export type TimelineEditorSlots = {
@@ -122,6 +123,12 @@ const VOICED_LANES = new Set(['video']);
 /** The two groups of lanes: what's seen, stacked, and what's heard. */
 type TrackGroup = 'picture' | 'sound';
 
+/** What's done to a track itself, from its name row's context menu. */
+const TRACK_COMMANDS = [
+  { name: 'add', label: 'Add track above' },
+  { name: 'remove', label: 'Remove track' },
+];
+
 /** The groups top to bottom, each named for screen readers. */
 const TRACK_GROUPS: { group: TrackGroup; label: string }[] = [
   { group: 'picture', label: 'Picture tracks' },
@@ -138,6 +145,14 @@ const OTHER_LANE: LaneKind = { icon: DraftIcon, color: 'secondary' };
  * @returns Its glyph and role color; a plain mark for a type without its own.
  */
 const laneKind = (type?: string): LaneKind => LANE_KINDS[type ?? ''] ?? OTHER_LANE;
+
+/**
+ * The group a track's lane sits in.
+ *
+ * @param track - The track.
+ * @returns `sound` for lanes heard, `picture` for the rest.
+ */
+const groupOf = (track: TimelineTrack): TrackGroup => (SOUND_LANES.has(track.type ?? '') ? 'sound' : 'picture');
 
 register('timelineEditor', {});
 
@@ -251,6 +266,27 @@ export const TimelineEditor = setup<TimelineEditorProps, TimelineEditorSlots>((p
       lanes.changes++;
     },
   });
+  // Takes a track off the timeline with its clips, letting go of any of them that were picked, and
+  // draws the paused stage again without them.
+  const removeTrack = (track: TimelineTrack) => {
+    const gone = new Set([...track.segments].map((segment) => segment.id));
+    if (picked().some((id) => gone.has(id))) pick(picked().filter((id) => !gone.has(id)));
+    props.timeline.removeTrack(track);
+    lanes.changes++;
+    if (props.timeline.status !== 'playing') void props.timeline.scrub(props.timeline.frame);
+  };
+  // Puts an empty track of the same type in the row above, named by how many of its type there are.
+  const addTrackAbove = (track: TimelineTrack) => {
+    const type = track.type ?? 'track';
+    const count = tracks().filter((other) => other.type === track.type).length;
+    const added = props.timeline.addTrack({ type: track.type, name: `${type[0].toUpperCase()}${type.slice(1)} ${count + 1}` });
+    const group = groupOf(track);
+    const ids = tracksOf(group)
+      .map((other) => other.id)
+      .filter((id) => id !== added.id);
+    ids.splice(ids.indexOf(track.id), 0, added.id);
+    orderOf(group).value = ids;
+  };
   const clips = aria(CLIPS_ROLE, props as AnyType);
   clips.refine(pointerFocusOnly);
   const className = () => $families(AUI_CLASS.TIMELINE_EDITOR, { className: props.className }, auiConfig.timelineEditor);
@@ -258,11 +294,7 @@ export const TimelineEditor = setup<TimelineEditorProps, TimelineEditorSlots>((p
   // A group's tracks, top to bottom: pictures first, a later track drawing over an earlier one, so
   // the last is the top row; then sound, which stacks with nothing, in the timeline's order.
   const tracksOf = (group: TrackGroup) =>
-    group === 'sound'
-      ? tracks().filter((track) => SOUND_LANES.has(track.type ?? ''))
-      : tracks()
-          .reverse()
-          .filter((track) => !SOUND_LANES.has(track.type ?? ''));
+    (group === 'sound' ? tracks() : tracks().reverse()).filter((track) => groupOf(track) === group);
   // Focus goes to the first lane once, as the editor appears: rows that re-render, or a track moved
   // to the top, never pull it back from where it is.
   let autofocused = false;
@@ -276,11 +308,18 @@ export const TimelineEditor = setup<TimelineEditorProps, TimelineEditorSlots>((p
   const trackHeader = (track: TimelineTrack) => {
     const Icon = laneKind(track.type).icon;
     const state = laneState(track);
-    const sound = SOUND_LANES.has(track.type ?? '');
+    const sound = groupOf(track) === 'sound';
     const voiced = VOICED_LANES.has(track.type ?? '');
     return (
       <ReorderItem value={track.id} label={track.name}>
         <div className={CLASS.HEADER}>
+          {/* A secondary click on the track's name row offers what's done to the track itself. */}
+          <ContextMenu
+            label={`${track.name} track`}
+            size="xs"
+            items={TRACK_COMMANDS}
+            oncommand={(event) => (event.detail === 'add' ? addTrackAbove(track) : removeTrack(track))}
+          />
           {/* Drag the glyph, or press it and use the arrows, to move the track within its group. */}
           <ReorderHandle label={`Move ${track.name}`} size="xs" className={AUI_CLASS.CONTROL_ICON}>
             <Icon aria-hidden="true" />
