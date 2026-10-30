@@ -42,13 +42,18 @@ function simpleId(): string {
 
 /**
  * Default UUID provider that attempts to use the crypto API if available,
- * otherwise falls back to a simpler implementation.
+ * otherwise falls back to a simpler implementation. Available isn't always allowed: Cloudflare Workers
+ * throw on it at module load, where a declared workflow makes its ids.
  *
  * @returns A UUID v4 string
  */
 function defaultUUIDProvider() {
-  if (typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
+  try {
+    if (typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+  } catch {
+    // Refused by the runtime: the fallback below needs nothing from it.
   }
 
   return simpleId();
