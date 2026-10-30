@@ -64,6 +64,8 @@ export type GalleryProps = ComponentStyles & {
   disabled?: boolean;
   /** Whether the tiles wrap into rows, so the arrows move by reading order and by row. Defaults to true. */
   flow?: boolean;
+  /** Lets each `items` tile be dragged out, e.g. onto a timeline; `onDragStart` on the gallery says what it carries. */
+  draggable?: boolean;
   items?: GalleryEntry[];
   children?: ReactNode | ((gallery: ListboxAria) => ReactNode);
   onchange?: (event: CustomEvent<string | string[]>) => void;
@@ -73,6 +75,8 @@ export type GalleryItemProps = ComponentStyles &
   Omit<GalleryEntry, 'value'> & {
     value: string;
     selected?: Bindable<boolean>;
+    /** Lets the tile be dragged out. */
+    draggable?: boolean;
     children?: ReactNode | ((option: OptionAria) => ReactNode);
   };
 
@@ -117,7 +121,7 @@ export const Gallery = setup<GalleryProps, GallerySlots>((props, slots) => {
   return () => (
     <div
       ref={gallery.ref}
-      {...gallery.restProps([...OMIT_KEYS, 'items', 'checkable'])}
+      {...gallery.restProps([...OMIT_KEYS, 'items', 'checkable', 'draggable'])}
       className={className()}
       {...modes}
     >
@@ -132,6 +136,7 @@ export const Gallery = setup<GalleryProps, GallerySlots>((props, slots) => {
               description={entry.description}
               meta={entry.meta}
               disabled={entry.disabled}
+              draggable={props.draggable}
             >
               {(option) => <Slot for={() => slots.item?.(entry, option)}>{GalleryTile(entry)}</Slot>}
             </GalleryItem>
