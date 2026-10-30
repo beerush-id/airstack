@@ -95,4 +95,21 @@ describe('client surface — configure', () => {
 
     expect(transport.config.endpoint).toBe('/rpc/files');
   });
+
+  it('keeps a lookup for its max age, and asks again once it is turned off', async () => {
+    await withFs({ ownerId: 'alice', homeDir: '/users/alice' }, async () => {
+      implement({ bucket, indexer: db });
+      const path = '~/i-configure/kept.txt';
+      await write(path, 'one');
+
+      configure({ maxAge: { read: 60_000 } });
+      expect(await read(path, { encoding: 'text' })).toBe('one');
+      await write(path, 'two');
+      // Kept: answered without asking the filesystem again.
+      expect(await read(path, { encoding: 'text' })).toBe('one');
+
+      configure({ maxAge: { read: 0 } });
+      expect(await read(path, { encoding: 'text' })).toBe('two');
+    });
+  });
 });

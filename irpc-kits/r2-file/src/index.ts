@@ -31,6 +31,20 @@ export type ClientConfig = {
   baseUrl?: string;
   endpoint?: string;
   apiKey?: string;
+  /** How long each lookup's calls are kept and answered without the network. */
+  maxAge?: LookupAges;
+};
+
+/**
+ * How long each lookup's calls are kept, in milliseconds, by identical arguments: 0 or absent for
+ * none. A kept call is only as fresh as the caller keeps it, so cache only what it keeps in sync.
+ */
+export type LookupAges = {
+  read?: number;
+  stat?: number;
+  exists?: number;
+  list?: number;
+  search?: number;
 };
 
 /**
@@ -62,12 +76,19 @@ export const FS_CONFIG: { baseUrl: string; maxSize: number; maxEncodingSize: num
 };
 
 /**
- * Points the client at a remote filesystem worker and attaches API key
- * credentials to every subsequent call.
+ * Points the client at a remote filesystem worker, attaches API key
+ * credentials to every subsequent call, and sets how long lookups are kept.
  *
- * @param config Remote origin, RPC endpoint, and API key
+ * @param config Remote origin, RPC endpoint, API key, and lookup ages
  */
 export function configure(config: ClientConfig): void {
+  if (config.maxAge) {
+    const lookups = { read: readStub, stat, exists, list, search };
+    for (const name of Object.keys(config.maxAge) as Array<keyof LookupAges>) {
+      fileModule.configure(lookups[name], { maxAge: config.maxAge[name] });
+    }
+  }
+
   if (config.baseUrl !== undefined) {
     FS_CONFIG.baseUrl = config.baseUrl ? config.baseUrl.replace(/\/+$/, '') : '';
     transport.config.baseURL = FS_CONFIG.baseUrl;
@@ -357,7 +378,7 @@ export const readStub = fileModule.declare<ReadStubFn>('read', {
  * @param options Read scope
  * @returns The file as a blob, or `undefined` when it does not exist
  */
-export function read(path: string, options?: ReadOptions): Promise<IRPCBlob | undefined>;
+export function read(path: string, options?: ReadOptions<undefined>): Promise<IRPCBlob | undefined>;
 /**
  * Reads a file as a string: plain `text`, `base64`, or a ready-to-use
  * `data:` URL.
