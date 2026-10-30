@@ -5,6 +5,9 @@ import type { GetPlatformProxyOptions } from 'wrangler';
 
 let envResolver: Promise<AnyType> | undefined;
 
+/** A variable, not a literal: bundlers follow a literal import, and wrangler can't be bundled into a worker. */
+const WRANGLER = 'wrangler';
+
 /**
  * Resolves Cloudflare environment bindings, transparently falling back
  * to local emulation via `getPlatformProxy()` during development when
@@ -27,9 +30,11 @@ export async function resolveBinding<T extends object = Record<string, AnyType>>
   }
 
   try {
-    envResolver ??= import('wrangler').then(async ({ getPlatformProxy }) => {
-      return (await getPlatformProxy(options)).env;
-    });
+    envResolver ??= (import(/* @vite-ignore */ WRANGLER) as Promise<typeof import('wrangler')>).then(
+      async ({ getPlatformProxy }) => {
+        return (await getPlatformProxy(options)).env;
+      }
+    );
 
     const resolved = await envResolver;
     return { ...resolved, ...env } as T;
