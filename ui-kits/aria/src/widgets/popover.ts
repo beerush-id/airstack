@@ -185,7 +185,8 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
     super(props, options);
     this.id = $static(() => this.properties.id ?? `${this.anchorPrefix}-${uIndex(this.instanceSymbol, true)}`);
     this.target = this.scope?.actionable as unknown as Aria;
-    this.omittedAttrs.push('open', 'mode', 'delay', 'dismissable', 'xDir', 'yDir', 'ontoggle', 'autofocus');
+    // The panel's role comes from its options; a binding that passes it among the props never makes it an attribute.
+    this.omittedAttrs.push('open', 'mode', 'delay', 'dismissable', 'xDir', 'yDir', 'ontoggle', 'autofocus', 'popupRole');
     this.dispatchedState = $static(() => this.properties.open ?? false);
 
     this.attachTrigger();
@@ -493,12 +494,14 @@ export class PopoverAria<E extends HTMLElement = HTMLElement> extends Aria<
   protected attachTrigger(): void {
     if (!this.target) return;
 
-    const release = this.target.refine(() => {
+    const release = this.target.refine((_, current) => {
       // The trigger names its anchor whether or not the panel is open: a closing panel is still on the
       // page until its view takes it off, and it must not lose its anchor and jump for that moment.
+      // Another overlay on the same trigger keeps its anchor beside this one's.
+      const currentAnchors = ((current as AriaAttributes)?.style as { anchorName?: string } | undefined)?.anchorName;
       const attrs: AriaAttributes = {
         ...this.createTriggerAttributes(),
-        style: { anchorName: triggerAnchorName(`--${this.anchorPrefix}-anchor-${this.id}`) } as StyleInput,
+        style: { anchorName: triggerAnchorName(`--${this.anchorPrefix}-anchor-${this.id}`, currentAnchors) } as StyleInput,
       };
 
       if (this.mode.includes('click')) {

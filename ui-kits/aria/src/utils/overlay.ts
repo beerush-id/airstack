@@ -70,17 +70,29 @@ export interface OverlayLifecycleOptions {
   onClose?: () => void;
 }
 
+/** Where a trigger's styles add anchors of their own, after the overlays'. */
+const PAGE_ANCHORS = 'var(--aria-anchor-name, --aria-no-anchor)';
+
 /**
  * The anchor names a trigger wears while its overlay is open: the overlay's
  * own, plus any its styles declare in `--aria-anchor-name`. Written inline,
  * the overlay's name would otherwise replace an anchor the page gave the same
- * element — the pressed member a toggle group's indicator glides to.
+ * element — the pressed member a toggle group's indicator glides to. A trigger
+ * can hold more than one overlay — a popover and a tooltip — so the names the
+ * others already wrote stay beside this one's.
  *
  * @param own - The overlay's anchor name, a dashed ident.
+ * @param current - The trigger's `anchor-name` as the other overlays left it, if any.
  * @returns The `anchor-name` value for the trigger.
  */
-export function triggerAnchorName(own: string): string {
-  return `${own}, var(--aria-anchor-name, --aria-no-anchor)`;
+export function triggerAnchorName(own: string, current?: string): string {
+  // Only the overlays' plain names carry over; the page's slot is written once, at the end.
+  const names = (current ?? '')
+    .split(',')
+    .map((name) => name.trim())
+    .filter((name) => /^--[\w-]+$/.test(name) && name !== '--aria-no-anchor');
+  if (!names.includes(own)) names.push(own);
+  return `${names.join(', ')}, ${PAGE_ANCHORS}`;
 }
 
 /**
