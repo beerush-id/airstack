@@ -868,6 +868,115 @@ describe('IRPCPackage', () => {
       irpc.invalidate(hello);
     });
 
+    it('should cache calls by a max age configured after declaring', async () => {
+      const dispatcher = vi.fn().mockImplementation((calls: IRPCCall[]) => {
+        calls.forEach((call) => {
+          call.enqueue({
+            id: call.id,
+            name: call.payload.name,
+            type: IRPC_PACKET_TYPE.ANSWER,
+            status: IRPC_STATUS.SUCCESS,
+            data: call.payload.args[0],
+            createdAt: Date.now(),
+          });
+        });
+      });
+
+      class EchoTransport extends IRPCTransport {
+        async dispatch(calls: IRPCCall[]) {
+          dispatcher(calls);
+        }
+      }
+
+      const irpc = createPackage({ name: 'configured', transport: new EchoTransport() });
+      const echo = irpc.declare<(text: string) => Promise<string>>({ name: 'echo', seed: () => '' });
+      // Lets the transport's batch go out without running the cache's eviction timers.
+      const call = async (text: string) => {
+        const promise = echo(text);
+        vi.advanceTimersByTime(2);
+        await Promise.resolve();
+        return promise;
+      };
+
+      irpc.configure(echo, { maxAge: 1000 });
+      expect(await call('one')).toBe('one');
+      expect(await call('one')).toBe('one');
+      expect(dispatcher).toHaveBeenCalledTimes(1);
+
+      // Turned off: what was cached is dropped, and every call goes out.
+      irpc.configure(echo, { maxAge: 0 });
+      expect(await call('one')).toBe('one');
+      expect(await call('one')).toBe('one');
+      expect(dispatcher).toHaveBeenCalledTimes(3);
+
+      // An unknown stub is reported, not thrown.
+      expect(irpc.configure(() => {}, { maxAge: 1000 })).toBe(irpc);
+    });
+
+    it('should keep a controlled call open after the lifecycle it was made in ends', async () => {
+      const pending: IRPCCall[] = [];
+
+      class HeldTransport extends IRPCTransport {
+        async dispatch(calls: IRPCCall[]) {
+          pending.push(...calls);
+        }
+      }
+
+      const irpc = createPackage({ name: 'controlled', transport: new HeldTransport() });
+      const owned = irpc.declare<(text: string) => Promise<string>>({
+        name: 'owned',
+        controlled: true,
+        seed: () => '',
+      });
+      const plain = irpc.declare<(text: string) => Promise<string>>({ name: 'plain', seed: () => '' });
+
+      const scope = createLifecycle();
+      let ownedCall!: Promise<string>;
+      let plainCall!: Promise<string>;
+      scope.run(() => {
+        ownedCall = owned('kept');
+        plainCall = plain('dropped');
+      });
+      await vi.advanceTimersByTimeAsync(2);
+
+      scope.destroy();
+      expect(pending).toHaveLength(2);
+      for (const call of pending) {
+        call.enqueue({
+          id: call.id,
+          name: call.payload.name,
+          type: IRPC_PACKET_TYPE.ANSWER,
+          status: IRPC_STATUS.SUCCESS,
+          data: call.payload.args[0],
+          createdAt: Date.now(),
+        });
+      }
+
+      expect(await ownedCall).toBe('kept');
+      // Closed with its lifecycle: settled with what it had.
+      expect(await plainCall).toBe('');
+
+      // The same for a function made controlled after it's declared.
+      irpc.configure(plain, { controlled: true });
+      const later = createLifecycle();
+      let laterCall!: Promise<string>;
+      later.run(() => {
+        laterCall = plain('kept too');
+      });
+      await vi.advanceTimersByTimeAsync(2);
+      later.destroy();
+      const call = pending.at(-1)!;
+      call.enqueue({
+        id: call.id,
+        name: call.payload.name,
+        type: IRPC_PACKET_TYPE.ANSWER,
+        status: IRPC_STATUS.SUCCESS,
+        data: call.payload.args[0],
+        createdAt: Date.now(),
+      });
+      expect(await laterCall).toBe('kept too');
+    });
+
     it('should handle call error without transport', async () => {
       const irpc = createPackage({
         name: 'optimistic',

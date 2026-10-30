@@ -1,6 +1,9 @@
 import type { IRPCReader } from './reader.js';
 import type { IRPCData } from './types.js';
 
+/** The longest delay a timer takes: 2^31 - 1 ms, about 24.8 days. */
+const MAX_DELAY = 2 ** 31 - 1;
+
 export type IRPCCacheEntry = {
   key: string;
   value: IRPCReader<IRPCData>;
@@ -52,13 +55,8 @@ export class IRPCCacher {
     }
 
     const expires = Date.now() + maxAge;
-    const nextQueue = setTimeout(() => {
-      this.caches.delete(key);
-      this.queues.delete(key);
-    }, maxAge);
-
     this.caches.set(key, { key, value, expires });
-    this.queues.set(key, nextQueue);
+    this.evictAt(key, expires);
   }
 
   public delete(key: string) {
@@ -75,5 +73,19 @@ export class IRPCCacher {
 
     this.caches.clear();
     this.queues.clear();
+  }
+
+  // A timer takes at most MAX_DELAY and fires at once beyond it, so a longer age waits in steps.
+  private evictAt(key: string, expires: number) {
+    const queue = setTimeout(
+      () => {
+        if (expires > Date.now()) return this.evictAt(key, expires);
+        this.caches.delete(key);
+        this.queues.delete(key);
+      },
+      Math.min(expires - Date.now(), MAX_DELAY)
+    );
+
+    this.queues.set(key, queue);
   }
 }

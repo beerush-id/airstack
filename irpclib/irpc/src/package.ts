@@ -226,7 +226,7 @@ export class IRPCPackage<K extends string = 'id'> {
 
     /* General stub for manual execution */
     stub.later = (debounce) => {
-      const reader = new IRPCReader<IRPCData>(uuid(), spec.seed!(), IRPC_STATUS.IDLE, true) as AnyType;
+      const reader = new IRPCReader<IRPCData>(uuid(), spec.seed!(), IRPC_STATUS.IDLE, true, spec.controlled) as AnyType;
 
       if (debounce) {
         let resolve: ((value?: unknown) => void) | undefined;
@@ -245,10 +245,12 @@ export class IRPCPackage<K extends string = 'id'> {
           });
         };
 
-        onCleanup(() => {
-          cancel();
-          resolve!();
-        });
+        if (!spec.controlled) {
+          onCleanup(() => {
+            cancel();
+            resolve!();
+          });
+        }
         return reader;
       }
 
@@ -270,7 +272,13 @@ export class IRPCPackage<K extends string = 'id'> {
      */
     function prepare(getArgs: () => unknown[], deferred?: boolean, debounce = 0): IRPCReader<IRPCData> {
       if (typeof getArgs !== 'function') getArgs = (() => getArgs) as never;
-      const reader = new IRPCReader<IRPCData>(uuid(), spec.seed!(), deferred ? IRPC_STATUS.IDLE : IRPC_STATUS.PENDING);
+      const reader = new IRPCReader<IRPCData>(
+        uuid(),
+        spec.seed!(),
+        deferred ? IRPC_STATUS.IDLE : IRPC_STATUS.PENDING,
+        undefined,
+        spec.controlled
+      );
 
       /* istanbul ignore else */
       if (isBrowser()) {
@@ -306,11 +314,13 @@ export class IRPCPackage<K extends string = 'id'> {
           dispatch(false);
         }
 
-        onCleanup(() => {
-          cancel();
-          cleanup();
-          observer.destroy();
-        });
+        if (!spec.controlled) {
+          onCleanup(() => {
+            cancel();
+            cleanup();
+            observer.destroy();
+          });
+        }
       }
 
       return reader;
@@ -357,7 +367,7 @@ export class IRPCPackage<K extends string = 'id'> {
       if (cached) return cached.value!;
       if (spec.coalesce !== false && calls.has(callKey)) return calls.get(callKey)!;
 
-      const reader = new IRPCReader<IRPCData>(uuid(), spec.seed!(), IRPC_STATUS.PENDING, false);
+      const reader = new IRPCReader<IRPCData>(uuid(), spec.seed!(), IRPC_STATUS.PENDING, false, spec.controlled);
 
       if (spec.maxAge) caches.set(callKey, reader, spec.maxAge);
       if (spec.coalesce !== false) {
@@ -376,7 +386,7 @@ export class IRPCPackage<K extends string = 'id'> {
           .catch((_err) => {});
       }
 
-      onCleanup(() => reader.close());
+      if (!spec.controlled) onCleanup(() => reader.close());
 
       /* istanbul ignore next */
       if (dispatch) runAsync(args as IRPCData[], reader).then(() => {});
@@ -725,7 +735,39 @@ export class IRPCPackage<K extends string = 'id'> {
    * @returns This IRPCPackage instance for chaining
    * @throws Error if the provided name or version is invalid
    */
-  public configure(config: Partial<IRPCPackageConfig>): this {
+  public configure(config: Partial<IRPCPackageConfig>): this;
+  /**
+   * Updates how a declared function's calls are kept, for a package whose caching is decided by
+   * where it runs rather than where it's declared. Only the options given change; a new `maxAge`
+   * drops what was cached before.
+   * @param stub - The stub function created by declare().
+   * @param config - `maxAge` in milliseconds (0 for none), and `controlled`: calls the caller closes.
+   * @returns This IRPCPackage instance for chaining
+   */
+  public configure(stub: IRPCHandler, config: Pick<IRPCDeclareConfig, 'maxAge' | 'controlled'>): this;
+
+  public configure(
+    target: Partial<IRPCPackageConfig> | IRPCHandler,
+    options: Pick<IRPCDeclareConfig, 'maxAge' | 'controlled'> = {}
+  ): this {
+    if (typeof target === 'function') {
+      const spec = this.stubs.get(target);
+
+      if (!spec) {
+        IRPC_STORE.error(StubError.notFound());
+        return this;
+      }
+
+      if ('maxAge' in options) {
+        spec.maxAge = options.maxAge;
+        this.cache.get(target)?.clear();
+      }
+      if ('controlled' in options) spec.controlled = options.controlled;
+      return this;
+    }
+
+    const config = target;
+
     if (config.name && !NAME_CONSTRAINT.test(config.name)) {
       throw StubError.invalidName(config.name!);
     }

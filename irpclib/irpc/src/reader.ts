@@ -38,14 +38,16 @@ export class IRPCReader<T extends IRPCData, Q extends IRPCQueryMap = IRPCQueryMa
    * @param init - An optional starting value for the data payload.
    * @param status - The initial status of the state (PENDING, SUCCESS, ERROR).
    * @param resumable - Whether the state should be resumable after being closed.
+   * @param controlled - Whether its owner closes it, rather than the lifecycle it's made in.
    */
   constructor(
     public id: string,
     init?: T,
     status: IRPCStatus = IRPC_STATUS.PENDING,
-    resumable?: boolean
+    resumable?: boolean,
+    controlled?: boolean
   ) {
-    super(init, status, resumable);
+    super(init, status, resumable, controlled);
   }
 
   /**

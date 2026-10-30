@@ -304,6 +304,11 @@ export type IRPCInit<R, I extends IRPCInputs, O extends IRPCOutput> = {
   maxAge?: number;
   /** Mark the spec as continues stream with no timeout */
   keepAlive?: boolean;
+  /**
+   * Calls don't close with the lifecycle they're made in (a component's setup, an effect): the
+   * caller owns them and closes them itself. For a call that outlives whoever made it first.
+   */
+  controlled?: boolean;
 
   /**
    * Whether to coalesce multiple calls to the same RPC function within a short time period.
@@ -400,6 +405,7 @@ export type IRPCDeclareConfig<I extends IRPCInputs = IRPCInputs, O extends IRPCO
   mcp?: boolean | MCPOptions;
   maxAge?: number;
   keepAlive?: boolean;
+  controlled?: boolean;
   coalesce?: boolean;
   stream?: true;
   ttl?: number;
