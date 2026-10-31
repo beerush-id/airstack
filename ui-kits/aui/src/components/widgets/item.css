@@ -66,7 +66,8 @@
       cursor: not-allowed;
     }
 
-    & > .aui-icon {
+    /* The icon a row ends with, like a picked row's check; one that leads it stays with its label. */
+    & > .aui-icon:last-child {
       margin-inline-start: auto;
     }
   }
