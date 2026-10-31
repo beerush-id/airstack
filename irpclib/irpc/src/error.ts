@@ -160,6 +160,8 @@ export class HandlerError extends IRPCError {
     return new HandlerError(HANDLER_ERROR.MISSING, `IRPC "${name}" has no implementation.`);
   }
   static failed(input: Error | string) {
+    // A handler that says what went wrong keeps its code, so the caller can tell.
+    if (input instanceof HandlerError) return input;
     const { message, cause } = unwrap(input);
     return new HandlerError(HANDLER_ERROR.ERROR, message, cause);
   }

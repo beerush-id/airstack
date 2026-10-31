@@ -1,7 +1,7 @@
 import { sleep } from '@airlib/core';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
-import { IRPC_STATUS, type IRPCHandler, IRPCRouter, IRPCTransport } from '../src/index.js';
+import { HandlerError, IRPC_STATUS, type IRPCHandler, IRPCRouter, IRPCTransport } from '../src/index.js';
 import { createPackage } from '../src/package.js';
 import { IRPCResolver } from '../src/resolver.js';
 import { RemoteState } from '../src/state.js';
@@ -282,6 +282,23 @@ describe('IRPC Resolver', () => {
           code: 'error',
           message: 'Function error',
         },
+      });
+    });
+
+    it('should keep the code of a handler error', async () => {
+      const rpc = createPackage();
+      type TestFunc = () => Promise<string>;
+      const testFunc = rpc.declare<TestFunc>({ name: 'testFunc', seed: () => '' });
+      rpc.construct(testFunc, async () => {
+        throw new HandlerError('usage_limit', 'Limit reached');
+      });
+
+      const resolver = new IRPCResolver({ id: '1', name: 'testFunc', args: [] }, rpc);
+
+      expect(await resolver.resolve()).toEqual({
+        id: '1',
+        name: 'testFunc',
+        error: { type: 'handler', code: 'usage_limit', message: 'Limit reached' },
       });
     });
 
