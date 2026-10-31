@@ -636,8 +636,8 @@
 
   /*
    * The stack's frame: a pane of the shared glass (`aui-glass-frame`) behind the answers while the
-   * stack is open, so they read as one thing over the windows. It keeps the dock's gap below it, and
-   * stays through the close delay, as the open stack does.
+   * stack is reached for, so they read as one thing over the windows. It keeps the dock's gap below
+   * it. It follows the pointer, and nothing else: there or not, with no fade and no delay.
    */
   .aui-dock-widgets-list::before {
     content: '';
@@ -647,15 +647,13 @@
     corner-shape: inherit;
     opacity: 0;
     pointer-events: none;
-    transition: opacity var(--duration-medium) var(--ease-standard) var(--aui-dock-widgets-close-delay);
     --aui-glass-radius: calc(var(--aui-window-radius) + var(--spacing-md));
     --aui-glass-shadow: var(--aui-window-shadow-active);
   }
 
-  .aui-dock-widgets:is(:hover, :focus-within, :has([aria-expanded='true'])) {
+  .aui-dock-widgets:is(:hover, :has(:focus-visible), :has([aria-expanded='true'])) {
     & .aui-dock-widgets-list::before {
       opacity: 1;
-      transition-delay: 0s;
     }
 
     /* On the frame, an answer is lifted off it, and what's behind is already blurred. */
@@ -688,56 +686,24 @@
   }
 
   /*
-   * Idle: after a quiet spell the answers fade away, so they show what is going on without sitting
-   * over the work the whole time. Only new activity — an answer added or changing — counts: it
-   * flips the stack's `data-activity`, which swaps each part's timer for its twin and so starts the
-   * count over. Each widget fades itself, so its glass keeps blurring on the way out, and stops
-   * taking the pointer once gone.
-   *
-   * Pointing at the stack or moving focus into it wakes it without touching the timers: an overlay
-   * animation layers the awake state above them. So does a popup open from it, which sits in the top
-   * layer, out of the stack, so pointer and focus both leave. Leaving swaps it for a hold that keeps the awake
-   * state for the close delay, then gives way to whatever the timer says — still showing if the
-   * answer is fresh, gone at once if the stack had gone idle. A widget waiting on the user sleeps
+   * Asleep: after a quiet spell the stack marks itself `data-asleep`, so answers show what is going
+   * on without sitting over the work the whole time. Pointing at it, moving focus into it, or a
+   * popup open from it, which sits in the top layer, out of the stack, keeps it showing whatever the
+   * mark says. Each widget fades itself, so its glass keeps blurring on the way out. The entrance
+   * fills nothing after, so it never holds what the fade sets. A widget waiting on the user sleeps
    * like any other: it's marked, never held in view.
    */
-  .aui-dock-widgets {
-    --aui-dock-widget-timer: aui-dock-widget-idle;
-    --aui-dock-widgets-list-timer: aui-dock-widgets-asleep;
-    --aui-dock-widgets-wake-timer: aui-dock-widgets-wake;
-    --aui-dock-widgets-cue-timer: aui-dock-widgets-cue;
-
-    &[data-activity='odd'] {
-      --aui-dock-widget-timer: aui-dock-widget-idle-twin;
-      --aui-dock-widgets-list-timer: aui-dock-widgets-asleep-twin;
-      --aui-dock-widgets-wake-timer: aui-dock-widgets-wake-twin;
-      --aui-dock-widgets-cue-timer: aui-dock-widgets-cue-twin;
-    }
-  }
-
-  /* The entrance comes last so it wins while it plays, and fills nothing after, so the timer shows through. */
   .aui-toast.aui-dock-widget {
-    animation:
-      var(--aui-dock-widget-timer) var(--duration-long, 600ms) var(--ease-standard) var(--aui-dock-widgets-idle) forwards,
-      aui-dock-widget-hold 0s var(--aui-dock-widgets-close-delay) backwards,
-      aui-toast-enter var(--duration-medium) var(--ease-emphasized-decelerate) backwards;
-  }
-
-  .aui-dock-widgets:is(:hover, :focus-within, :has([aria-expanded='true'])) .aui-toast.aui-dock-widget {
-    animation:
-      var(--aui-dock-widget-timer) var(--duration-long, 600ms) var(--ease-standard) var(--aui-dock-widgets-idle) forwards,
-      aui-dock-widget-wake 0s forwards,
-      aui-toast-enter var(--duration-medium) var(--ease-emphasized-decelerate) backwards;
+    animation: aui-toast-enter var(--duration-medium) var(--ease-emphasized-decelerate) backwards;
   }
 
   /*
    * Asleep, the answers' area lets the pointer through to the windows. Only the pill left above
-   * the dock wakes it, along with a little room around the pill so it needs no aiming.
+   * the dock wakes it, along with a little room around the pill so it needs no aiming. Both wait out
+   * the close delay, so passing off the edge doesn't drop the pointer.
    */
   .aui-dock-widgets-list {
-    animation:
-      var(--aui-dock-widgets-list-timer) 0s var(--aui-dock-widgets-idle) forwards,
-      aui-dock-widgets-pointer-on-hold 0s var(--aui-dock-widgets-close-delay) backwards;
+    transition: pointer-events 0s var(--aui-dock-widgets-close-delay) allow-discrete;
   }
 
   .aui-dock-widgets::before {
@@ -749,9 +715,7 @@
     inline-size: calc(var(--aui-dock-widgets-cue-width) + var(--aui-dock-widgets-cue-reach) * 2);
     block-size: calc(var(--aui-dock-widgets-cue-height) + var(--aui-dock-widgets-cue-reach) + var(--aui-dock-offset));
     pointer-events: none;
-    animation:
-      var(--aui-dock-widgets-wake-timer) 0s var(--aui-dock-widgets-idle) forwards,
-      aui-dock-widgets-pointer-off-hold 0s var(--aui-dock-widgets-close-delay) backwards;
+    transition: pointer-events 0s var(--aui-dock-widgets-close-delay) allow-discrete;
   }
 
   /*
@@ -776,9 +740,7 @@
       0 0 calc(var(--shadow-base) * 2) light-dark(rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.45));
     pointer-events: none;
     opacity: 0;
-    animation:
-      var(--aui-dock-widgets-cue-timer) var(--duration-long, 600ms) var(--ease-standard) var(--aui-dock-widgets-idle) forwards,
-      aui-dock-widgets-cue-return var(--duration-long, 600ms) var(--ease-standard) var(--aui-dock-widgets-close-delay) backwards;
+    transition: opacity var(--duration-medium) var(--ease-standard);
   }
 
   /* What the user sent, a turn of its own: at the far side from the answers, as wide as its words, on a tint of their role. */
@@ -808,133 +770,28 @@
   }
 
   /*
-   * Awake, the list takes the pointer, the wake area steps aside, and the pill hides — over the
-   * timers, never in place of them. The prompt doesn't wake the stack: answers are large, and would
-   * cover the window being typed about.
+   * Asleep and out of reach: the widgets fade, the pointer passes through to the windows, the wake
+   * area takes over, and the pill shows. The prompt doesn't wake the stack: answers are large, and
+   * would cover the window being typed about.
    */
-  .aui-dock-widgets:is(:hover, :focus-within, :has([aria-expanded='true'])) {
+  .aui-dock-widgets[data-asleep]:not(:hover, :focus-within, :has([aria-expanded='true'])) {
+    & .aui-toast.aui-dock-widget {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--duration-long, 600ms) var(--ease-standard) var(--aui-dock-widgets-close-delay);
+    }
+
     & .aui-dock-widgets-list {
-      animation:
-        var(--aui-dock-widgets-list-timer) 0s var(--aui-dock-widgets-idle) forwards,
-        aui-dock-widgets-pointer-on 0s forwards;
+      pointer-events: none;
     }
 
     &::before {
-      animation:
-        var(--aui-dock-widgets-wake-timer) 0s var(--aui-dock-widgets-idle) forwards,
-        aui-dock-widgets-pointer-off 0s forwards;
+      pointer-events: auto;
     }
 
     &::after {
-      animation:
-        var(--aui-dock-widgets-cue-timer) var(--duration-long, 600ms) var(--ease-standard) var(--aui-dock-widgets-idle) forwards,
-        aui-dock-widgets-cue-hide 0s forwards;
-    }
-  }
-
-  /*
-   * The awake overlays: each sets its state at once. A fade would start from what the timer says,
-   * so coming back during a hold would replay it from hidden — a flash.
-   */
-  @keyframes aui-dock-widget-wake {
-    to {
       opacity: 1;
-      pointer-events: auto;
-    }
-  }
-
-  @keyframes aui-dock-widgets-pointer-on {
-    to {
-      pointer-events: auto;
-    }
-  }
-
-  @keyframes aui-dock-widgets-pointer-off {
-    to {
-      pointer-events: none;
-    }
-  }
-
-  @keyframes aui-dock-widgets-cue-hide {
-    to {
-      opacity: 0;
-    }
-  }
-
-  /* The holds after leaving: each keeps the awake state through its delay, then gives way to what the timer says. */
-  @keyframes aui-dock-widget-hold {
-    from {
-      opacity: 1;
-      pointer-events: auto;
-    }
-  }
-
-  @keyframes aui-dock-widgets-pointer-on-hold {
-    from {
-      pointer-events: auto;
-    }
-  }
-
-  @keyframes aui-dock-widgets-pointer-off-hold {
-    from {
-      pointer-events: none;
-    }
-  }
-
-  @keyframes aui-dock-widgets-cue-return {
-    from {
-      opacity: 0;
-    }
-  }
-
-  /* The timers. */
-  @keyframes aui-dock-widgets-cue {
-    to {
-      opacity: 1;
-    }
-  }
-
-  @keyframes aui-dock-widgets-cue-twin {
-    to {
-      opacity: 1;
-    }
-  }
-
-  @keyframes aui-dock-widgets-asleep {
-    to {
-      pointer-events: none;
-    }
-  }
-
-  @keyframes aui-dock-widgets-asleep-twin {
-    to {
-      pointer-events: none;
-    }
-  }
-
-  @keyframes aui-dock-widgets-wake {
-    to {
-      pointer-events: auto;
-    }
-  }
-
-  @keyframes aui-dock-widgets-wake-twin {
-    to {
-      pointer-events: auto;
-    }
-  }
-
-  @keyframes aui-dock-widget-idle {
-    to {
-      opacity: 0;
-      pointer-events: none;
-    }
-  }
-
-  @keyframes aui-dock-widget-idle-twin {
-    to {
-      opacity: 0;
-      pointer-events: none;
+      transition: opacity var(--duration-long, 600ms) var(--ease-standard) var(--aui-dock-widgets-close-delay);
     }
   }
 
@@ -957,12 +814,13 @@
    * leave. A widget waiting on the user always stays.
    */
   .aui-dock-widgets:is(:hover, :has(:focus-visible)) {
-    &[data-visible='1'] .aui-dock-widget:nth-last-child(n + 2 of :not(.aui-dock-widget-important)),
-    &[data-visible='2'] .aui-dock-widget:nth-last-child(n + 3 of :not(.aui-dock-widget-important)),
-    &[data-visible='3'] .aui-dock-widget:nth-last-child(n + 4 of :not(.aui-dock-widget-important)),
-    &[data-visible='4'] .aui-dock-widget:nth-last-child(n + 5 of :not(.aui-dock-widget-important)),
-    &[data-visible='5'] .aui-dock-widget:nth-last-child(n + 6 of :not(.aui-dock-widget-important)),
-    &[data-visible='6'] .aui-dock-widget:nth-last-child(n + 7 of :not(.aui-dock-widget-important)) {
+    /* Counting entries only: the list also holds whatever is drawn after one. */
+    &[data-visible='1'] .aui-dock-widget:nth-last-child(n + 2 of .aui-dock-widget:not(.aui-dock-widget-important)),
+    &[data-visible='2'] .aui-dock-widget:nth-last-child(n + 3 of .aui-dock-widget:not(.aui-dock-widget-important)),
+    &[data-visible='3'] .aui-dock-widget:nth-last-child(n + 4 of .aui-dock-widget:not(.aui-dock-widget-important)),
+    &[data-visible='4'] .aui-dock-widget:nth-last-child(n + 5 of .aui-dock-widget:not(.aui-dock-widget-important)),
+    &[data-visible='5'] .aui-dock-widget:nth-last-child(n + 6 of .aui-dock-widget:not(.aui-dock-widget-important)),
+    &[data-visible='6'] .aui-dock-widget:nth-last-child(n + 7 of .aui-dock-widget:not(.aui-dock-widget-important)) {
       display: none;
     }
   }
@@ -974,20 +832,36 @@
      */
     & .aui-dock-widget {
       transition:
-        display 0s var(--aui-dock-widgets-close-delay) allow-discrete,
-        opacity var(--duration-medium) var(--ease-standard) var(--aui-dock-widgets-close-delay);
-    }
-
-    & .aui-dock-widget:nth-last-child(n + 3 of :not(.aui-dock-widget-important)) {
-      display: none;
+        opacity var(--duration-medium) var(--ease-standard) var(--aui-dock-widgets-close-delay),
+        visibility 0s calc(var(--aui-dock-widgets-close-delay) + var(--duration-medium));
     }
 
     /*
-     * The answer before the newest keeps its place but fades out: nothing is clipped, and the
-     * stack keeps its height, so opening it shifts nothing. Pointing at the empty spot opens it.
+     * What's closed keeps its place and fades out, so opening and closing move nothing, and what's
+     * drawn after an entry goes at once, with the frame it sits on. What the user sent stays with the answer
+     * after it: they're one exchange. Only what shows takes the pointer; the room the rest keeps
+     * belongs to the windows behind.
      */
-    & .aui-dock-widget:nth-last-child(2 of :not(.aui-dock-widget-important)) {
+    & .aui-dock-widget:nth-last-child(n + 3 of .aui-dock-widget:not(.aui-dock-widget-important)),
+    & .aui-dock-widget:nth-last-child(2 of .aui-dock-widget:not(.aui-dock-widget-important)):not(.aui-dock-widget-user),
+    & .aui-dock-widget-after {
       opacity: 0;
+      visibility: hidden;
+    }
+
+    & .aui-dock-widgets-list {
+      pointer-events: none;
+    }
+  }
+
+  /* Holds its row's width, with nothing in it taking no room. */
+  .aui-dock-widget-after {
+    display: flex;
+    flex-direction: column;
+    margin-block-start: calc(var(--aui-dock-gap) * -0.5);
+
+    &:empty {
+      display: none;
     }
   }
 

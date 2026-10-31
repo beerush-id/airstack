@@ -10,6 +10,7 @@ import {
   For,
   mutable,
   onCleanup,
+  onMount,
   Show,
   Snippet,
   setup,
@@ -65,12 +66,14 @@ export type DockWidgetsProps = ComponentStyles & {
   visible?: number;
   /** Over the windows, like the dock (default), or on the desktop beneath them. */
   layer?: 'above' | 'below';
+  /** Whether an answer is on its way: the stack stays showing, and its quiet spell starts when this ends. */
+  waiting?: boolean;
 };
 
 export type DockWidgetsSlots = {
   /** What sits under an entry, e.g. what can be done with it. Called for every entry; nothing draws nothing. */
   footer: (widget: DockWidgetEntry) => ReactNode;
-  /** What sits outside an entry, right below it, in the stack's own column. Called for every entry; nothing draws nothing. */
+  /** What sits outside an entry, right below it, on the open stack's frame: it shows and leaves with the frame. Called for every entry; nothing draws nothing. */
   after: (widget: DockWidgetEntry) => ReactNode;
 };
 
@@ -85,6 +88,7 @@ const CLASS = {
   WIDGET: 'aui-dock-widget',
   IMPORTANT: 'aui-dock-widget-important',
   USER: 'aui-dock-widget-user',
+  AFTER: 'aui-dock-widget-after',
   FORM: 'aui-dock-widget-form',
   /** The prompt, which focus returns to once a press inside the stack is done. */
   PROMPT: 'aui-dock-input',
@@ -101,7 +105,13 @@ const WIDGETS_OMIT = [
   'autoDismiss',
   'visible',
   'layer',
+  'waiting',
 ];
+
+/** What marks a stack gone quiet, for its look to follow. */
+const ASLEEP = 'data-asleep';
+/** How long a stack stays with nothing happening, where the theme doesn't say. */
+const QUIET_SPELL = 6000;
 
 /** The card a widget is drawn in: raised, so it stands off the words around it. */
 const CARD_SIZE = 'sm';
@@ -126,13 +136,17 @@ const dockWidgetsCtx = createContext<{ props: DockWidgetsProps; slots: Partial<D
  */
 export const DockWidgets = setup<DockWidgetsProps, DockWidgetsSlots>((props, slots) => {
   const region = aria('dock-region', props as AnyType);
-  let activity = 0;
+  let quiet: ReturnType<typeof setTimeout> | undefined;
 
-  // Each change flips the stack's activity mark, which restarts its quiet countdown in CSS.
+  // Only what's new wakes the stack and starts its quiet spell: pointing at it just shows it. None starts while an answer is on its way.
   const touch = () => {
-    activity += 1;
-    (region.current as HTMLElement | null)?.setAttribute('data-activity', activity % 2 === 1 ? 'odd' : 'even');
+    const stack = region.current as HTMLElement | null;
+    clearTimeout(quiet);
+    stack?.removeAttribute(ASLEEP);
+    if (stack && !$static(() => props.waiting)) quiet = setTimeout(() => stack.setAttribute(ASLEEP, ''), quietSpell(stack));
   };
+  onMount(touch);
+  onCleanup(() => clearTimeout(quiet));
   dockWidgetsCtx.set({ props, slots, touch });
 
   const entries = (): DockWidgetEntry[] => {
@@ -143,6 +157,7 @@ export const DockWidgets = setup<DockWidgetsProps, DockWidgetsSlots>((props, slo
 
   effect(() => {
     void entries().length;
+    void props.waiting;
     touch();
   });
 
@@ -232,7 +247,9 @@ export const DockWidget = setup<DockWidgetProps>((props) => {
         </div>
         <Show when={() => stack?.props.closeLabel}>{(label) => <ToastClose aria-label={label} />}</Show>
       </Toast>
-      <Snippet>{() => stack?.slots.after?.(widget)}</Snippet>
+      <div className={CLASS.AFTER}>
+        <Snippet>{() => stack?.slots.after?.(widget)}</Snippet>
+      </div>
     </>
   );
 }, 'DockWidget');
@@ -292,6 +309,18 @@ const DockWidgetPartView = setup<{ part: DockWidgetPart }>((props) => {
     </Card>
   );
 }, 'DockWidgetPart');
+
+/**
+ * How long a stack stays with nothing happening: the theme's `--aui-dock-widgets-idle`.
+ *
+ * @param stack - The stack.
+ * @returns The time, in milliseconds.
+ */
+function quietSpell(stack: HTMLElement): number {
+  const idle = getComputedStyle(stack).getPropertyValue('--aui-dock-widgets-idle').trim();
+  const time = Number.parseFloat(idle) * (idle.endsWith('ms') ? 1 : 1000);
+  return Number.isNaN(time) ? QUIET_SPELL : time;
+}
 
 /**
  * Hands focus back to the prompt after a press inside the stack, unless the press sent it somewhere
