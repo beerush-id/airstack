@@ -172,7 +172,7 @@ export type IRPCFunction<T> = T extends (...args: infer A) => infer R
  * Represents primitive data types that can be used in IRPC communications.
  * Includes string, number, boolean, null, and undefined.
  */
-export type IRPCPrimitive = string | number | boolean | null | undefined;
+export type IRPCPrimitive = string | number | boolean | null | undefined | Date;
 
 /**
  * Represents an object structure where keys are strings and values are IRPCData.
