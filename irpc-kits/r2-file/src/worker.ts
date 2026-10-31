@@ -66,7 +66,7 @@ export function createWorker(config: FileWorkerConfig = {}) {
     ? implement({
         ...config,
         bucket: config.bucket ?? envBinding<FileWorkerEnv['BUCKET']>('BUCKET'),
-        indexer: config.indexer ?? envBinding<FileWorkerEnv['DB']>('DB'),
+        indexer: config.indexer ?? envBinding<NonNullable<FileWorkerEnv['DB']>>('DB'),
       })
     : undefined;
 
