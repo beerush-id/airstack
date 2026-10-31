@@ -1,5 +1,5 @@
 import type { AnyType } from '@irpclib/irpc';
-import type { FileFilter, ListOptions, SearchOptions, Sort } from '../../types.js';
+import type { D1ListQuery, FileFilter, ListOptions, SearchOptions, Sort } from '../../types.js';
 import { decodeCursor, encodeCursor } from '../../utils/cursor.js';
 
 export { decodeCursor, encodeCursor };
@@ -37,16 +37,17 @@ export function inside(folder: string): [string, string] {
  *
  * @param target - Resolved directory path.
  * @param options - Listing options including recursion, filtering, sorting, and pagination.
+ * @param extension - What the application's own index adds to the listing.
  * @returns Prepared query containing the SQL string, bind parameters, limit, and offset.
  */
-export function buildListQuery(target: string, options?: ListOptions): PreparedQuery {
+export function buildListQuery(target: string, options?: ListOptions, extension?: D1ListQuery): PreparedQuery {
   const normalizedTarget = target === '' || target === '/' ? '/' : target;
   const isRecursive = options?.recursive ?? false;
   const showTrash = options?.trash ?? false;
   const showHidden = options?.all ?? false;
 
   const clauses: string[] = [];
-  const params: AnyType[] = [];
+  const params: AnyType[] = [...(extension?.selectParams ?? [])];
 
   if (isRecursive) {
     if (normalizedTarget === '/') {
@@ -67,11 +68,17 @@ export function buildListQuery(target: string, options?: ListOptions): PreparedQ
     filter: options?.filter,
   });
 
+  if (extension?.where) {
+    clauses.push(`(${extension.where})`);
+    params.push(...(extension.params ?? []));
+  }
+
   const orderBy = buildOrderBy(options?.sort);
   const limit = options?.limit;
   const offset = decodeCursor(options?.cursor);
+  const columns = ['f.*', ...(extension?.select ?? [])].join(', ');
 
-  let sql = `SELECT * FROM _r2_files WHERE ${clauses.join(' AND ')} ORDER BY ${orderBy}`;
+  let sql = `SELECT ${columns} FROM _r2_files AS f WHERE ${clauses.join(' AND ')} ORDER BY ${orderBy}`;
   if (limit !== undefined) {
     sql += ` LIMIT ${limit + 1} OFFSET ${offset}`;
   } else if (offset > 0) {

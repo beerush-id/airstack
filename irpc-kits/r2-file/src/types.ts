@@ -1,4 +1,4 @@
-import type { D1Database, R2Bucket } from '@cloudflare/workers-types';
+import type { D1Database, D1PreparedStatement, R2Bucket } from '@cloudflare/workers-types';
 import type { IRPCFile } from '@irpclib/irpc';
 
 /**
@@ -299,6 +299,8 @@ export type ListOptions = FileOptions & {
   trash?: boolean;
   sort?: Sort;
   filter?: FileFilter;
+  /** What the index's extension narrows the listing by; the filesystem itself ignores it. */
+  scope?: Record<string, string>;
 };
 
 /**
@@ -371,6 +373,60 @@ export interface R2DriverOptions extends FileDriverOptions {}
  */
 export interface D1DriverOptions extends FileDriverOptions {
   indexableKeys?: string[];
+  extension?: D1Extension;
+}
+
+/**
+ * One file being written, as the index's extension sees it.
+ *
+ * Concern: everything an application needs to turn a write into its own
+ * columns, without the driver knowing what any file means.
+ */
+export type D1Write = {
+  /** The stored path. */
+  path: string;
+  type: string;
+  data: FileInput;
+  options?: WriteOptions;
+  owner: string | null;
+};
+
+/**
+ * What an extension adds to a listing. It only ever adds: the driver keeps
+ * building the path range, the deleted and hidden rules, and the caller's
+ * filters, so an extension cannot widen what a caller may see.
+ */
+export type D1ListQuery = {
+  /** Extra result columns, as SQL expressions; the listed table is aliased `f`. */
+  select?: string[];
+  /** What `select`'s placeholders bind to. */
+  selectParams?: unknown[];
+  /** One more condition, ANDed with the driver's own. */
+  where?: string;
+  /** What `where`'s placeholders bind to. */
+  params?: unknown[];
+};
+
+/**
+ * An application's own index on top of `_r2_files`.
+ *
+ * Concern: lets an application keep what its lists show in real, indexed
+ * columns and read it in one query, while the filesystem stays neutral: the
+ * driver only calls these and never learns what a file means.
+ */
+export interface D1Extension {
+  /** Runs once per database after the driver's schema: adds columns, indexes and tables. */
+  migrate?(db: D1Database): Promise<void>;
+  /** The values of the extension's columns for a file being written. */
+  columns?(write: D1Write): Record<string, unknown> | undefined;
+  /** More statements to run in the write's own batch, so they land or fail with it. */
+  statements?(db: D1Database, write: D1Write): D1PreparedStatement[];
+  /** What to add to a listing, by the listing's options. */
+  query?(list: { path: string; options?: ListOptions }): D1ListQuery | undefined;
+  /** Turns a listed row into what the caller receives. */
+  entry?(row: Record<string, AnyType>, info: FileInfo): FileInfo;
+  /** More statements to run in a move's own batch, for what refers to a moved path. */
+  moved?(db: D1Database, paths: { source: string; destination: string }[]): D1PreparedStatement[];
 }
 
 /**
@@ -383,6 +439,7 @@ export interface FileAdapterOptions extends FileDriverOptions {
   bucket?: R2Bucket;
   indexer?: D1Database;
   indexableKeys?: string[];
+  extension?: D1Extension;
 }
 
 /**

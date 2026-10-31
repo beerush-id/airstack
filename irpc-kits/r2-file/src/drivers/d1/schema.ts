@@ -1,15 +1,18 @@
 import type { D1Database } from '@cloudflare/workers-types';
+import type { D1Extension } from '../../types.js';
 
 const initializedDatabases = new WeakMap<D1Database, Map<string, Promise<void>>>();
 
 /**
- * Ensures that the required D1 relational tables and dynamic tenancy columns exist.
+ * Ensures that the required D1 relational tables and dynamic tenancy columns exist, then lets the
+ * application's extension add its own.
  *
  * @param db - Cloudflare D1 database binding.
  * @param ownerKey - Tenancy column name to ensure on `_r2_files`.
+ * @param extension - The application's own index on top of it.
  * @returns Promise that settles when schema preparation is complete.
  */
-export async function ensureSchema(db: D1Database, ownerKey: string): Promise<void> {
+export async function ensureSchema(db: D1Database, ownerKey: string, extension?: D1Extension): Promise<void> {
   let dbTasks = initializedDatabases.get(db);
   if (!dbTasks) {
     dbTasks = new Map<string, Promise<void>>();
@@ -57,6 +60,8 @@ export async function ensureSchema(db: D1Database, ownerKey: string): Promise<vo
           // Column already exists
         }
       }
+
+      await extension?.migrate?.(db);
     })();
     dbTasks.set(ownerKey, task);
   }

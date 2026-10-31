@@ -5,6 +5,8 @@ import { DEFAULT_MAX_ENCODING_SIZE, DEFAULT_OWNER_KEY, fsContext } from '../../c
 import type {
   CopyOptions,
   D1DriverOptions,
+  D1Extension,
+  D1Write,
   DriverContext,
   ExistsOptions,
   FileInfo,
@@ -28,6 +30,23 @@ import { decodePayload, prepareContent, preparePayload, toFileInfo } from './cod
 import { buildListQuery, buildSearchQuery, encodeCursor, INSIDE, inside } from './query.js';
 import { ensureSchema } from './schema.js';
 
+/** The columns `_r2_files` has of its own. */
+const FILE_COLUMNS = new Set([
+  'path',
+  'name',
+  'size',
+  'type',
+  'mtime',
+  'etag',
+  'directory',
+  'link',
+  'hidden',
+  'public',
+  'deleted_at',
+  'metadata',
+  'user_id',
+]);
+
 /**
  * Cloudflare D1 storage and relational metadata driver.
  *
@@ -42,6 +61,7 @@ export class D1Driver implements FileDriver {
   private readonly softDelete: boolean;
   private readonly maxEncodingBytes: number;
   private readonly indexableKeys?: string[];
+  private readonly extension?: D1Extension;
 
   /**
    * Initializes the D1Driver with the provided D1 database binding and configuration options.
@@ -56,6 +76,7 @@ export class D1Driver implements FileDriver {
     this.softDelete = options?.softDelete ?? false;
     this.maxEncodingBytes = parseSize(options?.maxEncodingSize ?? DEFAULT_MAX_ENCODING_SIZE);
     this.indexableKeys = options?.indexableKeys;
+    this.extension = options?.extension;
   }
 
   /**
@@ -66,7 +87,7 @@ export class D1Driver implements FileDriver {
    * @param options - Directory creation options.
    */
   async mkdir(ctx: DriverContext<FileInfo>, _path: string, options?: MkdirOptions): Promise<void> {
-    await ensureSchema(this.db, this.ownerKey);
+    await ensureSchema(this.db, this.ownerKey, this.extension);
     const target = ctx.path!;
     const name = ctx.name!;
     const dir = ctx.dirname!;
@@ -125,7 +146,7 @@ export class D1Driver implements FileDriver {
    * @param options - Write options and wire encoding.
    */
   async write(ctx: DriverContext<FileInfo>, _path: string, data: FileInput, options?: WriteOptions): Promise<void> {
-    await ensureSchema(this.db, this.ownerKey);
+    await ensureSchema(this.db, this.ownerKey, this.extension);
     const target = ctx.path!;
     const name = ctx.name!;
     const dir = ctx.dirname!;
@@ -139,12 +160,16 @@ export class D1Driver implements FileDriver {
       ? prepareContent(ctx.content, this.maxEncodingBytes)
       : preparePayload(data, options, this.maxEncodingBytes);
 
+    const written: D1Write = { path: target, type: prepared.type, data, options, owner };
+    const extra = this.extension?.columns?.(written) ?? {};
+    const keys = Object.keys(extra);
+
     const statements = [
       ...this.parentFolders(dir),
       this.db
         .prepare(
-          `INSERT INTO _r2_files (path, name, size, type, mtime, etag, directory, link, hidden, public, deleted_at, metadata, "${this.ownerKey}")
-          VALUES (?, ?, ?, ?, ?, NULL, ?, NULL, ?, ?, NULL, ?, ?)
+          `INSERT INTO _r2_files (path, name, size, type, mtime, etag, directory, link, hidden, public, deleted_at, metadata, "${this.ownerKey}"${keys.map((key) => `, "${key}"`).join('')})
+          VALUES (?, ?, ?, ?, ?, NULL, ?, NULL, ?, ?, NULL, ?, ?${keys.map(() => ', ?').join('')})
           ON CONFLICT(path) DO UPDATE SET
             name = excluded.name,
             size = excluded.size,
@@ -157,9 +182,10 @@ export class D1Driver implements FileDriver {
             public = excluded.public,
             deleted_at = NULL,
             metadata = excluded.metadata,
-            "${this.ownerKey}" = excluded."${this.ownerKey}"`
+            "${this.ownerKey}" = excluded."${this.ownerKey}"${keys.map((key) => `, "${key}" = excluded."${key}"`).join('')}`
         )
-        .bind(target, name, prepared.size, prepared.type, mtime, dir, hidden, pub, meta, owner),
+        .bind(target, name, prepared.size, prepared.type, mtime, dir, hidden, pub, meta, owner, ...keys.map((key) => extra[key] ?? null)),
+      ...(this.extension?.statements?.(this.db, written) ?? []),
     ];
 
     if (prepared.shouldInline && prepared.content !== null) {
@@ -203,7 +229,7 @@ export class D1Driver implements FileDriver {
     if (!options?.encoding) {
       return;
     }
-    await ensureSchema(this.db, this.ownerKey);
+    await ensureSchema(this.db, this.ownerKey, this.extension);
     const target = ctx.path!;
     const fileRow = await this.db
       .prepare('SELECT * FROM _r2_files WHERE path = ? AND deleted_at IS NULL')
@@ -235,7 +261,7 @@ export class D1Driver implements FileDriver {
    * @param options - Stat options including trash opt-in.
    */
   async stat(ctx: DriverContext<FileInfo | undefined>, _path: string, options?: StatOptions): Promise<void> {
-    await ensureSchema(this.db, this.ownerKey);
+    await ensureSchema(this.db, this.ownerKey, this.extension);
     const target = ctx.path!;
     const trash = options?.trash ?? false;
     const sql = trash
@@ -266,7 +292,7 @@ export class D1Driver implements FileDriver {
    * @param _options - Exists check options.
    */
   async exists(ctx: DriverContext<boolean>, _path: string, _options?: ExistsOptions): Promise<void> {
-    await ensureSchema(this.db, this.ownerKey);
+    await ensureSchema(this.db, this.ownerKey, this.extension);
     const target = ctx.path!;
     const row = await this.db
       .prepare('SELECT 1 FROM _r2_files WHERE path = ? AND deleted_at IS NULL')
@@ -286,9 +312,9 @@ export class D1Driver implements FileDriver {
    * @param options - Listing filter, sorting, and pagination controls.
    */
   async list(ctx: DriverContext<ListResult>, _path?: string, options?: ListOptions): Promise<void> {
-    await ensureSchema(this.db, this.ownerKey);
+    await ensureSchema(this.db, this.ownerKey, this.extension);
     const target = ctx.path!;
-    const query = buildListQuery(target, options);
+    const query = buildListQuery(target, options, this.extension?.query?.({ path: target, options }));
 
     const { results } = await this.db
       .prepare(query.sql)
@@ -302,7 +328,7 @@ export class D1Driver implements FileDriver {
       nextCursor = encodeCursor(query.offset + query.limit);
     }
 
-    const entries = rows.map((r) => toFileInfo(r));
+    const entries = rows.map((row) => this.extension?.entry?.(row, toFileInfo(row)) ?? toFileInfo(row));
     ctx.result = { entries, nextCursor };
   }
 
@@ -314,7 +340,7 @@ export class D1Driver implements FileDriver {
    * @param options - Search options including working directory scope.
    */
   async search(ctx: DriverContext<ListResult>, query: string, options?: SearchOptions): Promise<void> {
-    await ensureSchema(this.db, this.ownerKey);
+    await ensureSchema(this.db, this.ownerKey, this.extension);
     const cwd = ctx.cwd!;
     const preparedQuery = buildSearchQuery(query, cwd, this.indexableKeys, options);
 
@@ -344,7 +370,7 @@ export class D1Driver implements FileDriver {
    * @param options - Copy options.
    */
   async copy(ctx: DriverContext<boolean>, _source: string, _destination: string, options?: CopyOptions): Promise<void> {
-    await ensureSchema(this.db, this.ownerKey);
+    await ensureSchema(this.db, this.ownerKey, this.extension);
     const src = ctx.path!;
     const dest = ctx.destination!;
 
@@ -369,11 +395,12 @@ export class D1Driver implements FileDriver {
     rows.forEach((row, index) => {
       const destPath = destPaths[index];
       const isPublic = row.path === src && options?.public !== undefined ? (options.public ? 1 : 0) : row.public;
+      const extra = this.extraColumns(row);
       statements.push(
         this.db
           .prepare(
-            `INSERT INTO _r2_files (path, name, size, type, mtime, etag, directory, link, hidden, public, deleted_at, metadata, "${this.ownerKey}")
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)`
+            `INSERT INTO _r2_files (path, name, size, type, mtime, etag, directory, link, hidden, public, deleted_at, metadata, "${this.ownerKey}"${extra.map((key) => `, "${key}"`).join('')})
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?${extra.map(() => ', ?').join('')})`
           )
           .bind(
             destPath,
@@ -387,7 +414,8 @@ export class D1Driver implements FileDriver {
             row.hidden,
             isPublic,
             row.metadata,
-            owner
+            owner,
+            ...extra.map((key) => row[key])
           )
       );
       const content = contents.get(row.path as string);
@@ -412,7 +440,7 @@ export class D1Driver implements FileDriver {
    * @param _options - Move options.
    */
   async move(ctx: DriverContext<boolean>, _source: string, _destination: string, options?: MoveOptions): Promise<void> {
-    await ensureSchema(this.db, this.ownerKey);
+    await ensureSchema(this.db, this.ownerKey, this.extension);
     const src = ctx.path!;
     const dest = ctx.destination!;
 
@@ -439,11 +467,12 @@ export class D1Driver implements FileDriver {
     const mtime = Date.now();
     const statements: D1PreparedStatement[] = this.parentFolders(dirname(destPaths[0]));
     rows.forEach((row, index) => {
+      const extra = this.extraColumns(row);
       statements.push(
         this.db
           .prepare(
-            `INSERT INTO _r2_files (path, name, size, type, mtime, etag, directory, link, hidden, public, deleted_at, metadata, "${this.ownerKey}")
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+            `INSERT INTO _r2_files (path, name, size, type, mtime, etag, directory, link, hidden, public, deleted_at, metadata, "${this.ownerKey}"${extra.map((key) => `, "${key}"`).join('')})
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?${extra.map(() => ', ?').join('')})`
           )
           .bind(
             destPaths[index],
@@ -458,7 +487,8 @@ export class D1Driver implements FileDriver {
             row.public,
             row.deleted_at,
             row.metadata,
-            options?.onBehalf ?? row[this.ownerKey] ?? null
+            options?.onBehalf ?? row[this.ownerKey] ?? null,
+            ...extra.map((key) => row[key])
           )
       );
     });
@@ -470,6 +500,12 @@ export class D1Driver implements FileDriver {
     for (const srcPath of srcPaths) {
       statements.push(this.db.prepare('DELETE FROM _r2_files WHERE path = ?').bind(srcPath));
     }
+    statements.push(
+      ...(this.extension?.moved?.(
+        this.db,
+        srcPaths.map((source, index) => ({ source, destination: destPaths[index] }))
+      ) ?? [])
+    );
 
     await this.mutate(ctx, 'move', [...srcPaths, ...destPaths], statements);
 
@@ -485,7 +521,7 @@ export class D1Driver implements FileDriver {
    * @param options - Link creation options.
    */
   async link(ctx: DriverContext<FileInfo>, _target: string, _path: string, options?: LinkOptions): Promise<void> {
-    await ensureSchema(this.db, this.ownerKey);
+    await ensureSchema(this.db, this.ownerKey, this.extension);
     const linkPath = ctx.path!;
     const targetPath = ctx.destination!;
     const name = ctx.name!;
@@ -545,7 +581,7 @@ export class D1Driver implements FileDriver {
    * @param options - Deletion options (recursive, force, soft).
    */
   async remove(ctx: DriverContext<boolean>, _path: string, options?: RemoveOptions): Promise<void> {
-    await ensureSchema(this.db, this.ownerKey);
+    await ensureSchema(this.db, this.ownerKey, this.extension);
     const target = ctx.path!;
     const isRecursive = options?.recursive ?? false;
     const isSoft = !options?.force && (options?.soft === true || this.softDelete);
@@ -622,7 +658,7 @@ export class D1Driver implements FileDriver {
    * @param _options - Restore options.
    */
   async restore(ctx: DriverContext<FileInfo>, _path: string, _options?: FileOptions): Promise<void> {
-    await ensureSchema(this.db, this.ownerKey);
+    await ensureSchema(this.db, this.ownerKey, this.extension);
     const target = ctx.path!;
     const trashed = await this.db
       .prepare(`SELECT * FROM _r2_files WHERE (path = ? OR ${INSIDE}) AND deleted_at IS NOT NULL`)
@@ -746,6 +782,11 @@ export class D1Driver implements FileDriver {
       .bind(src, ...inside(src))
       .all<Record<string, AnyType>>();
     return results;
+  }
+
+  /** The columns an extension added to a row, which a copy or a move carries along. */
+  private extraColumns(row: Record<string, AnyType>): string[] {
+    return Object.keys(row).filter((key) => !FILE_COLUMNS.has(key) && key !== this.ownerKey);
   }
 
   /** Halts with `EEXIST` when any destination path already has a record, before any mutation. */
