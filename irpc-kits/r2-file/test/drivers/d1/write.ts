@@ -5,6 +5,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createDriverCtx } from '../../../src/context.js';
 import { D1Driver } from '../../../src/drivers/index.js';
 import { NormalizerDriver } from '../../../src/drivers/normalize.js';
+import type { ListResult } from '../../../src/types.js';
 import type { FileInfo, FileInput } from '../../../src/types.js';
 import { withFs } from '../../helpers.js';
 
@@ -236,6 +237,60 @@ describe('D1Driver write and tiered inlining', () => {
       expect(
         await db.prepare('SELECT * FROM _r2_contents WHERE path = ?').bind('/d1write/tier/rollback.txt').first()
       ).toBeNull();
+    });
+  });
+
+  it('records every folder a write goes into, so listing one level shows them', async () => {
+    await withFs({ ownerId: 'bob', homeDir: '/users/bob' }, async () => {
+      const ctx = createDriverCtx<FileInfo>();
+      await normalize.write(ctx, '/d1write/parents/project/stage.json', { a: 1 });
+      await driver.write(ctx, '/d1write/parents/project/stage.json', { a: 1 });
+
+      const list = createDriverCtx<ListResult>();
+      await normalize.list(list, '/d1write/parents');
+      await driver.list(list, '/d1write/parents');
+
+      expect(list.result?.entries).toMatchObject([
+        { path: '/d1write/parents/project', name: 'project', type: 'inode/directory', isDirectory: true },
+      ]);
+    });
+  });
+
+  it('leaves a folder as it is, and never turns a file into one', async () => {
+    await withFs({ ownerId: 'bob', homeDir: '/users/bob' }, async () => {
+      const made = createDriverCtx<FileInfo>();
+      await normalize.mkdir(made, '/d1write/kept', { metadata: { section: 'docs' } });
+      await driver.mkdir(made, '/d1write/kept', { metadata: { section: 'docs' } });
+      const file = createDriverCtx<FileInfo>();
+      await normalize.write(file, '/d1write/file', 'text');
+      await driver.write(file, '/d1write/file', 'text');
+
+      const inside = createDriverCtx<FileInfo>();
+      await normalize.write(inside, '/d1write/kept/note.txt', 'text');
+      await driver.write(inside, '/d1write/kept/note.txt', 'text');
+      const under = createDriverCtx<FileInfo>();
+      await normalize.write(under, '/d1write/file/note.txt', 'text');
+      await driver.write(under, '/d1write/file/note.txt', 'text');
+
+      const row = (path: string) => db.prepare('SELECT type, metadata FROM _r2_files WHERE path = ?').bind(path).first();
+      expect(await row('/d1write/kept')).toMatchObject({ type: 'inode/directory', metadata: '{"section":"docs"}' });
+      expect((await row('/d1write/file'))?.type).toBe('text/plain');
+    });
+  });
+
+  it('brings a soft-deleted folder back when something is written into it', async () => {
+    await withFs({ ownerId: 'bob', homeDir: '/users/bob' }, async () => {
+      const made = createDriverCtx<FileInfo>();
+      await normalize.mkdir(made, '/d1write/gone');
+      await driver.mkdir(made, '/d1write/gone');
+      await db.prepare('UPDATE _r2_files SET deleted_at = 1 WHERE path = ?').bind('/d1write/gone').run();
+
+      const ctx = createDriverCtx<FileInfo>();
+      await normalize.write(ctx, '/d1write/gone/note.txt', 'text');
+      await driver.write(ctx, '/d1write/gone/note.txt', 'text');
+
+      const row = await db.prepare('SELECT deleted_at FROM _r2_files WHERE path = ?').bind('/d1write/gone').first();
+      expect(row?.deleted_at).toBeNull();
     });
   });
 });

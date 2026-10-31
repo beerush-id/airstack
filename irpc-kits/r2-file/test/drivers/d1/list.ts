@@ -510,7 +510,7 @@ describe('D1Driver list operations, filters, sorting, and pagination', () => {
       const flatCtx: DriverContext<{ entries: FileInfo[] }> = createDriverCtx();
       await normalize.list(flatCtx, '/d1list/tree', { recursive: false });
       await driver.list(flatCtx, '/d1list/tree', { recursive: false });
-      expect((flatCtx.result as { entries: FileInfo[] }).entries.map((e) => e.name)).toEqual(['top.txt']);
+      expect((flatCtx.result as { entries: FileInfo[] }).entries.map((e) => e.name)).toEqual(['nested', 'top.txt']);
 
       const recCtx: DriverContext<{ entries: FileInfo[] }> = createDriverCtx();
       await normalize.list(recCtx, '/d1list/tree', { recursive: true });

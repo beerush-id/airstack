@@ -80,6 +80,7 @@ export class D1Driver implements FileDriver {
       'mkdir',
       [target],
       [
+        ...this.parentFolders(dir),
         this.db
           .prepare(
             `INSERT INTO _r2_files (path, name, size, type, mtime, etag, directory, link, hidden, public, deleted_at, metadata, "${this.ownerKey}")
@@ -139,6 +140,7 @@ export class D1Driver implements FileDriver {
       : preparePayload(data, options, this.maxEncodingBytes);
 
     const statements = [
+      ...this.parentFolders(dir),
       this.db
         .prepare(
           `INSERT INTO _r2_files (path, name, size, type, mtime, etag, directory, link, hidden, public, deleted_at, metadata, "${this.ownerKey}")
@@ -363,7 +365,7 @@ export class D1Driver implements FileDriver {
     const contents = await this.subtreeContents(src);
     const mtime = Date.now();
     const owner = this.getOwner();
-    const statements: D1PreparedStatement[] = [];
+    const statements: D1PreparedStatement[] = this.parentFolders(dirname(destPaths[0]));
     rows.forEach((row, index) => {
       const destPath = destPaths[index];
       const isPublic = row.path === src && options?.public !== undefined ? (options.public ? 1 : 0) : row.public;
@@ -435,7 +437,7 @@ export class D1Driver implements FileDriver {
     await this.assertNoConflict('move', destPaths);
 
     const mtime = Date.now();
-    const statements: D1PreparedStatement[] = [];
+    const statements: D1PreparedStatement[] = this.parentFolders(dirname(destPaths[0]));
     rows.forEach((row, index) => {
       statements.push(
         this.db
@@ -498,6 +500,7 @@ export class D1Driver implements FileDriver {
       'link',
       [linkPath],
       [
+        ...this.parentFolders(dirname(linkPath)),
         this.db
           .prepare(
             `INSERT INTO _r2_files (path, name, size, type, mtime, etag, directory, link, hidden, public, deleted_at, metadata, "${this.ownerKey}")
@@ -660,6 +663,32 @@ export class D1Driver implements FileDriver {
    * @param statements - Mutation statements executed after the snapshots in the same transaction.
    * @returns A promise that resolves once the mutation and compensation registration complete.
    */
+  /**
+   * Records every folder above an entry, as listing R2 finds them from its keys: nothing else makes a
+   * folder that was only written into, so listing the index one level at a time wouldn't show it.
+   * One already there is kept as it is, and comes back if it was soft-deleted.
+   *
+   * @param dir - The folder holding the entry.
+   * @returns The statements, to run with the entry's own.
+   */
+  private parentFolders(dir: string): D1PreparedStatement[] {
+    const statements: D1PreparedStatement[] = [];
+    const mtime = Date.now();
+    const owner = this.getOwner();
+    for (let folder = dir; folder && folder !== '/'; folder = dirname(folder)) {
+      statements.push(
+        this.db
+          .prepare(
+            `INSERT INTO _r2_files (path, name, size, type, mtime, etag, directory, link, hidden, public, deleted_at, metadata, "${this.ownerKey}")
+            VALUES (?, ?, 0, 'inode/directory', ?, NULL, ?, NULL, 0, 0, NULL, NULL, ?)
+            ON CONFLICT(path) DO UPDATE SET deleted_at = NULL WHERE type = 'inode/directory'`
+          )
+          .bind(folder, basename(folder), mtime, dirname(folder), owner)
+      );
+    }
+    return statements;
+  }
+
   private async mutate<T>(
     ctx: DriverContext<T>,
     op: FileOperation,

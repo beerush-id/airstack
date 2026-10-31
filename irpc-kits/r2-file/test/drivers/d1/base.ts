@@ -157,7 +157,7 @@ describe('D1Driver resilience and error propagation', () => {
 
     const check = await db
       .prepare('SELECT count(*) AS total FROM _r2_files WHERE path LIKE ?')
-      .bind('/d1base/concurrent%')
+      .bind('/d1base/concurrent/%')
       .first<{ total: number }>();
     expect(check?.total).toBe(10);
   });
