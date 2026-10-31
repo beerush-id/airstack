@@ -71,7 +71,7 @@
   }
 
   .aui-item.aui-command-palette-item {
-    block-size: max(var(--aui-control-height), calc(var(--aui-command-palette-inner-radius) * 2));
+    min-block-size: max(var(--aui-control-height), calc(var(--aui-command-palette-inner-radius) * 2));
   }
 
   /*
