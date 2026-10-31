@@ -1,4 +1,10 @@
-import { aria, type VideoClipFrame, type VideoMediaFit, type VideoMediaLoader, type VideoStageAria } from '@airlib/aria';
+import {
+  aria,
+  type VideoClipFrame,
+  type VideoMediaFit,
+  type VideoMediaLoader,
+  type VideoStageAria,
+} from '@airlib/aria';
 import { AUI_CLASS, branded, register } from '@airlib/aui/utils';
 import { $static, type AnyType, renderDynamic, setup, Snippet } from '@airlib/react';
 import type { Timeline, TimelineSegment } from '@airlib/react/timeline';
@@ -86,6 +92,8 @@ export type StageClipProps<P extends Record<string, AnyType> = Record<string, An
   /** An image clip's description. */
   alt?: string;
   children?: ReactNode;
+  width?: number;
+  height?: number;
 };
 
 const SLIDER_ROLE = 'slider';
@@ -191,7 +199,12 @@ export const Stage = setup<StageProps>((props) => {
           <div className={`${CLASS.TRANSPORT} ${AUI_CLASS.GLASS_FRAME}`}>
             <Snippet>
               {() => (
-                <Button variant="text" size="sm" aria-label={playing() ? labels().pause : labels().play} onClick={toggle}>
+                <Button
+                  variant="text"
+                  size="sm"
+                  aria-label={playing() ? labels().pause : labels().play}
+                  onClick={toggle}
+                >
                   {playing() ? <PauseIcon aria-hidden="true" /> : <PlayArrowIcon aria-hidden="true" />}
                 </Button>
               )}
@@ -241,7 +254,10 @@ export const StageClip = setup<StageClipProps>((props) => {
  * seeks the timeline there.
  */
 const StageScrubber = setup<{ timeline: Timeline; label: string }>((props) => {
-  const scrubber = aria(SLIDER_ROLE, playheadSlider(() => props.timeline));
+  const scrubber = aria(
+    SLIDER_ROLE,
+    playheadSlider(() => props.timeline)
+  );
   const hold = holdWhileDragging(() => props.timeline);
 
   return () => (

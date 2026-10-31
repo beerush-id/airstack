@@ -392,6 +392,7 @@ export type MauiConfig = typeof DEFAULT_CONFIG & {
   imageViewer?: ComponentStyles;
   imageSegments?: ComponentStyles;
   fullscreenButton?: ComponentStyles;
+  stage?: ComponentStyles;
 };
 
 export const AUI_CLASS = {
