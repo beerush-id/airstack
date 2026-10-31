@@ -22,6 +22,7 @@ import type {
   RemoveOptions,
   SearchOptions,
   StatOptions,
+  UpdateOptions,
   WriteOptions,
 } from '../../types.js';
 import { basename, dirname } from '../../utils/path.js';
@@ -95,6 +96,8 @@ export class D1Driver implements FileDriver {
     const owner = this.getOwner();
     const pub = options?.public ? 1 : 0;
     const meta = options?.metadata ? JSON.stringify(options.metadata) : null;
+    const extra = this.extension?.directory?.({ path: target, options }) ?? {};
+    const keys = Object.keys(extra);
 
     await this.mutate(
       ctx,
@@ -104,8 +107,8 @@ export class D1Driver implements FileDriver {
         ...this.parentFolders(dir),
         this.db
           .prepare(
-            `INSERT INTO _r2_files (path, name, size, type, mtime, etag, directory, link, hidden, public, deleted_at, metadata, "${this.ownerKey}")
-          VALUES (?, ?, 0, 'inode/directory', ?, NULL, ?, NULL, 0, ?, NULL, ?, ?)
+            `INSERT INTO _r2_files (path, name, size, type, mtime, etag, directory, link, hidden, public, deleted_at, metadata, "${this.ownerKey}"${keys.map((key) => `, "${key}"`).join('')})
+          VALUES (?, ?, 0, 'inode/directory', ?, NULL, ?, NULL, 0, ?, NULL, ?, ?${keys.map(() => ', ?').join('')})
           ON CONFLICT(path) DO UPDATE SET
             name = excluded.name,
             size = excluded.size,
@@ -118,9 +121,9 @@ export class D1Driver implements FileDriver {
             public = excluded.public,
             deleted_at = NULL,
             metadata = excluded.metadata,
-            "${this.ownerKey}" = excluded."${this.ownerKey}"`
+            "${this.ownerKey}" = excluded."${this.ownerKey}"${keys.map((key) => `, "${key}" = excluded."${key}"`).join('')}`
           )
-          .bind(target, name, mtime, dir, pub, meta, owner),
+          .bind(target, name, mtime, dir, pub, meta, owner, ...keys.map((key) => extra[key] ?? null)),
       ]
     );
 
@@ -135,6 +138,39 @@ export class D1Driver implements FileDriver {
       hidden: false,
       metadata: options?.metadata,
     };
+  }
+
+  /**
+   * Merges into an entry's metadata and refreshes the extension's columns; its content stays put.
+   *
+   * @param ctx - Pipeline execution context.
+   * @param path - Target path.
+   * @param options - The metadata to merge.
+   */
+  async update(ctx: DriverContext<FileInfo>, _path: string, options?: UpdateOptions): Promise<void> {
+    await ensureSchema(this.db, this.ownerKey, this.extension);
+    const target = ctx.path!;
+    const row = await this.db
+      .prepare('SELECT * FROM _r2_files WHERE path = ? AND deleted_at IS NULL')
+      .bind(target)
+      .first<Record<string, AnyType>>();
+
+    if (!row) {
+      throw new HandlerError('ENOENT', 'Resource not found', new Error(`update: Path '${target}' does not exist`));
+    }
+
+    const metadata = JSON.stringify({ ...toFileInfo(row).metadata, ...options?.metadata });
+    const mtime = Date.now();
+    const extra = this.extension?.updated?.({ path: target, options }) ?? {};
+    const keys = Object.keys(extra);
+
+    await this.mutate(ctx, 'update', [target], [
+      this.db
+        .prepare(`UPDATE _r2_files SET metadata = ?, mtime = ?${keys.map((key) => `, "${key}" = ?`).join('')} WHERE path = ?`)
+        .bind(metadata, mtime, ...keys.map((key) => extra[key] ?? null), target),
+    ]);
+
+    ctx.result = toFileInfo({ ...row, metadata, mtime, ...extra });
   }
 
   /**

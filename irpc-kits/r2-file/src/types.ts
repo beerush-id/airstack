@@ -35,7 +35,8 @@ export type FileOperation =
   | 'move'
   | 'link'
   | 'remove'
-  | 'restore';
+  | 'restore'
+  | 'update';
 
 /**
  * Authorized path and capability rule for shared access.
@@ -204,6 +205,17 @@ export type CopyOptions = FileOptions & {
  * declare visibility and metadata identically.
  */
 export type MkdirOptions = FileCreateOptions;
+
+/**
+ * What changes about a stored entry without touching its content.
+ *
+ * Concern: a rename or a retag is one change to one row: nothing is
+ * moved, rewritten or read back.
+ */
+export type UpdateOptions = FileOptions & {
+  /** Merged into the entry's metadata. */
+  metadata?: Record<string, string>;
+};
 
 /**
  * Alias creation scope.
@@ -419,6 +431,10 @@ export interface D1Extension {
   migrate?(db: D1Database): Promise<void>;
   /** The values of the extension's columns for a file being written. */
   columns?(write: D1Write): Record<string, unknown> | undefined;
+  /** The values of the extension's columns for a directory being made. */
+  directory?(made: { path: string; options?: MkdirOptions }): Record<string, unknown> | undefined;
+  /** The values of the extension's columns for an entry whose metadata changed. */
+  updated?(update: { path: string; options?: UpdateOptions }): Record<string, unknown> | undefined;
   /** More statements to run in the write's own batch, so they land or fail with it. */
   statements?(db: D1Database, write: D1Write): D1PreparedStatement[];
   /** What to add to a listing, by the listing's options. */

@@ -22,6 +22,7 @@ import type {
   RollbackFn,
   SearchOptions,
   StatOptions,
+  UpdateOptions,
   WriteOptions,
 } from './types.js';
 
@@ -51,6 +52,7 @@ export interface FileDriver {
   link?(ctx: DriverContext<FileInfo>, target: string, path: string, options?: LinkOptions): Promise<void>;
   remove?(ctx: DriverContext<boolean>, path: string, options?: RemoveOptions): Promise<void>;
   restore?(ctx: DriverContext<FileInfo>, path: string, options?: FileOptions): Promise<void>;
+  update?(ctx: DriverContext<FileInfo>, path: string, options?: UpdateOptions): Promise<void>;
 }
 
 /**
@@ -82,6 +84,11 @@ export class FileAdapter {
   /** Creates a directory across every medium. */
   mkdir(path: string, options?: MkdirOptions): Promise<FileInfo> {
     return this.mutate<FileInfo>('mkdir', [path, options]).then((info) => this.unmountInfo(info));
+  }
+
+  /** Changes an entry's metadata in the index, leaving its content where it is. */
+  update(path: string, options?: UpdateOptions): Promise<FileInfo> {
+    return this.mutate<FileInfo>('update', [path, options]).then((info) => this.unmountInfo(info));
   }
 
   /** Persists a payload across every medium. */

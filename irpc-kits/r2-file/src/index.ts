@@ -18,6 +18,7 @@ import type {
   ReadOptions,
   SearchOptions,
   StatOptions,
+  UpdateOptions,
   WriteOptions,
 } from './types.js';
 
@@ -271,6 +272,20 @@ export const mkdir = fileModule.declare<MkdirFn>('mkdir', seedFileInfo, {
 });
 
 /**
+ * Changes an entry's metadata without touching its content, so a rename moves nothing.
+ *
+ * @param path Target path (`~`, absolute, or relative to the working directory)
+ * @param options The metadata to merge into what it has
+ * @returns Metadata of the updated entry
+ */
+export type UpdateFn = (path: string, options?: UpdateOptions) => Promise<FileInfo>;
+
+export const update = fileModule.declare<UpdateFn>('update', seedFileInfo, {
+  description: `Changes a file's or folder's metadata without touching its content. options: { metadata }. ${PATHS}`,
+  mcp: { args: ['path', 'options'], ...OVERWRITE },
+});
+
+/**
  * Wire-level write stub the public `write` overloads delegate to;
  * server implementations register their handler on this stub.
  */
@@ -306,7 +321,7 @@ fileModule.hook(writeStub, (req) => {
   /* istanbul ignore next */
   if (typeof data === 'string') {
     req.args[2] = { encoding: 'text', ...options };
-  } else if (data && typeof data === 'object') {
+  } else if (data && typeof data === 'object' && !(data instanceof IRPCFile)) {
     req.args[2] = { encoding: 'json', ...options };
   }
 });
@@ -676,5 +691,6 @@ export default {
   link,
   remove,
   restore,
+  update,
   persistent,
 };

@@ -18,6 +18,7 @@ import type {
   RemoveOptions,
   SearchOptions,
   StatOptions,
+  UpdateOptions,
   UrlContent,
   WriteOptions,
 } from '../types.js';
@@ -154,6 +155,15 @@ export class NormalizerDriver implements FileDriver {
     ctx.dirname = info.directory;
     ctx.cwd = info.cwd;
     ctx.destination = origin.path;
+  }
+
+  /** Validates boundaries (`EACCES`). Populates `ctx.path`, `ctx.dirname`, and `ctx.cwd`. */
+  async update(ctx: DriverContext<FileInfo>, path: string, options?: UpdateOptions): Promise<void> {
+    const info = resolve(this.mountPoint, path, options?.cwd, 'update');
+    ctx.path = info.path;
+    ctx.name = info.name;
+    ctx.dirname = info.directory;
+    ctx.cwd = info.cwd;
   }
 
   /** Validates boundaries (`EACCES`). Populates `ctx.path`, `ctx.dirname`, and `ctx.cwd`. */

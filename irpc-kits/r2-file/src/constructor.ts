@@ -31,6 +31,7 @@ import {
   restore,
   search,
   stat,
+  update,
   writeStub,
 } from './index.js';
 import type { FileAdapterOptions } from './types.js';
@@ -87,6 +88,8 @@ export function implement(options: FileImplementOptions): FileAdapter {
   });
 
   fileModule.construct(mkdir, (path, options) => adapter.mkdir(path, options));
+
+  fileModule.construct(update, (path, options) => adapter.update(path, options));
 
   fileModule.construct(writeStub, (path, data, options) => adapter.write(path, data, options));
 
