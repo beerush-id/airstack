@@ -35,6 +35,17 @@
     & .aui-item {
       min-block-size: max(var(--aui-control-height), calc(var(--aui-listbox-inner-radius) * 2));
     }
+
+    /* In an aside, the panel around it is the sheet, so the rows stand on it directly. */
+    &[data-aside='true'] {
+      --aui-listbox-padding: 0px;
+      background-color: transparent;
+
+      /* No sheet to stay concentric with, so a row is only as tall as its size says. */
+      & .aui-item {
+        min-block-size: var(--aui-control-height);
+      }
+    }
   }
 
   /*

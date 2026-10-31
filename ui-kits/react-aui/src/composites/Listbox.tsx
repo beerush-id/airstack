@@ -27,6 +27,11 @@ export type ListboxProps = ComponentStyles & {
    * picking one, with none picked.
    */
   checkable?: boolean;
+  /**
+   * For a list that sits in an aside, like a sidebar's places: the panel around it is its sheet, so
+   * it draws no background of its own, and the picked row's fill says which it is, without a check.
+   */
+  aside?: boolean;
   required?: boolean;
   disabled?: boolean;
   options?: OptionsInput;
@@ -70,8 +75,9 @@ export const Listbox = setup<ListboxProps, ListboxSlots>((props, slots) => {
   return () => (
     <div
       ref={listbox.ref}
-      {...listbox.restProps([...OMIT_KEYS, 'options', 'checkable'])}
+      {...listbox.restProps([...OMIT_KEYS, 'options', 'checkable', 'aside'])}
       className={className()}
+      data-aside={props.aside ? 'true' : undefined}
       {...modes}
     >
       {hasEntries(props.options) ? (
@@ -111,7 +117,7 @@ export const ListboxOption = setup<ListboxOptionProps>((props) => {
         </span>
       )}
       {renderDynamic(props.children, option)}
-      {!listbox?.checkable && option.selected && <CheckIcon />}
+      {!listbox?.checkable && !listbox?.aside && option.selected && <CheckIcon />}
     </div>
   );
 }, 'ListboxOption');
