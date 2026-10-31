@@ -1,5 +1,5 @@
 import { aria } from '@airlib/aria';
-import { AUI_CLASS, COLORS, register, SIZES } from '@airlib/aui/utils';
+import { AUI_CLASS, COLORS, register, SIZES, VARIANTS } from '@airlib/aui/utils';
 import { type Bindable, renderDynamic, setup } from '@airlib/react';
 import type { ReactNode } from 'react';
 import { $families, auiConfig, type AuiPrimitive, type AuiProps, type ComponentStyles, OMIT_KEYS } from '../config.js';
@@ -8,7 +8,7 @@ import { toggleGroupScope } from './context.js';
 
 export type ToggleValue = AuiPrimitive;
 
-export type ToggleProps = Omit<AuiProps<'button'>, 'variant'> & {
+export type ToggleProps = AuiProps<'button'> & {
   value?: ToggleValue;
   pressed?: Bindable<boolean>;
   disabled?: boolean;
@@ -21,6 +21,7 @@ const TOGGLE_ROLE = 'toggle';
 const toggleStyles: ComponentStyles = {
   size: SIZES.MD,
   color: COLORS.PRIMARY,
+  variant: VARIANTS.TEXT,
 };
 
 register('toggle', toggleStyles);

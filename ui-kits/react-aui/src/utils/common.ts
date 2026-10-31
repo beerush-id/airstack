@@ -45,7 +45,10 @@ export type OptionsInput = Array<OptionEntry> | Record<string, string | number |
  */
 export function toOptions(options?: OptionsInput): OptionEntry[] {
   if (Array.isArray(options)) return options;
-  return Object.entries(options ?? {}).map(([key, label]) => ({ key, label: label === undefined ? undefined : String(label) }));
+  return Object.entries(options ?? {}).map(([key, label]) => ({
+    key,
+    label: label === undefined ? undefined : String(label),
+  }));
 }
 
 export type StyleScope<T extends ComponentStyles = ComponentStyles> = {
@@ -65,7 +68,7 @@ export type StyleScope<T extends ComponentStyles = ComponentStyles> = {
  *
  * @returns {StyleScope<T>} `provide` for the root's `setup()` body, `get` and `inherit` for a part's.
  */
-export function createStyleScope<T extends ComponentStyles = ComponentStyles>(): StyleScope<T> {
+export function createStyleScope<T extends ComponentStyles = ComponentStyles>(excludes?: string[]): StyleScope<T> {
   const ctx = createContext<T>();
 
   return {
@@ -81,12 +84,15 @@ export function createStyleScope<T extends ComponentStyles = ComponentStyles>():
       // Getters keep both sides live: a root re-styled later re-styles its parts.
       return {
         get size() {
+          if (excludes?.includes('size')) return props.size;
           return props.size ?? root?.size;
         },
         get color() {
+          if (excludes?.includes('color')) return props.color;
           return props.color ?? root?.color;
         },
         get variant() {
+          if (excludes?.includes('variant')) return props.variant;
           return props.variant ?? root?.variant;
         },
         get className() {

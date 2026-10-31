@@ -3,7 +3,7 @@ import { createContext } from '@airlib/react';
 import { createStyleScope } from '../utils/common.js';
 
 export const sliderScope = createStyleScope();
-export const toggleGroupScope = createStyleScope();
+export const toggleGroupScope = createStyleScope(['variant']);
 export const radioGroupScope = createStyleScope<ComponentStyles & { name?: string }>();
 export const checkboxGroupScope = createStyleScope();
 export const listScope = createStyleScope();
