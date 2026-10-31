@@ -1,5 +1,4 @@
 import type { AnyType } from '@airlib/react';
-import type { DockSuggestion } from '../dock/prompt.js';
 import type { arrangeWindows, WindowApp, WindowInstance } from '../window/registry.js';
 
 /**
@@ -9,10 +8,10 @@ import type { arrangeWindows, WindowApp, WindowInstance } from '../window/regist
 export type AUITools = Record<string, (...args: AnyType[]) => unknown>;
 
 /**
- * What an app hands the system along with a view: the data the window shows, the tools it makes
- * reachable, and what it adds to the prompt while it's in front. All stay reachable as the window
- * lives, at `window[id]` and `activeWindow`. The window keeps the object itself, so a getter or a
- * mutable in it stays live, e.g. `get title() { return project.name }`.
+ * What an app hands the system along with a view: the data the window shows, and the tools it makes
+ * reachable. Both stay reachable as the window lives, at `window[id]` and `activeWindow`. The window
+ * keeps the object itself, so a getter or a mutable in it stays live, e.g.
+ * `get title() { return project.name }`.
  */
 export interface AUIOpenOptions<D = AnyType, T extends AUITools = AUITools> {
   data?: D;
@@ -23,10 +22,6 @@ export interface AUIOpenOptions<D = AnyType, T extends AUITools = AUITools> {
   /** A picture of what the window shows, beside its title in the dock's list of open windows; the app's picture without one. */
   thumbnail?: string;
   tools?: T;
-  /** What the window adds to the prompt's commands while it's in front, e.g. its own `search`. */
-  commands?: DockSuggestion[];
-  /** What the prompt can mention while the window is in front, e.g. its files. */
-  contexts?: DockSuggestion[];
 }
 
 /**
@@ -124,9 +119,24 @@ export interface AUISystemState {
   /** What the system does with windows. */
   readonly window: {
     arrangeWindows: typeof arrangeWindows;
+    /**
+     * Called with each new window before it's showing, so whoever booted the system knows of it first.
+     *
+     * @param win - The window.
+     * @param options - What it was opened with, as given.
+     */
+    onopen?(win: WindowInstance, options: Omit<AUIOpenOptions, 'data'>): void;
+    /**
+     * Called once a window has closed.
+     *
+     * @param win - The window.
+     */
+    onclose?(win: WindowInstance): void;
   };
   /** The window the user is looking at: set when a window is focused, cleared when the desktop is pressed. */
   activeWindow?: WindowInstance;
+  /** Every open window, by id. */
+  readonly windows: ReadonlyMap<string, WindowInstance>;
   /** Every tool on the system to call by name — the system's and each app's isomorphic stubs. */
   readonly tools: AUITools;
   /**
@@ -147,9 +157,11 @@ export interface AUISystemState {
 }
 
 /**
- * What the system starts with: top-level keys of its state, each replacing the system's own.
+ * What the system starts with: top-level keys of its state, each merged over the system's own.
  */
-export type AUISystemSeed = Partial<Omit<AUISystemState, 'get' | 'launch'>> & {
+export type AUISystemSeed = Partial<Omit<AUISystemState, 'get' | 'launch' | 'windows' | 'activeWindow' | 'window'>> & {
+  /** What the system does with windows, over its own. */
+  window?: Partial<AUISystemState['window']>;
   /**
    * Lets later boots reseed the running system and get it back, as reloading code during
    * development does. Read from the first seed only; never on in production.

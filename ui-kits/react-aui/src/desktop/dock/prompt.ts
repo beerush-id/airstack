@@ -2,10 +2,11 @@ import { createContext, effect, mutable } from '@airlib/react';
 import { shortId } from '@airlib/react/utils';
 import type { ReactNode } from 'react';
 import type { DockPromptProps, DockSubmitEvent } from '../DockPrompt.js';
-import { system } from '../system/system.js';
 
 /** One thing the app offers for the word being typed: a command, a file, a person. */
 export type DockSuggestion = {
+  /** What kind of thing it is, the app's own word, e.g. `command`. It comes back as given, with anything else the app put on it. */
+  type?: string;
   /** What the app gets back when it's picked. */
   value: string;
   /** What the prompt shows and puts in, after the trigger character. */
@@ -17,39 +18,28 @@ export type DockSuggestion = {
    * glyph, or a picture's URL, e.g. a photo's thumbnail.
    */
   icon?: string | ReactNode;
-  /** Which set it belongs to; the list leaves a gap where the set changes, e.g. between the system's commands and the front window's. */
+  /** The name of the set it belongs to, shown above the set, e.g. the front window's title. Neighbours with the same name are one set. */
   group?: string;
-  /**
-   * What sending the prompt does while this is in it, in place of `onsubmit`: the same call its
-   * button makes, e.g. opening the app picked after `/open`. The prompt waits for it, then clears;
-   * if it throws, what's written stays. Stopping aborts the signal.
-   */
-  action?: (event: DockSubmitEvent, signal: AbortSignal) => unknown | Promise<unknown>;
 };
 
-/** What's around the word being completed, for a filter whose offer depends on it. */
-export type DockSuggestionScope = {
-  /** The suggestions picked earlier in the prompt, before the word, in order: e.g. the `/open` before `@`. */
-  references: DockReference[];
-};
+/** The word being typed: the key it starts with, and the rest of it. */
+export type DockWord = { key: string; query: string };
 
 /**
- * Finds what a trigger offers for the rest of its word, e.g. the files matching what's typed after
- * `@`, or the apps once `/open` comes before it.
+ * What the prompt offers for the word being typed, e.g. the commands after `/`. Read as the word
+ * changes, and live: what isn't there yet just isn't offered, until it is.
+ *
+ * @param word - The word being typed.
+ * @param selections - What was picked earlier in the prompt, before the word, in order.
+ * @returns What to offer; nothing closes the list.
  */
-export type DockSuggestionFilter = (
-  query: string,
-  scope: DockSuggestionScope
-) => DockSuggestion[] | Promise<DockSuggestion[]>;
+export type DockSuggestions = (word: DockWord, selections: DockSuggestion[]) => DockSuggestion[];
 
-/** The prompt's triggers: each character that starts a word to complete, and what it offers. */
-export type DockSuggestionFilters = Record<string, DockSuggestionFilter>;
+/** A token in the prompt: what was picked, and the key it was picked with. */
+type Picked = { key: string; item: DockSuggestion };
 
-/** A suggestion picked into the prompt: the trigger it came from, and the item. */
-export type DockReference = { char: string; item: DockSuggestion };
-
-/** The word being completed: the text it's in, where it starts and ends, and its trigger. */
-type Word = { node: Text; char: string; start: number; end: number };
+/** Where the word being typed sits in the field. */
+type Word = { node: Text; start: number; end: number };
 
 /** A word that ends at the caret, read as its first character (the trigger) and the rest (the query). */
 const WORD = /(?:^|\s)(\S)(\S*)$/;
@@ -65,21 +55,17 @@ export const promptCtx = createContext<DockPromptEditor>();
 
 /**
  * What the dock prompt holds: what's written, with each picked suggestion kept whole as a token,
- * and the suggestions for the word at the caret. The field is the person's own; only a pick
- * writes into it.
+ * and the word at the caret. It's a bridge: it asks what to offer for a word and reports what was
+ * sent, and everything those mean belongs to whoever answers.
  */
 export class DockPromptEditor {
-  /**
-   * The suggestions for the word being completed (empty while none is), the one Enter picks, its
-   * trigger, the field, and whether a picked suggestion's action is running.
-   */
+  /** The word being typed, the suggestion Enter picks, the field, and how many sent prompts are still at work. */
   public readonly state = mutable(
     {
-      items: [] as DockSuggestion[],
+      word: undefined as DockWord | undefined,
       active: undefined as string | undefined,
-      char: '',
       field: undefined as HTMLElement | undefined,
-      running: false,
+      running: 0,
     },
     { recursive: false }
   );
@@ -88,10 +74,9 @@ export class DockPromptEditor {
   public readonly id = `aui-dock-suggestions-${shortId()}`;
 
   private word?: Word;
-  /** Aborts the running action. */
+  /** Aborts the latest sent prompt. */
   private pending?: AbortController;
-  private request = 0;
-  private readonly picked = new WeakMap<Element, DockReference>();
+  private readonly picked = new WeakMap<Element, Picked>();
 
   /**
    * @param props - The prompt's props: its labels, triggers, bound text, and handlers.
@@ -117,9 +102,25 @@ export class DockPromptEditor {
   }
 
   /** The suggestions picked into the prompt that are still in it. */
-  public get references(): DockReference[] {
+  public get selections(): DockSuggestion[] {
     const tokens = this.state.field?.querySelectorAll(`.${TOKEN_CLASS}`) ?? [];
-    return [...tokens].flatMap((token) => this.picked.get(token) ?? []);
+    return [...tokens].flatMap((token) => this.picked.get(token)?.item ?? []);
+  }
+
+  /** What's offered for the word being typed; nothing while no word is. */
+  public get items(): DockSuggestion[] {
+    const { word } = this.state;
+    return word && this.word ? (this.props.suggestions?.(word, this.selectionsBefore(this.word.node)) ?? []) : [];
+  }
+
+  /**
+   * Where a suggestion is in the list.
+   *
+   * @param value - The suggestion.
+   * @returns Its place, or -1 once it's gone.
+   */
+  public indexOf(value: string): number {
+    return this.items.findIndex((item) => item.value === value);
   }
 
   /**
@@ -132,61 +133,52 @@ export class DockPromptEditor {
     return `${this.id}-${index}`;
   }
 
-  /**
-   * Whether a suggestion starts a new set in the list, so a gap goes before it.
-   *
-   * @param item - The suggestion.
-   * @returns True when the one before it belongs to another set.
-   */
-  public startsGroup(item: DockSuggestion): boolean {
-    const at = this.state.items.indexOf(item);
-    return at > 0 && this.state.items[at - 1].group !== item.group;
-  }
-
-  /** Whether the prompt is at work: the app's request (`busy`), or a picked suggestion's action. */
-  public get working(): boolean {
-    return !!this.props.busy || this.state.running;
-  }
-
-  /**
-   * Sends what's written, with the window in front and what was picked in. The first pick with an
-   * action handles it, and the prompt clears once that's done; otherwise it goes to `onsubmit` and
-   * clears at once.
-   */
-  public async submit(): Promise<void> {
-    const text = this.text.trim();
-    if (!text || this.state.running) return;
-    const references = this.references;
-    const event: DockSubmitEvent = Object.assign(new CustomEvent('submit', { detail: text }), {
-      activeWindow: system.activeWindow,
-      references,
-    });
-
-    const action = references.find((reference) => reference.item.action)?.item.action;
-    if (!action) {
-      this.props.onsubmit?.(event);
-      this.write('');
-      return;
+  /** What's offered, in order, as the sets it's drawn in; suggestions with no `group` are one nameless set. */
+  public get groups(): { label?: string; items: DockSuggestion[] }[] {
+    const groups: { label?: string; items: DockSuggestion[] }[] = [];
+    for (const item of this.items) {
+      const last = groups.at(-1);
+      if (last && last.label === item.group) last.items.push(item);
+      else groups.push({ label: item.group, items: [item] });
     }
+    return groups;
+  }
 
+  /** Whether the prompt is at work: a sent prompt that hasn't finished, or the app's own `busy`. */
+  public get working(): boolean {
+    return !!this.props.busy || this.state.running > 0;
+  }
+
+  /**
+   * Sends what's written, with what was picked in, and clears. A prompt sent while another runs
+   * takes its place: the earlier one's signal aborts. The prompt shows at work until `onsubmit`
+   * settles.
+   *
+   * @param event - What sent it: the key or the press.
+   * @returns Once `onsubmit` has finished.
+   */
+  public async submit(event: Event): Promise<void> {
+    const text = this.text.trim();
+    if (!text) return;
+    const selections = this.selections;
+    this.write('');
+
+    this.pending?.abort();
     const controller = new AbortController();
     this.pending = controller;
-    this.state.running = true;
+    this.state.running += 1;
     try {
-      await action(event, controller.signal);
-      if (!controller.signal.aborted) this.write('');
-    } catch {
-      // What's written stays, to fix and send again; the action reports its own failure.
+      await this.props.onsubmit?.({ text, selections, signal: controller.signal, event });
     } finally {
-      this.pending = undefined;
-      this.state.running = false;
+      this.state.running -= 1;
+      if (this.pending === controller) this.pending = undefined;
     }
   }
 
-  /** Stops what's running: a picked suggestion's action, or the app's request. */
+  /** Stops what's running: the latest sent prompt, and the app's own work when it's `busy`. */
   public stop(): void {
-    if (this.pending) this.pending.abort();
-    else if (this.props.busy) this.props.onstop?.(new CustomEvent('stop'));
+    this.pending?.abort();
+    if (this.props.busy) this.props.onstop?.(new CustomEvent('stop'));
   }
 
   /**
@@ -196,19 +188,21 @@ export class DockPromptEditor {
    * @param value - The suggestion to put in; the active one when omitted.
    */
   public pick(value = this.state.active): void {
-    const at = this.state.items.findIndex((entry) => entry.value === value);
-    const item = this.state.items[at];
+    const { items } = this;
+    const at = items.findIndex((entry) => entry.value === value);
+    const item = items[at];
     const word = this.word;
+    const key = this.state.word?.key;
     // The icon as its row drew it, taken before closing the list removes the row.
     const icon = document.getElementById(this.optionId(at))?.querySelector(`.${ICON_CLASS}`)?.cloneNode(true);
     this.close();
-    if (!item || !word) return;
+    if (!item || !word || !key) return;
 
     const token = document.createElement('span');
     token.className = TOKEN_CLASS;
     token.contentEditable = 'false';
-    token.append(...(icon ? [icon] : []), `${word.char}${item.label}`);
-    this.picked.set(token, { char: word.char, item });
+    token.append(...(icon ? [icon] : []), `${key}${item.label}`);
+    this.picked.set(token, { key, item });
 
     const gap = document.createTextNode(GAP);
     const range = document.createRange();
@@ -221,11 +215,10 @@ export class DockPromptEditor {
     this.changed();
   }
 
-  /** Closes the suggestions, dropping any answer still on its way. */
+  /** Closes the suggestions. */
   public close(): void {
-    this.request++;
     this.word = undefined;
-    if (this.state.items.length) this.state.items = [];
+    this.state.word = undefined;
     this.activate(undefined);
   }
 
@@ -237,7 +230,7 @@ export class DockPromptEditor {
   private readonly handleKey = (event: KeyboardEvent): void => {
     if (event.defaultPrevented || event.isComposing) return;
 
-    if (this.state.items.length) {
+    if (this.items.length) {
       const step = STEPS[event.key];
       if (step) this.move(step);
       else if (event.key === 'Enter' || event.key === 'Tab') this.pick();
@@ -247,12 +240,12 @@ export class DockPromptEditor {
       return;
     }
 
-    if (event.key === 'Escape' && (this.state.running || (this.props.busy && this.props.onstop))) {
+    if (event.key === 'Escape' && (this.state.running > 0 || (this.props.busy && this.props.onstop))) {
       event.preventDefault();
       this.stop();
     } else if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
-      void this.submit();
+      void this.submit(event);
     }
   };
 
@@ -293,18 +286,12 @@ export class DockPromptEditor {
 
     const end = selection.anchorOffset;
     const match = WORD.exec(node.data.slice(0, end));
-    const filter = match && this.props.filters?.[match[1]];
-    if (!match || !filter) return this.close();
+    if (!match) return this.close();
 
-    const [, char, query] = match;
-    const ask = ++this.request;
-    this.word = { node, char, start: end - query.length - 1, end };
-    Promise.resolve(filter(query, { references: this.referencesBefore(node) })).then((items) => {
-      if (ask !== this.request) return;
-      this.state.char = char;
-      this.state.items = items;
-      this.activate(items[0]?.value);
-    });
+    const [, key, query] = match;
+    this.word = { node, start: end - query.length - 1, end };
+    this.state.word = { key, query };
+    this.activate(this.items[0]?.value);
   }
 
   /**
@@ -313,11 +300,11 @@ export class DockPromptEditor {
    * @param node - Where to look before.
    * @returns The picks before it, in order.
    */
-  private referencesBefore(node: Node): DockReference[] {
+  private selectionsBefore(node: Node): DockSuggestion[] {
     const tokens = this.state.field?.querySelectorAll(`.${TOKEN_CLASS}`) ?? [];
     return [...tokens]
       .filter((token) => token.compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING)
-      .flatMap((token) => this.picked.get(token) ?? []);
+      .flatMap((token) => this.picked.get(token)?.item ?? []);
   }
 
   /**
@@ -326,8 +313,8 @@ export class DockPromptEditor {
    * @param step - How far: 1 down, -1 up.
    */
   private move(step: number): void {
-    const { items, active } = this.state;
-    const at = items.findIndex((item) => item.value === active);
+    const { items } = this;
+    const at = items.findIndex((item) => item.value === this.state.active);
     this.activate(items[(at + step + items.length) % items.length]?.value);
   }
 
@@ -339,7 +326,7 @@ export class DockPromptEditor {
   private activate(value?: string): void {
     this.state.active = value;
     const field = this.state.field;
-    const at = this.state.items.findIndex((item) => item.value === value);
+    const at = value === undefined ? -1 : this.indexOf(value);
     if (!field) return;
 
     if (at < 0) {
@@ -388,8 +375,8 @@ export class DockPromptEditor {
     if (!(node instanceof HTMLElement)) return '';
     if (node.tagName === 'BR') return '\n';
 
-    const reference = this.picked.get(node);
-    if (reference) return `${reference.char}${reference.item.label}`;
+    const token = this.picked.get(node);
+    if (token) return `${token.key}${token.item.label}`;
     return [...node.childNodes].map((child) => this.serialize(child)).join('');
   }
 }

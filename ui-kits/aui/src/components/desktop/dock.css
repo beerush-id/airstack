@@ -25,7 +25,7 @@
     /* The answers above the dock: how wide the stack is at least, and how much of the one before the newest peeks above it. */
     --aui-dock-widgets-width: calc(var(--spacing) * 120);
     /* How wide the stack may grow for a wide answer: a readable line, and never past the screen's edges. */
-    --aui-dock-widgets-max-width: min(calc(var(--spacing) * 240), calc(100dvi - var(--aui-dock-offset) * 2));
+    --aui-dock-widgets-max-width: min(calc(var(--spacing) * 160), calc(100dvi - var(--aui-dock-offset) * 2));
     /* How much surface color an answer's glass lays over what's behind: more than a window's, so text on it reads. */
     --aui-dock-widget-tint: 75%;
     /* How long an open stack waits after the pointer leaves before it closes, and how long a quiet stack stays before it fades away. */
@@ -455,9 +455,20 @@
     visibility: hidden;
   }
 
-  /* A blank gap where one set of suggestions ends and the next begins, e.g. the front window's after the system's. */
-  .aui-dock-suggestion[data-group-start] {
-    margin-block-start: var(--spacing-sm);
+  /* A set of suggestions, laid out as the panel lays them, under its name when it has one. */
+  .aui-dock-suggestions-group {
+    display: flex;
+    flex-direction: column;
+    gap: inherit;
+  }
+
+  .aui-dock-suggestions-group-label {
+    padding-block: var(--spacing-sm) var(--spacing-xs);
+    padding-inline: calc(var(--aui-control-padding-x, var(--spacing-md)) * 0.85);
+    color: var(--color-on-surface-variant);
+    font-size: var(--font-label-md-size);
+    font-weight: 600;
+    letter-spacing: var(--font-label-md-tracking);
   }
 
   /* A suggestion's hint sits at the end of its row, a fainter wash of the row's ink, so it reads on a highlighted row too. */
@@ -591,6 +602,16 @@
   }
 
   /*
+   * A focused window wins: while the user works in one, the answers sit beneath the windows. An
+   * active window alone doesn't count, as typing in the prompt keeps it active but not focused.
+   * Reaching for the answers — pointing at the stack, moving focus into it, or a popup open from it —
+   * brings them back up.
+   */
+  .aui-desktop:has(.aui-window:focus-within) > .aui-dock-widgets:not(:hover, :focus-within, :has([aria-expanded='true'])) {
+    z-index: calc(var(--aui-window-z) - 1);
+  }
+
+  /*
    * The launcher opens in the same place, so the answers step aside while it is open. The
    * launcher itself is drawn outside the dock, so its open start button is what tells.
    */
@@ -606,9 +627,42 @@
     display: flex;
     flex-direction: column;
     gap: var(--aui-dock-gap);
-    /* Room for the widgets' shadows inside the stack's scroll edge; below, the dock's gap. */
-    padding: var(--spacing-md) var(--spacing-md) var(--aui-dock-gap);
+    /* Room for the widgets' shadows inside the stack's scroll edge, which the frame's rim shares; below, the dock's gap too. */
+    padding: var(--spacing-md) var(--spacing-md) calc(var(--spacing-md) + var(--aui-dock-gap));
+    position: relative;
+    isolation: isolate;
     pointer-events: auto;
+  }
+
+  /*
+   * The stack's frame: a pane of the shared glass (`aui-glass-frame`) behind the answers while the
+   * stack is open, so they read as one thing over the windows. It keeps the dock's gap below it, and
+   * stays through the close delay, as the open stack does.
+   */
+  .aui-dock-widgets-list::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 var(--aui-dock-gap);
+    z-index: -1;
+    corner-shape: inherit;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--duration-medium) var(--ease-standard) var(--aui-dock-widgets-close-delay);
+    --aui-glass-radius: calc(var(--aui-window-radius) + var(--spacing-md));
+    --aui-glass-shadow: var(--aui-window-shadow-active);
+  }
+
+  .aui-dock-widgets:is(:hover, :focus-within, :has([aria-expanded='true'])) {
+    & .aui-dock-widgets-list::before {
+      opacity: 1;
+      transition-delay: 0s;
+    }
+
+    /* On the frame, an answer is lifted off it, and what's behind is already blurred. */
+    & .aui-toast.aui-dock-widget {
+      --aui-glass-shadow: var(--aui-glass-lift);
+      --aui-glass-filter: none;
+    }
   }
 
   /*
@@ -641,10 +695,11 @@
    * taking the pointer once gone.
    *
    * Pointing at the stack or moving focus into it wakes it without touching the timers: an overlay
-   * animation layers the awake state above them. Leaving swaps it for a hold that keeps the awake
+   * animation layers the awake state above them. So does a popup open from it, which sits in the top
+   * layer, out of the stack, so pointer and focus both leave. Leaving swaps it for a hold that keeps the awake
    * state for the close delay, then gives way to whatever the timer says — still showing if the
-   * answer is fresh, gone at once if the stack had gone idle. A widget waiting on the user keeps the
-   * stack awake.
+   * answer is fresh, gone at once if the stack had gone idle. A widget waiting on the user sleeps
+   * like any other: it's marked, never held in view.
    */
   .aui-dock-widgets {
     --aui-dock-widget-timer: aui-dock-widget-idle;
@@ -668,11 +723,7 @@
       aui-toast-enter var(--duration-medium) var(--ease-emphasized-decelerate) backwards;
   }
 
-  :is(
-      .aui-dock-widgets:is(:hover, :focus-within, :has(.aui-dock-widget-important)),
-      .aui-dock:has(.aui-dock-prompt:hover) ~ .aui-dock-widgets
-    )
-    .aui-toast.aui-dock-widget {
+  .aui-dock-widgets:is(:hover, :focus-within, :has([aria-expanded='true'])) .aui-toast.aui-dock-widget {
     animation:
       var(--aui-dock-widget-timer) var(--duration-long, 600ms) var(--ease-standard) var(--aui-dock-widgets-idle) forwards,
       aui-dock-widget-wake 0s forwards,
@@ -730,12 +781,38 @@
       aui-dock-widgets-cue-return var(--duration-long, 600ms) var(--ease-standard) var(--aui-dock-widgets-close-delay) backwards;
   }
 
+  /* What the user sent, a turn of its own: at the far side from the answers, as wide as its words, on a tint of their role. */
+  .aui-toast.aui-dock-widget-user {
+    --aui-glass-bg: color-mix(in oklch, var(--color-primary) 18%, var(--color-container-low));
+    align-self: flex-end;
+    max-inline-size: 80%;
+
+    & > .aui-toast-close {
+      display: none;
+    }
+  }
+
+  /* A form has no box of its own: what's in it lays out as the card's own content. */
+  .aui-dock-widget-form {
+    display: contents;
+  }
+
+  /* A widget waiting on the user wears an accent, and tints the pill, so a sleeping stack still says so. */
+  .aui-toast.aui-dock-widget-important {
+    outline: 2px solid color-mix(in oklch, var(--color-primary) 45%, transparent);
+    outline-offset: -1px;
+  }
+
+  .aui-dock-widgets:has(.aui-dock-widget-important) {
+    --aui-dock-widgets-cue-color: var(--color-primary);
+  }
+
   /*
    * Awake, the list takes the pointer, the wake area steps aside, and the pill hides — over the
-   * timers, never in place of them. Pointing at the prompt wakes the stack too, without opening it.
+   * timers, never in place of them. The prompt doesn't wake the stack: answers are large, and would
+   * cover the window being typed about.
    */
-  .aui-dock-widgets:is(:hover, :focus-within, :has(.aui-dock-widget-important)),
-  .aui-dock:has(.aui-dock-prompt:hover) ~ .aui-dock-widgets {
+  .aui-dock-widgets:is(:hover, :focus-within, :has([aria-expanded='true'])) {
     & .aui-dock-widgets-list {
       animation:
         var(--aui-dock-widgets-list-timer) 0s var(--aui-dock-widgets-idle) forwards,

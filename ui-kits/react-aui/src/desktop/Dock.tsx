@@ -7,7 +7,7 @@ import { Menu, MenuItem, MenuPanel } from '../composites/Menu.js';
 import { $families, auiConfig, type ComponentStyles, OMIT_KEYS } from '../config.js';
 import { AppsIcon } from '../icons/index.js';
 import { AppIcon, AppIconTile } from '../widgets/AppIcon.js';
-import { DockPrompt, type DockSubmitEvent, type DockSuggestionFilters } from './DockPrompt.js';
+import { DockPrompt, type DockSubmitEvent, type DockSuggestions } from './DockPrompt.js';
 import { system } from './system/system.js';
 import { appLabel, focusApp, isFrontWindow, type WindowApp, type WindowInstance } from './window/registry.js';
 import { openWindows, windowApps } from './window/store.js';
@@ -53,18 +53,18 @@ export type DockProps = ComponentStyles & {
   speaking?: boolean;
   /** Announced once when speaking starts, e.g. "The assistant is speaking". */
   speakingLabel?: string;
-  /** What each trigger character offers for the word it starts in the prompt, e.g. `{ '/': commands, '@': files }`. */
-  filters?: DockSuggestionFilters;
+  /** What to offer for the word being typed in the prompt, e.g. commands after `/` and files after `@`. */
+  suggestions?: DockSuggestions;
   /** Names the prompt's suggestions for screen readers, e.g. "Suggestions". */
   suggestionsLabel?: string;
   /** The keys that bring the prompt into focus, shown at its empty field's end, e.g. "⌘K"; your app handles the keys. */
   shortcut?: string;
   /**
-   * Called with the prompt's text when it is sent, and the window that was active then — what the
-   * prompt is about. The prompt clears afterwards.
+   * Called with what was sent: its text, what was picked in, and a signal that aborts when it's
+   * stopped or replaced. The prompt clears at once, and shows at work until what this returns settles.
    */
-  onsubmit?: (event: DockSubmitEvent) => void;
-  /** Called when the person stops the running request: the stop button, or Escape in the prompt. */
+  onsubmit?: (event: DockSubmitEvent) => unknown | Promise<unknown>;
+  /** Called on stop while `busy`, for work no sent prompt is behind: the stop button, or Escape in the prompt. */
   onstop?: (event: CustomEvent<void>) => void;
   /** Your own dock parts, when you compose instead of using the props above. */
   children?: ReactNode;
@@ -121,7 +121,7 @@ const DOCK_OMIT = [
   'stopLabel',
   'speaking',
   'speakingLabel',
-  'filters',
+  'suggestions',
   'suggestionsLabel',
   'shortcut',
   'onsubmit',
@@ -176,7 +176,7 @@ export const Dock = setup<DockProps, DockSlots>((props, slots) => {
                 stopLabel={props.stopLabel}
                 speaking={$use(() => props.speaking)}
                 speakingLabel={props.speakingLabel}
-                filters={props.filters}
+                suggestions={props.suggestions}
                 suggestionsLabel={props.suggestionsLabel}
                 shortcut={props.shortcut}
                 onsubmit={props.onsubmit}

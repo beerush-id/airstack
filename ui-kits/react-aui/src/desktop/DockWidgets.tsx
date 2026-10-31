@@ -1,25 +1,77 @@
 import { aria } from '@airlib/aria';
-import { AUI_CLASS, register } from '@airlib/aui/utils';
-import { $static, $use, type AnyType, classx, createContext, effect, For, Show, setup } from '@airlib/react';
-import type { ComponentType } from 'react';
+import { AUI_CLASS, register, VARIANTS } from '@airlib/aui/utils';
+import {
+  $static,
+  $use,
+  type AnyType,
+  classx,
+  createContext,
+  effect,
+  For,
+  mutable,
+  onCleanup,
+  Show,
+  Snippet,
+  setup,
+  subscribe,
+} from '@airlib/react';
+import type { FormEvent, MouseEvent, ReactNode } from 'react';
 import { $families, auiConfig, type ComponentStyles, OMIT_KEYS } from '../config.js';
 import { Toast, ToastClose } from '../composites/Toast.js';
+import { newWidgetState, type WidgetContext, type WidgetHost, type WidgetState, widgetHostCtx } from '../dynamic/host.js';
 import { MarkdownRenderer } from '../dynamic/MarkdownRenderer.js';
-import { type WidgetNode, WidgetRenderer } from '../dynamic/WidgetRenderer.js';
-import type { DockWidgetEntry, DockWidgetPart, DockWidgetParts, DockWidgetRender } from './dock/registry.js';
-import { dockWidgetActivity, dockWidgetEntries } from './dock/store.js';
+import { WidgetRenderer } from '../dynamic/WidgetRenderer.js';
+import { Form } from '../landmarks/index.js';
+import { Card, type CardProps } from '../widgets/Card.js';
+import type { DockWidgetEntry, DockWidgetPart } from './dock/registry.js';
+
+/** Something pressed in a widget, for whoever owns the list to act on. */
+export type DockWidgetAction = {
+  /** What the widget asked for: a button's `action`, or a form's `formAction`. */
+  action: string;
+  /** What triggered it. */
+  event: Event;
+  /** The widget's live values. */
+  form: WidgetState['form'];
+  /** The widget's live state: set `disabled` to lock it. */
+  ctx: WidgetContext;
+  /** The entry it was pressed in. */
+  widget: DockWidgetEntry;
+  /** The owner's id of the part it was pressed in, when it has one. */
+  widgetId?: string;
+};
 
 export type DockWidgetsProps = ComponentStyles & {
   /** Names the stack for screen readers, e.g. "Assistant"; with it the stack is a landmark. */
   label?: string;
+  /** What to show, oldest first: a reactive array, set or map of entries. The stack only draws it. */
+  widgets?: Iterable<DockWidgetEntry> | Map<string, DockWidgetEntry>;
+  /**
+   * Called with what was pressed in a widget. While it runs the widget is busy; what it returns is
+   * drawn under the widget, and what it throws says so there. An `AbortError` draws nothing.
+   */
+  onaction?: (action: DockWidgetAction) => ReactNode | Promise<ReactNode>;
+  /** Called with any link pressed in an answer; call `preventDefault` on the event to take it from the browser. */
+  onlink?: (href: string, event: MouseEvent<HTMLElement>) => void;
+  /** Whether data may link somewhere beyond the web and mail links every page may have. */
+  allowsLink?: (href: string) => boolean;
+  /** Called when a widget's close button is pressed, or its time is up; taking it off the list is yours. */
+  ondismiss?: (widget: DockWidgetEntry) => void;
   /** Names each widget's close button; without it, widgets have none. */
   closeLabel?: string;
-  /** Milliseconds before a widget leaves on its own, the user's choice; off (`false`) by default, so nothing goes before it is read. */
+  /** Milliseconds before a widget asks to leave on its own, the user's choice; off (`false`) by default, so nothing goes before it is read. */
   autoDismiss?: number | false;
   /** Caps how many widgets an open stack shows; older ones move out of view until newer ones are dismissed. Without it, an open stack shows every widget, scrolling once they outgrow the screen. */
   visible?: number;
   /** Over the windows, like the dock (default), or on the desktop beneath them. */
   layer?: 'above' | 'below';
+};
+
+export type DockWidgetsSlots = {
+  /** What sits under an entry, e.g. what can be done with it. Called for every entry; nothing draws nothing. */
+  footer: (widget: DockWidgetEntry) => ReactNode;
+  /** What sits outside an entry, right below it, in the stack's own column. Called for every entry; nothing draws nothing. */
+  after: (widget: DockWidgetEntry) => ReactNode;
 };
 
 export type DockWidgetProps = ComponentStyles & {
@@ -32,33 +84,73 @@ const CLASS = {
   LIST: 'aui-dock-widgets-list',
   WIDGET: 'aui-dock-widget',
   IMPORTANT: 'aui-dock-widget-important',
+  USER: 'aui-dock-widget-user',
+  FORM: 'aui-dock-widget-form',
+  /** The prompt, which focus returns to once a press inside the stack is done. */
+  PROMPT: 'aui-dock-input',
 };
 
-const WIDGETS_OMIT = [...OMIT_KEYS, 'closeLabel', 'autoDismiss', 'visible', 'layer'];
+const WIDGETS_OMIT = [
+  ...OMIT_KEYS,
+  'widgets',
+  'onaction',
+  'onlink',
+  'allowsLink',
+  'ondismiss',
+  'closeLabel',
+  'autoDismiss',
+  'visible',
+  'layer',
+];
+
+/** The card a widget is drawn in: raised, so it stands off the words around it. */
+const CARD_SIZE = 'sm';
+const CARD_VARIANT = VARIANTS.ELEVATED;
 
 register('dockWidgets', {});
 
-/** The stack's settings, for each widget it draws. */
-const dockWidgetsCtx = createContext<DockWidgetsProps>();
+/** The stack, for each widget it draws: its settings, and how a widget says it changed. */
+const dockWidgetsCtx = createContext<{ props: DockWidgetsProps; slots: Partial<DockWidgetsSlots>; touch: () => void }>();
 
 /**
- * The stack of answers above the dock, newest nearest the prompt, over the
- * windows. Place it in the `Desktop` right after the `Dock`: it shares the
- * dock's `Tab` loop, so people move between the prompt and an answer's
- * buttons without leaving. After a quiet spell it fades away; a new or
- * changing answer, pointing at its area, or focus inside brings it back, and
- * an answer waiting on the user keeps it showing. Only the answers' area
- * takes the pointer; the space around it belongs to the windows behind.
+ * The stack above the dock, newest nearest the prompt, over the windows. It
+ * only draws what it's given: the list is the owner's, and the stack reports
+ * what happens to it. Place it in the `Desktop` right after the `Dock`: it
+ * shares the dock's `Tab` loop, so people move between the prompt and an
+ * answer's buttons without leaving. After a quiet spell it fades away; a new
+ * or changing entry, pointing at its area, or focus inside brings it back. An
+ * entry waiting on the user is marked, and tints the pill a sleeping stack
+ * leaves. While a window has focus the stack sits beneath the windows, until
+ * the user reaches for it. Only the answers' area takes the pointer; the
+ * space around it belongs to the windows behind.
  */
-export const DockWidgets = setup<DockWidgetsProps>((props) => {
+export const DockWidgets = setup<DockWidgetsProps, DockWidgetsSlots>((props, slots) => {
   const region = aria('dock-region', props as AnyType);
-  dockWidgetsCtx.set(props);
+  let activity = 0;
 
   // Each change flips the stack's activity mark, which restarts its quiet countdown in CSS.
+  const touch = () => {
+    activity += 1;
+    (region.current as HTMLElement | null)?.setAttribute('data-activity', activity % 2 === 1 ? 'odd' : 'even');
+  };
+  dockWidgetsCtx.set({ props, slots, touch });
+
+  const entries = (): DockWidgetEntry[] => {
+    const { widgets } = props;
+    if (!widgets) return [];
+    return [...(widgets instanceof Map ? widgets.values() : widgets)];
+  };
+
   effect(() => {
-    const odd = dockWidgetActivity.count % 2 === 1;
-    (region.current as HTMLElement | null)?.setAttribute('data-activity', odd ? 'odd' : 'even');
+    void entries().length;
+    touch();
   });
+
+  // One listener for every link in the answers, in their widgets and their words alike.
+  const followLink = (event: MouseEvent<HTMLElement>) => {
+    const href = (event.target as Element).closest('a[href]')?.getAttribute('href');
+    if (href) props.onlink?.(href, event);
+  };
 
   return () => (
     <div
@@ -68,56 +160,145 @@ export const DockWidgets = setup<DockWidgetsProps>((props) => {
       data-visible={props.visible}
       className={$families(CLASS.WIDGETS, props, auiConfig.dockWidgets)}
     >
-      <div className={CLASS.LIST}>
-        <For each={() => [...dockWidgetEntries.values()]}>
-          {(widget) => <DockWidget key={widget.id} widget={widget} />}
-        </For>
+      <div className={CLASS.LIST} onClick={followLink}>
+        <For each={entries}>{(widget) => <DockWidget key={widget.id} widget={widget} />}</For>
       </div>
     </div>
   );
 }, 'DockWidgets');
 
 /**
- * One widget on the dock's glass. It announces itself when it appears, and
- * leaves when dismissed: by its close button, by the code that added it, or
- * — when the user turned auto-dismiss on — after a while, pausing while it is
- * pointed at or focused. A widget waiting on the user never leaves on its own.
+ * One entry on the dock's glass. It announces itself when it appears, and asks
+ * to leave by its close button or, when the user turned auto-dismiss on, after
+ * a while, pausing while it is pointed at or focused. It holds what's its own:
+ * the state its widgets edit, and what a press in them drew, which is shown
+ * under them. The entry itself stays what its owner wrote.
  */
 export const DockWidget = setup<DockWidgetProps>((props) => {
-  const host = dockWidgetsCtx.get();
+  const stack = dockWidgetsCtx.get();
   // The widget drawn is fixed for this component's life; so is its timer, set once when it appears.
-  const { widget, important, critical, dismiss, render } = $static(() => {
-    const { important, critical, dismiss, render } = props.widget;
-    return { widget: props.widget, important, critical, dismiss, render: (render ?? renderParts) as DockWidgetRender };
+  const { widget, view, critical, from, duration } = $static(() => {
+    const { widget } = props;
+    const { view, critical, from, important } = widget;
+    return { widget, view, critical, from, duration: important ? undefined : stack?.props.autoDismiss || undefined };
   });
-  // Its content is a component of its own, so data changes redraw the content and never the widget around it.
-  const View = setup(() => render({ widget }), 'DockWidgetView') as ComponentType;
-  const duration = $static(() => (important ? undefined : host?.autoDismiss || undefined));
-  const className = classx(CLASS.WIDGET, AUI_CLASS.TOAST_FLOATING, important && CLASS.IMPORTANT);
+  const className = () =>
+    classx(CLASS.WIDGET, AUI_CLASS.TOAST_FLOATING, widget.important && CLASS.IMPORTANT, from === 'user' && CLASS.USER);
+
+  // A result is the host's: the widget stays what its owner wrote. Shallow, so what it holds stays as drawn.
+  const result = mutable({ view: undefined as ReactNode }, { recursive: false });
+  const state = mutable(newWidgetState());
+
+  // An entry's parts are reactive, and writing to them counts as activity.
+  const parts = $static(() => widget.children);
+  if (parts && stack) onCleanup(subscribe(parts, stack.touch));
+
+  // The widget is the scope of everything drawn in it: its state, and where its presses go.
+  widgetHostCtx.set({
+    state,
+    allowsLink: (href) => !!stack?.props.allowsLink?.(href),
+    dispatch(action, event, done, widgetId) {
+      const { form, ctx } = state;
+      ctx.busy = true;
+      Promise.resolve()
+        .then(() => stack?.props.onaction?.({ action, event, form, ctx, widget, widgetId }))
+        .then((drawn) => {
+          result.view = drawn;
+          done?.();
+        })
+        .catch((error) => {
+          if (error?.name !== 'AbortError') result.view = error instanceof Error ? error.message : String(error);
+        })
+        .finally(() => {
+          ctx.busy = false;
+          returnFocus();
+        });
+    },
+  });
 
   return () => (
-    <Toast critical={critical} duration={duration} size={props.size} className={className} ondismiss={dismiss}>
-      <div className={`${CLASS.WIDGET}-content`}>
-        <View />
-      </div>
-      <Show when={() => host?.closeLabel}>{(label) => <ToastClose aria-label={label} />}</Show>
-    </Toast>
+    <>
+      <Toast
+        critical={critical}
+        duration={duration}
+        size={props.size}
+        className={className()}
+        ondismiss={() => stack?.props.ondismiss?.(widget)}
+      >
+        <div className={`${CLASS.WIDGET}-content`}>
+          {view ?? <For each={() => widget.children ?? []}>{(part) => <DockWidgetPartView part={part} />}</For>}
+          <Snippet>{() => result.view}</Snippet>
+          <Snippet>{() => stack?.slots.footer?.(widget)}</Snippet>
+        </div>
+        <Show when={() => stack?.props.closeLabel}>{(label) => <ToastClose aria-label={label} />}</Show>
+      </Toast>
+      <Snippet>{() => stack?.slots.after?.(widget)}</Snippet>
+    </>
   );
 }, 'DockWidget');
 
-/** Draws an answer's parts in order; adding one draws only that part. */
-const renderParts: DockWidgetRender<DockWidgetParts> = ({ widget }) => () => (
-  <For each={() => widget.data.children}>{(part) => <DockWidgetPartView part={part} />}</For>
-);
-
 /**
  * One part of an answer: markdown text redrawn as its words arrive, or a
- * widget drawn once from its data.
+ * widget drawn once from its data, in a card that takes its look from `props`.
+ * A widget's `form` is the widget's own state, so writing to it there shows at
+ * once, and with a `formAction` a form sits in the card: submitting runs that
+ * action. Its controls turn themselves off while it's busy or locked.
  */
 const DockWidgetPartView = setup<{ part: DockWidgetPart }>((props) => {
   const part = $static(() => props.part);
   const kind = $static(() => props.part.type);
   // Text is markdown, redrawn block by block as its words arrive.
   if (kind === 'text') return () => <MarkdownRenderer text={$use(part as { text: string }, 'text')} />;
-  return () => <WidgetRenderer node={part as WidgetNode} />;
+
+  const widgetHost = widgetHostCtx.get();
+  // A part is complete once drawn, so what it declares is read once, and seeds the state once.
+  const { nodes, size, variant, color, id, formAction, once, ctx } = $static(() => {
+    const widget = part as Exclude<DockWidgetPart, { type: 'text' }>;
+    const { id, status, form, formAction, once } = widget;
+    if (widgetHost) {
+      // The first form is the state; a second in the same answer joins it.
+      if (form && Object.keys(widgetHost.state.form).length) Object.assign(widgetHost.state.form, form);
+      else if (form) widgetHost.state.form = form;
+      // A settled widget is over: it comes back filled in, and locked.
+      if (status === 'settled') widgetHost.state.ctx.disabled = true;
+    }
+    // How the card looks is the data's to say; nothing else about it is.
+    const { size = CARD_SIZE, variant = CARD_VARIANT, color } = (widget.props ?? {}) as Pick<CardProps, 'size' | 'variant' | 'color'>;
+    return { nodes: widget.children ?? [], size, variant, color, id, formAction, once, ctx: widgetHost?.state.ctx };
+  });
+  // Whatever's pressed inside goes out as this part, so its owner knows which widget it was.
+  const dispatch: WidgetHost['dispatch'] = (action, event, done) => widgetHost?.dispatch(action, event, done, id);
+  if (widgetHost) widgetHostCtx.set({ ...widgetHost, dispatch });
+
+  const content = () => <For each={() => nodes}>{(node) => <WidgetRenderer node={node} />}</For>;
+  if (!formAction || !widgetHost || !ctx) {
+    return () => (
+      <Card size={size} variant={variant} color={color}>
+        {content()}
+      </Card>
+    );
+  }
+
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    dispatch(formAction, event.nativeEvent, once ? () => void (ctx.disabled = true) : undefined);
+  };
+
+  return () => (
+    <Card size={size} variant={variant} color={color}>
+      <Form className={CLASS.FORM} aria-busy={ctx.busy} onSubmit={submit}>
+        {content()}
+      </Form>
+    </Card>
+  );
 }, 'DockWidgetPart');
+
+/**
+ * Hands focus back to the prompt after a press inside the stack, unless the press sent it somewhere
+ * else, e.g. a window it opened. Focus left in the stack would hold it awake.
+ */
+function returnFocus(): void {
+  const focused = document.activeElement;
+  if (focused && focused !== document.body && !focused.closest(`.${CLASS.WIDGETS}`)) return;
+  document.querySelector<HTMLElement>(`.${CLASS.PROMPT}`)?.focus({ preventScroll: true });
+}

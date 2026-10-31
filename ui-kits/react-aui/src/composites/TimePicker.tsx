@@ -1,6 +1,6 @@
 import { aria, TIME_PART, type TimePartLabels, type TimePickerAria, timePickerCtx } from '@airlib/aria';
 import { AUI_CLASS, register } from '@airlib/aui/utils';
-import { $static, type AnyType, type Bindable, classx, Show, setup } from '@airlib/react';
+import { $static, type AnyType, type Bindable, classx, proxyProps, Show, setup } from '@airlib/react';
 import { $families, auiConfig, FIELD_STYLES, type FieldStyles, OMIT_KEYS } from '../config.js';
 import { ArrowDown } from '../icons/index.js';
 import { Popover } from './Popover.js';
@@ -75,10 +75,19 @@ export const TimePicker = setup<TimePickerProps>((props) => {
  * The field: the time as text and a caret, opening the segments in a popup.
  * It never reads the time itself, so a change redraws only the text.
  */
-const TimePickerField = setup((props: AnyType) => {
+const TimePickerField = setup(() => {
   const picker = timePickerCtx.get() as TimePickerAria;
   const time = picker.properties as TimePickerProps;
-  const trigger = aria('button', props, { native: true } as never);
+  // The button's aria writes `disabled` to it, so it has to hear the picker's.
+  const trigger = aria(
+    'button',
+    proxyProps({
+      get disabled() {
+        return time.disabled;
+      },
+    }) as AnyType,
+    { native: true } as never
+  );
 
   // The popup is created after the button, so it opens from it.
   return () => (
@@ -88,7 +97,6 @@ const TimePickerField = setup((props: AnyType) => {
         {...trigger.restProps(OMIT_KEYS)}
         type="button"
         aria-label={time.label}
-        disabled={time.disabled}
         className={$families([AUI_CLASS.CONTROL, AUI_CLASS.SELECT_TRIGGER, CLASS.FIELD], time, auiConfig.timePicker)}
       >
         <TimePickerText />

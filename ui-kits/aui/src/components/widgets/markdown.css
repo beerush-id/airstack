@@ -25,9 +25,22 @@
       margin: 0;
     }
 
-    & :is(h3, h4, h5, h6) {
+    & h3 {
+      font-size: var(--font-title-lg-size);
+      font-weight: var(--font-title-lg-weight);
+      line-height: var(--font-title-lg-line-height);
+    }
+
+    & h4 {
+      font-size: var(--font-title-md-size);
+      font-weight: var(--font-title-md-weight);
+      line-height: var(--font-title-md-line-height);
+    }
+
+    /* As small as the words around them, so their weight is what sets them apart. */
+    & :is(h5, h6) {
       font-size: var(--font-title-sm-size);
-      font-weight: var(--font-title-sm-weight);
+      font-weight: 600;
       line-height: var(--font-title-sm-line-height);
     }
 
@@ -36,6 +49,14 @@
       flex-direction: column;
       gap: calc(var(--aui-markdown-gap) / 2);
       padding-inline-start: 1.4em;
+    }
+
+    & ul {
+      list-style: disc;
+    }
+
+    & ol {
+      list-style: decimal;
     }
 
     /* A task's checkbox stands in for the bullet, its words beside it. */

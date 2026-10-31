@@ -20,6 +20,8 @@ export type ListItemProps = Omit<AuiProps<'li'>, 'title' | 'variant'> & {
   meta?: string;
   /** A picture leading the row; without one, nothing leads it. Its initials come from `title`. */
   image?: string;
+  /** Where the row goes: its title becomes a link, and pressing anywhere on the row follows it. */
+  href?: string;
   /** What else the row holds, after its text: badges, chips, a button. */
   children?: ReactNode;
 };
@@ -30,13 +32,14 @@ const CLASS = {
   LEAD: branded('list-item-lead'),
   TEXT: branded('list-item-text'),
   TITLE: branded('list-item-title'),
+  LINK: branded('list-item-link'),
   DESCRIPTION: branded('list-item-description'),
   META: branded('list-item-meta'),
   END: branded('list-item-end'),
 };
 
 const LIST_OMIT: Array<keyof ListProps> = ['label', 'children', 'className', 'size', 'color'];
-const ITEM_OMIT: Array<keyof ListItemProps> = ['title', 'description', 'meta', 'image', 'children', 'className', 'size', 'color'];
+const ITEM_OMIT: Array<keyof ListItemProps> = ['title', 'description', 'meta', 'image', 'href', 'children', 'className', 'size', 'color'];
 
 register('list', { size: SIZES.MD, color: COLORS.SECONDARY });
 
@@ -72,7 +75,15 @@ export const ListItem = setup<ListItemProps>((props) => {
         {(src) => <Avatar src={src} alt={props.title} size={styles.size} className={CLASS.LEAD} />}
       </Show>
       <div className={CLASS.TEXT}>
-        <span className={CLASS.TITLE}>{props.title}</span>
+        <span className={CLASS.TITLE}>
+          <Show when={() => props.href} fallback={() => props.title}>
+            {(href) => (
+              <a href={href} className={CLASS.LINK}>
+                {props.title}
+              </a>
+            )}
+          </Show>
+        </span>
         <Show when={() => props.description}>
           {(description) => <span className={CLASS.DESCRIPTION}>{description}</span>}
         </Show>

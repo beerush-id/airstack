@@ -14,6 +14,7 @@ export const system: AUISystemState = mutable<AUISystemState>(
     system: {},
     window: { arrangeWindows },
     activeWindow: undefined,
+    windows: openWindows,
     tools: {},
     get: (path: string) => readPath(system, path),
     launch: (name: string) => {

@@ -5,22 +5,9 @@ import { MicIcon, SendIcon, StopIcon } from '../icons/index.js';
 import { Button } from '../widgets/Button.js';
 import { Spinner } from '../widgets/Spinner.js';
 import { Toggle } from '../widgets/Toggle.js';
-import {
-  DockPromptEditor,
-  type DockReference,
-  type DockSuggestionFilters,
-  ICON_CLASS,
-  promptCtx,
-} from './dock/prompt.js';
-import type { WindowInstance } from './window/registry.js';
+import { DockPromptEditor, type DockSuggestion, type DockSuggestions, ICON_CLASS, promptCtx } from './dock/prompt.js';
 
-export type {
-  DockReference,
-  DockSuggestion,
-  DockSuggestionFilter,
-  DockSuggestionFilters,
-  DockSuggestionScope,
-} from './dock/prompt.js';
+export type { DockSuggestion, DockSuggestions, DockWord } from './dock/prompt.js';
 
 export type DockPromptProps = ComponentStyles & {
   /** Names the field for screen readers. */
@@ -36,27 +23,30 @@ export type DockPromptProps = ComponentStyles & {
   speaking?: boolean;
   speakingLabel?: string;
   /**
-   * What each trigger character offers for the word it starts, e.g. `{ '/': commands, '@': files }`.
-   * A pick goes into the prompt as a token, and reaches `onsubmit` in `references`.
+   * What to offer for the word being typed, e.g. commands after `/` and files after `@`. A pick
+   * goes into the prompt as a token, and reaches `onsubmit` in `selections`.
    */
-  filters?: DockSuggestionFilters;
+  suggestions?: DockSuggestions;
   /** Names the suggestions for screen readers, e.g. "Suggestions". */
   suggestionsLabel?: string;
   /** The keys that bring the prompt into focus, shown at the empty field's end while it's elsewhere, e.g. "⌘K"; your app handles the keys. */
   shortcut?: string;
-  onsubmit?: (event: DockSubmitEvent) => void;
+  /** Called with what was sent. The prompt shows at work until what it returns settles. */
+  onsubmit?: (event: DockSubmitEvent) => unknown | Promise<unknown>;
+  /** Called on stop while `busy`, for work no sent prompt is behind. A sent prompt stops through its `signal`. */
   onstop?: (event: CustomEvent<void>) => void;
 };
 
-/**
- * A prompt sent from the dock: its text in `detail`, the window that was active when it was
- * sent, so the request can be about what the person is looking at, and what was picked into it.
- */
-export type DockSubmitEvent = CustomEvent<string> & {
-  /** The window in front when the prompt was sent; undefined when none was. */
-  readonly activeWindow?: WindowInstance;
-  /** The suggestions picked into the prompt and still in its text, in order. */
-  readonly references: DockReference[];
+/** A prompt sent from the dock. What it means is for whoever hears it. */
+export type DockSubmitEvent = {
+  /** What was written, each pick as its key and label. */
+  readonly text: string;
+  /** The suggestions picked into it and still there, in order, as they were offered. */
+  readonly selections: DockSuggestion[];
+  /** Aborted when it's stopped, or when a newer prompt takes its place. */
+  readonly signal: AbortSignal;
+  /** What sent it: the key or the press. */
+  readonly event: Event;
 };
 
 const DOCK = 'aui-dock';
@@ -66,6 +56,8 @@ const CLASS = {
   STOP: `${DOCK}-stop`,
   STATUS: `${DOCK}-status`,
   SUGGESTIONS: `${DOCK}-suggestions`,
+  SUGGESTIONS_GROUP: `${DOCK}-suggestions-group`,
+  SUGGESTIONS_GROUP_LABEL: `${DOCK}-suggestions-group-label`,
   SUGGESTION: `${DOCK}-suggestion`,
   SUGGESTION_HINT: `${DOCK}-suggestion-hint`,
   SUGGESTION_ICON: ICON_CLASS,
@@ -81,8 +73,7 @@ register('dockSuggestion', { size: SIZES.MD, color: COLORS.PRIMARY });
  * when it's named, and Escape stops too; what's typed and sent meanwhile is a
  * follow-up for your app. While `speaking`, the voice button pulses, and
  * turning voice on then is how someone speaks over the assistant. With
- * `filters`, a word starting with a trigger character offers suggestions above
- * the prompt.
+ * `suggestions`, what's offered for the word being typed shows above the prompt.
  */
 export const DockPrompt = setup<DockPromptProps>((props) => {
   const prompt = new DockPromptEditor(props);
@@ -94,7 +85,7 @@ export const DockPrompt = setup<DockPromptProps>((props) => {
         {() => <Spinner label={props.busyLabel as string} size={props.size} color={props.color} />}
       </Show>
       <DockPromptField />
-      <DockSuggestions />
+      <DockSuggestionList />
       <Show when={() => props.voiceLabel}>
         {(label) => (
           <Toggle
@@ -129,7 +120,7 @@ export const DockPrompt = setup<DockPromptProps>((props) => {
             size={props.size}
             color={props.color}
             className={AUI_CLASS.CONTROL_ICON}
-            onClick={() => void prompt.submit()}
+            onClick={(event) => void prompt.submit(event.nativeEvent)}
           >
             <SendIcon />
           </Button>
@@ -169,7 +160,7 @@ const DockPromptField = setup(() => {
  * The suggestions for the word being typed, above the prompt while there are any. The caret
  * stays in the field: the keys there move through them, and pressing one picks it.
  */
-const DockSuggestions = setup(() => {
+const DockSuggestionList = setup(() => {
   const prompt = promptCtx.get() as DockPromptEditor;
   const styles = () => ({ size: prompt.props.size, color: prompt.props.color });
   const listClass = () => $families([AUI_CLASS.PANEL, CLASS.SUGGESTIONS], styles(), auiConfig.dockSuggestions);
@@ -177,7 +168,7 @@ const DockSuggestions = setup(() => {
 
   // Teleported to the page, like every popup, so the dock's own glass can't stop it blurring what's behind.
   return () => (
-    <Show when={() => prompt.state.items.length > 0}>
+    <Show when={() => prompt.items.length > 0}>
       {() =>
         teleport(
           <div
@@ -188,26 +179,36 @@ const DockSuggestions = setup(() => {
             // Pressing keeps the caret in the field, so the pick goes where the word is.
             onMouseDown={(event) => event.preventDefault()}
           >
-            <For each={() => prompt.state.items}>
-              {(item) => (
-                <div
-                  id={prompt.optionId(prompt.state.items.indexOf(item))}
-                  role="option"
-                  aria-selected={prompt.state.active === item.value}
-                  data-group-start={prompt.startsGroup(item) ? '' : undefined}
-                  className={itemClass()}
-                  onClick={() => prompt.pick(item.value)}
-                >
-                  {item.icon && (
-                    <span className={CLASS.SUGGESTION_ICON} aria-hidden="true">
-                      {typeof item.icon === 'string' ? <img src={item.icon} alt="" /> : item.icon}
-                    </span>
+            <For each={() => prompt.groups}>
+              {(group) => (
+                <div role="group" aria-label={group.label} className={CLASS.SUGGESTIONS_GROUP}>
+                  {group.label && (
+                    <div className={CLASS.SUGGESTIONS_GROUP_LABEL} aria-hidden="true">
+                      {group.label}
+                    </div>
                   )}
-                  <span>
-                    {prompt.state.char}
-                    {item.label}
-                  </span>
-                  {item.hint && <span className={CLASS.SUGGESTION_HINT}>{item.hint}</span>}
+                  <For each={() => group.items}>
+                    {(item) => (
+                      <div
+                        id={prompt.optionId(prompt.indexOf(item.value))}
+                        role="option"
+                        aria-selected={prompt.state.active === item.value}
+                        className={itemClass()}
+                        onClick={() => prompt.pick(item.value)}
+                      >
+                        {item.icon && (
+                          <span className={CLASS.SUGGESTION_ICON} aria-hidden="true">
+                            {typeof item.icon === 'string' ? <img src={item.icon} alt="" /> : item.icon}
+                          </span>
+                        )}
+                        <span>
+                          {prompt.state.word?.key}
+                          {item.label}
+                        </span>
+                        {item.hint && <span className={CLASS.SUGGESTION_HINT}>{item.hint}</span>}
+                      </div>
+                    )}
+                  </For>
                 </div>
               )}
             </For>
@@ -216,4 +217,4 @@ const DockSuggestions = setup(() => {
       }
     </Show>
   );
-}, 'DockSuggestions');
+}, 'DockSuggestionList');

@@ -83,7 +83,7 @@ import {
   TreeGroup,
   TreeItem,
 } from '../composites/index.js';
-import { Footer, Form, Header, Main, Search, Section, Sidebar } from '../landmarks/index.js';
+import { Footer, Header, Main, Search, Section, Sidebar } from '../landmarks/index.js';
 import {
   Accordion,
   AccordionButton,
@@ -149,6 +149,32 @@ import {
   ToggleGroup,
   Toolbar,
 } from '../widgets/index.js';
+
+/** The roles people act through, each taking `disabled`: what a widget turns off while it's busy or locked. */
+export const WIDGET_CONTROLS = new Set<string>([
+  'button',
+  'toggle',
+  'toggle-group',
+  'switch',
+  'text-input',
+  'search-input',
+  'number-stepper',
+  'checkbox',
+  'checkbox-group',
+  'radio',
+  'radio-group',
+  'slider',
+  'file-picker',
+  'tag-input',
+  'code-input',
+  'stepper',
+  'select',
+  'listbox',
+  'combobox',
+  'date-picker',
+  'date-range-picker',
+  'time-picker',
+]);
 
 /**
  * Every AUI component by the role it plays, for drawing UI described as data
@@ -328,7 +354,6 @@ export const auiComponents = {
   sidebar: Sidebar,
   section: Section,
   search: Search,
-  form: Form,
 };
 
 /** The role names `auiComponents` answers to. */

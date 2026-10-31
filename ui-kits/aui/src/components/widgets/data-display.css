@@ -32,6 +32,27 @@
     list-style: none;
   }
 
+  /* A row with a link goes there from anywhere on it: its title's link stretches over the row. */
+  .aui-list-item:has(.aui-list-item-link) {
+    position: relative;
+
+    &:hover {
+      --aui-list-item-tint: calc(var(--tone-faint-strength) * 2);
+    }
+  }
+
+  .aui-list-item-link {
+    color: inherit;
+    text-decoration: none;
+
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+    }
+  }
+
   .aui-list-item {
     display: flex;
     align-items: center;

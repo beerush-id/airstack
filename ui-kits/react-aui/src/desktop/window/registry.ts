@@ -2,7 +2,6 @@ import type { WindowProps as WindowAriaProps } from '@airlib/aria';
 import { type AnyType, anchor, proxyProps, setup } from '@airlib/react';
 import type { ComponentType, ReactNode } from 'react';
 import { activateWindow, deactivateWindow, system } from '../system/system.js';
-import type { DockSuggestion } from '../dock/prompt.js';
 import type { AUIOpenOptions, AUITools } from '../system/types.js';
 import type { WindowLayoutLabels, WindowProps, WindowVariant } from '../Window.js';
 import { openWindows, stackOrder, windowApps, windowInstanceCtx } from './store.js';
@@ -69,10 +68,6 @@ export type WindowInstance<D = AnyType> = {
   readonly dockSubject?: ComponentType<WindowRenderProps<D>>;
   /** What it was opened with to call: its view's buttons and the agent reach the same functions here. */
   readonly tools: AUITools;
-  /** What it adds to the prompt's commands while it's in front. */
-  readonly commands: DockSuggestion[];
-  /** What the prompt can mention while it's in front. */
-  readonly contexts: DockSuggestion[];
   /** Brings it to the front (restoring it if minimized) and focuses it. */
   focus(): void;
   close(): void;
@@ -140,7 +135,7 @@ export type WindowApp<D = AnyType> = WindowDefinition<D> & {
   readonly view?: ComponentType;
   /** Sets how each copy draws itself. */
   render(render: WindowRender<D>): WindowApp<D>;
-  /** Opens a copy with data, tools, and what it adds to the prompt, or focuses the open one when `multiple` is off. */
+  /** Opens a copy with data and tools, or focuses the open one when `multiple` is off. */
   open(data?: D, options?: Omit<AUIOpenOptions<D>, 'data'>): WindowInstance<D>;
   /** Closes every copy. */
   closeAll(): void;
@@ -295,16 +290,19 @@ export function arrangeWindows(
 
 /**
  * Forgets a closed window: drops it from the open windows and the front
- * order, after saving its geometry when its app remembers.
+ * order, after saving its geometry when its app remembers. Closing can reach
+ * here twice, from the call and from the window's event; only the first counts.
  *
  * @param instance - The window that closed.
  */
 function releaseWindow(instance: WindowInstance): void {
+  if (!openWindows.has(instance.id)) return;
   deactivateWindow(instance);
   rememberWindow(instance);
   openWindows.delete(instance.id);
   const depth = stackOrder.indexOf(instance.id);
   if (depth > -1) stackOrder.splice(depth, 1);
+  system.window.onclose?.(instance);
 }
 
 /**
@@ -423,12 +421,6 @@ function spawn<D>(app: WindowApp<D>, data: D, options: Omit<AUIOpenOptions<D>, '
     get tools() {
       return options.tools ?? {};
     },
-    get commands() {
-      return options.commands ?? [];
-    },
-    get contexts() {
-      return options.contexts ?? [];
-    },
     focus() {
       state.minimized = false;
       activateWindow(instance as WindowInstance);
@@ -456,6 +448,7 @@ function spawn<D>(app: WindowApp<D>, data: D, options: Omit<AUIOpenOptions<D>, '
     },
   };
 
+  system.window.onopen?.(instance as WindowInstance, options);
   openWindows.set(id, instance as WindowInstance);
   instance.focus();
   return instance;

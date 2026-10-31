@@ -1,7 +1,8 @@
 import { $bind, $static, $use, type AnyType, For, setup } from '@airlib/react';
 import { createElement, type ComponentType } from 'react';
 import { auiAppCtx } from './app.js';
-import { type AuiComponentRole, auiComponents } from './components.js';
+import { type AuiComponentRole, auiComponents, WIDGET_CONTROLS } from './components.js';
+import { type WidgetHost, widgetHostCtx } from './host.js';
 import { type WidgetVocabulary, widgetVocabularyCtx } from './vocabulary.js';
 
 /** The HTML an answer may use for prose and simple layout; nothing that runs code or loads a page. */
@@ -42,14 +43,15 @@ export type WidgetTag =
 export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 
 /**
- * A prop kept live on the app's state: `state` is a dotted path into the app
- * (`settings.theme`). Read-only unless `writable`, which lets the component
+ * A prop kept live on state: `state` is a dotted path into the app
+ * (`settings.theme`), or into the widget's own state from `$this`
+ * (`$this.form.title`). Read-only unless `writable`, which lets the component
  * write back — a control editing the setting it shows.
  */
 export type WidgetBinding = {
   /** The prop it fills, e.g. `value`. */
   prop: string;
-  /** Where in the app's state it reads from, e.g. `settings.theme`. */
+  /** Where it reads from, e.g. `settings.theme` or `$this.form.title`. */
   state: string;
   /** Whether the component may write the value back. Defaults to false. */
   writable?: boolean;
@@ -118,17 +120,23 @@ const SAFE_HREF = /^(https?:|mailto:|\/|#)/i;
  * AUI component, or to a prose tag, hands it the node's props, and draws each
  * child with another renderer; text is drawn as text. A role it doesn't know
  * draws nothing and is reported, so a mistaken answer never breaks the page.
+ * An `action` prop wires a press to the host, and `once` makes it one-time;
+ * nothing here decides what either does. A control turns off while its widget
+ * is busy or locked.
  */
 export const WidgetRenderer = setup<WidgetRendererProps>((props) => {
   const app = auiAppCtx.get();
+  const host = widgetHostCtx.get();
   const vocabulary = widgetVocabularyCtx.get() ?? (auiComponents as WidgetVocabulary);
   // A node is complete once drawn and never changes, so what it draws is read once; its bindings stay live.
   const view = $static(() => {
     const node = props.node;
     if (typeof node === 'string') return { text: node };
     const target = resolve(node.role, vocabulary);
-    const attributes = safeProps(node.props, typeof target === 'string');
-    for (const binding of node.bindings ?? []) bind(attributes, binding, app);
+    const attributes = safeProps(node.props, typeof target === 'string', host);
+    for (const binding of node.bindings ?? []) bind(attributes, binding, app, host);
+    if (WIDGET_CONTROLS.has(node.role)) followLock(attributes, host);
+    wireAction(attributes, node.props?.once === true, host);
     return { target, attributes, children: node.children };
   });
   if ('text' in view) return () => view.text;
@@ -166,45 +174,101 @@ function resolve(role: string, vocabulary: WidgetVocabulary): ComponentType | st
  * A node's props without anything that could run code or inject markup.
  *
  * @param props - The props the node carries.
- * @param tag - Whether they go to a plain HTML tag, which takes links.
+ * @param tag - Whether they go to a plain HTML tag, whose `src` is a link too.
+ * @param host - The widget's host, which may allow links of its own.
  * @returns The props to hand over.
  */
-function safeProps(props: Record<string, JsonValue> | undefined, tag: boolean): Record<string, unknown> {
+function safeProps(props: Record<string, JsonValue> | undefined, tag: boolean, host?: WidgetHost): Record<string, unknown> {
   const safe: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(props ?? {})) {
     if (!isSafeProp(key)) continue;
-    if (tag && (key === 'href' || key === 'src') && !(typeof value === 'string' && SAFE_HREF.test(value))) continue;
+    if ((key === 'href' || (tag && key === 'src')) && !isSafeLink(value, host)) continue;
     safe[key] = value;
   }
   return safe;
 }
 
 /**
- * Fills a prop from the app's state, kept live: two-way when the binding is
- * writable, read-only otherwise. A path that leaves the app's own state, or a
- * prop that could run code, binds nothing.
+ * Whether a link may reach the page.
+ *
+ * @param value - The link.
+ * @param host - The widget's host, which may allow links of its own.
+ * @returns True for a web or mail link, or one the host allows.
+ */
+function isSafeLink(value: JsonValue, host?: WidgetHost): boolean {
+  return typeof value === 'string' && (SAFE_HREF.test(value) || !!host?.allowsLink(value));
+}
+
+/**
+ * Fills a prop from state, kept live: two-way when the binding is writable,
+ * read-only otherwise. A path from `$this` reads the widget's own state, any
+ * other the app's. A path that leaves that state, or a prop that could run
+ * code, binds nothing.
  *
  * @param attributes - The props being handed to the component.
- * @param binding - Which prop, from where in the app's state, and whether it may write back.
+ * @param binding - Which prop, from where, and whether it may write back.
  * @param app - The app the desktop runs for.
+ * @param host - The widget's host, whose state `$this` reads.
  */
-function bind(attributes: Record<string, unknown>, binding: WidgetBinding, app: AnyType): void {
-  if (!app || !isSafeProp(binding.prop)) return;
+function bind(attributes: Record<string, unknown>, binding: WidgetBinding, app: AnyType, host?: WidgetHost): void {
   const path = binding.state.split('.');
+  const own = path[0] === OWN_STATE;
+  if (own) path.shift();
+  const root: AnyType = own ? host?.state : app;
+  if (!root || !isSafeProp(binding.prop)) return;
   const key = path.pop();
   if (!key || [...path, key].some((step) => UNSAFE_STEPS.has(step))) return;
 
-  let owner: AnyType = app;
+  let owner: AnyType = root;
   for (const step of path) {
     owner = owner?.[step];
     if (owner === null || typeof owner !== 'object') {
-      console.warn(`[WidgetRenderer] No app state at "${binding.state}"; "${binding.prop}" was not bound.`);
+      console.warn(`[WidgetRenderer] No state at "${binding.state}"; "${binding.prop}" was not bound.`);
       return;
     }
   }
 
   attributes[binding.prop] = binding.writable ? $bind(owner, key) : $use(owner, key);
 }
+
+/**
+ * Turns a control off while its widget is busy or locked. A control its data already disabled stays
+ * that way.
+ *
+ * @param attributes - The props being handed to the component.
+ * @param host - The widget's host; outside a widget, nothing changes.
+ */
+function followLock(attributes: Record<string, unknown>, host?: WidgetHost): void {
+  if (!host || attributes.disabled === true) return;
+  const { ctx } = host.state;
+  attributes.disabled = $use(() => ctx.busy || ctx.disabled);
+}
+
+/**
+ * Wires a node's `action` to its host: pressing it hands the action over, and it stays disabled
+ * while the widget is busy or locked, or once a `once` action is used up. `action` is the
+ * renderer's, so it never reaches the component. `once` doesn't get that far: it reads as a handler
+ * to `isSafeProp`, so it comes from the node.
+ *
+ * @param attributes - The props being handed to the component.
+ * @param once - Whether the action can only succeed once.
+ * @param host - The widget's host.
+ */
+function wireAction(attributes: Record<string, unknown>, once: boolean, host?: WidgetHost): void {
+  const { action } = attributes;
+  delete attributes.action;
+  if (typeof action !== 'string' || !host) return;
+
+  const { ctx } = host.state;
+  attributes.onClick = (event: Event) => {
+    const done = once ? () => void (ctx.spent[action] = true) : undefined;
+    host.dispatch(action, event, done);
+  };
+  attributes.disabled = $use(() => ctx.busy || ctx.disabled || !!ctx.spent[action]);
+}
+
+/** The first step of a path into the widget's own state. */
+const OWN_STATE = '$this';
 
 /** Steps a state path may never take, so a binding can't reach past the app's own state. */
 const UNSAFE_STEPS = new Set(['__proto__', 'prototype', 'constructor']);

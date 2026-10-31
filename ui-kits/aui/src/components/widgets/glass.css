@@ -50,6 +50,7 @@
   .aui-dock,
   .aui-launcher,
   .aui-dock-widget,
+  .aui-dock-widgets-list::before,
   .aui-desktop-widget:not([data-bare='true']),
   .aui-panel,
   .aui-modal-panel,
