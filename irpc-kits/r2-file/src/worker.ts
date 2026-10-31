@@ -179,7 +179,7 @@ async function deliverFile(
   const cache = (caches as unknown as { default: Cache }).default;
   const rangeHeader = request.headers.get('Range');
   const ifNoneMatch = request.headers.get('If-None-Match');
-  if (rangeHeader === null && ifNoneMatch === null) {
+  if (edgeTtl > 0 && rangeHeader === null && ifNoneMatch === null) {
     const cached = await cache.match(request);
     if (cached !== undefined) {
       return cached;
@@ -216,7 +216,7 @@ async function deliverFile(
     return new Response('Not Found', { status: 404 });
   }
   const response = new Response(object.body as AnyType, { status: 200, headers });
-  ctx.waitUntil(cache.put(request, response.clone()));
+  if (edgeTtl > 0) ctx.waitUntil(cache.put(request, response.clone()));
   return response;
 }
 
