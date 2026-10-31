@@ -83,6 +83,7 @@ export class OpenAIDriver implements AIDriver {
                 ...(ctx.payload.reasoningEffort ? { effort: ctx.payload.reasoningEffort } : {}),
               },
             },
+            decode,
             ctx.signal
           )
         : await this.streamChat(
@@ -96,6 +97,7 @@ export class OpenAIDriver implements AIDriver {
               ...(typeof ctx.payload.maxTokens === 'number' ? { max_tokens: ctx.payload.maxTokens } : {}),
               ...(ctx.payload.reasoningEffort ? { reasoning_effort: ctx.payload.reasoningEffort } : {}),
             },
+            decode,
             ctx.signal
           );
 
@@ -176,7 +178,12 @@ export class OpenAIDriver implements AIDriver {
   }
 
   /** Streams a Chat Completions response: answer deltas, and tool calls assembled from fragments. */
-  private async streamChat(output: ChatOutput, body: Record<string, unknown>, signal?: AbortSignal) {
+  private async streamChat(
+    output: ChatOutput,
+    body: Record<string, unknown>,
+    decode: (name: string) => string,
+    signal?: AbortSignal
+  ) {
     const response = await this.post('/chat/completions', body, signal);
     const calls: RawCall[] = [];
     const writer = createChunkWriter(output);
@@ -190,7 +197,11 @@ export class OpenAIDriver implements AIDriver {
         const call = calls[part.index];
         if (part.id) call.id = part.id;
         if (part.function?.name) call.name += part.function.name;
-        if (part.function?.arguments) call.args += part.function.arguments;
+        if (part.function?.arguments) {
+          // Arguments only start once the name is whole.
+          if (!call.args) announce(output, decode(call.name));
+          call.args += part.function.arguments;
+        }
       }
     });
     writer.end();
@@ -203,7 +214,12 @@ export class OpenAIDriver implements AIDriver {
    * `commentary`, the rest to the answer; reasoning summaries go to `reasoning`; function calls are
    * taken whole when their item completes.
    */
-  private async streamResponses(output: ChatOutput, body: Record<string, unknown>, signal?: AbortSignal) {
+  private async streamResponses(
+    output: ChatOutput,
+    body: Record<string, unknown>,
+    decode: (name: string) => string,
+    signal?: AbortSignal
+  ) {
     const response = await this.post('/responses', body, signal);
     const calls: RawCall[] = [];
     const phases = new Map<string, string | undefined>();
@@ -225,6 +241,7 @@ export class OpenAIDriver implements AIDriver {
       switch (event.type) {
         case 'response.output_item.added':
           if (item?.type === 'message') phases.set(item.id, item.phase);
+          if (item?.type === 'function_call' && item.name) announce(output, decode(item.name));
           break;
         case 'response.output_text.delta':
           if (phases.get(event.item_id as string) === 'commentary') commentary.write(event.delta as string);
@@ -312,6 +329,12 @@ interface ResponsesItem {
   call_id?: string;
   name?: string;
   arguments?: string;
+}
+
+/** Says the model has started calling a tool, before its arguments have arrived. */
+function announce(output: ChatOutput, name: string): void {
+  output.calling ??= [];
+  output.calling.push(name);
 }
 
 /**

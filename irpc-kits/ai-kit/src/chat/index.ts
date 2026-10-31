@@ -134,6 +134,11 @@ export interface ChatOutput<T extends IRPCData = IRPCData, M extends IRPCData = 
   /** Tool calls the model made in this turn, complete once the output succeeds. */
   toolCalls?: ToolCall[];
   /**
+   * The tools the model is calling, by name, as soon as it starts each call: writing a long
+   * argument can take a while, and this says what's coming before `toolCalls` can.
+   */
+  calling?: string[];
+  /**
    * Text the provider marks as commentary on its tool calls, kept apart from the answer. Absent when
    * the provider doesn't separate it.
    */
