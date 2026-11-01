@@ -34,10 +34,13 @@
       border-color: transparent;
       background-color: transparent;
       box-shadow: none;
+    }
+
+    & > .aui-control:not(.aui-toggle[aria-pressed='true'], :disabled, [aria-disabled='true']) {
       color: var(--color-on-surface);
     }
 
-    & > .aui-control:not(.aui-toggle[aria-pressed='true'], :has(input)):hover {
+    & > .aui-control:not(.aui-toggle[aria-pressed='true'], :has(input), :disabled, [aria-disabled='true']):hover {
       background-color: color-mix(in oklch, var(--color-on-surface) var(--tone-hover-strength), transparent);
     }
 
