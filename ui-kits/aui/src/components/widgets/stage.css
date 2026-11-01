@@ -54,9 +54,17 @@
 
   /*
    * The composition at its own size, in its own units, centred and scaled to fit the frame; its
-   * layers are placed inside it in those units. A capturing canvas lays out the same way.
+   * layers are placed inside it in those units. A capturing canvas lays out the same way. It holds
+   * its own defaults, so a composition draws the same picture in any app: what a clip doesn't set
+   * comes from here, never from the page around it.
    */
   .aui-stage-canvas {
+    --corner-shape: round;
+    color-scheme: only dark;
+    color: #fff;
+    font: 400 16px / 1.5 system-ui, sans-serif;
+    letter-spacing: normal;
+    text-align: start;
     position: absolute;
     inset-inline-start: 50%;
     inset-block-start: 50%;
@@ -82,6 +90,8 @@
   .aui-stage-clip {
     position: absolute;
     box-sizing: border-box;
+    /* A clip may be larger than the stage, to pan across: a page's fit-to-parent image rule isn't its. */
+    max-inline-size: none;
   }
 
   /*
