@@ -183,9 +183,23 @@ function safeProps(props: Record<string, JsonValue> | undefined, tag: boolean, h
   for (const [key, value] of Object.entries(props ?? {})) {
     if (!isSafeProp(key)) continue;
     if ((key === 'href' || (tag && key === 'src')) && !isSafeLink(value, host)) continue;
-    safe[key] = value;
+    safe[key] = key === 'items' && Array.isArray(value) ? value.map((item) => safeItem(item, host)) : value;
   }
   return safe;
+}
+
+/**
+ * One item of a list a component draws from its props, like a gallery's tiles: it's data too, so a
+ * link in it answers to the same rule as a link on a node.
+ *
+ * @param item - The item.
+ * @param host - The widget's host, which may allow links of its own.
+ * @returns The item, without a link that may not reach the page.
+ */
+function safeItem(item: JsonValue, host?: WidgetHost): JsonValue {
+  if (typeof item !== 'object' || item === null || Array.isArray(item) || !('href' in item)) return item;
+  const { href, ...rest } = item;
+  return isSafeLink(href, host) ? item : rest;
 }
 
 /**
@@ -274,11 +288,12 @@ const OWN_STATE = '$this';
 const UNSAFE_STEPS = new Set(['__proto__', 'prototype', 'constructor']);
 
 /**
- * Whether data may set a prop: never a handler, raw markup, or a ref.
+ * Whether data may set a prop: never a handler, raw markup, a ref, or a style, whose look belongs to
+ * the components and which brings the whole tree down when it's a string.
  *
  * @param key - The prop's name.
  * @returns True when data may set it.
  */
 function isSafeProp(key: string): boolean {
-  return !/^on/i.test(key) && key !== 'dangerouslySetInnerHTML' && key !== 'ref';
+  return !/^on/i.test(key) && key !== 'dangerouslySetInnerHTML' && key !== 'ref' && key !== 'style';
 }

@@ -120,6 +120,11 @@
     pointer-events: none;
   }
 
+  /* A tile that opens what it shows: the link adds no box of its own. */
+  .aui-gallery-item > a {
+    display: contents;
+  }
+
   .aui-gallery-media {
     --aui-image-size: 100%;
     aspect-ratio: var(--aui-gallery-ratio);

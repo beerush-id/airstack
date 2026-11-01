@@ -83,6 +83,21 @@
       block-size: auto;
       object-fit: cover;
     }
+
+    /* A picture that is the card: full width at its own shape, not a square thumbnail. */
+    & > a {
+      display: block;
+    }
+
+    & .aui-image {
+      inline-size: 100%;
+      aspect-ratio: auto;
+      border-radius: 0;
+    }
+
+    & .aui-image-content {
+      block-size: auto;
+    }
   }
 
   .aui-card-header {

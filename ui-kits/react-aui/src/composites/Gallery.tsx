@@ -34,6 +34,8 @@ export type GalleryEntry = {
   description?: string;
   /** What sits at the caption's end: a rating, a duration, a count. */
   meta?: string;
+  /** Where pressing the picture goes, for a tile that opens what it shows rather than only picking it. */
+  href?: string;
   /** A glyph on the picture's corner saying what the tile is, e.g. a folder among photos. */
   badge?: ReactNode;
   disabled?: boolean;
@@ -82,7 +84,7 @@ export type GalleryItemProps = ComponentStyles &
 
 const LISTBOX_ROLE = 'listbox';
 const OPTION_ROLE = 'option';
-const ITEM_OMIT = [...OMIT_KEYS, 'src', 'alt', 'title', 'description', 'meta'];
+const ITEM_OMIT = [...OMIT_KEYS, 'src', 'alt', 'title', 'description', 'meta', 'href'];
 
 const CAPTION = {
   TITLE: branded('gallery-caption-title'),
@@ -191,9 +193,10 @@ export const GalleryItem = setup<GalleryItemProps>((props) => {
  * @returns The tile's content.
  */
 function GalleryTile(entry: Omit<GalleryEntry, 'value'>): ReactNode {
+  const picture = <Image src={entry.src} alt={entry.title ? '' : entry.alt} className={AUI_CLASS.GALLERY_MEDIA} />;
   return (
     <>
-      <Image src={entry.src} alt={entry.title ? '' : entry.alt} className={AUI_CLASS.GALLERY_MEDIA} />
+      {entry.href ? <a href={entry.href}>{picture}</a> : picture}
       {/* The caption says what the tile is in words; the badge only shows it. */}
       {entry.badge && (
         <span className={BADGE_CLASS} aria-hidden="true">
