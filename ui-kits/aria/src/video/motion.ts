@@ -53,38 +53,32 @@ export function segmentTime(segment: TimelineSegment, frame: number): number {
   return (frame - segment.startFrame + segment.offsetFrame) / segment.timeline.frameRate;
 }
 
-/** What can be sampled: values, and the keyframes that move them. */
-export type Keyed<P> = {
-  props: P;
-  scenes: { atFrame: number; meta?: Record<string, AnyType>; data: Record<string, AnyType> }[];
-};
+/**
+ * Reads a segment's values at a timeline frame. Keyframes are opaque data, so how they're read
+ * between points is the app's to say; give a stage one, to use a motion engine of its own.
+ */
+export type SegmentSampler = <P extends Record<string, AnyType>>(segment: TimelineSegment<P>, frame: number) => P;
 
 /**
  * A segment's values at a timeline frame: its `props`, overridden by the keyframe at or before the
  * frame, with every number the next keyframe sets carried toward it, eased by the earlier keyframe's
  * `meta.ease`. Before the first keyframe it holds the first; after the last it holds the last.
- * Values that aren't numbers switch at the keyframe instead of blending. Something with no time of
- * its own, like an element nested in a clip, is sampled as `keyed` on its segment's time.
+ * Values that aren't numbers switch at the keyframe instead of blending.
  *
- * @param {TimelineSegment} segment - The segment, whose time the frame is read on.
+ * @param {TimelineSegment} segment - The segment.
  * @param {number} frame - The frame on the timeline.
- * @param {Keyed} keyed - What holds the values and keyframes: the segment, unless told otherwise.
  * @returns The values to draw it with.
  */
-export function sampleSegment<P extends Record<string, AnyType>>(
-  segment: TimelineSegment<P>,
-  frame: number,
-  keyed: Keyed<P> = segment
-): P {
-  const { props, scenes } = keyed;
-  if (!scenes.length) return { ...props };
+export function sampleSegment<P extends Record<string, AnyType>>(segment: TimelineSegment<P>, frame: number): P {
+  const scenes = segment.scenes;
+  if (!scenes.length) return { ...segment.props };
 
   // Keyframes are placed in its content, which starts at its offset.
   const local = frame - segment.startFrame + segment.offsetFrame;
   const index = scenes.findLastIndex((scene) => scene.atFrame <= local);
   const from = scenes[Math.max(index, 0)];
   const to = index < 0 ? undefined : scenes[index + 1];
-  const values: Record<string, unknown> = { ...props, ...from.data };
+  const values: Record<string, unknown> = { ...segment.props, ...from.data };
   if (!to || to.atFrame <= from.atFrame) return values as P;
 
   const ease = EASES[(from.meta?.ease as string) ?? 'linear'] ?? EASES.linear;

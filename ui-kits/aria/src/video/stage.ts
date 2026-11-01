@@ -2,6 +2,7 @@ import type { FrameState, Timeline } from '@airlib/core/timeline';
 import { Aria } from '../core.js';
 import type { AriaAttributes, AriaOptions, AriaProps, BaseElement } from '../types.js';
 import type { VideoClipAria } from './clip.js';
+import type { SegmentSampler } from './motion.js';
 import {
   PAINT_TIMEOUT,
   SOUND_DRIFT,
@@ -59,6 +60,12 @@ export interface VideoStageOptions extends AriaOptions {
    * media element of its own, which drifts.
    */
   media?: VideoMediaLoader;
+
+  /**
+   * Reads each clip's values at a frame, e.g. with a motion engine of the app's own (defaults to
+   * `sampleSegment`).
+   */
+  sample?: SegmentSampler;
 }
 
 /**
@@ -138,6 +145,13 @@ export class VideoStageAria<
    */
   public get capture(): boolean {
     return !!this.options.capture;
+  }
+
+  /**
+   * What reads each clip's values at a frame, when the app gave one.
+   */
+  public get sample(): SegmentSampler | undefined {
+    return this.options.sample;
   }
 
   /**

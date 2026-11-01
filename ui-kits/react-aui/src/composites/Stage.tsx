@@ -1,5 +1,6 @@
 import {
   aria,
+  type SegmentSampler,
   type VideoClipFrame,
   type VideoMediaFit,
   type VideoMediaLoader,
@@ -44,6 +45,8 @@ export type StageProps = ComponentStyles & {
    * and every clip's sound on one clock, so nothing drifts.
    */
   media?: VideoMediaLoader;
+  /** Reads each clip's values at a frame, to use a motion engine of your own instead of `sampleSegment`. */
+  sample?: SegmentSampler;
   /** Whether the transport shows under the picture. Defaults to true. */
   controls?: boolean;
   /** How far J and L jump, in seconds. */
@@ -134,6 +137,7 @@ export const Stage = setup<StageProps>((props) => {
     timeline: $static(() => props.timeline),
     capture,
     media: $static(() => props.media),
+    sample: $static(() => props.sample),
   });
   let root: HTMLDivElement | null = null;
 

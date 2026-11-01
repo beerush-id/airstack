@@ -230,7 +230,7 @@ export class VideoClipAria<
 
     this.primed = false;
     this.reveal(element, true);
-    const values = sampleSegment(this.segment, frame);
+    const values = this.sample(frame);
     const time = segmentTime(this.segment, frame);
     this.place(element, values);
     // Its sound follows the levels at this frame, so keyframed volume and balance play out.
@@ -337,7 +337,7 @@ export class VideoClipAria<
     this.primed = true;
 
     const frame = this.segment.startFrame;
-    const values = sampleSegment(this.segment, frame);
+    const values = this.sample(frame);
     this.reveal(element, true);
     this.place(element, values, true);
     if (element instanceof HTMLMediaElement) {
@@ -351,13 +351,20 @@ export class VideoClipAria<
   }
 
   /**
+   * The segment's values at a timeline frame, read as the stage says, else by `sampleSegment`.
+   */
+  protected sample(frame: number) {
+    return (this.stage?.sample ?? sampleSegment)(this.segment, frame);
+  }
+
+  /**
    * Loads the clip's content before it is needed: draws its first frame, so content `draw` adds —
    * an SVG image, say — exists, then waits for its images to decode and its media to have a frame.
    */
   protected preload(element: HTMLElement): Promise<unknown> {
     const frame = this.segment.startFrame;
     const drawn = this.options.draw?.({
-      values: sampleSegment(this.segment, frame),
+      values: this.sample(frame),
       frame,
       time: 0,
       element,
