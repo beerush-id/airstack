@@ -150,6 +150,8 @@ import {
   ToastAria,
   ToastCloseAria,
   type ToastProps,
+  SegmentGroupAria,
+  type SegmentGroupProps,
   ToggleGroupAria,
   type ToggleGroupProps,
   ToolbarAria,
@@ -332,6 +334,8 @@ export function aria<E extends BaseElement = HTMLElement, T extends Primitive = 
   role: 'toggle-group',
   props?: ToggleGroupProps<T>
 ): ToggleGroupAria<E, ToggleGroupProps<T>>;
+
+export function aria<E extends BaseElement = HTMLElement>(role: 'segment-group', props?: SegmentGroupProps): SegmentGroupAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement, T extends Primitive = Primitive>(
   role: 'switch',
@@ -1028,6 +1032,8 @@ export function aria(role: string, init?: unknown, options?: unknown): unknown {
       return new ToggleAria(init as never, options as never);
     case 'toggle-group':
       return new ToggleGroupAria(init as never);
+    case 'segment-group':
+      return new SegmentGroupAria(init as never);
     case 'switch':
       return new SwitchAria(init as never, options as never);
     case 'checkbox':

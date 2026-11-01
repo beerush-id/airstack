@@ -36,6 +36,7 @@ export * from './Splitter.js';
 export * from './Announcer.js';
 export * from './Meter.js';
 export * from './Progress.js';
+export * from './SegmentGroup.js';
 export * from './Switch.js';
 export * from './Tabs.js';
 export * from './TextInput.js';

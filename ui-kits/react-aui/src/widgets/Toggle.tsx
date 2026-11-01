@@ -9,6 +9,7 @@ import { toggleGroupScope } from './context.js';
 export type ToggleValue = AuiPrimitive;
 
 export type ToggleProps = AuiProps<'button'> & {
+  name?: string;
   value?: ToggleValue;
   pressed?: Bindable<boolean>;
   disabled?: boolean;

@@ -17,6 +17,7 @@ export * from './navigation.js';
 export * from './pagination.js';
 export * from './radio-group.js';
 export * from './reorder/index.js';
+export * from './segment-group.js';
 export * from './select/index.js';
 export * from './stepper/index.js';
 export * from './tabs/index.js';

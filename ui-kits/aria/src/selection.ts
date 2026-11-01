@@ -27,7 +27,8 @@ export interface SelectionGroupProps extends AriaProps {
   id?: string;
 
   /**
-   * Current active selection value (scalar for single-select, array for multiple).
+   * Current active selection value: scalar for single-select, array for multiple, and for a
+   * segment group the object whose keys its members own.
    */
   value?: AnyType;
 
@@ -35,6 +36,11 @@ export interface SelectionGroupProps extends AriaProps {
    * Whether multiple items may be selected simultaneously.
    */
   multiple?: boolean;
+
+  /**
+   * Whether each member owns one key of the group's object, named by its `name`.
+   */
+  segment?: boolean;
 
   /**
    * Whether a non-empty selection is required.
@@ -185,7 +191,7 @@ export abstract class SelectionAria<
 
     if (this.group) {
       $static(() => {
-        if (!this.coordinated) return;
+        if (!this.coordinated || this.group!.segment) return;
         if (this.group!.multiple) {
           if (!Array.isArray(this.group!.value)) {
             console.warn(`[ARIA] Multi-select group initialized with non-array value.`);
@@ -206,6 +212,11 @@ export abstract class SelectionAria<
         const group = this.group;
         if (!group || !this.coordinated) return;
         const value = this.value;
+
+        if (group.segment) {
+          this.stateProps[this.stateKey] = group.value?.[this.properties.name as string] === value;
+          return;
+        }
 
         if (group.multiple) {
           this.stateProps[this.stateKey] = group.value.includes(value);
@@ -292,7 +303,9 @@ export abstract class SelectionAria<
     if (this.coordinated && group) {
       const value = this.value;
 
-      if (group.multiple) {
+      if (group.segment) {
+        group.value[this.properties.name as string] = value;
+      } else if (group.multiple) {
         if (!group.value.includes(value)) {
           group.value.push(value);
         }
@@ -316,8 +329,13 @@ export abstract class SelectionAria<
     const group = this.group;
     if (this.coordinated && group) {
       const value = this.value;
+      const name = this.properties.name as string;
 
-      if (group.multiple) {
+      if (group.segment) {
+        if (group.value[name] === value) {
+          group.value[name] = undefined;
+        }
+      } else if (group.multiple) {
         const index = group.value.indexOf(value);
         if (index !== -1) {
           group.value.splice(index, 1);
