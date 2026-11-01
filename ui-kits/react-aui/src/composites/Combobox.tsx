@@ -35,6 +35,8 @@ export type ComboboxProps = FieldStyles & {
   query?: Bindable<string>;
   open?: Bindable<boolean>;
   value?: Bindable<ComboboxValue>;
+  /** What the field shows while not filtering; bound, its owner can say so for a value set from outside. */
+  text?: Bindable<string>;
   multiple?: boolean;
   disabled?: boolean;
   required?: boolean;
