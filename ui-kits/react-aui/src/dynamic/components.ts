@@ -69,6 +69,7 @@ import {
   SelectPanel,
   SelectTrigger,
   Stepper,
+  StepperAdjuster,
   StepperDecrement,
   StepperIncrement,
   StepperInput,
@@ -221,6 +222,7 @@ export const auiComponents = {
   'code-input-cell': CodeInputCell,
   stepper: Stepper,
   'stepper-input': StepperInput,
+  'stepper-adjuster': StepperAdjuster,
   'stepper-increment': StepperIncrement,
   'stepper-decrement': StepperDecrement,
 

@@ -3,6 +3,7 @@ import { AUI_CLASS, register, SIZES, VARIANTS } from '@airlib/aui/utils';
 import { type AnyType, type Bindable, setup } from '@airlib/react';
 import type { ReactNode } from 'react';
 import { $families, type AuiFieldProps, type AuiProps, auiConfig, FIELD_STYLES, OMIT_KEYS } from '../config.js';
+import { AdjusterIcon } from '../icons/index.js';
 import { createStyleScope } from '../utils/common.js';
 
 export type StepperProps = AuiFieldProps<'div'> & {
@@ -34,8 +35,16 @@ export type StepperButtonProps = AuiProps<'button'> & {
   children?: ReactNode;
 };
 
+export type StepperAdjusterProps = AuiProps<'span'> & {
+  /** How many of the stepper's steps a pixel of a drag moves. Defaults to 1. */
+  rate?: number;
+  /** What the handle shows until the pointer's on it, like the field's glyph. Without it, the adjuster always shows. */
+  children?: ReactNode;
+};
+
 const STEPPER_ROLE = 'stepper';
 const INPUT_ROLE = 'stepper-input';
+const ADJUSTER_ROLE = 'stepper-adjuster';
 const INCREMENT_ROLE = 'stepper-inc';
 const DECREMENT_ROLE = 'stepper-dec';
 
@@ -43,6 +52,7 @@ const INPUT_OMIT = [...OMIT_KEYS, 'oninput', 'onchange'];
 
 register('stepper', { ...FIELD_STYLES });
 register('stepperInput', {});
+register('stepperAdjuster', {});
 register('stepperButton', { size: SIZES.MD, variant: VARIANTS.TEXT });
 
 const stepperScope = createStyleScope();
@@ -86,6 +96,22 @@ export const StepperInput = setup<StepperInputProps>((props) => {
 
   return () => <input ref={input.ref} {...input.restProps(INPUT_OMIT)} className={className()} />;
 }, 'StepperInput');
+
+/**
+ * A handle that adjusts the number by dragging: right for more, left for less. It holds what the
+ * field shows there and takes that place while the pointer's on it, so it fits the tightest field.
+ */
+export const StepperAdjuster = setup<StepperAdjusterProps>((props) => {
+  const adjuster = aria(ADJUSTER_ROLE, props as AnyType);
+  const className = () => $families(AUI_CLASS.STEPPER_ADJUSTER, props, auiConfig.stepperAdjuster);
+
+  return () => (
+    <span ref={adjuster.ref} {...adjuster.restProps(OMIT_KEYS)} className={className()}>
+      {props.children}
+      <AdjusterIcon />
+    </span>
+  );
+}, 'StepperAdjuster');
 
 /** Class list of a step button: it follows the group's size, never its surface. */
 function stepButtonClass(props: StepperButtonProps, groupSize: StepperButtonProps['size']): string {

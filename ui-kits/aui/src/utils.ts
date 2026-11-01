@@ -579,6 +579,7 @@ export const AUI_CLASS = {
   CAROUSEL_PLAYER: branded('carousel-player'),
   STEPPER: branded('stepper'),
   STEPPER_INPUT: branded('stepper-input'),
+  STEPPER_ADJUSTER: branded('stepper-adjuster'),
   STEPPER_BUTTON: branded('stepper-button'),
   SPLITTER: branded('splitter'),
   SPLITTER_SEAM: branded('splitter-seam'),

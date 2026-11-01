@@ -125,6 +125,8 @@ import {
   SelectTriggerAria,
   type SelectTriggerOptions,
   type SelectTriggerProps,
+  StepperAdjusterAria,
+  type StepperAdjusterProps,
   StepperAria,
   StepperButtonAria,
   type StepperButtonOptions,
@@ -711,6 +713,12 @@ export function aria<E extends BaseElement = HTMLInputElement>(
   options?: StepperInputOptions
 ): StepperInputAria<E>;
 
+export function aria<E extends BaseElement = HTMLSpanElement>(
+  role: 'stepper-adjuster',
+  props?: StepperAdjusterProps,
+  options?: AriaOptions
+): StepperAdjusterAria<E>;
+
 export function aria<E extends BaseElement = HTMLButtonElement>(
   role: 'stepper-inc' | 'stepper-dec',
   props?: AriaProps,
@@ -1022,6 +1030,8 @@ export function aria(role: string, init?: unknown, options?: unknown): unknown {
       return new StepperAria(init as never);
     case 'stepper-input':
       return new StepperInputAria(init as never, options as never);
+    case 'stepper-adjuster':
+      return new StepperAdjusterAria(init as never, options as never);
     case 'stepper-inc':
       return new StepperButtonAria(init as never, { ...(options as object), direction: 1 } as never);
     case 'stepper-dec':

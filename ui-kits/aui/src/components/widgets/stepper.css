@@ -44,6 +44,35 @@
     }
   }
 
+  /*
+   * A handle to drag the number by. What it holds, like a field's glyph, shows until the pointer
+   * is on it, when the adjuster takes its place, so it costs the field no room.
+   */
+  .aui-stepper-adjuster {
+    display: grid;
+    flex: none;
+    place-items: center;
+    cursor: ew-resize;
+    touch-action: none;
+    user-select: none;
+
+    & > * {
+      grid-area: 1 / 1;
+    }
+
+    & > :last-child:not(:only-child) {
+      visibility: hidden;
+    }
+
+    &:hover > :last-child {
+      visibility: visible;
+    }
+
+    &:hover > :not(:last-child) {
+      visibility: hidden;
+    }
+  }
+
   .aui-stepper-button {
     flex: none;
     inline-size: calc(var(--aui-control-height) - var(--aui-stepper-inset) * 2);
