@@ -57,6 +57,11 @@ export interface TextInputProps extends AriaProps {
   kind?: TextInputKind;
 
   /**
+   * Native input type, e.g. `color`, for a field that isn't plain text.
+   */
+  type?: string;
+
+  /**
    * Multiline flag compiled to aria-multiline on custom hosts.
    */
   multiline?: boolean;
@@ -100,7 +105,7 @@ export interface TextInputProps extends AriaProps {
 export interface TextInputAttributes<E extends BaseElement = HTMLInputElement> extends AriaAttributes<E> {
   value?: string;
   defaultValue?: string;
-  type?: 'text' | 'search';
+  type?: string;
   readonly?: boolean;
   disabled?: boolean;
   required?: boolean;
@@ -201,7 +206,7 @@ export class TextInputAria<
    */
   protected override createAttributes(): A {
     const { value, readonly, disabled, required, placeholder, label, invalid } = this.properties;
-    const type = this.options.role === 'search-input' || this.properties.kind === 'search' ? 'search' : undefined;
+    const type = this.options.role === 'search-input' || this.properties.kind === 'search' ? 'search' : this.properties.type;
     const attrs: Record<string, unknown> = {
       value: value ?? '',
       oninput: this.handleInput,
