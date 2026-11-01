@@ -438,6 +438,23 @@ export class TimelineSegment<P extends Record<string, AnyType> = Record<string, 
   }
 
   /**
+   * Brings the keyframes in line with the storage, as the timeline does its tracks.
+   */
+  @passive
+  public sync(): void {
+    const nodes = this.source.scenes ?? [];
+    const kept = this.scenes.filter((scene) => nodes.includes(scene.source));
+    if (kept.length === this.scenes.length && kept.length === nodes.length) return;
+    this.scenes.splice(0, this.scenes.length, ...kept);
+    for (const node of nodes) {
+      if (!kept.some((scene) => scene.source === node)) new TimelineScene(this as never, undefined, undefined, node);
+    }
+    this.sceneSpanValid = false;
+    this.refresh(false);
+    this.tick(this.timeline.state);
+  }
+
+  /**
    * Re-orders keyframe scenes chronologically by atFrame and re-resolves the active span at the current playhead.
    */
   @passive

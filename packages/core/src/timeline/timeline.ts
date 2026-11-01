@@ -1,9 +1,9 @@
 import { anchor } from '../engine/anchor.js';
 import { assign } from '../engine/helper.js';
-import { $static, mutable, passive } from '../reactive/index.js';
+import { $static, mutable, passive, subscribe } from '../reactive/index.js';
 import type { AnyType } from '../types.js';
 import { uuid } from '../utils/uuid.js';
-import { animationFrame, cancelFrame, dropNode, type FrameId, frameToTime, isThenable, timeToFrame } from './helper.js';
+import { animationFrame, cancelFrame, dropNode, type FrameId, frameToTime, inLine, isThenable, timeToFrame } from './helper.js';
 import { TimelineMarker, type TimelineMarkerInit, type TimelineMarkerSnapshot } from './marker.js';
 import { TimelineTrack, type TimelineTrackOptions, type TimelineTrackSnapshot } from './track.js';
 
@@ -83,6 +83,9 @@ const RESOLVED = Promise.resolve();
 
 /** The marker type that makes a marker a page: where a presentation holds. */
 const PAGE_MARKER = 'page';
+
+/** The lists in the storage that hold nodes with an instance over each. */
+const NODE_LISTS = new Set(['tracks', 'segments', 'scenes']);
 
 export type TimelineSnapshot = {
   id: string;
@@ -171,6 +174,9 @@ export class Timeline<P extends Record<string, AnyType> = Record<string, AnyType
         for (const node of [...this.source.markers]) new TimelineMarker(this, undefined, node);
       });
       this.refresh();
+      this.unfollow = subscribe(this.source, (_, event) => {
+        if (NODE_LISTS.has(event.keys[event.keys.length - 1] as string)) this.follow();
+      });
       return;
     }
 
@@ -889,6 +895,8 @@ export class Timeline<P extends Record<string, AnyType> = Record<string, AnyType
    */
   @passive
   public destroy(): void {
+    this.unfollow?.();
+    this.following = false;
     this.stop();
     this.subscribers.clear();
     for (const track of this.tracks) {
@@ -909,6 +917,8 @@ export class Timeline<P extends Record<string, AnyType> = Record<string, AnyType
   private iteration = 0;
   private subscribers = new Set<TimelineSubscriber>();
   private errorListeners = new Set<TimelineErrorListener>();
+  private unfollow?: () => void;
+  private following = false;
   // The frame still being delivered, aborted when a later one replaces it.
   private delivery?: AbortController;
   private delivered: Promise<void> = RESOLVED;
@@ -935,6 +945,42 @@ export class Timeline<P extends Record<string, AnyType> = Record<string, AnyType
    * @returns {Promise<void>} Settles once the handlers are done with this frame (at once without async
    * ticking), it runs past its tolerance, or a later frame replaces it.
    */
+  /**
+   * Answers a change to what the storage holds. A node's instance is made or dropped in the same
+   * work that changes the node, so the lists are read once that work is done.
+   */
+  private follow(): void {
+    if (this.following) return;
+    this.following = true;
+    queueMicrotask(() => {
+      if (!this.following) return;
+      this.following = false;
+      this.sync();
+    });
+  }
+
+  /**
+   * Brings the instances in line with the storage. A node with an instance keeps it, one without
+   * gets one, and an instance whose node has gone goes. Values need none of this: instances read
+   * them from the storage.
+   */
+  @passive
+  private sync(): void {
+    const nodes = this.source.tracks;
+    const tracks = [...this.tracks];
+    if (!inLine(tracks, nodes)) {
+      this.tracks.clear();
+      for (const track of tracks) if (!nodes.includes(track.source)) track.destroy();
+      for (const node of nodes) {
+        const track = tracks.find((each) => each.source === node);
+        if (track) this.tracks.add(track);
+        else new TimelineTrack(this, undefined, undefined, node);
+      }
+    }
+    for (const track of this.tracks) track.sync();
+    this.refresh();
+  }
+
   private notify(): Promise<void> {
     this.delivery?.abort();
 

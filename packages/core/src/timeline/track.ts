@@ -3,7 +3,7 @@ import { assign } from '../engine/helper.js';
 import { mutable, passive } from '../reactive/index.js';
 import type { AnyType } from '../types.js';
 import { uuid } from '../utils/uuid.js';
-import { dropNode, keepNode } from './helper.js';
+import { dropNode, inLine, keepNode } from './helper.js';
 import { TimelineSegment, type TimelineSegmentInit, type TimelineSegmentSnapshot } from './segment.js';
 import type { FrameState, Timeline, TimelineDelivery } from './timeline.js';
 
@@ -178,6 +178,25 @@ export class TimelineTrack<P extends Record<string, AnyType> = Record<string, An
         this.timeline.refresh();
       }
     }
+  }
+
+  /**
+   * Brings the clips and their keyframes in line with the storage, as the timeline does its tracks.
+   */
+  @passive
+  public sync(): void {
+    const nodes = this.source.segments;
+    const segments = [...this.segments];
+    if (!inLine(segments, nodes)) {
+      this.segments.clear();
+      for (const segment of segments) if (!nodes.includes(segment.source)) segment.destroy();
+      for (const node of nodes) {
+        const segment = segments.find((each) => each.source === node);
+        if (segment) this.segments.add(segment);
+        else new TimelineSegment(this, undefined, undefined, node);
+      }
+    }
+    for (const segment of this.segments) segment.sync();
   }
 
   /**

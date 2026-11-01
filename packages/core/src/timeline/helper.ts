@@ -84,6 +84,18 @@ export function keepNode<T>(nodes: T[], node: T): T {
 }
 
 /**
+ * Whether the instances act on exactly these nodes of the timeline's storage, in their order.
+ *
+ * @param {Iterable<{ source: unknown }>} instances - The instances, as they're listed.
+ * @param {unknown[]} nodes - The storage they act on.
+ * @returns {boolean} Whether the list and the storage agree.
+ */
+export function inLine(instances: Iterable<{ source: unknown }>, nodes: unknown[]): boolean {
+  const listed = [...instances];
+  return listed.length === nodes.length && listed.every((instance, index) => instance.source === nodes[index]);
+}
+
+/**
  * Converts continuous time in seconds to the 0-indexed frame starting nearest to it.
  */
 export function timeToFrame(time: number, frameRate: number): number {
