@@ -40,6 +40,10 @@ export type DockProps = ComponentStyles & {
   value?: Bindable<string>;
   /** Whether voice input is on. The dock only shows the state; your app does the listening. */
   listening?: Bindable<boolean>;
+  /** Names the toggle before the voice button that keeps the answers out; without it, there is none. */
+  answersLabel?: string;
+  /** Whether the answers stay out. The dock only shows the state; give it to the `DockWidgets`' `open`. */
+  answers?: Bindable<boolean>;
   /**
    * Whether a sent request is still being worked on. The prompt shows a spinner; what's sent
    * meanwhile still reaches `onsubmit`, for your app to treat as a follow-up.
@@ -116,6 +120,8 @@ const DOCK_OMIT = [
   'submitLabel',
   'value',
   'listening',
+  'answersLabel',
+  'answers',
   'busy',
   'busyLabel',
   'stopLabel',
@@ -171,6 +177,8 @@ export const Dock = setup<DockProps, DockSlots>((props, slots) => {
                 submitLabel={props.submitLabel}
                 value={$bind(props as AnyType, 'value')}
                 listening={$bind(props as AnyType, 'listening')}
+                answersLabel={props.answersLabel}
+                answers={$bind(props as AnyType, 'answers')}
                 busy={$use(() => props.busy)}
                 busyLabel={props.busyLabel}
                 stopLabel={props.stopLabel}

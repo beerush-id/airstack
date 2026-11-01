@@ -4,6 +4,7 @@ import {
   $static,
   $use,
   type AnyType,
+  type Bindable,
   classx,
   createContext,
   effect,
@@ -68,6 +69,13 @@ export type DockWidgetsProps = ComponentStyles & {
   layer?: 'above' | 'below';
   /** Whether an answer is on its way: the stack stays showing, and its quiet spell starts when this ends. */
   waiting?: boolean;
+  /**
+   * Whether the stack is out, in place of the pointer: `true` holds it open as pointing at it does,
+   * until a press outside it and the dock shuts it, and `false` shuts it, showing only an answer
+   * while `waiting` and for its quiet spell after, and what waits on the user. Left out, it fades
+   * after a quiet spell, and pointing at its area opens it.
+   */
+  open?: Bindable<boolean>;
 };
 
 export type DockWidgetsSlots = {
@@ -92,6 +100,8 @@ const CLASS = {
   FORM: 'aui-dock-widget-form',
   /** The prompt, which focus returns to once a press inside the stack is done. */
   PROMPT: 'aui-dock-input',
+  /** The dock, whose presses are for the stack rather than away from it. */
+  DOCK: 'aui-dock',
 };
 
 const WIDGETS_OMIT = [
@@ -106,10 +116,13 @@ const WIDGETS_OMIT = [
   'visible',
   'layer',
   'waiting',
+  'open',
 ];
 
 /** What marks a stack gone quiet, for its look to follow. */
 const ASLEEP = 'data-asleep';
+/** What marks a shut stack showing an answer that came. */
+const TELLING = 'data-telling';
 /** How long a stack stays with nothing happening, where the theme doesn't say. */
 const QUIET_SPELL = 6000;
 
@@ -138,14 +151,47 @@ export const DockWidgets = setup<DockWidgetsProps, DockWidgetsSlots>((props, slo
   const region = aria('dock-region', props as AnyType);
   let quiet: ReturnType<typeof setTimeout> | undefined;
 
+  // Whether a shut stack is showing an answer that came, until its quiet spell is over.
+  let telling = false;
+
   // Only what's new wakes the stack and starts its quiet spell: pointing at it just shows it. None starts while an answer is on its way.
   const touch = () => {
     const stack = region.current as HTMLElement | null;
     clearTimeout(quiet);
-    stack?.removeAttribute(ASLEEP);
-    if (stack && !$static(() => props.waiting)) quiet = setTimeout(() => stack.setAttribute(ASLEEP, ''), quietSpell(stack));
+    if (!stack) return;
+    const { open, waiting } = $static(() => ({ open: props.open, waiting: props.waiting }));
+    telling = !open && (!!waiting || telling);
+    stack.toggleAttribute(TELLING, telling);
+    stack.removeAttribute(ASLEEP);
+    if (waiting || open || (open === false && !telling)) return;
+    quiet = setTimeout(() => {
+      telling = false;
+      stack.removeAttribute(TELLING);
+      stack.setAttribute(ASLEEP, '');
+    }, quietSpell(stack));
   };
-  onMount(touch);
+
+  // Pointing at an answer a shut stack is showing holds it; leaving starts its quiet spell over.
+  const hold = () => {
+    if (telling) clearTimeout(quiet);
+  };
+  const release = () => {
+    if (telling) touch();
+  };
+  // A press anywhere else is the user moving on. A popup open from the stack keeps it: its press is the stack's.
+  const shut = (event: PointerEvent) => {
+    const stack = region.current as HTMLElement | null;
+    const target = event.target as Element;
+    if (!props.open || !stack || stack.contains(target) || target.closest(`.${CLASS.DOCK}`)) return;
+    if (!stack.querySelector('[aria-expanded="true"]')) props.open = false;
+  };
+
+  onMount(() => {
+    touch();
+    // Captured, so nothing a window does with the press keeps it from here.
+    document.addEventListener('pointerdown', shut, true);
+    return () => document.removeEventListener('pointerdown', shut, true);
+  });
   onCleanup(() => clearTimeout(quiet));
   dockWidgetsCtx.set({ props, slots, touch });
 
@@ -158,6 +204,7 @@ export const DockWidgets = setup<DockWidgetsProps, DockWidgetsSlots>((props, slo
   effect(() => {
     void entries().length;
     void props.waiting;
+    void props.open;
     touch();
   });
 
@@ -173,6 +220,10 @@ export const DockWidgets = setup<DockWidgetsProps, DockWidgetsSlots>((props, slo
       {...region.restProps(WIDGETS_OMIT as never)}
       data-layer={props.layer ?? 'above'}
       data-visible={props.visible}
+      data-open={props.open ? '' : undefined}
+      data-shut={props.open === false ? '' : undefined}
+      onPointerEnter={hold}
+      onPointerLeave={release}
       className={$families(CLASS.WIDGETS, props, auiConfig.dockWidgets)}
     >
       <div className={CLASS.LIST} onClick={followLink}>

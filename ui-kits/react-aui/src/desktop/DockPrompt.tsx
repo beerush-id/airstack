@@ -1,7 +1,8 @@
 import { AUI_CLASS, COLORS, register, SIZES } from '@airlib/aui/utils';
 import { $bind, $use, type AnyType, type Bindable, For, Show, setup, teleport } from '@airlib/react';
+import { Tooltip } from '../composites/Tooltip.js';
 import { $families, auiConfig, type ComponentStyles } from '../config.js';
-import { MicIcon, SendIcon, StopIcon } from '../icons/index.js';
+import { CommentIcon, MicIcon, SendIcon, StopIcon } from '../icons/index.js';
 import { Button } from '../widgets/Button.js';
 import { Spinner } from '../widgets/Spinner.js';
 import { Toggle } from '../widgets/Toggle.js';
@@ -14,9 +15,13 @@ export type DockPromptProps = ComponentStyles & {
   label?: string;
   placeholder?: string;
   voiceLabel?: string;
+  /** Names the toggle that keeps the answers out; without it, there is none. */
+  answersLabel?: string;
   submitLabel?: string;
   value?: Bindable<string>;
   listening?: Bindable<boolean>;
+  /** Whether the answers stay out. The dock only shows the state; give it to the `DockWidgets`' `open`. */
+  answers?: Bindable<boolean>;
   busy?: boolean;
   busyLabel?: string;
   stopLabel?: string;
@@ -86,6 +91,20 @@ export const DockPrompt = setup<DockPromptProps>((props) => {
       </Show>
       <DockPromptField />
       <DockSuggestionList />
+      <Show when={() => props.answersLabel}>
+        {(label) => (
+          <Toggle
+            aria-label={label}
+            pressed={$bind(props as AnyType, 'answers')}
+            size={props.size}
+            color={props.color}
+            className={AUI_CLASS.CONTROL_ICON}
+          >
+            <CommentIcon />
+            <Tooltip>{label}</Tooltip>
+          </Toggle>
+        )}
+      </Show>
       <Show when={() => props.voiceLabel}>
         {(label) => (
           <Toggle

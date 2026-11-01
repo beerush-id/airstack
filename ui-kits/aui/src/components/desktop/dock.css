@@ -607,7 +607,7 @@
    * Reaching for the answers — pointing at the stack, moving focus into it, or a popup open from it —
    * brings them back up.
    */
-  .aui-desktop:has(.aui-window:focus-within) > .aui-dock-widgets:not(:hover, :focus-within, :has([aria-expanded='true'])) {
+  .aui-desktop:has(.aui-window:focus-within) > .aui-dock-widgets:not([data-open], :hover, :focus-within, :has([aria-expanded='true'])) {
     z-index: calc(var(--aui-window-z) - 1);
   }
 
@@ -651,7 +651,7 @@
     --aui-glass-shadow: var(--aui-window-shadow-active);
   }
 
-  .aui-dock-widgets:is(:hover, :has(:focus-visible), :has([aria-expanded='true'])) {
+  .aui-dock-widgets:is([data-open], :hover, :has(:focus-visible), :has([aria-expanded='true'])) {
     & .aui-dock-widgets-list::before {
       opacity: 1;
     }
@@ -795,6 +795,32 @@
     }
   }
 
+  /*
+   * Shut: nothing shows, takes the pointer or leaves a pill, from the first paint, until an answer
+   * comes. What waits on the user is out of this: it still has to be reached.
+   */
+  .aui-dock-widgets[data-shut]:not([data-telling], :has(.aui-dock-widget-important)) {
+    /* Its entrance is an animation, which beats any opacity: an answer that isn't shown doesn't enter. */
+    & .aui-toast.aui-dock-widget {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      animation: none;
+      transition:
+        opacity var(--duration-long, 600ms) var(--ease-standard),
+        visibility 0s var(--duration-long, 600ms);
+    }
+
+    & .aui-dock-widgets-list,
+    &::before {
+      pointer-events: none;
+    }
+
+    &::after {
+      opacity: 0;
+    }
+  }
+
   /* The answer sits right on the glass, its parts — text and widgets — in a column. */
   .aui-dock-widget-content {
     display: flex;
@@ -813,7 +839,7 @@
    * `visible` count. Older ones step out of view — not dismissed — and come back as newer ones
    * leave. A widget waiting on the user always stays.
    */
-  .aui-dock-widgets:is(:hover, :has(:focus-visible)) {
+  .aui-dock-widgets:is([data-open], :hover, :has(:focus-visible)) {
     /* Counting entries only: the list also holds whatever is drawn after one. */
     &[data-visible='1'] .aui-dock-widget:nth-last-child(n + 2 of .aui-dock-widget:not(.aui-dock-widget-important)),
     &[data-visible='2'] .aui-dock-widget:nth-last-child(n + 3 of .aui-dock-widget:not(.aui-dock-widget-important)),
@@ -825,7 +851,7 @@
     }
   }
 
-  .aui-dock-widgets:not(:hover, :has(:focus-visible)) {
+  .aui-dock-widgets:not([data-open], :hover, :has(:focus-visible)) {
     /*
      * Closing waits a beat after the pointer leaves, so passing off the edge doesn't flicker it;
      * opening is immediate.
