@@ -143,6 +143,11 @@ export interface ChatOutput<T extends IRPCData = IRPCData, M extends IRPCData = 
    * argument can take a while, and this says what's coming before `toolCalls` can.
    */
   calling?: string[];
+  /**
+   * What each call in `calling` has written of its arguments so far, in the same order: raw JSON
+   * deltas, each pushed once. Part of a call can matter long before the call is whole.
+   */
+  drafts?: string[][];
   /** What the provider searched the web for, each as its search finishes; it starts in `calling`. */
   searched?: string[];
   /**

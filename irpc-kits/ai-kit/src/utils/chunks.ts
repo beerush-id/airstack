@@ -1,6 +1,9 @@
 /** How long deltas are collected before they are pushed as one chunk. */
 export const CHUNK_WINDOW_MS = 30;
 
+/** Takes deltas with `write`, and hands over what is pending with `flush`. */
+export type Batcher = { write: (delta: string) => void; flush: () => void };
+
 /**
  * Collects deltas and hands them over joined, once per window, so a stream of tiny deltas becomes a
  * few pushes on the wire.
@@ -9,10 +12,7 @@ export const CHUNK_WINDOW_MS = 30;
  * @param windowMs - How long deltas are collected before a flush.
  * @returns `write` for each delta and `flush` to hand over what is pending now.
  */
-export function createBatcher(
-  onFlush: (batch: string) => void,
-  windowMs = CHUNK_WINDOW_MS
-): { write: (delta: string) => void; flush: () => void } {
+export function createBatcher(onFlush: (batch: string) => void, windowMs = CHUNK_WINDOW_MS): Batcher {
   let pending = '';
   let timer: ReturnType<typeof setTimeout> | undefined;
 

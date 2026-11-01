@@ -5,7 +5,7 @@ import type { AIEnv, AskContext, ImageContext } from '../../types/context.js';
 import type { AIDriver } from '../../types/driver.js';
 import { DriverError } from '../../types/errors.js';
 import type { OutputMeta } from '../../types/output.js';
-import { createBatcher, createChunkWriter } from '../../utils/chunks.js';
+import { type Batcher, createBatcher, createChunkWriter } from '../../utils/chunks.js';
 import { readSSE } from '../../utils/sse.js';
 
 /** Configuration for one OpenAI-compatible endpoint. */
@@ -189,6 +189,7 @@ export class OpenAIDriver implements AIDriver {
     const response = await this.post('/chat/completions', body, signal);
     const calls: RawCall[] = [];
     const writer = createChunkWriter(output);
+    const drafting = new Map<number, Batcher>();
 
     await readSSE(response, (event) => {
       const delta = (event.choices as Array<{ delta?: ChatDelta }> | undefined)?.[0]?.delta;
@@ -204,13 +205,15 @@ export class OpenAIDriver implements AIDriver {
           if (!call.args) {
             // What was said before a call lands before it's named, however the batch falls.
             writer.flush();
-            announce(output, decode(call.name));
+            drafting.set(part.index, createDraftWriter(output, announce(output, decode(call.name))));
           }
           call.args += part.function.arguments;
+          drafting.get(part.index)?.write(part.function.arguments);
         }
       }
     });
     writer.end();
+    for (const draft of drafting.values()) draft.flush();
 
     return calls.filter(Boolean);
   }
@@ -238,6 +241,7 @@ export class OpenAIDriver implements AIDriver {
       output.reasoning ??= [];
       output.reasoning.push(batch);
     });
+    const drafting = new Map<string, Batcher>();
     let summaries = 0;
     let failure: string | undefined;
 
@@ -251,8 +255,12 @@ export class OpenAIDriver implements AIDriver {
             // What was said before a call lands before it's named, however the batch falls.
             commentary.flush();
             answer.flush();
-            announce(output, item.type === WEB_SEARCH_CALL ? WEB_SEARCH : decode(item.name as string));
+            const index = announce(output, item.type === WEB_SEARCH_CALL ? WEB_SEARCH : decode(item.name as string));
+            if (item.type === 'function_call') drafting.set(item.id, createDraftWriter(output, index));
           }
+          break;
+        case 'response.function_call_arguments.delta':
+          drafting.get(event.item_id as string)?.write(event.delta as string);
           break;
         case 'response.output_text.delta':
           if (phases.get(event.item_id as string) === 'commentary') commentary.write(event.delta as string);
@@ -284,6 +292,7 @@ export class OpenAIDriver implements AIDriver {
     commentary.flush();
     reasoning.flush();
     answer.end();
+    for (const draft of drafting.values()) draft.flush();
     if (failure) throw new DriverError(`${this.name} response failed: ${failure}`, this.name, 'UPSTREAM_ERROR');
 
     return calls;
@@ -351,10 +360,31 @@ interface ResponsesItem {
 /** A hosted web search in a response's items. */
 const WEB_SEARCH_CALL = 'web_search_call';
 
-/** Says the model has started calling a tool, before its arguments have arrived. */
-function announce(output: ChatOutput, name: string): void {
+/**
+ * Says the model has started calling a tool, before its arguments have arrived.
+ *
+ * @param output - The streaming output.
+ * @param name - The tool's caller-facing name.
+ * @returns The call's place in `calling`, and in `drafts`.
+ */
+function announce(output: ChatOutput, name: string): number {
   output.calling ??= [];
-  output.calling.push(name);
+  output.drafts ??= [];
+  output.drafts.push([]);
+  return output.calling.push(name) - 1;
+}
+
+/**
+ * Streams what a call writes of its arguments into its place in `drafts`, batched as answers are.
+ *
+ * @param output - The streaming output.
+ * @param index - The call's place in `calling`.
+ * @returns The batcher its deltas go through.
+ */
+function createDraftWriter(output: ChatOutput, index: number): Batcher {
+  return createBatcher((batch) => {
+    output.drafts?.[index]?.push(batch);
+  });
 }
 
 /**
