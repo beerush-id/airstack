@@ -42,6 +42,8 @@ export type TimelineEditorProps = ComponentStyles & {
   timeline: Timeline;
   /** How wide one second is, in pixels. Defaults to 48. */
   zoom?: number;
+  /** The times to mark on the ruler, in seconds, in place of the picked clips' keyframes while it gives any. */
+  keyframes?: () => number[] | undefined;
   /** The picked clip, by its segment's `id`; with `multiple`, the picked clips' ids. */
   value?: Bindable<string | string[]>;
   /**
@@ -493,7 +495,7 @@ export const TimelineEditor = setup<TimelineEditorProps, TimelineEditorSlots>((p
               label={props.playheadLabel}
               zoom={zoom()}
               land={(time) => root.snapTime(time)}
-              keyframes={keyframes}
+              keyframes={() => props.keyframes?.() ?? keyframes()}
             />
             {/* The track names in two lists, pictures over sound: a track moves within its own group. */}
             <div className={CLASS.HEADERS}>
@@ -515,7 +517,7 @@ export const TimelineEditor = setup<TimelineEditorProps, TimelineEditorSlots>((p
             <div
               ref={clips.ref}
               {...clips.restProps(
-                [...OMIT_KEYS, 'timeline', 'zoom', 'playheadLabel', 'snap', 'autofocus', 'progress', 'laneCommands', 'onlanecommand', 'onlanedrop'] as never
+                [...OMIT_KEYS, 'timeline', 'zoom', 'keyframes', 'playheadLabel', 'snap', 'autofocus', 'progress', 'laneCommands', 'onlanecommand', 'onlanedrop'] as never
               )}
               className={CLASS.LANES}
               onContextMenuCapture={aimLaneMenu}
