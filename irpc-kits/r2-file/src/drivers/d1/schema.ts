@@ -64,6 +64,8 @@ export async function ensureSchema(db: D1Database, ownerKey: string, extension?:
       await extension?.migrate?.(db);
     })();
     dbTasks.set(ownerKey, task);
+    // A failure isn't a schema: the next call prepares it again, rather than failing with it forever.
+    task.catch(() => initializedDatabases.get(db)?.delete(ownerKey));
   }
 
   return task;
