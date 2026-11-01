@@ -7,7 +7,6 @@
  * content it begins.
  */
 import { describe, expect, it } from 'vitest';
-import { sampleSegment, segmentTime } from '../../src/timeline/motion.js';
 import { Timeline } from '../../src/timeline/timeline.js';
 
 /** A 3s title at 1s that fades in over its first second, trimmed at its head by half a second. */
@@ -26,14 +25,6 @@ function buildTrimmed() {
 }
 
 describe('a clip trimmed at its head', () => {
-  it('shows its content from where the trim cut to, not from its beginning', () => {
-    const { timeline, title } = buildTrimmed();
-    expect(sampleSegment(title, 45).opacity).toBeCloseTo(0.5);
-    expect(sampleSegment(title, 60).opacity).toBe(1);
-    expect(segmentTime(title, 45)).toBeCloseTo(0.5);
-    timeline.destroy();
-  });
-
   it('keeps its own end where it was', () => {
     const { timeline, title } = buildTrimmed();
     expect(title.endFrame).toBe(119);

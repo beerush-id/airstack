@@ -1,7 +1,8 @@
 import { type AnyType, effect } from '@airlib/core';
-import { isSegmentOn, type MotionBox, sampleSegment, segmentTime, type TimelineSegment } from '@airlib/core/timeline';
+import type { TimelineSegment } from '@airlib/core/timeline';
 import { Aria } from '../core.js';
 import type { AriaAttributes, AriaOptions, AriaProps, BaseElement } from '../types.js';
+import { isSegmentOn, type MotionBox, sampleSegment, segmentTime } from './motion.js';
 import {
   MEDIA_CATCHUP,
   MEDIA_DRIFT,
