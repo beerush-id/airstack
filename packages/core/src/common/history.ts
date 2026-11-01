@@ -4,6 +4,7 @@ import { setInspector } from '../engine/index.js';
 import { replay, rollback } from '../reactive/event.js';
 import { subscribe } from '../reactive/index.js';
 import { mutable } from '../reactive/ref.js';
+import { ObjectMutations } from '../shared/enum.js';
 import { captureStack } from '../shared/index.js';
 import type { Linkable, State, StateChange } from '../types.js';
 import { microtask } from '../utils/index.js';
@@ -12,12 +13,15 @@ export type HistoryOptions = {
   debounce?: number;
   maxHistory?: number;
   resettable?: boolean;
+  /** Whether everything recorded in one debounce window is taken back and put back together, as one step. */
+  group?: boolean;
 };
 
 export const DEFAULT_HISTORY_OPTION = {
   debounce: 100,
   maxHistory: 100,
   resettable: false,
+  group: false,
 };
 
 function setDefaultOptions(options: HistoryOptions) {
@@ -65,6 +69,7 @@ function historyFn<T extends State>(state: T, options?: HistoryOptions): History
     maxHistory = DEFAULT_HISTORY_OPTION.maxHistory,
     debounce = DEFAULT_HISTORY_OPTION.debounce,
     resettable = DEFAULT_HISTORY_OPTION.resettable,
+    group = DEFAULT_HISTORY_OPTION.group,
   } = options ?? {};
 
   const [schedule] = microtask<StateChange>(debounce);
@@ -72,6 +77,7 @@ function historyFn<T extends State>(state: T, options?: HistoryOptions): History
   const backwardList: StateChange[] = [];
   const forwardList: StateChange[] = [];
   const mergeList = new Set<StateChange>();
+  const steps = new WeakMap<StateChange, object>();
   const controller = subscribe.resolve(state);
 
   if (!anchor.has(state)) {
@@ -89,6 +95,11 @@ function historyFn<T extends State>(state: T, options?: HistoryOptions): History
     if (event) {
       forwardList.unshift(event);
       rollback(state, event);
+      while (group && steps.get(backwardList[backwardList.length - 1]) === steps.get(event)) {
+        const change = backwardList.pop() as StateChange;
+        forwardList.unshift(change);
+        rollback(state, change);
+      }
       assign(historyState, {
         canForward: forwardList.length > 0,
         canBackward: backwardList.length > 0,
@@ -107,6 +118,11 @@ function historyFn<T extends State>(state: T, options?: HistoryOptions): History
     if (event) {
       backwardList.push(event);
       replay(state, event);
+      while (group && steps.get(forwardList[0]) === steps.get(event)) {
+        const change = forwardList.shift() as StateChange;
+        backwardList.push(change);
+        replay(state, change);
+      }
       assign(historyState, {
         canForward: forwardList.length > 0,
         canBackward: backwardList.length > 0,
@@ -160,11 +176,14 @@ function historyFn<T extends State>(state: T, options?: HistoryOptions): History
           backwardList.shift();
         }
 
+        const step = {};
+
         for (const change of mergeChanges(mergeList)) {
           if (resettable) {
             changeList.push(change);
           }
 
+          steps.set(change, step);
           backwardList.push(change);
         }
 
@@ -260,9 +279,10 @@ export function undoable(operation: () => void): [() => void, () => void] {
  * Creates a consolidated list of state changes by merging multiple changes to the same key.
  *
  * This function processes a set of state changes and consolidates them so that each unique
- * key path only appears once in the resulting array. When multiple changes affect the same
+ * key path only appears once in the resulting array. When multiple changes set the same
  * key path, only the first change (earliest in the set) is kept, but its value is updated
- * to the latest value for that key path.
+ * to the latest value for that key path. Any other mutation stays as it happened: an array's
+ * or a collection's mutations each did their own work, and their values are their arguments.
  *
  * This is used internally by the history management system to optimize history entries,
  * ensuring that rapid successive changes to the same property result in a single history
@@ -274,11 +294,11 @@ export function undoable(operation: () => void): [() => void, () => void] {
  * @internal
  */
 function mergeChanges(changeList: Set<StateChange>) {
-  const prevChanges = new Map<string, StateChange>();
-  const nextChanges = new Map<string, unknown>();
+  const prevChanges = new Map<unknown, StateChange>();
+  const nextChanges = new Map<unknown, unknown>();
 
   for (const change of changeList) {
-    const key = change.keys.join('.');
+    const key = change.type === ObjectMutations.SET ? change.keys.join('.') : change;
 
     if (!prevChanges.has(key)) {
       prevChanges.set(key, change);
