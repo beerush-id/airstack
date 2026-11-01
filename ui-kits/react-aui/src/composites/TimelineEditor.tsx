@@ -1,7 +1,19 @@
 import { aria } from '@airlib/aria';
 import { AUI_CLASS, branded, register } from '@airlib/aui/utils';
-import { $bind, $static, type AnyType, type Bindable, For, mutable, Snippet, setup, stylex } from '@airlib/react';
-import type { Timeline, TimelineSegment, TimelineTrack } from '@airlib/react/timeline';
+import {
+  $bind,
+  $static,
+  type AnyType,
+  type Bindable,
+  For,
+  mutable,
+  Snippet,
+  setup,
+  stylex,
+  template,
+  untrack,
+} from '@airlib/react';
+import type { Timeline, TimelineScene, TimelineSegment, TimelineTrack } from '@airlib/react/timeline';
 import type { DragEvent, KeyboardEvent, MouseEvent, PointerEvent, ReactNode } from 'react';
 import { $families, auiConfig, type ComponentStyles, OMIT_KEYS } from '../config.js';
 import { hasEntries, type ItemsInput } from '../utils/common.js';
@@ -405,21 +417,15 @@ export const TimelineEditor = setup<TimelineEditorProps, TimelineEditorSlots>((p
   const notePress = (event: PointerEvent<HTMLDivElement>) => {
     pressedOff = offPick(event.target);
   };
-  // The picked clips' keyframes, as times on the timeline, for the ruler to mark.
-  const keyframes = (): number[] => {
+  // The picked clips, for the ruler to mark their keyframes. Only the pick is tracked: finding a
+  // clip reads every clip's id, and an id doesn't change.
+  const pickedSegments = (): TimelineSegment[] => {
     const ids = picked();
-    const rate = props.timeline.frameRate;
-    return tracks()
-      .flatMap((track) => [...track.segments])
-      .filter((segment) => ids.includes(segment.id))
-      .flatMap((segment) =>
-        // Keyframes sit in the clip's content, from its offset and at its speed; a split clip's
-        // halves share them, each marking only those within it.
-        segment.scenes
-          .map((scene) => segment.startFrame + (scene.atFrame - segment.offsetFrame) / segment.speed)
-          .filter((frame) => frame >= segment.startFrame && frame <= segment.endFrame)
-          .map((frame) => frame / rate)
-      );
+    return untrack(() =>
+      tracks()
+        .flatMap((track) => [...track.segments])
+        .filter((segment) => ids.includes(segment.id))
+    );
   };
   const releaseOnEscape = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== 'Escape' || !picked().length) return;
@@ -495,7 +501,8 @@ export const TimelineEditor = setup<TimelineEditorProps, TimelineEditorSlots>((p
               label={props.playheadLabel}
               zoom={zoom()}
               land={(time) => root.snapTime(time)}
-              keyframes={() => props.keyframes?.() ?? keyframes()}
+              keyframes={props.keyframes}
+              segments={pickedSegments}
             />
             {/* The track names in two lists, pictures over sound: a track moves within its own group. */}
             <div className={CLASS.HEADERS}>
@@ -588,8 +595,10 @@ type TimelineRulerProps = {
   zoom: number;
   /** Where a drag to a time puts the playhead, e.g. a point it snaps to. */
   land?: (time: number) => number;
-  /** The times to mark as keyframes. */
-  keyframes?: () => number[];
+  /** The times to mark as keyframes, in place of the picked clips' while it gives any. */
+  keyframes?: () => number[] | undefined;
+  /** The picked clips, whose keyframes it marks. */
+  segments: () => TimelineSegment[];
 };
 
 const TimelineRuler = setup<TimelineRulerProps>((props) => {
@@ -638,10 +647,27 @@ const TimelineRuler = setup<TimelineRulerProps>((props) => {
         <For each={() => props.keyframes?.() ?? []}>
           {(seconds) => <span className={CLASS.KEYFRAME} style={stylex({ '--aui-timeline-at': String(seconds) })} />}
         </For>
+        <For each={() => (props.keyframes?.() ? [] : props.segments())}>
+          {(segment) => (
+            <For each={() => segment.scenes}>{(scene) => <KeyframeMark segment={segment} scene={scene} />}</For>
+          )}
+        </For>
       </div>
     </div>
   );
 }, 'TimelineRuler');
+
+/**
+ * One keyframe on the ruler, reading only itself, so moving it redraws one mark. It sits in the
+ * clip's content, from its offset and at its speed; a split clip's halves share their keyframes,
+ * each marking only those within it.
+ */
+const KeyframeMark = template<{ segment: TimelineSegment; scene: TimelineScene }>(({ segment, scene }) => {
+  const frame = segment.startFrame + (scene.atFrame - segment.offsetFrame) / segment.speed;
+  if (frame < segment.startFrame || frame > segment.endFrame) return null;
+  const seconds = frame / segment.timeline.frameRate;
+  return <span className={CLASS.KEYFRAME} style={stylex({ '--aui-timeline-at': String(seconds) })} />;
+}, 'KeyframeMark');
 
 /**
  * One clip: a segment at its start and length on its lane, pickable like any listbox option.
