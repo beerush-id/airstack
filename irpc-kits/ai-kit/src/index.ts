@@ -25,7 +25,7 @@ export type {
   TextMessage,
   ToolCall,
 } from './chat/index.js';
-export { chatTurns } from './chat/index.js';
+export { chatTurns, WEB_SEARCH } from './chat/index.js';
 export type { AICallOptions, AIInstance, AIOptions } from './client.js';
 export { createAI } from './client.js';
 export type {

@@ -24,6 +24,9 @@ export interface BaseChatMessage<M extends IRPCData = OutputMeta> {
  * A tool the model may call, described in provider-neutral form. Drivers translate it into
  * their provider's function-calling format, including any naming constraints.
  */
+/** The web search a provider hosts, as a tool in a request and as a call in `calling`. */
+export const WEB_SEARCH = 'web_search';
+
 export type ChatTool = {
   /** Caller-facing name; drivers encode it when the provider restricts tool names. */
   name: string;
@@ -94,6 +97,8 @@ export interface ChatOptions {
   tools?: ChatTool[];
   /** How hard the model reasons before answering, in the provider's terms (e.g. `minimal`, `low`, `high`). */
   reasoningEffort?: string;
+  /** Lets the model search the web itself, where the provider hosts it; ignored where it doesn't. */
+  webSearch?: boolean;
   [key: string]: unknown;
 }
 
@@ -138,6 +143,8 @@ export interface ChatOutput<T extends IRPCData = IRPCData, M extends IRPCData = 
    * argument can take a while, and this says what's coming before `toolCalls` can.
    */
   calling?: string[];
+  /** What the provider searched the web for, each as its search finishes; it starts in `calling`. */
+  searched?: string[];
   /**
    * Text the provider marks as commentary on its tool calls, kept apart from the answer. Absent when
    * the provider doesn't separate it.

@@ -1,5 +1,5 @@
 import { getEnv, type IRPCData } from '@irpclib/irpc';
-import { type ChatMessage, type ChatOutput, type ChatTool, chatTurns, type ToolCall } from '../../chat/index.js';
+import { type ChatMessage, type ChatOutput, type ChatTool, chatTurns, WEB_SEARCH,type ToolCall } from '../../chat/index.js';
 import type { ImageAspectRatio, ImageOptions } from '../../image/index.js';
 import type { AIEnv, AskContext, ImageContext } from '../../types/context.js';
 import type { AIDriver } from '../../types/driver.js';
@@ -75,7 +75,9 @@ export class OpenAIDriver implements AIDriver {
               stream: true,
               ...(ctx.payload.system ? { instructions: ctx.payload.system } : {}),
               input: toInputItems(turns),
-              ...(tools.length ? { tools: tools.map(toResponsesFunction) } : {}),
+              ...(tools.length || ctx.payload.webSearch
+                ? { tools: [...tools.map(toResponsesFunction), ...(ctx.payload.webSearch ? [{ type: WEB_SEARCH }] : [])] }
+                : {}),
               ...sampling,
               ...(typeof ctx.payload.maxTokens === 'number' ? { max_output_tokens: ctx.payload.maxTokens } : {}),
               reasoning: {
@@ -199,7 +201,11 @@ export class OpenAIDriver implements AIDriver {
         if (part.function?.name) call.name += part.function.name;
         if (part.function?.arguments) {
           // Arguments only start once the name is whole.
-          if (!call.args) announce(output, decode(call.name));
+          if (!call.args) {
+            // What was said before a call lands before it's named, however the batch falls.
+            writer.flush();
+            announce(output, decode(call.name));
+          }
           call.args += part.function.arguments;
         }
       }
@@ -241,7 +247,12 @@ export class OpenAIDriver implements AIDriver {
       switch (event.type) {
         case 'response.output_item.added':
           if (item?.type === 'message') phases.set(item.id, item.phase);
-          if (item?.type === 'function_call' && item.name) announce(output, decode(item.name));
+          if (item?.type === WEB_SEARCH_CALL || (item?.type === 'function_call' && item.name)) {
+            // What was said before a call lands before it's named, however the batch falls.
+            commentary.flush();
+            answer.flush();
+            announce(output, item.type === WEB_SEARCH_CALL ? WEB_SEARCH : decode(item.name as string));
+          }
           break;
         case 'response.output_text.delta':
           if (phases.get(event.item_id as string) === 'commentary') commentary.write(event.delta as string);
@@ -255,6 +266,10 @@ export class OpenAIDriver implements AIDriver {
           reasoning.write(event.delta as string);
           break;
         case 'response.output_item.done':
+          if (item?.type === WEB_SEARCH_CALL) {
+            output.searched ??= [];
+            output.searched.push(item.action?.query ?? '');
+          }
           if (item?.type === 'function_call') {
             calls.push({ id: item.call_id ?? '', name: item.name ?? '', args: item.arguments ?? '' });
           }
@@ -329,7 +344,12 @@ interface ResponsesItem {
   call_id?: string;
   name?: string;
   arguments?: string;
+  /** What a hosted web search did. */
+  action?: { query?: string };
 }
+
+/** A hosted web search in a response's items. */
+const WEB_SEARCH_CALL = 'web_search_call';
 
 /** Says the model has started calling a tool, before its arguments have arrived. */
 function announce(output: ChatOutput, name: string): void {

@@ -48,6 +48,7 @@ export function createChunkWriter(
   windowMs = CHUNK_WINDOW_MS
 ): {
   write: (delta: string) => void;
+  flush: () => void;
   end: () => void;
 } {
   const batcher = createBatcher((batch) => {
@@ -57,6 +58,7 @@ export function createChunkWriter(
 
   return {
     write: batcher.write,
+    flush: batcher.flush,
     end() {
       batcher.flush();
       output.text = (output.chunks ?? []).join('');
