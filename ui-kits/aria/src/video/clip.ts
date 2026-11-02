@@ -269,8 +269,17 @@ export class VideoClipAria<
       void this.pan;
       this.stage?.tune(this as never);
     });
+    // New media in the same clip takes over where it is: nothing about the clip but what it shows changes.
+    let media = this.properties.media;
+    const stopReopening = effect.client(() => {
+      const next = this.properties.media;
+      if (next === media) return;
+      media = next;
+      this.loaded = this.reopen(element);
+    });
     return () => {
       stopTuning();
+      stopReopening();
       this.stage?.unlisten(this as never);
       this.stage?.remove(element);
       this.source?.dispose?.();
@@ -288,7 +297,8 @@ export class VideoClipAria<
     const src = this.properties.media;
     if (!src || !this.stage) return;
     const source = await this.stage.open(src);
-    if (!source || !this.element) return source?.dispose?.();
+    // Other media may have been named while this opened: that's what the clip shows now.
+    if (!source || !this.element || this.properties.media !== src) return source?.dispose?.();
     this.source = source;
 
     const frames = Math.round(source.duration * this.segment.timeline.frameRate);
@@ -297,6 +307,19 @@ export class VideoClipAria<
     const sound = await source.sound?.();
     if (sound && this.source === source) this.stage.listen(this as never, sound);
     return this.paint(element, segmentTime(this.segment, this.segment.startFrame), new AbortController().signal);
+  }
+
+  /**
+   * Lets go of the media the clip had and opens what it names now, then draws the paused stage again,
+   * so the new picture shows at the playhead and not only at the clip's start.
+   */
+  protected async reopen(element: HTMLElement): Promise<void> {
+    this.stage?.unlisten(this as never);
+    this.source?.dispose?.();
+    this.source = undefined;
+    await this.open(element);
+    const { timeline } = this.segment;
+    if (timeline.status !== 'playing') await timeline.scrub(timeline.frame);
   }
 
   /**
