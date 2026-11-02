@@ -1,4 +1,4 @@
-import { $bind, $static, $use, type AnyType, For, setup } from '@airlib/react';
+import { $bind, $static, $use, type AnyType, For, Snippet, setup } from '@airlib/react';
 import { createElement, type ComponentType } from 'react';
 import { auiAppCtx } from './app.js';
 import { type AuiComponentRole, auiComponents, WIDGET_CONTROLS } from './components.js';
@@ -133,26 +133,31 @@ export const WidgetRenderer = setup<WidgetRendererProps>((props) => {
     const node = props.node;
     if (typeof node === 'string') return { text: node };
     const target = resolve(node.role, vocabulary);
-    const attributes = safeProps(node.props, typeof target === 'string', host);
-    for (const binding of node.bindings ?? []) bind(attributes, binding, app, host);
+    const tag = typeof target === 'string';
+    const attributes = safeProps(node.props, tag, host);
+    for (const binding of node.bindings ?? []) bind(attributes, binding, app, host, tag);
     if (WIDGET_CONTROLS.has(node.role)) followLock(attributes, host);
     wireAction(attributes, node.props?.once === true, host);
-    return { target, attributes, children: node.children };
+    return { target, attributes, children: node.children, liveTag: tag && !!node.bindings?.length };
   });
   if ('text' in view) return () => view.text;
 
-  const { target, attributes, children } = view;
+  const { target, attributes, children, liveTag } = view;
 
-  return () => {
-    if (!target) return null;
-    // Drawing a component chosen at runtime means handing it its props as an object. Without
-    // children of its own, a node keeps whatever `children` its props or bindings give it.
+  // Drawing a component chosen at runtime means handing it its props as an object. Without
+  // children of its own, a node keeps whatever `children` its props or bindings give it.
+  const draw = () => {
     if (!children?.length) return createElement(target as AnyType, attributes);
     return createElement(
       target as AnyType,
       attributes,
       <For each={() => children}>{(child) => <WidgetRenderer node={child} />}</For>
     );
+  };
+
+  return () => {
+    if (!target) return null;
+    return liveTag ? <Snippet>{draw}</Snippet> : draw();
   };
 }, 'WidgetRenderer');
 
@@ -233,8 +238,16 @@ function isSafeLink(value: JsonValue, host?: WidgetHost): boolean {
  * @param binding - Which prop, from where, and whether it may write back.
  * @param app - The app the desktop runs for.
  * @param host - The widget's host, whose state `$this` reads.
+ * @param tag - Whether they go to a plain HTML tag, which reads the state where it's drawn and can't
+ *   write back: only components take a live prop.
  */
-function bind(attributes: Record<string, unknown>, binding: WidgetBinding, app: AnyType, host?: WidgetHost): void {
+function bind(
+  attributes: Record<string, unknown>,
+  binding: WidgetBinding,
+  app: AnyType,
+  host: WidgetHost | undefined,
+  tag: boolean
+): void {
   const path = binding.state.split('.');
   const own = path[0] === OWN_STATE;
   if (own) path.shift();
@@ -252,6 +265,18 @@ function bind(attributes: Record<string, unknown>, binding: WidgetBinding, app: 
     }
   }
 
+  if (tag) {
+    Object.defineProperty(attributes, binding.prop, {
+      configurable: true,
+      enumerable: true,
+      get() {
+        const value = owner[key];
+        // An object brings the whole tree down as a tag's child.
+        return typeof value === 'object' ? undefined : value;
+      },
+    });
+    return;
+  }
   attributes[binding.prop] = binding.writable ? $bind(owner, key) : $use(owner, key);
 }
 
