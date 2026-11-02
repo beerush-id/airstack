@@ -85,7 +85,7 @@ export const ImageViewer = setup<ImageViewerProps>((props) => {
   // The viewer is what its fullscreen button fills the screen with.
   fullscreenHostCtx.set(() => root);
 
-  const count = () => props.items.length;
+  const count = () => props.items?.length ?? 0;
   const maxZoom = () => props.maxZoom ?? 4;
   const index = () => clampRange(props.index ?? 0, 0, Math.max(count() - 1, 0));
   const zoom = () => clampRange(props.zoom ?? FIT, FIT, maxZoom());
@@ -167,7 +167,7 @@ export const ImageViewer = setup<ImageViewerProps>((props) => {
   });
 
   return () => {
-    const entry = props.items[index()];
+    const entry = props.items?.[index()];
     const total = count();
 
     return (

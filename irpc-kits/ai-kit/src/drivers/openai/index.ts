@@ -79,6 +79,7 @@ export class OpenAIDriver implements AIDriver {
                 ? { tools: [...tools.map(toResponsesFunction), ...(ctx.payload.webSearch ? [{ type: WEB_SEARCH }] : [])] }
                 : {}),
               ...sampling,
+              ...(ctx.payload.json ? { text: { format: { type: 'json_object' } } } : {}),
               ...(typeof ctx.payload.maxTokens === 'number' ? { max_output_tokens: ctx.payload.maxTokens } : {}),
               reasoning: {
                 summary: 'auto',
@@ -96,6 +97,7 @@ export class OpenAIDriver implements AIDriver {
               messages: toMessages(turns, ctx.payload.system),
               ...(tools.length ? { tools: tools.map(toChatFunction) } : {}),
               ...sampling,
+              ...(ctx.payload.json ? { response_format: { type: 'json_object' } } : {}),
               ...(typeof ctx.payload.maxTokens === 'number' ? { max_tokens: ctx.payload.maxTokens } : {}),
               ...(ctx.payload.reasoningEffort ? { reasoning_effort: ctx.payload.reasoningEffort } : {}),
             },
@@ -281,6 +283,13 @@ export class OpenAIDriver implements AIDriver {
           if (item?.type === 'function_call') {
             calls.push({ id: item.call_id ?? '', name: item.name ?? '', args: item.arguments ?? '' });
           }
+          for (const { annotations } of item?.content ?? []) {
+            for (const { type, url, title } of annotations ?? []) {
+              if (type !== 'url_citation' || !url || output.sources?.some((source) => source.url === url)) continue;
+              output.sources ??= [];
+              output.sources.push({ url, ...(title ? { title } : {}) });
+            }
+          }
           break;
         case 'response.failed':
         case 'error':
@@ -355,6 +364,8 @@ interface ResponsesItem {
   arguments?: string;
   /** What a hosted web search did. */
   action?: { query?: string };
+  /** A message's text, with what it cites. */
+  content?: Array<{ annotations?: Array<{ type?: string; url?: string; title?: string }> }>;
 }
 
 /** A hosted web search in a response's items. */

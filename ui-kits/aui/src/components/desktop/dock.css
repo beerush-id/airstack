@@ -663,6 +663,16 @@
     }
   }
 
+  /* A picture in an answer is there to be looked at: as wide as what holds it, at its own shape. */
+  .aui-dock-widget .aui-image:not(.aui-gallery-media) {
+    inline-size: 100%;
+    aspect-ratio: auto;
+
+    & > .aui-image-content {
+      block-size: auto;
+    }
+  }
+
   /*
    * A widget is a pane of the window's glass holding whatever the answer composed. It rises in and
    * announces itself.

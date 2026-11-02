@@ -157,6 +157,16 @@ export const WidgetRenderer = setup<WidgetRendererProps>((props) => {
 }, 'WidgetRenderer');
 
 /**
+ * Whether a role draws anything, so whoever writes nodes can be told before they're drawn.
+ *
+ * @param role - The role.
+ * @returns True for a component's role or a prose tag.
+ */
+export function isWidgetRole(role: string): boolean {
+  return Object.hasOwn(auiComponents, role) || TAGS.has(role);
+}
+
+/**
  * The component or tag a role draws.
  *
  * @param role - The node's role.

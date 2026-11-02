@@ -99,6 +99,8 @@ export interface ChatOptions {
   reasoningEffort?: string;
   /** Lets the model search the web itself, where the provider hosts it; ignored where it doesn't. */
   webSearch?: boolean;
+  /** Holds the answer to valid JSON, where the provider can; the prompt must say to answer in JSON. */
+  json?: boolean;
   [key: string]: unknown;
 }
 
@@ -148,6 +150,8 @@ export interface ChatOutput<T extends IRPCData = IRPCData, M extends IRPCData = 
    * deltas, each pushed once. Part of a call can matter long before the call is whole.
    */
   drafts?: string[][];
+  /** The pages the provider cited in its answer, when it searched the web and says so. */
+  sources?: { url: string; title?: string }[];
   /** What the provider searched the web for, each as its search finishes; it starts in `calling`. */
   searched?: string[];
   /**
