@@ -25,9 +25,14 @@ export const Button = setup<ButtonProps>((props) => {
   const button = aria(BUTTON_ROLE, props);
   const className = () => $families([AUI_CLASS.CONTROL, AUI_CLASS.BUTTON], props, auiConfig.button);
 
-  return () => (
-    <button ref={button.ref} {...button.restProps([...BUTTON_OMIT_KEYS])} className={className()}>
-      {props.children}
-    </button>
-  );
+  return () => {
+    // Aria keeps `disabled` live on the element. Handed to React too, React holds on to its first
+    // value and, if that was true, drops every press however enabled the button is since.
+    const { disabled: _, ...attributes } = button.restProps([...BUTTON_OMIT_KEYS]);
+    return (
+      <button ref={button.ref} {...attributes} className={className()}>
+        {props.children}
+      </button>
+    );
+  };
 }, 'Button');
