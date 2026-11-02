@@ -393,7 +393,7 @@ export class D1Driver implements FileDriver {
       nextCursor = encodeCursor(preparedQuery.offset + preparedQuery.limit);
     }
 
-    const entries = rows.map((r) => toFileInfo(r));
+    const entries = rows.map((row) => this.extension?.entry?.(row, toFileInfo(row)) ?? toFileInfo(row));
     ctx.result = { entries, nextCursor };
   }
 
