@@ -58,6 +58,8 @@ export type TimelineEditorProps = ComponentStyles & {
   keyframes?: () => number[] | undefined;
   /** The picked clip, by its segment's `id`; with `multiple`, the picked clips' ids. */
   value?: Bindable<string | string[]>;
+  /** The picked track, by its `id`, picked by its name. A track and clips are never picked together. */
+  track?: Bindable<string>;
   /**
    * Whether several clips can be picked at once: Cmd or Ctrl adds or drops one, Shift picks a run
    * along one track. The value is then a list.
@@ -223,7 +225,13 @@ export const TimelineEditor = setup<TimelineEditorProps, TimelineEditorSlots>((p
   const pick = (ids: string[]) => {
     const value = props.multiple ? ids : (ids.at(-1) ?? '');
     props.value = value;
+    if (ids.length) props.track = '';
     props.onchange?.(new CustomEvent('change', { detail: value }));
+  };
+  // A track is picked by its name; picking one lets go of the clips, as picking a clip lets go of it.
+  const pickTrack = (track: TimelineTrack) => {
+    if (picked().length) pick([]);
+    props.track = track.id;
   };
   const root = aria(
     TIMELINE_ROLE,
@@ -360,7 +368,18 @@ export const TimelineEditor = setup<TimelineEditorProps, TimelineEditorSlots>((p
           <ReorderHandle label={`Move ${track.name}`} size="xs" className={AUI_CLASS.CONTROL_ICON}>
             <Icon aria-hidden="true" />
           </ReorderHandle>
-          <span className={CLASS.HEADER_NAME}>{track.name}</span>
+          <Snippet>
+            {() => (
+              <button
+                type="button"
+                className={CLASS.HEADER_NAME}
+                aria-pressed={props.track === track.id}
+                onClick={() => pickTrack(track)}
+              >
+                {track.name}
+              </button>
+            )}
+          </Snippet>
           <span className={CLASS.HEADER_ACTIONS}>
             <Toggle
               aria-label={`Lock ${track.name}`}
@@ -434,7 +453,9 @@ export const TimelineEditor = setup<TimelineEditorProps, TimelineEditorSlots>((p
     (event.target as Element).closest<HTMLElement>('[data-track]')?.focus();
   };
   const releaseOnPress = (event: MouseEvent<HTMLDivElement>) => {
-    if (pressedOff && picked().length && offPick(event.target)) pick([]);
+    if (!pressedOff || !offPick(event.target)) return;
+    if (picked().length) pick([]);
+    if (props.track) props.track = '';
   };
 
   // A point on the lanes under the pointer: its track, and its frame read off the scrub, which
@@ -524,7 +545,7 @@ export const TimelineEditor = setup<TimelineEditorProps, TimelineEditorSlots>((p
             <div
               ref={clips.ref}
               {...clips.restProps(
-                [...OMIT_KEYS, 'timeline', 'zoom', 'keyframes', 'playheadLabel', 'snap', 'autofocus', 'progress', 'laneCommands', 'onlanecommand', 'onlanedrop'] as never
+                [...OMIT_KEYS, 'timeline', 'track', 'zoom', 'keyframes', 'playheadLabel', 'snap', 'autofocus', 'progress', 'laneCommands', 'onlanecommand', 'onlanedrop'] as never
               )}
               className={CLASS.LANES}
               onContextMenuCapture={aimLaneMenu}
