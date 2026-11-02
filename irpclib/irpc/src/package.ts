@@ -1,6 +1,6 @@
 import {
-  type AnyType,
   anchor,
+  type AnyType,
   captureStack,
   createObserver,
   isBrowser,
@@ -372,18 +372,16 @@ export class IRPCPackage<K extends string = 'id'> {
       if (spec.maxAge) caches.set(callKey, reader, spec.maxAge);
       if (spec.coalesce !== false) {
         calls.set(callKey, reader);
+        // A closed call can't be joined, so it leaves as it closes; a newer call of the same key stays.
+        const leave = () => {
+          if (calls.get(callKey) === reader) calls.delete(callKey);
+          unsubscribe();
+        };
         const unsubscribe = reader.packetSubscribe((p) => {
-          if (reader.is(p, IRPC_PACKET_TYPE.ANSWER)) {
-            calls.delete(callKey);
-            unsubscribe();
-          }
+          if (reader.is(p, IRPC_PACKET_TYPE.ANSWER)) leave();
         });
-        reader
-          .finally(() => {
-            calls.delete(callKey);
-            unsubscribe();
-          })
-          .catch((_err) => {});
+        reader.onDestroy(leave);
+        reader.finally(leave).catch((_err) => {});
       }
 
       if (!spec.controlled) onCleanup(() => reader.close());
