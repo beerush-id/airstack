@@ -23,8 +23,10 @@ import { Toast, ToastClose } from '../composites/Toast.js';
 import { newWidgetState, type WidgetContext, type WidgetHost, type WidgetState, widgetHostCtx } from '../dynamic/host.js';
 import { MarkdownRenderer } from '../dynamic/MarkdownRenderer.js';
 import { WidgetRenderer } from '../dynamic/WidgetRenderer.js';
+import { CheckIcon } from '../icons/Check.js';
 import { Form } from '../landmarks/index.js';
 import { Card, type CardProps } from '../widgets/Card.js';
+import { Spinner } from '../widgets/Spinner.js';
 import type { DockWidgetEntry, DockWidgetPart } from './dock/registry.js';
 
 /** Something pressed in a widget, for whoever owns the list to act on. */
@@ -98,6 +100,10 @@ const CLASS = {
   USER: 'aui-dock-widget-user',
   AFTER: 'aui-dock-widget-after',
   FORM: 'aui-dock-widget-form',
+  ACTIVITY: 'aui-dock-activity',
+  ACTIVITY_LABEL: 'aui-dock-activity-label',
+  ACTIVITY_DETAIL: 'aui-dock-activity-detail',
+  ACTIVITY_TIME: 'aui-dock-activity-time',
   /** The prompt, which focus returns to once a press inside the stack is done. */
   PROMPT: 'aui-dock-input',
   /** The dock, whose presses are for the stack rather than away from it. */
@@ -306,8 +312,9 @@ export const DockWidget = setup<DockWidgetProps>((props) => {
 }, 'DockWidget');
 
 /**
- * One part of an answer: markdown text redrawn as its words arrive, or a
- * widget drawn once from its data, in a card that takes its look from `props`.
+ * One part of an answer: markdown text redrawn as its words arrive, something
+ * it did along the way, on a line that settles once it's done, or a widget
+ * drawn once from its data, in a card that takes its look from `props`.
  * A widget's `form` is the widget's own state, so writing to it there shows at
  * once, and with a `formAction` a form sits in the card: submitting runs that
  * action. Its controls turn themselves off while it's busy or locked.
@@ -317,11 +324,22 @@ const DockWidgetPartView = setup<{ part: DockWidgetPart }>((props) => {
   const kind = $static(() => props.part.type);
   // Text is markdown, redrawn block by block as its words arrive.
   if (kind === 'text') return () => <MarkdownRenderer text={$use(part as { text: string }, 'text')} />;
+  if (kind === 'activity') {
+    const activity = part as Extract<DockWidgetPart, { type: 'activity' }>;
+    return () => (
+      <div className={CLASS.ACTIVITY}>
+        <Snippet>{() => (activity.time ? <CheckIcon /> : <Spinner size="xs" label={activity.label} />)}</Snippet>
+        <span className={CLASS.ACTIVITY_LABEL}>{activity.label}</span>
+        <Snippet>{() => activity.detail && <span className={CLASS.ACTIVITY_DETAIL}>{activity.detail}</span>}</Snippet>
+        <Snippet>{() => activity.time && <span className={CLASS.ACTIVITY_TIME}>{activity.time}</span>}</Snippet>
+      </div>
+    );
+  }
 
   const widgetHost = widgetHostCtx.get();
   // A part is complete once drawn, so what it declares is read once, and seeds the state once.
   const { nodes, size, variant, color, id, formAction, once, ctx } = $static(() => {
-    const widget = part as Exclude<DockWidgetPart, { type: 'text' }>;
+    const widget = part as Extract<DockWidgetPart, { type: 'widget' }>;
     const { id, status, form, formAction, once } = widget;
     if (widgetHost) {
       // The first form is the state; a second in the same answer joins it.

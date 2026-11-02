@@ -27,6 +27,16 @@ export type DockWidgetForm = {
  */
 export type DockWidgetPart =
   | { type: 'text'; text: string }
+  | {
+      /** Something the answer did along the way, on one line. */
+      type: 'activity';
+      /** What it is, in the user's words. */
+      label: string;
+      /** What it worked on. */
+      detail?: string;
+      /** How long it took; none while it's under way. */
+      time?: string;
+    }
   | ({ type: 'widget'; props?: Record<string, JsonValue>; children?: WidgetNode[] } & DockWidgetForm);
 
 /**

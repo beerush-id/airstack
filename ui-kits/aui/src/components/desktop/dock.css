@@ -673,6 +673,48 @@
     }
   }
 
+  /* Something an answer did along the way: quiet, on one line, its time at the end. */
+  .aui-dock-activity {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    margin: 0;
+    min-inline-size: 0;
+    color: var(--color-on-surface-variant);
+    font-size: var(--font-label-sm-size);
+    --aui-icon-size: calc(var(--font-label-sm-size) * 1.25);
+
+    & > .aui-icon,
+    & > .aui-spinner {
+      flex: none;
+    }
+
+    & > .aui-spinner {
+      inline-size: var(--aui-icon-size);
+      block-size: var(--aui-icon-size);
+    }
+  }
+
+  .aui-dock-activity-label {
+    flex: none;
+    color: var(--color-on-surface);
+    font-weight: 500;
+  }
+
+  .aui-dock-activity-detail {
+    flex: 0 1 auto;
+    min-inline-size: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .aui-dock-activity-time {
+    flex: none;
+    margin-inline-start: auto;
+    font-variant-numeric: tabular-nums;
+  }
+
   /*
    * A widget is a pane of the window's glass holding whatever the answer composed. It rises in and
    * announces itself.
