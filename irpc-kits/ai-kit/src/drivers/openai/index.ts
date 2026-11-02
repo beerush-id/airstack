@@ -78,6 +78,7 @@ export class OpenAIDriver implements AIDriver {
               ...(tools.length || ctx.payload.webSearch
                 ? { tools: [...tools.map(toResponsesFunction), ...(ctx.payload.webSearch ? [{ type: WEB_SEARCH }] : [])] }
                 : {}),
+              ...(ctx.payload.webSearch ? { include: ['web_search_call.action.sources'] } : {}),
               ...sampling,
               ...(ctx.payload.json ? { text: { format: { type: 'json_object' } } } : {}),
               ...(typeof ctx.payload.maxTokens === 'number' ? { max_output_tokens: ctx.payload.maxTokens } : {}),
@@ -279,16 +280,13 @@ export class OpenAIDriver implements AIDriver {
           if (item?.type === WEB_SEARCH_CALL) {
             output.searched ??= [];
             output.searched.push(item.action?.query ?? '');
+            for (const { url, title } of item.action?.sources ?? []) cite(output, url, title);
           }
           if (item?.type === 'function_call') {
             calls.push({ id: item.call_id ?? '', name: item.name ?? '', args: item.arguments ?? '' });
           }
           for (const { annotations } of item?.content ?? []) {
-            for (const { type, url, title } of annotations ?? []) {
-              if (type !== 'url_citation' || !url || output.sources?.some((source) => source.url === url)) continue;
-              output.sources ??= [];
-              output.sources.push({ url, ...(title ? { title } : {}) });
-            }
+            for (const { type, url, title } of annotations ?? []) if (type === 'url_citation') cite(output, url, title);
           }
           break;
         case 'response.failed':
@@ -363,7 +361,7 @@ interface ResponsesItem {
   name?: string;
   arguments?: string;
   /** What a hosted web search did. */
-  action?: { query?: string };
+  action?: { query?: string; sources?: Array<{ url?: string; title?: string }> };
   /** A message's text, with what it cites. */
   content?: Array<{ annotations?: Array<{ type?: string; url?: string; title?: string }> }>;
 }
@@ -383,6 +381,21 @@ function announce(output: ChatOutput, name: string): number {
   output.drafts ??= [];
   output.drafts.push([]);
   return output.calling.push(name) - 1;
+}
+
+/**
+ * Keeps a page the provider cited, once.
+ *
+ * @param output - The streaming output.
+ * @param url - The page's address.
+ * @param title - The page's title.
+ */
+function cite(output: ChatOutput, url?: string, title?: string): void {
+  // Some providers hand addresses over HTML-escaped, some of them many times.
+  const address = url?.replace(/&(amp;)+/g, '&');
+  if (!address || output.sources?.some((source) => source.url === address)) return;
+  output.sources ??= [];
+  output.sources.push({ url: address, ...(title ? { title } : {}) });
 }
 
 /**
