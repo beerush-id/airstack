@@ -20,10 +20,6 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./components": {
-      "types": "./dist/components/index.d.ts",
-      "import": "./dist/components/index.js"
-    },
     "./desktop": {
       "types": "./dist/desktop/index.d.ts",
       "import": "./dist/desktop/index.js"
