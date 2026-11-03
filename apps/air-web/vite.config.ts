@@ -13,4 +13,6 @@ export default defineConfig({
       searchIndex: true,
     }),
   ],
+  // The server build isn't minified by default, and its docs pages outgrow the Worker's size limit unminified.
+  build: { minify: true },
 });
