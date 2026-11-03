@@ -12,5 +12,5 @@
   "durable_objects": {
     "bindings": [{ "name": "DURABLE_LINK", "class_name": "AirDurableLink" }]
   },
-  "migrations": [{ "tag": "v1", "new_classes": ["AirDurableLink"] }]
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["AirDurableLink"] }]
 }
