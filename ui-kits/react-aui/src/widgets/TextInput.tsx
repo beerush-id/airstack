@@ -6,8 +6,9 @@ import { $families, auiConfig, FIELD_STYLES, type FieldStyles, OMIT_KEYS } from 
 
 export type TextInputKind = 'text' | 'password' | 'search' | 'email' | 'tel' | 'url';
 
-export interface TextInputProps extends Omit<ComponentProps<'input'>, 'className' | 'color' | 'value' | 'size'>,
-  FieldStyles {
+export interface TextInputProps
+  extends Omit<ComponentProps<'input'>, 'className' | 'color' | 'value' | 'size'>,
+    FieldStyles {
   value?: Bindable<string>;
   kind?: TextInputKind;
   /** Takes several lines, wrapping as it goes: a reply, a note, a description. */
@@ -41,11 +42,27 @@ export const TextInput = setup<TextInputProps>((props) => {
   const multiline = $static(() => !!props.multiline);
   const className = () =>
     $families([AUI_CLASS.CONTROL, AUI_CLASS.INPUT, AUI_CLASS.TEXT_INPUT], props, auiConfig.textInput);
-  const omit = [...OMIT_KEYS, 'kind', 'multiline', 'readonly', 'disabled', 'required', 'invalid', 'label', 'value', 'onchange'];
+  const omit = [
+    ...OMIT_KEYS,
+    'kind',
+    'multiline',
+    'readonly',
+    'disabled',
+    'required',
+    'invalid',
+    'label',
+    'value',
+    'onchange',
+  ];
 
   return () =>
     multiline ? (
-      <textarea ref={input.ref as never} {...input.restProps([...omit, 'rows'] as never)} rows={props.rows ?? 3} className={className()} />
+      <textarea
+        ref={input.ref as never}
+        {...input.restProps([...omit, 'rows'] as never)}
+        rows={props.rows ?? 3}
+        className={className()}
+      />
     ) : (
       <input ref={input.ref} {...input.restProps(omit as never)} className={className()} />
     );
@@ -60,6 +77,21 @@ export const SearchInput = setup<SearchInputProps>((props) => {
     $families([AUI_CLASS.CONTROL, AUI_CLASS.INPUT, AUI_CLASS.SEARCH_INPUT], props, auiConfig.searchInput);
 
   return () => (
-    <input ref={input.ref} {...input.restProps([...OMIT_KEYS, 'kind', 'multiline', 'readonly', 'disabled', 'required', 'invalid', 'label', 'value', 'onchange'])} className={className()} />
+    <input
+      ref={input.ref}
+      {...input.restProps([
+        ...OMIT_KEYS,
+        'kind',
+        'multiline',
+        'readonly',
+        'disabled',
+        'required',
+        'invalid',
+        'label',
+        'value',
+        'onchange',
+      ])}
+      className={className()}
+    />
   );
 }, 'SearchInput');

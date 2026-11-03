@@ -73,24 +73,24 @@ export const Pagination = setup<PaginationProps>((props) => {
 
   function renderRun() {
     return (
-        <For each={() => pageWindow(props.page ?? 1, props.total ?? 1, props.siblings)}>
-          {(entry) =>
-            typeof entry !== 'number' ? (
-              <span className={AUI_CLASS.PAGINATION_GAP} aria-hidden="true">
-                …
-              </span>
-            ) : (
-              <Link
-                href={props.href?.(entry) ?? `#page-${entry}`}
-                page={entry}
-                current={props.page === entry}
-                onClick={props.href ? undefined : stay}
-              >
-                {entry}
-              </Link>
-            )
-          }
-        </For>
+      <For each={() => pageWindow(props.page ?? 1, props.total ?? 1, props.siblings)}>
+        {(entry) =>
+          typeof entry !== 'number' ? (
+            <span className={AUI_CLASS.PAGINATION_GAP} aria-hidden="true">
+              …
+            </span>
+          ) : (
+            <Link
+              href={props.href?.(entry) ?? `#page-${entry}`}
+              page={entry}
+              current={props.page === entry}
+              onClick={props.href ? undefined : stay}
+            >
+              {entry}
+            </Link>
+          )
+        }
+      </For>
     );
   }
 }, 'Pagination');

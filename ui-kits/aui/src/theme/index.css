@@ -174,9 +174,21 @@
      * container's sits one step into it, so a default container separates from the page by tone as
      * well as by hue.
      */
-    --color-surface-lowest: color-mix(in oklch, var(--color-on-surface) var(--tone-elevation-lowest), var(--light-up));
-    --color-surface-low: color-mix(in oklch, var(--color-on-surface) var(--tone-elevation-low), var(--light-up));
-    --color-surface-high: color-mix(in oklch, var(--color-on-surface) var(--tone-elevation-high), var(--color-surface));
+    --color-surface-lowest: color-mix(
+      in oklch,
+      var(--color-on-surface) var(--tone-elevation-lowest),
+      var(--light-up)
+    );
+    --color-surface-low: color-mix(
+      in oklch,
+      var(--color-on-surface) var(--tone-elevation-low),
+      var(--light-up)
+    );
+    --color-surface-high: color-mix(
+      in oklch,
+      var(--color-on-surface) var(--tone-elevation-high),
+      var(--color-surface)
+    );
     --color-surface-highest: color-mix(
       in oklch,
       var(--color-on-surface) var(--tone-elevation-highest),

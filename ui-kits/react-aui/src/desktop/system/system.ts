@@ -46,7 +46,10 @@ function readPath(root: unknown, path: string): unknown {
       continue;
     }
     if (typeof current !== 'object' && typeof current !== 'function') return undefined;
-    if (!Object.hasOwn(current, step) && (!(step in current) || step in Object.prototype || step in Function.prototype)) {
+    if (
+      !Object.hasOwn(current, step) &&
+      (!(step in current) || step in Object.prototype || step in Function.prototype)
+    ) {
       return undefined;
     }
     try {

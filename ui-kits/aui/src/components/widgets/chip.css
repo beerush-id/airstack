@@ -18,7 +18,11 @@
     border: 0;
     border-radius: var(--radius-sm);
     color: var(--aui-chip-ink);
-    background-color: color-mix(in oklch, var(--aui-item-bg) var(--tone-container-strength), var(--color-surface-lowest));
+    background-color: color-mix(
+      in oklch,
+      var(--aui-item-bg) var(--tone-container-strength),
+      var(--color-surface-lowest)
+    );
     font-family: inherit;
     font-weight: 500;
     white-space: nowrap;
@@ -64,7 +68,11 @@
     user-select: none;
 
     &:hover:not(:disabled, [aria-disabled='true'], [aria-pressed='true'], .aui-chip-filled) {
-      background-color: color-mix(in oklch, var(--aui-item-bg) calc(var(--tone-container-strength) * 1.6), var(--color-surface-lowest));
+      background-color: color-mix(
+        in oklch,
+        var(--aui-item-bg) calc(var(--tone-container-strength) * 1.6),
+        var(--color-surface-lowest)
+      );
     }
 
     &[aria-pressed='true']:not(:disabled, [aria-disabled='true']) {
@@ -75,7 +83,11 @@
 
     /* A solid fill lifts under a layer of its own ink instead. */
     &:is(.aui-chip-filled, [aria-pressed='true']):hover:not(:disabled, [aria-disabled='true']) {
-      background-color: color-mix(in oklch, var(--aui-item-fg) var(--tone-hover-strength), var(--aui-item-bg));
+      background-color: color-mix(
+        in oklch,
+        var(--aui-item-fg) var(--tone-hover-strength),
+        var(--aui-item-bg)
+      );
     }
   }
 
@@ -102,7 +114,11 @@
 
     /* A layer of the ink over the chip's own fill, so it reads on a solid chip too. */
     &:hover:not(:disabled, [aria-disabled='true']) {
-      background-color: color-mix(in oklch, var(--aui-chip-ink) var(--tone-pressed-strength), transparent);
+      background-color: color-mix(
+        in oklch,
+        var(--aui-chip-ink) var(--tone-pressed-strength),
+        transparent
+      );
     }
   }
 }

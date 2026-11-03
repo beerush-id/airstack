@@ -155,7 +155,9 @@ describe('Stepper - Contract Specifications', () => {
           const parts = buildTree(props);
 
           parts.containerEl.addEventListener('input', (event) => domLive.push((event as StepperInputEvent).detail));
-          parts.containerEl.addEventListener('change', (event) => domChanged.push((event as StepperChangeEvent).detail));
+          parts.containerEl.addEventListener('change', (event) =>
+            domChanged.push((event as StepperChangeEvent).detail)
+          );
 
           parts.inputEl.focus();
           press(parts.inputEl, 'ArrowUp');
@@ -367,9 +369,13 @@ describe('Stepper - Contract Specifications', () => {
           const container = aria('stepper', props);
 
           const seen: unknown[] = [];
-          const input = aria<HTMLInputElement>('stepper-input', {
-            oninput: (event) => seen.push(event.detail),
-          }, { native: true });
+          const input = aria<HTMLInputElement>(
+            'stepper-input',
+            {
+              oninput: (event) => seen.push(event.detail),
+            },
+            { native: true }
+          );
 
           const containerEl = document.createElement('div');
           const inputEl = bind(document.createElement('input'), input);

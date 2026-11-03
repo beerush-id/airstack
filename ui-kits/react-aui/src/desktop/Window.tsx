@@ -338,7 +338,8 @@ export const Window = setup<WindowProps, WindowSlots>((props, slots) => {
   windowStateCtx.set(state);
 
   // Own prop, then what the host lends, then `configure()`.
-  const lent = <K extends keyof WindowHostScope>(key: K) => (props[key as keyof WindowProps] ?? host?.[key]) as WindowHostScope[K];
+  const lent = <K extends keyof WindowHostScope>(key: K) =>
+    (props[key as keyof WindowProps] ?? host?.[key]) as WindowHostScope[K];
 
   // The surface is not part of the shared control vocabulary, so the window names its own class for it.
   const className = () => {
@@ -609,9 +610,7 @@ export const WindowContent = template<WindowPartProps>(
 export const WindowResize = setup<WindowResizeProps>((props) => {
   const grip = aria('window-resize', props as AnyType);
 
-  return () => (
-    <div ref={grip.ref} {...grip.restProps(['edge'] as never)} className={$families(CLASS.RESIZE, props)} />
-  );
+  return () => <div ref={grip.ref} {...grip.restProps(['edge'] as never)} className={$families(CLASS.RESIZE, props)} />;
 }, 'WindowResize');
 
 /**

@@ -101,18 +101,14 @@ describe('Slider', () => {
           <SliderThumb />
         </Slider>
       );
-      expect(screen.getByRole('slider').className).toBe(
-        'aui-slider aui-slider-sm aui-slider-error aui-focusable'
-      );
+      expect(screen.getByRole('slider').className).toBe('aui-slider aui-slider-sm aui-slider-error aui-focusable');
       unmount();
       render(
         <Slider value={30} size="lg" color="info">
           <SliderThumb />
         </Slider>
       );
-      expect(screen.getByRole('slider').className).toBe(
-        'aui-slider aui-slider-lg aui-slider-info aui-focusable'
-      );
+      expect(screen.getByRole('slider').className).toBe('aui-slider aui-slider-lg aui-slider-info aui-focusable');
     });
   });
 

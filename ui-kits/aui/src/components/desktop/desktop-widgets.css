@@ -52,7 +52,7 @@
     --desktop-widgets-fit: round(
       down,
       (100cqi - var(--aui-desktop-widget-inset) * 2 + var(--aui-desktop-widget-gap)) /
-        (var(--aui-desktop-widget-cell) + var(--aui-desktop-widget-gap)),
+      (var(--aui-desktop-widget-cell) + var(--aui-desktop-widget-gap)),
       1
     );
     --desktop-widgets-columns: calc(round(down, (var(--desktop-widgets-fit) - 1) / 2, 1) * 2 + 1);
@@ -67,7 +67,9 @@
     padding-block-start: calc(var(--aui-desktop-widget-inset) * 2);
     /* The last row rests one gap above the dock, which publishes its height as it grows. */
     padding-block-end: calc(
-      var(--aui-dock-offset, 0px) + var(--aui-dock-block-size, 0px) + var(--aui-desktop-widget-gap)
+      var(--aui-dock-offset, 0px) +
+      var(--aui-dock-block-size, 0px) +
+      var(--aui-desktop-widget-gap)
     );
     overflow: auto;
     overscroll-behavior: contain;
@@ -82,7 +84,8 @@
   .aui-desktop-widget {
     --widget-span-x: 1;
     --widget-span-y: 1;
-    grid-column: var(
+    grid-column:
+      var(
         --widget-column,
         calc(round(down, (var(--desktop-widgets-columns, 1) - var(--widget-span-x)) / 2, 1) + 1)
       )

@@ -206,7 +206,8 @@ export class TextInputAria<
    */
   protected override createAttributes(): A {
     const { value, readonly, disabled, required, placeholder, label, invalid } = this.properties;
-    const type = this.options.role === 'search-input' || this.properties.kind === 'search' ? 'search' : this.properties.type;
+    const type =
+      this.options.role === 'search-input' || this.properties.kind === 'search' ? 'search' : this.properties.type;
     const attrs: Record<string, unknown> = {
       value: value ?? '',
       oninput: this.handleInput,

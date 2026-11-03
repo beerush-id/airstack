@@ -73,7 +73,11 @@
   /* No blur of its own: the frame's backdrop filter makes the frame the backdrop root, so a filter here would only see the frame's tint. */
   .aui-glass-panel,
   .aui-window-sidebar-panel {
-    background-color: color-mix(in oklch, var(--aui-glass-bg) var(--aui-glass-panel-tint), transparent);
+    background-color: color-mix(
+      in oklch,
+      var(--aui-glass-bg) var(--aui-glass-panel-tint),
+      transparent
+    );
     /* A pane's own edge, when what holds it gives one — e.g. a focused window panel — or the glass edge. */
     outline: 1px solid var(--aui-glass-panel-edge, var(--aui-glass-edge));
     outline-offset: -1px;

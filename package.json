@@ -62,7 +62,15 @@
   },
   "packageManager": "bun@1.3.2",
   "private": true,
-  "workspaces": ["apps/*", "packages/*", "irpclib/*", "demos/*", "ui-kits/*", "irpc-kits/*", "private/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "irpclib/*",
+    "demos/*",
+    "ui-kits/*",
+    "irpc-kits/*",
+    "private/*"
+  ],
   "author": "Nanang Mahdaen El Agung <mahdaen@gmail.com>",
   "homepage": "https://github.com/beerush-id/airstack",
   "license": "MIT",

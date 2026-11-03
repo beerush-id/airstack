@@ -89,15 +89,20 @@ export class TimelineScene {
       source.data ??= {};
     } else {
       const maxFrame = segment.offsetFrame + segment.state.totalFrames;
-      const rawFrame = options.atFrame !== undefined
-        ? options.atFrame
-        : options.atTime !== undefined
-          ? timeToFrame(options.atTime, this.timeline.frameRate)
-          : 0;
+      const rawFrame =
+        options.atFrame !== undefined
+          ? options.atFrame
+          : options.atTime !== undefined
+            ? timeToFrame(options.atTime, this.timeline.frameRate)
+            : 0;
       const atFrame = Math.min(maxFrame, Math.max(0, Math.round(rawFrame)));
 
       const { atTime, ...rest } = options;
-      this.source = keepNode(segment.source.scenes ??= [], { id: uuid(), options: { ...rest, atFrame }, data: { ...data } });
+      this.source = keepNode((segment.source.scenes ??= []), {
+        id: uuid(),
+        options: { ...rest, atFrame },
+        data: { ...data },
+      });
     }
 
     segment.scenes.push(this);

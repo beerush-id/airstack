@@ -122,7 +122,9 @@ export function shortcutLabel(shortcut: Shortcut, apple: boolean): string {
     return `${ctrl ? '⌃' : ''}${shortcut.alt ? '⌥' : ''}${shortcut.shift ? '⇧' : ''}${meta ? '⌘' : ''}${key}`;
   }
 
-  return [ctrl && 'Ctrl', meta && 'Win', shortcut.alt && 'Alt', shortcut.shift && 'Shift', key].filter(Boolean).join('+');
+  return [ctrl && 'Ctrl', meta && 'Win', shortcut.alt && 'Alt', shortcut.shift && 'Shift', key]
+    .filter(Boolean)
+    .join('+');
 }
 
 /**
@@ -137,7 +139,9 @@ export function shortcutAria(shortcut: Shortcut, apple: boolean): string {
   const ctrl = shortcut.ctrl || (shortcut.mod && !apple);
   const meta = shortcut.meta || (shortcut.mod && apple);
 
-  return [ctrl && 'Control', shortcut.alt && 'Alt', shortcut.shift && 'Shift', meta && 'Meta', key].filter(Boolean).join('+');
+  return [ctrl && 'Control', shortcut.alt && 'Alt', shortcut.shift && 'Shift', meta && 'Meta', key]
+    .filter(Boolean)
+    .join('+');
 }
 
 /**

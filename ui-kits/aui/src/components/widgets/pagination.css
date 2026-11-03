@@ -31,7 +31,11 @@
     transition: background-color var(--duration-short) var(--ease-emphasized);
 
     &:hover:not([aria-disabled='true'], [aria-current='page']) {
-      background-color: color-mix(in oklch, var(--aui-item-bg) var(--tone-hover-strength), transparent);
+      background-color: color-mix(
+        in oklch,
+        var(--aui-item-bg) var(--tone-hover-strength),
+        transparent
+      );
     }
 
     &[aria-current='page'] {
@@ -62,7 +66,11 @@
     transition: background-color var(--duration-short) var(--ease-emphasized);
 
     &:hover:not(:disabled) {
-      background-color: color-mix(in oklch, var(--aui-item-bg) var(--tone-hover-strength), transparent);
+      background-color: color-mix(
+        in oklch,
+        var(--aui-item-bg) var(--tone-hover-strength),
+        transparent
+      );
     }
 
     &:focus-visible {

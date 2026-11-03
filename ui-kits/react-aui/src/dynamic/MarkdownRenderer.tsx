@@ -131,7 +131,9 @@ function convert(node: Nodes, definitions: Map<string, Definition>): WidgetNode[
       const content = node.spread
         ? children()
         : node.children.flatMap((child) =>
-            child.type === 'paragraph' ? child.children.flatMap((part) => convert(part, definitions)) : convert(child, definitions)
+            child.type === 'paragraph'
+              ? child.children.flatMap((part) => convert(part, definitions))
+              : convert(child, definitions)
           );
       if (typeof node.checked !== 'boolean') return [{ role: 'li', children: content }];
       // A checkbox's children are its glyph, so the task's words sit beside it and name it.
@@ -150,7 +152,13 @@ function convert(node: Nodes, definitions: Map<string, Definition>): WidgetNode[
       return [
         {
           role: 'pre',
-          children: [{ role: 'code', props: node.lang ? { className: `language-${node.lang}` } : undefined, children: [node.value] }],
+          children: [
+            {
+              role: 'code',
+              props: node.lang ? { className: `language-${node.lang}` } : undefined,
+              children: [node.value],
+            },
+          ],
         },
       ];
     case 'inlineCode':
@@ -169,7 +177,9 @@ function convert(node: Nodes, definitions: Map<string, Definition>): WidgetNode[
       return [{ role: 'image', props: { src: node.url, alt: node.alt ?? '' } }];
     case 'linkReference': {
       const definition = definitions.get(node.identifier);
-      return definition ? [{ role: 'a', props: link(definition.url, definition.title), children: children() }] : children();
+      return definition
+        ? [{ role: 'a', props: link(definition.url, definition.title), children: children() }]
+        : children();
     }
     case 'imageReference': {
       const definition = definitions.get(node.identifier);

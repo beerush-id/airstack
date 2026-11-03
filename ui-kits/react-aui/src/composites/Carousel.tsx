@@ -135,7 +135,11 @@ export const CarouselNav = setup<CarouselNavProps>((props) => {
   const styles = carouselScope.inherit(props);
   const nav = aria(NAV_ROLE, props as AnyType);
   const className = () => {
-    const families = $families([AUI_CLASS.CONTROL, AUI_CLASS.BUTTON, AUI_CLASS.CAROUSEL_NAV], styles, auiConfig.carouselNav);
+    const families = $families(
+      [AUI_CLASS.CONTROL, AUI_CLASS.BUTTON, AUI_CLASS.CAROUSEL_NAV],
+      styles,
+      auiConfig.carouselNav
+    );
     return props.children ? families : `${families} ${AUI_CLASS.CONTROL_ICON}`;
   };
 

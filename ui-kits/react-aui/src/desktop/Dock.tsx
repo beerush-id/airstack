@@ -426,7 +426,12 @@ const DockTask = setup<ComponentStyles & { app: WindowApp }>((props) => {
                   <Snippet>
                     {() => (
                       <>
-                        <AppIconTile alt="" src={instance.thumbnail ?? props.app.image} icon={props.app.icon} aria-hidden="true" />
+                        <AppIconTile
+                          alt=""
+                          src={instance.thumbnail ?? props.app.image}
+                          icon={props.app.icon}
+                          aria-hidden="true"
+                        />
                         <span>{instance.title}</span>
                       </>
                     )}

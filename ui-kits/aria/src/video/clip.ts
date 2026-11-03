@@ -239,7 +239,12 @@ export class VideoClipAria<
 
     // Content first: what `draw` adds, e.g. an SVG image, is then waited for like the rest.
     const drawn = this.options.draw?.({ values, frame, time, element, signal });
-    return settleAll([drawn, this.decode(element), this.follow(element, time, signal), this.paint(element, time, signal)]);
+    return settleAll([
+      drawn,
+      this.decode(element),
+      this.follow(element, time, signal),
+      this.paint(element, time, signal),
+    ]);
   }
 
   /**
@@ -543,7 +548,8 @@ function imageSource(image: HTMLImageElement | SVGImageElement): string {
 function sizeOf(picture: CanvasImageSource): [width: number, height: number] {
   if (picture instanceof HTMLVideoElement) return [picture.videoWidth, picture.videoHeight];
   if (picture instanceof HTMLImageElement) return [picture.naturalWidth, picture.naturalHeight];
-  if (typeof VideoFrame !== 'undefined' && picture instanceof VideoFrame) return [picture.displayWidth, picture.displayHeight];
+  if (typeof VideoFrame !== 'undefined' && picture instanceof VideoFrame)
+    return [picture.displayWidth, picture.displayHeight];
   if (picture instanceof SVGImageElement) return [picture.width.baseVal.value, picture.height.baseVal.value];
   return [(picture as HTMLCanvasElement).width, (picture as HTMLCanvasElement).height];
 }

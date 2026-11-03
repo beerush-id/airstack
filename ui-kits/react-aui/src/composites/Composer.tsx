@@ -53,7 +53,11 @@ register('composer', { size: SIZES.MD, color: COLORS.PRIMARY });
 export const Composer = setup<ComposerProps>((props) => {
   const input = aria(TEXT_INPUT_ROLE, props as AnyType);
   const className = () =>
-    $families([AUI_CLASS.SCALE, AUI_CLASS.COMPOSER], { size: props.size, color: props.color, className: props.className }, auiConfig.composer);
+    $families(
+      [AUI_CLASS.SCALE, AUI_CLASS.COMPOSER],
+      { size: props.size, color: props.color, className: props.className },
+      auiConfig.composer
+    );
 
   const submit = () => {
     const text = input.value.trim();
@@ -73,14 +77,27 @@ export const Composer = setup<ComposerProps>((props) => {
       <div className={CLASS.MAIN}>
         <textarea
           ref={input.ref as AnyType}
-          {...input.restProps([...OMIT_KEYS, 'value', 'rows', 'optionsLabel', 'submitLabel', 'submitMeta', 'busy', 'onsubmit'] as never)}
+          {...input.restProps([
+            ...OMIT_KEYS,
+            'value',
+            'rows',
+            'optionsLabel',
+            'submitLabel',
+            'submitMeta',
+            'busy',
+            'onsubmit',
+          ] as never)}
           placeholder={props.placeholder}
           rows={props.rows ?? 2}
           className={CLASS.INPUT}
           onKeyDown={handleKeyDown}
         />
         {props.children && (
-          <Toolbar label={props.optionsLabel} variant="text" className={`${AUI_CLASS.TOOLBAR_OPTIONS} ${CLASS.OPTIONS}`}>
+          <Toolbar
+            label={props.optionsLabel}
+            variant="text"
+            className={`${AUI_CLASS.TOOLBAR_OPTIONS} ${CLASS.OPTIONS}`}
+          >
             {props.children}
           </Toolbar>
         )}

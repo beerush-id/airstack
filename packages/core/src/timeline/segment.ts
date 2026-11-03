@@ -180,7 +180,8 @@ export class TimelineSegment<P extends Record<string, AnyType> = Record<string, 
     });
 
     track.segments.add(this as never);
-    if (source) for (const node of [...(this.source.scenes ?? [])]) new TimelineScene(this as never, undefined, undefined, node);
+    if (source)
+      for (const node of [...(this.source.scenes ?? [])]) new TimelineScene(this as never, undefined, undefined, node);
     this.refresh();
   }
 

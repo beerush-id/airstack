@@ -456,7 +456,9 @@ export class VideoTimelineAria<
     const along = [...track.segments].sort((a, b) => a.startFrame - b.startFrame);
     const frame = this.timeline.state.frame;
     const distance = (segment: TimelineSegment) => Math.max(segment.startFrame - frame, frame - segment.endFrame, 0);
-    const next = from ? along[along.indexOf(from) + direction] : [...along].sort((a, b) => distance(a) - distance(b))[0];
+    const next = from
+      ? along[along.indexOf(from) + direction]
+      : [...along].sort((a, b) => distance(a) - distance(b))[0];
     const clip = next && this.clipOf(next);
     if (!next || !clip) return;
 
@@ -791,5 +793,7 @@ export class VideoTimelineAria<
  * @returns Whether it keeps the key for itself.
  */
 function isTyping(target: EventTarget | null): boolean {
-  return target instanceof HTMLElement && (target.isContentEditable || !!target.closest('input, textarea, select, button'));
+  return (
+    target instanceof HTMLElement && (target.isContentEditable || !!target.closest('input, textarea, select, button'))
+  );
 }

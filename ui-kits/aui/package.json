@@ -3,7 +3,13 @@
   "name": "@airlib/aui",
   "version": "2.3.0",
   "description": "Aria Headless Component Library CSS Theme",
-  "keywords": ["aria", "design-system", "css", "theme", "air-stack"],
+  "keywords": [
+    "aria",
+    "design-system",
+    "css",
+    "theme",
+    "air-stack"
+  ],
   "author": "Nanang Mahdaen El Agung <mahdaen@gmail.com>",
   "repository": {
     "type": "git",
@@ -12,7 +18,9 @@
   "bugs": {
     "url": "https://github.com/beerush-id/airstack/issues"
   },
-  "sideEffects": ["*.css"],
+  "sideEffects": [
+    "*.css"
+  ],
   "exports": {
     ".": "./src/index.css",
     "./bundle": "./dist/index.css",
@@ -25,7 +33,10 @@
     },
     "./*": "./src/*"
   },
-  "files": ["src", "dist"],
+  "files": [
+    "src",
+    "dist"
+  ],
   "publishConfig": {
     "access": "public"
   },

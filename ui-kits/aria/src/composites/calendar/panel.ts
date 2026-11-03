@@ -89,7 +89,11 @@ export class DatePickerCalendarAria<E extends BaseElement = HTMLElement> extends
   protected override createAttributes(): DatePickerCalendarAttributes<E> {
     // In place it is a named group of days, not a dialog.
     if (this.inline) {
-      return { id: this.id, role: 'group', 'aria-label': this.host?.properties.label } as DatePickerCalendarAttributes<E>;
+      return {
+        id: this.id,
+        role: 'group',
+        'aria-label': this.host?.properties.label,
+      } as DatePickerCalendarAttributes<E>;
     }
 
     const overrides: DatePickerCalendarAttributes<E> = {

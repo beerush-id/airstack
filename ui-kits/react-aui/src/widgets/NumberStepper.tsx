@@ -4,8 +4,9 @@ import { type Bindable, setup } from '@airlib/react';
 import type { ComponentProps, ReactNode } from 'react';
 import { $families, auiConfig, FIELD_STYLES, type FieldStyles, OMIT_KEYS } from '../config.js';
 
-export interface NumberStepperProps extends Omit<ComponentProps<'input'>, 'className' | 'color' | 'value' | 'size'>,
-  FieldStyles {
+export interface NumberStepperProps
+  extends Omit<ComponentProps<'input'>, 'className' | 'color' | 'value' | 'size'>,
+    FieldStyles {
   value?: Bindable<number>;
   min?: number;
   max?: number;

@@ -478,7 +478,8 @@ export class Aria<
     // Hovering, the box is measured once and reused: measuring it every frame makes the browser
     // lay the page out again each time. With a button held, the element may be moving with the
     // pointer — a window dragged by it — so it's measured afresh.
-    const rect = event.buttons || !this.pointerBox ? (this.pointerBox = element.getBoundingClientRect()) : this.pointerBox;
+    const rect =
+      event.buttons || !this.pointerBox ? (this.pointerBox = element.getBoundingClientRect()) : this.pointerBox;
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
     if (Math.abs(x - this.pointerX) < 1 && Math.abs(y - this.pointerY) < 1) return;

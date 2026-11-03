@@ -3,7 +3,16 @@ import { render, screen } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import React, { act } from 'react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { Field, FieldControl, FieldDescription, FieldError, FieldLabel, NumberStepper, SearchInput, TextInput } from '../../src/index.js';
+import {
+  Field,
+  FieldControl,
+  FieldDescription,
+  FieldError,
+  FieldLabel,
+  NumberStepper,
+  SearchInput,
+  TextInput,
+} from '../../src/index.js';
 import { restoreConfig, runApp, snapshotConfig } from '../setup.js';
 
 let destroy: StateUnsubscribe | undefined;

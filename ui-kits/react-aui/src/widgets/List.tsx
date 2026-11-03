@@ -39,7 +39,17 @@ const CLASS = {
 };
 
 const LIST_OMIT: Array<keyof ListProps> = ['label', 'children', 'className', 'size', 'color'];
-const ITEM_OMIT: Array<keyof ListItemProps> = ['title', 'description', 'meta', 'image', 'href', 'children', 'className', 'size', 'color'];
+const ITEM_OMIT: Array<keyof ListItemProps> = [
+  'title',
+  'description',
+  'meta',
+  'image',
+  'href',
+  'children',
+  'className',
+  'size',
+  'color',
+];
 
 register('list', { size: SIZES.MD, color: COLORS.SECONDARY });
 

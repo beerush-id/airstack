@@ -27,20 +27,21 @@ export type WindowState = {
  * awareness, the sidebar's resize range. Its geometry and state live on each
  * copy instead.
  */
-export type WindowBehavior = Pick<WindowProps, 'sidebarMinWidth' | 'sidebarMaxWidth'> & Omit<
-  WindowAriaProps,
-  | 'id'
-  | 'label'
-  | keyof WindowState
-  | 'onmove'
-  | 'onresize'
-  | 'onclose'
-  | 'onminimize'
-  | 'onmaximize'
-  | 'onrestore'
-  | 'onraise'
-  | 'onrelease'
->;
+export type WindowBehavior = Pick<WindowProps, 'sidebarMinWidth' | 'sidebarMaxWidth'> &
+  Omit<
+    WindowAriaProps,
+    | 'id'
+    | 'label'
+    | keyof WindowState
+    | 'onmove'
+    | 'onresize'
+    | 'onclose'
+    | 'onminimize'
+    | 'onmaximize'
+    | 'onrestore'
+    | 'onraise'
+    | 'onrelease'
+  >;
 
 /**
  * One open copy of a defined window — the window itself. Its `state` is the
@@ -330,7 +331,9 @@ function createApp<D>(definition: WindowDefinition<D>): WindowApp<D> {
     remember: true,
     ...definition,
     get instances() {
-      return [...openWindows.values()].filter((instance) => instance.app.name === definition.name) as WindowInstance<D>[];
+      return [...openWindows.values()].filter(
+        (instance) => instance.app.name === definition.name
+      ) as WindowInstance<D>[];
     },
     get view() {
       return view;

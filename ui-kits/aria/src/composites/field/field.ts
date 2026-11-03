@@ -163,7 +163,18 @@ export class FieldAria<
     $static(() => {
       this.properties.id = this.properties.id ?? `${ROLE_FIELD}-${uIndex($symbol(ROLE_FIELD), true)}`;
     });
-    this.omittedAttrs.push('id', 'type', 'value', 'invalid', 'touched', 'invalidMessages', 'oninput', 'disabled', 'required', 'placeholder');
+    this.omittedAttrs.push(
+      'id',
+      'type',
+      'value',
+      'invalid',
+      'touched',
+      'invalidMessages',
+      'oninput',
+      'disabled',
+      'required',
+      'placeholder'
+    );
 
     fieldCtx.set(this as unknown as FieldAria);
     this.update();

@@ -3,7 +3,16 @@
   "name": "@airlib/react-aui",
   "version": "2.3.0",
   "description": "Reactive and declarative React headless components built on AirLib.",
-  "keywords": ["react", "form", "validation", "zod", "reactive", "airlib", "anchor", "typescript"],
+  "keywords": [
+    "react",
+    "form",
+    "validation",
+    "zod",
+    "reactive",
+    "airlib",
+    "anchor",
+    "typescript"
+  ],
   "author": "Nanang Mahdaen El Agung <mahdaen@gmail.com>",
   "repository": {
     "type": "git",
@@ -45,7 +54,9 @@
       "import": "./dist/widgets/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "directories": {
     "dist": "dist"
   },
@@ -86,11 +97,21 @@
     "unified": "catalog:lib"
   },
   "peerDependenciesMeta": {
-    "remark-gfm": { "optional": true },
-    "remark-math": { "optional": true },
-    "remark-parse": { "optional": true },
-    "temml": { "optional": true },
-    "unified": { "optional": true }
+    "remark-gfm": {
+      "optional": true
+    },
+    "remark-math": {
+      "optional": true
+    },
+    "remark-parse": {
+      "optional": true
+    },
+    "temml": {
+      "optional": true
+    },
+    "unified": {
+      "optional": true
+    }
   },
   "scripts": {
     "dev": "rimraf dist && tsdown --watch ./src",

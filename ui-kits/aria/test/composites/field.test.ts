@@ -15,11 +15,7 @@ function blurOut(element: HTMLElement) {
   element.dispatchEvent(new FocusEvent('blur'));
 }
 
-function buildField(
-  props: Partial<FieldProps>,
-  options?: FieldOptions,
-  controlHost: 'native' | 'custom' = 'native',
-) {
+function buildField(props: Partial<FieldProps>, options?: FieldOptions, controlHost: 'native' | 'custom' = 'native') {
   const field = aria('field', props as FieldProps, options);
   const fieldEl = bind(document.createElement('div'), field);
   document.body.appendChild(fieldEl);

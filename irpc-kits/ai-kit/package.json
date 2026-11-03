@@ -17,7 +17,9 @@
       "import": "./dist/worker.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "directories": {
     "dist": "./dist"
   },

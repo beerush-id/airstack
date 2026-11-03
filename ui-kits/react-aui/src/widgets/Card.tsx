@@ -132,10 +132,7 @@ export const CardTitle = template<CardTitleProps>((props) => {
 /** One or two lines under the title. */
 export const CardDescription = template<CardPartProps>(
   (props) => (
-    <p
-      {...(props.$omit(['className']) as ComponentProps<'p'>)}
-      className={$class(props, CARD_CLASS.DESCRIPTION)}
-    />
+    <p {...(props.$omit(['className']) as ComponentProps<'p'>)} className={$class(props, CARD_CLASS.DESCRIPTION)} />
   ),
   'CardDescription'
 );

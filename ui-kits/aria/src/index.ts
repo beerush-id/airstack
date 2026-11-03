@@ -337,7 +337,10 @@ export function aria<E extends BaseElement = HTMLElement, T extends Primitive = 
   props?: ToggleGroupProps<T>
 ): ToggleGroupAria<E, ToggleGroupProps<T>>;
 
-export function aria<E extends BaseElement = HTMLElement>(role: 'segment-group', props?: SegmentGroupProps): SegmentGroupAria<E>;
+export function aria<E extends BaseElement = HTMLElement>(
+  role: 'segment-group',
+  props?: SegmentGroupProps
+): SegmentGroupAria<E>;
 
 export function aria<E extends BaseElement = HTMLElement, T extends Primitive = Primitive>(
   role: 'switch',

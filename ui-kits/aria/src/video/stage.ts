@@ -318,7 +318,10 @@ export class VideoStageAria<
     const fit = () => {
       const box = element.parentElement?.getBoundingClientRect();
       if (!box?.width || !box.height) return;
-      element.style.setProperty('--aria-video-scale', String(Math.min(box.width / this.width, box.height / this.height)));
+      element.style.setProperty(
+        '--aria-video-scale',
+        String(Math.min(box.width / this.width, box.height / this.height))
+      );
     };
     const resize = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(fit) : undefined;
     if (element.parentElement) resize?.observe(element.parentElement);
@@ -472,7 +475,9 @@ export class VideoStageAria<
     const canvas = this.canvas;
     if (!canvas) return;
     this.context ??= canvas.getContext('2d');
-    const ctx = this.context as (CanvasRenderingContext2D & { drawElementImage?: (el: Element, x: number, y: number) => void }) | null;
+    const ctx = this.context as
+      | (CanvasRenderingContext2D & { drawElementImage?: (el: Element, x: number, y: number) => void })
+      | null;
     if (!ctx) return;
 
     ctx.reset();

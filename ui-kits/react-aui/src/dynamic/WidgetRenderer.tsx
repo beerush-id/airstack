@@ -193,7 +193,11 @@ function resolve(role: string, vocabulary: WidgetVocabulary): ComponentType | st
  * @param host - The widget's host, which may allow links of its own.
  * @returns The props to hand over.
  */
-function safeProps(props: Record<string, JsonValue> | undefined, tag: boolean, host?: WidgetHost): Record<string, unknown> {
+function safeProps(
+  props: Record<string, JsonValue> | undefined,
+  tag: boolean,
+  host?: WidgetHost
+): Record<string, unknown> {
   const safe: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(props ?? {})) {
     if (!isSafeProp(key)) continue;

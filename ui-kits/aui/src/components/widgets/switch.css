@@ -20,7 +20,11 @@
 
     &:hover:not(:disabled, [aria-disabled='true']) .aui-switch-thumb {
       box-shadow: 0 0 0 calc(var(--aui-control-height) * var(--aui-halo-scale))
-        color-mix(in oklch, var(--aui-control-bg) var(--aui-halo-strength), black var(--aui-halo-shade));
+        color-mix(
+          in oklch,
+          var(--aui-control-bg) var(--aui-halo-strength),
+          black var(--aui-halo-shade)
+        );
     }
 
     &.aui-control:active {

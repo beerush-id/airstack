@@ -59,7 +59,23 @@ export const Field = setup<FieldProps>((props) => {
   fieldScope.provide(props);
 
   return () => (
-    <div ref={field.ref} {...field.restProps([...OMIT_KEYS, 'id', 'type', 'value', 'placeholder', 'required', 'disabled', 'invalid', 'invalidMessages', 'touched', 'oninput'])} className={className()}>
+    <div
+      ref={field.ref}
+      {...field.restProps([
+        ...OMIT_KEYS,
+        'id',
+        'type',
+        'value',
+        'placeholder',
+        'required',
+        'disabled',
+        'invalid',
+        'invalidMessages',
+        'touched',
+        'oninput',
+      ])}
+      className={className()}
+    >
       {props.children}
     </div>
   );

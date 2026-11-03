@@ -3,7 +3,12 @@
   "name": "@airlib/vite",
   "version": "2.3.0",
   "description": "Vite plugin that handles SSR rendering and IRPC routing for AirLib applications",
-  "keywords": ["vite", "ssr", "anchor", "irpc"],
+  "keywords": [
+    "vite",
+    "ssr",
+    "anchor",
+    "irpc"
+  ],
   "author": "Nanang Mahdaen El Agung <mahdaen@gmail.com>",
   "homepage": "https://github.com/beerush-id/airstack",
   "license": "MIT",
@@ -33,7 +38,9 @@
       "types": "./dist/ambient.d.ts"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "directories": {
     "dist": "./dist"
   },

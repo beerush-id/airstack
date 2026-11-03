@@ -3,7 +3,13 @@
   "name": "@airlib/react",
   "version": "2.3.0",
   "description": "React bindings for Anchor reactive state management",
-  "keywords": ["state", "management", "reactive", "observable", "react"],
+  "keywords": [
+    "state",
+    "management",
+    "reactive",
+    "observable",
+    "react"
+  ],
   "author": "Nanang Mahdaen El Agung <mahdaen@gmail.com>",
   "homepage": "https://github.com/beerush-id/airstack",
   "license": "MIT",
@@ -75,7 +81,9 @@
     },
     "./mdx/*.css": "./src/mdx/*.css"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "directories": {
     "dist": "./dist"
   },

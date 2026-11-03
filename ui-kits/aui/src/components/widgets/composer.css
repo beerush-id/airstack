@@ -91,7 +91,10 @@
     block-size: auto;
     min-block-size: calc(var(--aui-control-height) * 1.75);
     padding-inline: var(--spacing-lg);
-    border-radius: max(calc(var(--aui-composer-radius) - var(--aui-composer-padding)), var(--radius-xs));
+    border-radius: max(
+      calc(var(--aui-composer-radius) - var(--aui-composer-padding)),
+      var(--radius-xs)
+    );
   }
 
   .aui-composer-submit-label {

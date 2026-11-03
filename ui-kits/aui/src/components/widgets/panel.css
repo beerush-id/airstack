@@ -68,25 +68,13 @@
     animation: aui-panel-pop var(--duration-medium) var(--ease-emphasized-decelerate) forwards;
 
     .aui-item:first-child {
-      border-start-start-radius: calc(
-        var(--aui-panel-radius) *
-        var(--aui-panel-radius-strength)
-      );
-      border-start-end-radius: calc(
-        var(--aui-panel-radius) *
-        var(--aui-panel-radius-strength)
-      );
+      border-start-start-radius: calc(var(--aui-panel-radius) * var(--aui-panel-radius-strength));
+      border-start-end-radius: calc(var(--aui-panel-radius) * var(--aui-panel-radius-strength));
     }
 
     .aui-item:last-child {
-      border-end-start-radius: calc(
-        var(--aui-panel-radius) *
-        var(--aui-panel-radius-strength)
-      );
-      border-end-end-radius: calc(
-        var(--aui-panel-radius) *
-        var(--aui-panel-radius-strength)
-      );
+      border-end-start-radius: calc(var(--aui-panel-radius) * var(--aui-panel-radius-strength));
+      border-end-end-radius: calc(var(--aui-panel-radius) * var(--aui-panel-radius-strength));
     }
   }
 

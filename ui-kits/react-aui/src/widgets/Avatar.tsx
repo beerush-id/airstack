@@ -37,7 +37,16 @@ const AVATAR_MORE = branded('avatar-more');
 const AVATAR_LABEL = branded('avatar-label');
 const SCALE = branded('scale');
 
-const GROUP_OMIT: Array<keyof AvatarGroupProps> = ['label', 'items', 'max', 'moreLabel', 'size', 'color', 'className', 'children'];
+const GROUP_OMIT: Array<keyof AvatarGroupProps> = [
+  'label',
+  'items',
+  'max',
+  'moreLabel',
+  'size',
+  'color',
+  'className',
+  'children',
+];
 
 register('avatar', { size: 'md', color: 'primary' });
 register('avatarGroup', {});

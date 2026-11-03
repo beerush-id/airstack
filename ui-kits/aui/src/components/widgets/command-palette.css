@@ -30,7 +30,11 @@
     --aui-command-palette-edge: 1px;
     /* The field and the rows sit one edge and one padding in from the sheet's, so their corners follow its. */
     --aui-command-palette-inner-radius: max(
-      calc(var(--aui-modal-radius) - var(--aui-command-palette-edge) - var(--aui-command-palette-padding)),
+      calc(
+        var(--aui-modal-radius) -
+        var(--aui-command-palette-edge) -
+        var(--aui-command-palette-padding)
+      ),
       0px
     );
     --aui-item-radius: var(--aui-command-palette-inner-radius);
@@ -71,7 +75,10 @@
   }
 
   .aui-item.aui-command-palette-item {
-    min-block-size: max(var(--aui-control-height), calc(var(--aui-command-palette-inner-radius) * 2));
+    min-block-size: max(
+      var(--aui-control-height),
+      calc(var(--aui-command-palette-inner-radius) * 2)
+    );
   }
 
   /*
@@ -89,7 +96,10 @@
     padding: var(--aui-command-palette-ring-room);
     overflow-y: auto;
     overscroll-behavior: contain;
-    border-radius: calc(var(--aui-command-palette-inner-radius) + var(--aui-command-palette-ring-room));
+    border-radius: calc(
+      var(--aui-command-palette-inner-radius) +
+      var(--aui-command-palette-ring-room)
+    );
     outline: none;
 
     &[hidden] {
@@ -118,8 +128,6 @@
     font-weight: 600;
     letter-spacing: var(--font-label-md-tracking);
   }
-
-
 
   .aui-command-palette-empty {
     padding: var(--spacing-lg);

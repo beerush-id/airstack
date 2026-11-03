@@ -6,7 +6,8 @@
     --aui-feed-article-radius: var(--radius-lg);
     --aui-feed-article-padding: var(--spacing-md) var(--spacing-lg);
     --aui-feed-article-bg: var(--color-surface);
-    --aui-feed-article-hover-bg: var(--color-surface-low);  }
+    --aui-feed-article-hover-bg: var(--color-surface-low);
+  }
 }
 
 /* Entries are tonal cards on the surface ramp; focus lifts the one being read. */

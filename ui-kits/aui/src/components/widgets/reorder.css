@@ -69,14 +69,20 @@
      * moves stay put.
      */
     & > .aui-reorder-card {
-      background-color: color-mix(in oklch, var(--aui-item-bg) var(--tone-container-strength), var(--aui-reorder-item-bg));
+      background-color: color-mix(
+        in oklch,
+        var(--aui-item-bg) var(--tone-container-strength),
+        var(--aui-reorder-item-bg)
+      );
       box-shadow: var(--elevation-2);
-      translate: 0 calc(var(--drag-move-y) - var(--aui-reorder-shift) * (100% + var(--aui-reorder-gap)));
+      translate: 0
+        calc(var(--drag-move-y) - var(--aui-reorder-shift) * (100% + var(--aui-reorder-gap)));
     }
   }
 
   .aui-reorder-horizontal > .aui-reorder-item[data-active='true'] > .aui-reorder-card {
-    translate: calc(var(--drag-move-x) - var(--aui-reorder-shift) * (100% + var(--aui-reorder-gap))) 0;
+    translate: calc(var(--drag-move-x) - var(--aui-reorder-shift) * (100% + var(--aui-reorder-gap)))
+      0;
   }
 
   .aui-reorder-item[aria-disabled='true'] > .aui-reorder-card {
@@ -98,7 +104,8 @@
       transition-property: color;
     }
 
-    .aui-reorder-card:is(:hover, :focus-within) &.aui-button:not([data-active='true'], [aria-disabled='true']) {
+    .aui-reorder-card:is(:hover, :focus-within)
+      &.aui-button:not([data-active='true'], [aria-disabled='true']) {
       color: var(--aui-control-bg);
     }
 

@@ -66,12 +66,20 @@ describe('Form', () => {
 
   it('supports additive and replacement class modes', async () => {
     destroy = await runApp(async () => {
-      const { unmount } = render(<Form label="A" className="my-form">fields</Form>);
+      const { unmount } = render(
+        <Form label="A" className="my-form">
+          fields
+        </Form>
+      );
       expect(screen.getByRole('form', { name: 'A' }).className).toContain('my-form');
       expect(screen.getByRole('form', { name: 'A' }).className).toContain('aui-form');
       unmount();
       configure({ overrides: true });
-      render(<Form label="A" className="only-me">fields</Form>);
+      render(
+        <Form label="A" className="only-me">
+          fields
+        </Form>
+      );
       expect(screen.getByRole('form', { name: 'A' }).className).toBe('only-me');
     });
   });

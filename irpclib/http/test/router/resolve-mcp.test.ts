@@ -83,7 +83,11 @@ describe('HTTPRouter resolveMcp', () => {
     const response = await router.resolveMcp(rpc({ id: 3, method: 'tools/list' }));
     const { result } = await response.json();
 
-    expect(result.tools.map((tool: { name: string }) => tool.name)).toEqual(['files.fs.read', 'files.fs.copy', 'files.fs.open']);
+    expect(result.tools.map((tool: { name: string }) => tool.name)).toEqual([
+      'files.fs.read',
+      'files.fs.copy',
+      'files.fs.open',
+    ]);
     expect(result.tools[1].inputSchema).toMatchObject({ required: ['src', 'dest'] });
   });
 

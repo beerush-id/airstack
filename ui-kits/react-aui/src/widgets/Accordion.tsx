@@ -89,7 +89,11 @@ export const AccordionButton = setup<AccordionButtonProps>((props) => {
   const styles = accordionScope.inherit(props);
   const button = aria(BUTTON_ROLE, props as AnyType);
   const className = () =>
-    $families([AUI_CLASS.ITEM, AUI_CLASS.COLLAPSIBLE_HEADER, AUI_CLASS.ACCORDION_BUTTON], styles, auiConfig.accordionButton);
+    $families(
+      [AUI_CLASS.ITEM, AUI_CLASS.COLLAPSIBLE_HEADER, AUI_CLASS.ACCORDION_BUTTON],
+      styles,
+      auiConfig.accordionButton
+    );
 
   return () => (
     <button ref={button.ref} {...button.restProps(OMIT_KEYS)} className={className()}>

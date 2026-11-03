@@ -67,7 +67,9 @@ describe('sampleSegment', () => {
 
   it('shows a clip trimmed at its head from where the trim cut to, not from its beginning', () => {
     const timeline = new Timeline({ frameRate: 30 });
-    const title = timeline.addTrack({ name: 'titles' }).addSegment({ name: 'Harbor at dawn', duration: 3, startFrame: 30 }, { opacity: 1 });
+    const title = timeline
+      .addTrack({ name: 'titles' })
+      .addSegment({ name: 'Harbor at dawn', duration: 3, startFrame: 30 }, { opacity: 1 });
     title.addScene({ atFrame: 0, meta: { ease: 'linear' } }, { opacity: 0 });
     title.addScene({ atFrame: 30 }, { opacity: 1 });
     timeline.refresh();

@@ -131,7 +131,12 @@ export const StepperIncrement = setup<StepperButtonProps>((props) => {
   const button = aria(INCREMENT_ROLE, props as AnyType);
 
   return () => (
-    <button ref={button.ref} {...button.restProps(OMIT_KEYS)} type="button" className={stepButtonClass(props, group?.size)}>
+    <button
+      ref={button.ref}
+      {...button.restProps(OMIT_KEYS)}
+      type="button"
+      className={stepButtonClass(props, group?.size)}
+    >
       {props.children}
     </button>
   );
@@ -146,7 +151,12 @@ export const StepperDecrement = setup<StepperButtonProps>((props) => {
   const button = aria(DECREMENT_ROLE, props as AnyType);
 
   return () => (
-    <button ref={button.ref} {...button.restProps(OMIT_KEYS)} type="button" className={stepButtonClass(props, group?.size)}>
+    <button
+      ref={button.ref}
+      {...button.restProps(OMIT_KEYS)}
+      type="button"
+      className={stepButtonClass(props, group?.size)}
+    >
       {props.children}
     </button>
   );

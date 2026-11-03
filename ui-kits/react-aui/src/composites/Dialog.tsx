@@ -57,7 +57,8 @@ export const {
  */
 export const Dialog = setup<DialogProps, DialogSlots>((props, slots) => {
   const dialog = aria(DIALOG_ROLE, props as AnyType);
-  const className = () => $families([AUI_CLASS.MODAL, AUI_CLASS.DIALOG], { className: props.className }, auiConfig.dialog);
+  const className = () =>
+    $families([AUI_CLASS.MODAL, AUI_CLASS.DIALOG], { className: props.className }, auiConfig.dialog);
 
   modalScope.provide(props);
 

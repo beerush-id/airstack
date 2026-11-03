@@ -3,7 +3,13 @@
   "name": "@airlib/storage",
   "version": "2.3.0",
   "description": "Persistent storage solutions for Anchor state management",
-  "keywords": ["state", "management", "reactive", "observable", "storage"],
+  "keywords": [
+    "state",
+    "management",
+    "reactive",
+    "observable",
+    "storage"
+  ],
   "author": "Nanang Mahdaen El Agung <mahdaen@gmail.com>",
   "homepage": "https://github.com/beerush-id/airstack",
   "license": "MIT",
@@ -26,7 +32,9 @@
       "import": "./dist/db/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "directories": {
     "dist": "./dist"
   },

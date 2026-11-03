@@ -1,13 +1,6 @@
 import { $static, $symbol, createContext, uIndex } from '@airlib/core';
 import { Aria } from '../../core.js';
-import type {
-  AriaAttributes,
-  AriaEvent,
-  AriaEventHandler,
-  AriaOptions,
-  AriaProps,
-  BaseElement,
-} from '../../types.js';
+import type { AriaAttributes, AriaEvent, AriaEventHandler, AriaOptions, AriaProps, BaseElement } from '../../types.js';
 import { DialogCloseAria } from './close.js';
 import { DialogDescriptionAria } from './description.js';
 import { DialogPanelAria } from './panel.js';

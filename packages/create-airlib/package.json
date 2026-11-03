@@ -3,17 +3,7 @@
   "version": "2.3.0",
   "description": "Scaffolding tool for AirLib",
   "type": "module",
-  "keywords": [
-    "airlib",
-    "starter",
-    "template",
-    "scaffold",
-    "cli",
-    "create-airlib",
-    "react",
-    "solid",
-    "irpc"
-  ],
+  "keywords": ["airlib", "starter", "template", "scaffold", "cli", "create-airlib", "react", "solid", "irpc"],
   "author": "Nanang Mahdaen El Agung <mahdaen@gmail.com>",
   "homepage": "https://github.com/beerush-id/airstack",
   "license": "MIT",
@@ -30,10 +20,7 @@
   "bin": {
     "create-airlib": "./bin/index.js"
   },
-  "files": [
-    "bin",
-    "dist"
-  ],
+  "files": ["bin", "dist"],
   "scripts": {
     "clean": "rimraf dist && mkdir -p dist",
     "dev": "bun run clean && bun run template && bun run skills && tsdown --watch",

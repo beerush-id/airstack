@@ -110,9 +110,29 @@ describe('Reorder - Coverage & Edge Cases', () => {
         document.body.appendChild(listEl);
 
         itemXEl.getBoundingClientRect = () =>
-          ({ left: 0, right: 80, top: 0, bottom: 40, width: 80, height: 40, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect;
+          ({
+            left: 0,
+            right: 80,
+            top: 0,
+            bottom: 40,
+            width: 80,
+            height: 40,
+            x: 0,
+            y: 0,
+            toJSON: () => ({}),
+          }) as DOMRect;
         itemYEl.getBoundingClientRect = () =>
-          ({ left: 80, right: 160, top: 0, bottom: 40, width: 80, height: 40, x: 80, y: 0, toJSON: () => ({}) }) as DOMRect;
+          ({
+            left: 80,
+            right: 160,
+            top: 0,
+            bottom: 40,
+            width: 80,
+            height: 40,
+            x: 80,
+            y: 0,
+            toJSON: () => ({}),
+          }) as DOMRect;
 
         handleXEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
         expect(props.active).toBeUndefined();

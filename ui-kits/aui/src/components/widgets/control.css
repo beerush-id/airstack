@@ -71,7 +71,9 @@
 
     transition-duration: var(--duration-short);
     transition-timing-function: var(--ease-emphasized);
-    transition-property: background-color, outline-color, color, border-color, border-width, var(--aui-state-transitions);
+    transition-property:
+      background-color, outline-color, color, border-color, border-width,
+      var(--aui-state-transitions);
 
     &:focus-visible {
       z-index: 1;
@@ -112,7 +114,8 @@
       }
     }
 
-    &[aria-expanded='true'] > .aui-icon:last-of-type:where(:not(:first-child):not(:has(~ :not(.aui-icon)))) {
+    &[aria-expanded='true']
+      > .aui-icon:last-of-type:where(:not(:first-child):not(:has(~ :not(.aui-icon)))) {
       transform: rotate(180deg);
     }
   }
@@ -148,14 +151,25 @@
     color: var(--aui-control-bg);
     background-color: color-mix(
       in oklch,
-      color-mix(in oklch, var(--aui-control-bg) 12%, var(--aui-glass-bg, var(--color-container-low)))
+      color-mix(
+          in oklch,
+          var(--aui-control-bg) 12%,
+          var(--aui-glass-bg, var(--color-container-low))
+        )
         var(--aui-glass-tint, 55%),
       transparent
     );
-    backdrop-filter: var(--aui-glass-backdrop, blur(var(--aui-glass-blur, var(--size-sm))) saturate(1.4));
+    backdrop-filter: var(
+      --aui-glass-backdrop,
+      blur(var(--aui-glass-blur, var(--size-sm))) saturate(1.4)
+    );
 
     @media (prefers-reduced-transparency: reduce) {
-      background-color: color-mix(in oklch, var(--aui-control-bg) 12%, var(--aui-glass-bg, var(--color-container-low)));
+      background-color: color-mix(
+        in oklch,
+        var(--aui-control-bg) 12%,
+        var(--aui-glass-bg, var(--color-container-low))
+      );
       backdrop-filter: none;
     }
   }

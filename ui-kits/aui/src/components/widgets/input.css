@@ -44,7 +44,11 @@
     --aui-input-placeholder: color-mix(
       in oklch,
       var(--aui-control-bg) var(--aui-input-placeholder-tint),
-      color-mix(in oklch, var(--aui-input-fg) var(--aui-input-placeholder-strength), var(--aui-input-bg))
+      color-mix(
+        in oklch,
+        var(--aui-input-fg) var(--aui-input-placeholder-strength),
+        var(--aui-input-bg)
+      )
     );
     --aui-control-outline-color: color-mix(
       in oklch,
@@ -60,7 +64,8 @@
     cursor: text;
     user-select: text;
     caret-color: var(--aui-control-bg);
-    transition-property: background-color, outline-color, border-color, box-shadow, var(--aui-state-transitions);
+    transition-property:
+      background-color, outline-color, border-color, box-shadow, var(--aui-state-transitions);
 
     &::placeholder {
       color: var(--aui-input-placeholder);
@@ -76,7 +81,11 @@
 
     /* Hover previews the field's role color at half strength; focus commits to it. */
     &:hover:not(:disabled, [aria-disabled='true'], :focus, :has(:is(input, textarea):focus)) {
-      --aui-control-outline-color: color-mix(in oklch, var(--aui-control-bg) 50%, var(--aui-input-edge));
+      --aui-control-outline-color: color-mix(
+        in oklch,
+        var(--aui-control-bg) 50%,
+        var(--aui-input-edge)
+      );
     }
 
     &[aria-invalid='true'],
@@ -116,7 +125,11 @@
 
   /* A role-tinted fill carries its own edge; the hairline would only muddy it. */
   .aui-input-tonal {
-    --aui-input-bg: color-mix(in oklch, var(--aui-control-bg) var(--tone-container-strength), var(--color-surface-lowest));
+    --aui-input-bg: color-mix(
+      in oklch,
+      var(--aui-control-bg) var(--tone-container-strength),
+      var(--color-surface-lowest)
+    );
     --aui-input-edge: transparent;
     --aui-input-edge-tint: 0%;
   }

@@ -84,7 +84,8 @@
     max-block-size: 100%;
     object-fit: contain;
     user-select: none;
-    transform: translate(var(--aria-viewer-x, 0), var(--aria-viewer-y, 0)) scale(var(--aria-viewer-zoom, 1));
+    transform: translate(var(--aria-viewer-x, 0), var(--aria-viewer-y, 0))
+      scale(var(--aria-viewer-zoom, 1));
     transition: transform var(--duration-short) var(--ease-emphasized);
   }
 
@@ -138,7 +139,8 @@
   }
 
   /* While the caption shows, the toolbar floats over the stage, not over the caption. */
-  .aui-image-viewer:has(> .aui-image-viewer-caption):not(:fullscreen, [data-fullscreen='true']) > .aui-image-viewer-toolbar {
+  .aui-image-viewer:has(> .aui-image-viewer-caption):not(:fullscreen, [data-fullscreen='true'])
+  > .aui-image-viewer-toolbar {
     inset-block-end: calc(var(--spacing-md) + var(--spacing-sm) + 1lh);
   }
 

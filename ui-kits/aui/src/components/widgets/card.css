@@ -44,7 +44,11 @@
 
   /* A soft wash of the role over the card's own surface: enough to group a section by color, never a container's tone. */
   .aui-card-tonal {
-    background-color: color-mix(in oklch, var(--aui-item-bg) var(--tone-hover-strength), var(--color-surface-lowest));
+    background-color: color-mix(
+      in oklch,
+      var(--aui-item-bg) var(--tone-hover-strength),
+      var(--color-surface-lowest)
+    );
   }
 
   /* No fill, a hairline edge drawn inside so the card keeps its size. */

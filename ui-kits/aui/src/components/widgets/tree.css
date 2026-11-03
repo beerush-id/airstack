@@ -37,7 +37,8 @@
   .aui-tree-group {
     margin-inline-start: calc(var(--aui-tree-toggle-size) / 2);
     padding-inline-start: calc(var(--aui-tree-indent) - var(--aui-tree-toggle-size) / 2);
-    border-inline-start: 1px solid color-mix(in oklch, var(--color-outline-variant) 70%, transparent);
+    border-inline-start: 1px solid
+      color-mix(in oklch, var(--color-outline-variant) 70%, transparent);
 
     &[hidden] {
       display: none;
@@ -115,8 +116,16 @@
     }
 
     /* Hovering a child must not light up every ancestor row. */
-    &:hover:not(:has(.aui-tree-group:hover), [aria-selected='true'], [aria-disabled='true'])::before {
-      background-color: color-mix(in oklch, var(--aui-item-bg) var(--tone-hover-strength), transparent);
+    &:hover:not(
+        :has(.aui-tree-group:hover),
+        [aria-selected='true'],
+        [aria-disabled='true']
+      )::before {
+      background-color: color-mix(
+        in oklch,
+        var(--aui-item-bg) var(--tone-hover-strength),
+        transparent
+      );
     }
 
     &:focus-visible::before {
@@ -134,7 +143,11 @@
     /* Several picked rows are tinted rather than filled, as in any list that keeps several. */
     [aria-multiselectable='true'] &[aria-selected='true'] {
       &::before {
-        background-color: color-mix(in oklch, var(--aui-item-bg) var(--tone-container-strength), transparent);
+        background-color: color-mix(
+          in oklch,
+          var(--aui-item-bg) var(--tone-container-strength),
+          transparent
+        );
       }
 
       & > :not(.aui-tree-group) {

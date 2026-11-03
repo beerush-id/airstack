@@ -14,7 +14,9 @@
       "import": "./dist/router.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "directories": {
     "dist": "./dist"
   },

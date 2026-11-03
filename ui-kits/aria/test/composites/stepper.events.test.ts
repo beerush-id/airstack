@@ -27,7 +27,10 @@ describe('Stepper - Consumer Event Contract', () => {
       tree.run(() => {
         const oninput = vi.fn();
         const onchange = vi.fn();
-        const stepper = aria('stepper', mutable<StepperProps & StepperEventProps>({ value: 10, min: 0, max: 20, oninput, onchange }));
+        const stepper = aria(
+          'stepper',
+          mutable<StepperProps & StepperEventProps>({ value: 10, min: 0, max: 20, oninput, onchange })
+        );
         const input = aria('stepper-input', mutable<StepperInputProps>({}));
         const containerEl = document.createElement('div');
         const inputEl = bind(document.createElement('div'), input);
@@ -59,7 +62,9 @@ describe('Stepper - Consumer Event Contract', () => {
       tree.run(() => {
         const oninput = vi.fn();
         const stepper = aria('stepper', mutable<StepperProps>({ value: 2, min: 0, max: 10 }));
-        const input = aria<HTMLInputElement>('stepper-input', mutable<StepperInputProps>({ oninput }), { native: true });
+        const input = aria<HTMLInputElement>('stepper-input', mutable<StepperInputProps>({ oninput }), {
+          native: true,
+        });
         const containerEl = document.createElement('div');
         const inputEl = bind(document.createElement('input'), input);
         containerEl.appendChild(inputEl);

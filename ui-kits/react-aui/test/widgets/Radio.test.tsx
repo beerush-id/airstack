@@ -67,7 +67,11 @@ describe('Radio', () => {
   it('binds checked two-way with the controller', async () => {
     destroy = await runApp(async () => {
       const state = mutable({ on: false });
-      render(<Radio value="pro" checked={$bind(state, 'on')}>Pro</Radio>);
+      render(
+        <Radio value="pro" checked={$bind(state, 'on')}>
+          Pro
+        </Radio>
+      );
       const option = screen.getByRole('radio', { name: 'Pro' });
       await act(async () => {
         await userEvent.click(option);
@@ -116,12 +120,20 @@ describe('Radio', () => {
 
   it('supports additive and replacement class modes', async () => {
     destroy = await runApp(async () => {
-      const { unmount } = render(<Radio value="a" className="my-box">Additive</Radio>);
+      const { unmount } = render(
+        <Radio value="a" className="my-box">
+          Additive
+        </Radio>
+      );
       expect(screen.getByRole('radio', { name: 'Additive' }).className).toContain('my-box');
       expect(screen.getByRole('radio', { name: 'Additive' }).className).toContain('aui-radio-box');
       unmount();
       configure({ overrides: true });
-      render(<Radio value="b" className="only-me">Replacement</Radio>);
+      render(
+        <Radio value="b" className="only-me">
+          Replacement
+        </Radio>
+      );
       expect(screen.getByRole('radio', { name: 'Replacement' }).className).toBe('only-me');
     });
   });

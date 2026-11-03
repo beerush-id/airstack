@@ -62,7 +62,11 @@
     border-radius: var(--aui-list-item-inner-radius);
     corner-shape: inherit;
     /* Each row is a segment of one run on a faint container of its role, mixed the way `--color-*-container` is. */
-    background-color: color-mix(in oklch, var(--aui-item-bg) var(--aui-list-item-tint), var(--light-up));
+    background-color: color-mix(
+      in oklch,
+      var(--aui-item-bg) var(--aui-list-item-tint),
+      var(--light-up)
+    );
   }
 
   .aui-list-item:first-child {

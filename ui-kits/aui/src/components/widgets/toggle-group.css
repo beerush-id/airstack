@@ -77,7 +77,11 @@
 
     &[aria-pressed='true'] {
       color: var(--aui-control-bg);
-      background-color: color-mix(in oklch, var(--aui-control-bg) var(--tone-container-strength), var(--light-up));
+      background-color: color-mix(
+        in oklch,
+        var(--aui-control-bg) var(--tone-container-strength),
+        var(--light-up)
+      );
     }
   }
 
@@ -103,10 +107,14 @@
         bottom: anchor(bottom);
         border-radius: var(--aui-toggle-group-item-radius);
         corner-shape: inherit;
-        background-color: color-mix(in oklch, var(--aui-item-bg) var(--tone-container-strength), var(--light-up));
+        background-color: color-mix(
+          in oklch,
+          var(--aui-item-bg) var(--tone-container-strength),
+          var(--light-up)
+        );
         transition-property:
-          top, left, right, bottom, border-start-start-radius, border-start-end-radius, border-end-start-radius,
-          border-end-end-radius;
+          top, left, right, bottom, border-start-start-radius, border-start-end-radius,
+          border-end-start-radius, border-end-end-radius;
         transition-duration: var(--duration-medium);
         transition-timing-function: var(--ease-emphasized);
       }
@@ -152,12 +160,12 @@
     & > .aui-control.aui-toggle {
       overflow: clip;
       transition-property:
-        background-color, outline-color, color, border-color, border-width, inline-size, block-size, padding-inline,
-        padding-block, border-radius, var(--aui-state-transitions);
+        background-color, outline-color, color, border-color, border-width, inline-size, block-size,
+        padding-inline, padding-block, border-radius, var(--aui-state-transitions);
       transition-duration:
         var(--duration-short), var(--duration-short), var(--duration-short), var(--duration-short),
-        var(--duration-short), var(--duration-medium), var(--duration-medium), var(--duration-medium),
-        var(--duration-medium), var(--duration-medium);
+        var(--duration-short), var(--duration-medium), var(--duration-medium),
+        var(--duration-medium), var(--duration-medium), var(--duration-medium);
     }
 
     &:not(:hover, :has(:focus-visible)) {
@@ -169,16 +177,17 @@
       /* Only the closing waits; color changes stay immediate. Delays pair with the lists above. */
       & > .aui-control.aui-toggle {
         transition-delay:
-          0s, 0s, 0s, 0s, 0s, var(--aui-toggle-group-collapse-delay), var(--aui-toggle-group-collapse-delay),
+          0s, 0s, 0s, 0s, 0s, var(--aui-toggle-group-collapse-delay),
           var(--aui-toggle-group-collapse-delay), var(--aui-toggle-group-collapse-delay),
-          var(--aui-toggle-group-collapse-delay);
+          var(--aui-toggle-group-collapse-delay), var(--aui-toggle-group-collapse-delay);
       }
 
       /* The indicator follows its member at once and rounds off with the closing track. */
       &::before {
         transition-delay:
-          0s, 0s, 0s, 0s, var(--aui-toggle-group-collapse-delay), var(--aui-toggle-group-collapse-delay),
-          var(--aui-toggle-group-collapse-delay), var(--aui-toggle-group-collapse-delay);
+          0s, 0s, 0s, 0s, var(--aui-toggle-group-collapse-delay),
+          var(--aui-toggle-group-collapse-delay), var(--aui-toggle-group-collapse-delay),
+          var(--aui-toggle-group-collapse-delay);
       }
 
       &:not(.aui-toggle-group-vertical) > .aui-control.aui-toggle:not([aria-pressed='true']) {

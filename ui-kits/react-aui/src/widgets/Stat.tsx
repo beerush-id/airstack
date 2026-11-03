@@ -81,12 +81,7 @@ export const Stat = setup<StatProps>((props) => {
  */
 export const StatGroup = template<StatGroupProps>(
   (props) => (
-    <div
-      {...props.$omit(GROUP_OMIT)}
-      role="group"
-      aria-label={props.label}
-      className={$class(props, CLASS.GROUP)}
-    />
+    <div {...props.$omit(GROUP_OMIT)} role="group" aria-label={props.label} className={$class(props, CLASS.GROUP)} />
   ),
   'StatGroup'
 );

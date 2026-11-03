@@ -35,8 +35,9 @@
     --aui-window-shadow: var(--elevation-2);
     --aui-window-shadow-active:
       0 calc(var(--shadow-base) * 12) calc(var(--shadow-base) * 40)
-        light-dark(rgba(0, 0, 0, 0.22), rgba(0, 0, 0, 0.65)),
-      0 calc(var(--shadow-base) * 2) calc(var(--shadow-base) * 8) light-dark(rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.5));
+      light-dark(rgba(0, 0, 0, 0.22), rgba(0, 0, 0, 0.65)),
+      0 calc(var(--shadow-base) * 2) calc(var(--shadow-base) * 8)
+      light-dark(rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.5));
     --aui-window-edge: var(--aui-glass-edge);
     --aui-window-z: 100;
     --aui-window-grip: calc(var(--spacing) * 1.5);
@@ -54,8 +55,16 @@
     --aui-desktop-wallpaper: none;
     --aui-desktop-wallpaper-dark: none;
     /* Beneath any wallpaper, and all there is without one: a quiet canvas with a dot grid. */
-    --aui-desktop-canvas-bg: color-mix(in oklch, var(--color-primary-container) 25%, var(--color-surface));
-    --aui-desktop-canvas-dot: color-mix(in oklch, var(--color-on-primary-container) 18%, transparent);
+    --aui-desktop-canvas-bg: color-mix(
+      in oklch,
+      var(--color-primary-container) 25%,
+      var(--color-surface)
+    );
+    --aui-desktop-canvas-dot: color-mix(
+      in oklch,
+      var(--color-on-primary-container) 18%,
+      transparent
+    );
     --aui-desktop-canvas-dot-size: 1px;
     --aui-desktop-canvas-gap: calc(var(--spacing) * 6);
   }
@@ -106,8 +115,14 @@
 
   .aui-window {
     position: fixed;
-    inset-inline-start: var(--window-x, calc(50% - var(--window-width, var(--aui-window-default-width)) / 2));
-    inset-block-start: var(--window-y, calc(50% - var(--window-height, var(--aui-window-default-height)) / 2));
+    inset-inline-start: var(
+      --window-x,
+      calc(50% - var(--window-width, var(--aui-window-default-width)) / 2)
+    );
+    inset-block-start: var(
+      --window-y,
+      calc(50% - var(--window-height, var(--aui-window-default-height)) / 2)
+    );
     z-index: calc(var(--aui-window-z) + var(--window-z, 0));
     /* A row: the optional sidebar, then the body. Its bare glass moves it, so it takes no touch panning itself. */
     display: flex;
@@ -139,8 +154,8 @@
       calc(var(--aui-window-bar-inset) * 2)
     );
     transition-property:
-      box-shadow, opacity, scale, translate, display, inset-inline-start, inset-block-start, inline-size, block-size,
-      border-radius;
+      box-shadow, opacity, scale, translate, display, inset-inline-start, inset-block-start,
+      inline-size, block-size, border-radius;
     transition-duration: var(--duration-medium);
     transition-timing-function: var(--ease-emphasized);
     transition-behavior: allow-discrete;
@@ -242,7 +257,11 @@
       z-index: 1;
       inset-block-start: var(--aui-window-bar-inset);
       inset-inline: var(--aui-window-bar-inset);
-      background-color: color-mix(in oklch, var(--aui-window-content-bg) var(--aui-window-panel-tint), transparent);
+      background-color: color-mix(
+        in oklch,
+        var(--aui-window-content-bg) var(--aui-window-panel-tint),
+        transparent
+      );
       backdrop-filter: blur(var(--aui-window-glass-blur)) saturate(1.4);
       border-start-start-radius: var(--aui-window-panel-radius);
       border-start-end-radius: var(--aui-window-panel-radius);
@@ -346,7 +365,11 @@
 
     & > [aria-current='true'],
     & > .aui-window-sidebar-panel > [aria-current='true'] {
-      background-color: color-mix(in oklch, var(--aui-control-bg) var(--tone-container-strength), transparent);
+      background-color: color-mix(
+        in oklch,
+        var(--aui-control-bg) var(--tone-container-strength),
+        transparent
+      );
     }
   }
 
@@ -387,7 +410,12 @@
   .aui-splitter.aui-window-sidebar-resizer[aria-orientation='vertical'] {
     position: absolute;
     top: 50%;
-    left: calc(var(--aui-window-sidebar-span) - var(--aui-window-sidebar-min) + var(--aui-window-bar-inset) / 2);
+    left: calc(
+      var(--aui-window-sidebar-span) -
+      var(--aui-window-sidebar-min) +
+      var(--aui-window-bar-inset) /
+      2
+    );
     block-size: calc(100% - var(--aui-window-frame-radius) * 2);
     translate: 0 -50%;
     pointer-events: auto;
@@ -664,7 +692,11 @@
     gap: var(--spacing-xs);
 
     & > .aui-button[aria-pressed='true'] {
-      background-color: color-mix(in oklch, var(--aui-control-bg) var(--tone-container-strength), transparent);
+      background-color: color-mix(
+        in oklch,
+        var(--aui-control-bg) var(--tone-container-strength),
+        transparent
+      );
     }
 
     & > .aui-button[data-minimized='true'] {

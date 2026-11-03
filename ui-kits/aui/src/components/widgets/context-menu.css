@@ -12,7 +12,10 @@
     inset: auto;
     top: calc(anchor(top) + var(--anchor-y, 0px));
     left: calc(anchor(left) + var(--anchor-x, 0px));
-    position-try-fallbacks: flip-block, flip-inline, flip-block flip-inline;
+    position-try-fallbacks:
+      flip-block,
+      flip-inline,
+      flip-block flip-inline;
     min-inline-size: calc(var(--spacing) * 48);
   }
 }

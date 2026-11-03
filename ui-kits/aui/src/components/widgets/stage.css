@@ -62,7 +62,9 @@
     --corner-shape: round;
     color-scheme: only dark;
     color: #fff;
-    font: 400 16px / 1.5 system-ui, sans-serif;
+    font:
+      400 16px / 1.5 system-ui,
+      sans-serif;
     letter-spacing: normal;
     text-align: start;
     position: absolute;

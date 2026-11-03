@@ -80,7 +80,12 @@ export class TimelineTrack<P extends Record<string, AnyType> = Record<string, An
       source.props ??= {};
       source.segments ??= [];
     } else {
-      this.source = keepNode(timeline.source.tracks, { id: uuid(), options: { ...options }, props: { ...props }, segments: [] });
+      this.source = keepNode(timeline.source.tracks, {
+        id: uuid(),
+        options: { ...options },
+        props: { ...props },
+        segments: [],
+      });
     }
     timeline.tracks.add(this);
     if (source) for (const node of [...this.source.segments]) new TimelineSegment(this, undefined, undefined, node);

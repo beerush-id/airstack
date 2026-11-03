@@ -63,12 +63,20 @@ export const DateRangePicker = setup<DateRangePickerProps>((props) => {
 
   const calendar = () => (
     <DatePickerCalendar>
-      <DatePickerHeader previousLabel={props.labels?.previous} nextLabel={props.labels?.next} yearLabel={props.labels?.year} />
+      <DatePickerHeader
+        previousLabel={props.labels?.previous}
+        nextLabel={props.labels?.next}
+        yearLabel={props.labels?.year}
+      />
     </DatePickerCalendar>
   );
 
   return () => (
-    <div ref={picker.ref} {...picker.restProps([...OMIT_KEYS, 'placeholder', 'labels', 'inline'])} className={className()}>
+    <div
+      ref={picker.ref}
+      {...picker.restProps([...OMIT_KEYS, 'placeholder', 'labels', 'inline'])}
+      className={className()}
+    >
       {props.children ? (
         renderDynamic(props.children, picker)
       ) : inline ? (

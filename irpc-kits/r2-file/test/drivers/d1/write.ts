@@ -272,7 +272,8 @@ describe('D1Driver write and tiered inlining', () => {
       await normalize.write(under, '/d1write/file/note.txt', 'text');
       await driver.write(under, '/d1write/file/note.txt', 'text');
 
-      const row = (path: string) => db.prepare('SELECT type, metadata FROM _r2_files WHERE path = ?').bind(path).first();
+      const row = (path: string) =>
+        db.prepare('SELECT type, metadata FROM _r2_files WHERE path = ?').bind(path).first();
       expect(await row('/d1write/kept')).toMatchObject({ type: 'inode/directory', metadata: '{"section":"docs"}' });
       expect((await row('/d1write/file'))?.type).toBe('text/plain');
     });

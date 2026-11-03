@@ -13,21 +13,22 @@ describe('r2-file as MCP tools', () => {
   });
 
   it('describes every filesystem function, with its own argument names', () => {
-    expect(Object.fromEntries(tools.map((tool) => [fn(tool.name), Object.keys(tool.inputSchema.properties as object)])))
-      .toEqual({
-        mkdir: ['path', 'options'],
-        write: ['path', 'data', 'options'],
-        read: ['path', 'options'],
-        stat: ['path', 'options'],
-        exists: ['path', 'options'],
-        list: ['path', 'options'],
-        search: ['query', 'options'],
-        copy: ['source', 'destination', 'options'],
-        move: ['source', 'destination', 'options'],
-        link: ['target', 'path', 'options'],
-        remove: ['path', 'options'],
-        restore: ['path', 'options'],
-      });
+    expect(
+      Object.fromEntries(tools.map((tool) => [fn(tool.name), Object.keys(tool.inputSchema.properties as object)]))
+    ).toEqual({
+      mkdir: ['path', 'options'],
+      write: ['path', 'data', 'options'],
+      read: ['path', 'options'],
+      stat: ['path', 'options'],
+      exists: ['path', 'options'],
+      list: ['path', 'options'],
+      search: ['query', 'options'],
+      copy: ['source', 'destination', 'options'],
+      move: ['source', 'destination', 'options'],
+      link: ['target', 'path', 'options'],
+      remove: ['path', 'options'],
+      restore: ['path', 'options'],
+    });
   });
 
   it('gives every tool a description for the model', () => {

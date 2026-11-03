@@ -3,7 +3,16 @@ import { assign } from '../engine/helper.js';
 import { $static, mutable, passive, subscribe } from '../reactive/index.js';
 import type { AnyType } from '../types.js';
 import { uuid } from '../utils/uuid.js';
-import { animationFrame, cancelFrame, dropNode, type FrameId, frameToTime, inLine, isThenable, timeToFrame } from './helper.js';
+import {
+  animationFrame,
+  cancelFrame,
+  dropNode,
+  type FrameId,
+  frameToTime,
+  inLine,
+  isThenable,
+  timeToFrame,
+} from './helper.js';
 import { TimelineMarker, type TimelineMarkerInit, type TimelineMarkerSnapshot } from './marker.js';
 import { TimelineTrack, type TimelineTrackOptions, type TimelineTrackSnapshot } from './track.js';
 

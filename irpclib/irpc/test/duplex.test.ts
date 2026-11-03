@@ -58,14 +58,17 @@ describe('IRPC Duplex (ask / answer)', () => {
       });
 
       irpc.construct(askAi, (prompt) => {
-        return stream((state, resolve) => {
-          state.data.status = `processing: ${prompt}`;
-          state.ask('getState').then((appState) => {
-            state.data.progress = 1;
-            state.data.status = `opened in ${appState?.currentApp}`;
-            resolve();
-          });
-        }, { progress: 0, status: 'idle' });
+        return stream(
+          (state, resolve) => {
+            state.data.status = `processing: ${prompt}`;
+            state.ask('getState').then((appState) => {
+              state.data.progress = 1;
+              state.data.status = `opened in ${appState?.currentApp}`;
+              resolve();
+            });
+          },
+          { progress: 0, status: 'idle' }
+        );
       });
 
       const msg = askAi('open the Photos app');
@@ -92,14 +95,17 @@ describe('IRPC Duplex (ask / answer)', () => {
       });
 
       irpc.construct(upload, () => {
-        return stream((state, resolve) => {
-          state.answer('getQuota', (unit) => (unit === 'gb' ? 10 : 10240));
+        return stream(
+          (state, resolve) => {
+            state.answer('getQuota', (unit) => (unit === 'gb' ? 10 : 10240));
 
-          setTimeout(() => {
-            state.data.done = true;
-            resolve();
-          }, 20);
-        }, { done: false });
+            setTimeout(() => {
+              state.data.done = true;
+              resolve();
+            }, 20);
+          },
+          { done: false }
+        );
       });
 
       const msg = upload('photo.png');
@@ -128,14 +134,17 @@ describe('IRPC Duplex (ask / answer)', () => {
       });
 
       irpc.construct(syncData, () => {
-        return stream((state, resolve) => {
-          state.answer('getServerVersion', () => '2.4.0');
+        return stream(
+          (state, resolve) => {
+            state.answer('getServerVersion', () => '2.4.0');
 
-          state.ask('confirm', 'Overwrite remote changes?', true).then((confirmed) => {
-            state.data.synced = Boolean(confirmed);
-            resolve();
-          });
-        }, { synced: false });
+            state.ask('confirm', 'Overwrite remote changes?', true).then((confirmed) => {
+              state.data.synced = Boolean(confirmed);
+              resolve();
+            });
+          },
+          { synced: false }
+        );
       });
 
       const msg = syncData();
@@ -216,11 +225,14 @@ describe('IRPC Duplex (ask / answer)', () => {
       let answered: boolean | undefined | 'pending' = 'pending';
 
       irpc.construct(task, () =>
-        stream((state) => {
-          state.ask('confirm').then((value) => {
-            answered = value;
-          });
-        }, { done: false })
+        stream(
+          (state) => {
+            state.ask('confirm').then((value) => {
+              answered = value;
+            });
+          },
+          { done: false }
+        )
       );
 
       const msg = task();
@@ -306,14 +318,17 @@ describe('IRPC Duplex (ask / answer)', () => {
       });
 
       irpc.construct(askAi, () => {
-        return stream((state, resolve) => {
-          state.data.progress = 0.5;
-          state.ask('getState').then((s) => {
-            state.data.app = s?.app;
-            state.data.progress = 1;
-            resolve();
-          });
-        }, { progress: 0 });
+        return stream(
+          (state, resolve) => {
+            state.data.progress = 0.5;
+            state.ask('getState').then((s) => {
+              state.data.app = s?.app;
+              state.data.progress = 1;
+              resolve();
+            });
+          },
+          { progress: 0 }
+        );
       });
 
       const msg = askAi('open the Photos app');
@@ -367,13 +382,16 @@ describe('IRPC Duplex (ask / answer)', () => {
       let finishServer!: () => void;
 
       irpc.construct(startJob, () => {
-        return stream((state, resolve) => {
-          state.answer('getStepDetail', (step) => ({ label: `Step #${step}` }));
-          finishServer = () => {
-            state.data.completed = true;
-            resolve();
-          };
-        }, { completed: false });
+        return stream(
+          (state, resolve) => {
+            state.answer('getStepDetail', (step) => ({ label: `Step #${step}` }));
+            finishServer = () => {
+              state.data.completed = true;
+              resolve();
+            };
+          },
+          { completed: false }
+        );
       });
 
       const msg = startJob();
@@ -395,7 +413,9 @@ describe('IRPC Duplex (ask / answer)', () => {
       };
 
       const { irpc } = setupRemote('wizard-remote');
-      const runWizard = irpc.declare<() => RemoteState<{ user?: string; email?: string; valid?: boolean }, WizardQueries>>({
+      const runWizard = irpc.declare<
+        () => RemoteState<{ user?: string; email?: string; valid?: boolean }, WizardQueries>
+      >({
         name: 'runWizard',
         seed: () => ({}),
         stream: true,
@@ -448,13 +468,16 @@ describe('IRPC Duplex (ask / answer)', () => {
       let finishServer!: () => void;
 
       irpc.construct(checkNoop, () => {
-        return stream((state, resolve) => {
-          state.ask('missingClientHandler').then((res) => {
-            state.data.clientReply = res === undefined ? 'none' : res;
-          });
+        return stream(
+          (state, resolve) => {
+            state.ask('missingClientHandler').then((res) => {
+              state.data.clientReply = res === undefined ? 'none' : res;
+            });
 
-          finishServer = () => resolve();
-        }, { clientReply: 'initial' });
+            finishServer = () => resolve();
+          },
+          { clientReply: 'initial' }
+        );
       });
 
       const msg = checkNoop();
@@ -486,19 +509,22 @@ describe('IRPC Duplex (ask / answer)', () => {
       let serverAskResult: string | undefined = 'pending';
 
       irpc.construct(startTask, () => {
-        return stream((state) => {
-          state.answer(
-            'slowServerOp',
-            () =>
-              new Promise((resolve) => {
-                setTimeout(() => resolve('too-late-server'), 5000);
-              })
-          );
+        return stream(
+          (state) => {
+            state.answer(
+              'slowServerOp',
+              () =>
+                new Promise((resolve) => {
+                  setTimeout(() => resolve('too-late-server'), 5000);
+                })
+            );
 
-          state.ask('slowClientOp').then((res) => {
-            serverAskResult = res;
-          });
-        }, { step: 'started' });
+            state.ask('slowClientOp').then((res) => {
+              serverAskResult = res;
+            });
+          },
+          { step: 'started' }
+        );
       });
 
       const msg = startTask();
@@ -640,7 +666,9 @@ describe('IRPC Duplex (ask / answer)', () => {
 
       const { irpc } = setupRemote('reactive-remote');
       const computeTask = irpc.declare<
-        (input: string) => RemoteState<{ callIndex: number; input: string; matchedTag: string; serverEcho: string }, IndexedQueries>
+        (
+          input: string
+        ) => RemoteState<{ callIndex: number; input: string; matchedTag: string; serverEcho: string }, IndexedQueries>
       >({
         name: 'computeTask',
         seed: () => ({ callIndex: 0, input: '', matchedTag: '', serverEcho: '' }),

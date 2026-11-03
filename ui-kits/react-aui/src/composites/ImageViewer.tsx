@@ -228,13 +228,7 @@ export const ImageViewer = setup<ImageViewerProps>((props) => {
           <span className={CLASS.ZOOM} aria-hidden="true">
             {Math.round(zoom() * 100)}%
           </span>
-          <Button
-            variant="text"
-            size="sm"
-            aria-label={labels().zoomIn}
-            disabled={zoom() >= maxZoom()}
-            onClick={zoomIn}
-          >
+          <Button variant="text" size="sm" aria-label={labels().zoomIn} disabled={zoom() >= maxZoom()} onClick={zoomIn}>
             <ZoomInIcon aria-hidden="true" />
           </Button>
           {props.actions}

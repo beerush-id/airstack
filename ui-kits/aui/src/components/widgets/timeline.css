@@ -51,7 +51,12 @@
     grid-template-columns:
       var(--aui-timeline-header)
       minmax(
-        calc(var(--aria-timeline-length, 0) * var(--aui-timeline-zoom) + var(--aui-timeline-lead) + var(--spacing-xl)),
+        calc(
+          var(--aria-timeline-length, 0) *
+          var(--aui-timeline-zoom) +
+          var(--aui-timeline-lead) +
+          var(--spacing-xl)
+        ),
         1fr
       );
     grid-template-rows: var(--aui-timeline-ruler) auto;
@@ -290,9 +295,15 @@
     position: absolute;
     inset-block: var(--aui-timeline-inset);
     inset-inline-start: calc(
-      var(--aui-timeline-lead) + var(--aria-timeline-start, var(--aui-timeline-start)) * var(--aui-timeline-zoom)
+      var(--aui-timeline-lead) +
+      var(--aria-timeline-start, var(--aui-timeline-start)) *
+      var(--aui-timeline-zoom)
     );
-    inline-size: calc(var(--aria-timeline-span, var(--aui-timeline-span)) * var(--aui-timeline-zoom) - 2px);
+    inline-size: calc(
+      var(--aria-timeline-span, var(--aui-timeline-span)) *
+      var(--aui-timeline-zoom) -
+      2px
+    );
     display: flex;
     align-items: center;
     overflow: hidden;
@@ -342,7 +353,11 @@
     /* Pictures repeat along a video or image clip like a filmstrip, the name over a soft shade. */
     &:is([data-type='video'], [data-type='image']) {
       background-image:
-        linear-gradient(to right, color-mix(in oklch, var(--aui-item-bg) 85%, transparent) 0 7rem, transparent 10rem),
+        linear-gradient(
+          to right,
+          color-mix(in oklch, var(--aui-item-bg) 85%, transparent) 0 7rem,
+          transparent 10rem
+        ),
         var(--aui-timeline-thumbnail, none);
       background-size:
         100% 100%,
@@ -447,7 +462,11 @@
     grid-column: 2;
     grid-row: 1 / -1;
     inset-block: 0;
-    inset-inline-start: calc(var(--aui-timeline-lead) + var(--aria-timeline-time, 0) * var(--aui-timeline-zoom));
+    inset-inline-start: calc(
+      var(--aui-timeline-lead) +
+      var(--aria-timeline-time, 0) *
+      var(--aui-timeline-zoom)
+    );
     z-index: 3;
     inline-size: 2px;
     translate: -50% 0;

@@ -42,11 +42,7 @@ export const Chip = setup<ChipProps>((props) => {
   const filter = $static(() => props.pressed !== undefined);
   const toggle = filter ? aria<HTMLButtonElement>(TOGGLE_ROLE, props as AnyType) : undefined;
   const className = () =>
-    $families(
-      filter ? [AUI_CLASS.SCALE, CHIP, AUI_CLASS.FOCUSABLE] : [AUI_CLASS.SCALE, CHIP],
-      props,
-      auiConfig.chip
-    );
+    $families(filter ? [AUI_CLASS.SCALE, CHIP, AUI_CLASS.FOCUSABLE] : [AUI_CLASS.SCALE, CHIP], props, auiConfig.chip);
   const remove = (event: MouseEvent<HTMLButtonElement>) => props.onremove?.(event);
 
   return () => {

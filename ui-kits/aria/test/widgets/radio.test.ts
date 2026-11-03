@@ -611,11 +611,7 @@ describe('Radio - Contract Specifications', () => {
       scope.run(() => {
         const tree = component();
         tree.run(() => {
-          const radio = aria<HTMLDivElement>(
-            'radio',
-            { value: 'a', checked: true, disabled: true },
-            { native: false }
-          );
+          const radio = aria<HTMLDivElement>('radio', { value: 'a', checked: true, disabled: true }, { native: false });
 
           const reached: string[] = [];
           const wrapper = document.createElement('div');

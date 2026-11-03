@@ -171,16 +171,20 @@ describe('Video stage and clips', () => {
         document.body.appendChild(stageEl);
         component().run(() => {
           // The title's picture comes from its draw, and its segment isn't on at frame 0.
-          const layer = aria('video-clip', {}, {
-            segment: cut.title,
-            draw: ({ element }) => {
-              if (element.querySelector('img')) return;
-              const image = document.createElement('img');
-              image.src = 'https://example.com/title.png';
-              image.decode = () => decoding.then(() => void decoded.push(image.src));
-              element.append(image);
-            },
-          });
+          const layer = aria(
+            'video-clip',
+            {},
+            {
+              segment: cut.title,
+              draw: ({ element }) => {
+                if (element.querySelector('img')) return;
+                const image = document.createElement('img');
+                image.src = 'https://example.com/title.png';
+                image.decode = () => decoding.then(() => void decoded.push(image.src));
+                element.append(image);
+              },
+            }
+          );
           const element = document.createElement('div');
           stageEl.append(element);
           bind(element, layer);

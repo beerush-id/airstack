@@ -8,7 +8,11 @@
     background-color: transparent;
 
     &:hover:not(:disabled, [aria-disabled='true']) {
-      background-color: color-mix(in oklch, var(--aui-control-bg) var(--tone-elevation-low), var(--light-up));
+      background-color: color-mix(
+        in oklch,
+        var(--aui-control-bg) var(--tone-elevation-low),
+        var(--light-up)
+      );
     }
   }
 

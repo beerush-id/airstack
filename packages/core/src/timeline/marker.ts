@@ -65,11 +65,12 @@ export class TimelineMarker {
       source.id ??= uuid();
       source.options.atFrame ??= 0;
     } else {
-      const atFrame = options.atFrame !== undefined
-        ? Math.max(0, Math.round(options.atFrame))
-        : options.atTime !== undefined
-          ? timeToFrame(options.atTime, this.timeline.frameRate)
-          : 0;
+      const atFrame =
+        options.atFrame !== undefined
+          ? Math.max(0, Math.round(options.atFrame))
+          : options.atTime !== undefined
+            ? timeToFrame(options.atTime, this.timeline.frameRate)
+            : 0;
 
       const { atTime, ...rest } = options;
       this.source = keepNode((timeline.source.markers ??= []), { id: uuid(), options: { ...rest, atFrame } });

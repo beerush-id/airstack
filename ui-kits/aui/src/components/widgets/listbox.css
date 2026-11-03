@@ -12,7 +12,10 @@
 @layer component {
   .aui-listbox {
     /* The options' corners: the sheet's minus its padding, so the two stay concentric. */
-    --aui-listbox-inner-radius: max(calc(var(--aui-listbox-radius) - var(--aui-listbox-padding)), 0px);
+    --aui-listbox-inner-radius: max(
+      calc(var(--aui-listbox-radius) - var(--aui-listbox-padding)),
+      0px
+    );
     --aui-item-radius: var(--aui-listbox-inner-radius);
     display: flex;
     flex-direction: column;

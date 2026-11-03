@@ -75,5 +75,4 @@ describe('Header', () => {
       expect(screen.getByRole('banner').className).toBe('only-me');
     });
   });
-
 });

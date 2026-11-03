@@ -1,5 +1,12 @@
 import { getEnv, type IRPCData } from '@irpclib/irpc';
-import { type ChatMessage, type ChatOutput, type ChatTool, chatTurns, WEB_SEARCH,type ToolCall } from '../../chat/index.js';
+import {
+  type ChatMessage,
+  type ChatOutput,
+  type ChatTool,
+  chatTurns,
+  WEB_SEARCH,
+  type ToolCall,
+} from '../../chat/index.js';
 import type { ImageAspectRatio, ImageOptions } from '../../image/index.js';
 import type { AIEnv, AskContext, ImageContext } from '../../types/context.js';
 import type { AIDriver } from '../../types/driver.js';
@@ -76,7 +83,12 @@ export class OpenAIDriver implements AIDriver {
               ...(ctx.payload.system ? { instructions: ctx.payload.system } : {}),
               input: toInputItems(turns),
               ...(tools.length || ctx.payload.webSearch
-                ? { tools: [...tools.map(toResponsesFunction), ...(ctx.payload.webSearch ? [{ type: WEB_SEARCH }] : [])] }
+                ? {
+                    tools: [
+                      ...tools.map(toResponsesFunction),
+                      ...(ctx.payload.webSearch ? [{ type: WEB_SEARCH }] : []),
+                    ],
+                  }
                 : {}),
               ...(ctx.payload.webSearch ? { include: ['web_search_call.action.sources'] } : {}),
               ...sampling,

@@ -5,7 +5,6 @@ import { bindPanel, type PopupPanel } from '../popup/panel.js';
 import { popupCtx } from '../popup/popup.js';
 import type { ComboboxAria } from './combobox.js';
 
-
 /**
  * Popup panel props inherit the listbox contract.
  */

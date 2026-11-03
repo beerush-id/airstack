@@ -20,7 +20,13 @@ import {
 import type { FormEvent, MouseEvent, ReactNode } from 'react';
 import { $families, auiConfig, type ComponentStyles, OMIT_KEYS } from '../config.js';
 import { Toast, ToastClose } from '../composites/Toast.js';
-import { newWidgetState, type WidgetContext, type WidgetHost, type WidgetState, widgetHostCtx } from '../dynamic/host.js';
+import {
+  newWidgetState,
+  type WidgetContext,
+  type WidgetHost,
+  type WidgetState,
+  widgetHostCtx,
+} from '../dynamic/host.js';
 import { MarkdownRenderer } from '../dynamic/MarkdownRenderer.js';
 import { WidgetRenderer } from '../dynamic/WidgetRenderer.js';
 import { CheckIcon } from '../icons/Check.js';
@@ -139,7 +145,11 @@ const CARD_VARIANT = VARIANTS.ELEVATED;
 register('dockWidgets', {});
 
 /** The stack, for each widget it draws: its settings, and how a widget says it changed. */
-const dockWidgetsCtx = createContext<{ props: DockWidgetsProps; slots: Partial<DockWidgetsSlots>; touch: () => void }>();
+const dockWidgetsCtx = createContext<{
+  props: DockWidgetsProps;
+  slots: Partial<DockWidgetsSlots>;
+  touch: () => void;
+}>();
 
 /**
  * The stack above the dock, newest nearest the prompt, over the windows. It
@@ -349,7 +359,11 @@ const DockWidgetPartView = setup<{ part: DockWidgetPart }>((props) => {
       if (status === 'settled') widgetHost.state.ctx.disabled = true;
     }
     // How the card looks is the data's to say; nothing else about it is.
-    const { size = CARD_SIZE, variant = CARD_VARIANT, color } = (widget.props ?? {}) as Pick<CardProps, 'size' | 'variant' | 'color'>;
+    const {
+      size = CARD_SIZE,
+      variant = CARD_VARIANT,
+      color,
+    } = (widget.props ?? {}) as Pick<CardProps, 'size' | 'variant' | 'color'>;
     return { nodes: widget.children ?? [], size, variant, color, id, formAction, once, ctx: widgetHost?.state.ctx };
   });
   // Whatever's pressed inside goes out as this part, so its owner knows which widget it was.

@@ -85,7 +85,11 @@
       border-radius: inherit;
       corner-shape: inherit;
     }
-    background-color: color-mix(in oklch, var(--color-container-low) var(--aui-app-icon-glass-tint), transparent);
+    background-color: color-mix(
+      in oklch,
+      var(--color-container-low) var(--aui-app-icon-glass-tint),
+      transparent
+    );
     backdrop-filter: blur(var(--aui-app-icon-glass-blur)) saturate(1.4);
     outline: 1px solid var(--aui-app-icon-edge);
     outline-offset: -1px;

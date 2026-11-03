@@ -85,7 +85,11 @@
 
   .aui-tab-button-tonal[aria-selected='true'] {
     color: var(--aui-control-bg);
-    background-color: color-mix(in oklch, var(--aui-control-bg) var(--tone-container-strength), var(--light-up));
+    background-color: color-mix(
+      in oklch,
+      var(--aui-control-bg) var(--tone-container-strength),
+      var(--light-up)
+    );
   }
 
   .aui-tab-button-outlined[aria-selected='true'] {
@@ -115,7 +119,11 @@
 
     &[aria-selected='true'] {
       color: var(--aui-control-bg);
-      background-color: color-mix(in oklch, var(--aui-control-bg) var(--tone-container-strength), var(--light-up));
+      background-color: color-mix(
+        in oklch,
+        var(--aui-control-bg) var(--tone-container-strength),
+        var(--light-up)
+      );
     }
   }
 
@@ -178,7 +186,11 @@
 
     .aui-tab-list-tonal::before,
     .aui-tab-list-glass::before {
-      background-color: color-mix(in oklch, var(--aui-item-bg) var(--tone-container-strength), var(--light-up));
+      background-color: color-mix(
+        in oklch,
+        var(--aui-item-bg) var(--tone-container-strength),
+        var(--light-up)
+      );
     }
 
     .aui-tab-list-outlined::before {

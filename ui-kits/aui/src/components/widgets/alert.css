@@ -20,7 +20,8 @@
     align-items: flex-start;
     gap: var(--aui-control-gap);
     padding-block: calc(var(--aui-control-padding-x) * 0.5);
-    padding-inline: calc(var(--aui-control-padding-x) * 0.75) calc(var(--aui-control-padding-x) * 0.5);
+    padding-inline: calc(var(--aui-control-padding-x) * 0.75)
+      calc(var(--aui-control-padding-x) * 0.5);
     border-radius: var(--aui-alert-radius);
     background-color: var(--aui-alert-bg);
     color: var(--aui-alert-fg);

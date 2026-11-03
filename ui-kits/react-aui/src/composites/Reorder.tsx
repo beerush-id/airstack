@@ -88,19 +88,17 @@ export const Reorder = setup<ReorderProps, ReorderSlots>((props, slots) => {
       {...reorder.restProps([...OMIT_KEYS, 'labelledby', 'items', 'handleLabel'])}
       className={className()}
     >
-      {props.items ? (
-        // Keyed by name so a held entry keeps its node while the order shifts around it.
-        order().map(({ entry, position }) => (
-          <ReorderItem key={entry.name} value={entry.name} disabled={entry.disabled}>
-            <span>
-              <Slot for={() => slots.item?.(entry, position)}>{entry.label ?? entry.name}</Slot>
-            </span>
-            <ReorderHandle label={props.handleLabel?.(entry)} />
-          </ReorderItem>
-        ))
-      ) : (
-        renderDynamic(props.children, reorder)
-      )}
+      {props.items
+        ? // Keyed by name so a held entry keeps its node while the order shifts around it.
+          order().map(({ entry, position }) => (
+            <ReorderItem key={entry.name} value={entry.name} disabled={entry.disabled}>
+              <span>
+                <Slot for={() => slots.item?.(entry, position)}>{entry.label ?? entry.name}</Slot>
+              </span>
+              <ReorderHandle label={props.handleLabel?.(entry)} />
+            </ReorderItem>
+          ))
+        : renderDynamic(props.children, reorder)}
     </ol>
   );
 }, 'Reorder');

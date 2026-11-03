@@ -50,7 +50,11 @@
       oklch(from var(--aui-glint-light) l c h / 0.22)
     );
     --aui-glint-sheen: light-dark(
-      color-mix(in oklch, var(--color-primary) calc(var(--aui-glint-tint) / 2.5), rgba(255, 255, 255, 0.3)),
+      color-mix(
+        in oklch,
+        var(--color-primary) calc(var(--aui-glint-tint) / 2.5),
+        rgba(255, 255, 255, 0.3)
+      ),
       oklch(from var(--aui-glint-light) l c h / 0.035)
     );
     /* The arc of edge facing the pointer, lit wherever the pointer is; the rim is its faint reflection across. */
@@ -103,7 +107,8 @@
       padding: 1px;
       background:
         radial-gradient(
-          circle var(--aui-glint-size) at calc(var(--pointer-x, 50%) + 1px) calc(var(--pointer-y, 0%) + 1px),
+          circle var(--aui-glint-size) at calc(var(--pointer-x, 50%) + 1px)
+            calc(var(--pointer-y, 0%) + 1px),
           var(--aui-glint-edge),
           transparent
         ),

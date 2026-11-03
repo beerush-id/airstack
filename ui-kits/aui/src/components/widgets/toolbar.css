@@ -40,8 +40,18 @@
       color: var(--color-on-surface);
     }
 
-    & > .aui-control:not(.aui-toggle[aria-pressed='true'], :has(input), :disabled, [aria-disabled='true']):hover {
-      background-color: color-mix(in oklch, var(--color-on-surface) var(--tone-hover-strength), transparent);
+    &
+      > .aui-control:not(
+        .aui-toggle[aria-pressed='true'],
+        :has(input),
+        :disabled,
+        [aria-disabled='true']
+      ):hover {
+      background-color: color-mix(
+        in oklch,
+        var(--color-on-surface) var(--tone-hover-strength),
+        transparent
+      );
     }
 
     /* Each select's glyph and caret a step quieter than its words. */
@@ -73,11 +83,16 @@
   }
 
   .aui-toolbar-tonal {
-    background-color: color-mix(in oklch, var(--aui-item-bg) var(--tone-faint-strength), var(--light-up));
+    background-color: color-mix(
+      in oklch,
+      var(--aui-item-bg) var(--tone-faint-strength),
+      var(--light-up)
+    );
   }
 
   .aui-toolbar-outlined {
-    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--aui-item-bg) 40%, var(--color-outline-variant));
+    box-shadow: inset 0 0 0 1px
+      color-mix(in oklch, var(--aui-item-bg) 40%, var(--color-outline-variant));
   }
 
   .aui-toolbar-elevated {

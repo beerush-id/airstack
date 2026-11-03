@@ -104,7 +104,9 @@ describe('async ticking — on', () => {
     segment.addScene({ atFrame: 30, name: 'out' }, { opacity: 1 });
     const drawn: string[] = [];
     segment.subscribe(() => new Promise<void>((resolve) => setTimeout(() => (drawn.push('segment'), resolve()), 50)));
-    segment.onTransition(() => new Promise<void>((resolve) => setTimeout(() => (drawn.push('transition'), resolve()), 100)));
+    segment.onTransition(
+      () => new Promise<void>((resolve) => setTimeout(() => (drawn.push('transition'), resolve()), 100))
+    );
 
     const scrubbed = timeline.scrub(10);
     await vi.advanceTimersByTimeAsync(60);

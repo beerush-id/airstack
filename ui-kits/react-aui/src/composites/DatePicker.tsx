@@ -122,11 +122,19 @@ export const DatePicker = setup<DatePickerProps>((props) => {
   datePickerView.set(picker as AnyType);
 
   const header = () => (
-    <DatePickerHeader previousLabel={props.labels?.previous} nextLabel={props.labels?.next} yearLabel={props.labels?.year} />
+    <DatePickerHeader
+      previousLabel={props.labels?.previous}
+      nextLabel={props.labels?.next}
+      yearLabel={props.labels?.year}
+    />
   );
 
   return () => (
-    <div ref={picker.ref} {...picker.restProps([...OMIT_KEYS, 'placeholder', 'labels', 'inline'])} className={className()}>
+    <div
+      ref={picker.ref}
+      {...picker.restProps([...OMIT_KEYS, 'placeholder', 'labels', 'inline'])}
+      className={className()}
+    >
       {props.children ? (
         renderDynamic(props.children, picker)
       ) : inline ? (
@@ -228,7 +236,9 @@ export const DatePickerCalendar = setup<DatePickerCalendarProps>((props) => {
     <div ref={calendar.ref} {...calendar.restProps([...OMIT_KEYS, 'labels', 'inline'])} className={className()}>
       {props.children && <div className={AUI_CLASS.DATE_PICKER_HEADER}>{props.children}</div>}
       <div className={AUI_CLASS.DATE_PICKER_GRID}>
-        <For each={() => calendar.grid.weeks}>{(label) => <div className={AUI_CLASS.DATE_PICKER_WEEKDAY}>{label}</div>}</For>
+        <For each={() => calendar.grid.weeks}>
+          {(label) => <div className={AUI_CLASS.DATE_PICKER_WEEKDAY}>{label}</div>}
+        </For>
         <For each={() => calendar.grid.dates}>{(date) => <DatePickerDay date={date} />}</For>
       </div>
     </div>

@@ -86,7 +86,11 @@
     &:hover:not(:disabled, [aria-disabled='true']) {
       background-color: color-mix(in oklch, var(--aui-slider-active-bg) 90%, var(--light-up));
       box-shadow: 0 0 0 calc(var(--aui-slider-height) * var(--aui-halo-scale))
-        color-mix(in oklch, var(--aui-control-bg) var(--aui-halo-strength), black var(--aui-halo-shade));
+        color-mix(
+          in oklch,
+          var(--aui-control-bg) var(--aui-halo-strength),
+          black var(--aui-halo-shade)
+        );
     }
 
     &:disabled,

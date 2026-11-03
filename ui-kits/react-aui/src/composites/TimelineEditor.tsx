@@ -333,7 +333,8 @@ export const TimelineEditor = setup<TimelineEditorProps, TimelineEditorSlots>((p
   };
   const clips = aria(CLIPS_ROLE, props as AnyType);
   clips.refine(pointerFocusOnly);
-  const className = () => $families(AUI_CLASS.TIMELINE_EDITOR, { className: props.className }, auiConfig.timelineEditor);
+  const className = () =>
+    $families(AUI_CLASS.TIMELINE_EDITOR, { className: props.className }, auiConfig.timelineEditor);
   const tracks = () => [...props.timeline.tracks];
   // A group's tracks, top to bottom: pictures first, a later track drawing over an earlier one, so
   // the last is the top row; then sound, which stacks with nothing, in the timeline's order.
@@ -411,7 +412,11 @@ export const TimelineEditor = setup<TimelineEditorProps, TimelineEditorSlots>((p
             >
               {(hidden) =>
                 sound ? (
-                  hidden ? <VolumeOffIcon /> : <VolumeUpIcon />
+                  hidden ? (
+                    <VolumeOffIcon />
+                  ) : (
+                    <VolumeUpIcon />
+                  )
                 ) : hidden ? (
                   <VisibilityOffIcon />
                 ) : (
@@ -544,9 +549,20 @@ export const TimelineEditor = setup<TimelineEditorProps, TimelineEditorSlots>((p
             </div>
             <div
               ref={clips.ref}
-              {...clips.restProps(
-                [...OMIT_KEYS, 'timeline', 'track', 'zoom', 'keyframes', 'playheadLabel', 'snap', 'autofocus', 'progress', 'laneCommands', 'onlanecommand', 'onlanedrop'] as never
-              )}
+              {...clips.restProps([
+                ...OMIT_KEYS,
+                'timeline',
+                'track',
+                'zoom',
+                'keyframes',
+                'playheadLabel',
+                'snap',
+                'autofocus',
+                'progress',
+                'laneCommands',
+                'onlanecommand',
+                'onlanedrop',
+              ] as never)}
               className={CLASS.LANES}
               onContextMenuCapture={aimLaneMenu}
               onDragOver={allowDrop}

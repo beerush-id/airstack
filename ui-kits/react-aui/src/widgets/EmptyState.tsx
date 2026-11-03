@@ -25,7 +25,15 @@ const EMPTY_CLASS = {
   ACTION: branded('empty-state-action'),
 };
 
-const EMPTY_OMIT: Array<keyof EmptyStateProps> = ['title', 'description', 'level', 'children', 'className', 'size', 'color'];
+const EMPTY_OMIT: Array<keyof EmptyStateProps> = [
+  'title',
+  'description',
+  'level',
+  'children',
+  'className',
+  'size',
+  'color',
+];
 
 register('emptyState', { size: SIZES.MD, color: COLORS.PRIMARY });
 
@@ -35,8 +43,7 @@ register('emptyState', { size: SIZES.MD, color: COLORS.PRIMARY });
  * Children render between the description and the action.
  */
 export const EmptyState = setup<EmptyStateProps, EmptyStateSlots>((props, slots) => {
-  const className = () =>
-    $families([EMPTY_CLASS.ROOT, AUI_CLASS.SCALE], props, auiConfig.emptyState);
+  const className = () => $families([EMPTY_CLASS.ROOT, AUI_CLASS.SCALE], props, auiConfig.emptyState);
 
   return () => {
     const Heading = `h${props.level ?? 3}` as 'h3';

@@ -22,7 +22,9 @@
       "import": "./dist/wrangler/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "directories": {
     "dist": "./dist"
   },

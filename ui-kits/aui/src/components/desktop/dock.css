@@ -25,7 +25,10 @@
     /* The answers above the dock: how wide the stack is at least, and how much of the one before the newest peeks above it. */
     --aui-dock-widgets-width: calc(var(--spacing) * 120);
     /* How wide the stack may grow for a wide answer: a readable line, and never past the screen's edges. */
-    --aui-dock-widgets-max-width: min(calc(var(--spacing) * 160), calc(100dvi - var(--aui-dock-offset) * 2));
+    --aui-dock-widgets-max-width: min(
+      calc(var(--spacing) * 160),
+      calc(100dvi - var(--aui-dock-offset) * 2)
+    );
     /* How much surface color an answer's glass lays over what's behind: more than a window's, so text on it reads. */
     --aui-dock-widget-tint: 75%;
     /* How long an open stack waits after the pointer leaves before it closes, and how long a quiet stack stays before it fades away. */
@@ -149,7 +152,10 @@
    */
   .aui-dock-float-subject {
     --aui-dock-subject-size: var(--aui-control-height);
-    --aui-dock-subject-radius: max(calc(var(--aui-glass-radius) - var(--aui-glass-inset) - 1px), var(--radius-sm));
+    --aui-dock-subject-radius: max(
+      calc(var(--aui-glass-radius) - var(--aui-glass-inset) - 1px),
+      var(--radius-sm)
+    );
     display: inline-flex;
     flex: none;
 
@@ -168,7 +174,10 @@
     max-block-size: 50dvh;
     overflow: auto;
     padding: var(--aui-glass-inset);
-    border-radius: max(calc(var(--aui-glass-radius) - var(--aui-glass-inset) - 1px), var(--radius-sm));
+    border-radius: max(
+      calc(var(--aui-glass-radius) - var(--aui-glass-inset) - 1px),
+      var(--radius-sm)
+    );
 
     & .aui-toolbar-options {
       flex-wrap: nowrap;
@@ -231,7 +240,7 @@
           linear-gradient(#000 0 0);
         mask-composite: exclude;
         filter: blur(var(--aui-dock-busy-glow));
-        opacity: calc(var(--aui-dock-busy-glow-opacity)*0.8);
+        opacity: calc(var(--aui-dock-busy-glow-opacity) * 0.8);
         animation: aui-dock-busy var(--aui-dock-busy-glow-lap) linear infinite;
         transition: opacity var(--duration-medium) var(--ease-standard);
 
@@ -266,12 +275,23 @@
       isolation: isolate;
       inline-size: var(--aui-dock-orb-size);
       block-size: var(--aui-dock-orb-size);
-      margin: calc((var(--aui-control-height) - var(--aui-dock-orb-size)) / 2 - var(--aui-dock-prompt-inset));
-      margin-inline-end: calc(
-        (var(--aui-control-height) - var(--aui-dock-orb-size)) / 2 - var(--aui-dock-prompt-inset) + var(--aui-dock-orb-glow)
+      margin: calc(
+        (var(--aui-control-height) - var(--aui-dock-orb-size)) /
+        2 -
+        var(--aui-dock-prompt-inset)
       );
-      filter: drop-shadow(0 0 var(--aui-dock-orb-glow) color-mix(in oklch, var(--aui-dock-busy-color) 60%, transparent));
-      animation: aui-dock-orb-breathe var(--aui-dock-busy-lap) var(--ease-standard) infinite alternate;
+      margin-inline-end: calc(
+        (var(--aui-control-height) - var(--aui-dock-orb-size)) /
+        2 -
+        var(--aui-dock-prompt-inset) +
+        var(--aui-dock-orb-glow)
+      );
+      filter: drop-shadow(
+        0 0 var(--aui-dock-orb-glow)
+          color-mix(in oklch, var(--aui-dock-busy-color) 60%, transparent)
+      );
+      animation: aui-dock-orb-breathe var(--aui-dock-busy-lap) var(--ease-standard) infinite
+        alternate;
 
       & > svg {
         display: none;
@@ -291,13 +311,21 @@
       &::before {
         background:
           radial-gradient(circle at 30% 35%, var(--aui-dock-busy-color), transparent 60%),
-          radial-gradient(circle at 70% 70%, oklch(from var(--aui-dock-busy-color) l c calc(h - 70)), transparent 60%),
+          radial-gradient(
+            circle at 70% 70%,
+            oklch(from var(--aui-dock-busy-color) l c calc(h - 70)),
+            transparent 60%
+          ),
           color-mix(in oklch, var(--aui-dock-busy-color) 30%, var(--color-surface-lowest));
       }
 
       &::after {
         background:
-          radial-gradient(circle at 70% 30%, oklch(from var(--aui-dock-busy-color) l c calc(h - 35)), transparent 60%),
+          radial-gradient(
+            circle at 70% 30%,
+            oklch(from var(--aui-dock-busy-color) l c calc(h - 35)),
+            transparent 60%
+          ),
           radial-gradient(
             circle at 30% 70%,
             oklch(from var(--aui-dock-busy-color) calc(l + 0.2) c h),
@@ -357,7 +385,14 @@
     box-sizing: border-box;
     min-inline-size: 0;
     min-block-size: calc(var(--aui-control-height) - var(--aui-dock-prompt-inset) * 2);
-    max-block-size: calc(var(--aui-dock-prompt-lines) * 1lh + var(--aui-control-height) - var(--aui-dock-prompt-inset) * 2 - 1lh);
+    max-block-size: calc(
+      var(--aui-dock-prompt-lines) *
+      1lh +
+      var(--aui-control-height) -
+      var(--aui-dock-prompt-inset) *
+      2 -
+      1lh
+    );
     overflow-y: auto;
     padding: calc((var(--aui-control-height) - var(--aui-dock-prompt-inset) * 2 - 1lh) / 2) 0;
     color: inherit;
@@ -563,7 +598,9 @@
      * never falls through between them; the list's own padding keeps the gap.
      */
     --aui-dock-widgets-dock-room: calc(
-      var(--aui-dock-offset) + var(--aui-dock-block-size, 0px) + var(--aui-dock-float-block-size, 0px)
+      var(--aui-dock-offset) +
+      var(--aui-dock-block-size, 0px) +
+      var(--aui-dock-float-block-size, 0px)
     );
     position: fixed;
     position-anchor: --aui-dock;
@@ -576,14 +613,23 @@
     /* As wide as the answers need: at least the dock or the stack's own width, at most its max width. */
     inline-size: max-content;
     min-inline-size: calc(
-      max(anchor-size(width), min(var(--aui-dock-widgets-width), calc(100dvi - var(--aui-dock-offset) * 2))) +
-        var(--aui-dock-widgets-shadow-room) * 2
+      max(
+        anchor-size(width),
+        min(var(--aui-dock-widgets-width), calc(100dvi - var(--aui-dock-offset) * 2))
+      ) +
+      var(--aui-dock-widgets-shadow-room) *
+      2
     );
-    max-inline-size: calc(var(--aui-dock-widgets-max-width) + var(--aui-dock-widgets-shadow-room) * 2);
+    max-inline-size: calc(
+      var(--aui-dock-widgets-max-width) +
+      var(--aui-dock-widgets-shadow-room) *
+      2
+    );
     max-block-size: 100%;
     margin: 0 calc(var(--aui-dock-widgets-shadow-room) * -1);
     /* Room for the shadows on every side but the foot, where the dock stands. */
-    padding: var(--aui-dock-widgets-shadow-room) var(--aui-dock-widgets-shadow-room) var(--aui-dock-widgets-dock-room);
+    padding: var(--aui-dock-widgets-shadow-room) var(--aui-dock-widgets-shadow-room)
+      var(--aui-dock-widgets-dock-room);
     overflow-y: auto;
     scrollbar-width: none;
     pointer-events: none;
@@ -607,7 +653,8 @@
    * Reaching for the answers — pointing at the stack, moving focus into it, or a popup open from it —
    * brings them back up.
    */
-  .aui-desktop:has(.aui-window:focus-within) > .aui-dock-widgets:not([data-open], :hover, :focus-within, :has([aria-expanded='true'])) {
+  .aui-desktop:has(.aui-window:focus-within)
+  > .aui-dock-widgets:not([data-open], :hover, :focus-within, :has([aria-expanded='true'])) {
     z-index: calc(var(--aui-window-z) - 1);
   }
 
@@ -765,7 +812,11 @@
     inset-inline-start: 50%;
     translate: -50% 0;
     inline-size: calc(var(--aui-dock-widgets-cue-width) + var(--aui-dock-widgets-cue-reach) * 2);
-    block-size: calc(var(--aui-dock-widgets-cue-height) + var(--aui-dock-widgets-cue-reach) + var(--aui-dock-offset));
+    block-size: calc(
+      var(--aui-dock-widgets-cue-height) +
+      var(--aui-dock-widgets-cue-reach) +
+      var(--aui-dock-offset)
+    );
     pointer-events: none;
     transition: pointer-events 0s var(--aui-dock-widgets-close-delay) allow-discrete;
   }
@@ -788,7 +839,8 @@
     /* Its glass edge, then a lift dark enough to part it from a window's glass beneath. */
     box-shadow:
       0 0 0 1px var(--aui-window-edge),
-      0 calc(var(--shadow-base) * 2) calc(var(--shadow-base) * 6) light-dark(rgba(0, 0, 0, 0.28), rgba(0, 0, 0, 0.6)),
+      0 calc(var(--shadow-base) * 2) calc(var(--shadow-base) * 6)
+      light-dark(rgba(0, 0, 0, 0.28), rgba(0, 0, 0, 0.6)),
       0 0 calc(var(--shadow-base) * 2) light-dark(rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.45));
     pointer-events: none;
     opacity: 0;
@@ -830,7 +882,8 @@
     & .aui-toast.aui-dock-widget {
       opacity: 0;
       pointer-events: none;
-      transition: opacity var(--duration-long, 600ms) var(--ease-standard) var(--aui-dock-widgets-close-delay);
+      transition: opacity var(--duration-long, 600ms) var(--ease-standard)
+        var(--aui-dock-widgets-close-delay);
     }
 
     & .aui-dock-widgets-list {
@@ -843,7 +896,8 @@
 
     &::after {
       opacity: 1;
-      transition: opacity var(--duration-long, 600ms) var(--ease-standard) var(--aui-dock-widgets-close-delay);
+      transition: opacity var(--duration-long, 600ms) var(--ease-standard)
+        var(--aui-dock-widgets-close-delay);
     }
   }
 
@@ -883,8 +937,6 @@
     padding: var(--spacing-md);
   }
 
-
-
   /*
    * At rest only the newest answer shows; the one before it holds its place, faded out. Pointing at
    * the stack, or moving the keyboard into it, opens it to the
@@ -893,12 +945,18 @@
    */
   .aui-dock-widgets:is([data-open], :hover, :has(:focus-visible)) {
     /* Counting entries only: the list also holds whatever is drawn after one. */
-    &[data-visible='1'] .aui-dock-widget:nth-last-child(n + 2 of .aui-dock-widget:not(.aui-dock-widget-important)),
-    &[data-visible='2'] .aui-dock-widget:nth-last-child(n + 3 of .aui-dock-widget:not(.aui-dock-widget-important)),
-    &[data-visible='3'] .aui-dock-widget:nth-last-child(n + 4 of .aui-dock-widget:not(.aui-dock-widget-important)),
-    &[data-visible='4'] .aui-dock-widget:nth-last-child(n + 5 of .aui-dock-widget:not(.aui-dock-widget-important)),
-    &[data-visible='5'] .aui-dock-widget:nth-last-child(n + 6 of .aui-dock-widget:not(.aui-dock-widget-important)),
-    &[data-visible='6'] .aui-dock-widget:nth-last-child(n + 7 of .aui-dock-widget:not(.aui-dock-widget-important)) {
+    &[data-visible='1']
+      .aui-dock-widget:nth-last-child(n + 2 of .aui-dock-widget:not(.aui-dock-widget-important)),
+    &[data-visible='2']
+      .aui-dock-widget:nth-last-child(n + 3 of .aui-dock-widget:not(.aui-dock-widget-important)),
+    &[data-visible='3']
+      .aui-dock-widget:nth-last-child(n + 4 of .aui-dock-widget:not(.aui-dock-widget-important)),
+    &[data-visible='4']
+      .aui-dock-widget:nth-last-child(n + 5 of .aui-dock-widget:not(.aui-dock-widget-important)),
+    &[data-visible='5']
+      .aui-dock-widget:nth-last-child(n + 6 of .aui-dock-widget:not(.aui-dock-widget-important)),
+    &[data-visible='6']
+      .aui-dock-widget:nth-last-child(n + 7 of .aui-dock-widget:not(.aui-dock-widget-important)) {
       display: none;
     }
   }
@@ -921,7 +979,10 @@
      * belongs to the windows behind.
      */
     & .aui-dock-widget:nth-last-child(n + 3 of .aui-dock-widget:not(.aui-dock-widget-important)),
-    & .aui-dock-widget:nth-last-child(2 of .aui-dock-widget:not(.aui-dock-widget-important)):not(.aui-dock-widget-user),
+    &
+      .aui-dock-widget:nth-last-child(2 of .aui-dock-widget:not(.aui-dock-widget-important)):not(
+        .aui-dock-widget-user
+      ),
     & .aui-dock-widget-after {
       opacity: 0;
       visibility: hidden;
@@ -946,7 +1007,10 @@
   /* The apps wrap into as many columns as fit; each is a captioned app icon. */
   .aui-launcher-apps {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(calc(var(--aui-launcher-icon-size) + var(--spacing) * 10), 1fr));
+    grid-template-columns: repeat(
+        auto-fill,
+        minmax(calc(var(--aui-launcher-icon-size) + var(--spacing) * 10), 1fr)
+      );
     align-content: start;
     gap: var(--spacing-sm);
 

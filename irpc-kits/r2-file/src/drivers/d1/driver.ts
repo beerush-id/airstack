@@ -164,11 +164,18 @@ export class D1Driver implements FileDriver {
     const extra = this.extension?.updated?.({ path: target, options }) ?? {};
     const keys = Object.keys(extra);
 
-    await this.mutate(ctx, 'update', [target], [
-      this.db
-        .prepare(`UPDATE _r2_files SET metadata = ?, mtime = ?${keys.map((key) => `, "${key}" = ?`).join('')} WHERE path = ?`)
-        .bind(metadata, mtime, ...keys.map((key) => extra[key] ?? null), target),
-    ]);
+    await this.mutate(
+      ctx,
+      'update',
+      [target],
+      [
+        this.db
+          .prepare(
+            `UPDATE _r2_files SET metadata = ?, mtime = ?${keys.map((key) => `, "${key}" = ?`).join('')} WHERE path = ?`
+          )
+          .bind(metadata, mtime, ...keys.map((key) => extra[key] ?? null), target),
+      ]
+    );
 
     ctx.result = toFileInfo({ ...row, metadata, mtime, ...extra });
   }
@@ -220,7 +227,19 @@ export class D1Driver implements FileDriver {
             metadata = excluded.metadata,
             "${this.ownerKey}" = excluded."${this.ownerKey}"${keys.map((key) => `, "${key}" = excluded."${key}"`).join('')}`
         )
-        .bind(target, name, prepared.size, prepared.type, mtime, dir, hidden, pub, meta, owner, ...keys.map((key) => extra[key] ?? null)),
+        .bind(
+          target,
+          name,
+          prepared.size,
+          prepared.type,
+          mtime,
+          dir,
+          hidden,
+          pub,
+          meta,
+          owner,
+          ...keys.map((key) => extra[key] ?? null)
+        ),
       ...(this.extension?.statements?.(this.db, written) ?? []),
     ];
 
