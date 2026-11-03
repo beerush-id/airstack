@@ -1,6 +1,6 @@
 {
   "name": "@airlib/vue",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "Vue bindings for Anchor reactive state management",
   "keywords": ["state", "management", "reactive", "observable", "vue"],
   "author": "Nanang Mahdaen El Agung <mahdaen@gmail.com>",

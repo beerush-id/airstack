@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "@airlib/react-aui",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "Reactive and declarative React headless components built on AirLib.",
   "keywords": ["react", "form", "validation", "zod", "reactive", "airlib", "anchor", "typescript"],
   "author": "Nanang Mahdaen El Agung <mahdaen@gmail.com>",
