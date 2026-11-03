@@ -464,8 +464,9 @@ export class VideoStageAria<
   }
 
   /**
-   * Draws every showing clip into the stage, in DOM order, moved by its own motion: media and
-   * canvases as images, everything else as HTML.
+   * Draws every showing clip into the stage, in DOM order, moved by its own motion: videos and
+   * canvases as images of their current frame, everything else as HTML, a picture included, so it
+   * keeps its own corners, shadow and fit.
    */
   protected composite(): void {
     const canvas = this.canvas;
@@ -492,11 +493,7 @@ export class VideoStageAria<
       ctx.scale(scale, scale);
       ctx.translate(-cx, -cy);
 
-      if (
-        element instanceof HTMLVideoElement ||
-        element instanceof HTMLCanvasElement ||
-        element instanceof HTMLImageElement
-      ) {
+      if (element instanceof HTMLVideoElement || element instanceof HTMLCanvasElement) {
         ctx.drawImage(element, x, y, width, height);
       } else {
         ctx.drawElementImage?.(element, x, y);
