@@ -231,13 +231,14 @@ export function createObserver(
     } as never as StateObserver;
   }
 
-  let observedSize = 0;
   let isObserving = false;
   let isDestroyed = false;
   let stackCycles = 0;
+  // Whether a change cleared what's observed, so the next run says what's still read.
+  let isStale = false;
 
-  const cleaners = new Set<() => void>();
-  const resetters = new Set<() => void>();
+  // Every state this observer holds, with the keys it reads and how to let go of it.
+  const observed = new Map<Linkable, { keys: Set<KeyLike>; release: () => void }>();
 
   const track = ((state, key) => {
     const keys = states.get(state) as Set<KeyLike>;
@@ -259,60 +260,61 @@ export function createObserver(
   const destroy = () => {
     if (isDestroyed) return;
 
-    const currentCleaners = Array.from(cleaners);
-
-    for (const clear of currentCleaners) {
-      /* istanbul ignore else */
-      if (typeof clear === 'function') {
-        clear();
-      }
+    for (const { release } of observed.values()) {
+      release();
     }
 
-    observedSize = 0;
-    cleaners.clear();
-    resetters.clear();
+    observed.clear();
+    isStale = false;
 
     isDestroyed = true;
   };
 
   const reset = () => {
-    resetters.forEach((reset) => {
-      /* istanbul ignore else */
-      if (typeof reset === 'function') {
-        reset();
+    for (const { keys } of observed.values()) {
+      keys.clear();
+    }
+
+    isStale = true;
+  };
+
+  // A state with no keys left can't reach this observer, so holding it only keeps it alive and
+  // counts it against the limit: what's read in place of a replaced object would add up forever.
+  // It waits for the run to end, not the change, since what re-runs may run after `onChange` returns.
+  const releaseUnread = () => {
+    isStale = false;
+
+    for (const [state, { keys, release }] of observed) {
+      if (!keys.size) {
+        release();
+        observed.delete(state);
       }
-    });
+    }
   };
 
   const keyTrackers = new WeakMap();
   const assign = ((init, observers) => {
-    if (!observers.has(observer)) {
+    if (!states.has(init)) {
+      const keys = new Set<KeyLike>();
+      states.set(init, keys);
       observers.add(observer);
 
-      cleaners.add(() => {
-        states.delete(init);
-        observers.delete(observer);
-        plugin.devTool?.onUntrack?.(META_REGISTRY.get(init) as StateMetadata, observer);
-      });
-    }
-
-    if (!states.has(init)) {
-      const keys = new Set();
-      states.set(init, keys);
-
-      resetters.add(() => {
-        keys.clear();
+      observed.set(init, {
+        keys,
+        release() {
+          states.delete(init);
+          observers.delete(observer);
+          plugin.devTool?.onUntrack?.(META_REGISTRY.get(init) as StateMetadata, observer);
+        },
       });
 
       /* istanbul ignore else */
       if (ANCHOR_SETTINGS.safeObservation) {
-        observedSize += 1;
-
-        if (observedSize > ANCHOR_SETTINGS.safeObservationThreshold) {
+        if (observed.size > ANCHOR_SETTINGS.safeObservationThreshold) {
           const error = new Error('Observation limit exceeded.');
           captureStack.violation.general(
             'Unsafe observation detected:',
-            `Attempted to observe too many (${observedSize}) states within a single observer.`,
+            `Attempted to observe too many (${observed.size}) states within a single observer.`,
             error,
             [
               `We always recommend keeping observations small.`,
@@ -392,6 +394,7 @@ export function createObserver(
     },
     () => {
       isObserving = false;
+      if (isStale) releaseUnread();
     }
   );
   // biome-ignore lint/suspicious/noExplicitAny: Expect any.
@@ -404,6 +407,7 @@ export function createObserver(
     },
     () => {
       isObserving = false;
+      if (isStale) releaseUnread();
     }
   );
 

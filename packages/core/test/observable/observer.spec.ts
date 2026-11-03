@@ -3,6 +3,7 @@ import {
   $do,
   anchor,
   createObserver,
+  derived,
   effect,
   getObserver,
   getStaticTracker,
@@ -125,6 +126,97 @@ describe('Anchor Core - Observable Observer Management', () => {
 
       errorSpy.mockRestore();
       vi.useRealTimers();
+    });
+
+    it('should not count what a derived value read in runs before', () => {
+      const originalConfig = anchor.configs();
+      anchor.configure({ safeObservationThreshold: 5 });
+
+      const state = mutable({ list: [0] });
+      const size = derived(() => state.list.length);
+
+      for (let i = 1; i <= 20; i++) {
+        state.list = Array.from({ length: i }, (_, at) => at);
+      }
+
+      expect(size.value).toBe(20);
+      expect(errorSpy).not.toHaveBeenCalled();
+
+      anchor.configure(originalConfig);
+    });
+  });
+
+  describe('Releasing What Is No Longer Read', () => {
+    it('should stop hearing a replaced object', () => {
+      const handler = vi.fn();
+      const state = mutable({ list: [1] });
+      const replaced = state.list;
+
+      effect(() => {
+        handler(state.list.length);
+      });
+
+      state.list = [1, 2];
+      expect(handler).toHaveBeenCalledTimes(2);
+
+      replaced.push(3);
+      expect(handler).toHaveBeenCalledTimes(2);
+
+      state.list.push(3);
+      expect(handler).toHaveBeenCalledTimes(3);
+    });
+
+    it('should keep what a later run reads again', () => {
+      const handler = vi.fn();
+      const state = mutable({ show: true, count: 0 });
+
+      effect(() => {
+        handler(state.show ? state.count : -1);
+      });
+
+      state.show = false;
+      state.count = 1;
+      expect(handler).toHaveBeenCalledTimes(2);
+
+      state.show = true;
+      expect(handler).toHaveBeenLastCalledWith(1);
+
+      state.count = 2;
+      expect(handler).toHaveBeenLastCalledWith(2);
+    });
+
+    it('should hold what is observed until the run after a change', () => {
+      const onChange = vi.fn();
+      const observer = createObserver(onChange);
+      const state = mutable({ count: 0 });
+      const read = () => state.count;
+
+      observer.run(read);
+      state.count = 1;
+      expect(onChange).toHaveBeenCalledTimes(1);
+      expect(observer.states.has(anchor.get(state))).toBe(true);
+
+      // Rendering runs after the change has been heard, and reads it again.
+      observer.run(read);
+      state.count = 2;
+      expect(onChange).toHaveBeenCalledTimes(2);
+
+      observer.destroy();
+    });
+
+    it('should let go of a state the next run leaves unread', () => {
+      const observer = createObserver(() => {});
+      const first = mutable({ count: 0 });
+      const second = mutable({ count: 0 });
+
+      observer.run(() => first.count);
+      first.count = 1;
+      observer.run(() => second.count);
+
+      expect(observer.states.has(anchor.get(first))).toBe(false);
+      expect(observer.states.has(anchor.get(second))).toBe(true);
+
+      observer.destroy();
     });
   });
 
