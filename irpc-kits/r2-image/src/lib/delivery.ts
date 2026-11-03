@@ -3,6 +3,12 @@ import { isSizeAllowed, parseImageRequest } from '../utils/index.js';
 import { resizeImage, resolveBucket, resolveResizer } from './resizer.js';
 import { getOriginal, getVariant, getVariantKey, putVariant } from './storage.js';
 
+/** A vector picture's media type: drawn at any size, so never resized. */
+const SVG_TYPE = 'image/svg+xml';
+
+/** What an SVG served on its own may load: its own inline styles, nothing else, no scripts. */
+const SVG_POLICY = "default-src 'none'; style-src 'unsafe-inline'";
+
 export interface DeliveryOptions<Env> {
   variantPrefix?: string;
   browserTtl: number;
@@ -81,18 +87,25 @@ export async function handleImageDelivery<Env extends ImageWorkerEnv>(
     return respondAndCache(existingVariant.body, contentType, cacheHeaders, request, cache, existingVariant.httpEtag);
   }
 
-  // 4. Variant Cache Miss: Check if on-demand resizing is permitted
-  /* istanbul ignore else */
-  if (options.onDemand === false) {
-    return new Response('Image not found', { status: 404 });
-  }
-
-  // 5. Fetch Original and Trigger Container Resize
+  // 4. Variant Cache Miss: the original decides
   const original = await getOriginal(bucket, path);
   if (!original) {
     return new Response('Image not found', { status: 404 });
   }
 
+  // A vector draws at any size, so it's served as it is at every requested size, never resized.
+  const originalType = original.httpMetadata?.contentType as string;
+  if (originalType === SVG_TYPE) {
+    return respondAndCache(original.body, originalType, cacheHeaders, request, cache, original.httpEtag);
+  }
+
+  // 5. Check if on-demand resizing is permitted
+  /* istanbul ignore else */
+  if (options.onDemand === false) {
+    return new Response('Image not found', { status: 404 });
+  }
+
+  // 6. Trigger Container Resize
   try {
     const resizedResponse = await resizeImage(resizer, original.body, transforms);
     const contentType = resizedResponse.headers.get('content-type') as string;
@@ -124,6 +137,8 @@ async function respondAndCache(
   };
   /* istanbul ignore else */
   if (etag) headers.ETag = etag;
+  // An SVG can carry scripts: an <img> never runs them, and neither does opening its URL.
+  if (contentType === SVG_TYPE) headers['Content-Security-Policy'] = SVG_POLICY;
 
   const response = new Response(body, { status: 200, headers });
   await cache.put(request, response.clone());
