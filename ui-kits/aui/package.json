@@ -47,7 +47,7 @@
   "scripts": {
     "dev": "rimraf dist && tsdown --watch ./src",
     "clean": "rimraf dist",
-    "build": "bun run clean && tsdown && publint",
+    "build": "bun run clean && tsdown && bun run build:css && publint",
     "build:css": "tsdown -c tsdown.css.config.ts",
     "prepublish": "bun run format && bun run build",
     "format": "biome format --write",
