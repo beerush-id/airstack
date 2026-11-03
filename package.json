@@ -83,6 +83,7 @@
   },
   "catalogs": {
     "app": {
+      "@cloudflare/containers": "^0.3.7",
       "@shikijs/rehype": "^4.4.3",
       "@shikijs/transformers": "^4.4.3",
       "@shikijs/types": "^4.4.3",

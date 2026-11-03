@@ -19,6 +19,7 @@
     "@airlib/aria": "workspace:*",
     "@airlib/react": "workspace:*",
     "@airlib/react-form": "workspace:*",
+    "@cloudflare/containers": "catalog:app",
     "@irpclib/http": "workspace:*",
     "@irpclib/irpc": "workspace:*",
     "@irpclib/r2-file": "workspace:*",
