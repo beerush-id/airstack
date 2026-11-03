@@ -1,4 +1,4 @@
-import { classx, derived, untrack } from '@airlib/core';
+import { captureStack, classx, derived, untrack } from '@airlib/core';
 import { Route } from '@airlib/router';
 import { type JSX, onMount, splitProps } from '../solid.js';
 import { DEFAULT_ROUTER_CONFIGS } from './constant.js';
@@ -48,6 +48,9 @@ export const Link = ((allProps: LinkProps<AnyRoute>) => {
     const query = toProps.query;
 
     const activeUrl = untrack(() => new URL(getCurrentUrl()));
+    if (!activeUrl.pathname.endsWith('/')) {
+      activeUrl.pathname = `${activeUrl.pathname}/`;
+    }
 
     let route: AnyRoute | undefined;
     let target: URL;
@@ -73,7 +76,23 @@ export const Link = ((allProps: LinkProps<AnyRoute>) => {
       }
 
       if (router && href) {
-        route = untrack(() => router.find(target, true)?.route);
+        const match = untrack(() => router.find(target, true));
+
+        if (!match?.exception) route = match!.route;
+        if (match?.exception) {
+          const error = new Error('Unreachable link detected.');
+          captureStack.violation.general(
+            `Unreachable link detected`,
+            `Attempted to use <Link href="${href}">, but no route matched the URL.`,
+            error,
+            [
+              'Unreachable links degrade user experience and SEO score.',
+              '- Avoid using string-based href; prefer the type-safe "to" prop.',
+              '- If the link is external, make sure it does not share the same origin as the app, or use a standard <a> tag.',
+            ]
+          );
+        }
+
         /* istanbul ignore next */
         if (route?.index) route = route.index as unknown as AnyRoute;
       }
@@ -111,8 +130,13 @@ export const Link = ((allProps: LinkProps<AnyRoute>) => {
   };
 
   const handleClick: JSX.EventHandler<HTMLAnchorElement, MouseEvent> = (e) => {
+    const crossOrigin = state.url.origin !== location.origin;
+
     // Let the browser handle standard "open in new tab/window" modifiers and custom targets.
-    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0 || allProps.target) {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0 || crossOrigin || allProps.target) {
+      if (typeof props.onClick === 'function') {
+        (props.onClick as (e: MouseEvent) => void)(e);
+      }
       return;
     }
 

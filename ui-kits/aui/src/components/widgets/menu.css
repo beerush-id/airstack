@@ -1,0 +1,44 @@
+@import './button.css';
+@import './item.css';
+
+/* Menu-only parts; the panel and rows come from the shared panel and item layers. */
+@layer component {
+  /* A separator between rows is a hint, not a frame: hairline, inset to the row text. */
+  .aui-panel > .aui-divider {
+    --aui-divider-color: var(--color-outline-variant);
+    inline-size: auto;
+    margin-inline: var(--spacing-md);
+  }
+
+  .aui-menu-item-checkbox[aria-checked='true']::after,
+  .aui-menu-item-radio[aria-checked='true']::after {
+    content: '';
+    inline-size: var(--spacing-sm);
+    block-size: var(--spacing-sm);
+    margin-inline-start: auto;
+    border-radius: var(--radius-full);
+    background-color: currentColor;
+  }
+
+  .aui-menu-item-group {
+    display: flex;
+    flex-direction: column;
+    gap: inherit;
+
+    &[aria-disabled='true'] {
+      color: var(--color-disabled-fg);
+    }
+  }
+
+  .aui-menu-bar {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--spacing-xs);
+  }
+
+  .aui-menu-bar[aria-orientation='vertical'] {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

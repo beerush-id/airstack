@@ -1,0 +1,331 @@
+---
+nav: 'Deployment & Edge'
+nav-priority: 40
+title: 'Worker & Edge Delivery'
+description: 'Deploying @irpclib/r2-file on Cloudflare Workers, configuring edge delivery, HTTP 206 Range streaming, signed URLs, and error contracts.'
+keywords:
+  - Cloudflare Workers Filesystem
+  - R2 Edge Delivery
+  - HTTP Range Requests
+  - 206 Partial Content
+  - Signed URLs
+  - Wrangler Deployment
+---
+
+# Worker & Edge Delivery
+
+Deploying `@irpclib/r2-file` combines an operations plane for typed IRPC filesystem mutations with an edge delivery plane for streaming files directly to clients with caching and HTTP 206 Range seeking.
+
+## Worker Configuration
+
+Initializes the Cloudflare Worker fetch handler, routing incoming requests between the internal IRPC filesystem router and edge file delivery.
+
+```ts
+createWorker<Env extends FileWorkerEnv = FileWorkerEnv>(config?: FileWorkerConfig): ExportedHandler<Env>
+```
+
+### Parameters
+
+```ts
+interface FileWorkerConfig extends FileAdapterOptions {
+  adapter?: FileAdapter;
+  callable?: boolean;
+  public?: boolean | string[];
+  secret?: string;
+  endpoint?: string;
+  cache?: {
+    browserTtl?: number;
+    edgeTtl?: number;
+  };
+  cors?: CorsOptions;
+}
+```
+
+- `config.endpoint` *(string, optional, default `'/irpc'`)*: Custom IRPC endpoint path for filesystem mutations. Useful when embedding within a full-stack application to prevent route collisions.
+- `config.callable` *(boolean, optional, default `true`)*: Governs whether the worker accepts IRPC procedure calls. When set to `false`, the worker acts purely as a high-speed streaming CDN with zero RPC mutation surface.
+- `config.public` *(boolean | string[], optional, default `false`)*: Governs direct, unauthenticated HTTP GET access:
+  - `false`: All direct GET requests require a valid signed token (`?token=...&expires=...`).
+  - `true`: All stored files are publicly accessible.
+  - `string[]` (e.g. `['public/**', 'avatars/*']`): Matching path patterns are public while all other files remain protected.
+- `config.secret` *(string, optional)*: Secret key used to sign and verify temporary expiring delivery URLs.
+- `config.maxSize` *(number, optional, default `26214400` / 25MB)*: Maximum allowed file size in bytes for binary uploads.
+- `config.maxEncodingSize` *(number, optional, default `512000` / 500KB)*: Maximum allowed size in bytes for inline string and JSON transfers.
+- `config.allowedTypes` *(string[], optional)*: MIME type whitelist supporting exact types or wildcard patterns (e.g. `['image/*', 'application/pdf']`).
+- `config.strict` *(boolean, optional, default `false`)*: When enabled, deleting non-empty directories is blocked unless authorized by server context enforcement.
+- `config.softDelete` *(boolean, optional, default `false`)*: When enabled, standard deletion moves files to the trash instead of permanently purging them.
+- `config.cache.browserTtl` *(number, optional, default `86400`)*: Browser `Cache-Control: max-age` in seconds.
+- `config.cache.edgeTtl` *(number, optional, default `2592000`)*: Cloudflare Edge Cache `s-maxage` in seconds.
+
+### Full-Stack Usage
+
+Hosting R2 File directly inside your existing full-stack application (such as AirLib, Remix, Astro, or Hono) provides seamless deployment:
+
+- **Zero extra services**: Deployed alongside your application code in a single Cloudflare Worker pipeline.
+- **Same-origin performance**: No extra DNS lookups, no TLS negotiation latency, and zero CORS preflight (`OPTIONS`) round-trips.
+- **Shared bindings**: Uses your existing R2 bucket and D1 database bindings without external network bridges.
+
+#### Server Delegation
+
+In your application worker entrypoint, initialize the file service with a dedicated endpoint and intercept matching routes before falling through to your application router:
+
+```ts [server/worker.ts]
+import { createWorker } from '@irpclib/r2-file/worker';
+import appWorker from '../dist/server/worker.js';
+
+const fileService = createWorker({
+  endpoint: '/r2-file-irpc',
+  public: ['public/**'],
+  maxSize: 25 * 1024 * 1024,
+  maxEncodingSize: 500 * 1024,
+});
+
+export default {
+  async fetch(req: Request, env: any, ctx: any): Promise<Response> {
+    const url = new URL(req.url);
+
+    // Intercept filesystem RPC mutations
+    if (url.pathname === '/r2-file-irpc') {
+      return fileService.fetch(req, env, ctx);
+    }
+
+    // Intercept direct file delivery (e.g. /files/*)
+    if (url.pathname.startsWith('/files/')) {
+      return fileService.fetch(req, env, ctx);
+    }
+
+    // Primary application handler (SSR, pages, main IRPC)
+    return appWorker.fetch(req, env, ctx);
+  },
+};
+```
+
+#### Client Configuration
+
+When running same-origin with the default `/irpc` endpoint, the client works out of the box with zero configuration.
+
+If you configured a custom endpoint on the server, point the client transport to that endpoint:
+
+```ts [src/client.ts]
+import { configure } from '@irpclib/r2-file';
+
+configure({
+  endpoint: '/r2-file-irpc',
+});
+```
+
+#### Co-locating with R2 Image
+
+Because R2 File is the authoritative storage engine for writing, organizing, and deleting files, R2 Image only needs to act as an on-demand transformation and delivery gateway (`GET /assets/images/*`).
+
+Uploads, moves, and deletions go through R2 File using absolute root paths (`write('/assets/images/banner.png', file)`), while dynamic image transforms are processed on-demand by R2 Image from the shared bucket:
+
+```ts [server/worker.ts]
+import { Container } from '@cloudflare/containers';
+import { createWorker as createImageWorker } from '@irpclib/r2-image/worker';
+import { createWorker as createFileWorker } from '@irpclib/r2-file/worker';
+import appWorker from '../dist/server/worker.js';
+
+export class ImageResizer extends Container {
+  defaultPort = 8080;
+}
+
+// Delivery-only gateway: on-demand resizing from shared bucket
+const imageDelivery = createImageWorker({
+  allowedSizes: [128, 256, 640, 1024],
+  onDemand: true,
+});
+
+// Operations & delivery plane for all filesystem storage
+const fileService = createFileWorker({
+  endpoint: '/r2-file-irpc',
+  public: ['public/**'],
+  maxSize: 25 * 1024 * 1024,
+});
+
+export default {
+  async fetch(req: Request, env: any, ctx: any): Promise<Response> {
+    const url = new URL(req.url);
+
+    // On-demand image transformation & delivery (e.g. /assets/images/*)
+    if (req.method === 'GET' && url.pathname.startsWith('/assets/images/')) {
+      return imageDelivery.fetch(req, env, ctx);
+    }
+
+    // Filesystem range streaming and IRPC mutations (e.g. /files/*)
+    if (url.pathname === '/r2-file-irpc' || url.pathname.startsWith('/files/')) {
+      return fileService.fetch(req, env, ctx);
+    }
+
+    // Fall through to primary application
+    return appWorker.fetch(req, env, ctx);
+  },
+};
+```
+
+:::note[Learn more about R2 Image]
+- **[AirLib R2 Image Documentation](/docs/r2-image)** — Orientation-agnostic image resizing, container setups, and delivery presets.
+:::
+
+### Standalone Usage
+
+If you prefer a dedicated file microservice or a separate storage domain (e.g. `files.example.com`), export the fetch handler directly as your default worker export:
+
+```ts [src/index.ts]
+import { createWorker } from '@irpclib/r2-file/worker';
+
+export default createWorker({
+  public: ['public/**'],
+  maxSize: 25 * 1024 * 1024,
+  maxEncodingSize: 500 * 1024,
+  cache: {
+    browserTtl: 86400,
+    edgeTtl: 2592000,
+  },
+});
+```
+
+When connecting from a separate client origin, configure the remote origin and credentials:
+
+```ts [src/client.ts]
+import { configure } from '@irpclib/r2-file';
+
+// Only needed when calling across origins
+configure({
+  baseUrl: 'https://files.example.com',
+  apiKey: 'your-secret-api-key',
+});
+```
+
+### Delivery-Only Gateway
+
+If your architecture writes files externally and you only need edge delivery, caching, and Range streaming on top of your existing R2 bucket, set `callable: false` or scope the handler exclusively to `GET` requests:
+
+```ts [src/index.ts]
+import { createWorker } from '@irpclib/r2-file/worker';
+
+const deliveryWorker = createWorker({
+  callable: false,
+  public: true,
+});
+
+export default {
+  async fetch(req: Request, env: any, ctx: any): Promise<Response> {
+    const url = new URL(req.url);
+
+    if (req.method === 'GET' && url.pathname.startsWith('/files/')) {
+      return deliveryWorker.fetch(req, env, ctx);
+    }
+
+    return new Response('Not Found', { status: 404 });
+  },
+};
+```
+
+## Edge Delivery Plane
+
+Direct HTTP GET requests to the worker stream files from storage with edge CDN performance:
+
+```html
+<!-- Public image served with edge cache headers -->
+<img src="https://files.mydomain.com/public/images/logo.png" />
+
+<!-- Video streaming with native 206 Range seeking -->
+<video src="https://files.mydomain.com/public/videos/intro.mp4" controls />
+```
+
+### HTTP 206 Partial Content (Range Seeking)
+
+The delivery plane natively supports HTTP `Range` request headers (RFC 7233). When media players request specific byte ranges for video or audio scrubbing:
+
+- The worker inspects the `Range: bytes=start-end` header.
+- Streams the exact byte slice from Cloudflare R2.
+- Responds with `206 Partial Content`, `Content-Range`, and `Accept-Ranges: bytes`.
+
+### Conditional GET & ETag Caching
+
+Every stored file maintains an authoritative `etag` and `mtime`. Incoming requests with `If-None-Match` or `If-Modified-Since` headers automatically receive `304 Not Modified` responses, eliminating redundant data transfers.
+
+## Signed Expiring URLs
+
+For protected files, generate time-limited HMAC-SHA256 download links. The worker verifies the signature and expiration timestamp before serving:
+
+```
+https://files.mydomain.com/private/contracts/deal.pdf?token=<HMAC_HEX>&expires=1774000000
+```
+
+When a request arrives:
+- If the URL has expired (`Date.now() > expires`), the worker rejects with `403 Forbidden: URL expired`.
+- If the HMAC signature fails validation against `secret`, the worker rejects with `403 Forbidden: Invalid signature`.
+
+## Typed Error Handling
+
+All filesystem errors throw typed `HandlerError(code, message, cause)` from `@irpclib/irpc`. This guarantees safe wire serialization while preserving internal diagnostics on the server:
+
+- `message` *(Public Wire Safe)*: Serialized across the network. Contains clean, user-friendly messages for frontend display (e.g. `'Resource not found'`, `'Permission denied'`).
+- `cause` *(Server Telemetry Only)*: Diagnostic details retained strictly on the server for logging and telemetry.
+
+### Standard Error Codes
+
+| Code | Wire Message | Trigger Condition |
+| :--- | :--- | :--- |
+| `ENOENT` | `'Resource not found'` | Source file, target directory, or restore item missing |
+| `EEXIST` | `'Destination exists'` | Target destination already exists on copy or move |
+| `EACCES` | `'Permission denied'` | Boundary escape or unauthorized path under access rules |
+| `ENOTEMPTY` | `'Directory not empty'` | Non-empty directory deletion blocked under strict policy |
+| `EFBIG` | `'File size exceeds limit'` | Payload exceeds configured size limits |
+| `EINVAL` | `'Invalid file type'` | Unsupported MIME type or unapproved format |
+| `EIO` | `'Failed to <operation>'` | Storage driver failure or unhandled operation |
+
+### Catching Errors on the Client
+
+```ts
+import { write } from '@irpclib/r2-file';
+
+try {
+  await write('~/uploads/huge.zip', file);
+} catch (error: any) {
+  if (error.code === 'EFBIG') {
+    alert('File is too large to upload.');
+  } else if (error.code === 'EACCES') {
+    alert('You do not have permission to write to this location.');
+  } else {
+    alert(error.message);
+  }
+}
+```
+
+## Wrangler Configuration
+
+```jsonc [wrangler.jsonc]
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "r2-file-service",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-09-11",
+  "r2_buckets": [
+    {
+      "binding": "BUCKET",
+      "bucket_name": "production-file-storage"
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "production-fs-indexer",
+      "database_id": "<YOUR_D1_DATABASE_ID>"
+    }
+  ],
+  "vars": {
+    "FILE_API_KEY": "secret-mutation-key",
+    "FILE_SECRET": "secret-url-signing-key"
+  }
+}
+```
+
+## Summary
+
+With `@irpclib/r2-file`, you have a complete, production-grade cloud filesystem running at Cloudflare's edge:
+- **Zero data egress fees** on Cloudflare R2.
+- **Sub-millisecond SQL queries** powered by Cloudflare D1.
+- **Isomorphic API symmetry** between client stubs and edge workers.
+- **Enterprise-ready delivery** with HTTP 206 Range seeking, signed URLs, and POSIX path safety.

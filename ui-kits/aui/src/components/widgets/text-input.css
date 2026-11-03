@@ -1,0 +1,25 @@
+@import './input.css';
+
+/* Text, search, and number fields wear the shared field treatment. */
+@layer component {
+  /* A color field holds a swatch, not text: the field is the swatch, cut to its own corners. */
+  .aui-text-input[type='color'] {
+    inline-size: var(--aui-control-height);
+    padding: 0;
+    overflow: hidden;
+    cursor: pointer;
+
+    &::-webkit-color-swatch-wrapper {
+      padding: 0;
+    }
+
+    /* Each on its own: a browser drops a whole rule over a pseudo-element it doesn't know. */
+    &::-webkit-color-swatch {
+      border: 0;
+    }
+
+    &::-moz-color-swatch {
+      border: 0;
+    }
+  }
+}

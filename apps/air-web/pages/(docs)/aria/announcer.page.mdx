@@ -1,0 +1,328 @@
+---
+title: 'Headless Announcer'
+description: 'Headless live regions for React and SolidJS. Compiles the politeness, atomicity, and urgency your messages announce with — with no markup or styles imposed.'
+nav: 'Announcer'
+nav-priority: 610
+---
+
+import './aria.css';
+import './announcer.css';
+
+# Headless Announcer
+
+An announcer is the live region your UI writes its messages into. Getting it right means **choosing whether a message waits or interrupts**, **declaring whether the whole region is read or only what changed**, **keeping the region mounted before the message arrives**, and **silencing what changes too fast to narrate**.
+
+**Headless Announcer** does all of that for you, and leaves the markup and the styling entirely yours.
+
+```tsx
+const announcer = aria('announcer', props);
+
+<div ref={announcer.ref} {...announcer.restProps(['children'])} />
+```
+
+:::interactive[Save and Deploy Notices]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type DemoAnnouncerProps = ComponentProps<'div'> & {
+  politeness?: 'polite' | 'assertive' | 'off';
+  atomic?: boolean;
+  busy?: boolean;
+  relevant?: string;
+};
+
+const DemoAnnouncer = setup<DemoAnnouncerProps>((props) => {
+  const announcer = aria('announcer', props);
+
+  return () => (
+    <div ref={announcer.ref} {...announcer.restProps(['children'])} className="demo-announcer">
+      {props.children}
+    </div>
+  );
+}, 'DemoAnnouncer');
+```
+```html
+<div className="demo-announcer-stack">
+  <div className="demo-announcer-row">
+    <span className="demo-announcer-caption">Waits for the current utterance to finish</span>
+    <DemoAnnouncer>Draft saved 2 minutes ago</DemoAnnouncer>
+  </div>
+  <div className="demo-announcer-row">
+    <span className="demo-announcer-caption">Interrupts whatever is being read</span>
+    <DemoAnnouncer politeness="assertive">Deployment failed: 3 type errors in src/index.ts</DemoAnnouncer>
+  </div>
+  <div className="demo-announcer-row">
+    <span className="demo-announcer-caption">Identified but never narrated, however fast it changes</span>
+    <DemoAnnouncer politeness="off">Session expires in {'02:35'}</DemoAnnouncer>
+  </div>
+</div>
+```
+
+<div className="demo-announcer-stack">
+  <div className="demo-announcer-row">
+    <span className="demo-announcer-caption">Waits for the current utterance to finish</span>
+    <DemoAnnouncer>Draft saved 2 minutes ago</DemoAnnouncer>
+  </div>
+  <div className="demo-announcer-row">
+    <span className="demo-announcer-caption">Interrupts whatever is being read</span>
+    <DemoAnnouncer politeness="assertive">Deployment failed: 3 type errors in src/index.ts</DemoAnnouncer>
+  </div>
+  <div className="demo-announcer-row">
+    <span className="demo-announcer-caption">Identified but never narrated, however fast it changes</span>
+    <DemoAnnouncer politeness="off">Session expires in {'02:35'}</DemoAnnouncer>
+  </div>
+</div>
+:::
+
+:::interactive[Build Output and Batch Totals]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type DemoNoteProps = ComponentProps<'div'> & {
+  politeness?: 'polite' | 'assertive' | 'off';
+  atomic?: boolean;
+  busy?: boolean;
+  relevant?: string;
+};
+
+const DemoNote = setup<DemoNoteProps>((props) => {
+  const announcer = aria('announcer', props);
+
+  return () => (
+    <div ref={announcer.ref} {...announcer.restProps(['children'])} className="demo-announcer">
+      {props.children}
+    </div>
+  );
+}, 'DemoNote');
+
+type DemoStreamProps = ComponentProps<'div'> & {
+  atomic?: boolean;
+  relevant?: string;
+  busy?: boolean;
+};
+
+const DemoStream = setup<DemoStreamProps>((props) => {
+  const announcer = aria('announcer', props);
+
+  return () => (
+    <div ref={announcer.ref} {...announcer.restProps(['children'])} className="demo-announcer demo-announcer-log">
+      {props.children}
+    </div>
+  );
+}, 'DemoStream');
+```
+```html
+<div className="demo-announcer-stack">
+  <div className="demo-announcer-row">
+    <span className="demo-announcer-caption">Whole message read as one unit</span>
+    <DemoNote>Cart updated: 3 items, 41.50 EUR, ships Tuesday</DemoNote>
+  </div>
+  <div className="demo-announcer-row">
+    <span className="demo-announcer-caption">Only the appended entry is read, never the history</span>
+    <DemoStream atomic={false} relevant="additions">
+      <div className="demo-announcer-entry">{'09:41:02 compiling 128 modules'}</div>
+      <div className="demo-announcer-entry">{'09:41:04 bundling client entry'}</div>
+      <div className="demo-announcer-entry">{'09:41:07 bundling server entry'}</div>
+      <div className="demo-announcer-entry">{'09:41:09 build finished in 7.2s'}</div>
+    </DemoStream>
+  </div>
+  <div className="demo-announcer-row">
+    <span className="demo-announcer-caption">Held back while the batch loads</span>
+    <DemoNote busy>Recalculating totals for 12 invoices…</DemoNote>
+  </div>
+</div>
+```
+
+<div className="demo-announcer-stack">
+  <div className="demo-announcer-row">
+    <span className="demo-announcer-caption">Whole message read as one unit</span>
+    <DemoNote>Cart updated: 3 items, 41.50 EUR, ships Tuesday</DemoNote>
+  </div>
+  <div className="demo-announcer-row">
+    <span className="demo-announcer-caption">Only the appended entry is read, never the history</span>
+    <DemoStream atomic={false} relevant="additions">
+      <div className="demo-announcer-entry">{'09:41:02 compiling 128 modules'}</div>
+      <div className="demo-announcer-entry">{'09:41:04 bundling client entry'}</div>
+      <div className="demo-announcer-entry">{'09:41:07 bundling server entry'}</div>
+      <div className="demo-announcer-entry">{'09:41:09 build finished in 7.2s'}</div>
+    </DemoStream>
+  </div>
+  <div className="demo-announcer-row">
+    <span className="demo-announcer-caption">Held back while the batch loads</span>
+    <DemoNote busy>Recalculating totals for 12 invoices…</DemoNote>
+  </div>
+</div>
+:::
+
+:::tip
+**Mount the region before the message.** Assistive technology registers a live region when it appears, so keep the container in the tree and write the message into it — a region rendered together with its own text is frequently never announced.
+:::
+
+## Announcer
+
+**The live region.** One entity for every announcement your UI makes: advisory results, urgent failures, appended streams, and displays that change too fast to narrate.
+
+### Usage
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'announcer',
+  props?: AnnouncerProps,
+  options?: AnnouncerOptions
+): AnnouncerAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type AnnouncerProps = ComponentProps<'div'> & {
+  politeness?: 'polite' | 'assertive' | 'off';
+  atomic?: boolean;
+  busy?: boolean;
+  relevant?: string;
+};
+
+const Announcer = setup<AnnouncerProps>((props) => {
+  const announcer = aria('announcer', props);
+
+  return () => (
+    <div ref={announcer.ref} {...announcer.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type AnnouncerProps = ComponentProps<'div'> & {
+  politeness?: 'polite' | 'assertive' | 'off';
+  atomic?: boolean;
+  busy?: boolean;
+  relevant?: string;
+};
+
+const Announcer = setup<AnnouncerProps>((props) => {
+  const announcer = aria('announcer', props);
+
+  return (
+    <div ref={announcer.ref} {...announcer.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
+
+For a component that is always urgent, fix the tuning once with `inherit` instead of restating it at every call site:
+
+```tsx
+const announcer = aria('announcer', inherit(props, { politeness: 'assertive' }));
+```
+
+### Parameters
+
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **politeness** _'polite' | 'assertive' | 'off', optional, default `'polite'`_: How the message is delivered — wait for the current utterance, interrupt it, or stay silent. Compiled to `aria-live`, and `'assertive'` compiles `role="alert"` in place of `role="status"`.
+- **atomic** _boolean, optional, default `true`_: Whether the whole region is read as one unit instead of only the node that changed. `aria-atomic` is always written, so `false` is an explicit stream setting rather than an absent attribute.
+- **busy** _boolean, optional_: Whether the region is mid-update, which holds announcements back. `aria-busy` is written only when you set it — `busy: false` is a deliberate idle signal, an unset `busy` writes nothing.
+- **relevant** _string, optional_: Which change kinds to watch, written straight to `aria-relevant`. An append-only stream wants `'additions'`.
+
+### Options
+
+_What you fix when you create it. Read once, never reactive._
+
+- **native** _boolean, optional, default `false`_: Pass `true` when the host already implies the role — an `<output>` element — and the compiled `role` is left off.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **politeness** _'polite' | 'assertive' | 'off'_: What the region announces with — your prop, or the default.
+- **atomic** _boolean_: Whether the whole region is read as one unit.
+- **busy** _boolean_: Whether the region is currently marked mid-update.
+
+### How it behaves
+
+- **Urgency is a prop, not a second widget.** `politeness: 'assertive'` interrupts and flips the compiled role to `alert` in place — no second entity, no remount.
+- **Whole messages by default.** A replacement is read in full. A stream sets `atomic: false` with `relevant="additions"` so each appended entry is read on its own and the history is not — entries are heard in source order, so append at the end.
+- **Silence on request.** `politeness: 'off'` keeps a fast-changing display identified but unnarrated; announce its milestones from a polite or assertive region of your own.
+- **It names nothing itself.** The region compiles no accessible name, so bind `aria-label` on the host when the message needs one beyond its text.
+- **It takes no focus and claims no keys.** No tab stop, no `Escape`, nothing to blur — the user keeps their place while the message is read.
+- **Writing the message writes no attributes.** A per-second count or a growing log changes the content without touching the compiled announcement state.
+
+## Next Steps
+
+- **[Text Input](/docs/aria/text-input)**: The validation states that usually trigger an assertive message.
+- **[Progress](/docs/aria/progress)**: Report ongoing work as a value instead of as narration.
+- **[Section](/docs/aria/section)**: Wrap a persistent ticker as a named landmark.
+- **[Overview](/docs/aria)**: The attribute and ref contract every controller shares.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Announcer
+
+```ts
+interface AnnouncerProps {
+  politeness?: 'polite' | 'assertive' | 'off';
+  atomic?: boolean;
+  busy?: boolean;
+  relevant?: string;
+}
+
+interface AnnouncerOptions {
+  native?: boolean;
+}
+
+interface AnnouncerAttributes {
+  role?: 'status' | 'alert';
+  'aria-live'?: 'polite' | 'assertive' | 'off';
+  'aria-atomic'?: 'true' | 'false';
+  'aria-busy'?: 'true' | 'false';
+  'aria-relevant'?: string;
+}
+
+declare class AnnouncerAria {
+  get politeness(): 'polite' | 'assertive' | 'off';
+  get atomic(): boolean;
+  get busy(): boolean;
+}
+```
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`props`** / **`restProps(omit)`** is what you spread onto the host — your props minus the keys the controller writes and any you name, with the compiled attributes merged in; **`ref`** is what you bind the element with; **`attributes`** is that compiled dictionary on its own, when you need the low-level view.
+- **`assign()`** changes several parameters at once, **`refine()`** adds attributes of your own, **`on()`** listens for anything the part fires, **`destroy()`** tears it down.

@@ -1,0 +1,45 @@
+import { aria } from '@airlib/aria';
+import { AUI_CLASS, register } from '@airlib/aui/utils';
+import { type AnyType, type Bindable, setup } from '@airlib/react';
+import type { ReactNode } from 'react';
+import { $families, auiConfig, type AuiPrimitive, type AuiProps, type ComponentStyles, OMIT_KEYS } from '../config.js';
+import { radioGroupScope } from './context.js';
+
+export type RadioGroupValue = AuiPrimitive;
+
+export interface RadioGroupProps extends Omit<AuiProps<'div'>, 'variant'> {
+  value?: Bindable<RadioGroupValue>;
+  name?: string;
+  orientation?: 'vertical' | 'horizontal';
+  required?: boolean;
+  invalid?: boolean | 'grammar' | 'spelling';
+  disabled?: boolean;
+  id?: string;
+  children?: ReactNode;
+  onchange?: (event: CustomEvent<RadioGroupValue>) => void;
+}
+
+const RADIO_GROUP_ROLE = 'radio-group';
+
+const radioGroupStyles: ComponentStyles = {};
+
+register('radioGroup', radioGroupStyles);
+
+/**
+ * Coordinator that holds one shared answer across many options.
+ * Members join by declaring a `value` on `Radio`; selecting one
+ * takes the slot from the holder, arrows move and commit in one
+ * step, and `disabled` cascades to every member.
+ */
+export const RadioGroup = setup<RadioGroupProps>((props) => {
+  const group = aria(RADIO_GROUP_ROLE, props as AnyType);
+  const className = () => $families(AUI_CLASS.RADIO_GROUP, props, auiConfig.radioGroup);
+
+  radioGroupScope.provide(props as AnyType);
+
+  return () => (
+    <div ref={group.ref} {...group.restProps([...OMIT_KEYS])} className={className()}>
+      {props.children}
+    </div>
+  );
+}, 'RadioGroup');

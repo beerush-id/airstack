@@ -1,0 +1,90 @@
+@import './button.css';
+@import './item.css';
+
+/*
+ * The steppers and the player are shared buttons; the dots take the role
+ * color from the shared scale and stretch into a pill for the current slide.
+ */
+@layer theme {
+  :root {
+    --aui-carousel-gap: var(--spacing-md);
+    --aui-carousel-radius: var(--radius-xl);
+    --aui-carousel-surface: var(--color-surface);
+    --aui-carousel-padding: var(--spacing-xl);
+    --aui-carousel-slide-min: calc(var(--spacing) * 36);
+    --aui-carousel-dot-size: calc(var(--spacing) * 2);
+  }
+}
+
+@layer component {
+  .aui-carousel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--aui-carousel-gap);
+    color: var(--color-on-surface);
+  }
+
+  .aui-carousel-viewport {
+    position: relative;
+    min-block-size: var(--aui-carousel-slide-min);
+    padding: var(--aui-carousel-padding);
+    border-radius: var(--aui-carousel-radius);
+    background: var(--aui-carousel-surface);
+    overflow: hidden;
+    outline: var(--focus-ring-width) var(--focus-ring-style) transparent;
+    outline-offset: var(--focus-ring-offset);
+
+    &:focus-visible {
+      outline-color: color-mix(in oklch, var(--focus-ring-color) 75%, var(--light-up));
+    }
+  }
+
+  .aui-carousel-slide {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    block-size: 100%;
+    color: inherit;
+
+    &[hidden] {
+      display: none;
+    }
+  }
+
+  .aui-carousel-nav {
+    border-radius: var(--radius-full);
+  }
+
+  .aui-carousel-picker {
+    flex: none;
+    inline-size: var(--aui-carousel-dot-size);
+    block-size: var(--aui-carousel-dot-size);
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-full);
+    background-color: color-mix(in oklch, var(--aui-item-bg) 30%, transparent);
+    cursor: pointer;
+    transition-property: background-color, inline-size;
+    transition-duration: var(--duration-medium);
+    transition-timing-function: var(--ease-emphasized);
+
+    &:hover:not(:disabled) {
+      background-color: color-mix(in oklch, var(--aui-item-bg) 55%, transparent);
+    }
+
+    &:focus-visible {
+      outline: var(--focus-ring-width) var(--focus-ring-style) var(--focus-ring-color);
+      outline-offset: var(--focus-ring-offset);
+    }
+
+    &[aria-current='true'] {
+      inline-size: calc(var(--aui-carousel-dot-size) * 3);
+      background-color: var(--aui-item-bg);
+    }
+
+    &:disabled {
+      background-color: var(--color-disabled-fg);
+      cursor: not-allowed;
+    }
+  }
+}

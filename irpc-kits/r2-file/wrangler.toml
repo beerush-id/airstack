@@ -1,0 +1,15 @@
+# Test bindings for `@irpclib/r2-file` suites.
+# Consumed via `resolveBinding()` from `@irpclib/irpc/wrangler` (platform proxy).
+# `BUCKET` / `DB` match `FileWorkerEnv`; bucket name matches existing local state.
+
+name = "r2-file-test"
+compatibility_date = "2025-02-24"
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "r2-file-test"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "r2-file-test"
+database_id = "3f8a9c2e-7b41-4d6f-a5e1-9c0b2d4f6a8e"

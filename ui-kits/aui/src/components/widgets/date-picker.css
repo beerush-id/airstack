@@ -1,0 +1,265 @@
+@import './button.css';
+@import './input.css';
+@import './panel.css';
+
+/*
+ * The field, the trigger, and the calendar surface come from the shared
+ * input, button, and panel layers; this file lays out the bar and the grid.
+ */
+@layer theme {
+  :root {
+    --aui-date-picker-gap: var(--spacing-sm);
+    --aui-date-picker-padding: var(--spacing-sm);
+    --aui-date-picker-bar-gap: var(--spacing-xs);
+    --aui-date-picker-muted: var(--color-on-surface-variant);
+    --aui-date-picker-day-size: calc(var(--spacing) * 9);
+    --aui-date-picker-day-radius: var(--radius-full);
+    --aui-date-picker-year-width: calc(var(--spacing) * 14);
+  }
+}
+
+@layer component {
+  .aui-date-picker,
+  .aui-date-range-picker {
+    display: flex;
+    align-items: center;
+    gap: var(--aui-date-picker-bar-gap);
+    position: relative;
+  }
+
+  .aui-date-picker-input {
+    flex: 1 1 calc(var(--spacing) * 32);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .aui-date-picker-trigger {
+    flex: none;
+  }
+
+  /* One field box: bare date text, an optional range dash, and the trigger tucked at the end. */
+  /* `min-inline-size: 0` lets the field shrink below its inputs' natural ~20ch width. */
+  .aui-date-picker-field {
+    flex: 1 1 calc(var(--spacing) * 40);
+    min-inline-size: 0;
+    gap: var(--spacing-xs);
+    padding-inline-end: calc(var(--spacing) * 1);
+
+    /* The date text fills the field's height, so a press anywhere above or below it still lands in it. */
+    & > .aui-date-picker-input {
+      flex: 1 1 0;
+      align-self: stretch;
+      min-inline-size: 0;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      caret-color: inherit;
+      outline: none;
+
+      &::placeholder {
+        color: var(--aui-input-placeholder);
+      }
+    }
+
+    /* In a range, both dates hug their text so the arrow sits evenly between them; the button keeps the end. */
+    .aui-date-range-picker & {
+      gap: var(--spacing-sm);
+    }
+
+    .aui-date-range-picker & > .aui-date-picker-input {
+      flex: 0 1 auto;
+      field-sizing: content;
+    }
+
+    .aui-date-range-picker & > .aui-date-picker-trigger {
+      margin-inline-start: auto;
+    }
+
+    /* Inside the field the icon button shrinks to leave one spacing step to every edge. */
+    & > .aui-date-picker-trigger {
+      --aui-icon-size: calc(var(--aui-control-height) * 0.45);
+      block-size: calc(var(--aui-control-height) - var(--spacing) * 2);
+      inline-size: calc(var(--aui-control-height) - var(--spacing) * 2);
+      border-radius: var(--radius-full);
+    }
+  }
+
+  /* A calendar glyph is not a caret: it stays upright while the calendar is open. */
+  .aui-date-picker-trigger[aria-expanded='true'] > .aui-icon:last-child {
+    transform: none;
+  }
+
+  /* A small arrow reads as "from → to" in any language; it points the other way in right-to-left text. */
+  .aui-date-picker-separator {
+    --aui-icon-size: 1em;
+    flex: none;
+    color: var(--aui-input-placeholder, var(--color-on-surface-variant));
+    user-select: none;
+
+    &:dir(rtl) {
+      scale: -1 1;
+    }
+  }
+
+  /* The calendar opens under the field's trailing button, so it aligns to the field's end. */
+  .aui-date-picker-calendar[data-popover-y='above'] {
+    position-area: top span-left;
+  }
+
+  .aui-date-picker-calendar {
+    position-area: bottom span-left;
+    --aui-date-picker-range-bg: color-mix(in oklch, var(--aui-panel-accent) 18%, transparent);
+    gap: var(--aui-date-picker-gap);
+    padding: var(--aui-date-picker-padding);
+    inline-size: max-content;
+  }
+
+  /* Drawn in place, the calendar is a block of whatever holds it: no surface, no float, no padding of its own. */
+  .aui-date-picker-inline {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+  }
+
+  /*
+   * The grid decides the calendar's width; the header claims none of its own
+   * (zero basis, full minimum), so its steppers land over the first and last
+   * day columns instead of past them.
+   */
+  .aui-date-picker-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--aui-date-picker-bar-gap);
+    inline-size: 0;
+    min-inline-size: 100%;
+    min-block-size: var(--aui-date-picker-day-size);
+  }
+
+  .aui-date-picker-title {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    font-size: var(--font-title-sm-size);
+    font-weight: var(--font-title-sm-weight);
+    line-height: var(--font-title-sm-line-height);
+    letter-spacing: var(--font-title-sm-tracking);
+    text-transform: capitalize;
+  }
+
+  /* The steppers match a day cell so they sit exactly over the first and last columns. */
+  .aui-date-picker-nav {
+    flex: none;
+    inline-size: var(--aui-date-picker-day-size);
+    block-size: var(--aui-date-picker-day-size);
+  }
+
+  .aui-date-picker-year {
+    inline-size: var(--aui-date-picker-year-width);
+    padding-block: var(--spacing-xs);
+    padding-inline: var(--spacing-xs);
+    border: 0;
+    border-radius: var(--radius-xs);
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-variant-numeric: tabular-nums;
+    -moz-appearance: textfield;
+
+    /* The month steppers already move the grid; the native spinner would be a second, cramped pair. */
+    &::-webkit-inner-spin-button,
+    &::-webkit-outer-spin-button {
+      appearance: none;
+      margin: 0;
+    }
+
+    &:hover {
+      background-color: color-mix(
+        in oklch,
+        var(--aui-panel-accent) var(--tone-hover-strength),
+        transparent
+      );
+    }
+
+    &:focus-visible {
+      outline: var(--focus-ring-width) var(--focus-ring-style) var(--focus-ring-color);
+      outline-offset: var(--focus-ring-offset);
+    }
+  }
+
+  .aui-date-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(7, var(--aui-date-picker-day-size));
+    justify-content: center;
+    gap: var(--spacing-xs);
+  }
+
+  .aui-date-picker-weekday {
+    display: grid;
+    place-items: center;
+    color: var(--aui-date-picker-muted);
+    font-size: var(--font-label-sm-size);
+    font-weight: 600;
+    text-transform: capitalize;
+  }
+
+  .aui-date-picker-day {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 1;
+    min-block-size: var(--aui-date-picker-day-size);
+    padding: 0;
+    border-radius: var(--aui-date-picker-day-radius);
+    font-size: var(--font-label-lg-size);
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    user-select: none;
+    transition-property: background-color, color, box-shadow;
+    transition-duration: var(--duration-short);
+    transition-timing-function: var(--ease-emphasized);
+
+    &:hover {
+      background-color: color-mix(
+        in oklch,
+        var(--aui-panel-accent) var(--tone-hover-strength),
+        transparent
+      );
+    }
+
+    &:focus-visible {
+      outline: var(--focus-ring-width) var(--focus-ring-style) var(--focus-ring-color);
+      outline-offset: var(--focus-ring-offset);
+    }
+
+    &[data-offside='true'] {
+      color: var(--aui-date-picker-muted);
+    }
+
+    &[data-in-range='true'] {
+      background-color: var(--aui-date-picker-range-bg);
+      border-radius: var(--radius-xs);
+    }
+
+    &[aria-current='date'] {
+      box-shadow: inset 0 0 0 1px var(--aui-panel-accent);
+      font-weight: 700;
+    }
+
+    &[aria-selected='true'] {
+      background-color: var(--aui-panel-accent);
+      color: var(--aui-panel-on-accent);
+      font-weight: 700;
+      box-shadow: none;
+    }
+
+    &[aria-disabled='true'] {
+      color: var(--color-disabled-fg);
+      cursor: not-allowed;
+
+      &:hover {
+        background-color: transparent;
+      }
+    }
+  }
+}

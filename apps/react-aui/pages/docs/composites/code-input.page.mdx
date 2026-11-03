@@ -1,0 +1,292 @@
+---
+title: AUI Code Input
+nav: Code Input
+nav-priority: 273
+description: A verification code or PIN entered one character per cell that still behaves as one field — one tab stop, paste and SMS autofill across all cells, and an event when the code is complete.
+keywords: [React OTP input, React verification code input, React PIN input, one-time code input, segmented input React, accessible OTP]
+---
+
+# AUI Code Input
+
+Verification codes and PINs read best as separate boxes, but people expect them to behave like one field: typing moves to the next box, pasting a code fills them all, the phone's SMS autofill just works, and tabbing past it doesn't stop six times. Code Input gives you the boxes and that behavior, holds the code as one string, and tells you the moment it's complete.
+
+:::interactive[Code input demo]
+
+```tsx
+import { Button, CodeInput, CodeInputCell, CodeInputSeparator, Readout, Toggle } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { DemoControl } from '@/components/DemoControl.js';
+import { GlassStage } from '@/components/GlassStage.js';
+
+const SIGN_IN = {
+  email: {
+    title: 'Check your email',
+    hint: 'We sent a 6-digit code to maya@northwind.studio.',
+    label: 'Verification code',
+    length: 6,
+    kind: 'numeric',
+    swap: 'Use a backup code instead',
+  },
+  backup: {
+    title: 'Enter a backup code',
+    hint: 'One of the codes you saved when you turned on two-step sign-in.',
+    label: 'Backup code',
+    length: 8,
+    kind: 'alphanumeric',
+    swap: 'Use the emailed code',
+  },
+};
+
+/** The cells from one position up to another, for one run of the code. */
+const run = (from, to) => Array.from({ length: to - from }, (_, offset) => <CodeInputCell key={from + offset} index={from + offset} />);
+
+const CodeInputDemo = setup(() => {
+  const state = mutable({
+    method: 'email',
+    email: '42',
+    backup: '',
+    size: 'md',
+    color: 'primary',
+    disabled: false,
+    readonly: false,
+  });
+  const step = () => SIGN_IN[state.method];
+
+  return () => (
+    <div className="demo-button">
+      <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} disabled={$bind(state, 'disabled')}>
+        <Toggle size="sm" pressed={$bind(state, 'readonly')}>
+          {() => (state.readonly ? 'Set Editable' : 'Set Read-only')}
+        </Toggle>
+      </DemoControl>
+      <GlassStage>
+        <div className="flex flex-col items-center gap-lg text-center">
+          <Snippet>
+            {() => (
+              <div className="flex flex-col gap-xs">
+                <div className="text-title-sm">{step().title}</div>
+                <div>{step().hint}</div>
+              </div>
+            )}
+          </Snippet>
+          <Snippet>
+            {() => (
+              <CodeInput
+                label={step().label}
+                length={step().length}
+                kind={step().kind}
+                value={$bind(state, state.method)}
+                size={state.size}
+                color={state.color}
+                disabled={state.disabled}
+                readonly={state.readonly}
+              >
+                {run(0, step().length / 2)}
+                <CodeInputSeparator />
+                {run(step().length / 2, step().length)}
+              </CodeInput>
+            )}
+          </Snippet>
+          <Snippet>
+            {() => (
+              <Button size={state.size} color={state.color} disabled={state[state.method].length < step().length}>
+                Verify
+              </Button>
+            )}
+          </Snippet>
+          <Snippet>
+            {() => (
+              <Button
+                variant="text"
+                size="sm"
+                color={state.color}
+                onClick={() => (state.method = state.method === 'email' ? 'backup' : 'email')}
+              >
+                {step().swap}
+              </Button>
+            )}
+          </Snippet>
+        </div>
+      </GlassStage>
+      <Snippet>
+        {() => (
+          <div className="flex flex-wrap gap-lg">
+            <Readout label={step().label} value={state[state.method]} empty="Nothing entered yet" />
+            <Readout
+              label="Entered"
+              value={state[state.method].length === step().length ? 'Complete' : `${state[state.method].length} of ${step().length}`}
+            />
+          </div>
+        )}
+      </Snippet>
+    </div>
+  );
+}, 'CodeInputDemo');
+```
+
+```html
+<CodeInputDemo />
+```
+
+<CodeInputDemo />
+
+:::
+
+## Usage
+
+### The simple form
+
+Name it and bind the code. It renders six cells by default; `length` changes the count:
+
+```tsx
+import { CodeInput } from '@airlib/react-aui';
+import { $bind, mutable, setup } from '@airlib/react';
+import '@airlib/aui/components/widgets/code-input.css';
+
+const Verify = setup(() => {
+  const form = mutable({ code: '' });
+
+  return () => <CodeInput label="Verification code" value={$bind(form, 'code')} />;
+}, 'Verify');
+```
+
+The `label` also names every cell for screen readers — "Verification code, character 2 of 6" — so people always know where they are.
+
+### Act when the code is complete
+
+`oncomplete` fires as soon as the last character lands, which is the moment to verify. `onchange` fires when the user leaves the field with a changed code — the right hook for form state:
+
+```tsx
+<CodeInput label="Verification code" value={$bind(form, 'code')} oncomplete={(event) => verify(event.detail)} />
+```
+
+### Allowed characters
+
+`kind="numeric"` (default) accepts digits only and opens the number pad on phones; `kind="alphanumeric"` also accepts letters. Anything else is ignored as it's typed or pasted:
+
+```tsx
+<CodeInput label="Backup code" length={8} kind="alphanumeric" value={$bind(form, 'backup')} />
+```
+
+### Paste and autofill
+
+Pasting a code into any cell spreads it across the cells that follow, and the phone's one-time-code autofill fills the whole field — no extra setup.
+
+### Keep it private
+
+A PIN is a secret, not a code from a text message. `masked` hides every character as it lands, so nobody reading over a shoulder or watching a screen share sees it. The cells become password fields, the one-time-code autofill stays off, and the password manager isn't asked to save it. Typing, paste, the keyboard, and the "character 3 of 6" announcements work the same:
+
+:::interactive[PIN demo]
+
+```tsx
+import { Button, CodeInput, Readout } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { GlassStage } from '@/components/GlassStage.js';
+
+const PIN_LENGTH = 6;
+
+const PinDemo = setup(() => {
+  const wallet = mutable({ pin: '' });
+
+  return () => (
+    <div className="demo-button">
+      <GlassStage>
+        <div className="flex flex-col items-center gap-lg text-center">
+          <div className="flex flex-col gap-xs">
+            <div className="text-title-sm">Unlock Main wallet</div>
+            <div>Enter your wallet PIN to see the balance.</div>
+          </div>
+          <CodeInput label="Wallet PIN" length={PIN_LENGTH} masked value={$bind(wallet, 'pin')} />
+          <Snippet>{() => <Button disabled={wallet.pin.length < PIN_LENGTH}>Unlock</Button>}</Snippet>
+        </div>
+      </GlassStage>
+      <Snippet>
+        {() => (
+          <Readout
+            label="Entered"
+            value={wallet.pin.length === PIN_LENGTH ? 'Complete' : `${wallet.pin.length} of ${PIN_LENGTH}`}
+          />
+        )}
+      </Snippet>
+    </div>
+  );
+}, 'PinDemo');
+```
+
+```html
+<PinDemo />
+```
+
+<PinDemo />
+
+:::
+
+Show progress, never the value: the readout above counts the digits and stops there.
+
+### Locking
+
+`readonly` shows the code for copying while refusing edits; `disabled` locks every cell and takes the field out of the tab order.
+
+### Split the code
+
+Long codes read easier in runs, like `123–456`. Compose the cells yourself and put a `CodeInputSeparator` between the runs. Each `CodeInputCell` takes its position:
+
+```tsx
+import { CodeInput, CodeInputCell, CodeInputSeparator } from '@airlib/react-aui';
+
+<CodeInput label="Verification code" length={6} value={$bind(form, 'code')}>
+  <CodeInputCell index={0} />
+  <CodeInputCell index={1} />
+  <CodeInputCell index={2} />
+  <CodeInputSeparator />
+  <CodeInputCell index={3} />
+  <CodeInputCell index={4} />
+  <CodeInputCell index={5} />
+</CodeInput>;
+```
+
+Provide one cell for every position up to `length`. The separator is only seen: screen readers still hear one field and "character 4 of 6", and typing, paste, and the arrow keys run straight across it. Left empty, it draws a dash sized to the cells; give it children for a mark of your own, such as `<CodeInputSeparator>·</CodeInputSeparator>`.
+
+### Style it once
+
+`size`, `color`, and `variant` (`filled`, `tonal`, `outlined`) go on the Code Input and reach every cell. See [Style a composite once](/docs/theming#style-a-composite-once).
+
+### Properties
+
+#### CodeInput
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `value` | `Bindable<string>` | `''` | The code as one string. |
+| `length` | `number` | `6` | Number of characters, and of cells in the simple form. |
+| `kind` | `'numeric'`, `'alphanumeric'` | `'numeric'` | Which characters are accepted. |
+| `label` | `string` | — | Names the field and every cell. |
+| `readonly` | `boolean` | `false` | Focusable and copyable, not editable. |
+| `masked` | `boolean` | `false` | Hides each character as it's entered, for a PIN or another secret. |
+| `disabled` | `boolean` | `false` | Locks every cell. |
+| `size` | `xs`–`xxl` | `'md'` | Reaches every cell. |
+| `variant` | `filled`, `tonal`, `outlined` | `'filled'` | |
+| `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | |
+| `oninput` | `(event: CustomEvent<string>) => void` | — | Every edit that changes the code. |
+| `onchange` | `(event: CustomEvent<string>) => void` | — | The changed code, when the user leaves the field. |
+| `oncomplete` | `(event: CustomEvent<string>) => void` | — | The full code, as soon as it reaches `length`. |
+| `children` | `ReactNode` | — | Your own cells; leave empty for the simple form. |
+| `className` | `string` | — | Added next to the built-in classes, or replaces them with [`overrides`](/docs/theming#overrides). |
+
+#### CodeInputCell
+
+Takes `index` (its position, from `0`) plus `className` and any `input` attribute. A cell's own `size`, `color`, or `variant` wins over the Code Input's.
+
+#### CodeInputSeparator
+
+Takes `children` (a mark of your own; a dash when empty) and `className`. It follows the Code Input's `size` and `color`. Tune its color with `--aui-code-input-separator-color`.
+
+## Keyboard
+
+The whole field is one tab stop. Typing advances to the next cell; `ArrowLeft` / `ArrowRight` move between filled cells, `Home` / `End` jump to the start or the end of the code. `Backspace` deletes the character before the caret and moves back; `Delete` removes the current one in place.
+
+## Next Steps
+
+- [Text Input](/docs/widgets/text-input) — A single text field.
+- [Field](/docs/widgets/field) — Add a visible label, help text, and an error message.
+- [Stepper](/docs/composites/stepper) — Another multi-part field that stays one tab stop.

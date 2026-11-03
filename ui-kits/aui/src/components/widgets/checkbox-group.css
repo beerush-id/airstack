@@ -1,0 +1,13 @@
+@layer theme {
+  :root {
+    --aui-checkbox-group-gap: var(--spacing-xs);
+  }
+}
+
+@layer component {
+  .aui-checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--aui-checkbox-group-gap);
+  }
+}

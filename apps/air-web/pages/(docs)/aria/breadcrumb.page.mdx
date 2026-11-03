@@ -1,0 +1,350 @@
+---
+title: 'Headless Breadcrumb'
+description: 'Headless breadcrumb trails for React and SolidJS. Names the landmark, hides the separators, keeps the trail at one tab stop, and travels the crumbs with the arrow keys — with no markup or styles imposed.'
+nav: 'Breadcrumb'
+nav-priority: 335
+---
+
+import './aria.css';
+import './breadcrumb.css';
+
+# Headless Breadcrumb
+
+A breadcrumb is the trail of links back up a hierarchy. Getting it right means **naming the landmark**, **hiding the separators**, **keeping the whole trail at one tab stop**, and **letting the arrow keys travel the crumbs**.
+
+**Headless Breadcrumb** does all of that for you, and leaves the markup and the styling entirely yours.
+
+```tsx
+const breadcrumb = aria('breadcrumb', props);
+
+<nav ref={breadcrumb.ref} {...breadcrumb.restProps(['children'])} />
+```
+
+:::interactive[Documentation Trail]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type DemoTrailProps = ComponentProps<'div'> & {
+  label?: string;
+};
+
+const DemoTrail = setup<DemoTrailProps>((props) => {
+  const trail = aria('breadcrumb', props, { native: false });
+
+  return () => (
+    <div ref={trail.ref} {...trail.restProps(['children'])} className="demo-breadcrumb">
+      {props.children}
+    </div>
+  );
+}, 'DemoTrail');
+
+type DemoCrumbProps = ComponentProps<'a'> & {
+  href: string;
+  current?: boolean;
+  disabled?: boolean;
+};
+
+const DemoCrumb = setup<DemoCrumbProps>((props) => {
+  const crumb = aria('link', props);
+
+  return () => (
+    <a ref={crumb.ref} {...crumb.restProps(['children'])} className="demo-crumb">
+      {props.children}
+    </a>
+  );
+}, 'DemoCrumb');
+
+const DemoSeparator = setup<ComponentProps<'span'>>((props) => {
+  const separator = aria('breadcrumb-separator', props);
+
+  return () => (
+    <span ref={separator.ref} {...separator.restProps(['children'])} className="demo-crumb-sep">/</span>
+  );
+}, 'DemoSeparator');
+```
+```html
+<div className="demo-breadcrumb-stack">
+  <div className="demo-breadcrumb-row">
+    <span className="demo-breadcrumb-caption">One tab stop, on the current crumb</span>
+    <DemoTrail label="Documentation trail">
+      <DemoCrumb href="#docs">Docs</DemoCrumb>
+      <DemoSeparator />
+      <DemoCrumb href="#docs-aria">Aria</DemoCrumb>
+      <DemoSeparator />
+      <DemoCrumb href="#docs-aria-breadcrumb" current>Breadcrumb</DemoCrumb>
+    </DemoTrail>
+  </div>
+  <div className="demo-breadcrumb-row">
+    <span className="demo-breadcrumb-caption">Arrows wrap and pass over the disabled crumb</span>
+    <DemoTrail label="Trail with a disabled crumb">
+      <DemoCrumb href="#docs">Docs</DemoCrumb>
+      <DemoSeparator />
+      <DemoCrumb href="#docs-aria">Aria</DemoCrumb>
+      <DemoSeparator />
+      <DemoCrumb href="#docs-aria-stepper" disabled>Stepper</DemoCrumb>
+      <DemoSeparator />
+      <DemoCrumb href="#docs-aria-breadcrumb" current>Breadcrumb</DemoCrumb>
+    </DemoTrail>
+  </div>
+  <div className="demo-breadcrumb-row">
+    <span className="demo-breadcrumb-caption">No current crumb: Tab never enters the trail</span>
+    <DemoTrail label="Trail without a current crumb">
+      <DemoCrumb href="#docs">Docs</DemoCrumb>
+      <DemoSeparator />
+      <DemoCrumb href="#docs-aria">Aria</DemoCrumb>
+      <DemoSeparator />
+      <DemoCrumb href="#docs-aria-breadcrumb">Breadcrumb</DemoCrumb>
+    </DemoTrail>
+  </div>
+</div>
+```
+
+<div className="demo-breadcrumb-stack">
+  <div className="demo-breadcrumb-row">
+    <span className="demo-breadcrumb-caption">One tab stop, on the current crumb</span>
+    <DemoTrail label="Documentation trail">
+      <DemoCrumb href="#docs">Docs</DemoCrumb>
+      <DemoSeparator />
+      <DemoCrumb href="#docs-aria">Aria</DemoCrumb>
+      <DemoSeparator />
+      <DemoCrumb href="#docs-aria-breadcrumb" current>Breadcrumb</DemoCrumb>
+    </DemoTrail>
+  </div>
+  <div className="demo-breadcrumb-row">
+    <span className="demo-breadcrumb-caption">Arrows wrap and pass over the disabled crumb</span>
+    <DemoTrail label="Trail with a disabled crumb">
+      <DemoCrumb href="#docs">Docs</DemoCrumb>
+      <DemoSeparator />
+      <DemoCrumb href="#docs-aria">Aria</DemoCrumb>
+      <DemoSeparator />
+      <DemoCrumb href="#docs-aria-stepper" disabled>Stepper</DemoCrumb>
+      <DemoSeparator />
+      <DemoCrumb href="#docs-aria-breadcrumb" current>Breadcrumb</DemoCrumb>
+    </DemoTrail>
+  </div>
+  <div className="demo-breadcrumb-row">
+    <span className="demo-breadcrumb-caption">No current crumb: Tab never enters the trail</span>
+    <DemoTrail label="Trail without a current crumb">
+      <DemoCrumb href="#docs">Docs</DemoCrumb>
+      <DemoSeparator />
+      <DemoCrumb href="#docs-aria">Aria</DemoCrumb>
+      <DemoSeparator />
+      <DemoCrumb href="#docs-aria-breadcrumb">Breadcrumb</DemoCrumb>
+    </DemoTrail>
+  </div>
+</div>
+:::
+
+:::tip
+**Mark the terminal crumb current.** The trail keeps its single tab stop on the current crumb — with none marked, every crumb parks at `tabindex="-1"` and `Tab` never enters the trail.
+:::
+
+## Breadcrumb
+
+**The trail as a whole.** It names the landmark and moves focus across the crumbs; the crumbs themselves are ordinary links.
+
+### Usage
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'breadcrumb',
+  props?: BreadcrumbProps,
+  options?: AriaOptions
+): BreadcrumbAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps, ReactNode } from 'react';
+
+type BreadcrumbProps = ComponentProps<'nav'> & {
+  label?: string;
+  children: ReactNode;
+};
+
+const Breadcrumb = setup<BreadcrumbProps>((props) => {
+  const trail = aria('breadcrumb', props);
+
+  return () => (
+    <nav ref={trail.ref} {...trail.restProps(['children'])}>
+      {props.children}
+    </nav>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps, JSX } from 'solid-js';
+
+type BreadcrumbProps = ComponentProps<'nav'> & {
+  label?: string;
+  children: JSX.Element;
+};
+
+const Breadcrumb = setup<BreadcrumbProps>((props) => {
+  const trail = aria('breadcrumb', props);
+
+  return (
+    <nav ref={trail.ref} {...trail.restProps(['children'])}>
+      {props.children}
+    </nav>
+  );
+});
+```
+
+:::
+
+The crumbs are ordinary [`link`](/docs/aria/link) controllers — `href`, `disabled`, and `current` keep working exactly as themselves inside the trail.
+
+### Parameters
+
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **label** _string, optional, default `'Breadcrumbs'`_: The accessible name of the landmark, compiled to `aria-label`.
+
+### Options
+
+_What you fix when you create it. Read once, never reactive._
+
+- **native** _boolean, optional, default `true`_: On a `<nav>` host the role is left off. Pass `false` on any other host and `role="navigation"` is compiled in place.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **label** _string_: The name in use — yours, or the default.
+
+### How it behaves
+
+- **One tab stop for the whole trail.** The current crumb sits at `tabindex="0"` and every other crumb parks at `-1`, reached with the arrows. With no crumb current, none holds the stop and `Tab` never enters the trail.
+- **The arrows travel, never activate.** Focus moves across the enabled crumbs; activation stays with the link and the browser.
+- **Disabled crumbs are passed over.** In the travel and in the tab order alike, in every direction.
+- **It invents no position.** No value, no index, no `aria-activedescendant` — which crumb is current is yours, through `current` on the link or the URL it matches.
+- **Every other key stays native.** Vertical arrows scroll, `Enter` and `Space` activate the focused link; nothing is swallowed.
+
+### Navigation
+
+_What the keys do._
+
+- **`ArrowRight` / `ArrowLeft`** — focus the **next / previous** enabled crumb, wrapping at the ends.
+- **`Home` / `End`** — focus the **first / last** enabled crumb.
+- **`Tab`** — enters at the current crumb and leaves from it; the rest of the trail is reached with the arrows.
+- **`Enter`** — the focused link navigates, as any link does.
+
+## Breadcrumb Separator
+
+**The delimiter between crumbs.** Decorative only — seen, never read.
+
+### Usage
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'breadcrumb-separator',
+  props?: AriaProps
+): BreadcrumbSeparatorAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+const BreadcrumbSeparator = setup<ComponentProps<'span'>>((props) => {
+  const separator = aria('breadcrumb-separator', props);
+
+  return () => (
+    <span ref={separator.ref} {...separator.restProps(['children'])}>/</span>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+const BreadcrumbSeparator = setup<ComponentProps<'span'>>((props) => {
+  const separator = aria('breadcrumb-separator', props);
+
+  return (
+    <span ref={separator.ref} {...separator.restProps(['children'])}>/</span>
+  );
+});
+```
+
+:::
+
+### How it behaves
+
+- **Hidden from everyone who listens.** Compiles `role="separator"` with `aria-hidden="true"`, so the glyph is on screen and never announced.
+- **No keys, no focus, no state.** It takes no part in the travel and holds nothing of its own.
+
+## Next Steps
+
+- **[Link](/docs/aria/link)**: Destinations, disabled lockout, and the current-page marker behind each crumb.
+- **[Pagination](/docs/aria/pagination)**: A page list with the same wrapping travel and the same single tab stop.
+- **[Navigation](/docs/aria/navigation)**: The same roving landmark for menus and side trails that run vertically.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Breadcrumb
+
+```ts
+interface BreadcrumbProps {
+  label?: string;
+}
+
+interface BreadcrumbAttributes {
+  role?: string;
+  'aria-label'?: string;
+}
+
+declare class BreadcrumbAria {
+  get label(): string | undefined;
+}
+```
+
+### Breadcrumb Separator
+
+```ts
+interface BreadcrumbSeparatorAttributes {
+  role: 'separator';
+  'aria-hidden': 'true';
+}
+
+declare class BreadcrumbSeparatorAria {}
+```
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`props`** / **`restProps(omit)`** is what you spread onto the host — your props minus the keys the controller writes and any you name, with the compiled attributes merged in; **`ref`** is what you bind the element with; **`attributes`** is that compiled dictionary on its own, when you need the low-level view.
+- **`assign()`** changes several parameters at once, **`refine()`** adds attributes of your own, **`on()`** listens for anything the part fires, **`destroy()`** tears it down.

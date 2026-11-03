@@ -1,0 +1,87 @@
+@layer theme {
+  :root {
+    --aui-meter-height: calc(var(--spacing) * 2);
+    --aui-meter-radius: var(--radius-full);
+    --aui-meter-track: color-mix(in oklch, var(--color-on-surface) 12%, transparent);
+    --aui-meter-fill: var(--color-primary);
+
+    --aui-meter-height-xs: calc(var(--spacing) * 1);
+    --aui-meter-height-sm: calc(var(--spacing) * 1.5);
+    --aui-meter-height-md: calc(var(--spacing) * 2);
+    --aui-meter-height-lg: calc(var(--spacing) * 3);
+    --aui-meter-height-xl: calc(var(--spacing) * 4);
+    --aui-meter-height-xxl: calc(var(--spacing) * 5);
+  }
+}
+
+@layer component {
+  .aui-meter {
+    display: block;
+    inline-size: 100%;
+    block-size: var(--aui-meter-height);
+    overflow: hidden;
+    background-color: var(--aui-meter-track);
+    border-radius: var(--aui-meter-radius);
+  }
+
+  .aui-meter-fill {
+    display: block;
+    block-size: 100%;
+    inline-size: var(--aria-meter-offset, 0%);
+    background-color: var(--aui-meter-fill);
+    border-radius: inherit;
+    transition: inline-size var(--duration-medium) var(--ease-emphasized);
+  }
+
+  .aui-meter-xs {
+    --aui-meter-height: var(--aui-meter-height-xs);
+  }
+
+  .aui-meter-sm {
+    --aui-meter-height: var(--aui-meter-height-sm);
+  }
+
+  .aui-meter-md {
+    --aui-meter-height: var(--aui-meter-height-md);
+  }
+
+  .aui-meter-lg {
+    --aui-meter-height: var(--aui-meter-height-lg);
+  }
+
+  .aui-meter-xl {
+    --aui-meter-height: var(--aui-meter-height-xl);
+  }
+
+  .aui-meter-xxl {
+    --aui-meter-height: var(--aui-meter-height-xxl);
+  }
+
+  .aui-meter-primary {
+    --aui-meter-fill: var(--color-primary);
+  }
+
+  .aui-meter-secondary {
+    --aui-meter-fill: var(--color-secondary);
+  }
+
+  .aui-meter-tertiary {
+    --aui-meter-fill: var(--color-tertiary);
+  }
+
+  .aui-meter-info {
+    --aui-meter-fill: var(--color-info);
+  }
+
+  .aui-meter-success {
+    --aui-meter-fill: var(--color-success);
+  }
+
+  .aui-meter-warning {
+    --aui-meter-fill: var(--color-warning);
+  }
+
+  .aui-meter-error {
+    --aui-meter-fill: var(--color-error);
+  }
+}

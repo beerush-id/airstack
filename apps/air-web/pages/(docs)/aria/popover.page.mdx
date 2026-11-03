@@ -1,0 +1,302 @@
+---
+title: 'Headless Popover'
+description: 'Headless popovers for React and SolidJS. A non-modal anchored panel that links itself to its trigger, moves focus in on open and back on dismiss, and leaves the background usable — with no markup or styles imposed.'
+nav: 'Popover'
+nav-priority: 293
+---
+
+import './aria.css';
+import './popover.css';
+
+# Headless Popover
+
+A panel that floats next to the control that opened it. Getting it right means **linking the panel to its trigger without hand-wired ids**, **announcing whether it is open**, **moving focus in on open and handing it back on dismiss**, **closing on an outside press or `Escape` without trapping the page**, and **leaving placement to CSS**.
+
+**Headless Popover** does all of that for you, and leaves the markup and the styling entirely yours.
+
+```tsx
+const pop = aria('popover', props);
+
+<div ref={pop.ref} {...pop.restProps(['children'])} />
+```
+
+:::interactive[Workspace Shortcuts]
+```tsx
+import { aria, type PopoverProps } from '@airlib/aria';
+import { setup, teleport } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+const DemoTrigger = setup<ComponentProps<'button'>>((props) => {
+  const btn = aria('button', props);
+
+  return () => (
+    <button ref={btn.ref} {...btn.restProps(['children'])} className="demo-popover-trigger">
+      <span>{props.children}</span>
+      <span className="demo-popover-caret" aria-hidden="true" />
+    </button>
+  );
+}, 'DemoTrigger');
+
+type DemoPopoverProps = PopoverProps & {
+  title: string;
+};
+
+const DemoPopover = setup<DemoPopoverProps>((props) => {
+  const pop = aria('popover', props);
+
+  return () => {
+    if (!pop.open) return null;
+
+    return teleport(
+      <div ref={pop.ref} {...pop.restProps(['children', 'title'])} className="demo-popover-panel">
+        <span className="demo-popover-title">{props.title}</span>
+        <div className="demo-popover-row">
+          <span>Find anything</span>
+          <span className="demo-popover-key">⌘K</span>
+        </div>
+        <div className="demo-popover-row">
+          <span>Save</span>
+          <span className="demo-popover-key">⌘S</span>
+        </div>
+        <div className="demo-popover-row">
+          <span>Command palette</span>
+          <span className="demo-popover-key">⌘⇧P</span>
+        </div>
+        <button type="button" className="demo-popover-close" onClick={() => pop.close()}>Close</button>
+      </div>
+    );
+  };
+}, 'DemoPopover');
+```
+```html
+<div className="demo-popover-bar">
+  <span className="demo-popover-label">Editor</span>
+  <DemoTrigger>Shortcuts<DemoPopover title="Most used" /></DemoTrigger>
+</div>
+```
+
+<div className="demo-popover-bar">
+  <span className="demo-popover-label">Editor</span>
+  <DemoTrigger>Shortcuts<DemoPopover title="Most used" /></DemoTrigger>
+</div>
+:::
+
+:::tip
+**The trigger is the link.** The popover discovers the button it belongs to and refines it with `aria-haspopup`, `aria-expanded`, and `aria-controls`; the panel only carries the name, the role, and the open state. Press `Escape` to dismiss and hand focus back to the button.
+:::
+
+## Popover
+
+**The floating panel.** It is the overlay element itself: it holds the open state, the role, and the focus handoff, and it links back to the trigger that owns it.
+
+### Usage
+
+```ts
+popover<E extends HTMLElement = HTMLElement>(
+  props?: PopoverProps,
+  options?: PopoverOptions
+): PopoverAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria, type PopoverProps } from '@airlib/aria';
+import { setup, teleport } from '@airlib/react';
+
+export const Panel = setup<PopoverProps>((props) => {
+  const pop = aria('popover', props);
+
+  return () => {
+    if (!pop.open) return null;
+
+    return teleport(
+      <div ref={pop.ref} {...pop.restProps(['children'])}>
+        {props.children}
+      </div>
+    );
+  };
+});
+```
+
+```tsx [SolidJS]
+import { aria, type PopoverProps } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import { Show } from 'solid-js';
+
+export const Panel = setup<PopoverProps>((props) => {
+  const pop = aria('popover', props);
+
+  return (
+    <Show when={pop.open}>
+      <div ref={pop.ref} {...pop.restProps(['children'])}>
+        {props.children}
+      </div>
+    </Show>
+  );
+});
+```
+
+:::
+
+### Parameters
+
+_What you pass in. The props object stays live — flip `open` and the panel follows._
+
+- **open** _boolean, optional, default `false`_: Whether the panel is showing. Read and written through `open` on the instance.
+- **dismissable** _boolean, optional, default `true`_: Whether a pointer press outside the panel and its trigger closes it. It does not cover `Escape`, which closes an open panel either way.
+- **autofocus** _boolean, optional, default `true`_: Whether opening moves focus into the panel and dismissal hands it back to the trigger.
+- **mode** _OverlayTriggerMode[], optional, default `['click']`_: How the trigger opens the panel — `click`, `hover`, `focus`, `rove`, or `combo`.
+- **delay** _number, optional, default `0`_: Milliseconds the hover mode waits before opening.
+- **id** _string, optional_: The panel identifier. Left out, it is generated as `popover-<n>` and becomes the target of the trigger's `aria-controls`.
+- **xDir** _'before' | 'after' | 'left' | 'between' | 'right', optional_: Horizontal placement token, compiled as `data-popover-x` for your stylesheet.
+- **yDir** _'top' | 'bottom' | 'above' | 'below' | 'between', optional_: Vertical placement token, compiled as `data-popover-y`.
+- **onopen** / **onclose** / **ontoggle** _handler, optional_: Called with the open state when the panel opens, closes, or toggles.
+
+### Options
+
+_What you fix when you create it. Read once, never reactive._
+
+- **popupRole** _'dialog' | 'menu' | 'tooltip' | 'listbox', optional, default `'dialog'`_: The role compiled onto the panel itself.
+- **native** _boolean, optional, default `false`_: Set `true` on a real element using the browser's own popover API. The panel then compiles `popover="auto"` when dismissable and `popover="manual"` when not, and the browser handles the top-layer elevation.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **open** _boolean_: Whether the panel is showing.
+- **dismissable** _boolean_: Whether an outside press closes it.
+- **popupRole** _'dialog' | 'menu' | 'tooltip' | 'listbox'_: The role in use.
+- **mode** _OverlayTriggerMode[]_: The trigger modes in use.
+- **delay** _number_: The hover delay in use.
+- **id** _string_: The panel identifier.
+
+### Methods
+
+_What you call on the instance._
+
+- **`show()`**: Opens the panel.
+- **`close()`**: Closes it and hands focus back where it was taken from.
+- **`toggle()`**: Opens a closed panel and closes an open one.
+- **`scheduleOpen()`** / **`cancelOpen()`**: Arm and disarm the hover delay by hand.
+
+### How it behaves
+
+- **The trigger is refined, not wired.** A popover reads the actionable controller in its scope — a button, link, or toggle it was rendered inside — and compiles `aria-haspopup="dialog"`, `aria-expanded`, and `aria-controls` onto it. Mounted in a plain host, it falls back to the DOM parent. The trigger always announces `dialog`, whatever `popupRole` says.
+- **The panel carries the state.** It compiles its own `id`, the `popupRole`, and `hidden` when closed; none of the placement props reach the trigger.
+- **Focus goes in and comes back.** With `autofocus`, opening focuses a child marked `aria-selected="true"`, then one carrying `aria-current`, then the first focusable control, then the panel itself if it is focusable. Closing by `Escape`, an outside press, the Close button, or unmounting returns focus to whatever held it before.
+- **`Escape` is not dismissable-gated.** Outside presses respect `dismissable`; `Escape` closes an open panel regardless and stops the key from reaching the page.
+- **Nothing is trapped.** `Tab` walks through the panel's controls and straight out into the document, and background content stays clickable.
+- **Placement is CSS.** `xDir` and `yDir` only emit `data-popover-x` / `data-popover-y`; the panel's `position-anchor` is written on open, and your stylesheet decides the side and the fallbacks.
+- **A disabled trigger locks the panel.** `show()`, `close()`, and `toggle()` all return early while the trigger owns `disabled`.
+
+### Events
+
+_What it tells you._
+
+- **`open`** — fires on the panel when it opens, with `detail: true`, and bubbles.
+- **`close`** — fires on the panel when it closes, with `detail: false`, and bubbles.
+- **`toggle`** — fires on the panel alongside either one, with the resulting state, and does not bubble.
+
+```tsx
+const pop = aria('popover', {
+  ontoggle: (event) => syncBadge(event.detail),
+});
+```
+
+### Navigation
+
+_What the keys do._
+
+- **`Escape`** — closes an open panel, restores focus to the trigger, and stops propagation.
+- **`Enter` / `Space`** — the trigger's own activation, which toggles the panel in `click` mode.
+- **`Tab`** — enters the panel's controls and leaves again for the page; nothing is trapped.
+- **`ArrowDown` / `ArrowUp`** — claimed only in `rove` and `combo` modes, where they open the panel and move focus into it. In the default mode they stay with the page.
+
+## Next Steps
+
+- **[Dialog](/docs/aria/dialog)**: The modal surface that traps focus and shades the page.
+- **[Tooltip](/docs/aria/tooltip)**: The hover-only popover for advisory text.
+- **[Menu](/docs/aria/menu)**: A `popupRole="menu"` panel with its own items and travel.
+- **[Disclosure](/docs/aria/disclosure)**: Inline expansion with no floating layer.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Popover
+
+```ts
+type PopoverRole = 'dialog' | 'menu' | 'tooltip' | 'listbox';
+type OverlayTriggerMode = 'hover' | 'focus' | 'click' | 'rove' | 'combo';
+
+interface PopoverProps {
+  id?: string;
+  open?: boolean;
+  mode?: OverlayTriggerMode[];
+  delay?: number;
+  dismissable?: boolean;
+  autofocus?: boolean;
+  xDir?: 'before' | 'after' | 'left' | 'between' | 'right';
+  yDir?: 'top' | 'bottom' | 'above' | 'below' | 'between';
+  onopen?: (event: CustomEvent<boolean>) => void;
+  onclose?: (event: CustomEvent<boolean>) => void;
+  ontoggle?: (event: CustomEvent<boolean>) => void;
+}
+
+interface PopoverOptions {
+  popupRole?: PopoverRole;
+  native?: boolean;
+}
+
+interface PopoverAttributes {
+  id?: string;
+  role?: PopoverRole;
+  popover?: 'auto' | 'manual';
+  hidden?: boolean;
+  'data-popover-x'?: 'before' | 'after' | 'left' | 'between' | 'right';
+  'data-popover-y'?: 'top' | 'bottom' | 'above' | 'below' | 'between';
+  'data-tooltip-x'?: 'before' | 'after' | 'left' | 'between' | 'right';
+  'data-tooltip-y'?: 'top' | 'bottom' | 'above' | 'below' | 'between';
+}
+
+declare class PopoverAria {
+  id: string;
+  get open(): boolean;
+  set open(value: boolean);
+  get dismissable(): boolean;
+  get popupRole(): PopoverRole;
+  get mode(): OverlayTriggerMode[];
+  get delay(): number;
+  set delay(value: number);
+
+  show(): void;
+  close(): void;
+  toggle(): void;
+  scheduleOpen(): void;
+  cancelOpen(): void;
+}
+```
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`props`** / **`restProps(omit)`** is what you spread onto the host — your props minus the keys the controller writes and any you name, with the compiled attributes merged in; **`ref`** is what you bind the element with; **`attributes`** is that compiled dictionary on its own, when you need the low-level view.
+- **`assign()`** changes several parameters at once, **`refine()`** adds attributes of your own, **`on()`** listens for anything the part fires, **`destroy()`** tears it down.

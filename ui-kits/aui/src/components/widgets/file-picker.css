@@ -1,0 +1,8 @@
+@import './button.css';
+
+/* A file picker is a button: variants, states, and focus come from the shared button layer. */
+@layer component {
+  .aui-file-picker {
+    white-space: nowrap;
+  }
+}

@@ -1,0 +1,455 @@
+---
+nav: 'Comparison'
+nav-priority: 50
+title: 'Architecture & Cost Comparison'
+description: 'Performance benchmarks, developer experience, and end-to-end cost comparison: R2 Image vs. Vercel Image Optimization vs. Cloudflare Images.'
+keywords:
+  - R2 Image Benchmark
+  - Cloudflare Container Benchmark
+  - Image Resizing Performance
+  - R2 Image vs Vercel
+  - R2 Image vs Cloudflare Images
+  - Zero Egress Image CDN
+---
+
+# Architecture & Cost Comparison
+
+In cloud infrastructure, saving cost is conventionally assumed to require cutting corners on developer experience (DX) or end-user performance (UX). R2 Image fundamentally rejects this premise. Backed by Cloudflare R2 and Containers, **R2 Image** delivers **67% to 85% cost savings vs. Vercel** (up to ~92% regionally) and **11% to 64% savings vs. Cloudflare Hosted**, while bringing lower developer effort and faster client delivery than managed services:
+
+| Dimension | The Industry Assumption | What R2 Image Delivers |
+| :--- | :--- | :--- |
+| **Cost** | Saving money requires complex self-hosted infrastructure or cutting quality. | **67% to 85% cheaper** via zero-egress R2/Workers and at-cost Cloudflare Containers. |
+| **DX** | Cutting costs means managing SQS queues, Lambda timeouts, and storage glue code. | **Cleaner than SaaS**: 1 SDK upload call, clean POSIX paths in your own bucket, and zero database lock-in. |
+| **UX** | Users download 2MB–8MB raw assets, waiting seconds on mobile and burning data caps. | **90%+ lighter downloads**: Fast edge-cached ~50 KB WebP payloads with instant visual paint and zero layout shifts. |
+
+## Cost Saving Comparison
+
+Total monthly delivery spend across standard 2K production workloads (Vercel at US-East `iad1` rates with Pro allowances):
+
+| Monthly Traffic | R2 Image (Kit) | CF Images (Hosted) | CF Images (BYOS) | Vercel (`next/image`) | Net Savings with R2 Image |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| 50k Transforms / 250k Requests | **$6.64 / mo** | $7.50 / mo | $24.05 / mo | ~$20.00 / mo | **11% to 67% savings** |
+| 500k Transforms / 5M Requests | **$26.95 / mo** | $75.00 / mo | $264.40 / mo | ~$124.00 / mo | **64% to 78% savings** |
+| 5M Transforms / 50M Requests | **$264.40 / mo** | $750.00 / mo | $2,667.83 / mo | ~$1,666.00 / mo | **59% to 84% savings** |
+| 30M Transforms / 300M Requests | **$1,631.87 / mo** | $4,500.00 / mo | $16,020.25 / mo | ~$10,840.00 / mo | **46% to 85% savings** |
+
+## Effort Comparison
+
+Comparison of implementation complexity, code footprint, and architectural integration required to handle uploads and asset delivery across each solution.
+
+### Upload Flow
+
+Code required to stream user uploads, persist master assets, and generate responsive variants:
+
+**R2 Image**
+
+```ts
+// 1 SDK call: uploads directly to R2 and generates responsive variants
+await upload('users/93/avatar.png', file, {
+  sizes: [{ name: 'thumb', size: 128 }, { name: 'cover', size: 1024 }],
+});
+```
+
+**Vercel**
+
+```ts
+// Standalone API route + decoupled storage plumbing (Vercel Blob / S3)
+export async function POST(req: Request) {
+  const form = await req.formData();
+  const file = form.get('file') as File;
+  return Response.json(await put(`users/93/${file.name}`, file, { access: 'public' }));
+}
+```
+
+**Cloudflare Images**
+
+```ts
+// 2-step REST token handshake + proprietary vendor ID
+const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${ID}/images/v2/direct_upload`, { headers });
+const { uploadURL } = await res.json();
+await fetch(uploadURL, { method: 'POST', body: formData });
+```
+
+### Delivery Flow
+
+Markup and client runtime requirements for requesting and rendering optimized variants:
+
+**R2 Image**
+
+```html
+<!-- Native HTML <img> with longest-edge normalization -->
+<img src="https://cdn.example.com/photos/vacation.jpg?s=640&f=webp" alt="Vacation" />
+```
+
+**Vercel**
+
+```tsx
+// Framework <Image /> component with explicit dimensions
+<Image src={blobUrl} alt="Vacation" width={640} height={480} />
+```
+
+**Cloudflare Images**
+
+```html
+<!-- Locked to proprietary vendor URLs -->
+<img src="https://imagedelivery.net/<account-hash>/<image-id>/thumbnail" alt="Vacation" />
+```
+
+## Delivery Pipeline Benchmarks
+
+An accurate financial comparison measures the complete delivery pipeline from end to end:
+1. **Master Origin Storage**: Storing full-resolution original assets.
+2. **Transformation Compute**: Resizing and re-encoding variants via CPU.
+3. **Cache Storage & Operations**: Serving cached variants at the edge.
+4. **Delivery Bandwidth (Egress)**: Transferring bytes to end-users globally.
+
+The comparison evaluates four complete delivery architectures:
+- **R2 Image (Full Pipeline)**: Cloudflare R2 Master Storage ($0.015/GB) + Containers Compute (`standard-2`, 1 TB included egress) + Workers/DO edge proxy + Cloudflare CDN Delivery (**$0.00 edge egress**).
+- **Cloudflare Images (Hosted Full)**: Proprietary store ($5/100k stored) + Cloudflare CDN Delivery ($1/100k delivered).
+- **Cloudflare Images (BYOS Full)**: R2 Master Storage ($0.015/GB) + Cloudflare Transformations ($0.50/1k) + Cloudflare CDN Delivery (**$0.00 edge egress**).
+- **Vercel (Full Delivery)**: Vercel Blob Master Storage ($0.023/GB on Pro) + Pro Base ($20/mo, covers first $20 usage) + Image Optimization ($0.08/1k after 5k free) + Edge Requests & Cache Ops + Fast Data Transfer Egress ($0.15/GB beyond 1 TB).
+
+### 2K Standard Production
+
+Measured on a 2K AI-upscaled production asset (~2.23 MB source, ~276 ms average transform latency, and ~100 KB WebP delivered):
+
+| Tier Profile | Monthly Workload | R2 Image (Full Pipeline) | CF Images (Hosted Full) | CF Images (BYOS Full) | Vercel (Full Pipeline) | R2 Image Net Savings |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| **Small** | 50k Transforms / 250k Requests | **$6.64 / mo** | $7.50 / mo | $24.05 / mo | ~$20.00 / mo | **11% – 67% cheaper** |
+| **Medium** | 500k Transforms / 5M Requests | **$26.95 / mo** | $75.00 / mo | $264.40 / mo | ~$124.00 / mo | **64% – 78% cheaper** |
+| **Large** | 5M Transforms / 50M Requests | **$264.40 / mo** | $750.00 / mo | $2,667.83 / mo | ~$1,666.00 / mo | **59% – 84% cheaper** |
+| **Enterprise** | 30M Transforms / 300M Requests | **$1,631.87 / mo** | $4,500.00 / mo | $16,020.25 / mo | ~$10,840.00 / mo | **46% – 85% cheaper** |
+
+### 1K Thumbnails
+
+Measured on a 1K raw AI-generated asset (~735 KB source, ~180 ms average transform latency, and ~50 KB WebP delivered):
+
+| Tier Profile | Monthly Workload | R2 Image (Full Pipeline) | CF Images (Hosted Full) | CF Images (BYOS Full) | Vercel (Full Pipeline) | R2 Image Net Savings |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| **Small** | 50k Transforms / 250k Requests | **$5.46 / mo** | $7.50 / mo | $22.92 / mo | ~$20.00 / mo | **27% – 73% cheaper** |
+| **Medium** | 500k Transforms / 5M Requests | **$13.43 / mo** | $75.00 / mo | $253.09 / mo | ~$72.00 / mo | **81% – 82% cheaper** |
+| **Large** | 5M Transforms / 50M Requests | **$129.18 / mo** | $750.00 / mo | $2,554.76 / mo | ~$790.00 / mo | **82% – 84% cheaper** |
+| **Enterprise** | 30M Transforms / 300M Requests | **$816.05 / mo** | $4,500.00 / mo | $15,341.81 / mo | ~$5,120.00 / mo | **82% – 84% cheaper** |
+
+### 4K Hero Images
+
+Measured on a 4K AI-upscaled banner asset (~8.44 MB source, ~1,025 ms average transform latency, and ~350 KB WebP delivered):
+
+| Tier Profile | Monthly Workload | R2 Image (Full Pipeline) | CF Images (Hosted Full)* | CF Images (BYOS Full) | Vercel (Full Pipeline) | R2 Image Net Savings |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| **Small** | 50k Transforms / 250k Requests | **$12.76 / mo** | $7.50 / mo | $28.78 / mo | ~$20.00 / mo | **Hosted cheaper; 36%–56% vs BYOS/Vercel** |
+| **Medium** | 500k Transforms / 5M Requests | **$90.44 / mo** | $75.00 / mo | $311.67 / mo | ~$235.00 / mo | **Hosted cheaper; 62%–71% vs BYOS/Vercel** |
+| **Large** | 5M Transforms / 50M Requests | **$902.31 / mo** | $750.00 / mo | $3,140.55 / mo | ~$2,680.00 / mo | **Hosted cheaper; 66%–71% vs BYOS/Vercel** |
+| **Enterprise** | 30M Transforms / 300M Requests | **$5,476.38 / mo** | $4,500.00 / mo | $18,856.54 / mo | ~$17,450.00 / mo | **Hosted cheaper; 69%–71% vs BYOS/Vercel** |
+
+:::info[Cloudflare Hosted 4K Pricing Dynamics]
+Cloudflare Hosted enforces a strict 10 MB upload ceiling and requires an account-level toggle for flexible variant parameters (without raw bucket ownership or custom signed URL support). Because Cloudflare Hosted subsidizes compute with a flat $5/100k stored + $1/100k delivered pricing model regardless of resolution, it is cheaper than raw dedicated container compute on intensive multi-second 4K transformations. However, against standard pay-as-you-go transformation platforms (Cloudflare Images BYOS and Vercel), R2 Image is **36% to 71% cheaper** while maintaining complete bucket ownership.
+:::
+
+:::tip[Scaling High-Resolution Workloads: standard-4 Container]
+For dedicated high-resolution AI media pipelines or AVIF delivery, scaling the container to `standard-4` (4 vCPU, 12 GiB) cuts 4K downscaling latency by half from **1,025 ms down to 514 ms** for a marginal +10.8% total bill increase ($6,070 vs $5,476 at 30M scale). For AVIF encoding, multi-threaded CPU utilization drops latency by 72% (21.4s to 5.9s) while reducing active compute costs by 21%.
+:::
+
+## Developer Experience
+
+Code implementation required to upload, store, and present images across each architecture:
+
+### Upload Implementation
+
+Code and operational steps required to ingest source binaries and prepare variant pipelines:
+
+#### R2 Image
+
+Unified SDK upload with eager variants:
+
+```ts [src/upload.ts]
+import { upload } from '@irpclib/r2-image';
+
+// Uploads directly to R2 and prepares responsive variants in a single pass
+await upload('users/93/avatar.png', file, {
+  sizes: [
+    { name: 'thumbnail', width: 128, height: 128, format: 'webp' },
+    { name: 'cover', size: 1024, format: 'webp' },
+  ],
+});
+```
+- **Code Footprint**: 1 function call.
+- **Architecture**: Streams upload progress, persists assets to R2, and eagerly generates variants without background SQS queues or Lambda workers.
+- **Database Stored**: Clean relative POSIX path (`users/93/avatar.png`).
+
+#### Vercel
+
+Decoupled storage and upload API route:
+
+```ts [app/api/upload/route.ts]
+import { put } from '@vercel/blob';
+
+export async function POST(req: Request) {
+  const form = await req.formData();
+  const file = form.get('file') as File;
+  const blob = await put(`users/93/${file.name}`, file, { access: 'public' });
+  return Response.json(blob);
+}
+```
+
+```tsx [src/UploadButton.tsx]
+const formData = new FormData();
+formData.append('file', file);
+const res = await fetch('/api/upload', { method: 'POST', body: formData });
+const { url } = await res.json(); // Full Vercel Blob URL
+```
+- **Code Footprint**: API route handler + client form submit logic.
+- **Architecture**: Origin storage is decoupled from optimization. Variants are generated lazily on initial request cache misses.
+- **Database Stored**: Full storage URLs.
+
+#### Cloudflare Images
+
+Direct creator token handshake via REST API:
+
+```ts [src/upload-cf.ts]
+// 1. Server requests one-time upload token via Cloudflare REST API
+const cfRes = await fetch(
+  `https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/images/v2/direct_upload`,
+  { method: 'POST', headers: { Authorization: `Bearer ${CF_API_TOKEN}` } }
+);
+const { result } = await cfRes.json();
+
+// 2. Client uploads binary to Cloudflare proprietary store
+const formData = new FormData();
+formData.append('file', file);
+const uploadRes = await fetch(result.uploadURL, { method: 'POST', body: formData });
+const { result: imageResult } = await uploadRes.json();
+
+// 3. Database stores proprietary vendor UUID
+await db.users.update({ avatarId: imageResult.id }); // e.g. "b02d8f99-90bc-43cf-26e7-573516598500"
+```
+- **Code Footprint**: Multi-step REST handshake (token generation endpoint → client upload).
+- **Architecture**: Enforces a strict 10 MB file ceiling; files reside in a proprietary store.
+- **Database Stored**: Opaque vendor UUID (`b02d8f99...`), creating permanent database lock-in.
+
+### Delivery Implementation
+
+Component markup and client integration required to present responsive image assets:
+
+#### R2 Image
+
+Native HTML `<img>` with longest-edge sizing:
+
+```html
+<!-- Named preset declared in worker configuration -->
+<img src="https://cdn.example.com/users/93/avatar.png?name=thumbnail" alt="Avatar" />
+
+<!-- Dynamic orientation-agnostic cap on the longest edge -->
+<img src="https://cdn.example.com/photos/vacation.jpg?s=640&f=webp" alt="Vacation" />
+```
+
+Programmatic generation via the `url()` helper:
+
+```ts
+import { url } from '@irpclib/r2-image';
+
+const src = url('photos/vacation.jpg', { size: 640, format: 'webp' });
+```
+- **Frontend Footprint**: Native `<img>` tags with zero client-side JavaScript, zero framework wrappers, and zero hydration cost.
+- **Orientation Normalization (`?s=640`)**: Caps the **longest edge** to 640px regardless of whether the photo is portrait (640h × 480w) or landscape (640w × 480h), preventing grid distortion.
+- **Portability**: Functions identically across React, Vue, Svelte, Astro, plain HTML, iOS, Android, and Flutter.
+
+#### Vercel
+
+Framework `<Image />` component wrapper:
+
+```tsx [src/Avatar.tsx]
+import Image from 'next/image';
+
+export function UserAvatar() {
+  return (
+    <Image
+      src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/avatar.png"
+      alt="User Avatar"
+      width={128}
+      height={128}
+      priority
+    />
+  );
+}
+```
+- **Frontend Footprint**: Renders through Next.js React component runtime.
+- **Orientation**: Requires predefined width and height dimensions.
+- **Portability**: Designed for Next.js applications; non-Next.js clients require constructing image proxy URLs.
+
+#### Cloudflare Images
+
+Proprietary vendor URLs:
+
+Predefined named variants must be configured in advance via the dashboard or API, while URL-based flexible transformations (`/w=400,sharpen=3`) require an account-level opt-in and cannot be combined with signed URLs:
+
+```html
+<img
+  src="https://imagedelivery.net/7901844b20ef/b02d8f99-90bc-43cf-26e7-573516598500/thumbnail"
+  alt="User Avatar"
+/>
+```
+- **Frontend Footprint**: Native `<img>` tag tied to Cloudflare's proprietary delivery domain.
+- **Portability**: Database stores opaque IDs; switching providers requires bulk migration scripts.
+
+## Cost Breakdown
+
+Line-item calculations for each solution based on the standard 2K production baseline:
+
+### R2 Image
+
+| Tier Profile | Monthly Workload | Containers (`standard-2`) | Workers Paid + DO | R2 Storage & Ops | Bandwidth Egress | Total Cost |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| **Small** | 50k Transforms / 250k Reqs | $0.00 *(free tier)* | $5.00 | $1.64 | $0.00 | **$6.64 / mo** |
+| **Medium** | 500k Transforms / 5M Reqs | $4.22 | $5.00 | $17.73 | $0.00 | **$26.95 / mo** |
+| **Large** | 5M Transforms / 50M Reqs | $48.73 | $19.00 | $196.66 | $0.00 | **$264.40 / mo** |
+| **Enterprise** | 30M Transforms / 300M Reqs | $296.03 | $115.69 | $1,220.15 | $0.00 | **$1,631.87 / mo** |
+
+### Cloudflare Images Hosted
+
+| Tier Profile | Monthly Workload | Storage Fee ($5/100k) | Delivery Fee ($1/100k) | Transform Fee | Bandwidth Egress | Total Cost |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| **Small** | 50k stored / 250k delivered | $5.00 *(base plan)* | $2.50 | Included | $0.00 | **$7.50 / mo** |
+| **Medium** | 500k stored / 5M delivered | $25.00 | $50.00 | Included | $0.00 | **$75.00 / mo** |
+| **Large** | 5M stored / 50M delivered | $250.00 | $500.00 | Included | $0.00 | **$750.00 / mo** |
+| **Enterprise** | 30M stored / 300M delivered | $1,500.00 | $3,000.00 | Included | $0.00 | **$4,500.00 / mo** |
+
+### Cloudflare Images BYOS
+
+| Tier Profile | Monthly Workload | R2 Origin Storage | Transformation Fee ($0.50/1k) | CDN Delivery Egress | Total Cost |
+| :--- | :--- | :---: | :---: | :---: | :---: |
+| **Small** | 50k Transforms / 250k Reqs | $1.55 | $22.50 *(45k billable)* | $0.00 | **$24.05 / mo** |
+| **Medium** | 500k Transforms / 5M Reqs | $16.90 | $247.50 *(495k billable)* | $0.00 | **$264.40 / mo** |
+| **Large** | 5M Transforms / 50M Reqs | $170.33 | $2,497.50 *(4.995M billable)* | $0.00 | **$2,667.83 / mo** |
+| **Enterprise** | 30M Transforms / 300M Reqs | $1,022.75 | $14,997.50 *(29.995M billable)* | $0.00 | **$16,020.25 / mo** |
+
+### Vercel
+
+Full delivery pipeline including Vercel Blob storage, Pro base, Image Optimization, edge requests/cache ops, and bandwidth egress (modeled on US East `iad1` rates with Pro allowances):
+
+| Tier Profile | Monthly Workload | Vercel Blob ($0.023/GB) | Pro Base ($20 credit) | Transform Fee ($0.08/1k) | Edge & Cache Ops | Fast Data Egress ($0.15/GB) | Total Cost |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Small** | 50k Transforms / 250k Reqs | $2.50 *(covered)* | $20.00 | $3.60 *(covered)* | $1.25 *(covered)* | $0.00 *(< 1 TB)* | **~$20.00 / mo** |
+| **Medium** | 500k Transforms / 5M Reqs | $25.04 | $20.00 | $39.60 | $25.00 | $0.00 *(477 GB < 1 TB)* | **~$124.00 / mo** |
+| **Large** | 5M Transforms / 50M Reqs | $250.44 | $20.00 | $399.60 | $330.00 | $565.20 *(3.77 TB over 1 TB)* | **~$1,666.00 / mo** |
+| **Enterprise** | 30M Transforms / 300M Reqs | $1,502.64 | $20.00 | $2,399.60 | $2,080.00 | $4,141.50 *(27.6 TB over 1 TB)* | **~$10,840.00 / mo** |
+
+*Note: High-end regional pricing (e.g. South America, Asia-Pacific) raises Vercel Enterprise delivery up to ~$20,500/mo, increasing R2 Image savings to ~92%.*
+
+## Platform Unit Economics
+
+Official baseline unit rates verified as of **September 2026**:
+
+| Pricing Dimension | <a href="https://developers.cloudflare.com/containers/platform/pricing/" target="_blank" rel="noopener noreferrer">R2 Image (<code>standard-2</code>)</a> | <a href="https://developers.cloudflare.com/images/pricing/" target="_blank" rel="noopener noreferrer">Cloudflare Images</a> | <a href="https://vercel.com/docs/image-optimization/limits-and-pricing" target="_blank" rel="noopener noreferrer">Vercel Image Optimization</a> |
+| :--- | :---: | :---: | :---: |
+| **Compute / 1k Transforms (2K)** | **~$0.0099** ($9.89 / 1M) | **$0.50** ($500.00 / 1M) | **$0.08** ($80.00 / 1M) |
+| **Included Free Transforms** | ~54,300 transforms *(Memory credit)* | 5,000 transforms / mo | 5,000 transforms / mo *(Pro)* / 1,000 *(Hobby)* |
+| **Origin Storage** | **$0.015 / GB-mo** *(R2)* | **$0.015 / GB-mo** *(R2 BYOS)* | **$0.023–$0.041 / GB-mo** *(Blob, $0.023 at `iad1`)* |
+| **Egress Bandwidth** | **$0.00 / GB** *(R2 & Workers Free; 1 TB container inc.)* | **$0.00 / GB** *(Free)* | **$0.15–$0.35 / GB** *(1 TB included on Pro)* |
+| **Edge Requests & Cache Ops** | $0.36 / 1M ops *(R2 Class B after 10M free)* | Included | $0.40–$0.64 / 1M (8 KB units) + $2.00 / 1M Edge Reqs |
+| **Base Subscription** | $5.00 / mo *(Workers Paid)* | $5.00 / 100k stored *(Images Paid)* | $20.00 / mo *(Pro Plan, includes $20 credit)* |
+
+:::info[Official Documentation Sources]
+- Cloudflare Containers: <a href="https://developers.cloudflare.com/containers/platform/pricing/" target="_blank" rel="noopener noreferrer">Platform Pricing</a> *(Aug 28, 2026)*
+- Cloudflare Images: <a href="https://developers.cloudflare.com/images/pricing/" target="_blank" rel="noopener noreferrer">Images Pricing</a> *(Jul 8, 2026)*
+- Cloudflare R2: <a href="https://developers.cloudflare.com/r2/pricing/" target="_blank" rel="noopener noreferrer">R2 Pricing & Zero Egress</a> *(Aug 7, 2026)*
+- Vercel Image Optimization: <a href="https://vercel.com/docs/image-optimization/limits-and-pricing" target="_blank" rel="noopener noreferrer">Limits & Pricing</a> *(Aug 11, 2026; transformation model effective Feb 18, 2025)*
+- Vercel Platform Pricing: <a href="https://vercel.com/pricing" target="_blank" rel="noopener noreferrer">Pricing & Plans</a> *(Sep 2026)*
+:::
+
+## Engine Performance
+
+Underlying compute benchmarks and resource profiling for the R2 Image container resizer:
+
+### Container Tier Specification
+- **Cloudflare Container Tier**: `standard-2` (1 vCPU, 6 GiB RAM, 12 GB Disk)
+- **Container Calibration**: Calibrated to match Cloudflare's 1 vCPU cloud baseline (simulated via `--cpus=0.5 -m 6g` on a 5.0 GHz host to equal a standard 2.5 GHz cloud vCPU execution profile).
+- **Engine**: Bun HTTP server with native `@napi-rs/image` libvips bindings.
+- **Datasets**: AI workflow assets—1K raw generated master (`1k.jpeg`, 735.4 KB), 2K AI-upscaled (`2k.jpeg`, 2.23 MB), and 4K AI-upscaled (`4k.jpeg`, 8.44 MB).
+
+### Format Comparison
+
+Measured on `2k.jpeg` (2.23 MB AI-upscaled) across 5 iterations per format with quality set to 80:
+
+| Output Format | Avg Latency (ms) | Median / p50 (ms) | Min (ms) | Max (ms) | Output Size | Compression Ratio |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **JPEG** (`image/jpeg`) | **219.9** | 209.0 | 207.5 | 265.4 | 537.8 KB | 75.9% |
+| **WebP** (`image/webp`) | **506.0** | 504.9 | 503.0 | 513.1 | 311.9 KB | 86.0% |
+| **PNG** (`image/png`) | **511.5** | 500.9 | 492.4 | 552.2 | 5,945.1 KB | -166.1% |
+| **AVIF** (`image/avif`) | **11,079.4** | 11,085.8 | 11,024.6 | 11,114.5 | 413.1 KB | 81.5% |
+
+### Downscaling Matrix
+
+libvips transformation latency and compression efficiency across input resolutions:
+
+#### 1K Payload
+
+Source: `1k.jpeg` (735.4 KB, raw AI generation).
+
+| Transformation | Avg Latency (ms) | p50 (ms) | Output Size | Compression |
+| :--- | :---: | :---: | :---: | :---: |
+| Full Resolution (WebP) | 145.9 | 126.4 | 103.6 KB | 85.9% |
+| Downscale to 720w (WebP) | 235.1 | 217.5 | 93.5 KB | 87.3% |
+| Downscale to 720w (AVIF) | 4,154.7 | 4,172.9 | 131.6 KB | 82.1% |
+| Square Thumb 320x320 (WebP) | **66.8** | 85.7 | 17.3 KB | 97.6% |
+
+#### 2K Payload
+
+Source: `2k.jpeg` (2.23 MB, 2K AI-upscaled).
+
+| Transformation | Avg Latency (ms) | p50 (ms) | Output Size | Compression |
+| :--- | :---: | :---: | :---: | :---: |
+| Full Resolution (WebP) | 505.5 | 505.5 | 311.9 KB | 86.0% |
+| Downscale to 1920w (WebP) | 478.9 | 488.9 | 169.9 KB | 92.4% |
+| Downscale to 1080w (WebP) | **276.7** | 280.8 | 60.2 KB | 97.3% |
+| Downscale to 640w (WebP) | 200.7 | 200.6 | 24.8 KB | 98.9% |
+| Square Thumb 320x320 (WebP) | **183.5** | 193.3 | 11.4 KB | 99.5% |
+| Downscale 1080w (AVIF) | 3,094.3 | 3,091.6 | 85.3 KB | 96.2% |
+| Downscale 1080w + Blur 15 (WebP) | 340.8 | 321.6 | 7.8 KB | 99.6% |
+
+#### 4K Payload
+
+Source: `4k.jpeg` (8.44 MB, 4K AI-upscaled). Measured on `standard-2` (1 vCPU, 6 GiB) alongside `standard-4` (4 vCPU, 12 GiB) multi-core scaling:
+
+| Transformation | standard-2 (ms) | standard-4 (ms) | Speedup | Output Size | Compression |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| Full Resolution (WebP) | 1,958.6 | **970.4** | **2.0×** | 720.2 KB | 91.5% |
+| Downscale to 2560w (1440p WebP) | 2,745.5 | **1,352.8** | **2.0×** | 594.8 KB | 93.0% |
+| Downscale to 1920w (1080p WebP) | 1,833.3 | **912.8** | **2.0×** | 430.0 KB | 94.9% |
+| Downscale to 1080w (WebP) | 1,025.0 | **514.5** | **2.0×** | 218.6 KB | 97.4% |
+| Square Thumb 320x320 (WebP) | 701.2 | **337.2** | **2.1×** | 21.0 KB | 99.8% |
+| Downscale to 1920w (AVIF) | 21,432.7 | **5,935.0** | **3.6×** | 502.6 KB | 94.0% |
+
+### WebP Quality Trade-Offs
+
+Measured on `2k.jpeg` downscaled to 1080w WebP across quality levels:
+
+| Quality | Avg Latency (ms) | p50 (ms) | Output Size | Compression Ratio | Visual Profile |
+| :---: | :---: | :---: | :---: | :---: | :--- |
+| **q=40** | 259.5 | 279.1 | 32.7 KB | 98.5% | Aggressive compression, mild banding |
+| **q=60** | 260.9 | 278.4 | 42.5 KB | 98.1% | Good for mobile thumbnails and preview cards |
+| **q=80** (default) | 278.9 | 281.8 | 60.2 KB | 97.3% | Optimal fidelity with sharp edges |
+| **q=95** | 282.0 | 292.0 | 131.0 KB | 94.3% | High quality, 2.2× file size for marginal gain |
+
+### Concurrency Analysis
+
+Workload: Transforming `2k.jpeg` (2.23 MB) down to 1080w WebP across concurrency levels:
+
+| Concurrency ($c$) | Throughput (Req/s) | Network In (MB/s) | Avg Latency (ms) | p50 (ms) | p95 (ms) | Error Rate |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **c = 1** | **3.71** | 8.09 MB/s | 269.5 | 283.0 | 299.9 | 0% |
+| **c = 2** | **3.70** | 8.08 MB/s | 535.6 | 508.7 | 598.7 | 0% |
+| **c = 4** | **3.64** | 7.94 MB/s | 1,044.6 | 997.7 | 1,302.4 | 0% |
+| **c = 8** | **3.69** | 8.06 MB/s | 1,928.8 | 1,899.9 | 3,105.5 | 0% |
+
+#### Resource Utilization
+- **CPU**: 100% saturation of the allocated compute capacity (1 vCPU cloud baseline) under concurrent load.
+- **Memory**: Peak utilization reached **65.71 MiB** (1.07% of the 6 GiB allocation on `standard-2`). Zero memory leakage across sequential test iterations.
+- **Error Rate**: 0% across all concurrency levels. Requests queue linearly (269 ms × c) without dropped connections.
+
+## Key Architectural Takeaways
+
+1. **At-Cost COGS vs. SaaS Markups**: R2 Image executes on Cloudflare Containers (`standard-2`), paying **~$0.0099 per 1,000 transforms** based strictly on actual CPU execution time (~276 ms). Managed SaaS services bill flat transformation fees ($0.50/1k on Cloudflare, $0.08/1k on Vercel) that embed heavy vendor margins.
+2. **Zero-Egress Edge Delivery**: In high-traffic image delivery, bandwidth egress is typically the single largest line item. R2 Image delivers cached variants over Cloudflare’s global network with zero egress fees from R2 and Workers (with 1 TB included container egress).
+3. **Cost-Effective Persistent Storage**: Storing original assets and cached variants in Cloudflare R2 costs **$0.015 / GB-month**, saving 35% to 65% compared to Vercel Blob ($0.023 to $0.041 / GB-month).
+4. **Data Sovereignty**: Assets reside in standard S3-compatible R2 buckets with clean relative paths (`users/avatar.png`), completely free from proprietary vendor database IDs or URL schemas.

@@ -18,6 +18,8 @@ import type { IRPCReader } from './reader.js';
 import type { RemoteState } from './state.js';
 import type { IRPCTransport } from './transport.js';
 
+export type { AnyType } from '@airlib/core';
+
 /**
  * A registry that maps IRPCHandlers to their corresponding IRPCHosts.
  * Uses WeakMap to avoid memory leaks by not preventing garbage collection of handlers.
@@ -44,6 +46,7 @@ export type IRPCPacketBase = {
 
 export type IRPCPacketCall = IRPCPacketBase & {
   args: IRPCData[];
+  callId?: string;
 };
 
 export type IRPCPacketAnswer<T extends IRPCData> = IRPCPacketBase & {
@@ -59,7 +62,28 @@ export type IRPCPacketClose = IRPCPacketBase & {
   error?: IRPCPacketError;
 };
 
-export type IRPCPacketStream<T extends IRPCData> = IRPCPacketAnswer<T> | IRPCPacketEvent | IRPCPacketClose;
+export type IRPCPacketAsk = IRPCPacketBase & {
+  queryId: string;
+  data: {
+    type: string;
+    args: IRPCData[];
+  };
+};
+
+export type IRPCPacketReply<T extends IRPCData = IRPCData> = IRPCPacketBase & {
+  queryId: string;
+  data?: T;
+  error?: IRPCPacketError;
+};
+
+export type IRPCPacketStream<T extends IRPCData> =
+  | IRPCPacketAnswer<T>
+  | IRPCPacketEvent
+  | IRPCPacketClose
+  | IRPCPacketAsk
+  | IRPCPacketReply<T>;
+
+export type IRPCQueryMap = Record<string, (...args: any[]) => any>;
 
 export interface IRPCReadable<T> {
   data: T;
@@ -74,9 +98,10 @@ export interface IRPCReadable<T> {
  * @template T - The original function type.
  * @template A - The argument types of the function.
  * @template R - The return data type.
+ * @template Q - The duplex query map type.
  */
-export interface IRPCStub<T, A extends unknown[], R extends IRPCData> {
-  (...args: A): IRPCReader<R>;
+export interface IRPCStub<T, A extends unknown[], R extends IRPCData, Q extends IRPCQueryMap = IRPCQueryMap> {
+  (...args: A): IRPCReader<R, Q>;
 
   /* The original function type. */
   stub: T;
@@ -88,7 +113,7 @@ export interface IRPCStub<T, A extends unknown[], R extends IRPCData> {
    * @param args - A factory function returning the argument array.
    * @returns An IRPCReader instance for handling the asynchronous result or stream.
    */
-  once(...args: A): IRPCReader<R>;
+  once(...args: A): IRPCReader<R, Q>;
 
   /**
    * Creates a reactive call that expect to run in browser environment.
@@ -99,7 +124,7 @@ export interface IRPCStub<T, A extends unknown[], R extends IRPCData> {
    * @param debounce - The debounce time in milliseconds.
    * @returns An IRPCReader instance for handling the asynchronous result or stream.
    */
-  with(args: () => A, debounce?: number): IRPCReader<R>;
+  with(args: () => A, debounce?: number): IRPCReader<R, Q>;
 
   /**
    * Creates a reactive call that expect to run in browser environment.
@@ -110,14 +135,14 @@ export interface IRPCStub<T, A extends unknown[], R extends IRPCData> {
    * @param debounce - The debounce time in milliseconds.
    * @returns An IRPCReader instance for handling the asynchronous result or stream.
    */
-  when(args: () => A, debounce?: number): IRPCReader<R>;
+  when(args: () => A, debounce?: number): IRPCReader<R, Q>;
 
   /**
    * Creates a reactive call that expects to be manually dispatched later.
    * @param debounce - Optional debounce time before dispatched.
-   * @returns {IRPCReader<R> & {dispatch: (...args: A) => Promise<void>}}
+   * @returns {IRPCReader<R, Q> & {dispatch: (...args: A) => Promise<void>}}
    */
-  later(debounce?: number): IRPCReader<R> & {
+  later(debounce?: number): IRPCReader<R, Q> & {
     /** Method to execute and dispatch the actual call */
     dispatch: (...args: A) => Promise<void>;
   };
@@ -130,10 +155,10 @@ export interface IRPCStub<T, A extends unknown[], R extends IRPCData> {
  * @template T - The function type to be transformed.
  */
 export type IRPCFunction<T> = T extends (...args: infer A) => infer R
-  ? R extends RemoteState<infer S>
+  ? R extends RemoteState<infer S, infer Q>
     ? S extends IRPCData
-      ? IRPCStub<T, A, S>
-      : IRPCStub<T, A, IRPCData>
+      ? IRPCStub<T, A, S, Q>
+      : IRPCStub<T, A, IRPCData, Q>
     : R extends Promise<infer O>
       ? O extends IRPCData
         ? IRPCStub<T, A, O>
@@ -147,7 +172,7 @@ export type IRPCFunction<T> = T extends (...args: infer A) => infer R
  * Represents primitive data types that can be used in IRPC communications.
  * Includes string, number, boolean, null, and undefined.
  */
-export type IRPCPrimitive = string | number | boolean | null | undefined;
+export type IRPCPrimitive = string | number | boolean | null | undefined | Date;
 
 /**
  * Represents an object structure where keys are strings and values are IRPCData.
@@ -218,7 +243,10 @@ export type IRPCPackageConfig = IRPCPackageInfo &
   IRPCCallConfig & {
     /** Primary key field name for CRUD operations. Defaults to 'id'. */
     key?: string;
+    /** The transport to use for RPC calls. */
     transport?: IRPCTransport;
+    /** Whether to bypass local execution for RPC calls. Defaults to false. */
+    bypassLocal?: boolean;
   };
 
 /**
@@ -231,6 +259,10 @@ export type IRPCPayload = {
   args: IRPCData[];
   /** The package information */
   package: IRPCPackagePayload;
+  /** Optional packet type ('call', 'ask', 'reply') */
+  type?: IRPCPacketType;
+  /** Optional parent call identifier for duplex ask/reply calls */
+  callId?: string;
 };
 
 /**
@@ -266,10 +298,17 @@ export type IRPCInit<R, I extends IRPCInputs, O extends IRPCOutput> = {
 
   /** Optional schema for input/output validation */
   schema?: IRPCSchema<I, O>;
+  /** Marks the function as a tool agents may call, described the way MCP describes tools. */
+  mcp?: boolean | MCPOptions;
   /** Optional maximum age of a call in milliseconds */
   maxAge?: number;
   /** Mark the spec as continues stream with no timeout */
   keepAlive?: boolean;
+  /**
+   * Calls don't close with the lifecycle they're made in (a component's setup, an effect): the
+   * caller owns them and closes them itself. For a call that outlives whoever made it first.
+   */
+  controlled?: boolean;
 
   /**
    * Whether to coalesce multiple calls to the same RPC function within a short time period.
@@ -284,13 +323,69 @@ export type IRPCInit<R, I extends IRPCInputs, O extends IRPCOutput> = {
 export type IRPCInferInit<R> = R extends IRPCDefined ? { seed: () => R } : { seed?: () => R };
 
 /**
+ * How a function is described as a tool, following MCP's tool definition. The tool's name is
+ * always the function's name, so it can be called by that name.
+ */
+export type MCPOptions = {
+  /** A human-readable title. */
+  title?: string;
+  /** What the tool does, for the model; defaults to the function's description. */
+  description?: string;
+  /**
+   * Names the positional arguments in order, so a router can describe them as one input object and
+   * place each named value back in its position. Not needed when the function takes one object.
+   */
+  args?: string[];
+  /** The tool does not change anything. */
+  readOnlyHint?: boolean;
+  /** The tool may destroy or overwrite something, so a caller may want consent first. */
+  destructiveHint?: boolean;
+  /** Calling it again with the same input has no further effect. */
+  idempotentHint?: boolean;
+  /** The tool reaches beyond its own system (the web, other services). */
+  openWorldHint?: boolean;
+};
+
+/** A function described as an MCP tool: what agents are given to call. */
+export type IRPCTool = {
+  name: string;
+  title?: string;
+  description?: string;
+  /** JSON Schema of the single input object, generated from the function's input schema. */
+  inputSchema: Record<string, unknown>;
+  annotations?: Pick<MCPOptions, 'readOnlyHint' | 'destructiveHint' | 'idempotentHint' | 'openWorldHint'>;
+};
+
+/**
+ * Determines whether an RPC function stub requires a seed factory.
+ * Seed is NOT required if the return type includes `undefined` or `void`.
+ */
+export type IRPCSeedRequired<F> =
+  undefined extends IRPCReturnOf<F> ? false : void extends IRPCReturnOf<F> ? false : true;
+
+/**
+ * Parameter list for declaring an RPC stub by name.
+ * Enforces seed argument only if the return type requires it.
+ */
+export type IRPCDeclareArgs<F, I extends IRPCInputs, O extends IRPCOutput> =
+  IRPCSeedRequired<F> extends true
+    ? [
+        seedOrConfig: (() => IRPCReturnOf<F>) | (IRPCDeclareConfig<I, O> & IRPCInferInit<IRPCReturnOf<F>>),
+        config?: IRPCDeclareConfig<I, O>,
+      ]
+    : [
+        seedOrConfig?: (() => IRPCReturnOf<F>) | (IRPCDeclareConfig<I, O> & IRPCInferInit<IRPCReturnOf<F>>),
+        config?: IRPCDeclareConfig<I, O>,
+      ];
+
+/**
  * Extracts the data type from a function's return type by unwrapping
  * RemoteState and Promise wrappers.
  *
  * @template F - The function type to extract from.
  */
 export type IRPCReturnOf<F> = F extends (...args: infer _A) => infer R
-  ? R extends RemoteState<infer S>
+  ? R extends RemoteState<infer S, infer _Q>
     ? S
     : R extends Promise<infer D>
       ? D
@@ -307,8 +402,10 @@ export type IRPCReturnOf<F> = F extends (...args: infer _A) => infer R
 export type IRPCDeclareConfig<I extends IRPCInputs = IRPCInputs, O extends IRPCOutput = IRPCOutput> = {
   description?: string;
   schema?: IRPCSchema<I, O>;
+  mcp?: boolean | MCPOptions;
   maxAge?: number;
   keepAlive?: boolean;
+  controlled?: boolean;
   coalesce?: boolean;
   stream?: true;
   ttl?: number;
@@ -335,7 +432,7 @@ export type IRPCStreamInit<I extends IRPCInputs, O extends IRPCOutput, R> = IRPC
  * @template O - Output validation schema
  */
 export type IRPCDeclareInit<F, I extends IRPCInputs, O extends IRPCOutput> = F extends (...args: infer _A) => infer R
-  ? R extends RemoteState<infer S>
+  ? R extends RemoteState<infer S, infer _Q>
     ? S extends IRPCData
       ? IRPCStreamInit<I, O, S>
       : IRPCInit<S, IRPCInputs, IRPCOutput>
@@ -451,6 +548,10 @@ export type IRPCRequest = {
   package: IRPCPackagePayload;
   /** Optional file payload for the call */
   files?: IRPCFilePointer[];
+  /** Optional packet type ('call', 'ask', 'reply') */
+  type?: IRPCPacketType;
+  /** Optional parent call identifier for duplex ask/reply calls */
+  callId?: string;
 };
 
 export type IRPCSubRequest = Omit<IRPCRequest, 'package' | 'files'>;
@@ -539,8 +640,8 @@ export type StreamCleanup = () => void;
  * @param resolve - Callback to statically mark the stream as successfully completed, optionally with a resolved value.
  * @param reject - Callback to forcefully throw a runtime error into the stream structure.
  */
-export type StreamConstructor<T> = (
-  state: IRPCReadable<T>,
+export type StreamConstructor<T, Q extends IRPCQueryMap = IRPCQueryMap> = (
+  state: RemoteState<T, Q>,
   resolve: (value?: T) => void,
   reject: (error: Error) => void
 ) => StreamCleanup | void | Promise<StreamCleanup | void>;

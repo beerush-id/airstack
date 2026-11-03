@@ -1,6 +1,6 @@
 import {
-  type AnyType,
   anchor,
+  type AnyType,
   captureStack,
   createObserver,
   isBrowser,
@@ -13,7 +13,9 @@ import { IRPCCacher } from './cache.js';
 import { getAbortSignal, getRouterHooks } from './context.js';
 import { IRPC_PACKET_TYPE, IRPC_STATUS } from './enum.js';
 import { GuardError, HandlerError, HookError, ResolveError, StubError, TransportError } from './error.js';
+import { deliverBlobs } from './packet.js';
 import { IRPCReader } from './reader.js';
+import { parseInput } from './resolver.js';
 import { RemoteState } from './state.js';
 import { IRPC_STORE } from './store.js';
 import { IRPCTransport } from './transport.js';
@@ -24,6 +26,7 @@ import type {
   IRPCCrudStubs,
   IRPCData,
   IRPCDataSchema,
+  IRPCDeclareArgs,
   IRPCDeclareConfig,
   IRPCDeclareInit,
   IRPCEntityId,
@@ -35,6 +38,7 @@ import type {
   IRPCOutput,
   IRPCPackageConfig,
   IRPCPackageInfo,
+  IRPCQueryMap,
   IRPCReturnOf,
   IRPCSpec,
   IRPCSpecStore,
@@ -45,6 +49,7 @@ import type {
 } from './types.js';
 
 const DEFAULT_TIMEOUT = 20000;
+
 const NAME_CONSTRAINT = /^[a-zA-Z0-9\-_]+$/;
 const VERSION_CONSTRAINT = /^[0-9]+\.[0-9]+\.[0-9]+$/;
 
@@ -71,6 +76,11 @@ export class IRPCPackage<K extends string = 'id'> {
    * A weak map linking stub functions to their corresponding specifications
    */
   private stubs: IRPCStubStore = new WeakMap();
+
+  /**
+   * Every declared function's stub by name, in declaration order
+   */
+  private functions = new Map<string, IRPCHandler>();
 
   /**
    * A map storing caches for each IRPC Entry
@@ -116,7 +126,7 @@ export class IRPCPackage<K extends string = 'id'> {
    * @throws Error if the package name or version doesn't match the required format
    */
   constructor(config?: Partial<IRPCPackageConfig>) {
-    this.configure(config ?? {});
+    this.configure({ ...config });
     IRPC_STORE.register(this);
   }
 
@@ -129,29 +139,9 @@ export class IRPCPackage<K extends string = 'id'> {
    * @returns A stub function that can be used to call the IRPC.
    * @throws Error if an IRPC with the same name already exists.
    */
-  public declare<
-    F extends (...args: AnyType[]) => Promise<void> | RemoteState<void>,
-    I extends IRPCInputs = IRPCInputs,
-    O extends IRPCOutput = IRPCOutput,
-  >(
-    name: string,
-    seedOrConfig?: (() => IRPCReturnOf<F>) | (IRPCDeclareConfig<I, O> & IRPCInferInit<IRPCReturnOf<F>>),
-    config?: IRPCDeclareConfig<I, O>
-  ): IRPCFunction<F>;
-
-  /**
-   * Declares a new IRPC specification and returns a callable stub.
-   *
-   * @param name - The unique name for the IRPC specification.
-   * @param seedOrConfig - The initial data seed function, or configuration object.
-   * @param config - Optional configuration (if seed was provided).
-   * @returns A stub function that can be used to call the IRPC.
-   * @throws Error if an IRPC with the same name already exists.
-   */
   public declare<F, I extends IRPCInputs = IRPCInputs, O extends IRPCOutput = IRPCOutput>(
     name: string,
-    seedOrConfig: (() => IRPCReturnOf<F>) | (IRPCDeclareConfig<I, O> & IRPCInferInit<IRPCReturnOf<F>>),
-    config?: IRPCDeclareConfig<I, O>
+    ...args: IRPCDeclareArgs<F, I, O>
   ): IRPCFunction<F>;
 
   /**
@@ -201,9 +191,9 @@ export class IRPCPackage<K extends string = 'id'> {
     if ($options.init && !$options.seed) $options.seed = $options.init as never;
 
     const spec = {
-      package: { name: this.config.name, version: this.config.version },
       seed: () => undefined,
-      ...$options,
+      ...($options as object),
+      package: { name: this.config.name, version: this.config.version },
     } as IRPCSpec<IRPCInputs, IRPCOutput>;
 
     if ($options.keepAlive) {
@@ -236,7 +226,7 @@ export class IRPCPackage<K extends string = 'id'> {
 
     /* General stub for manual execution */
     stub.later = (debounce) => {
-      const reader = new IRPCReader<IRPCData>(uuid(), spec.seed!(), IRPC_STATUS.IDLE, true) as AnyType;
+      const reader = new IRPCReader<IRPCData>(uuid(), spec.seed!(), IRPC_STATUS.IDLE, true, spec.controlled) as AnyType;
 
       if (debounce) {
         let resolve: ((value?: unknown) => void) | undefined;
@@ -255,10 +245,12 @@ export class IRPCPackage<K extends string = 'id'> {
           });
         };
 
-        onCleanup(() => {
-          cancel();
-          resolve!();
-        });
+        if (!spec.controlled) {
+          onCleanup(() => {
+            cancel();
+            resolve!();
+          });
+        }
         return reader;
       }
 
@@ -280,7 +272,13 @@ export class IRPCPackage<K extends string = 'id'> {
      */
     function prepare(getArgs: () => unknown[], deferred?: boolean, debounce = 0): IRPCReader<IRPCData> {
       if (typeof getArgs !== 'function') getArgs = (() => getArgs) as never;
-      const reader = new IRPCReader<IRPCData>(uuid(), spec.seed!(), deferred ? IRPC_STATUS.IDLE : IRPC_STATUS.PENDING);
+      const reader = new IRPCReader<IRPCData>(
+        uuid(),
+        spec.seed!(),
+        deferred ? IRPC_STATUS.IDLE : IRPC_STATUS.PENDING,
+        undefined,
+        spec.controlled
+      );
 
       /* istanbul ignore else */
       if (isBrowser()) {
@@ -316,19 +314,27 @@ export class IRPCPackage<K extends string = 'id'> {
           dispatch(false);
         }
 
-        onCleanup(() => {
-          cancel();
-          cleanup();
-          observer.destroy();
-        });
+        if (!spec.controlled) {
+          onCleanup(() => {
+            cancel();
+            cleanup();
+            observer.destroy();
+          });
+        }
       }
 
       return reader;
     }
 
     function resolveTo(reader: IRPCReader<IRPCData>, args: unknown[]) {
+      const bindSource = (src: IRPCReader<IRPCData>) => {
+        void src.pipeTo(reader);
+        reader.bindAsk((type, askArgs) => src.ask(type, ...askArgs));
+        src.bindAnswer((type, askArgs) => reader.dispatchAnswer(type, askArgs));
+      };
+
       let source = resolve(args, true);
-      void source.pipeTo(reader);
+      bindSource(source);
 
       let off: (() => void) | undefined;
 
@@ -339,7 +345,7 @@ export class IRPCPackage<K extends string = 'id'> {
 
           source.close();
           source = resolve(args, true, true);
-          void source.pipeTo(reader);
+          bindSource(source);
         };
 
         import.meta.hot.on('custom', onInvalidate as AnyType);
@@ -361,26 +367,24 @@ export class IRPCPackage<K extends string = 'id'> {
       if (cached) return cached.value!;
       if (spec.coalesce !== false && calls.has(callKey)) return calls.get(callKey)!;
 
-      const reader = new IRPCReader<IRPCData>(uuid(), spec.seed!(), IRPC_STATUS.PENDING, false);
+      const reader = new IRPCReader<IRPCData>(uuid(), spec.seed!(), IRPC_STATUS.PENDING, false, spec.controlled);
 
       if (spec.maxAge) caches.set(callKey, reader, spec.maxAge);
       if (spec.coalesce !== false) {
         calls.set(callKey, reader);
+        // A closed call can't be joined, so it leaves as it closes; a newer call of the same key stays.
+        const leave = () => {
+          if (calls.get(callKey) === reader) calls.delete(callKey);
+          unsubscribe();
+        };
         const unsubscribe = reader.packetSubscribe((p) => {
-          if (reader.is(p, IRPC_PACKET_TYPE.ANSWER)) {
-            calls.delete(callKey);
-            unsubscribe();
-          }
+          if (reader.is(p, IRPC_PACKET_TYPE.ANSWER)) leave();
         });
-        reader
-          .finally(() => {
-            calls.delete(callKey);
-            unsubscribe();
-          })
-          .catch((_err) => {});
+        reader.onDestroy(leave);
+        reader.finally(leave).catch((_err) => {});
       }
 
-      onCleanup(() => reader.close());
+      if (!spec.controlled) onCleanup(() => reader.close());
 
       /* istanbul ignore next */
       if (dispatch) runAsync(args as IRPCData[], reader).then(() => {});
@@ -388,11 +392,26 @@ export class IRPCPackage<K extends string = 'id'> {
       return reader;
     }
 
-    const runAsync = async (args: IRPCData[], reader: IRPCReader<IRPCData>) => {
+    const runAsync = async (givenArgs: IRPCData[], reader: IRPCReader<IRPCData>) => {
       if (!this.transport && typeof spec.handler !== 'function') {
         reader.reject(TransportError.missing());
         return;
       }
+
+      // Validated where the call is made, before the handler or the transport; the router validates
+      // again where it arrives. Arguments that can't even be read fail the call like invalid ones.
+      let inputs: ReturnType<typeof parseInput>;
+      try {
+        inputs = parseInput(givenArgs, spec.schema?.input);
+      } catch (error) {
+        reader.reject(ResolveError.invalidInput((error as Error).message));
+        return;
+      }
+      if (!inputs.success) {
+        reader.reject(ResolveError.invalidInput(inputs.error));
+        return;
+      }
+      const args = inputs.data;
 
       const req = { id: reader.id, name: spec.name, args };
       const hooks = this.hooks.get(spec)!;
@@ -408,15 +427,15 @@ export class IRPCPackage<K extends string = 'id'> {
             reader.abort();
             return;
           }
+        }
 
+        /* istanbul ignore else */
+        if (this.guards.size) {
+          await this.resolveGuards(req);
           /* istanbul ignore else */
-          if (this.guards.size) {
-            await this.resolveGuards(req);
-            /* istanbul ignore else */
-            if (signal?.aborted) {
-              reader.abort();
-              return;
-            }
+          if (signal?.aborted) {
+            reader.abort();
+            return;
           }
         }
 
@@ -426,10 +445,10 @@ export class IRPCPackage<K extends string = 'id'> {
           return;
         }
 
-        const { timeout, maxRetries, retryDelay, retryMode, standalone } = { ...this.config, ...spec };
+        const { timeout, maxRetries, retryDelay, retryMode, standalone, bypassLocal } = { ...this.config, ...spec };
         const config = { timeout, maxRetries, retryDelay, retryMode, standalone } as IRPCCallConfig;
 
-        if (typeof spec.handler === 'function') {
+        if (typeof spec.handler === 'function' && !bypassLocal) {
           intercept(spec, args, reader);
         } else {
           this.transport!.call(spec, args, config, reader);
@@ -441,10 +460,48 @@ export class IRPCPackage<K extends string = 'id'> {
 
     this.specs.set($options.name, spec);
     this.stubs.set(stub, spec);
+    this.functions.set($options.name, stub);
     this.cache.set(stub, caches);
     this.hooks.set(spec, new Set());
 
     return stub as IRPCFunction<F>;
+  }
+
+  /**
+   * Calls the function declared under a name: looks up its stub and calls it with the arguments,
+   * exactly as calling the stub directly. Whether that runs a local handler or goes over the
+   * transport is the stub's own behavior.
+   *
+   * @param name - The function's declared name.
+   * @param args - The arguments, as the stub takes them.
+   * @returns What the stub returns: a promise, or a remote state for a streaming function.
+   * @throws StubError when nothing is declared under the name.
+   */
+  public call(name: string, ...args: unknown[]): unknown {
+    const stub = this.functions.get(name);
+    if (!stub) throw StubError.notDeclared(name, this.href);
+    return stub(...args);
+  }
+
+  /**
+   * Every declared function, CRUD functions included, as `[name, stub]` in declaration order.
+   *
+   * @returns An iterator over the name and stub pairs.
+   */
+  public entries(): IterableIterator<[string, IRPCHandler]> {
+    return this.functions.entries();
+  }
+
+  /**
+   * Every declared function as its stub keyed by `package.function`, so a caller can collect the
+   * tools of several packages into one tool set and call them like any stub.
+   *
+   * @returns The stubs by tool name, in declaration order.
+   */
+  public tools(): Record<string, IRPCHandler> {
+    const tools: Record<string, IRPCHandler> = {};
+    for (const [name, stub] of this.functions) tools[`${this.config.name}.${name}`] = stub;
+    return tools;
   }
 
   /**
@@ -528,7 +585,10 @@ export class IRPCPackage<K extends string = 'id'> {
    * @returns This IRPCPackage instance for chaining
    * @throws Error if the stub or handler is invalid, or if no IRPC exists for the stub
    */
-  public construct<F, A extends unknown[], R extends IRPCData>(stub: IRPCStub<F, A, R>, handler: F): this {
+  public construct<F, A extends unknown[], R extends IRPCData, Q extends IRPCQueryMap = IRPCQueryMap>(
+    stub: IRPCStub<F, A, R, Q>,
+    handler: NoInfer<F>
+  ): this {
     if (typeof stub !== 'function') {
       throw StubError.invalid();
     }
@@ -673,13 +733,49 @@ export class IRPCPackage<K extends string = 'id'> {
    * @returns This IRPCPackage instance for chaining
    * @throws Error if the provided name or version is invalid
    */
-  public configure(config: Partial<IRPCPackageConfig>): this {
+  public configure(config: Partial<IRPCPackageConfig>): this;
+  /**
+   * Updates how a declared function's calls are kept, for a package whose caching is decided by
+   * where it runs rather than where it's declared. Only the options given change; a new `maxAge`
+   * drops what was cached before.
+   * @param stub - The stub function created by declare().
+   * @param config - `maxAge` in milliseconds (0 for none), and `controlled`: calls the caller closes.
+   * @returns This IRPCPackage instance for chaining
+   */
+  public configure(stub: IRPCHandler, config: Pick<IRPCDeclareConfig, 'maxAge' | 'controlled'>): this;
+
+  public configure(
+    target: Partial<IRPCPackageConfig> | IRPCHandler,
+    options: Pick<IRPCDeclareConfig, 'maxAge' | 'controlled'> = {}
+  ): this {
+    if (typeof target === 'function') {
+      const spec = this.stubs.get(target);
+
+      if (!spec) {
+        IRPC_STORE.error(StubError.notFound());
+        return this;
+      }
+
+      if ('maxAge' in options) {
+        spec.maxAge = options.maxAge;
+        this.cache.get(target)?.clear();
+      }
+      if ('controlled' in options) spec.controlled = options.controlled;
+      return this;
+    }
+
+    const config = target;
+
     if (config.name && !NAME_CONSTRAINT.test(config.name)) {
       throw StubError.invalidName(config.name!);
     }
 
     if (config.version && !VERSION_CONSTRAINT.test(config.version)) {
       throw StubError.invalidVersion(config.version!);
+    }
+
+    if (config.transport) {
+      this.use(config.transport);
     }
 
     Object.assign(this.config, config);
@@ -736,7 +832,7 @@ export function intercept(
     const result = spec.handler(...args) as RemoteState<IRPCData>;
 
     if (!(result instanceof Promise)) {
-      reader.accept(result);
+      reader.accept(deliverBlobs(result));
       signal?.removeEventListener('abort', abort);
       return reader;
     }
@@ -744,7 +840,7 @@ export function intercept(
     if (!(result instanceof RemoteState)) {
       (result as Promise<IRPCData>)
         .then((value) => {
-          reader.accept(value);
+          reader.accept(deliverBlobs(value));
         })
         .catch((err) => {
           reader.reject(err);
@@ -758,8 +854,26 @@ export function intercept(
 
     anchor.assign(reader.state, result.state);
 
+    reader.bindAsk((type, askArgs) => result.dispatchAnswer(type, askArgs));
+    result.bindAsk((type, askArgs) => reader.dispatchAnswer(type, askArgs));
+
+    // A caller closing a local call closes the handler's state too, as a cancel packet would remotely.
+    const closeCaller = reader.onClose;
+    reader.onClose = () => {
+      closeCaller?.();
+      result.close();
+    };
+
+    // A stream that already ended settles the caller the same way: closing it would turn a failure
+    // into a success.
     if (result.status !== IRPC_STATUS.PENDING) {
-      reader.close();
+      if (result.status === IRPC_STATUS.ERROR) {
+        // The caller gets the error; the handler's own rejected state is then handled, not left loose.
+        result.catch(() => undefined);
+        reader.reject(result.error);
+      } else {
+        reader.close();
+      }
       return reader;
     }
 
@@ -773,11 +887,13 @@ export function intercept(
 
     result
       .pipeTo(reader)
+      .then(
+        () => reader.close(),
+        (error: Error) => reader.reject(error)
+      )
       .finally(() => {
-        reader.close();
         signal?.removeEventListener('abort', abortAll);
-      })
-      .catch((_err) => {});
+      });
   } catch (error) {
     reader.reject(error as Error);
     signal?.removeEventListener('abort', abort);

@@ -421,6 +421,48 @@ describe('RemoteState', () => {
       expect(b.data).toBe('e');
     });
 
+    it('should deliver a push once when the target shares the array with the source', () => {
+      const a = new RemoteState<{ chunks: string[] }>({ chunks: [] });
+      const b = new RemoteState<{ chunks: string[] }>({ chunks: [] });
+      const pushes: unknown[] = [];
+
+      a.pipeTo(b);
+      b.subscribe((_, event) => {
+        if (event.type === 'push') pushes.push(event.value);
+      });
+      a.data.chunks.push('x');
+
+      expect(a.data.chunks).toEqual(['x']);
+      expect(b.data.chunks).toEqual(['x']);
+      expect(pushes).toEqual([['x']]);
+    });
+
+    it('should deliver a push once after the source replaces its data object', () => {
+      const a = new RemoteState<{ chunks?: string[] }>({});
+      const b = new RemoteState<{ chunks?: string[] }>({});
+
+      a.pipeTo(b);
+      a.data = { chunks: [] };
+      a.data.chunks!.push('x');
+      a.data.chunks!.splice(0, 0, 'w');
+
+      expect(a.data.chunks).toEqual(['w', 'x']);
+      expect(b.data.chunks).toEqual(['w', 'x']);
+    });
+
+    it('should still replay onto a target that holds its own copy', () => {
+      const a = new RemoteState<{ chunks: string[] }>({ chunks: [] });
+      const b = new RemoteState<{ chunks: string[] }>({ chunks: [] });
+
+      a.pipeTo(b);
+      b.data = { chunks: [] };
+      a.data.chunks.push('y');
+
+      expect(a.data.chunks).toEqual(['y']);
+      expect(b.data.chunks).toEqual(['y']);
+      expect(b.data.chunks).not.toBe(a.data.chunks);
+    });
+
     it('should handle async stream initializer resolving to non-function cleanup', async () => {
       const rs = stream(async (state) => {
         state.data = 'resolved';

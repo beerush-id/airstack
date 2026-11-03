@@ -1,0 +1,155 @@
+---
+title: AUI Field
+nav: Field
+nav-priority: 210
+description: A form field with a visible label, a control, help text, and an error message that connect themselves for screen readers — the error waits until the user has interacted with the field.
+keywords: [React form field, React label input error, accessible form field, form validation message React, input helper text]
+---
+
+# AUI Field
+
+Every form field needs the same four pieces — a label, the control, a hint, and an error — connected so a screen reader reads the label and the hint with the control, and announces the error when it appears. Wiring that by hand means inventing ids and `aria-describedby` lists for every field. Field connects the pieces for you, and holds the error back until the user has actually touched the field, so nobody sees "Required" before typing a letter.
+
+:::interactive[Field demo]
+
+```tsx
+import { Field, FieldControl, FieldDescription, FieldError, FieldLabel, Readout, Toggle } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { DemoControl } from '@/components/DemoControl.js';
+import { GlassStage } from '@/components/GlassStage.js';
+
+const FieldDemo = setup(() => {
+  const state = mutable({ value: '', touched: false, size: 'md', color: 'primary', disabled: false });
+
+  return () => (
+    <div className="demo-button">
+      <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} disabled={$bind(state, 'disabled')}>
+        <Toggle size="sm" pressed={$bind(state, 'touched')}>
+          {() => (state.touched ? 'Touched' : 'Untouched')}
+        </Toggle>
+      </DemoControl>
+      <GlassStage style={{ maxInlineSize: '20rem' }}>
+        <div className="flex flex-col gap-lg justify-center">
+          <Snippet>
+            {() => (
+              <Field
+                placeholder="you@example.com"
+                required
+                value={$bind(state, 'value')}
+                touched={$bind(state, 'touched')}
+                invalid={!state.value.includes('@')}
+                size={state.size}
+                color={state.color}
+                disabled={state.disabled}
+              >
+                <FieldLabel>Work email</FieldLabel>
+                <FieldControl />
+                <FieldDescription>We send a sign-in link to this address.</FieldDescription>
+                <FieldError>Enter a valid email address to continue.</FieldError>
+              </Field>
+            )}
+          </Snippet>
+          <Snippet>{() => <Readout label="Value" value={state.value} empty="Empty" />}</Snippet>
+        </div>
+      </GlassStage>
+    </div>
+  );
+}, 'FieldDemo');
+```
+
+```html
+<FieldDemo />
+```
+
+<FieldDemo />
+
+:::
+
+## Usage
+
+### A labelled field
+
+Put the pieces inside `Field`. They find each other: the label points at the control, and the hint and the error are read with it:
+
+```tsx
+import { Field, FieldControl, FieldDescription, FieldError, FieldLabel } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/field.css';
+
+export const EmailField = () => (
+  <Field placeholder="you@example.com" required>
+    <FieldLabel>Work email</FieldLabel>
+    <FieldControl />
+    <FieldDescription>We send a sign-in link to this address.</FieldDescription>
+    <FieldError>Enter a valid email address to continue.</FieldError>
+  </Field>
+);
+```
+
+Leave out any piece you don't need; a field with only a label and a control is fine. The field's `placeholder`, `required`, and `disabled` reach the control.
+
+### Bind and validate
+
+Bind the value, and decide validity with your own rule. The error stays hidden until the field is both touched and invalid; until then only the hint is read:
+
+```tsx
+import { $bind, mutable, setup } from '@airlib/react';
+import { Field, FieldControl, FieldError, FieldLabel } from '@airlib/react-aui';
+
+const SignIn = setup(() => {
+  const form = mutable({ email: '', touched: false });
+
+  return () => (
+    <Field value={$bind(form, 'email')} touched={$bind(form, 'touched')} invalid={!form.email.includes('@')}>
+      <FieldLabel>Work email</FieldLabel>
+      <FieldControl />
+      <FieldError>Enter a valid email address.</FieldError>
+    </Field>
+  );
+}, 'SignIn');
+```
+
+Binding `touched` lets you mark every field touched on submit, so all errors show at once.
+
+### Style it once
+
+`size`, `color`, and `variant` (`filled`, `tonal`, `outlined`) on the Field reach its control; the label and messages keep the text styles. See [Style a composite once](/docs/theming#style-a-composite-once).
+
+### Properties
+
+#### Field
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `value` | `Bindable<string \| number>` | — | The control's value, kept in sync both ways. |
+| `type` | `string` | `'text'` | The control's input type. |
+| `placeholder` | `string` | — | Hint shown in the empty control. |
+| `required` | `boolean` | `false` | Announced as required. |
+| `disabled` | `boolean` | `false` | Locks the control. |
+| `invalid` | `Bindable<boolean>` | `false` | Marks the field invalid; the error shows once it is also touched. |
+| `touched` | `Bindable<boolean>` | `false` | Whether the user has interacted with the field. |
+| `invalidMessages` | `Bindable<string \| string[]>` | — | Error text to show when you don't render your own in `FieldError`. |
+| `id` | `string` | generated | Base id for the pieces, if you need a stable one. |
+| `size` | `xs`–`xxl` | `'md'` | Reaches the control. |
+| `variant` | `filled`, `tonal`, `outlined` | `'filled'` | |
+| `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | |
+| `oninput` | `(event: CustomEvent<string \| number>) => void` | — | Every edit of the control. |
+| `className` | `string` | — | Added next to the built-in classes, or replaces them with [`overrides`](/docs/theming#overrides). |
+
+#### The pieces
+
+| Part | Renders | Notes |
+| --- | --- | --- |
+| `FieldLabel` | `label` | The visible name, tied to the control. |
+| `FieldControl` | `input` | Takes any `input` attribute; its own `size`, `color`, or `variant` wins over the Field's. |
+| `FieldDescription` | `span` | Help text, always read with the control. |
+| `FieldError` | `span` | The error, shown and announced once the field is touched and invalid. |
+
+## Keyboard
+
+The control is the only focusable piece; typing and selection are the browser's own. Clicking the label focuses the control.
+
+## Next Steps
+
+- [Text Input](/docs/widgets/text-input) — A standalone text field bound to your state.
+- [Number Stepper](/docs/widgets/number-stepper) — A number field that stays within bounds.
+- [Select](/docs/composites/select) — Pick a value from a list.

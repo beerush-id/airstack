@@ -1,0 +1,21 @@
+@import './menu.css';
+
+/*
+ * The surface comes from the shared panel; only the pointer placement is
+ * local. The panel is anchored to the context surface and receives the
+ * pointer's offset inside it as `--anchor-x` / `--anchor-y`.
+ */
+@layer component {
+  .aui-context-menu-panel {
+    position-area: none;
+    margin: 0;
+    inset: auto;
+    top: calc(anchor(top) + var(--anchor-y, 0px));
+    left: calc(anchor(left) + var(--anchor-x, 0px));
+    position-try-fallbacks:
+      flip-block,
+      flip-inline,
+      flip-block flip-inline;
+    min-inline-size: calc(var(--spacing) * 48);
+  }
+}

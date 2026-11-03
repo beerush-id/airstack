@@ -1,0 +1,135 @@
+---
+title: AUI Number Stepper
+nav: Number Stepper
+nav-priority: 212
+description: A number field that never leaves its bounds — typed, stepped with the arrow keys, or set from your code — announced with its limits and units, in six sizes, three field variants, and seven colors.
+keywords: [React number input, React number field, clamped number input, accessible spinbutton, min max input React]
+---
+
+# AUI Number Stepper
+
+A number field has to stay inside its bounds no matter how the number arrives: typed, stepped with the keys, pasted, or written by your code when the allowed range changes. Number Stepper clamps every one of those paths, announces the value with its limits, and leaves typing to the browser — in a single field.
+
+:::interactive[Number stepper demo]
+
+```tsx
+import { NumberStepper, Readout, Toggle } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { DemoControl } from '@/components/DemoControl.js';
+import { GlassStage } from '@/components/GlassStage.js';
+
+const NumberStepperDemo = setup(() => {
+  const state = mutable({ guests: 2, size: 'md', color: 'primary', disabled: false, readonly: false });
+
+  return () => (
+    <div className="demo-button">
+      <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} disabled={$bind(state, 'disabled')}>
+        <Toggle size="sm" pressed={$bind(state, 'readonly')}>
+          {() => (state.readonly ? 'Set Writable' : 'Set Read-only')}
+        </Toggle>
+      </DemoControl>
+      <GlassStage style={{ maxInlineSize: '20rem' }}>
+        <div className="flex flex-col gap-lg justify-center">
+          <Snippet>
+            {() => (
+              <NumberStepper
+                label="Guests"
+                min={1}
+                max={8}
+                value={$bind(state, 'guests')}
+                size={state.size}
+                color={state.color}
+                disabled={state.disabled}
+                readonly={state.readonly}
+              />
+            )}
+          </Snippet>
+          <Snippet>{() => <Readout label="Guests" value={state.guests} />}</Snippet>
+        </div>
+      </GlassStage>
+    </div>
+  );
+}, 'NumberStepperDemo');
+```
+
+```html
+<NumberStepperDemo />
+```
+
+<NumberStepperDemo />
+
+:::
+
+## Usage
+
+### Bound a number
+
+Give the field its bounds and bind the value. Whatever arrives — a typed number, an arrow key, your own assignment — lands inside `min` and `max`:
+
+```tsx
+import { NumberStepper } from '@airlib/react-aui';
+import { $bind, mutable, setup } from '@airlib/react';
+import '@airlib/aui/components/widgets/text-input.css';
+
+const Booking = setup(() => {
+  const booking = mutable({ guests: 2 });
+
+  return () => <NumberStepper label="Guests" min={1} max={8} value={$bind(booking, 'guests')} />;
+}, 'Booking');
+```
+
+Leave `min` or `max` out to leave that side open.
+
+### Step size and meaning
+
+`step` sets how far one arrow key moves. `valuetext` says what the number means, so a screen reader hears "30 minutes" instead of "30":
+
+```tsx
+<NumberStepper label="Reminder" min={0} max={120} step={15} value={$bind(alarm, 'minutes')} valuetext={`${alarm.minutes} minutes`} />
+```
+
+### Locking
+
+`readonly` keeps the field focusable and announced while refusing changes; `disabled` takes it out of the tab order:
+
+```tsx
+<NumberStepper label="Extra beds" min={0} max={4} value={0} readonly />
+<NumberStepper label="Suite upgrade" min={0} max={2} value={0} disabled />
+```
+
+### Variants and colors
+
+Like every field, it takes `filled` (default), `tonal`, or `outlined`, any of the seven colors, and six sizes:
+
+```tsx
+<NumberStepper label="Nights" min={1} max={30} value={3} variant="outlined" size="sm" />
+```
+
+Need visible − and + buttons? Use [Stepper](/docs/composites/stepper) — the same bounded number with its step buttons built in.
+
+### Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `value` | `Bindable<number>` | `min`, then `0` | Always inside the bounds. |
+| `min` / `max` | `number` | — | Inclusive bounds; leave one out for an open side. |
+| `step` | `number` | `1` | One arrow key. |
+| `valuetext` | `string` | — | How the value is announced. |
+| `label` | `string` | — | Accessible name. Use [Field](/docs/widgets/field) for a visible label. |
+| `required` | `boolean` | `false` | Announced as required. |
+| `readonly` | `boolean` | `false` | Focusable, not editable. |
+| `disabled` | `boolean` | `false` | Not focusable, not editable. |
+| `size` | `xs`–`xxl` | `'md'` | |
+| `variant` | `filled`, `tonal`, `outlined` | `'filled'` | |
+| `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | |
+| `className` | `string` | — | Added next to the built-in classes, or replaces them with [`overrides`](/docs/theming#overrides). |
+
+## Keyboard
+
+`ArrowUp` / `ArrowDown` step by `step`, `PageUp` / `PageDown` step further, and `Home` / `End` jump to the bounds. Typing and the caret keys are the browser's own.
+
+## Next Steps
+
+- [Stepper](/docs/composites/stepper) — The same number with − and + buttons.
+- [Slider](/docs/widgets/slider) — Pick a number by dragging.
+- [Field](/docs/widgets/field) — Add a visible label, help text, and an error message.

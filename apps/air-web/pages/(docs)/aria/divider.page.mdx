@@ -1,0 +1,226 @@
+---
+title: 'Headless Divider'
+description: 'Headless divider for React and SolidJS. Marks any element as a structural boundary — announced as a separator, skipped by the tab key, carrying no value — with no markup or styles imposed.'
+nav: 'Divider'
+nav-priority: 290
+---
+
+import './aria.css';
+import './divider.css';
+
+# Headless Divider
+
+A divider marks where one part of a layout ends and the next begins. Getting it right means **compiling the separator role on your own element**, **announcing the axis only when it departs from the default**, **keeping it out of the tab order**, and **carrying no value**.
+
+**Headless Divider** does all of that for you, and leaves the markup and the styling entirely yours.
+
+```tsx
+const divider = aria('divider', props);
+
+<div ref={divider.ref} {...divider.restProps(['children'])} />
+```
+
+:::interactive[Panel Layout]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type DemoDividerProps = ComponentProps<'div'> & {
+  orientation?: 'horizontal' | 'vertical';
+};
+
+const DemoDivider = setup<DemoDividerProps>((props) => {
+  const divider = aria('divider', props);
+
+  return () => <div ref={divider.ref} {...divider.restProps(['children'])} className="demo-divider" />;
+}, 'DemoDivider');
+```
+```html
+<div className="demo-divider-stack">
+  <div className="demo-divider-row">
+    <span className="demo-divider-caption">Between stacked sections</span>
+    <div className="demo-divider-card">
+      <div className="demo-divider-block">
+        <span className="demo-divider-label">Layers</span>
+        <span className="demo-divider-note">24 items, grouped by page</span>
+      </div>
+      <DemoDivider />
+      <div className="demo-divider-block">
+        <span className="demo-divider-label">Assets</span>
+        <span className="demo-divider-note">8 symbols shared with the team</span>
+      </div>
+    </div>
+  </div>
+  <div className="demo-divider-row">
+    <span className="demo-divider-caption">Between side-by-side panes</span>
+    <div className="demo-divider-card demo-divider-card--row">
+      <div className="demo-divider-block">
+        <span className="demo-divider-label">Preview</span>
+        <span className="demo-divider-note">Rendered at 100%</span>
+      </div>
+      <DemoDivider orientation="vertical" />
+      <div className="demo-divider-block">
+        <span className="demo-divider-label">Inspector</span>
+        <span className="demo-divider-note">Padding, radius, and fill</span>
+      </div>
+    </div>
+  </div>
+</div>
+```
+
+<div className="demo-divider-stack">
+  <div className="demo-divider-row">
+    <span className="demo-divider-caption">Between stacked sections</span>
+    <div className="demo-divider-card">
+      <div className="demo-divider-block">
+        <span className="demo-divider-label">Layers</span>
+        <span className="demo-divider-note">24 items, grouped by page</span>
+      </div>
+      <DemoDivider />
+      <div className="demo-divider-block">
+        <span className="demo-divider-label">Assets</span>
+        <span className="demo-divider-note">8 symbols shared with the team</span>
+      </div>
+    </div>
+  </div>
+  <div className="demo-divider-row">
+    <span className="demo-divider-caption">Between side-by-side panes</span>
+    <div className="demo-divider-card demo-divider-card--row">
+      <div className="demo-divider-block">
+        <span className="demo-divider-label">Preview</span>
+        <span className="demo-divider-note">Rendered at 100%</span>
+      </div>
+      <DemoDivider orientation="vertical" />
+      <div className="demo-divider-block">
+        <span className="demo-divider-label">Inspector</span>
+        <span className="demo-divider-note">Padding, radius, and fill</span>
+      </div>
+    </div>
+  </div>
+</div>
+:::
+
+:::tip
+Divider or splitter is an authoring decision, made by picking the entity — `aria('divider')` or `aria('splitter')` — so a consumer of your component can never flip a static rule into a control.
+:::
+
+## Divider
+
+**One structural boundary.** No focus, no value, no keys — only an axis.
+
+### Usage
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'divider',
+  props?: DividerProps
+): DividerAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type DividerProps = ComponentProps<'div'> & {
+  orientation?: 'horizontal' | 'vertical';
+};
+
+const Divider = setup<DividerProps>((props) => {
+  const divider = aria('divider', props);
+
+  return () => <div ref={divider.ref} {...divider.restProps(['children'])} />;
+}, 'Divider');
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type DividerProps = ComponentProps<'div'> & {
+  orientation?: 'horizontal' | 'vertical';
+};
+
+const Divider = setup<DividerProps>((props) => {
+  const divider = aria('divider', props);
+
+  return <div ref={divider.ref} {...divider.restProps(['children'])} />;
+});
+```
+
+:::
+
+### Parameters
+
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **orientation** _'horizontal' | 'vertical', optional, default `'horizontal'`_: The axis the rule runs along. Only the vertical one is announced, because horizontal is what a separator is assumed to be.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **orientation** _'horizontal' | 'vertical'_: The axis in force.
+
+### How it behaves
+
+- **Announced as a boundary.** Screen readers hear a separator, so the split in your layout is a split in the document too.
+- **Always your element.** There is no native divider to opt into; the host you render carries the separator role.
+- **Never a tab stop.** The tab key passes straight over it, in both directions.
+- **Never a value.** No `aria-value*` attributes, so it can't be mistaken for a range control.
+- **Vertical says so, horizontal doesn't.** The axis is announced only when it departs from the default.
+
+## Next Steps
+
+- **[Splitter](/docs/aria/splitter)**: The movable partition with a tab stop, a clamped value, and arrow-key adjustment.
+- **[Menu](/docs/aria/menu)**: Group menu items with dividers that stay structural inside a roving collection.
+- **[Toolbar](/docs/aria/toolbar)**: Divide control groups without adding tab stops.
+- **[Progress](/docs/aria/progress)**: The read-only face of the same value vocabulary a splitter uses.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Divider
+
+```ts
+interface DividerProps {
+  orientation?: 'horizontal' | 'vertical';
+}
+
+interface DividerAttributes {
+  role?: 'separator';
+  'aria-orientation'?: 'horizontal' | 'vertical';
+}
+
+declare class DividerAria {
+  get orientation(): 'horizontal' | 'vertical';
+}
+```
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`props`** / **`restProps(omit)`** is what you spread onto the host — your props minus the keys the controller writes and any you name, with the compiled attributes merged in; **`ref`** is what you bind the element with; **`attributes`** is that compiled dictionary on its own, when you need the low-level view.
+- **`assign()`** changes several parameters at once, **`refine()`** adds attributes of your own, **`on()`** listens for anything the part fires, **`destroy()`** tears it down.

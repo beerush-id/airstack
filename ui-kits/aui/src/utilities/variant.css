@@ -1,0 +1,11 @@
+@layer utility {
+  /*
+   * Shared visual-variant vocabulary: filled | elevated | tonal | outlined | text.
+   * Components map these names to `aui-<component>-<variant>` classes and
+   * `--aui-<component>-<variant>-*` tokens. No generic variant classes are
+   * emitted here so component layers own their unique structure.
+   */
+  :root {
+    --aui-variant-names: 'filled, elevated, tonal, outlined, text';
+  }
+}

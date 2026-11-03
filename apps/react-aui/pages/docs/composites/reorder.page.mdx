@@ -1,0 +1,240 @@
+---
+title: AUI Reorder
+nav: Reorder
+nav-priority: 397
+description: Let people rearrange a list by dragging or with the keyboard — a live preview while they move, one commit on drop, and Escape to put everything back.
+keywords: [React reorder list, drag and drop sort React, sortable list accessible, keyboard reorder, rearrange items React]
+---
+
+# AUI Reorder
+
+Release checklists, board columns, playlist tracks, priority queues — sooner or later people need to put a list in their own order. The hard part is never the drag: it is showing the new order while they move without committing it yet, keeping the list usable from the keyboard, and putting everything back when they change their mind.
+
+**AUI Reorder** gives you that whole gesture. Hand it the entries and bind the order you want back; every entry gets a grip, follows the pointer while held, and the new order arrives once, on drop.
+
+:::interactive[Reorder demo]
+
+```tsx
+import { Readout, Reorder } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { GlassStage } from '@/components/GlassStage.js';
+
+const STEPS = [
+  { name: 'build', label: 'Build' },
+  { name: 'lint', label: 'Lint', disabled: true },
+  { name: 'test', label: 'Test' },
+  { name: 'deploy', label: 'Deploy' },
+];
+const STEP_LABELS = Object.fromEntries(STEPS.map((step) => [step.name, step.label]));
+const COLUMNS = { todo: 'To Do', doing: 'In Progress', done: 'Done' };
+
+const ReorderDemo = setup(() => {
+  const state = mutable({
+    steps: STEPS.map((step) => step.name),
+    columns: Object.keys(COLUMNS),
+  });
+
+  return () => (
+    <div className="demo-button">
+      <GlassStage>
+        <div className="flex flex-col gap-xs">
+          <div className="text-title-sm">Release checklist</div>
+          <div>Drag a step by its grip, or press Space on the grip and move it with the arrows. Lint is locked: it can't be picked up, but other steps move past it.</div>
+        </div>
+        <Reorder
+          label="Release checklist"
+          items={STEPS}
+          value={$bind(state, 'steps')}
+          handleLabel={(entry) => `Move ${entry.label}`}
+        />
+        <div className="text-title-sm">Board columns</div>
+        <Reorder
+          label="Board columns"
+          orientation="horizontal"
+          items={COLUMNS}
+          value={$bind(state, 'columns')}
+          handleLabel={(entry) => `Move ${entry.label}`}
+        />
+      </GlassStage>
+      <Snippet>
+        {() => (
+          <div className="flex flex-col gap-sm">
+            <Readout label="Release order" value={state.steps.map((name) => STEP_LABELS[name]).join(' → ')} />
+            <Readout label="Column order" value={state.columns.map((name) => COLUMNS[name]).join(' → ')} />
+          </div>
+        )}
+      </Snippet>
+    </div>
+  );
+}, 'ReorderDemo');
+```
+
+```html
+<ReorderDemo />
+```
+
+<ReorderDemo />
+
+:::
+
+## Usage
+
+### From your entries
+
+When each entry is a name and a label, pass them as `items` — a name-to-label map, or an array of entries when some need `disabled`. Bind `value` to get the committed order back:
+
+```tsx
+import { Reorder } from '@airlib/react-aui';
+import { $bind, mutable } from '@airlib/react';
+import '@airlib/aui/components/widgets/reorder.css';
+
+const playlist = mutable({ order: ['intro', 'verse', 'chorus'] });
+
+<Reorder
+  label="Track order"
+  items={{ intro: 'Intro', verse: 'Verse', chorus: 'Chorus' }}
+  value={$bind(playlist, 'order')}
+  handleLabel={(entry) => `Move ${entry.label}`}
+/>;
+```
+
+Entries render in the current order, each with a grip. `handleLabel` names each grip for screen readers from its entry, in your users' language; nothing is named for you. Leave `value` unbound when you only need to hear about drops through `onchange`.
+
+### Change what an entry shows
+
+When an entry needs more than its label — a step number, an icon, a second line — keep the gesture and supply the content through the `item` slot. It receives the entry and its 1-based position in the current order:
+
+```tsx
+<Reorder
+  label="Release checklist"
+  items={STEPS}
+  value={$bind(release, 'steps')}
+  handleLabel={(entry) => `Move ${entry.label}`}
+>
+  <Reorder.Snippet for="item">
+    {(entry, position) => (
+      <span>
+        <b>{position}.</b> {entry.label}
+      </span>
+    )}
+  </Reorder.Snippet>
+</Reorder>
+```
+
+The grip stays in place; the slot fills the rest of the entry.
+
+### Build it from parts
+
+When the entries are richer than a slot can describe — your own row component, actions beside the grip, entries from several sources — compose them. `ReorderItem` is one movable entry identified by its `value`, and `ReorderHandle` is its grip. Render the items in the order you hold, and bind `preview` and `active` so the list follows the gesture while an entry is held:
+
+```tsx
+import { Reorder, ReorderHandle, ReorderItem } from '@airlib/react-aui';
+import { For } from '@airlib/react';
+
+const board = mutable({
+  order: ['build', 'test'],
+  preview: ['build', 'test'],
+  held: null as string | null,
+});
+
+<Reorder
+  label="Release checklist"
+  value={$bind(board, 'order')}
+  preview={$bind(board, 'preview')}
+  active={$bind(board, 'held')}
+>
+  <For each={() => (board.held ? board.preview : board.order)}>
+    {(step) => (
+      <ReorderItem value={step}>
+        <span>{step}</span>
+        <ReorderHandle label={`Move ${step}`} />
+      </ReorderItem>
+    )}
+  </For>
+</Reorder>;
+```
+
+`ReorderHandle` shows a drag glyph when you give it no children; pass your own content to replace it.
+
+## The order you get back
+
+Moving an entry only changes the preview; your `value` changes once, on drop, and only when the order actually differs. Picking an entry up and putting it back reports nothing. `Escape`, or tabbing away, cancels the move and restores the committed order:
+
+| Event | Fires when | Detail |
+| --- | --- | --- |
+| `oninput` | The held entry moves to a new slot | The preview order |
+| `onchange` | A drop commits a different order | The committed order |
+| `oncancel` | The move is canceled | The value of the entry that was held |
+
+Writing `value` yourself reports nothing, because no one acted.
+
+## Direction and locked entries
+
+`orientation="horizontal"` lays the entries out in a row and moves them with the left and right arrows — board columns, tab order, toolbar layout. It is set when the list is created.
+
+`disabled` on the list locks every entry. `disabled` on one entry keeps it from being picked up while the others still move past it — useful for a step that must stay first, or an item the user lacks permission to move.
+
+## Style it once
+
+Set `size` and `color` on `Reorder` and every entry and grip follows. See [Style a composite once](/docs/theming#style-a-composite-once).
+
+## Properties
+
+### Reorder
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `items` | `ItemEntry[]`, `Record<string, string>` | — | The entries to render, each with a grip. `ItemEntry` is `{ name, label?, disabled? }`. |
+| `value` | `Bindable<string[]>` | — | The committed order of entry names. |
+| `label` | `string` | — | The list's accessible name. |
+| `labelledby` | `string` | — | An element id that names the list instead. |
+| `handleLabel` | `(entry: ItemEntry) => string` | — | Names each entry's grip for screen readers. |
+| `orientation` | `'vertical'`, `'horizontal'` | `'vertical'` | The axis entries move along; set once. |
+| `disabled` | `boolean` | `false` | Locks the whole list. |
+| `size` | `xs`, `sm`, `md`, `lg`, `xl`, `xxl` | `'md'` | Reaches every entry and grip. |
+| `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | Tints the held entry and the grip. |
+| `oninput` | `(event: CustomEvent<string[]>) => void` | — | Each move while an entry is held. |
+| `onchange` | `(event: CustomEvent<string[]>) => void` | — | Each drop that changes the order. |
+| `oncancel` | `(event: CustomEvent<string>) => void` | — | Each canceled move. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `id` | `string` | generated | The list's DOM identifier. |
+
+Slot: `item(entry, position)` — the content of each entry rendered from `items`.
+
+When composing from parts, `Reorder` also takes:
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `preview` | `Bindable<string[]>` | — | The order on screen while an entry is held. |
+| `active` | `Bindable<string \| null>` | `null` | The name of the held entry. |
+| `children` | `ReactNode`, `(reorder) => ReactNode` | — | Your items, or a function that renders them. |
+
+### ReorderItem
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `value` | `string` | required | The entry's name, matched against `value` and `preview`. |
+| `label` | `string` | — | The entry's accessible name. |
+| `disabled` | `boolean` | `false` | Keeps this entry from being picked up. |
+| `size`, `color` | — | from `Reorder` | Override the list's for this entry. |
+| `children` | `ReactNode`, `(item) => ReactNode` | — | The entry's content and its grip. |
+
+### ReorderHandle
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `label` | `string` | — | The grip's accessible name, such as `"Move Build"`. Always pass one. |
+| `disabled` | `boolean` | `false` | Disables this grip. |
+| `children` | `ReactNode` | drag glyph | The grip's content. |
+
+To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+
+## Keyboard
+
+`Enter` or `Space` on a grip picks the entry up and drops it again. While held, the arrows move it one slot along the list's axis and `Home` / `End` take it to either end. `Escape` cancels; `Tab` cancels and lets focus move on.
+
+## Next Steps
+
+- [Tree](/docs/composites/tree) — Nested items whose order stays put and whose branches open and close.
+- [Listbox](/docs/composites/listbox) — Pick from a flat list instead of rearranging it.
+- [Tabs](/docs/widgets/tabs) — One of several panels at a time, in a fixed order.

@@ -1,0 +1,734 @@
+---
+title: 'Headless Kits'
+description: 'Headless, reactive WAI-ARIA behavioral state machines with zero styling opinions.'
+nav: 'Overview'
+nav-priority: 100
+---
+
+import './aria.css';
+import './accordion.css';
+import './combobox.css';
+import './select.css';
+import './date-picker.css';
+import './dialog.css';
+
+# Headless Kits
+
+Building accessible web applications is difficult. Developers often face a frustrating trade-off: adopt heavyweight component libraries that dictate your markup, styles, and bundle size, or manually wire dozens of WAI-ARIA attributes, manage focus states, and polyfill keyboard interactions by hand. Reach for a headless library instead and it is typically tied to one framework, with verbose wiring mechanics of its own.
+
+:::interactive[New task]{standalone}
+```tsx
+import { aria } from '@airlib/aria';
+import { derived, For, setup, shadowPortal, Snippet } from '@airlib/react';
+import type { ComponentProps, ReactNode } from 'react';
+
+const cityMap: Record<string, string> = {
+  ams: 'Amsterdam',
+  ber: 'Berlin',
+  cop: 'Copenhagen',
+  dnb: 'Dublin',
+  vil: 'Vilnius',
+};
+const cities = Object.entries(cityMap);
+
+type DemoCityProps = ComponentProps<'div'> & {
+  value?: string | string[] | null;
+  query?: string;
+  open?: boolean;
+  multiple?: boolean;
+  disabled?: boolean;
+  required?: boolean;
+};
+
+const DemoCity = setup<DemoCityProps>((props) => {
+  const combobox = aria('combobox', props, cityMap);
+
+  const matches = derived(() => {
+    const query = combobox.query.trim().toLowerCase();
+    return cities.filter(([key, city]) => key.includes(query) || city.toLowerCase().includes(query));
+  });
+
+  return () => (
+    <div ref={combobox.ref} {...combobox.restProps(['children'])} className="demo-combobox">
+      <DemoCityInput label="City" />
+      <DemoCityPanel>
+        <For each={() => matches.value}>
+          {([key, city]) => <DemoCityOption value={key}>{city}</DemoCityOption>}
+        </For>
+        {matches.value.length === 0 ? <div className="demo-combobox-empty">No city matches that.</div> : null}
+      </DemoCityPanel>
+    </div>
+  );
+}, 'DemoCity');
+
+type DemoCityInputProps = ComponentProps<'input'> & {
+  label?: string;
+};
+
+const DemoCityInput = setup<DemoCityInputProps>((props) => {
+  const input = aria<HTMLInputElement>('combobox-input', props);
+
+  return () => (
+    <span className="demo-combobox-field">
+      <input
+        ref={input.ref}
+        {...input.restProps(['children', 'label'])}
+        aria-label={props.label}
+        placeholder="Type to filter"
+        className="demo-combobox-input"
+      />
+      <span className="demo-combobox-caret" aria-hidden="true" />
+    </span>
+  );
+}, 'DemoCityInput');
+
+const DemoCityPanel = setup<ComponentProps<'div'>>((props) => {
+  const panel = aria<HTMLElement>('combobox-panel', props);
+  const shadow = shadowPortal(() => true);
+
+  return () =>
+    shadow(
+      <div ref={panel.ref} {...panel.restProps(['children'])} className="demo-combobox-panel">
+        {props.children}
+      </div>
+    );
+}, 'DemoCityPanel');
+
+type DemoCityOptionProps = ComponentProps<'div'> & {
+  value: string;
+  disabled?: boolean;
+};
+
+const DemoCityOption = setup<DemoCityOptionProps>((props) => {
+  const option = aria('option', props);
+
+  return () => (
+    <div ref={option.ref} {...option.restProps(['children'])} className="demo-combobox-option">
+      {props.children}
+    </div>
+  );
+}, 'DemoCityOption');
+
+const PRIORITIES = [
+  { value: 'low', label: 'Low' },
+  { value: 'normal', label: 'Normal' },
+  { value: 'high', label: 'High' },
+  { value: 'urgent', label: 'Urgent' },
+];
+
+const PRIORITY_LABELS = { low: 'Low', normal: 'Normal', high: 'High', urgent: 'Urgent' };
+
+type DemoPriorityProps = ComponentProps<'div'> & {
+  value?: string | string[];
+  multiple?: boolean;
+  disabled?: boolean;
+};
+
+const DemoPriority = setup<DemoPriorityProps>((props) => {
+  const select = aria('select', props, PRIORITY_LABELS);
+
+  return () => (
+    <div ref={select.ref} {...select.restProps(['children'])} className="demo-select">
+      {props.children}
+    </div>
+  );
+}, 'DemoPriority');
+
+const DemoPriorityTrigger = setup<ComponentProps<'button'>>((props) => {
+  const trigger = aria('select-trigger', props);
+
+  return () => (
+    <button ref={trigger.ref} {...trigger.restProps(['children'])} className="demo-select-trigger">
+      {trigger.label || 'Choose a priority'}
+    </button>
+  );
+}, 'DemoPriorityTrigger');
+
+const DemoPriorityPanel = setup<ComponentProps<'div'>>((props) => {
+  const panel = aria('select-panel', props);
+  const shadow = shadowPortal(() => panel.open);
+
+  return () => shadow(
+    <div ref={panel.ref} {...panel.restProps(['children'])} className="demo-select-panel">
+      {props.children}
+    </div>
+  );
+}, 'DemoPriorityPanel');
+
+const DemoPriorityOption = setup<ComponentProps<'div'> & { value: string; disabled?: boolean }>((props) => {
+  const option = aria('option', props);
+
+  return () => (
+    <div ref={option.ref} {...option.restProps(['children'])} className="demo-select-option">
+      {props.children}
+    </div>
+  );
+}, 'DemoPriorityOption');
+
+const dayLabel = (iso: string) => String(Number(iso.slice(8, 10)));
+
+type DemoPickerProps = ComponentProps<'div'> & {
+  value?: string;
+  min?: string;
+  max?: string;
+  label?: string;
+  disabled?: boolean;
+};
+
+const DemoPicker = setup<DemoPickerProps>((props) => {
+  const picker = aria('date-picker', props);
+
+  return () => (
+    <div ref={picker.ref} {...picker.restProps(['children'])} className="demo-date-picker">
+      <div className="demo-date-picker-row">
+        <DemoPickerInput />
+        <DemoPickerTrigger />
+      </div>
+      <DemoPickerCalendar>
+        <div className="demo-date-picker-nav">
+          <DemoPrevMonth />
+          <Snippet>
+            {() => (
+              <span className="demo-date-picker-label">
+                <span className="demo-date-picker-month">{picker.range.monthStr}</span>
+                <DemoYearInput />
+              </span>
+            )}
+          </Snippet>
+          <DemoNextMonth />
+        </div>
+      </DemoPickerCalendar>
+    </div>
+  );
+}, 'DemoPicker');
+
+type DemoPickerInputProps = ComponentProps<'input'> & {
+  id?: string;
+  disabled?: boolean;
+};
+
+const DemoPickerInput = setup<DemoPickerInputProps>((props) => {
+  const input = aria<HTMLInputElement>('date-picker-input', props);
+
+  return () => (
+    <input ref={input.ref} {...input.props} placeholder="YYYY-MM-DD" className="demo-date-picker-input" />
+  );
+}, 'DemoPickerInput');
+
+type DemoPickerTriggerProps = ComponentProps<'button'>;
+
+const DemoPickerTrigger = setup<DemoPickerTriggerProps>((props) => {
+  const trigger = aria<HTMLButtonElement>('date-picker-trigger', props);
+
+  return () => (
+    <button
+      ref={trigger.ref}
+      {...trigger.restProps(['children'])}
+      className="demo-date-picker-trigger"
+      aria-label="Open calendar"
+    >
+      <span className="demo-date-picker-icon" aria-hidden="true" />
+    </button>
+  );
+}, 'DemoPickerTrigger');
+
+type DemoMonthNavProps = ComponentProps<'button'>;
+
+const DemoPrevMonth = setup<DemoMonthNavProps>((props) => {
+  const nav = aria<HTMLButtonElement>('date-picker-nav', { type: 'month', direction: -1 });
+
+  return () => (
+    <button ref={nav.ref} {...nav.restProps(['children'])} className="demo-date-picker-navbtn" aria-label="Previous month">
+      ‹
+    </button>
+  );
+}, 'DemoPrevMonth');
+
+const DemoNextMonth = setup<DemoMonthNavProps>((props) => {
+  const nav = aria<HTMLButtonElement>('date-picker-nav', { type: 'month', direction: 1 });
+
+  return () => (
+    <button ref={nav.ref} {...nav.restProps(['children'])} className="demo-date-picker-navbtn" aria-label="Next month">
+      ›
+    </button>
+  );
+}, 'DemoNextMonth');
+
+const DemoYearInput = setup((props) => {
+  const input = aria<HTMLInputElement>('date-picker-year-input', props);
+
+  return () => (
+    <input ref={input.ref} {...input.props} className="demo-date-picker-year" />
+  );
+}, 'DemoYearInput');
+
+type DemoPickerCalendarProps = ComponentProps<'div'>;
+
+const DemoPickerCalendar = setup<DemoPickerCalendarProps>((props) => {
+  const calendar = aria<HTMLElement>('date-picker-calendar', props);
+  const shadow = shadowPortal(() => calendar.open);
+
+  return () => shadow(
+    <div ref={calendar.ref} {...calendar.restProps(['children'])} className="demo-date-picker-calendar">
+      {props.children}
+      <div className="demo-date-picker-grid">
+        <For each={() => calendar.grid.weeks}>
+          {(day) => <div className="demo-date-picker-day demo-date-picker-head">{day}</div>}
+        </For>
+        <For each={() => calendar.grid.dates}>
+          {(date) => <DemoDay date={date} />}
+        </For>
+      </div>
+    </div>
+  );
+}, 'DemoPickerCalendar');
+
+type DemoDayProps = ComponentProps<'div'> & {
+  date: string;
+};
+
+const DemoDay = setup<DemoDayProps>((props) => {
+  const day = aria<HTMLElement>('date-picker-day', props);
+
+  return () => (
+    <div ref={day.ref} {...day.restProps(['children'])} className="demo-date-picker-day">
+      {day.date.date}
+    </div>
+  );
+}, 'DemoDay');
+
+type DemoDialogProps = ComponentProps<'div'> & {
+  open?: boolean;
+  modality?: 'modal' | 'nonmodal';
+  dismissable?: boolean;
+  children: ReactNode;
+};
+
+const DemoDialog = setup<DemoDialogProps>((props) => {
+  const dialog = aria('dialog', props);
+
+  return () => (
+    <div ref={dialog.ref} {...dialog.restProps(['children'])} className="demo-dialog-group">
+      {props.children}
+    </div>
+  );
+}, 'DemoDialog');
+
+type DemoDialogTriggerProps = ComponentProps<'button'> & {
+  children: ReactNode;
+};
+
+const DemoDialogTrigger = setup<DemoDialogTriggerProps>((props) => {
+  const trigger = aria('dialog-trigger', props);
+
+  return () => (
+    <button ref={trigger.ref} {...trigger.restProps(['children'])} className="demo-dialog-trigger">
+      {props.children}
+    </button>
+  );
+}, 'DemoDialogTrigger');
+
+type DemoDialogPanelProps = ComponentProps<'div'> & {
+  floating?: boolean;
+  children: ReactNode;
+};
+
+const DemoDialogPanel = setup<DemoDialogPanelProps>((props) => {
+  const panel = aria('dialog-panel', props);
+  const shadow = shadowPortal(() => panel.open);
+
+  return () => shadow(
+    <div
+      ref={panel.ref}
+      {...panel.restProps(['children', 'floating'])}
+      className={props.floating ? 'demo-dialog-panel demo-dialog-floating' : 'demo-dialog-panel'}
+    >
+      {props.children}
+    </div>
+  );
+}, 'DemoDialogPanel');
+
+type DemoDialogTitleProps = ComponentProps<'span'> & {
+  children: ReactNode;
+};
+
+const DemoDialogTitle = setup<DemoDialogTitleProps>((props) => {
+  const title = aria('dialog-title', props);
+
+  return () => (
+    <span ref={title.ref} {...title.restProps(['children'])} className="demo-dialog-title">
+      {props.children}
+    </span>
+  );
+}, 'DemoDialogTitle');
+
+type DemoDialogDescriptionProps = ComponentProps<'span'> & {
+  children: ReactNode;
+};
+
+const DemoDialogDescription = setup<DemoDialogDescriptionProps>((props) => {
+  const description = aria('dialog-description', props);
+
+  return () => (
+    <span ref={description.ref} {...description.restProps(['children'])} className="demo-dialog-note">
+      {props.children}
+    </span>
+  );
+}, 'DemoDialogDescription');
+
+type DemoDialogCloseProps = ComponentProps<'button'> & {
+  children: ReactNode;
+};
+
+const DemoDialogClose = setup<DemoDialogCloseProps>((props) => {
+  const close = aria('dialog-close', props);
+
+  return () => (
+    <button ref={close.ref} {...close.restProps(['children'])} className="demo-dialog-close">
+      {props.children}
+    </button>
+  );
+}, 'DemoDialogClose');
+```
+
+<div className="demo-kit-scene">
+  <div className="demo-kit-head">
+    <span className="demo-kit-title">New task</span>
+    <DemoDialog>
+      <DemoDialogTrigger>Manage access</DemoDialogTrigger>
+      <DemoDialogPanel>
+        <DemoDialogTitle>Sharing and access</DemoDialogTitle>
+        <DemoDialogDescription>Invite teammates and choose who can edit this task.</DemoDialogDescription>
+        <div className="demo-dialog-actions">
+          <DemoDialogClose>Done</DemoDialogClose>
+        </div>
+      </DemoDialogPanel>
+    </DemoDialog>
+  </div>
+  <div className="demo-kit-field">
+    <span className="demo-kit-caption">Assignee</span>
+    <DemoCity value="ber" />
+  </div>
+  <div className="demo-kit-field">
+    <span className="demo-kit-caption">Due date</span>
+    <DemoPicker value="2026-10-14" label="Due date" />
+  </div>
+  <div className="demo-kit-field">
+    <span className="demo-kit-caption">Priority</span>
+    <DemoPriority value="high">
+      <DemoPriorityTrigger />
+      <DemoPriorityPanel>
+        {PRIORITIES.map((priority) => (
+          <DemoPriorityOption key={priority.value} value={priority.value}>{priority.label}</DemoPriorityOption>
+        ))}
+      </DemoPriorityPanel>
+    </DemoPriority>
+  </div>
+</div>
+:::
+
+**Headless Kits** (`@airlib/aria`) eliminates this trade-off. It provides headless behavioral state machines that manage accessibility semantics, keyboard navigation, and composite coordination — written once and usable from React or SolidJS — without imposing any CSS, HTML markup structure, or DOM wrappers.
+
+## Installation
+
+:::code-group{group="pm"}
+```bash [Bun] name="bun"
+bun add @airlib/aria
+```
+
+```bash [NPM] name="npm"
+npm install @airlib/aria
+```
+
+```bash [PNPM] name="pnpm"
+pnpm add @airlib/aria
+```
+
+```bash [Yarn] name="yarn"
+yarn add @airlib/aria
+```
+:::
+
+## Component Integration
+
+In AirLib, components built with `setup` receive reactive `props`. Pass that object straight into the `aria()` factory and the controller binds to the same reactive proxy — no glue code, no change detection, no mirrored state. The accordion below is three of those wrappers, and nothing else:
+
+:::code-group[Accordion]
+
+```tsx [React] executable
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type AccordionProps = ComponentProps<'div'> & {
+  value?: string | string[];
+  multiple?: boolean;
+};
+
+const Accordion = setup<AccordionProps>((props) => {
+  const accordion = aria('accordion', props);
+
+  return () => (
+    <div ref={accordion.ref} {...accordion.restProps(['children'])} className="demo-accordion">
+      {props.children}
+    </div>
+  );
+}, 'Accordion');
+
+type AccordionHeaderProps = ComponentProps<'button'> & {
+  name: string;
+};
+
+const AccordionHeader = setup<AccordionHeaderProps>((props) => {
+  const header = aria('accordion-button', props);
+
+  return () => (
+    <button ref={header.ref} {...header.restProps(['children'])} className="demo-accordion-button">
+      {props.children}
+    </button>
+  );
+}, 'AccordionHeader');
+
+type AccordionPanelProps = ComponentProps<'div'> & {
+  name: string;
+};
+
+const AccordionPanel = setup<AccordionPanelProps>((props) => {
+  const panel = aria('accordion-panel', props);
+
+  return () => (
+    <div ref={panel.ref} {...panel.restProps(['children'])} className="demo-accordion-panel">
+      {props.children}
+    </div>
+  );
+}, 'AccordionPanel');
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type AccordionProps = ComponentProps<'div'> & {
+  value?: string | string[];
+  multiple?: boolean;
+};
+
+const Accordion = setup<AccordionProps>((props) => {
+  const accordion = aria('accordion', props);
+
+  return (
+    <div ref={accordion.ref} {...accordion.restProps(['children'])} class="demo-accordion">
+      {props.children}
+    </div>
+  );
+});
+
+type AccordionHeaderProps = ComponentProps<'button'> & {
+  name: string;
+};
+
+const AccordionHeader = setup<AccordionHeaderProps>((props) => {
+  const header = aria('accordion-button', props);
+
+  return (
+    <button ref={header.ref} {...header.restProps(['children'])} class="demo-accordion-button">
+      {props.children}
+    </button>
+  );
+});
+
+type AccordionPanelProps = ComponentProps<'div'> & {
+  name: string;
+};
+
+const AccordionPanel = setup<AccordionPanelProps>((props) => {
+  const panel = aria('accordion-panel', props);
+
+  return (
+    <div ref={panel.ref} {...panel.restProps(['children'])} class="demo-accordion-panel">
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
+
+:::interactive[Accordion]
+
+<Accordion value="shipping">
+  <div className="demo-accordion-item">
+    <AccordionHeader name="shipping">Shipping</AccordionHeader>
+    <AccordionPanel name="shipping">Orders leave the warehouse within two business days and every parcel carries a tracking link.</AccordionPanel>
+  </div>
+  <div className="demo-accordion-item">
+    <AccordionHeader name="returns">Returns</AccordionHeader>
+    <AccordionPanel name="returns">Send anything back within 30 days of delivery in its original packaging for a full refund.</AccordionPanel>
+  </div>
+</Accordion>
+
+:::
+
+## The Mental Model
+
+Headless Kits operates on a simple principle: **hand the controller your props, and it hands them back ready to spread**.
+
+As your state changes, the controller compiles the matching HTML and ARIA attributes, wires the keyboard and pointer contract, and returns everything through two touchpoints:
+
+1. **`props`** / **`restProps()`**: Your props with the compiled attributes (`role`, `aria-*`, `tabindex`, `disabled`) merged in and the controller-managed keys removed. It stays reactive, so the element follows your state; `restProps()` additionally drops any keys you name.
+2. **`ref`**: The pipe that binds the DOM node, registering keyboard and pointer listeners, synchronizing DOM properties, and handling cleanup on unmount.
+
+The controller owns no element of its own — it writes onto the element you render, so your markup, CSS, and component structure stay entirely yours.
+
+The compiled dictionary is also readable on its own, as the low-level `attributes` getter, with `ownKeys` listing every key the controller writes. Reach for it only when you need the raw attributes themselves.
+
+## Any Element, Same Behavior
+
+The controller never picks the host for you. A native `<button>`, a `<div>`, a `<span>`, even an SVG element — the role behaves the same, because the contract is compiled for whichever element you bind:
+
+- **Native hosts** (`native: true`, default): When the element already carries the semantics (`<button>`, `<input>`), the controller skips redundant ARIA (`role="button"` is never written) and lets the browser own keyboard activation and form submission.
+- **Custom hosts** (`native: false`): On anything without built-in semantics — non-interactive tags and SVG elements alike — the controller supplies what the browser will not: it injects the `role`, manages `tabindex` focusability, and handles `Enter` and `Space` activation.
+
+Below, the same toggle is bound twice — once to a `<button>`, once to an `<svg>` — and drives a single favourite:
+
+:::interactive[Two hosts]
+
+```tsx
+import { aria } from '@airlib/aria';
+import { $bind, mutable, setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type ToggleProps = {
+  pressed?: boolean;
+};
+
+const NativeStar = setup<ComponentProps<'button'> & ToggleProps>((props) => {
+  const toggle = aria('toggle', props);
+
+  return () => (
+    <button ref={toggle.ref} {...toggle.restProps(['children'])} className="demo-svg-native">
+      {props.children}
+    </button>
+  );
+}, 'NativeStar');
+
+const SvgStar = setup<ComponentProps<'svg'> & ToggleProps>((props) => {
+  const toggle = aria<SVGSVGElement>('toggle', props, { native: false });
+
+  return () => (
+    <svg
+      ref={toggle.ref}
+      {...toggle.restProps(['children'])}
+      className="demo-svg-host"
+      viewBox="0 0 24 24"
+      width="44"
+      height="44"
+    >
+      <path d="M12 3.5l2.6 5.3 5.9.9-4.2 4.1 1 5.8-5.3-2.8-5.3 2.8 1-5.8L3.5 9.7l5.9-.9z" />
+    </svg>
+  );
+}, 'SvgStar');
+
+const DemoSvgHosts = setup(() => {
+  const state = mutable({ pressed: false });
+
+  return () => (
+    <div className="demo-svg-card">
+      <div className="demo-svg-hosts">
+        <div className="demo-svg-slot">
+          <NativeStar pressed={$bind(state, 'pressed')}>Favourite</NativeStar>
+          <span className="demo-svg-slot-label">{'<button>'}</span>
+        </div>
+        <div className="demo-svg-slot">
+          <SvgStar pressed={$bind(state, 'pressed')} aria-label="Favourite" />
+          <span className="demo-svg-slot-label">{'<svg>'}</span>
+        </div>
+      </div>
+      <span className="demo-svg-note">
+        Native host and custom host behaves the same - click, enter, space, and it toggles.
+      </span>
+    </div>
+  );
+}, 'DemoSvgHosts');
+```
+```html
+<DemoSvgHosts />
+```
+
+<DemoSvgHosts />
+:::
+
+## Atomic Widgets
+
+Standalone accessible controls — one element, one job:
+
+- [Button](/docs/aria/button)
+- [Checkbox](/docs/aria/checkbox)
+- [Disclosure](/docs/aria/disclosure)
+- [Divider](/docs/aria/divider)
+- [File Picker](/docs/aria/file-picker)
+- [Image](/docs/aria/image)
+- [Link](/docs/aria/link)
+- [Meter](/docs/aria/meter)
+- [Number Stepper](/docs/aria/number-stepper)
+- [Option](/docs/aria/option)
+- [Progress](/docs/aria/progress)
+- [Radio](/docs/aria/radio)
+- [Search Input](/docs/aria/search-input)
+- [Slider](/docs/aria/slider)
+- [Splitter](/docs/aria/splitter)
+- [Stepper](/docs/aria/stepper)
+- [Switch](/docs/aria/switch)
+- [Text Input](/docs/aria/text-input)
+
+## Composites
+
+Several parts coordinated as one surface. Each page states its own tab stops and key claims — they differ per role, so read the page rather than assume one roving stop:
+
+- [Accordion](/docs/aria/accordion)
+- [Breadcrumb](/docs/aria/breadcrumb)
+- [Carousel](/docs/aria/carousel)
+- [Checkbox Group](/docs/aria/checkbox-group)
+- [Code Input](/docs/aria/code-input)
+- [Combobox](/docs/aria/combobox)
+- [Confirm](/docs/aria/confirm)
+- [Context Menu](/docs/aria/context-menu)
+- [Date Picker](/docs/aria/date-picker)
+- [Date Range Picker](/docs/aria/date-range-picker)
+- [Dialog](/docs/aria/dialog)
+- [Feed](/docs/aria/feed)
+- [Field](/docs/aria/field)
+- [Grid](/docs/aria/grid)
+- [Listbox](/docs/aria/listbox)
+- [Menu](/docs/aria/menu)
+- [Pagination](/docs/aria/pagination)
+- [Popover](/docs/aria/popover)
+- [Radio Group](/docs/aria/radio-group)
+- [Reorder](/docs/aria/reorder)
+- [Select](/docs/aria/select)
+- [Tabs](/docs/aria/tabs)
+- [Toast](/docs/aria/toast)
+- [Toggle Group](/docs/aria/toggle-group)
+- [Toolbar](/docs/aria/toolbar)
+- [Tooltip](/docs/aria/tooltip)
+- [Tree](/docs/aria/tree)
+
+## Landmarks
+
+Page structure assistive technologies can jump to:
+
+- [Footer](/docs/aria/footer)
+- [Form](/docs/aria/form)
+- [Header](/docs/aria/header)
+- [Main](/docs/aria/main)
+- [Navigation](/docs/aria/navigation)
+- [Search](/docs/aria/search)
+- [Section](/docs/aria/section)
+- [Sidebar](/docs/aria/sidebar)
+
+## Live Regions
+
+A single announcer entity covering urgent alerts, advisory results, streams, counters, and tickers:
+
+- [Announcer](/docs/aria/announcer)

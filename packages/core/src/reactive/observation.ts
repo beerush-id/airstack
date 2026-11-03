@@ -21,7 +21,7 @@ import type {
   StateTracker,
   StateUnsubscribe,
 } from '../types.js';
-import { isFunction, shortId } from '../utils/index.js';
+import { isFunction, microtask, shortId } from '../utils/index.js';
 
 /**
  * Creates a reactive effect that automatically tracks dependencies and re-runs when those dependencies change.
@@ -231,12 +231,14 @@ export function createObserver(
     } as never as StateObserver;
   }
 
-  let observedSize = 0;
   let isObserving = false;
   let isDestroyed = false;
+  let stackCycles = 0;
+  // Whether a change cleared what's observed, so the next run says what's still read.
+  let isStale = false;
 
-  const cleaners = new Set<() => void>();
-  const resetters = new Set<() => void>();
+  // Every state this observer holds, with the keys it reads and how to let go of it.
+  const observed = new Map<Linkable, { keys: Set<KeyLike>; release: () => void }>();
 
   const track = ((state, key) => {
     const keys = states.get(state) as Set<KeyLike>;
@@ -258,60 +260,61 @@ export function createObserver(
   const destroy = () => {
     if (isDestroyed) return;
 
-    const currentCleaners = Array.from(cleaners);
-
-    for (const clear of currentCleaners) {
-      /* istanbul ignore else */
-      if (typeof clear === 'function') {
-        clear();
-      }
+    for (const { release } of observed.values()) {
+      release();
     }
 
-    observedSize = 0;
-    cleaners.clear();
-    resetters.clear();
+    observed.clear();
+    isStale = false;
 
     isDestroyed = true;
   };
 
   const reset = () => {
-    resetters.forEach((reset) => {
-      /* istanbul ignore else */
-      if (typeof reset === 'function') {
-        reset();
+    for (const { keys } of observed.values()) {
+      keys.clear();
+    }
+
+    isStale = true;
+  };
+
+  // A state with no keys left can't reach this observer, so holding it only keeps it alive and
+  // counts it against the limit: what's read in place of a replaced object would add up forever.
+  // It waits for the run to end, not the change, since what re-runs may run after `onChange` returns.
+  const releaseUnread = () => {
+    isStale = false;
+
+    for (const [state, { keys, release }] of observed) {
+      if (!keys.size) {
+        release();
+        observed.delete(state);
       }
-    });
+    }
   };
 
   const keyTrackers = new WeakMap();
   const assign = ((init, observers) => {
-    if (!observers.has(observer)) {
+    if (!states.has(init)) {
+      const keys = new Set<KeyLike>();
+      states.set(init, keys);
       observers.add(observer);
 
-      cleaners.add(() => {
-        states.delete(init);
-        observers.delete(observer);
-        plugin.devTool?.onUntrack?.(META_REGISTRY.get(init) as StateMetadata, observer);
-      });
-    }
-
-    if (!states.has(init)) {
-      const keys = new Set();
-      states.set(init, keys);
-
-      resetters.add(() => {
-        keys.clear();
+      observed.set(init, {
+        keys,
+        release() {
+          states.delete(init);
+          observers.delete(observer);
+          plugin.devTool?.onUntrack?.(META_REGISTRY.get(init) as StateMetadata, observer);
+        },
       });
 
       /* istanbul ignore else */
       if (ANCHOR_SETTINGS.safeObservation) {
-        observedSize += 1;
-
-        if (observedSize > ANCHOR_SETTINGS.safeObservationThreshold) {
+        if (observed.size > ANCHOR_SETTINGS.safeObservationThreshold) {
           const error = new Error('Observation limit exceeded.');
           captureStack.violation.general(
             'Unsafe observation detected:',
-            `Attempted to observe too many (${observedSize}) states within a single observer.`,
+            `Attempted to observe too many (${observed.size}) states within a single observer.`,
             error,
             [
               `We always recommend keeping observations small.`,
@@ -331,8 +334,10 @@ export function createObserver(
     return keyTrackers.get(init);
   }) satisfies StateObserver['assign'];
 
+  const [unstack] = microtask(0);
   const propagate = (event: StateChange) => {
-    if (isObserving) {
+    if (isObserving) stackCycles += 1;
+    if (stackCycles >= 10) {
       const error = new Error('Circular mutation.');
       captureStack.violation.general(
         'Circular mutation detected:',
@@ -346,11 +351,13 @@ export function createObserver(
         propagate
       );
 
+      stackCycles = 0;
       return;
     }
 
     reset();
     onChange(event);
+    unstack(() => (stackCycles = 0));
   };
 
   if (!controlled) {
@@ -387,6 +394,7 @@ export function createObserver(
     },
     () => {
       isObserving = false;
+      if (isStale) releaseUnread();
     }
   );
   // biome-ignore lint/suspicious/noExplicitAny: Expect any.
@@ -399,6 +407,7 @@ export function createObserver(
     },
     () => {
       isObserving = false;
+      if (isStale) releaseUnread();
     }
   );
 
@@ -445,6 +454,35 @@ export function $static<T>(reader: () => T) {
   }
 }
 
+/**
+ * Method decorator that runs the whole call with the static tracker disabled,
+ * so reads inside the method never register dependencies.
+ *
+ * Uses the legacy `experimentalDecorators` descriptor signature, because TC39
+ * stage-3 decorators cannot be lowered by the current toolchain.
+ *
+ * @param _target - The class prototype the method is declared on.
+ * @param _propertyKey - The decorated method name.
+ * @param descriptor - The original property descriptor of the method.
+ * @returns A descriptor whose `value` applies the original method inside `$static`.
+ */
+export function passive<This, Args extends unknown[], Return>(
+  _target: unknown,
+  _propertyKey: string | symbol,
+  descriptor: TypedPropertyDescriptor<(this: This, ...args: Args) => Return>
+): TypedPropertyDescriptor<(this: This, ...args: Args) => Return> {
+  const original = descriptor.value;
+  /* istanbul ignore next */
+  if (!original) return descriptor;
+
+  return {
+    ...descriptor,
+    value(this: This, ...args: Args): Return {
+      return $static(() => original.apply(this, args));
+    },
+  };
+}
+
 export function setStaticTracker(tracker: StateReadTracker | undefined) {
   if (!isReactive()) return () => {};
   const current = plugin.trackStatic;
@@ -454,4 +492,40 @@ export function setStaticTracker(tracker: StateReadTracker | undefined) {
 
 export function getStaticTracker(): StateReadTracker | undefined {
   return plugin.trackStatic;
+}
+
+/**
+ * A function that can be called to trigger a handler.
+ */
+export type DoHandler = (signal?: AbortSignal) => void | Promise<void>;
+
+/**
+ * Creates a reactive condition that triggers a handler when the condition is met.
+ * @param condition - A function that returns a boolean value.
+ * @param deferred - (Optional) A boolean indicating whether the handler should be deferred until the condition is met.
+ * @returns An object with a `do` method that takes a handler function as an argument.
+ */
+export function when(condition: () => boolean, deferred?: boolean) {
+  let handler: DoHandler | undefined;
+  let cleanup: (() => void) | undefined;
+
+  const run = () => {
+    cleanup?.();
+    cleanup = effect(async (e) => {
+      const canRun = condition();
+      if (deferred && e.type === 'init') return;
+      if (canRun) {
+        const controller = new AbortController();
+        untrack(() => handler?.(controller.signal));
+        return () => controller.abort();
+      }
+    });
+  };
+
+  return {
+    do: (fn: DoHandler) => {
+      handler = fn;
+      run();
+    },
+  };
 }

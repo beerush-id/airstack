@@ -1,0 +1,115 @@
+---
+title: AUI Timeline Editor
+nav: Timeline Editor
+nav-priority: 343
+description: Lay a composition out in time — tracks as lanes, segments as clips, a ruler with a playhead — from an AirLib timeline, with clip picking and seeking by pointer and keyboard.
+keywords: [React timeline editor, video timeline component, multitrack timeline, clip editor React, accessible timeline, playhead scrubber, AUI timeline]
+---
+
+# AUI Timeline Editor
+
+Editing a video means seeing it in time: which shot plays when, where the music sits, when each caption shows. People drag the playhead to find a moment, pick a clip to change it, and expect the lanes to scroll while the track names stay put.
+
+**Timeline Editor** draws an AirLib `Timeline` that way. Each track becomes a lane, each segment a clip at its place and length, and the ruler's playhead is the timeline's own — so a [Stage](/docs/composites/stage) playing the same timeline moves it, and moving it moves the stage.
+
+:::interactive[Timeline editor demo]
+
+```tsx
+import { Readout, TimelineEditor } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { createTimeline } from '@airlib/react/timeline';
+
+const TimelineDemo = setup(() => {
+  const pick = mutable({ clip: '' });
+  const timeline = createTimeline({ frameRate: 30 });
+
+  const video = timeline.addTrack({ type: 'video', name: 'Media 1' });
+  video.addSegment({ name: 'Rooftop.mp4', startTime: 0, duration: 6, meta: { thumbnail: 'https://picsum.photos/seed/aui-roof/320/180' } });
+  video.addSegment({ name: 'Street.mp4', startTime: 6, duration: 8, meta: { thumbnail: 'https://picsum.photos/seed/aui-street/320/180' } });
+
+  timeline.addTrack({ type: 'audio', name: 'Audio 1' }).addSegment({ name: 'Theme.mp3', startTime: 1, duration: 12 });
+
+  const text = timeline.addTrack({ type: 'text', name: 'Text 1' });
+  text.addSegment({ name: 'Previously…', startTime: 0, duration: 2.5 });
+  text.addSegment({ name: 'One week later', startTime: 7, duration: 3 });
+
+  const segments = () => [...timeline.tracks].flatMap((track) => [...track.segments]);
+
+  return () => (
+    <div className="demo-button">
+      <TimelineEditor label="Clips in Episode 4" timeline={timeline} value={$bind(pick, 'clip')} />
+      <Snippet>
+        {() => (
+          <Readout
+            label="Picked"
+            value={segments().find((segment) => segment.id === pick.clip)?.name}
+            empty="Nothing yet"
+          />
+        )}
+      </Snippet>
+    </div>
+  );
+}, 'TimelineDemo');
+```
+
+```html
+<TimelineDemo />
+```
+
+<TimelineDemo />
+
+:::
+
+## Usage
+
+### Lay out a timeline
+
+Hand it the timeline. Each track's `type` picks how its clips look — `video` and `image` show `meta.thumbnail` along the clip, `audio` a waveform, `text` its words — and its `name` heads the lane:
+
+```tsx
+import { TimelineEditor } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/timeline.css';
+
+<TimelineEditor label="Clips in Episode 4" timeline={timeline} />;
+```
+
+### Pick a clip
+
+Bind `value` to the picked segment's `id`. Clips pick by pointer, or with the arrows and Enter once the clips have focus:
+
+```tsx
+<TimelineEditor label="Clips in Episode 4" timeline={timeline} value={$bind(edit, 'clip')} />
+```
+
+### Seek
+
+Press or drag along the ruler and the timeline seeks there. With the ruler focused, the arrows step a frame, Page Up and Page Down a second, Home and End to the ends.
+
+### Zoom
+
+`zoom` is how many pixels one second takes; 48 by default. Long compositions scroll sideways while the track names stay in view.
+
+### Draw your own clip
+
+Fill the `clip` slot to replace a clip's picture and name — a speaker's face on a voice track, a color swatch on a grade:
+
+```tsx
+<TimelineEditor timeline={timeline}>
+  <TimelineEditor.Snippet for="clip">{(segment) => <span>{segment.name}</span>}</TimelineEditor.Snippet>
+</TimelineEditor>
+```
+
+## Properties
+
+| Prop | Type | Default | What it does |
+|---|---|---|---|
+| `label` | `string` | — | Names the clips for screen readers |
+| `timeline` | `Timeline` | — | The composition: tracks become lanes, segments clips |
+| `zoom` | `number` | `48` | Pixels per second |
+| `value` | `Bindable<string>` | — | The picked segment's `id` |
+| `playheadLabel` | `string` | `"Playhead"` | Names the playhead's slider |
+
+## Next Steps
+
+- [Stage](/docs/composites/stage) — play the same timeline
+- [Gallery](/docs/composites/gallery) — pick media to add

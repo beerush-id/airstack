@@ -1,0 +1,276 @@
+---
+title: AUI Grid
+nav: Grid
+nav-priority: 352
+description: A table people can move around and pick from with the keyboard — arrows that only move, Enter to choose a cell or a row, and cells that edit in place.
+keywords: [React data grid accessible, keyboard navigable table React, editable grid React, ARIA grid, spreadsheet-like table React, treegrid]
+---
+
+# AUI Grid
+
+Seat maps, departure boards, stock lists, spreadsheets — some tables are things people work in, not just read. They expect to move around with the arrow keys, pick a cell or a whole row, and sometimes type straight into a cell. Building that by hand means managing one tab stop for the whole table, arrows that move without choosing, locked cells that are skipped, and an edit mode that does not fight the arrows.
+
+**AUI Grid** gives you that table. Write your rows and cells, name them, and bind the value you want back; the grid handles movement, picking, and editing.
+
+:::interactive[Grid demo]
+
+```tsx
+import { Grid, GridCell, GridColumnHeader, GridRow, Readout, Toggle, ToggleGroup } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { GlassStage } from '@/components/GlassStage.js';
+
+const COLUMNS = { city: 'Destination', flight: 'Flight', gate: 'Gate', time: 'Departs', status: 'Status' };
+
+const GridDemo = setup(() => {
+  const board = mutable({
+    mode: 'cell',
+    cell: 'ber-gate',
+    row: 'cph',
+    flights: [
+      { id: 'ams', city: 'Amsterdam', flight: 'AU 214', gate: '12', time: '09:40', status: 'Boarding' },
+      { id: 'ber', city: 'Berlin', flight: 'AU 381', gate: 'TBD', time: '10:15', status: 'Delayed' },
+      { id: 'cph', city: 'Copenhagen', flight: 'AU 507', gate: '7', time: '11:05', status: 'On time' },
+      { id: 'lis', city: 'Lisbon', flight: 'AU 622', gate: '—', time: '12:30', status: 'Cancelled', cancelled: true },
+    ],
+  });
+  const flightOf = (id) => board.flights.find((flight) => flight.id === id);
+  // Cell names are `flight-column`, so a pick reads back as words: "Berlin · Gate". Picking the
+  // picked cell again clears the pick, so there may be nothing to read.
+  const cellLabel = (name) => {
+    if (!name) return undefined;
+    const [id, column] = name.split('-');
+    return `${flightOf(id)?.city} · ${COLUMNS[column]}`;
+  };
+  const flightLabel = (id) => {
+    const flight = id && flightOf(id);
+    return flight ? `${flight.flight} to ${flight.city}` : undefined;
+  };
+
+  return () => (
+    <div className="demo-button">
+      <ToggleGroup label="What the board does" size="sm" required value={$bind(board, 'mode')}>
+        <Toggle value="cell">Pick a cell</Toggle>
+        <Toggle value="row">Pick a flight</Toggle>
+        <Toggle value="edit">Edit gates</Toggle>
+      </ToggleGroup>
+      <GlassStage>
+        <Snippet>
+          {() => (
+            <Grid
+              key={board.mode}
+              label="Departures"
+              colcount={Object.keys(COLUMNS).length}
+              selectionMode={board.mode === 'row' ? 'row' : 'cell'}
+              editable={board.mode === 'edit'}
+              value={board.mode === 'row' ? $bind(board, 'row') : board.mode === 'cell' ? $bind(board, 'cell') : undefined}
+            >
+              <GridRow name="head">
+                {Object.entries(COLUMNS).map(([column, label], index) => (
+                  <GridColumnHeader key={column} name={`head-${column}`} colindex={index + 1}>
+                    {label}
+                  </GridColumnHeader>
+                ))}
+              </GridRow>
+              {board.flights.map((flight) => (
+                <GridRow key={flight.id} name={flight.id} disabled={flight.cancelled}>
+                  {Object.keys(COLUMNS).map((column, index) => (
+                    <GridCell
+                      key={column}
+                      name={`${flight.id}-${column}`}
+                      colindex={index + 1}
+                      disabled={flight.cancelled}
+                      readonly={board.mode === 'edit' && column !== 'gate'}
+                      value={column === 'gate' ? $bind(flight, 'gate') : undefined}
+                    >
+                      {flight[column]}
+                    </GridCell>
+                  ))}
+                </GridRow>
+              ))}
+            </Grid>
+          )}
+        </Snippet>
+      </GlassStage>
+      <Snippet>
+        {() =>
+          board.mode === 'cell' ? (
+            <Readout label="Picked" value={cellLabel(board.cell)} empty="Nothing picked" />
+          ) : board.mode === 'row' ? (
+            <Readout label="Picked flight" value={flightLabel(board.row)} empty="No flight picked" />
+          ) : (
+            <Readout
+              label="Gates"
+              value={board.flights.filter((flight) => !flight.cancelled).map((flight) => `${flight.city} ${flight.gate}`)}
+            />
+          )
+        }
+      </Snippet>
+    </div>
+  );
+}, 'GridDemo');
+```
+
+```html
+<GridDemo />
+```
+
+<GridDemo />
+
+:::
+
+Switch what the board does: pick one cell, pick a whole flight, or edit the gates in place — press `Enter` on a gate, type, and press `Escape` or move away to keep it. Cancelled flights can't be picked or edited.
+
+## Usage
+
+A grid is your rows and cells, each with a `name`. Bind `value` to the name of the cell people choose:
+
+```tsx
+import { Grid, GridCell, GridColumnHeader, GridRow } from '@airlib/react-aui';
+import { $bind, mutable } from '@airlib/react';
+import '@airlib/aui/components/widgets/grid.css';
+
+const board = mutable({ pick: 'ams' });
+
+<Grid label="Departure board" value={$bind(board, 'pick')}>
+  <GridRow name="head">
+    <GridColumnHeader name="city" colindex={1}>City</GridColumnHeader>
+    <GridColumnHeader name="gate" colindex={2}>Gate</GridColumnHeader>
+  </GridRow>
+  <GridRow name="west">
+    <GridCell name="ams" colindex={1}>Amsterdam</GridCell>
+    <GridCell name="ams-gate" colindex={2}>12</GridCell>
+  </GridRow>
+</Grid>;
+```
+
+The arrows only move; nothing is chosen until people press `Enter` or click. Selectable cells show a pointer, and locked cells are skipped by the arrows and refuse to be chosen.
+
+Always give the grid a `label`, or people using a screen reader cannot tell one table from another.
+
+## Pick a cell or a whole row
+
+By default people choose a cell, and `value` holds its name. Set `selectionMode="row"` when the row is the unit — a seat row, an order, a file — and `value` holds the row's `name` instead; pressing `Enter` or clicking anywhere in the row picks it:
+
+```tsx
+<Grid label="Cabin seats" selectionMode="row" value={$bind(cabin, 'row')}>
+  <GridRow name="front">
+    <GridRowHeader name="r-front" rowindex={1}>Front</GridRowHeader>
+    <GridCell name="f-a" colindex={2}>1A</GridCell>
+  </GridRow>
+</Grid>
+```
+
+Listen to `onchange` when you need to react to the pick itself, for example to load the chosen order. Writing `value` yourself moves the selection without reporting a change.
+
+## Edit cells in place
+
+Set `editable` and people can type straight into a cell: pick it, type, then press `Escape` or move away to commit. Give each cell its starting text through `value`. Typeable cells show a text cursor so people can tell what is editable at a glance; mark a cell `readonly` to keep it out:
+
+```tsx
+<Grid label="Stock list" editable onchange={(event) => saveCount(event.detail)}>
+  <GridRow name="fruit">
+    <GridCell name="apples" colindex={1} readonly>Apples</GridCell>
+    <GridCell name="apples-count" colindex={2} value="12">12</GridCell>
+  </GridRow>
+</Grid>
+```
+
+While a cell is being edited, the arrows move the caret instead of leaving the cell.
+
+## Headers
+
+`GridColumnHeader` names a column; `GridRowHeader` names a row. People can read them but never pick them. Set `sort` on a column header to tell people how the column is ordered — the sorting itself stays yours:
+
+```tsx
+<GridColumnHeader name="city" colindex={1} sort={cities.direction}>
+  City
+</GridColumnHeader>
+```
+
+## Large tables
+
+When you render only a window of a big table, pass the full size with `colcount` and `rowcount`, and give each row and cell its real `rowindex` and `colindex`. People then hear their true position — row 312 of 480 — instead of the window's:
+
+```tsx
+<Grid label="Orders" colcount={6} rowcount={480}>
+  {/* the rows on screen */}
+</Grid>
+```
+
+## Expandable rows
+
+`TreeGrid` is the same grid for rows that open and close, like folders in a file list. Which rows are open, and what they show, stays in your markup:
+
+```tsx
+import { TreeGrid } from '@airlib/react-aui';
+
+<TreeGrid label="Files">
+  <GridRow name="src">
+    <GridCell name="src-cell">src</GridCell>
+  </GridRow>
+</TreeGrid>;
+```
+
+## Style it once
+
+Set `size` and `color` on `Grid` and every cell follows; the chosen cell takes the color. See [Style a composite once](/docs/theming#style-a-composite-once).
+
+## Properties
+
+### Grid and TreeGrid
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `label` | `string` | — | The table's accessible name. Always pass one. |
+| `value` | `Bindable<string>` | — | The name of the chosen cell, or row in `row` mode. |
+| `selectionMode` | `'cell'`, `'row'` | `'cell'` | Whether people choose a cell or a whole row. |
+| `editable` | `boolean` | `false` | Lets people type into cells. |
+| `colcount` | `number` | — | The number of columns. With it, every row lines up on columns sized by their content, and a grid too narrow for them scrolls sideways; without it, rows share the width evenly. |
+| `rowcount` | `number` | — | The full number of rows. |
+| `disabled` | `boolean` | `false` | Locks movement and picking across the table. |
+| `size` | `xs`, `sm`, `md`, `lg`, `xl`, `xxl` | `'sm'` | The cell scale. |
+| `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | The color of the chosen cell or row. |
+| `onchange` | `(event: CustomEvent<unknown>) => void` | — | Each pick; `detail` is the chosen name. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `id` | `string` | generated | The table's DOM identifier. |
+
+### GridRow
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `name` | `string` | — | The row's name; what `value` holds in `row` mode. |
+| `rowindex` | `number` | — | The row's 1-based position in the full table. |
+| `selected` | `Bindable<boolean>` | — | Whether the row starts chosen, in `row` mode. |
+| `disabled` | `boolean` | `false` | The row cannot be chosen. |
+
+### GridCell
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `name` | `string` | required | The cell's name; what `value` holds in `cell` mode. |
+| `colindex` | `number` | — | The cell's 1-based column in the full table. |
+| `value` | `string` | — | The text an edit starts from, in an `editable` grid. |
+| `readonly` | `boolean` | `false` | Can be reached and chosen, never edited. |
+| `selected` | `Bindable<boolean>` | — | Whether the cell starts chosen, in `cell` mode. |
+| `disabled` | `boolean` | `false` | Skipped by the arrows and cannot be chosen. |
+
+### GridColumnHeader and GridRowHeader
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `name` | `string` | — | The header's name. Never chosen. |
+| `colindex` / `rowindex` | `number` | — | The header's 1-based position. |
+| `sort` | `'ascending'`, `'descending'`, `'none'`, `'other'` | — | Column headers only: how the column is ordered. Leave it off for unsortable columns. |
+| `disabled` | `boolean` | `false` | Shown as unavailable. |
+
+To make `className` replace the built-in classes, turn on `overrides` once in [Theming](/docs/theming#overrides).
+
+## Keyboard
+
+`Tab` enters the table at the last focused cell and leaves it in one press. The arrows move one cell and never choose; `Home` and `End` go to the ends of the row, `PageUp` and `PageDown` to the first and last row. `Enter` chooses the focused cell, or its row in `row` mode; pressing it on the chosen one releases it. In an `editable` grid, `Enter` starts editing and `Escape` commits.
+
+## Next Steps
+
+- [Tree](/docs/composites/tree) — Nested items without columns.
+- [Listbox](/docs/composites/listbox) — Choose from a single column of options.
+- [Feed](/docs/composites/feed) — A stream of articles instead of a table.

@@ -1,0 +1,108 @@
+---
+title: AUI Stat
+nav: Stat
+nav-priority: 457
+description: One number at a glance — what it counts, the number, and how it moved — for dashboards, summaries, and answers.
+keywords: [React stat, KPI, metric, statistic, dashboard number, trend, React AUI stat]
+---
+
+# AUI Stat
+
+Twelve unread, 98% uptime, 3.4k visitors this week: the number people came to see, the word that says what it counts, and whether it went up or down since last time. Each dashboard redraws that trio with its own type scale, and the direction often lives only in a color, so a reader who can't see the green has no idea it's good news.
+
+**AUI Stat** is the trio, set once. You give it the words as they should read; it sets the number large, the label quiet, and puts the change in a pill colored by its direction, while the change's own text still carries it.
+
+:::interactive[Stat demo]
+
+```tsx
+import { Stat, StatGroup } from '@airlib/react-aui';
+import { setup } from '@airlib/react';
+import { GlassStage } from '@/components/GlassStage.js';
+
+const StatDemo = setup(() => {
+  return () => (
+    <GlassStage>
+      <StatGroup label="Workspace today">
+        <Stat label="Unread" value={12} change="+4" trend="up" caption="since yesterday" />
+        <Stat label="Active users" value="1,284" change="−3%" trend="down" caption="this week" />
+        <Stat label="Uptime" value="99.98%" caption="Same as last month" />
+      </StatGroup>
+    </GlassStage>
+  );
+}, 'StatDemo');
+```
+
+```html
+<StatDemo />
+```
+
+<StatDemo />
+
+:::
+
+## Usage
+
+```tsx
+import { Stat } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/data-display.css';
+
+<Stat label="Visitors this week" value="3.4k" change="+12%" trend="up" caption="from last week" />
+```
+
+You supply:
+
+- `label` — what the number counts, e.g. "Unread".
+- `value` — the number as it should read: `12`, `3.4k`, `98%`. Format it yourself, in your users' locale; the stat draws it as given.
+- `change` — how much it moved, as it should read, e.g. "+4". It sits in a small pill.
+- `trend` — which way it moved: `up` tints the pill with the success container and an up arrow, `down` with the error container and a down arrow, `flat` stays neutral with none.
+- `caption` — what the change is measured against, e.g. "since yesterday", in quiet text beside the pill. With no `change`, it stands alone: "Same as last month".
+
+The arrow is decoration and screen readers skip it, so write the direction into `change` itself — "+4", "−3%". Then the stat reads the same whether it's seen or heard.
+
+The stylesheet carries the [List](/docs/widgets/list), [Description List](/docs/widgets/description-list), and Stat together.
+
+### A row of stats
+
+When several numbers are read together — a dashboard header, the summary above a table — put them in a `StatGroup`. Each stat takes an equal column, so the numbers line up no matter how long their labels are, and an inset divider sets each one apart from the next. Give the group a `label` so screen readers hear what the numbers are about:
+
+```tsx
+<StatGroup label="Sales this quarter">
+  <Stat label="Revenue" value="$48.2k" change="+8%" trend="up" caption="vs last quarter" />
+  <Stat label="Orders" value="1,920" change="+3%" trend="up" caption="vs last quarter" />
+  <Stat label="Refunds" value="34" change="+12" trend="down" caption="vs last quarter" />
+</StatGroup>
+```
+
+### Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `label` | `string` | — | Required. What the number counts. |
+| `value` | `string \| number` | — | Required. The number, as it should read. |
+| `change` | `string` | — | How much it moved, as it should read; drawn as a pill. |
+| `trend` | `'up'`, `'down'`, `'flat'` | `'flat'` | Which way it moved; tints the pill. |
+| `caption` | `string` | — | What the change is measured against, beside the pill. |
+| `size` / `color` | shared vocabulary | `'md'` / `'primary'` | |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+
+`StatGroup`:
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `label` | `string` | — | Names the group for screen readers, e.g. "Sales this quarter". |
+| `className` | `string` | — | Added alongside the built-in class. |
+| `children` | `ReactNode` | — | The `Stat`s, one column each. |
+
+Set `--aui-stat-value-font` for a larger or smaller number, and on the group `--aui-stat-group-gap`, `--aui-stat-group-divider`, and `--aui-stat-group-inset` for the room beside each divider, its color, and how far it stops short. Set app-wide defaults once:
+
+```tsx
+import { configure } from '@airlib/react-aui';
+
+configure({ stat: { className: 'kpi' } });
+```
+
+## Next Steps
+
+- [Description List](/docs/widgets/description-list) — Several facts about one thing, label beside value.
+- [Meter](/docs/widgets/meter) — A value within a known range, drawn as a bar.
+- [Card](/docs/widgets/card) — A surface to group stats under a title.

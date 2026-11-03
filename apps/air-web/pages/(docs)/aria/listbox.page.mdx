@@ -1,0 +1,321 @@
+---
+title: 'Headless Listbox'
+description: 'Headless listbox for React and SolidJS. Keeps the choices inline, travels them with the arrow keys, matches a typed prefix, and commits on Space or Enter — with no markup or styles imposed.'
+nav: 'Listbox'
+nav-priority: 350
+---
+
+import './aria.css';
+import './listbox.css';
+
+# Headless Listbox
+
+A listbox is the option list that never leaves the page.
+
+Getting it right means **keeping traversal and selection apart**, **matching a typed prefix over the option text**, **announcing the cursor and the commit separately**, and **carrying single and multiple selection through one value**.
+
+**Headless Listbox** does all of that for you, and leaves the markup and the styling entirely yours.
+
+```tsx
+const listbox = aria('listbox', props);
+
+<div ref={listbox.ref} {...listbox.restProps(['children'])} />
+```
+
+:::interactive[Checkout Preferences]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps, ReactNode } from 'react';
+
+type DemoListboxProps = ComponentProps<'div'> & {
+  label?: string;
+  value?: string;
+};
+
+const DemoListbox = setup<DemoListboxProps>((props) => {
+  const listbox = aria('listbox', props);
+
+  return () => (
+    <div ref={listbox.ref} {...listbox.restProps(['children'])} className="demo-listbox">
+      {props.children}
+    </div>
+  );
+}, 'DemoListbox');
+
+type DemoMultiListboxProps = ComponentProps<'div'> & {
+  label?: string;
+  value?: string[];
+  multiple: true;
+};
+
+const DemoMultiListbox = setup<DemoMultiListboxProps>((props) => {
+  const listbox = aria('listbox', props);
+
+  return () => (
+    <div ref={listbox.ref} {...listbox.restProps(['children'])} className="demo-listbox">
+      {props.children}
+    </div>
+  );
+}, 'DemoMultiListbox');
+
+type DemoOptionProps = ComponentProps<'div'> & {
+  value: string;
+  disabled?: boolean;
+  children: ReactNode;
+};
+
+const DemoOption = setup<DemoOptionProps>((props) => {
+  const option = aria('option', props);
+
+  return () => (
+    <div ref={option.ref} {...option.restProps(['children'])} className="demo-listbox-option">
+      {props.children}
+    </div>
+  );
+}, 'DemoOption');
+```
+```html
+<div className="demo-listbox-stack">
+  <div className="demo-listbox-card">
+    <span className="demo-listbox-label">Delivery speed</span>
+    <DemoListbox label="Delivery speed" value="express">
+      <DemoOption value="standard">Standard</DemoOption>
+      <DemoOption value="express">Express</DemoOption>
+      <DemoOption value="overnight">Overnight</DemoOption>
+      <DemoOption value="international" disabled>International</DemoOption>
+    </DemoListbox>
+  </div>
+
+  <div className="demo-listbox-card">
+    <span className="demo-listbox-label">Order updates</span>
+    <DemoMultiListbox multiple label="Order updates" value={['email']}>
+      <DemoOption value="email">Email</DemoOption>
+      <DemoOption value="sms">Text message</DemoOption>
+      <DemoOption value="push">Push notification</DemoOption>
+      <DemoOption value="digest" disabled>Weekly digest</DemoOption>
+    </DemoMultiListbox>
+  </div>
+</div>
+```
+
+<div className="demo-listbox-stack">
+  <div className="demo-listbox-card">
+    <span className="demo-listbox-label">Delivery speed</span>
+    <DemoListbox label="Delivery speed" value="express">
+      <DemoOption value="standard">Standard</DemoOption>
+      <DemoOption value="express">Express</DemoOption>
+      <DemoOption value="overnight">Overnight</DemoOption>
+      <DemoOption value="international" disabled>International</DemoOption>
+    </DemoListbox>
+  </div>
+
+  <div className="demo-listbox-card">
+    <span className="demo-listbox-label">Order updates</span>
+    <DemoMultiListbox multiple label="Order updates" value={['email']}>
+      <DemoOption value="email">Email</DemoOption>
+      <DemoOption value="sms">Text message</DemoOption>
+      <DemoOption value="push">Push notification</DemoOption>
+      <DemoOption value="digest" disabled>Weekly digest</DemoOption>
+    </DemoMultiListbox>
+  </div>
+</div>
+:::
+
+:::tip
+**Moving the cursor commits nothing.** Walk the list with the arrow keys or a typed prefix, then press `Space`, `Enter`, or click once to commit — and press it again on the committed option to release the value.
+:::
+
+## Listbox
+
+**The coordinator.** It names the list, holds the value, and answers the keys for every option inside it.
+
+### Usage
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'listbox',
+  props?: ListboxProps
+): ListboxAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type ListboxProps = ComponentProps<'div'> & {
+  id?: string;
+  label?: string;
+  value?: string;
+  multiple?: boolean;
+  required?: boolean;
+  disabled?: boolean;
+  oninput?: (event: CustomEvent<string>) => void;
+  onchange?: (event: CustomEvent<string>) => void;
+};
+
+const Listbox = setup<ListboxProps>((props) => {
+  const listbox = aria('listbox', props);
+
+  return () => (
+    <div ref={listbox.ref} {...listbox.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+}, 'Listbox');
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type ListboxProps = ComponentProps<'div'> & {
+  id?: string;
+  label?: string;
+  value?: string;
+  multiple?: boolean;
+  required?: boolean;
+  disabled?: boolean;
+  oninput?: (event: CustomEvent<string>) => void;
+  onchange?: (event: CustomEvent<string>) => void;
+};
+
+const Listbox = setup<ListboxProps>((props) => {
+  const listbox = aria('listbox', props);
+
+  return (
+    <div ref={listbox.ref} {...listbox.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
+
+Declare `multiple: true` to switch archetypes: `value` becomes an array, and `onchange` carries that array.
+
+### Parameters
+
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **id** _string, optional_: The container's identifier, generated as `listbox-<n>` when you leave it out. Every option identifier derives from it.
+- **label** _string, optional_: The accessible name, compiled as `aria-label`. **A list without one is unidentifiable to assistive technology.**
+- **value** _string | null | string[], optional_: The selection — a token, `null` while nothing is selected, or an array of tokens once `multiple` says so. **Writing it from outside re-derives every option and announces nothing.**
+- **multiple** _boolean, optional, default `false`_: Declares the multiple archetype, where `value` is an array and `onchange` carries that array.
+- **required** _boolean, optional_: Compiles `aria-required="true"` and **refuses releasing the last selected option**.
+- **disabled** _boolean, optional_: Withdraws the container's tab stop, cascades the lockout to every option, and claims no key.
+- **oninput** _(event: CustomEvent&lt;string&gt;) =&gt; void, optional_: Called as the cursor lands on an option, with that option's value in `detail`.
+- **onchange** _(event: CustomEvent&lt;string | string[]&gt;) =&gt; void, optional_: Called after a commit, with the whole value in `detail`.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **id** _string_: The identifier in use, generated when you left it out.
+- **value** _string | string[] | undefined_: The selection. Reading is live; writing from outside re-derives the options and announces nothing.
+- **disabled** _boolean_: Whether the whole list is locked.
+
+### How it behaves
+
+- **The container is the group.** Each option derives its `aria-selected` from the container's value instead of holding a state of its own.
+- **Traversal never selects.** The arrow keys, `Home`, `End`, and a typed prefix move focus and nothing else.
+- **The way in is a stop of its own.** The container holds `tabindex="0"` and every selected option holds one too, so `Tab` reaches the container and each selected option in turn; an option that is not selected stays at `-1`.
+- **Typeahead reads the option text.** A case-insensitive prefix, searched forward from the cursor and wrapping; characters accumulate for 500 ms, and a query that matches nothing starts over from the character you just typed.
+- **Single replaces, multiple toggles.** A commit sets the token, or adds and removes it from the array. **Re-activating the selected option clears it — unless `required` refuses the release.**
+- **Disabling the container locks the list.** The tab stop goes, every option reports disabled, and the keys are refused until you lift the flag.
+- **An enclosing toolbar owns the arrows.** Inside a [toolbar](/docs/aria/toolbar) the listbox claims nothing.
+
+### Events
+
+_What it tells you._
+
+- **`input`** _CustomEvent&lt;string&gt;_: Fires from the option that takes the cursor — an arrow traverse, `Home`/`End`, a typed prefix, or a click — with that option's value in `detail`.
+- **`change`** _CustomEvent&lt;string | string[]&gt;_: Fires after a commit, with the container's whole value in `detail`. In the multiple archetype that detail is the container's own array, so copy it if you keep it.
+
+```tsx
+const listbox = aria('listbox', {
+  value: 'standard',
+  onchange: (event) => persist(event.detail),
+});
+```
+
+### Navigation
+
+_What the keys do._
+
+- **`Tab`** — enters the container first, then each selected option in turn; every other option is skipped.
+- **`ArrowDown` / `ArrowUp`** — the next / previous enabled option, wrapping at both ends.
+- **`Home` / `End`** — the first / last enabled option.
+- **Printable character** — the next enabled option whose text begins with the typed prefix.
+- **`Space` / `Enter`** — commits the focused option.
+
+## Next Steps
+
+- **[Option](/docs/aria/option)**: The member this container coordinates.
+- **[Select](/docs/aria/select)**: The same list collapsed behind a trigger and a popup.
+- **[Radio Group](/docs/aria/radio-group)**: Always-visible choices where every member is its own tab stop.
+- **[Toolbar](/docs/aria/toolbar)**: The group that takes the arrows when it encloses this list.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Listbox
+
+```ts
+interface ListboxProps {
+  id?: string;
+  label?: string;
+  value?: string | string[];
+  multiple?: boolean;
+  required?: boolean;
+  disabled?: boolean;
+  oninput?: (event: CustomEvent<string>) => void;
+  onchange?: (event: CustomEvent<string | string[]>) => void;
+}
+
+interface ListboxAttributes {
+  id?: string;
+  role?: 'listbox';
+  tabindex?: number;
+  'aria-label'?: string;
+  'aria-multiselectable'?: 'true';
+  'aria-required'?: 'true';
+  'aria-disabled'?: 'true' | 'false';
+}
+
+declare class ListboxAria {
+  get id(): string | undefined;
+  get value(): string | string[] | undefined;
+  set value(value: string | string[] | undefined);
+  get disabled(): boolean;
+}
+```
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`props`** / **`restProps(omit)`** is what you spread onto the host — your props minus the keys the controller writes and any you name, with the compiled attributes merged in; **`ref`** is what you bind the element with; **`attributes`** is that compiled dictionary on its own, when you need the low-level view.
+- **`assign()`** changes several parameters at once, **`refine()`** adds attributes of your own, **`on()`** listens for anything the part fires, **`destroy()`** tears it down.

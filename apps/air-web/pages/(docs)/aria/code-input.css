@@ -1,0 +1,92 @@
+.demo-code-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  width: min(100%, 26rem);
+  margin-inline: auto;
+  padding: 0.875rem 1rem 1rem;
+  border: 1px solid var(--demo-border);
+  border-radius: var(--demo-radius);
+  background: var(--demo-bg);
+}
+
+.demo-code-row {
+  position: relative;
+  z-index: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.demo-code-row:focus-within {
+  z-index: 1;
+}
+
+.demo-code-row + .demo-code-row {
+  padding-block-start: 0.875rem;
+  border-block-start: 1px solid var(--demo-border);
+}
+
+.demo-code-caption {
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--demo-muted);
+}
+
+.demo-code-input {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--demo-gap-sm);
+}
+
+.demo-code-input[aria-disabled='true'] {
+  opacity: var(--demo-disabled);
+  pointer-events: none;
+}
+
+.demo-code-cell {
+  width: 2.5rem;
+  height: 2.75rem;
+  padding: 0;
+  border: 1px solid var(--demo-border);
+  border-radius: var(--demo-radius-sm);
+  background: var(--demo-bg);
+  font-family: inherit;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: var(--demo-fg);
+  caret-color: var(--demo-fg);
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease;
+}
+
+.demo-code-cell:hover:not(:disabled):not([aria-disabled='true']) {
+  background: var(--demo-hover);
+  border-color: color-mix(in srgb, var(--demo-border) 55%, var(--demo-fg));
+}
+
+.demo-code-cell:focus {
+  border-color: color-mix(in srgb, var(--demo-border) 30%, var(--demo-fg));
+}
+
+.demo-code-cell:focus-visible {
+  outline: var(--demo-outline);
+  outline-offset: var(--demo-outline-offset);
+}
+
+.demo-code-cell[aria-readonly='true'],
+.demo-code-cell[readonly] {
+  background: var(--demo-hover);
+  color: var(--demo-muted);
+}
+
+.demo-code-cell:disabled,
+.demo-code-cell[aria-disabled='true'] {
+  background: var(--demo-hover);
+  color: var(--demo-muted);
+  opacity: var(--demo-disabled);
+  pointer-events: none;
+}

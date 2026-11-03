@@ -1,0 +1,541 @@
+---
+title: 'Headless Select'
+description: 'Headless selects for React and SolidJS. A combobox trigger, a popup listbox panel, and option members for single or multiple selection, with dismissal, focus restoration, and roving — with no markup or styles imposed.'
+nav: 'Select'
+nav-priority: 350
+---
+
+import './aria.css';
+import './select.css';
+
+# Headless Select
+
+A select is an option list collapsed behind a button: closed it shows one value, open it offers every choice.
+
+Getting it right means **declaring the popup on the trigger**, **opening it from the arrow keys while keeping every other key off the page**, **returning focus to the trigger on dismissal**, **roving the panel without committing**, and **announcing the committed value on the root**.
+
+**Headless Select** does all of that for you, and leaves the markup and the styling entirely yours.
+
+```tsx
+const select = aria('select', props);
+
+<div ref={select.ref} {...select.restProps(['children'])} />
+```
+
+:::interactive[Trip Search]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup, shadowPortal } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+const CITIES = [
+  { value: 'ams', label: 'Amsterdam' },
+  { value: 'ber', label: 'Berlin' },
+  { value: 'cop', label: 'Copenhagen' },
+  { value: 'dub', label: 'Dublin' },
+  { value: 'vil', label: 'Vilnius' },
+];
+
+const CITY_LABELS = { ams: 'Amsterdam', ber: 'Berlin', cop: 'Copenhagen', dub: 'Dublin', vil: 'Vilnius' };
+
+type DemoSelectProps = ComponentProps<'div'> & {
+  value?: string | string[];
+  multiple?: boolean;
+  disabled?: boolean;
+};
+
+const DemoSelect = setup<DemoSelectProps>((props) => {
+  const select = aria('select', props, CITY_LABELS);
+
+  return () => (
+    <div ref={select.ref} {...select.restProps(['children'])} className="demo-select">
+      {props.children}
+    </div>
+  );
+}, 'DemoSelect');
+
+const DemoSelectTrigger = setup<ComponentProps<'button'>>((props) => {
+  const trigger = aria('select-trigger', props);
+
+  return () => (
+    <button ref={trigger.ref} {...trigger.restProps(['children'])} className="demo-select-trigger">
+      {trigger.label || 'Choose a city'}
+    </button>
+  );
+}, 'DemoSelectTrigger');
+
+const DemoSelectPanel = setup<ComponentProps<'div'>>((props) => {
+  const panel = aria('select-panel', props);
+  const shadow = shadowPortal(() => panel.open);
+
+  return () =>
+    shadow(
+      <div ref={panel.ref} {...panel.restProps(['children'])} className="demo-select-panel">
+        {props.children}
+      </div>,
+    );
+}, 'DemoSelectPanel');
+
+const DemoCityOption = setup<ComponentProps<'div'> & { value: string; disabled?: boolean }>((props) => {
+  const option = aria('option', props);
+
+  return () => (
+    <div ref={option.ref} {...option.restProps(['children'])} className="demo-select-option">
+      {props.children}
+    </div>
+  );
+}, 'DemoCityOption');
+```
+```html
+<div className="demo-select-stack">
+  <div className="demo-select-row">
+    <span className="demo-select-caption">Departure</span>
+    <DemoSelect value="ams">
+      <DemoSelectTrigger />
+      <DemoSelectPanel>
+        {CITIES.map((city) => (
+          <DemoCityOption key={city.value} value={city.value}>{city.label}</DemoCityOption>
+        ))}
+      </DemoSelectPanel>
+    </DemoSelect>
+  </div>
+  <div className="demo-select-row">
+    <span className="demo-select-caption">Stops</span>
+    <DemoSelect multiple value={['ber']}>
+      <DemoSelectTrigger />
+      <DemoSelectPanel>
+        {CITIES.map((city) => (
+          <DemoCityOption key={city.value} value={city.value}>{city.label}</DemoCityOption>
+        ))}
+      </DemoSelectPanel>
+    </DemoSelect>
+  </div>
+  <div className="demo-select-row">
+    <span className="demo-select-caption">Return</span>
+    <DemoSelect disabled value="">
+      <DemoSelectTrigger />
+      <DemoSelectPanel>
+        {CITIES.map((city) => (
+          <DemoCityOption key={city.value} value={city.value}>{city.label}</DemoCityOption>
+        ))}
+      </DemoSelectPanel>
+    </DemoSelect>
+    <span className="demo-select-note">No return leg on a one-way trip.</span>
+  </div>
+</div>
+```
+
+<div className="demo-select-stack">
+  <div className="demo-select-row">
+    <span className="demo-select-caption">Departure</span>
+    <DemoSelect value="ams">
+      <DemoSelectTrigger />
+      <DemoSelectPanel>
+        {CITIES.map((city) => <DemoCityOption key={city.value} value={city.value}>{city.label}</DemoCityOption>)}
+      </DemoSelectPanel>
+    </DemoSelect>
+  </div>
+  <div className="demo-select-row">
+    <span className="demo-select-caption">Stops</span>
+    <DemoSelect multiple value={['ber']}>
+      <DemoSelectTrigger />
+      <DemoSelectPanel>
+        {CITIES.map((city) => <DemoCityOption key={city.value} value={city.value}>{city.label}</DemoCityOption>)}
+      </DemoSelectPanel>
+    </DemoSelect>
+  </div>
+  <div className="demo-select-row">
+    <span className="demo-select-caption">Return</span>
+    <DemoSelect disabled value="">
+      <DemoSelectTrigger />
+      <DemoSelectPanel>
+        {CITIES.map((city) => <DemoCityOption key={city.value} value={city.value}>{city.label}</DemoCityOption>)}
+      </DemoSelectPanel>
+    </DemoSelect>
+    <span className="demo-select-note">No return leg on a one-way trip.</span>
+  </div>
+</div>
+:::
+
+:::tip
+**A commit closes a single select and leaves a multiple select open.** The archetype decides the close, so a picker that takes several values never slams shut mid-choice.
+:::
+
+## Select
+
+**The root.** It holds the value and the popup visibility, and publishes the context the trigger, the panel, and the options read.
+
+### Usage
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'select',
+  props?: SelectProps,
+  dictionary?: Record<string, string>
+): SelectAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type SelectProps = ComponentProps<'div'> & {
+  value?: string | string[];
+  multiple?: boolean;
+  disabled?: boolean;
+  required?: boolean;
+};
+
+const Select = setup<SelectProps>((props) => {
+  const select = aria('select', props, { ams: 'Amsterdam', ber: 'Berlin' });
+
+  return () => (
+    <div ref={select.ref} {...select.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+}, 'Select');
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps, JSX } from 'solid-js';
+
+type SelectProps = ComponentProps<'div'> & {
+  value?: string | string[];
+  multiple?: boolean;
+  disabled?: boolean;
+  required?: boolean;
+};
+
+const Select = setup<SelectProps>((props) => {
+  const select = aria('select', props, { ams: 'Amsterdam', ber: 'Berlin' });
+
+  return (
+    <div ref={select.ref} {...select.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
+
+### Parameters
+
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **value** _string | string[], optional_: The chosen token in the single archetype, or the array of tokens in the multiple one. Omit it while nothing is chosen.
+- **multiple** _boolean, optional, default `false`_: Declares the multiple archetype, where `value` is an array. `multiple` and `value` narrow together.
+- **open** _boolean, optional_: The popup visibility flag, readable and writable through `select.open`.
+- **disabled** _boolean, optional_: Locks out toggling and committing across the whole select.
+- **required** _boolean, optional_: Declares a non-empty selection requirement, compiled as `aria-required` on the panel. The trigger carries no required state.
+- **id** _string, optional_: Explicit identifier for the root, generated as `select-<n>` when omitted. The panel derives its own id from it.
+- **onopen** _(event: CustomEvent&lt;boolean&gt;) =&gt; void, optional_: Called after the popup opens.
+- **onclose** _(event: CustomEvent&lt;boolean&gt;) =&gt; void, optional_: Called after the popup closes, through every dismissal path.
+- **oninput** _(event: CustomEvent&lt;string | undefined&gt;) =&gt; void, optional_: Called on the single archetype when traversal lands on an option, carrying that option's value. The multiple archetype declares no `oninput`.
+- **onchange** _(event: CustomEvent&lt;string | string[] | undefined&gt;) =&gt; void, optional_: Called with the whole value once a member commit reaches the root.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **value** _string | string[]_: The committed selection. Writing it replaces the selection without dispatching.
+- **open** _boolean_: Whether the popup is open. Writing it moves the trigger and the panel.
+- **label** _string_: The label of the current choice.
+- **text** _string_: The text of the current choice. Writable.
+- **multiple** _boolean_: Whether the select declares the multiple archetype.
+- **id** _string | undefined_: The root identifier in force.
+- **panelId** _string_: The panel identifier the trigger's `aria-controls` names.
+- **triggerId** _string_: The trigger identifier the panel names.
+
+### How it behaves
+
+- **The label map is read at creation.** The third argument maps each token to its label; without it `label` and `text` stay empty and a trigger has nothing to show.
+- **The root compiles no role.** It is a plain container; the trigger carries `combobox` and the panel carries `listbox`.
+- **Writes move visibility without dispatching.** `select.open = true` or `props.open = true` flows into the trigger's `aria-expanded`, and no `open` event follows, because no gesture produced it.
+- **The archetype decides the close.** A commit closes the popup in single mode and keeps it open in multiple mode.
+- **Selection lives on the root.** The trigger reads the current label from it, and the panel commits through it.
+
+### Events
+
+_What it tells you._
+
+- **`input`** — fired by the option whose focus arrives, through arrows, `Home` / `End`, typeahead, or a click, carrying that option's value. The root's `oninput` receives it.
+- **`change`** — fired by the root when activation commits the selection, carrying the whole updated value.
+- **`open`** — fired when the panel opens, carrying the open state.
+- **`close`** — fired when the panel closes, carrying the open state.
+
+## Select Trigger
+
+**The combobox face.** It opens the panel on a click or an arrow key, and shows the current choice.
+
+### Usage
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'select-trigger',
+  props?: SelectTriggerProps
+): SelectTriggerAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+const SelectTrigger = setup<ComponentProps<'button'>>((props) => {
+  const trigger = aria('select-trigger', props);
+
+  return () => (
+    <button ref={trigger.ref} {...trigger.restProps(['children'])}>
+      {trigger.label || 'Choose a value'}
+    </button>
+  );
+}, 'SelectTrigger');
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+const SelectTrigger = setup<ComponentProps<'button'>>((props) => {
+  const trigger = aria('select-trigger', props);
+
+  return (
+    <button ref={trigger.ref} {...trigger.restProps(['children'])}>
+      {trigger.label || 'Choose a value'}
+    </button>
+  );
+});
+```
+
+:::
+
+### Parameters
+
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **id** _string, optional_: Explicit identifier. The generated `trigger-<n>` is what the panel points at.
+- **disabled** _boolean, optional_: Disables this trigger. Select-level disablement applies as well.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **value** _string | string[] | undefined_: The selection read from the root.
+- **label** _string_: The label of the current choice.
+- **text** _string_: The text of the current choice.
+- **host** _SelectAria | undefined_: The root found through ambient context.
+
+### How it behaves
+
+- **The popup is declared on the trigger.** It compiles `role="combobox"`, `aria-haspopup="listbox"`, `aria-expanded` tracking the panel, and `aria-controls` naming it.
+- **Click, `Enter`, and `Space` toggle the popup.** `ArrowDown` and `ArrowUp` open it while it is closed.
+- **`Escape` closes without committing** and hands focus back to the trigger.
+- **Disablement is enforced on both hosts.** A native `<button>` gets a real `disabled`, a custom host gets `tabindex="-1"` and `aria-disabled="true"`, and both refuse to toggle or open.
+
+### Navigation
+
+_What the keys do._
+
+- **`Click`, `Enter`, `Space`** — toggle the popup.
+- **`ArrowDown`, `ArrowUp`** — open the popup while it is closed.
+- **`Escape`** — close without committing, returning focus to the trigger.
+- **`Tab`** — leave the trigger for the next stop.
+
+## Select Panel
+
+**The popup listbox.** It holds the option list, the roving cursor, and the dismissal behind the trigger.
+
+### Usage
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'select-panel',
+  props?: SelectPanelProps
+): SelectPanelAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup, shadowPortal } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+const SelectPanel = setup<ComponentProps<'div'>>((props) => {
+  const panel = aria('select-panel', props);
+  const shadow = shadowPortal(() => panel.open);
+
+  return () =>
+    shadow(
+      <div ref={panel.ref} {...panel.restProps(['children'])}>
+        {props.children}
+      </div>,
+    );
+}, 'SelectPanel');
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+const SelectPanel = setup<ComponentProps<'div'>>((props) => {
+  const panel = aria('select-panel', props);
+
+  return () => (
+    <div ref={panel.ref} {...panel.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **open** _boolean_: Whether the popup is open, proxied from the internal popover.
+- **id** _string_: The panel identifier the trigger's `aria-controls` names.
+- **host** _SelectAria | undefined_: The root found through ambient context.
+
+### How it behaves
+
+- **The panel compiles `listbox`** and holds the identifier the trigger points at.
+- **Traversal moves focus and commits nothing.** Activation follows the option's own rules, so a rove never changes the selection.
+- **Dismissal and focus restoration belong to the internal popover.** An outside press and `Escape` close the panel, and focus returns to the trigger.
+- **Opening lands on the selection.** The selected option takes focus first; with nothing selected, the first focusable option does.
+- **The panel reads the root's props.** A `label` written on the panel is ignored under a root, because the ambient listbox context owns that dictionary.
+
+### Navigation
+
+_What the keys do._
+
+- **`ArrowDown`, `ArrowUp`, `Home`, `End`** — rove across options without committing.
+- **`Space`, `Enter`** — commit the focused option.
+- **`Escape`** — close without committing and return focus to the trigger.
+- **`Tab`** — leave the select completely.
+
+## Next Steps
+
+- **[Option](/docs/aria/option)**: The selection member this composite coordinates.
+- **[Listbox](/docs/aria/listbox)**: The same option list always visible, without trigger or popup.
+- **[Combobox](/docs/aria/combobox)**: A query field driving the popup instead of a button.
+- **[Menu](/docs/aria/menu)**: A popup of commands rather than choices.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Select
+
+```ts
+interface SelectProps {
+  id?: string;
+  open?: boolean;
+  disabled?: boolean;
+  required?: boolean;
+  multiple?: boolean;
+  value?: string | string[];
+  onopen?: (event: CustomEvent<boolean>) => void;
+  onclose?: (event: CustomEvent<boolean>) => void;
+  oninput?: (event: CustomEvent<string | undefined>) => void;
+  onchange?: (event: CustomEvent<string | string[] | undefined>) => void;
+}
+
+declare class SelectAria {
+  get id(): string | undefined;
+  get open(): boolean;
+  set open(next: boolean);
+  get value(): string | string[];
+  set value(next: string | string[]);
+  get label(): string;
+  get text(): string;
+  set text(next: string);
+  get multiple(): boolean;
+  get panelId(): string;
+  get triggerId(): string;
+}
+```
+
+### Select Trigger
+
+```ts
+interface SelectTriggerProps {
+  id?: string;
+  disabled?: boolean;
+}
+
+interface SelectTriggerAttributes {
+  id?: string;
+  role?: 'combobox';
+  type?: 'button';
+  disabled?: boolean;
+  tabindex?: number;
+  'aria-haspopup'?: 'listbox';
+  'aria-expanded'?: 'true' | 'false';
+  'aria-controls'?: string;
+  'aria-disabled'?: 'true';
+}
+
+declare class SelectTriggerAria {
+  get value(): string | string[] | undefined;
+  get label(): string;
+  get text(): string;
+}
+```
+
+### Select Panel
+
+```ts
+interface SelectPanelProps {
+  id?: string;
+  label?: string;
+  disabled?: boolean;
+  required?: boolean;
+  multiple?: boolean;
+  value?: string | string[];
+  oninput?: (event: CustomEvent<string>) => void;
+  onchange?: (event: CustomEvent<string | string[]>) => void;
+}
+
+declare class SelectPanelAria {
+  get id(): string;
+  get open(): boolean;
+  set current(element: HTMLElement | null);
+}
+```
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`props`** / **`restProps(omit)`** is what you spread onto the host — your props minus the keys the controller writes and any you name, with the compiled attributes merged in; **`ref`** is what you bind the element with; **`attributes`** is that compiled dictionary on its own, when you need the low-level view.
+- **`assign()`** changes several parameters at once, **`refine()`** adds attributes of your own, **`on()`** listens for anything the part fires, **`destroy()`** tears it down.

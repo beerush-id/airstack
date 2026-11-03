@@ -11,14 +11,20 @@ import type {
   ModelArray,
   ModelError,
   ObjLike,
-  StateChange,
   StateMetadata,
   StateRelation,
   TrapOverrides,
 } from '../types.js';
 import { isFunction } from '../utils/index.js';
 import { anchor } from './anchor.js';
-import { BROADCASTER_REGISTRY, INIT_REGISTRY, META_REGISTRY, RELATION_REGISTRY, SORTER_REGISTRY } from './registry.js';
+import {
+  BROADCASTER_REGISTRY,
+  INIT_REGISTRY,
+  META_REGISTRY,
+  RELATION_REGISTRY,
+  SORTER_REGISTRY,
+  STATE_REGISTRY,
+} from './registry.js';
 
 const mockReturn = {
   shift(items: unknown[]) {
@@ -96,8 +102,8 @@ export function createArrayMutator<T extends unknown[]>(init: T, options?: TrapO
           start = Math.max(init.length + start, 0);
         }
 
-        // Ensure delCount is non-negative
-        const delCount = Math.max(delCountArg ?? 0, 0);
+        // Ensure delCount is non-negative, and that an omitted one removes everything from the start on.
+        const delCount = args.length === 1 ? Math.max(init.length - start, 0) : Math.max(delCountArg ?? 0, 0);
 
         // No-op cases where we can return early without making any changes
         if (
@@ -143,15 +149,8 @@ export function createArrayMutator<T extends unknown[]>(init: T, options?: TrapO
 
       // Create a list of the added items.
       let addedItems: Linkable[] = [];
-      let deletedItems: Linkable[] = [];
 
       if (method === 'splice') {
-        const [start, delCount] = args as [number, number];
-
-        if (delCount) {
-          deletedItems = currentItems.slice(start, start + delCount);
-        }
-
         // For splice, new items start from index 2 (after start and deleteCount)
         addedItems = args.slice(2) as Linkable[];
       } else if (method === 'fill') {
@@ -160,14 +159,9 @@ export function createArrayMutator<T extends unknown[]>(init: T, options?: TrapO
       } else if (method === 'push' || method === 'unshift') {
         // For push and unshift, all arguments are new items
         addedItems = args as Linkable[];
-      } else if (method === 'shift') {
-        deletedItems = [currentItems[0]];
-      } else if (method === 'pop') {
-        deletedItems = [currentItems[currentItems.length - 1]];
       }
 
       const addedItemsLength = addedItems.length;
-      const deletedItemsLength = deletedItems.length;
 
       // Validate the added items.
       let error: ModelError | undefined;
@@ -242,11 +236,19 @@ export function createArrayMutator<T extends unknown[]>(init: T, options?: TrapO
         current = result as never;
       }
 
-      // Unlink the deleted items.
-      if (deletedItemsLength) {
+      const deletedItems = removedItems(method, currentItems, init, result, args) as Linkable[];
+
+      if (deletedItems.length && subscriptions.size) {
+        // A removed element can still sit at another index when it was duplicated, and must stay linked there.
+        let remaining: Set<unknown> | undefined;
+
         for (const item of deletedItems) {
-          const childState = INIT_REGISTRY.get(item) as Linkable;
-          if (subscriptions.has(childState)) {
+          const childState = (STATE_REGISTRY.has(item) ? item : INIT_REGISTRY.get(item)) as Linkable;
+          if (!subscriptions.has(childState)) continue;
+
+          remaining ??= new Set(init);
+
+          if (!remaining.has(STATE_REGISTRY.get(childState)) && !remaining.has(childState)) {
             unlink(childState);
           }
         }
@@ -348,4 +350,59 @@ export function orderedIndexOf<T>(target: T[], item: T, compare: (a: T, b: T) =>
   }
 
   return low;
+}
+
+/**
+ * Lists the elements an array mutation took out of the array, read from what the mutation really did rather
+ * than from its arguments. An element written back by the same mutation (re-inserted by a splice, or moved by
+ * a copyWithin) is not counted, so the list holds only what left.
+ *
+ * @param method - The mutation that ran.
+ * @param before - A copy of the array's items before the mutation.
+ * @param after - The array after the mutation.
+ * @param result - What the mutation returned.
+ * @param args - The arguments the mutation ran with, after validation.
+ * @returns {unknown[]} The removed elements, one entry per removed occurrence.
+ */
+function removedItems(method: string, before: unknown[], after: unknown[], result: unknown, args: unknown[]) {
+  if (method === 'shift' || method === 'pop') return [result];
+  if (method === 'splice') return subtractItems(result as unknown[], args.slice(2));
+  if (method !== 'fill' && method !== 'copyWithin') return [];
+
+  const overwritten: unknown[] = [];
+  const written: unknown[] = [];
+
+  for (let i = 0; i < after.length; i++) {
+    if (before[i] !== after[i]) {
+      overwritten.push(before[i]);
+      written.push(after[i]);
+    }
+  }
+
+  return subtractItems(overwritten, written);
+}
+
+/**
+ * Takes one occurrence out of a list for each matching occurrence in another, like a multiset difference.
+ *
+ * @param items - The list to take from.
+ * @param others - The occurrences to take out.
+ * @returns {unknown[]} The items left, in their order.
+ */
+function subtractItems(items: unknown[], others: unknown[]): unknown[] {
+  if (!items.length || !others.length) return items;
+
+  const counts = new Map<unknown, number>();
+
+  for (const item of others) {
+    counts.set(item, (counts.get(item) ?? 0) + 1);
+  }
+
+  return items.filter((item) => {
+    const count = counts.get(item);
+    if (!count) return true;
+
+    counts.set(item, count - 1);
+    return false;
+  });
 }

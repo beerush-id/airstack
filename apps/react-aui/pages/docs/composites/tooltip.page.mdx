@@ -1,0 +1,158 @@
+---
+title: AUI Tooltip
+nav: Tooltip
+nav-priority: 301
+description: A short hint for the control under the pointer or keyboard focus — appears on hover after a short wait or instantly on focus, is read out by screen readers, and never steals focus.
+keywords: [React tooltip, accessible tooltip, hover hint, React hint, aria-describedby, icon button label hint]
+---
+
+# AUI Tooltip
+
+Icon buttons, truncated labels, a setting whose effect isn't obvious — sometimes a control needs one line of explanation. That line should appear for mouse users after a moment of hovering, appear at once for keyboard users, be read out by screen readers along with the control, and never get in the way of using it.
+
+**AUI Tooltip** is that line. Put it inside the control it explains.
+
+:::interactive[Tooltip demo]
+
+```tsx
+import { Button, Toggle, Tooltip } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { GlassStage } from '@/components/GlassStage.js';
+
+const TooltipDemo = setup(() => {
+  const state = mutable({ open: false, above: false, dismissable: true });
+
+  return () => (
+    <div className="demo-button">
+      <div className="flex gap-xs w-full flex-wrap">
+        <Toggle size="sm" pressed={$bind(state, 'open')}>
+          {() => (state.open ? 'Hide tooltip' : 'Show tooltip')}
+        </Toggle>
+        <Toggle size="sm" pressed={$bind(state, 'above')}>
+          {() => (state.above ? 'Shows above' : 'Shows below')}
+        </Toggle>
+        <Toggle size="sm" pressed={$bind(state, 'dismissable')}>
+          {() => (state.dismissable ? 'Outside click closes' : 'Outside click ignored')}
+        </Toggle>
+      </div>
+      <GlassStage>
+        <div className="flex flex-col gap-lg justify-center">
+          <span>Hover or focus a button</span>
+          <Snippet>
+            {() => (
+              <div className="flex flex-wrap gap-md">
+                <Button>
+                  Save
+                  <Tooltip
+                    open={$bind(state, 'open')}
+                    dismissable={state.dismissable}
+                    yDir={state.above ? 'above' : 'below'}
+                  >
+                    Stored on this device
+                  </Tooltip>
+                </Button>
+                <Button>
+                  Share
+                  <Tooltip yDir={state.above ? 'above' : 'below'}>Anyone with the link can read</Tooltip>
+                </Button>
+                <Button disabled>
+                  Publish
+                  <Tooltip>Never shown while the button is disabled</Tooltip>
+                </Button>
+              </div>
+            )}
+          </Snippet>
+        </div>
+      </GlassStage>
+    </div>
+  );
+}, 'TooltipDemo');
+```
+
+```html
+<TooltipDemo />
+```
+
+<TooltipDemo />
+
+:::
+
+## Usage
+
+### Put it inside the control
+
+Render `Tooltip` inside the button or link it explains. Hovering or focusing that control shows it, and screen readers read it as the control's description:
+
+```tsx
+import { Button, Tooltip } from '@airlib/react-aui';
+import { SettingsIcon } from '@airlib/react-aui/icons';
+import '@airlib/aui/components/widgets/tooltip.css';
+
+export const SettingsButton = () => (
+  <Button className="aui-control-icon" aria-label="Settings">
+    <SettingsIcon />
+    <Tooltip>Workspace settings</Tooltip>
+  </Button>
+);
+```
+
+A tooltip describes; it doesn't name. An icon-only button still needs its own `aria-label`, as above.
+
+Keep it to one short line of plain text. Anything people need to click or read at length belongs in a [Popover](/docs/composites/popover).
+
+### Choose when it shows
+
+- **Hover** waits `delay` milliseconds (300 by default) so it doesn't flash while the pointer passes by. Moving the pointer onto the tooltip keeps it open.
+- **Focus** shows it at once — keyboard users never wait.
+- `mode` picks the gestures: `['hover', 'focus']` by default; add `'click'` for touch-friendly hints. Keep `'focus'` so keyboard users get the hint too.
+- **Closing:** moving away, `Escape`, or a click outside (unless `dismissable` is off). Focus stays on the control.
+- A disabled control never shows its tooltip.
+
+### Choose the side
+
+`yDir="above"` shows it above the control; `xDir="before"` / `"after"` put it at the control's start or end. When there's no room, it flips to the side that fits:
+
+```tsx
+<Button>
+  Share
+  <Tooltip yDir="above">Anyone with the link can read</Tooltip>
+</Button>
+```
+
+### Show it from your code
+
+Bind `open` to point at a control during onboarding, for example:
+
+```tsx
+const tour = mutable({ hint: false });
+
+<Button>
+  Save
+  <Tooltip open={$bind(tour, 'hint')}>Saves to this device</Tooltip>
+</Button>
+```
+
+### Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `open` | `Bindable<boolean>` | `false` | Whether the tooltip is showing. |
+| `mode` | `('hover' \| 'focus' \| 'click')[]` | `['hover', 'focus']` | Which gestures on the control show it. Set it once; it doesn't change later. |
+| `delay` | `number` | `300` | Milliseconds hover waits. Focus never waits. |
+| `dismissable` | `boolean` | `true` | Whether a click outside closes it. `Escape` closes it either way. |
+| `xDir` | `'before' \| 'after' \| 'left' \| 'between' \| 'right'` | — | Horizontal side. |
+| `yDir` | `'top' \| 'bottom' \| 'above' \| 'below' \| 'between'` | — | Vertical side. |
+| `onchange` | `(event: CustomEvent<boolean>) => void` | — | Called when it shows (`true`) or hides (`false`). |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `children` | `ReactNode` | — | The hint text. |
+
+### Keyboard
+
+- Focusing the control shows the tooltip at once; the tooltip itself is never a tab stop.
+- `Escape` hides it and leaves focus on the control.
+
+## Next Steps
+
+- [Popover](/docs/composites/popover) — Richer content people can click into.
+- [Button](/docs/widgets/button) — The control a tooltip most often explains.
+- [Toolbar](/docs/widgets/toolbar) — A row of icon buttons, each with its own hint.

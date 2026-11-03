@@ -1,0 +1,92 @@
+@import './button.css';
+@import './input.css';
+
+/*
+ * The group is the field shell: it wears the shared field look, the number
+ * sits bare inside it, and the step buttons are role-colored text buttons
+ * at its ends.
+ */
+@layer theme {
+  :root {
+    --aui-stepper-input-width: calc(var(--spacing) * 12);
+  }
+}
+
+@layer component {
+  /* One inset all round: the buttons sit as far from the side edges as from the top and bottom. */
+  .aui-stepper {
+    --aui-stepper-inset: var(--spacing);
+    gap: 0;
+    /* Less the field's 1px edge, so the side gap matches the vertical one exactly. */
+    padding-inline: calc(var(--aui-stepper-inset) - 1px);
+  }
+
+  .aui-stepper-input {
+    flex: 1 1 auto;
+    inline-size: var(--aui-stepper-input-width);
+    min-inline-size: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+    caret-color: inherit;
+    outline: none;
+    -moz-appearance: textfield;
+
+    &::-webkit-inner-spin-button,
+    &::-webkit-outer-spin-button {
+      appearance: none;
+      margin: 0;
+    }
+  }
+
+  /*
+   * A handle to drag the number by. What it holds, like a field's glyph, shows until the pointer
+   * is on it, when the adjuster takes its place, so it costs the field no room.
+   */
+  .aui-stepper-adjuster {
+    display: grid;
+    flex: none;
+    place-items: center;
+    cursor: ew-resize;
+    touch-action: none;
+    user-select: none;
+
+    & > * {
+      grid-area: 1 / 1;
+    }
+
+    & > :last-child:not(:only-child) {
+      visibility: hidden;
+    }
+
+    &:hover > :last-child {
+      visibility: visible;
+    }
+
+    &:hover > :not(:last-child) {
+      visibility: hidden;
+    }
+  }
+
+  .aui-stepper-button {
+    flex: none;
+    inline-size: calc(var(--aui-control-height) - var(--aui-stepper-inset) * 2);
+    block-size: calc(var(--aui-control-height) - var(--aui-stepper-inset) * 2);
+    padding: 0;
+    justify-content: center;
+    border-radius: var(--radius-full);
+    font-size: 1.25em;
+    line-height: 1;
+  }
+
+  /* Disabled stays bare: a filled chip inside the field would read as a second control. */
+  .aui-stepper > .aui-stepper-button:is(:disabled, [aria-disabled='true']) {
+    background-color: transparent;
+    color: var(--color-disabled-fg);
+  }
+}

@@ -1,5 +1,5 @@
 import { isArray, isObject, uuid } from '@airlib/core';
-import { IRPCBlob, IRPCFile, type IRPCFileMeta, IRPCFileStream } from './file.js';
+import { deliverBlob, IRPCBlob, IRPCFile, type IRPCFileMeta, IRPCFileStream } from './file.js';
 import type { IRPCData } from './types.js';
 
 export const IRPC_FILE_IDENTIFIER = 'IRPC_PACKET_FILE' as const;
@@ -181,7 +181,7 @@ export function decodeBlobs<T>(data: unknown): T {
 
   if (isBlobPointer(data as IRPCData)) {
     const pointer = data as never as IRPCBlobPointer;
-    const blob = new IRPCBlob(pointer.url, pointer.meta);
+    const blob = deliverBlob(new IRPCBlob(pointer.url, pointer.meta));
     blob.load();
     return blob as T;
   }
@@ -197,6 +197,26 @@ export function decodeBlobs<T>(data: unknown): T {
   }
 
   return data as T;
+}
+
+/**
+ * Delivers every IRPCBlob in a data tree to its caller, so awaiting one loads it. Used by local calls,
+ * where the handler's own blobs reach the caller without a pointer in between. Only reads the tree:
+ * plain objects and arrays are walked, nothing is reassigned.
+ *
+ * @param data - The data tree a handler returned.
+ * @returns The same data tree.
+ */
+export function deliverBlobs<T>(data: T): T {
+  if (data instanceof IRPCBlob) {
+    deliverBlob(data);
+  } else if (Array.isArray(data)) {
+    for (const item of data) deliverBlobs(item);
+  } else if (data && typeof data === 'object' && Object.getPrototypeOf(data) === Object.prototype) {
+    for (const value of Object.values(data)) deliverBlobs(value);
+  }
+
+  return data;
 }
 
 /**

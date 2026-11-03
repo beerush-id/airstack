@@ -10,4 +10,5 @@ export default defineConfig({
   format: ['esm'],
   unbundle: true,
   platform: 'node',
+  external: ['wrangler'],
 });

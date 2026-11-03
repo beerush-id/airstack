@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { IRPC_PACKET_TYPE, IRPC_STATUS } from '../src/enum.js';
 import { getRouterHooks, IRPCTransport } from '../src/index.js';
 import { IRPCPackage } from '../src/package.js';
-import { DeferredHook, IRPCRouter } from '../src/router.js';
+import { DeferredHook, IRPCRouter, UnhandledCall } from '../src/router.js';
 import { IRPC_STORE } from '../src/store.js';
 import type { IRPCRequest } from '../src/types.js';
 
@@ -334,5 +334,16 @@ describe('IRPCRouter', () => {
 
       expect(hook).toHaveBeenCalledTimes(1);
     });
+  });
+});
+
+describe('UnhandledCall', () => {
+  it('should be a 404 JSON response telling the caller the call could not be resolved', async () => {
+    const response = new UnhandledCall();
+
+    expect(response).toBeInstanceOf(Response);
+    expect(response.status).toBe(404);
+    expect(response.headers.get('Content-Type')).toBe('application/json');
+    expect(await response.text()).toBe('Unable to resolve call.');
   });
 });

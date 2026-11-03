@@ -1,0 +1,8 @@
+@import './modal.css';
+
+/* A decision sheet stays narrower than a general dialog. */
+@layer component {
+  .aui-confirm-panel {
+    --aui-modal-max-width: calc(var(--spacing) * 100);
+  }
+}

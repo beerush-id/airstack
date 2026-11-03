@@ -19,6 +19,18 @@ describe('UUID', () => {
       vi.restoreAllMocks();
     });
 
+    it('should fall back when the runtime refuses the crypto API', () => {
+      vi.stubGlobal('crypto', {
+        randomUUID: () => {
+          throw new Error('Disallowed operation called within global scope');
+        },
+      });
+
+      expect(uuid()).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+
+      vi.unstubAllGlobals();
+    });
+
     it('should generate unique UUIDs', () => {
       const ids = new Set();
       for (let i = 0; i < 100; i++) {

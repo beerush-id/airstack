@@ -1,8 +1,8 @@
 import { createLifecycle } from '@airlib/core';
 import { describe, expect, it, vi } from 'vitest';
 import { IRPC_FILE_STATUS } from '../src/enum.js';
-import { IRPCBlob, IRPCFile, IRPCFileStream } from '../src/file.js';
-import { IRPC_STORE } from '../src/index.js';
+import { deliverBlob, IRPCBlob, IRPCFile, IRPCFileStream } from '../src/file.js';
+import { createPackage, IRPC_STORE } from '../src/index.js';
 
 describe('IRPCFile', () => {
   it('should initialize correctly as PENDING when no blob is provided', () => {
@@ -430,12 +430,12 @@ describe('IRPCBlob', () => {
     fetchSpy.mockRestore();
   });
 
-  it('should be thenable — await resolves with the loaded Blob', async () => {
+  it('should be thenable once delivered to its caller — await resolves with the loaded Blob', async () => {
     const fetchSpy = vi
       .spyOn(globalThis, 'fetch')
       .mockResolvedValueOnce(new Response(new Blob(['content'], { type: 'text/plain' }), { status: 200 }));
 
-    const blob = new IRPCBlob('https://example.com/thenable.txt', { type: 'text/plain' });
+    const blob = deliverBlob(new IRPCBlob('https://example.com/thenable.txt', { type: 'text/plain' }));
 
     const result = await blob;
 
@@ -443,6 +443,34 @@ describe('IRPCBlob', () => {
     expect(result.size).toBe(7);
     expect(blob.status).toBe(IRPC_FILE_STATUS.SUCCESS);
     expect(blob.data.size).toBe(7);
+
+    fetchSpy.mockRestore();
+  });
+
+  it('should not be thenable where it is made, so awaiting or returning it from an async handler never loads it', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    const blob = new IRPCBlob('/files/a.png?sig=x', { type: 'image/png' });
+
+    expect(await blob).toBe(blob);
+    expect(await (async () => blob)()).toBe(blob);
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(blob.status).toBe(IRPC_FILE_STATUS.PENDING);
+
+    fetchSpy.mockRestore();
+  });
+
+  it('should load on its caller when a local async handler returns it', async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(new Blob(['content'], { type: 'text/plain' }), { status: 200 }));
+    const files = createPackage({ name: 'blob-local', version: '1.0.0' });
+    const open = files.declare<(path: string) => Promise<IRPCBlob>>('open');
+    files.construct(open, async (path) => new IRPCBlob(`/files${path}`, { type: 'text/plain' }));
+
+    const result = (await open('/a.txt')) as unknown as Blob;
+
+    expect(fetchSpy).toHaveBeenCalledWith('/files/a.txt', expect.anything());
+    expect(await result.text()).toBe('content');
 
     fetchSpy.mockRestore();
   });

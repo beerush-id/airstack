@@ -1,0 +1,33 @@
+@import './input.css';
+
+@layer component {
+  .aui-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+
+  .aui-field-label {
+    color: var(--color-on-surface);
+    font-size: var(--font-label-lg-size);
+    font-weight: var(--font-label-lg-weight);
+    line-height: var(--font-label-lg-line-height);
+    letter-spacing: var(--font-label-lg-tracking);
+  }
+
+  .aui-field-description,
+  .aui-field-error {
+    padding-inline: var(--spacing-xs);
+    font-size: var(--font-label-md-size);
+    line-height: var(--font-label-md-line-height);
+    letter-spacing: var(--font-label-md-tracking);
+  }
+
+  .aui-field-description {
+    color: var(--color-on-surface-variant);
+  }
+
+  .aui-field-error {
+    color: var(--color-error);
+  }
+}

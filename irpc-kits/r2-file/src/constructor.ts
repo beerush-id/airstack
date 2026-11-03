@@ -1,0 +1,167 @@
+import type { D1Database, R2Bucket } from '@cloudflare/workers-types';
+import {
+  type AnyType,
+  credential,
+  GuardError,
+  getEnv,
+  IRPCBlob,
+  type IRPCStub,
+  type RemoteState,
+  SESSION_STORE,
+  stream,
+  withContext,
+} from '@irpclib/irpc';
+import { getContextStore } from '@irpclib/irpc/core';
+import type { FileAdapter } from './adapter.js';
+import { createFs } from './fs/index.js';
+import {
+  copy,
+  createPipe,
+  exists,
+  fileModule,
+  link,
+  list,
+  mkdir,
+  move,
+  type PipeData,
+  type PipePayload,
+  type PipeQueries,
+  readStub,
+  remove,
+  restore,
+  search,
+  stat,
+  update,
+  writeStub,
+} from './index.js';
+import type { FileAdapterOptions } from './types.js';
+import { signUrl } from './utils/security.js';
+
+/**
+ * Server-side wiring options for the filesystem stubs.
+ *
+ * Pass `adapter` to serve a filesystem you built yourself, or pass the
+ * storage bindings and constraints to have one built for you.
+ */
+export interface FileImplementOptions extends FileAdapterOptions {
+  adapter?: FileAdapter;
+}
+
+/**
+ * Worker environment bindings the server side reads at request time:
+ * storage media, the API key protecting mutations, and the secret
+ * signing delivery URLs.
+ */
+export interface FileWorkerEnv {
+  BUCKET: R2Bucket;
+  DB?: D1Database;
+  FILE_API_KEY?: string;
+  FILE_SECRET?: string;
+}
+
+/**
+ * Lifetime in seconds of a signed delivery URL.
+ */
+const DELIVERY_URL_TTL = 3600;
+
+/**
+ * Registers the filesystem handlers so every client stub executes
+ * against your storage.
+ *
+ * Call once at worker startup. When `FILE_API_KEY` is configured, every
+ * RPC call must carry it; reads of binary content answer with a delivery
+ * URL — signed when `FILE_SECRET` is set — and encoded reads answer with
+ * the decoded content inline.
+ *
+ * @param options Storage bindings and constraints, or a prebuilt `adapter`
+ * @returns The adapter the handlers run on, to append drivers to with `use()`
+ */
+export function implement(options: FileImplementOptions): FileAdapter {
+  const adapter = options.adapter ?? createFs(options);
+
+  fileModule.guard(async () => {
+    const required = getEnv<Partial<FileWorkerEnv>>().FILE_API_KEY;
+    if (required === undefined) return;
+    if (credential<string>('apiKey') !== required) {
+      throw GuardError.failed('Unauthorized: Valid API key required');
+    }
+  });
+
+  fileModule.construct(mkdir, (path, options) => adapter.mkdir(path, options));
+
+  fileModule.construct(update, (path, options) => adapter.update(path, options));
+
+  fileModule.construct(writeStub, (path, data, options) => adapter.write(path, data, options));
+
+  fileModule.construct(readStub as IRPCStub<AnyType, AnyType, AnyType>, async (path: string, options: AnyType) => {
+    if (options?.encoding !== undefined) {
+      return adapter.read(path, options as never);
+    }
+
+    const info = await adapter.stat(path);
+    /* istanbul ignore next */
+    if (info === undefined || info.isDirectory) return undefined;
+
+    const secret = getEnv<Partial<FileWorkerEnv>>().FILE_SECRET;
+    const url = secret === undefined ? info.path : await signUrl(info.path, secret, DELIVERY_URL_TTL);
+    return new IRPCBlob(url, { type: info.type, size: info.size, name: info.name });
+  });
+
+  fileModule.construct(stat, (path, options) => adapter.stat(path, options));
+
+  fileModule.construct(exists, (path, options) => adapter.exists(path, options));
+
+  fileModule.construct(list, (path, options) => adapter.list(path, options));
+
+  fileModule.construct(search, (query, options) => adapter.search(query, options));
+
+  fileModule.construct(copy, (source, destination, options) => adapter.copy(source, destination, options));
+
+  fileModule.construct(move, (source, destination, options) => adapter.move(source, destination, options));
+
+  fileModule.construct(link, (target, path, options) => adapter.link(target, path, options));
+
+  fileModule.construct(remove, (path, options) => adapter.remove(path, options));
+
+  fileModule.construct(restore, (path, options) => adapter.restore(path, options));
+
+  // A live file: read once, then written with what its client sends, and kept in step with every
+  // other live copy of the same file in the session.
+  fileModule.construct(createPipe, (path, encoding = 'text') => {
+    let pipe: RemoteState<PipeData, PipeQueries> | undefined;
+    const context = getContextStore();
+    // Joined before the pipe opens, so a call outside a session fails like any other.
+    const member = SESSION_STORE.join<PipePayload>('fs.write', (payload) => {
+      if (payload.path !== path || payload.encoding !== encoding) return;
+      void pipe?.ask('fs.update', payload.content);
+    });
+
+    return stream<PipeData, PipeQueries>(
+      (state, _resolve, reject) => {
+        pipe = state;
+
+        // Only the content comes from the client: the pipe writes its own path, in its own encoding.
+        // Written as the caller who opened the pipe, whatever context the client's change arrives in.
+        state.answer('fs.write', ({ content }) =>
+          withContext(context, async () => {
+            await adapter.write(path, content, { encoding } as never);
+            member.broadcast({ path, content, encoding });
+            return true;
+          })
+        );
+
+        adapter.read(path, { encoding } as never).then(
+          (content) => {
+            state.data = { ready: true, content };
+          },
+          (error: Error) => reject(error)
+        );
+
+        return () => member.leave();
+      },
+      { ready: false }
+    );
+  });
+
+  return adapter;
+}

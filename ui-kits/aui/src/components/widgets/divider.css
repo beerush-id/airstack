@@ -1,0 +1,92 @@
+@layer component {
+  .aui-divider {
+    --aui-divider-color: var(--color-outline-variant);
+    --aui-divider-thickness: 1px;
+    --aui-divider-inset: var(--spacing-md);
+    /* A vertical rule usually sits in a row one control tall, so it stops shorter. */
+    --aui-divider-inset-block: var(--spacing-sm);
+    /* The room kept on either side of the line, across it; a size sets it. */
+    --aui-divider-space: 0px;
+
+    flex: none;
+    display: block;
+    inline-size: 100%;
+    block-size: var(--aui-divider-thickness);
+    margin-block: var(--aui-divider-space);
+    border: 0;
+    background-color: var(--aui-divider-color);
+  }
+
+  .aui-divider[aria-orientation='vertical'] {
+    inline-size: var(--aui-divider-thickness);
+    block-size: auto;
+    align-self: stretch;
+    margin-block: 0;
+    margin-inline: var(--aui-divider-space);
+  }
+
+  .aui-divider-xs {
+    --aui-divider-space: var(--spacing-xs);
+  }
+
+  .aui-divider-sm {
+    --aui-divider-space: var(--spacing-sm);
+  }
+
+  .aui-divider-md {
+    --aui-divider-space: var(--spacing-md);
+  }
+
+  .aui-divider-lg {
+    --aui-divider-space: var(--spacing-lg);
+  }
+
+  .aui-divider-xl {
+    --aui-divider-space: var(--spacing-xl);
+  }
+
+  /* Ghost: the room without the line. */
+  .aui-divider-ghost {
+    --aui-divider-color: transparent;
+  }
+
+  /* Inset: the rule stops short of both ends instead of running edge to edge. */
+  .aui-divider-inset {
+    inline-size: calc(100% - var(--aui-divider-inset) * 2);
+    margin-inline: auto;
+  }
+
+  .aui-divider-inset[aria-orientation='vertical'] {
+    inline-size: var(--aui-divider-thickness);
+    margin-inline: 0;
+    margin-block: var(--aui-divider-inset-block);
+  }
+
+  .aui-divider-primary {
+    --aui-divider-color: var(--color-primary);
+  }
+
+  .aui-divider-secondary {
+    --aui-divider-color: var(--color-secondary);
+  }
+
+  .aui-divider-tertiary {
+    --aui-divider-color: var(--color-tertiary);
+  }
+
+  .aui-divider-info {
+    --aui-divider-color: var(--color-info);
+  }
+
+  .aui-divider-error {
+    --aui-divider-color: var(--color-error);
+  }
+
+  .aui-divider-success {
+    --aui-divider-color: var(--color-success);
+  }
+
+  .aui-divider-warning {
+    --aui-divider-color: var(--color-warning);
+  }
+}

@@ -1,0 +1,209 @@
+---
+title: AUI Date Range Picker
+nav: Date Range Picker
+nav-priority: 358
+description: Let people pick a start and an end date in one calendar — typed or picked, ordered for you, and only saved once both ends are chosen.
+keywords: [React date range picker, date range input, check-in check-out React, accessible date range, calendar range, AUI date range picker]
+---
+
+# AUI Date Range Picker
+
+A date range picker takes two dates that belong together — check-in and check-out, a report's from and to. People pick both ends in one calendar, in whichever order they think of them, and the pair is only saved once both are chosen, so half a range never lands in your data. **Date Range Picker** gives you one field for both ends, the calendar button, and the calendar from one call with your value.
+
+:::interactive[Date range picker demo]
+
+```tsx
+import { DateRangePicker, Readout, Toggle } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { GlassStage } from '@/components/GlassStage.js';
+
+const DAY = 24 * 60 * 60 * 1000;
+
+const DateRangeDemo = setup(() => {
+  const state = mutable({
+    stay: ['2026-10-14', '2026-10-18'] as [string, string],
+    disabled: false,
+  });
+  const nights = () => {
+    const [start, end] = state.stay;
+    return start && end ? Math.round((Date.parse(end) - Date.parse(start)) / DAY) : 0;
+  };
+
+  return () => (
+    <div className="demo-button">
+      <div className="flex gap-xs w-full flex-wrap">
+        <Toggle size="sm" pressed={$bind(state, 'disabled')}>
+          {() => (state.disabled ? 'Locked' : 'Unlocked')}
+        </Toggle>
+        <div className="flex-1"></div>
+        <Snippet>
+          {() => (
+            <div className="flex flex-wrap gap-lg">
+              <Readout label="Check-in" value={state.stay[0]?.slice(0, 10)} empty="Not set" />
+              <Readout label="Check-out" value={state.stay[1]?.slice(0, 10)} empty="Not set" />
+              <Readout label="Nights" value={nights() ? String(nights()) : undefined} empty="—" />
+            </div>
+          )}
+        </Snippet>
+      </div>
+      <GlassStage style={{ maxInlineSize: '20rem' }}>
+        <div className="flex flex-col gap-xs">
+          <div className="text-title-sm">Casa do Rio, Lisbon</div>
+          <div>Pick your check-in and check-out; bookings open from October to December.</div>
+        </div>
+        <Snippet>
+          {() => (
+            <DateRangePicker
+              label="Stay"
+              placeholder="YYYY-MM-DD"
+              labels={{
+                open: 'Choose dates',
+                previous: 'Previous month',
+                next: 'Next month',
+                year: 'Year',
+                start: 'Check-in',
+                end: 'Check-out',
+              }}
+              value={$bind(state, 'stay')}
+              min="2026-10-01"
+              max="2026-12-31"
+              disabled={state.disabled}
+            />
+          )}
+        </Snippet>
+      </GlassStage>
+    </div>
+  );
+}, 'DateRangeDemo');
+```
+
+```html
+<DateRangeDemo />
+```
+
+<DateRangeDemo />
+
+:::
+
+## Usage
+
+### Bind a range
+
+```tsx
+import { DateRangePicker } from '@airlib/react-aui';
+import { $bind, mutable, setup } from '@airlib/react';
+import '@airlib/aui/components/widgets/date-picker.css';
+
+export const StayDates = setup(() => {
+  const booking = mutable({ stay: ['', ''] as [string, string] });
+
+  return () => (
+    <DateRangePicker
+      label="Stay"
+      placeholder="YYYY-MM-DD"
+      labels={{
+        open: 'Choose dates',
+        previous: 'Previous month',
+        next: 'Next month',
+        year: 'Year',
+        start: 'Check-in',
+        end: 'Check-out',
+      }}
+      value={$bind(booking, 'stay')}
+      min="2026-10-01"
+    />
+  );
+}, 'StayDates');
+```
+
+You supply:
+
+- `value` — the `[start, end]` pair as ISO strings. It changes only when both ends are chosen, and always in order, even when the later date was picked first.
+- `min` / `max` — the first and last date either end may take.
+- `label` — the range's accessible name.
+- `placeholder` — the hint for both fields, such as the date format your users expect.
+- `labels` — names for what has no visible text: `start` / `end` (the two fields), `open` (the calendar button), `previous` / `next` (the month steppers), and `year`. Nothing is named for you; every word comes from you, in your users' language.
+
+### A calendar in place
+
+When the dates are the question — a booking step, a report filter that is always on screen, an assistant asking which days to block — a field that hides the calendar adds a click for nothing. Add `inline` and the picker draws only the calendar, always open, with no field and no popup:
+
+```tsx
+<DateRangePicker
+  inline
+  label="Stay"
+  labels={{ previous: 'Previous month', next: 'Next month', year: 'Year' }}
+  value={$bind(booking, 'stay')}
+  min="2026-10-01"
+/>
+```
+
+The first day starts the range and the second completes it; the calendar stays where it is, so people can pick a new range right away. `label` names the calendar itself, and `labels.start`, `labels.end`, and `labels.open` have nothing to name. `inline` is read once, when the picker is created.
+
+### Compose the parts
+
+The range picker shares its parts with [Date Picker](/docs/composites/date-picker). Give each `DatePickerInput` a `slot` to say which end it types:
+
+```tsx
+import {
+  DatePickerCalendar,
+  DatePickerField,
+  DatePickerHeader,
+  DatePickerInput,
+  DatePickerTrigger,
+  DateRangePicker,
+} from '@airlib/react-aui';
+import { CalendarIcon } from '@airlib/react-aui/icons';
+
+<DateRangePicker value={$bind(booking, 'stay')} label="Stay">
+  {() => (
+    <>
+      <DatePickerField>
+        <DatePickerInput slot="start" aria-label="Check-in" />
+        <DatePickerInput slot="end" aria-label="Check-out" />
+        <DatePickerTrigger aria-label="Open calendar">
+          <CalendarIcon />
+        </DatePickerTrigger>
+      </DatePickerField>
+      <DatePickerCalendar>
+        <DatePickerHeader previousLabel="Previous month" nextLabel="Next month" yearLabel="Year" />
+      </DatePickerCalendar>
+    </>
+  )}
+</DateRangePicker>
+```
+
+## Style it once
+
+Set `size`, `color`, and `variant` on `DateRangePicker` and the field, the calendar button, and the calendar follow; a part's own prop still wins. See [Styling a composite](/docs/theming#style-a-composite-once).
+
+## Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `value` | `Bindable<[string, string]>` | — | The ordered `[start, end]` pair. |
+| `min` / `max` | `string` | — | First and last date either end can take. |
+| `label` | `string` | — | The range's accessible name. |
+| `placeholder` | `string` | — | Hint for both fields. |
+| `labels` | `{ start, end, open, previous, next, year }` | — | Names for the two fields, the calendar button, the month steppers, and the year field. |
+| `locales` | `string[]` | — | Languages for month and weekday names. |
+| `month` / `year` | `Bindable<number>` | — | The month on display. |
+| `grid` | `'fixed'`, `'dynamic'` | — | Always six weeks, or only the weeks the month needs. |
+| `inline` | `boolean` | `false` | Draws only the calendar, always open, with no field or popup. Read once. |
+| `open` | `Bindable<boolean>` | — | Calendar visibility. |
+| `disabled` | `boolean` | `false` | Locks typing and picking. |
+| `required` | `boolean` | `false` | A range must stay chosen. |
+| `size` / `variant` / `color` | — | `'md'` / `'filled'` / `'primary'` | As for Date Picker. |
+| `onchange` | `(event: CustomEvent<[string, string] \| undefined>) => void` | — | After both ends are committed. |
+| `oninput` | `(event: CustomEvent<string>) => void` | — | As people type either end. |
+
+The parts and their props are listed on [Date Picker](/docs/composites/date-picker#parts).
+
+## Keyboard
+
+As for [Date Picker](/docs/composites/date-picker#keyboard). The first chosen day starts the range; the second completes it and closes the calendar. An inline calendar closes nothing, and focus stays on the day.
+
+## Next Steps
+
+- [Date Picker](/docs/composites/date-picker) — One date instead of a range.
+- [Field](/docs/widgets/field) — Add a visible label, help text, and an error message.

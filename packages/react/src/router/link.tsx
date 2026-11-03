@@ -47,6 +47,9 @@ export const Link = setup<LinkProps<AnyRoute>>((props) => {
     const { href, params, query } = $props;
 
     const activeUrl = untrack(() => new URL(getCurrentUrl()));
+    if (!activeUrl.pathname.endsWith('/')) {
+      activeUrl.pathname = `${activeUrl.pathname}/`;
+    }
 
     let route: AnyRoute | undefined;
     let target: URL;
@@ -72,7 +75,13 @@ export const Link = setup<LinkProps<AnyRoute>>((props) => {
       }
 
       if (router && href) {
-        route = untrack(() => router.find(target, true)?.route);
+        const match = untrack(() => router.find(target, true));
+
+        if (!match?.exception) route = match!.route;
+        if (match?.exception) {
+          console.error(`Unreachable link: "${href}" from "${activeUrl.pathname}"`);
+        }
+
         /* istanbul ignore next */
         if (route?.index) route = route.index as unknown as AnyRoute;
       }
@@ -110,8 +119,11 @@ export const Link = setup<LinkProps<AnyRoute>>((props) => {
   };
 
   const handleClick: MouseEventHandler<HTMLAnchorElement> = (e) => {
+    const crossOrigin = state.url.origin !== location.origin;
+
     // Let the browser handle standard "open in new tab/window" modifiers and custom targets.
-    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0 || $props.target) {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0 || crossOrigin || $props.target) {
+      $props.onClick?.(e);
       return;
     }
 

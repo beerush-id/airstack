@@ -7,6 +7,7 @@ import type {
   ObjLike,
   State,
   StateMetadata,
+  StateRelation,
   StateSubscribeFn,
   StateSubscriber,
   SubscribeFactoryInit,
@@ -34,6 +35,10 @@ import {
  * involves subscribing to the child state's changes and broadcasting them with an updated path that
  * includes the child's key.
  *
+ * An array element's key is its index, which the array's mutations move. The key is checked against the
+ * array when the child emits, looked up again when the element has moved, and the child is unlinked
+ * when it's no longer in the array, so a detached element never emits into the array it left.
+ *
  * @template T - The type of the parent state
  * @param init - The initial value of the parent state
  * @param meta - The metadata associated with the parent state
@@ -53,6 +58,7 @@ export function createLinkFactory<T extends Linkable>(
     const childInit = STATE_REGISTRY.get(childState) as Linkable;
     const childMeta = META_REGISTRY.get(childInit) as StateMetadata;
     const childController = CONTROLLER_REGISTRY.get(childState);
+    let childKey = childPath;
 
     // If the child state has a valid controller with subscribe method
     /* istanbul ignore else */
@@ -60,7 +66,22 @@ export function createLinkFactory<T extends Linkable>(
       const childHandler: StateSubscriber<unknown> = (_, event, emitter) => {
         // Ignore init events to prevent duplicate notifications
         if (event && event.type !== 'init') {
-          const keys = [childPath, ...event.keys] as KeyLike[];
+          if (Array.isArray(init)) {
+            const current = init[childKey as number];
+
+            if (current !== childInit && current !== childState) {
+              const index = indexOfChild(init, childInit, childState);
+
+              if (index < 0) {
+                (RELATION_REGISTRY.get(init) as StateRelation).unlink(childState);
+                return;
+              }
+
+              childKey = String(index);
+            }
+          }
+
+          const keys = [childKey, ...event.keys] as KeyLike[];
           // Broadcast the event with modified path to include the key
           broadcaster.broadcast(init, { ...event, keys }, emitter);
         }
@@ -291,4 +312,20 @@ export function createDestroyFactory<T extends Linkable>(init: T, state: State<T
   };
 
   return handler;
+}
+
+/**
+ * Finds where a child state sits in an array, which holds either the child's underlying object or its state.
+ *
+ * @param items - The parent's underlying array.
+ * @param childInit - The child's underlying object.
+ * @param childState - The child's state.
+ * @returns {number} The child's index, or -1 when the array no longer holds it.
+ */
+function indexOfChild(items: unknown[], childInit: Linkable, childState: State): number {
+  for (let i = 0; i < items.length; i++) {
+    if (items[i] === childInit || items[i] === childState) return i;
+  }
+
+  return -1;
 }

@@ -73,7 +73,7 @@ export function createGetter<T extends Linkable>(init: T, options?: TrapOverride
   const getter = (target: ObjLike, prop: KeyLike, receiver?: unknown) => {
     // Make sure target is the underlying object.
     /* istanbul ignore next */
-    if (STATE_REGISTRY.has(target)) target = STATE_REGISTRY.get(target) as typeof target;
+    if (STATE_REGISTRY.has(target)) target = getRawTarget(target) as typeof target;
 
     let value = Reflect.get(target, prop, receiver) as Linkable;
     const valueRef = STATE_REGISTRY.has(value) ? STATE_REGISTRY.get(value) : value;
@@ -175,9 +175,9 @@ export function createOwnKeys<T extends Linkable>(init: T, options?: TrapOverrid
   return (target: object) => {
     // Make sure target is the underlying object.
     /* istanbul ignore next */
-    if (STATE_REGISTRY.has(target)) target = STATE_REGISTRY.get(target) as typeof target;
+    if (STATE_REGISTRY.has(target)) target = getRawTarget(target) as typeof target;
 
-    if ($$.reactive) {
+    if (configs.trapOwnKeys && $$.reactive) {
       const observer = switchable.getObserver();
 
       /* istanbul ignore else */
@@ -235,7 +235,7 @@ export function createSetter<T extends Linkable>(init: T, options?: TrapOverride
 
   return (target: ObjLike, prop: KeyLike, value: Linkable, receiver?: unknown) => {
     // Make sure target is the underlying object.
-    if (STATE_REGISTRY.has(target)) target = STATE_REGISTRY.get(target) as typeof target;
+    if (STATE_REGISTRY.has(target)) target = getRawTarget(target) as typeof target;
 
     if ($$.secureWrite && typeof prop === 'string' && POISONED_KEYS.has(prop)) return true;
 
@@ -357,7 +357,7 @@ export function createRemover<T extends Linkable>(init: T, options?: TrapOverrid
 
   return (target: ObjLike, prop: KeyLike, receiver?: unknown) => {
     // Make sure target is the underlying object.
-    if (STATE_REGISTRY.has(target)) target = STATE_REGISTRY.get(target) as typeof target;
+    if (STATE_REGISTRY.has(target)) target = getRawTarget(target) as typeof target;
 
     // Escape directly if the property doesn't exist to prevent unnecessary work.
     if (!Object.getOwnPropertyDescriptor(target, prop)) return true;
@@ -428,4 +428,13 @@ export function createRemover<T extends Linkable>(init: T, options?: TrapOverrid
 
     return true;
   };
+}
+
+function getRawTarget(target: Linkable) {
+  let value = STATE_REGISTRY.get(target)!;
+  /* istanbul ignore next */
+  while (STATE_REGISTRY.has(value)) {
+    value = STATE_REGISTRY.get(value)!;
+  }
+  return value;
 }

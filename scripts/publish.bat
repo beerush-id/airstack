@@ -16,5 +16,13 @@ bpkg publish -f ui-kits/form
 bpkg publish -f ui-kits/react-form
 bpkg publish -f ui-kits/solid-form
 
+bpkg publish -f ui-kits/aria
+bpkg publish -f ui-kits/aui
+bpkg publish -f ui-kits/react-aui
+
+bpkg publish -f irpc-kits/ai-kit
+bpkg publish -f irpc-kits/r2-file
+bpkg publish -f irpc-kits/r2-image
+
 bpkg publish -f packages/vite-ssr
 bpkg publish -f packages/create-airlib

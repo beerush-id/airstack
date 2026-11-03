@@ -1,0 +1,139 @@
+---
+title: AUI Floating Toolbar
+nav: Floating Toolbar
+nav-priority: 202.5
+description: A toolbar that rises above the text people select — format, link, or comment on exactly what they picked, without reaching for a bar at the top of the page.
+keywords: [React floating toolbar, selection toolbar, text selection menu, inline formatting toolbar, bubble menu, React AUI floating toolbar]
+---
+
+# AUI Floating Toolbar
+
+People select text because they want to do something with it: make it bold, link it, quote it, comment on it. A toolbar pinned to the top of the page makes them travel there and back, and a hand-rolled bubble has to track the selection, sit above it, survive scrolling, and not lose the selection the moment a button is pressed.
+
+**AUI Floating Toolbar** brings the actions to the selection. Put it on the page and give it the controls; while text is selected, a glass strip rises above it, and a press on a control acts on the text still selected. Your content stays as it is — nothing wraps it.
+
+:::interactive[Floating toolbar demo]
+
+```tsx
+import { Button, FloatingToolbar, Readout } from '@airlib/react-aui';
+import { CommentIcon, FormatBoldIcon, FormatItalicIcon, LinkIcon } from '@airlib/react-aui/icons';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { DemoControl } from '@/components/DemoControl.js';
+import { GlassStage } from '@/components/GlassStage.js';
+
+const FloatingToolbarDemo = setup(() => {
+  const state = mutable({ size: 'sm', color: 'primary', variant: 'glass', action: '', text: '' });
+  const act = (action: string, text: string) => {
+    state.action = action;
+    state.text = text;
+  };
+
+  return () => (
+    <div className="demo-button">
+      <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} variant={$bind(state, 'variant')} />
+      <Snippet>
+        {() => (
+          <GlassStage>
+            <div data-floating-scope>
+              Select a few words of this note to bring the toolbar up. The trip to Lisbon moves to the second week of
+              May, and the hotel near the river holds our rooms until Friday — so the flights need booking before then.
+              <FloatingToolbar label="Formatting" color={state.color} variant={state.variant}>
+                {(text) => (
+                  <>
+                    <Button size={state.size} color={state.color} variant="text" className="aui-control-icon" aria-label="Bold" onClick={() => act('Bold', text)}>
+                      <FormatBoldIcon />
+                    </Button>
+                    <Button size={state.size} color={state.color} variant="text" className="aui-control-icon" aria-label="Italic" onClick={() => act('Italic', text)}>
+                      <FormatItalicIcon />
+                    </Button>
+                    <Button size={state.size} color={state.color} variant="text" className="aui-control-icon" aria-label="Insert link" onClick={() => act('Link', text)}>
+                      <LinkIcon />
+                    </Button>
+                    <Button size={state.size} color={state.color} variant="text" className="aui-control-icon" aria-label="Add comment" onClick={() => act('Comment', text)}>
+                      <CommentIcon />
+                    </Button>
+                  </>
+                )}
+              </FloatingToolbar>
+            </div>
+          </GlassStage>
+        )}
+      </Snippet>
+      <Snippet>
+        {() => (
+          <div className="flex flex-wrap gap-lg">
+            <Readout label="Action" value={state.action} empty="Nothing yet" />
+            <Readout label="On" value={state.text} empty="No text yet" />
+          </div>
+        )}
+      </Snippet>
+    </div>
+  );
+}, 'FloatingToolbarDemo');
+```
+
+```html
+<FloatingToolbarDemo />
+```
+
+<FloatingToolbarDemo />
+
+:::
+
+## Usage
+
+Place the toolbar anywhere, with its controls as children. Pass a function and it gets the selected text, so each control acts on what was picked:
+
+```tsx
+import { Button, FloatingToolbar } from '@airlib/react-aui';
+import { CommentIcon } from '@airlib/react-aui/icons';
+import '@airlib/aui/components/widgets/toolbar.css';
+
+export const Quote = () => (
+  <FloatingToolbar label="Quote">
+    {(text) => (
+      <Button variant="text" className="aui-control-icon" aria-label="Quote in reply" onClick={() => quote(text)}>
+        <CommentIcon />
+      </Button>
+    )}
+  </FloatingToolbar>
+);
+```
+
+The strip shows while a non-empty selection exists and hides when it collapses. It floats in the top layer, above the selection and centered on it, so no container clips it, and it stays on the selection while the page scrolls.
+
+### Limiting it to a region
+
+On its own the toolbar is free: a selection anywhere on the page brings it up. To keep it to one region, mark the region with `data-floating-scope` and place the toolbar inside it. When it mounts it finds the nearest scope around it and from then on answers only selections inside that region — the content needs no wrapper and no other change:
+
+```tsx
+<article data-floating-scope>
+  {note.body}
+  <FloatingToolbar label="Note actions">…</FloatingToolbar>
+</article>
+```
+
+Each scope can hold its own toolbar with its own controls; a selection in one region never brings up another region's strip.
+
+- **Pressing a control keeps the selection**, so the command reads the text still selected; fields placed on the strip take focus as usual.
+- **`Escape`** on the strip clears the selection, which hides it.
+- **The strip is a [Toolbar](/docs/widgets/toolbar)**: one tab stop, arrows between the controls, named by `label`.
+
+### Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `label` | `string` | — | Names the strip for screen readers. |
+| `disabled` | `boolean` | `false` | Stops a selection from bringing the strip up. |
+| `variant` | `glass`, `filled`, `tonal`, `outlined`, `elevated`, `text` | `'glass'` | The strip's surface, as on [Toolbar](/docs/widgets/toolbar). |
+| `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | Tints the `tonal` and `outlined` strips. |
+| `className` | `string` | — | Added alongside the built-in classes on the strip. |
+| `children` | `ReactNode`, `(text) => ReactNode` | — | The controls on the strip; the function form gets the selected text. |
+
+Set `--aui-floating-toolbar-gap` for the space between the strip and the selection.
+
+## Next Steps
+
+- [Toolbar](/docs/widgets/toolbar) — The strip itself, for actions that stay in place.
+- [Context Menu](/docs/composites/context-menu) — Commands at the pointer, opened with a right-click.
+- [Readout](/docs/widgets/readout) — Show what a command just acted on.

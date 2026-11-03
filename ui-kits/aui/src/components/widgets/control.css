@@ -1,0 +1,294 @@
+@layer theme {
+  :root {
+    --aui-control-bg: var(--color-container);
+    --aui-control-fg: var(--color-on-surface);
+    --aui-control-radius: var(--radius-lg);
+    --aui-control-outline-color: transparent;
+
+    /*
+     * Hover halo for small grab-and-toggle targets (slider and switch thumbs, checkbox, radio):
+     * a ring a share of the control's height wide, tinted by its role.
+     */
+    --aui-halo-scale: 0.27;
+    --aui-halo-strength: 12%;
+    --aui-halo-shade: 10%;
+
+    --aui-control-height: calc(var(--spacing) * 11);
+    --aui-control-padding-x: calc(var(--spacing) * 6);
+    --aui-control-gap: calc(var(--spacing) * 2);
+
+    --aui-control-height-xs: calc(var(--spacing) * 7);
+    --aui-control-padding-x-xs: calc(var(--spacing) * 2);
+    --aui-control-gap-xs: var(--spacing);
+
+    --aui-control-height-sm: calc(var(--spacing) * 9);
+    --aui-control-padding-x-sm: calc(var(--spacing) * 4);
+    --aui-control-gap-sm: calc(var(--spacing) * 1.5);
+
+    --aui-control-height-md: calc(var(--spacing) * 11);
+    --aui-control-padding-x-md: calc(var(--spacing) * 6);
+    --aui-control-gap-md: calc(var(--spacing) * 2);
+
+    --aui-control-height-lg: calc(var(--spacing) * 13);
+    --aui-control-padding-x-lg: calc(var(--spacing) * 8);
+    --aui-control-gap-lg: calc(var(--spacing) * 2.5);
+
+    --aui-control-height-xl: calc(var(--spacing) * 15);
+    --aui-control-padding-x-xl: calc(var(--spacing) * 10);
+    --aui-control-gap-xl: calc(var(--spacing) * 3);
+
+    --aui-control-height-xxl: calc(var(--spacing) * 17);
+    --aui-control-padding-x-xxl: calc(var(--spacing) * 12);
+    --aui-control-gap-xxl: calc(var(--spacing) * 3.5);
+  }
+}
+
+@layer component {
+  .aui-control {
+    gap: var(--aui-control-gap);
+    display: inline-flex;
+    align-items: center;
+    block-size: var(--aui-control-height);
+    padding-block: 0;
+    padding-inline: var(--aui-control-padding-x);
+    border-width: 0;
+    border-style: solid;
+    border-color: var(--aui-control-outline-color);
+    border-radius: var(--aui-control-radius);
+    position: relative;
+    z-index: 0;
+
+    color: var(--aui-control-fg);
+    background-color: var(--aui-control-bg);
+    forced-color-adjust: auto;
+
+    font-family: var(--font-brand, system-ui), serif;
+    font-size: var(--font-label-lg-size);
+    font-weight: 600;
+    line-height: var(--font-label-lg-line-height);
+    letter-spacing: var(--font-label-lg-tracking);
+    user-select: none;
+
+    transition-duration: var(--duration-short);
+    transition-timing-function: var(--ease-emphasized);
+    transition-property:
+      background-color, outline-color, color, border-color, border-width,
+      var(--aui-state-transitions);
+
+    &:focus-visible {
+      z-index: 1;
+    }
+
+    /*
+     * An icon leads or trails its label span: nothing but icons before it, or after it. A lone
+     * icon is neither, so it keeps the control's own padding, and neither is an icon between
+     * two parts — a date range's arrow. Text beside an icon goes in a span, since bare text
+     * isn't a sibling the selectors can see. The checks weigh nothing, so a part that places its
+     * own icon — a select's caret pushed to the end — still wins.
+     */
+    & > .aui-icon:first-of-type:where(:not(:last-child):not(:not(.aui-icon) ~ *)) {
+      margin-inline-start: calc((var(--aui-control-padding-x) / 2) * -1);
+      margin-inline-end: calc(var(--aui-control-gap) / 2);
+    }
+
+    & > .aui-icon:last-of-type:where(:not(:first-child):not(:has(~ :not(.aui-icon)))) {
+      margin-inline-start: calc(var(--aui-control-gap) / 2);
+      margin-inline-end: calc((var(--aui-control-padding-x) / 2) * -1);
+    }
+
+    /*
+     * A control holding nothing but an icon is square, without asking; text beside an icon sits in a
+     * span. The discovery weighs nothing, so a part that sizes its own icon button still wins.
+     */
+    &.aui-control-icon,
+    &:where(:has(> .aui-icon:only-child)) {
+      margin: 0;
+      padding: 0;
+      width: var(--aui-control-height);
+      height: var(--aui-control-height);
+      align-items: center;
+      justify-content: center;
+
+      & > .aui-icon {
+        margin: 0;
+      }
+    }
+
+    &[aria-expanded='true']
+      > .aui-icon:last-of-type:where(:not(:first-child):not(:has(~ :not(.aui-icon)))) {
+      transform: rotate(180deg);
+    }
+  }
+
+  /* Surface treatments shared by every control family; `filled` is the base rule above. */
+  .aui-control-tonal {
+    color: var(--aui-control-bg);
+    background-color: color-mix(
+      in oklch,
+      var(--aui-control-bg) var(--tone-elevation-low),
+      var(--light-up)
+    );
+  }
+
+  .aui-control-outlined {
+    --aui-control-outline-color: var(--aui-control-bg);
+    border-width: 1px;
+    color: var(--aui-control-bg);
+    background-color: transparent;
+  }
+
+  /*
+   * Glass: the frosted pane windows and the dock sit on, for a control floating over other content.
+   * The role color tints the pane and inks what's on it. Every glass surface sets
+   * `--aui-glass-backdrop: none` for what's inside it, so a glass control on glass keeps its tint
+   * but not a second blur, which would only muddy it; its lift is what keeps it a pane of its own
+   * there. Asked for less transparency, it turns solid.
+   */
+  .aui-control-glass {
+    --aui-control-outline-color: var(--aui-glass-control-edge, transparent);
+    border-width: 1px;
+    box-shadow: var(--aui-glass-lift, var(--elevation-1));
+    color: var(--aui-control-bg);
+    background-color: color-mix(
+      in oklch,
+      color-mix(
+          in oklch,
+          var(--aui-control-bg) 12%,
+          var(--aui-glass-bg, var(--color-container-low))
+        )
+        var(--aui-glass-tint, 55%),
+      transparent
+    );
+    backdrop-filter: var(
+      --aui-glass-backdrop,
+      blur(var(--aui-glass-blur, var(--size-sm))) saturate(1.4)
+    );
+
+    @media (prefers-reduced-transparency: reduce) {
+      background-color: color-mix(
+        in oklch,
+        var(--aui-control-bg) 12%,
+        var(--aui-glass-bg, var(--color-container-low))
+      );
+      backdrop-filter: none;
+    }
+  }
+
+  .aui-control-primary {
+    --aui-control-bg: var(--color-primary);
+    --aui-control-fg: var(--color-on-primary);
+    --focus-ring-color: var(--color-primary);
+  }
+
+  .aui-control-secondary {
+    --aui-control-bg: var(--color-secondary);
+    --aui-control-fg: var(--color-on-secondary);
+    --focus-ring-color: var(--color-secondary);
+  }
+
+  .aui-control-tertiary {
+    --aui-control-bg: var(--color-tertiary);
+    --aui-control-fg: var(--color-on-tertiary);
+    --focus-ring-color: var(--color-tertiary);
+  }
+
+  .aui-control-info {
+    --aui-control-bg: var(--color-info);
+    --aui-control-fg: var(--color-on-info);
+    --focus-ring-color: var(--color-info);
+  }
+
+  .aui-control-error {
+    --aui-control-bg: var(--color-error);
+    --aui-control-fg: var(--color-on-error);
+    --focus-ring-color: var(--color-error);
+  }
+
+  .aui-control-success {
+    --aui-control-bg: var(--color-success);
+    --aui-control-fg: var(--color-on-success);
+    --focus-ring-color: var(--color-success);
+  }
+
+  .aui-control-warning {
+    --aui-control-bg: var(--color-warning);
+    --aui-control-fg: var(--color-on-warning);
+    --focus-ring-color: var(--color-warning);
+  }
+
+  .aui-control-xs {
+    --aui-control-radius: var(--radius-xs);
+    --aui-control-height: var(--aui-control-height-xs);
+    --aui-control-padding-x: var(--aui-control-padding-x-xs);
+    --aui-control-gap: var(--aui-control-gap-xs);
+    --aui-icon-size: calc(var(--size-xs) * 0.65);
+    font-size: var(--font-label-sm-size);
+    line-height: var(--font-label-sm-line-height);
+    letter-spacing: var(--font-label-sm-tracking);
+  }
+
+  .aui-control-sm {
+    --aui-control-radius: var(--radius-sm);
+    --aui-control-height: var(--aui-control-height-sm);
+    --aui-control-padding-x: var(--aui-control-padding-x-sm);
+    --aui-control-gap: var(--aui-control-gap-sm);
+    --aui-icon-size: calc(var(--size-sm) * 0.65);
+    font-size: var(--font-label-md-size);
+    line-height: var(--font-label-md-line-height);
+    letter-spacing: var(--font-label-md-tracking);
+  }
+
+  .aui-control-md {
+    --aui-control-radius: var(--radius-md);
+    --aui-control-height: var(--aui-control-height-md);
+    --aui-control-padding-x: var(--aui-control-padding-x-md);
+    --aui-control-gap: var(--aui-control-gap-md);
+    --aui-icon-size: calc(var(--size-md) * 0.65);
+    font-size: var(--font-label-lg-size);
+    line-height: var(--font-label-lg-line-height);
+    letter-spacing: var(--font-label-lg-tracking);
+  }
+
+  .aui-control-lg {
+    --aui-control-radius: var(--radius-lg);
+    --aui-control-height: var(--aui-control-height-lg);
+    --aui-control-padding-x: var(--aui-control-padding-x-lg);
+    --aui-control-gap: var(--aui-control-gap-lg);
+    --aui-icon-size: calc(var(--size-lg) * 0.65);
+    font-size: var(--font-title-sm-size);
+    line-height: var(--font-title-sm-line-height);
+    letter-spacing: var(--font-title-sm-tracking);
+  }
+
+  .aui-control-xl {
+    --aui-control-radius: var(--radius-xl);
+    --aui-control-height: var(--aui-control-height-xl);
+    --aui-control-padding-x: var(--aui-control-padding-x-xl);
+    --aui-control-gap: var(--aui-control-gap-xl);
+    --aui-icon-size: calc(var(--size-xl) * 0.65);
+    font-size: var(--font-title-md-size);
+    line-height: var(--font-title-md-line-height);
+    letter-spacing: var(--font-title-md-tracking);
+  }
+
+  .aui-control-xxl {
+    --aui-control-radius: var(--radius-xl);
+    --aui-control-height: var(--aui-control-height-xxl);
+    --aui-control-padding-x: var(--aui-control-padding-x-xxl);
+    --aui-control-gap: var(--aui-control-gap-xxl);
+    --aui-icon-size: calc(var(--size-xl) * 0.65);
+    font-size: var(--font-title-lg-size);
+    line-height: var(--font-title-lg-line-height);
+    letter-spacing: var(--font-title-lg-tracking);
+  }
+
+  label:has(
+    input:not(:disabled),
+    button:not(:disabled),
+    [aria-pressed]:not([aria-disabled='true']),
+    [aria-checked]:not([aria-selected='true'], [aria-disabled='true'])
+  ) {
+    cursor: pointer;
+    user-select: none;
+  }
+}

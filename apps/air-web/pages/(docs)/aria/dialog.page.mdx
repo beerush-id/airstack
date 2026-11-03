@@ -1,0 +1,798 @@
+---
+title: 'Headless Dialog'
+description: 'Headless dialogs for React and SolidJS. Traps focus while modal, dismisses on Escape and outside clicks with a veto, returns focus to the trigger, and names the panel from its title and description — with no markup or styles imposed.'
+nav: 'Dialog'
+nav-priority: 293
+---
+
+import './aria.css';
+import './dialog.css';
+
+# Headless Dialog
+
+A dialog puts a panel over the page and holds attention until it closes. Getting it right means **trapping focus while it is modal**, **closing on `Escape` and outside clicks with a veto**, **returning focus to what opened it**, and **naming the panel from its own content**.
+
+**Headless Dialog** does all of that for you, and leaves the markup and the styling entirely yours.
+
+```tsx
+const dialog = aria('dialog', props);
+const trigger = dialog.trigger();
+const panel = dialog.panel();
+
+<button ref={trigger.ref} {...trigger.restProps(['children'])} />
+```
+
+:::interactive[Account Settings]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup, shadowPortal } from '@airlib/react';
+import type { ComponentProps, ReactNode } from 'react';
+
+type DemoDialogProps = ComponentProps<'div'> & {
+  open?: boolean;
+  modality?: 'modal' | 'nonmodal';
+  dismissable?: boolean;
+  children: ReactNode;
+};
+
+const DemoDialog = setup<DemoDialogProps>((props) => {
+  const dialog = aria('dialog', props);
+
+  return () => (
+    <div ref={dialog.ref} {...dialog.restProps(['children'])} className="demo-dialog-group">
+      {props.children}
+    </div>
+  );
+}, 'DemoDialog');
+
+type DemoDialogTriggerProps = ComponentProps<'button'> & {
+  children: ReactNode;
+};
+
+const DemoDialogTrigger = setup<DemoDialogTriggerProps>((props) => {
+  const trigger = aria('dialog-trigger', props);
+
+  return () => (
+    <button ref={trigger.ref} {...trigger.restProps(['children'])} className="demo-dialog-trigger">
+      {props.children}
+    </button>
+  );
+}, 'DemoDialogTrigger');
+
+type DemoDialogPanelProps = ComponentProps<'div'> & {
+  floating?: boolean;
+  children: ReactNode;
+};
+
+const DemoDialogPanel = setup<DemoDialogPanelProps>((props) => {
+  const panel = aria('dialog-panel', props);
+  const shadow = shadowPortal(() => panel.open);
+
+  return () => shadow(
+    <div
+      ref={panel.ref}
+      {...panel.restProps(['children', 'floating'])}
+      className={props.floating ? 'demo-dialog-panel demo-dialog-floating' : 'demo-dialog-panel'}
+    >
+      {props.children}
+    </div>
+  );
+}, 'DemoDialogPanel');
+
+type DemoDialogTitleProps = ComponentProps<'span'> & {
+  children: ReactNode;
+};
+
+const DemoDialogTitle = setup<DemoDialogTitleProps>((props) => {
+  const title = aria('dialog-title', props);
+
+  return () => (
+    <span ref={title.ref} {...title.restProps(['children'])} className="demo-dialog-title">
+      {props.children}
+    </span>
+  );
+}, 'DemoDialogTitle');
+
+type DemoDialogDescriptionProps = ComponentProps<'span'> & {
+  children: ReactNode;
+};
+
+const DemoDialogDescription = setup<DemoDialogDescriptionProps>((props) => {
+  const description = aria('dialog-description', props);
+
+  return () => (
+    <span ref={description.ref} {...description.restProps(['children'])} className="demo-dialog-note">
+      {props.children}
+    </span>
+  );
+}, 'DemoDialogDescription');
+
+type DemoDialogCloseProps = ComponentProps<'button'> & {
+  children: ReactNode;
+};
+
+const DemoDialogClose = setup<DemoDialogCloseProps>((props) => {
+  const close = aria('dialog-close', props);
+
+  return () => (
+    <button ref={close.ref} {...close.restProps(['children'])} className="demo-dialog-close">
+      {props.children}
+    </button>
+  );
+}, 'DemoDialogClose');
+```
+```html
+<div className="demo-dialog-stack">
+  <div className="demo-dialog-row">
+    <span className="demo-dialog-caption">Escape and outside clicks close it</span>
+    <DemoDialog>
+      <DemoDialogTrigger>Manage account</DemoDialogTrigger>
+      <DemoDialogPanel>
+        <DemoDialogTitle>Account settings</DemoDialogTitle>
+        <DemoDialogDescription>Update your security settings and the weekly digest.</DemoDialogDescription>
+        <div className="demo-dialog-actions">
+          <DemoDialogClose>Done</DemoDialogClose>
+        </div>
+      </DemoDialogPanel>
+    </DemoDialog>
+  </div>
+  <div className="demo-dialog-row">
+    <span className="demo-dialog-caption">One flag refuses both</span>
+    <DemoDialog dismissable={false}>
+      <DemoDialogTrigger>Choose a workspace</DemoDialogTrigger>
+      <DemoDialogPanel>
+        <DemoDialogTitle>Workspace required</DemoDialogTitle>
+        <DemoDialogDescription>Pick the workspace this project bills to before continuing.</DemoDialogDescription>
+        <div className="demo-dialog-actions">
+          <DemoDialogClose>Choose</DemoDialogClose>
+        </div>
+      </DemoDialogPanel>
+    </DemoDialog>
+  </div>
+  <div className="demo-dialog-row">
+    <span className="demo-dialog-caption">The page behind stays usable</span>
+    <DemoDialog modality="nonmodal">
+      <DemoDialogTrigger>Open scratchpad</DemoDialogTrigger>
+      <DemoDialogPanel floating>
+        <DemoDialogTitle>Scratchpad</DemoDialogTitle>
+        <DemoDialogDescription>Notes stay put while you work elsewhere on the page.</DemoDialogDescription>
+        <div className="demo-dialog-actions">
+          <DemoDialogClose>Hide</DemoDialogClose>
+        </div>
+      </DemoDialogPanel>
+    </DemoDialog>
+  </div>
+  <div className="demo-dialog-row">
+    <span className="demo-dialog-caption">Tab leaves the panel for the page</span>
+    <DemoDialog modality="nonmodal">
+      <DemoDialogTrigger>Open build log</DemoDialogTrigger>
+      <DemoDialogPanel floating>
+        <DemoDialogTitle>Build log</DemoDialogTitle>
+        <DemoDialogDescription>Follow the build without losing your place in the form.</DemoDialogDescription>
+        <div className="demo-dialog-actions">
+          <DemoDialogClose>Hide</DemoDialogClose>
+        </div>
+      </DemoDialogPanel>
+    </DemoDialog>
+  </div>
+</div>
+```
+
+<div className="demo-dialog-stack">
+  <div className="demo-dialog-row">
+    <span className="demo-dialog-caption">Escape and outside clicks close it</span>
+    <DemoDialog>
+      <DemoDialogTrigger>Manage account</DemoDialogTrigger>
+      <DemoDialogPanel>
+        <DemoDialogTitle>Account settings</DemoDialogTitle>
+        <DemoDialogDescription>Update your security settings and the weekly digest.</DemoDialogDescription>
+        <div className="demo-dialog-actions">
+          <DemoDialogClose>Done</DemoDialogClose>
+        </div>
+      </DemoDialogPanel>
+    </DemoDialog>
+  </div>
+  <div className="demo-dialog-row">
+    <span className="demo-dialog-caption">One flag refuses both</span>
+    <DemoDialog dismissable={false}>
+      <DemoDialogTrigger>Choose a workspace</DemoDialogTrigger>
+      <DemoDialogPanel>
+        <DemoDialogTitle>Workspace required</DemoDialogTitle>
+        <DemoDialogDescription>Pick the workspace this project bills to before continuing.</DemoDialogDescription>
+        <div className="demo-dialog-actions">
+          <DemoDialogClose>Choose</DemoDialogClose>
+        </div>
+      </DemoDialogPanel>
+    </DemoDialog>
+  </div>
+  <div className="demo-dialog-row">
+    <span className="demo-dialog-caption">The page behind stays usable</span>
+    <DemoDialog modality="nonmodal">
+      <DemoDialogTrigger>Open scratchpad</DemoDialogTrigger>
+      <DemoDialogPanel floating>
+        <DemoDialogTitle>Scratchpad</DemoDialogTitle>
+        <DemoDialogDescription>Notes stay put while you work elsewhere on the page.</DemoDialogDescription>
+        <div className="demo-dialog-actions">
+          <DemoDialogClose>Hide</DemoDialogClose>
+        </div>
+      </DemoDialogPanel>
+    </DemoDialog>
+  </div>
+  <div className="demo-dialog-row">
+    <span className="demo-dialog-caption">Tab leaves the panel for the page</span>
+    <DemoDialog modality="nonmodal">
+      <DemoDialogTrigger>Open build log</DemoDialogTrigger>
+      <DemoDialogPanel floating>
+        <DemoDialogTitle>Build log</DemoDialogTitle>
+        <DemoDialogDescription>Follow the build without losing your place in the form.</DemoDialogDescription>
+        <div className="demo-dialog-actions">
+          <DemoDialogClose>Hide</DemoDialogClose>
+        </div>
+      </DemoDialogPanel>
+    </DemoDialog>
+  </div>
+</div>
+:::
+
+:::tip
+**Closing is one state write.** Every path — the close button, `Escape`, an outside click, or `dialog.close()` — lands on `open = false`, and the `close` event fires once per transition whichever path got there.
+:::
+
+## Dialog
+
+**The overlay as a whole.** It holds the open state, the modality, and the dismissal policy; the trigger, the panel, and the elements inside it all follow it.
+
+### Usage
+
+```ts
+aria<E extends HTMLElement = HTMLElement>(
+  role: 'dialog',
+  props?: DialogProps,
+  options?: DialogOptions
+): DialogAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type DialogProps = ComponentProps<'div'> & {
+  id?: string;
+  open?: boolean;
+  modality?: 'modal' | 'nonmodal';
+  dismissable?: boolean;
+  onopen?: (event: CustomEvent<void>) => void;
+  onclose?: (event: CustomEvent<void>) => void;
+};
+
+const Dialog = setup<DialogProps>((props) => {
+  const dialog = aria('dialog', props);
+
+  return () => (
+    <div ref={dialog.ref} {...dialog.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps, JSX } from 'solid-js';
+
+type DialogProps = ComponentProps<'div'> & {
+  id?: string;
+  open?: boolean;
+  modality?: 'modal' | 'nonmodal';
+  dismissable?: boolean;
+  onopen?: (event: CustomEvent<void>) => void;
+  onclose?: (event: CustomEvent<void>) => void;
+};
+
+const Dialog = setup<DialogProps>((props) => {
+  const dialog = aria('dialog', props);
+
+  return (
+    <div ref={dialog.ref} {...dialog.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
+
+Keep the panel mounted: a closed panel carries `hidden` on a custom host, so the same instance keeps managing its edges, dismissal, and focus return.
+
+### Parameters
+
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **open** _boolean, optional, default `false`_: Whether the panel is showing. Read and write it through `dialog.open`.
+- **modality** _'modal' | 'nonmodal', optional, default `'modal'`_: Modal traps focus inside the panel and announces `aria-modal="true"`; nonmodal leaves the page reachable and announces `aria-modal="false"`.
+- **dismissable** _boolean, optional, default `true`_: Whether `Escape` and outside clicks close it.
+- **id** _string, optional_: The prefix every part's identifier is built from, generated as `dialog-<n>` when you leave it out.
+- **onopen** / **onclose** _(event: CustomEvent&lt;void&gt;) =&gt; void, optional_: The panel's visibility edges, once per transition, whichever path caused it.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **open** _boolean, read and write_: Whether the panel is showing.
+- **modality** _'modal' | 'nonmodal'_: The modality in use, yours or the default.
+- **dismissable** _boolean_: Whether Escape and outside clicks close it.
+- **id** _string_: The prefix in use, generated when you left it out.
+
+### Methods
+
+_What you call on the instance._
+
+- **`show()`**: Opens the panel.
+- **`close()`**: Closes it and returns focus to what opened it.
+- **`toggle()`**: Opens or closes, whichever applies.
+- **`trigger(props?, options?)`** → `DialogTriggerAria`: Creates the button that opens it.
+- **`panel(props?, options?)`** → `DialogPanelAria`: Creates the overlay container.
+- **`title(props?, options?)`** → `DialogTitleAria`: Creates the element that names it.
+- **`description(props?, options?)`** → `DialogDescriptionAria`: Creates the element that explains it.
+- **`closeButton(props?, options?)`** → `DialogCloseAria`: Creates a button that closes it.
+
+### Events
+
+_What it tells you._
+
+- **`open`** — the panel became visible, after native display, focus capture, and autofocus settled.
+- **`close`** — the panel stopped being visible, from every path that closes it.
+
+```tsx
+const dialog = aria('dialog', {
+  onclose: () => draft.save(),
+});
+```
+
+### Navigation
+
+_What the keys do._
+
+- **`Tab` / `Shift+Tab`** — cycle through the panel's focusable elements, trapped inside it while modal; free to leave the panel while nonmodal.
+- **`Escape`** — closes it when `dismissable`, after a cancelable `cancel` event your code can veto with `preventDefault`.
+- **`Enter` / `Space`** — activate the focused control, as anywhere else.
+
+## Dialog Trigger
+
+**The button that opens it.**
+
+### Usage
+
+```ts
+aria<E extends HTMLElement = HTMLElement>(
+  role: 'dialog-trigger',
+  props?: AriaProps,
+  options?: AriaOptions
+): DialogTriggerAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+const DialogTrigger = setup<ComponentProps<'button'>>((props) => {
+  const trigger = aria('dialog-trigger', props);
+
+  return () => (
+    <button ref={trigger.ref} {...trigger.restProps(['children'])}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+const DialogTrigger = setup<ComponentProps<'button'>>((props) => {
+  const trigger = aria('dialog-trigger', props);
+
+  return (
+    <button ref={trigger.ref} {...trigger.restProps(['children'])}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+:::
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **open** _boolean_: Whether the dialog it opens is showing.
+- **disabled** _boolean_: Whether this trigger refuses to open it.
+
+### How it behaves
+
+- **Announced as opening something.** `aria-haspopup="dialog"` with `aria-expanded` tracking the panel and `aria-controls` pointing at it.
+- **Clicking toggles.** A disabled trigger refuses, on either host.
+- **It gets the focus back.** When the panel closes, focus returns to whatever held it at open — usually this button.
+- **It is exempt from light dismissal.** Clicking the trigger while the panel is open toggles rather than dismissing and reopening.
+
+## Dialog Panel
+
+**The overlay itself.** The trap, the dismissal paths, and the accessible linkages live here.
+
+### Usage
+
+```ts
+aria<E extends HTMLElement = HTMLElement>(
+  role: 'dialog-panel',
+  props?: AriaProps,
+  options?: AriaOptions
+): DialogPanelAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+const DialogPanel = setup<ComponentProps<'div'>>((props) => {
+  const panel = aria('dialog-panel', props);
+
+  return () => (
+    <div ref={panel.ref} {...panel.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps, JSX } from 'solid-js';
+
+const DialogPanel = setup<ComponentProps<'div'> & { children: JSX.Element }>((props) => {
+  const panel = aria('dialog-panel', props);
+
+  return (
+    <div ref={panel.ref} {...panel.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **open** _boolean_: Whether the panel is showing.
+
+### How it behaves
+
+- **Named from its own content.** `role="dialog"` with `aria-modal` from the modality, labelled by the title and described by the description through derived identifiers.
+- **Focus lands inside on open while modal.** An `[autofocus]` element when you mark one, otherwise the first focusable child, otherwise the panel itself. A nonmodal panel leaves focus where it was.
+- **The trap holds while modal.** `Tab` and `Shift+Tab` cycle within the panel; nonmodal leaves them free.
+- **Light dismissal ignores the trigger.** A pointer down anywhere outside the panel closes it, except on the trigger that owns it.
+- **A native `<dialog>` host stays native.** Visibility runs through `showModal()` and `close()`; a custom host gets `hidden` instead.
+
+## Dialog Title
+
+**The element that names it.** Its identifier is what the panel's `aria-labelledby` points at.
+
+### Usage
+
+```ts
+aria<E extends HTMLElement = HTMLElement>(
+  role: 'dialog-title',
+  props?: AriaProps,
+  options?: AriaOptions
+): DialogTitleAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+const DialogTitle = setup<ComponentProps<'span'>>((props) => {
+  const title = aria('dialog-title', props);
+
+  return () => (
+    <span ref={title.ref} {...title.restProps(['children'])}>
+      {props.children}
+    </span>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps, JSX } from 'solid-js';
+
+const DialogTitle = setup<ComponentProps<'span'> & { children: JSX.Element }>((props) => {
+  const title = aria('dialog-title', props);
+
+  return (
+    <span ref={title.ref} {...title.restProps(['children'])}>
+      {props.children}
+    </span>
+  );
+});
+```
+
+:::
+
+### How it behaves
+
+- **One identifier, derived.** Compiles `{id}-title`, the address the panel labels itself with.
+
+## Dialog Description
+
+**The element that explains it.** Its identifier is what the panel's `aria-describedby` points at.
+
+### Usage
+
+```ts
+aria<E extends HTMLElement = HTMLElement>(
+  role: 'dialog-description',
+  props?: AriaProps,
+  options?: AriaOptions
+): DialogDescriptionAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+const DialogDescription = setup<ComponentProps<'span'>>((props) => {
+  const description = aria('dialog-description', props);
+
+  return () => (
+    <span ref={description.ref} {...description.restProps(['children'])}>
+      {props.children}
+    </span>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps, JSX } from 'solid-js';
+
+const DialogDescription = setup<ComponentProps<'span'> & { children: JSX.Element }>((props) => {
+  const description = aria('dialog-description', props);
+
+  return (
+    <span ref={description.ref} {...description.restProps(['children'])}>
+      {props.children}
+    </span>
+  );
+});
+```
+
+:::
+
+### How it behaves
+
+- **One identifier, derived.** Compiles `{id}-description`, the address the panel describes itself with.
+
+## Dialog Close Button
+
+**A button whose only job is closing.**
+
+### Usage
+
+```ts
+aria<E extends HTMLElement = HTMLElement>(
+  role: 'dialog-close',
+  props?: AriaProps,
+  options?: AriaOptions
+): DialogCloseAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+const DialogCloseButton = setup<ComponentProps<'button'>>((props) => {
+  const close = aria('dialog-close', props);
+
+  return () => (
+    <button ref={close.ref} {...close.restProps(['children'])}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+const DialogCloseButton = setup<ComponentProps<'button'>>((props) => {
+  const close = aria('dialog-close', props);
+
+  return (
+    <button ref={close.ref} {...close.restProps(['children'])}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+:::
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **open** _boolean_: Whether the dialog it closes is showing.
+- **disabled** _boolean_: Whether this button refuses to close it.
+
+### How it behaves
+
+- **Closes and returns focus.** One click commits `open = false`; the focus restoration runs as it does for every other closing path.
+- **Give it a name.** An icon-only close button needs an `aria-label` of your own — the controller invents none.
+
+## Next Steps
+
+- **[Confirm](/docs/aria/confirm)**: The non-dismissable alertdialog built on this composite.
+- **[Popover](/docs/aria/popover)**: Anchored overlays for menus and auxiliary content.
+- **[Disclosure](/docs/aria/disclosure)**: A show-hide unit that interrupts nothing.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Dialog
+
+```ts
+interface DialogProps {
+  id?: string;
+  open?: boolean;
+  modality?: 'modal' | 'nonmodal';
+  dismissable?: boolean;
+  onopen?: (event: CustomEvent<void>) => void;
+  onclose?: (event: CustomEvent<void>) => void;
+}
+
+interface DialogAttributes {
+  id?: string;
+}
+
+declare class DialogAria {
+  id: string;
+  get open(): boolean;
+  set open(value: boolean);
+  get modality(): 'modal' | 'nonmodal';
+  get dismissable(): boolean;
+
+  show(): void;
+  close(): void;
+  toggle(): void;
+
+  trigger(props?: AriaProps, options?: AriaOptions): DialogTriggerAria;
+  panel(props?: AriaProps, options?: AriaOptions): DialogPanelAria;
+  title(props?: AriaProps, options?: AriaOptions): DialogTitleAria;
+  description(props?: AriaProps, options?: AriaOptions): DialogDescriptionAria;
+  closeButton(props?: AriaProps, options?: AriaOptions): DialogCloseAria;
+}
+```
+
+### Dialog Trigger
+
+```ts
+interface DialogTriggerAttributes {
+  type?: string;
+  disabled?: boolean;
+  role?: string;
+  tabindex?: number;
+  'aria-haspopup'?: 'dialog';
+  'aria-expanded'?: 'true' | 'false';
+  'aria-controls'?: string;
+  'aria-disabled'?: 'true' | 'false';
+}
+
+declare class DialogTriggerAria {
+  get open(): boolean;
+  get disabled(): boolean;
+}
+```
+
+### Dialog Panel
+
+```ts
+interface DialogPanelAttributes {
+  id?: string;
+  role?: 'dialog';
+  'aria-modal'?: 'true' | 'false';
+  'aria-labelledby'?: string;
+  'aria-describedby'?: string;
+  hidden?: boolean;
+}
+
+declare class DialogPanelAria {
+  get open(): boolean;
+}
+```
+
+### Dialog Close Button
+
+```ts
+interface DialogCloseAttributes {
+  type?: string;
+  disabled?: boolean;
+  role?: string;
+  tabindex?: number;
+  'aria-disabled'?: 'true' | 'false';
+}
+
+declare class DialogCloseAria {
+  get open(): boolean;
+  get disabled(): boolean;
+}
+```
+
+### Dialog Title
+
+```ts
+interface DialogTitleAttributes {
+  id?: string;
+}
+```
+
+### Dialog Description
+
+```ts
+interface DialogDescriptionAttributes {
+  id?: string;
+}
+```
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`props`** / **`restProps(omit)`** is what you spread onto the host — your props minus the keys the controller writes and any you name, with the compiled attributes merged in; **`ref`** is what you bind the element with; **`attributes`** is that compiled dictionary on its own, when you need the low-level view.
+- **`assign()`** changes several parameters at once, **`refine()`** adds attributes of your own, **`on()`** listens for anything the part fires, **`destroy()`** tears it down.

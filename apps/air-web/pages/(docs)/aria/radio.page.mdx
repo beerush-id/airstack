@@ -1,0 +1,284 @@
+---
+title: 'Headless Radio'
+description: 'Headless radio options for React and SolidJS. Select-only state, one tab stop for the group, label clicks, native input sync, and group coordination — with no markup or styles imposed.'
+nav: 'Radio'
+nav-priority: 240
+---
+
+import './aria.css';
+import './radio.css';
+
+# Headless Radio
+
+A radio is one answer out of several. Getting it right means **marking the option you pick and unmarking the one that held the slot**, **keeping the whole group at a single tab stop**, **never letting an option turn itself off**, and **telling your code which option is on**.
+
+**Headless Radio** does all of that for you, and leaves the markup and the styling entirely yours.
+
+```tsx
+const radio = aria('radio', props, { native: false });
+
+<div ref={radio.ref} {...radio.restProps(['children'])} />
+```
+
+:::interactive[Plan Picker]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type DemoRadioGroupProps = ComponentProps<'div'> & {
+  value?: string;
+  disabled?: boolean;
+};
+
+const DemoRadioGroup = setup<DemoRadioGroupProps>((props) => {
+  const group = aria('radio-group', props);
+
+  return () => (
+    <div ref={group.ref} {...group.restProps(['value', 'disabled', 'children'])} className="demo-radio-group">
+      {props.children}
+    </div>
+  );
+}, 'DemoRadioGroup');
+
+type DemoRadioProps = ComponentProps<'label'> & {
+  value: string;
+  checked?: boolean;
+  disabled?: boolean;
+  hint?: string;
+};
+
+const DemoRadio = setup<DemoRadioProps>((props) => {
+  const radio = aria('radio', props, { native: false });
+
+  return () => (
+    <label className="demo-radio-card">
+      <div ref={radio.ref} {...radio.restProps(['children', 'hint'])} className="demo-radio" />
+      <span className="demo-radio-text">
+        <span className="demo-radio-title">{props.children}</span>
+        <span className="demo-radio-hint">{props.hint}</span>
+      </span>
+    </label>
+  );
+}, 'DemoRadio');
+```
+```html
+<DemoRadioGroup value="pro">
+  <DemoRadio value="starter" hint="For a side project">Starter</DemoRadio>
+  <DemoRadio value="pro" hint="For a growing team">Pro</DemoRadio>
+  <DemoRadio value="enterprise" hint="Talk to sales" disabled={true}>Enterprise</DemoRadio>
+</DemoRadioGroup>
+```
+
+<DemoRadioGroup value="pro">
+  <DemoRadio value="starter" hint="For a side project">Starter</DemoRadio>
+  <DemoRadio value="pro" hint="For a growing team">Pro</DemoRadio>
+  <DemoRadio value="enterprise" hint="Talk to sales" disabled={true}>Enterprise</DemoRadio>
+</DemoRadioGroup>
+:::
+
+:::tip
+A radio never turns itself off. Clicking or pressing `Space` on the option that already holds the slot commits nothing and fires no event, and `deselect()` does nothing either. **To move the slot, mark another option; to empty it, write the group's value.**
+:::
+
+## Radio
+
+**One option.** Marking it takes the slot from whichever option held it.
+
+### Usage
+
+```ts
+aria<E extends BaseElement = HTMLInputElement | HTMLButtonElement>(
+  role: 'radio',
+  props?: RadioProps,
+  options?: RadioOptions
+): RadioAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type PlanProps = ComponentProps<'label'> & {
+  value: string;
+  checked?: boolean;
+  disabled?: boolean;
+};
+
+const Plan = setup<PlanProps>((props) => {
+  const radio = aria('radio', props, { native: false });
+
+  return () => (
+    <label>
+      <div ref={radio.ref} {...radio.restProps(['children'])} />
+      <span>{props.children}</span>
+    </label>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type PlanProps = ComponentProps<'label'> & {
+  value: string;
+  checked?: boolean;
+  disabled?: boolean;
+};
+
+const Plan = setup<PlanProps>((props) => {
+  const radio = aria('radio', props, { native: false });
+
+  return (
+    <label>
+      <div ref={radio.ref} {...radio.restProps(['children'])} />
+      <span>{props.children}</span>
+    </label>
+  );
+});
+```
+
+:::
+
+### Parameters
+
+_What you pass in. The props object stays live — change a value on it and the option follows._
+
+- **value** _Primitive, optional_: The token this option contributes to the group's shared selection. **An option without one isn't a member** — it keeps its own `checked` and can never take or lose the slot.
+- **checked** _boolean, optional, default `false`_: Whether this option holds the selection. Inside a group this is read from the shared value; standalone it is the state itself.
+- **disabled** _boolean, optional_: Locks this option. The group's own `disabled` reaches every member the same way.
+- **name** _string, optional_: The field name this option reports under when it submits with a form.
+- **onchange** _(event: CustomEvent&lt;boolean&gt;) =&gt; void, optional_: Called when the selection changes. _Inside a group, `detail` carries the group's shared value instead._
+
+### Options
+
+_What you fix when you create it. Read once, never reactive._
+
+- **native** _boolean, optional, default `true`_: Pass `false` when the host isn't an `<input type="radio">` and you want `role`, `aria-checked`, a place in the roving tab order, and `Space` handling on it.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **checked** _boolean_: Whether this option holds the slot. **Writing `true` takes it**; writing `false` does nothing, because a radio cannot uncheck itself.
+- **disabled** _boolean_: Whether this option is locked, **including by the group**.
+- **value** _Primitive_: The token this option contributes to the group.
+- **id** _string_: The option's own identifier — `radio-<n>`, which is also the DOM id unless the group namespaces it.
+
+### Methods
+
+_What you call on the instance._
+
+- **`select()`**: Takes the slot from whichever option holds it. _Does nothing while disabled._
+- **`deselect()`**: _Does nothing, ever._ A radio is select-only.
+- **`toggle()`**: Takes the slot — the same as `select()`, because the option already holding it has nothing to toggle off.
+
+### How it behaves
+
+- **Two hosts, one state.** On a real `<input type="radio">` it drives the `.checked` and `.disabled` properties and adds no `role` or `aria-checked`; on any other element it compiles `role="radio"`, `aria-checked`, and a place in the tab order.
+- **Select-only.** Nothing turns a radio off: re-activating the holder commits nothing and fires no event, and `deselect()` is a no-op. The slot moves only when another option takes it, or when the group's value changes underneath it.
+- **One option in the slot.** Inside a radio group, marking this option unmarks the one that held it — and **exclusivity outranks a disabled hold**, so an option locked out of interaction can still lose the slot.
+- **One tab stop for the group.** The selected option carries `tabindex="0"` and every other option `-1`, so `Tab` enters at the answer on screen and the arrow keys walk the rest.
+- **Disabled means inert.** Click, `Space`, and every state write are refused, and the activation events themselves are cancelled and stopped from bubbling — so nothing above the option reacts to a disabled click either.
+- **The label works on any host.** Clicking the `<label>` text takes the slot, the way the browser does it for a real input — which is what lets a whole card be the option.
+- **Nothing submits for you.** `name` and `value` are consumed by the controller, so the compiled dictionary carries no form attributes — put them on the element yourself when the option goes with a form.
+
+### Events
+
+_What it tells you._
+
+- **`change`** — fires when the slot really moves, with the new state in `detail`. A grouped option carries the group's shared value there instead. A no-op on the holder, a disabled option, and a canceled trigger stay silent.
+
+```tsx
+const radio = aria('radio', {
+  value: 'pro',
+  onchange: (event) => choosePlan(event.detail),
+});
+```
+
+### Navigation
+
+_What the keys do._
+
+- **`Space`** — takes the slot. The keydown suppresses the page scroll and the commit lands on keyup; a canceled keydown never commits. **`Enter` is not a radio key** and commits nothing.
+- **`Click`** — takes the slot, including through the option's label.
+- **`Tab`** — enters the group at the option holding the slot, then leaves it. Disabled options are out of the tab order.
+- **Arrow keys** — belong to the group container, not the option: focus moves **and** the selection follows in the same step, skipping disabled options. See **[Radio Group](/docs/aria/radio-group)**.
+
+## Next Steps
+
+- **[Radio Group](/docs/aria/radio-group)**: The container owning the shared value, the arrow keys, and the required state.
+- **[Checkbox](/docs/aria/checkbox)**: Independent marks, and the undecided state between them.
+- **[Switch](/docs/aria/switch)**: The same two states announcing as an on-off setting.
+- **[Select](/docs/aria/select)**: The same exclusivity folded into a closed control.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Radio
+
+```ts
+interface RadioProps {
+  value?: Primitive;
+  checked?: boolean;
+  disabled?: boolean;
+  name?: string;
+  onchange?: (event: CustomEvent<boolean>) => void;
+}
+
+interface RadioOptions {
+  native?: boolean;
+}
+
+interface RadioAttributes {
+  id?: string;
+  role?: 'radio';
+  type?: 'radio';
+  checked?: boolean;
+  disabled?: boolean;
+  tabindex?: number;
+  'aria-checked'?: 'true' | 'false';
+  'aria-disabled'?: 'true' | 'false';
+}
+
+declare class RadioAria {
+  id: string;
+  get checked(): boolean;
+  set checked(value: boolean);
+  get disabled(): boolean;
+  get value(): Primitive;
+
+  select(): void;
+  deselect(): void;
+  toggle(): void;
+}
+```
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`props`** / **`restProps(omit)`** is what you spread onto the host — your props minus the keys the controller writes and any you name, with the compiled attributes merged in; **`ref`** is what you bind the element with; **`attributes`** is that compiled dictionary on its own, when you need the low-level view.
+- **`assign()`** changes several parameters at once, **`refine()`** adds attributes of your own, **`on()`** listens for anything the part fires, **`destroy()`** tears it down.

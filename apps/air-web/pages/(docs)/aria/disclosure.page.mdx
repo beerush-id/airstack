@@ -1,0 +1,483 @@
+---
+title: 'Headless Disclosure'
+description: 'Headless disclosures for React and SolidJS. Derives both ends from one identifier, mirrors the expansion on the trigger and the panel, and toggles once per gesture — with no markup or styles imposed.'
+nav: 'Disclosure'
+nav-priority: 292
+---
+
+import './aria.css';
+import './disclosure.css';
+
+# Headless Disclosure
+
+A disclosure hides a section of content behind a single trigger. Getting it right means **deriving both ends from one identifier**, **announcing the expansion state on the trigger without owning it**, **keeping the panel's meaning while it is collapsed**, and **committing one toggle per gesture across pointer, `Enter`, and `Space`**.
+
+**Headless Disclosure** does all of that for you, and leaves the markup and the styling entirely yours.
+
+```tsx
+const disclosure = aria('disclosure', props);
+
+<div ref={disclosure.ref} {...disclosure.restProps(['children'])} />
+```
+
+
+:::interactive[Order Policies]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps, ReactNode } from 'react';
+
+type DemoDisclosureProps = ComponentProps<'div'> & {
+  expanded?: boolean;
+  disabled?: boolean;
+  children: ReactNode;
+};
+
+const DemoDisclosure = setup<DemoDisclosureProps>((props) => {
+  const disclosure = aria('disclosure', props);
+
+  return () => (
+    <div ref={disclosure.ref} {...disclosure.restProps(['children'])} className="demo-disclosure">
+      {props.children}
+    </div>
+  );
+}, 'DemoDisclosure');
+
+type DemoDisclosureTriggerProps = ComponentProps<'button'> & {
+  label: string;
+};
+
+const DemoDisclosureTrigger = setup<DemoDisclosureTriggerProps>((props) => {
+  const trigger = aria('disclosure-trigger');
+
+  return () => (
+    <button ref={trigger.ref} {...trigger.props} className="demo-disclosure-trigger">
+      {props.label}
+    </button>
+  );
+}, 'DemoDisclosureTrigger');
+
+type DemoDisclosurePanelProps = ComponentProps<'div'> & {
+  children: ReactNode;
+};
+
+const DemoDisclosurePanel = setup<DemoDisclosurePanelProps>((props) => {
+  const panel = aria('disclosure-panel');
+
+  return () => (
+    <div ref={panel.ref} {...panel.restProps(['children'])} className="demo-disclosure-panel">
+      {props.children}
+    </div>
+  );
+}, 'DemoDisclosurePanel');
+```
+```html
+<div className="demo-disclosure-stack">
+  <div className="demo-disclosure-row">
+    <span className="demo-disclosure-caption">Starts expanded</span>
+    <DemoDisclosure expanded={true}>
+      <DemoDisclosureTrigger label="Shipping details" />
+      <DemoDisclosurePanel>Arrives in 2–3 business days, tracked door to door.</DemoDisclosurePanel>
+    </DemoDisclosure>
+  </div>
+  <div className="demo-disclosure-row">
+    <span className="demo-disclosure-caption">Starts collapsed</span>
+    <DemoDisclosure>
+      <DemoDisclosureTrigger label="Return policy" />
+      <DemoDisclosurePanel>Unused items come back within 30 days for a full refund.</DemoDisclosurePanel>
+    </DemoDisclosure>
+  </div>
+  <div className="demo-disclosure-row">
+    <span className="demo-disclosure-caption">Disabled unit</span>
+    <DemoDisclosure disabled={true}>
+      <DemoDisclosureTrigger label="Locked section" />
+      <DemoDisclosurePanel>Membership unlocks this content.</DemoDisclosurePanel>
+    </DemoDisclosure>
+  </div>
+</div>
+```
+
+<div className="demo-disclosure-stack">
+  <div className="demo-disclosure-row">
+    <span className="demo-disclosure-caption">Starts expanded</span>
+    <DemoDisclosure expanded={true}>
+      <DemoDisclosureTrigger label="Shipping details" />
+      <DemoDisclosurePanel>Arrives in 2–3 business days, tracked door to door.</DemoDisclosurePanel>
+    </DemoDisclosure>
+  </div>
+  <div className="demo-disclosure-row">
+    <span className="demo-disclosure-caption">Starts collapsed</span>
+    <DemoDisclosure>
+      <DemoDisclosureTrigger label="Return policy" />
+      <DemoDisclosurePanel>Unused items come back within 30 days for a full refund.</DemoDisclosurePanel>
+    </DemoDisclosure>
+  </div>
+  <div className="demo-disclosure-row">
+    <span className="demo-disclosure-caption">Disabled unit</span>
+    <DemoDisclosure disabled={true}>
+      <DemoDisclosureTrigger label="Locked section" />
+      <DemoDisclosurePanel>Membership unlocks this content.</DemoDisclosurePanel>
+    </DemoDisclosure>
+  </div>
+</div>
+:::
+
+:::tip
+**One state drives both ends.** The trigger compiles `aria-expanded` and `aria-controls`, the panel compiles `role="region"`, `aria-labelledby`, and `hidden`, and both addresses are derived from the container's `id`.
+:::
+
+## Disclosure
+
+**The unit as a whole.** It holds the expansion state and the namespace the trigger and the panel address each other with.
+
+### Usage
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'disclosure',
+  props?: DisclosureProps,
+  options?: DisclosureOptions
+): DisclosureAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type DisclosureProps = ComponentProps<'div'> & {
+  expanded?: boolean;
+  disabled?: boolean;
+};
+
+const Disclosure = setup<DisclosureProps>((props) => {
+  const disclosure = aria('disclosure', props);
+
+  return () => (
+    <div ref={disclosure.ref} {...disclosure.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type DisclosureProps = ComponentProps<'div'> & {
+  expanded?: boolean;
+  disabled?: boolean;
+};
+
+const Disclosure = setup<DisclosureProps>((props) => {
+  const disclosure = aria('disclosure', props);
+
+  return (
+    <div ref={disclosure.ref} {...disclosure.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
+
+### Parameters
+
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **id** _string, optional_: The namespace both ends derive their identifiers from, generated as `disclosure-<n>` when you leave it out.
+- **expanded** _boolean, optional, default `false`_: Whether the panel is open. Written through the instance it commits and announces; written straight on the props it moves the panel silently.
+- **disabled** _boolean, optional_: Refuses activation and state change on every part, announcing `aria-disabled="true"` on the trigger without moving the panel.
+- **ontoggle** _(event: CustomEvent&lt;boolean&gt;) =&gt; void, optional_: Called after the expansion commits, with the new state in `detail`.
+
+### Options
+
+_What you fix when you create it. Read once, never reactive._
+
+- **native** _boolean, optional, default `false`_: Bind the container to a native `<details>` host. The container mirrors `open` and adopts the browser's own toggles instead of dispatching.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **id** _string_: The namespace in use, generated when you left it out.
+- **expanded** _boolean, read and write_: Whether the panel is open.
+- **disabled** _boolean_: Whether the unit refuses to change.
+
+### Methods
+
+_What you call on the instance._
+
+- **`toggle()`**: Inverts the expansion. _Does nothing while disabled._
+
+### Events
+
+_What it tells you._
+
+- **`toggle`** — fires after `expanded` commits, with the new state in `detail`. A native `<details>` host dispatches its own `toggle` and the controller adopts it instead of firing a second one.
+
+```tsx
+const disclosure = aria('disclosure', {
+  ontoggle: (event) => commit(event.detail),
+});
+```
+
+### How it behaves
+
+- **One state drives both ends.** The trigger compiles `aria-expanded` and `aria-controls`, the panel compiles `role="region"`, `aria-labelledby`, and `hidden` — all derived from the container's `expanded`, never through object references.
+- **You drive it or it drives itself.** Leave `expanded` out and the unit keeps its own state; set it and the unit follows yours.
+- **Refusing is quiet.** A disabled unit, or an activation your code cancelled with `preventDefault`, changes nothing and announces nothing.
+- **Both reads and writes go through the instance.** `expanded` and `toggle()` refuse while disabled, and writes through the instance are what announce.
+
+## Disclosure Trigger
+
+**The control that opens it.**
+
+### Usage
+
+```ts
+aria<E extends BaseElement = HTMLButtonElement>(
+  role: 'disclosure-trigger',
+  props?: AriaProps,
+  options?: DisclosureTriggerOptions
+): DisclosureTriggerAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+const DisclosureTrigger = setup<ComponentProps<'button'>>((props) => {
+  const trigger = aria('disclosure-trigger', props);
+
+  return () => (
+    <button ref={trigger.ref} {...trigger.restProps(['children'])}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps, JSX } from 'solid-js';
+
+const DisclosureTrigger = setup<ComponentProps<'button'> & { children: JSX.Element }>((props) => {
+  const trigger = aria('disclosure-trigger', props);
+
+  return (
+    <button ref={trigger.ref} {...trigger.restProps(['children'])}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+:::
+
+### Options
+
+_What you fix when you create it. Read once, never reactive._
+
+- **native** _boolean, optional, default `true`_: Bind to a native `<button>` or `<summary>`, where the redundant button role is omitted and `disabled` stays reflected. Pass `false` for a custom host and you get `role="button"`, a `tabindex`, and the `aria-disabled` mirror instead.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **expanded** _boolean_: Whether the panel it opens is open.
+- **disabled** _boolean_: Whether this trigger is locked, **including by the container**.
+
+### Methods
+
+_What you call on the instance._
+
+- **`toggle()`**: Inverts the container's expansion. _Does nothing while disabled._
+
+### How it behaves
+
+- **Announced as a control that opens something.** `aria-expanded` tracks the container's state and `aria-controls` points at its panel, both derived from the container's `id`.
+- **One toggle per gesture.** A click, `Enter`, or `Space` commits once; a cancelled initiating event toggles nothing.
+- **Disabled means inert.** The trigger stays visible and announced as disabled, and a disabled trigger leaves the key event itself uncancelled.
+
+### Navigation
+
+_What the keys do._
+
+- **`Enter`** — toggles the panel on keydown.
+- **`Space`** — suppresses scrolling on keydown and toggles on keyup, so a full press commits one toggle.
+- **`Tab`** — focuses the trigger; a custom host compiles `tabindex="0"` and `-1` while disabled.
+- **Every other key** — left to the browser and assistive technology.
+
+## Disclosure Panel
+
+**The content behind the trigger.**
+
+### Usage
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'disclosure-panel',
+  props?: AriaProps
+): DisclosurePanelAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+const DisclosurePanel = setup<ComponentProps<'div'>>((props) => {
+  const panel = aria('disclosure-panel', props);
+
+  return () => (
+    <div ref={panel.ref} {...panel.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps, JSX } from 'solid-js';
+
+const DisclosurePanel = setup<ComponentProps<'div'> & { children: JSX.Element }>((props) => {
+  const panel = aria('disclosure-panel', props);
+
+  return (
+    <div ref={panel.ref} {...panel.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **expanded** _boolean_: Whether this panel is open.
+
+### How it behaves
+
+- **Collapsed through `hidden`, never by dropping semantics.** `role="region"` stays announced while the panel is collapsed, and no `aria-hidden` is ever compiled.
+- **Named by its trigger.** `aria-labelledby` points at the trigger's identifier, derived from the container's `id`.
+- **It reads the container's state.** `expanded` here is the same state the unit holds.
+
+## Next Steps
+
+- **[Accordion](/docs/aria/accordion)**: Stacked disclosures with header focus management and single or multiple expansion.
+- **[Tabs](/docs/aria/tabs)**: Pair triggers with panels that swap instead of collapsing.
+- **[Divider](/docs/aria/divider)**: The static structural rule that stays out of the tab order.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Disclosure
+
+```ts
+interface DisclosureProps {
+  id?: string;
+  expanded?: boolean;
+  disabled?: boolean;
+  ontoggle?: (event: CustomEvent<boolean>) => void;
+}
+
+interface DisclosureOptions {
+  native?: boolean;
+}
+
+interface DisclosureAttributes {
+  open?: boolean;
+}
+
+declare class DisclosureAria {
+  get id(): string;
+  get expanded(): boolean;
+  set expanded(value: boolean);
+  get disabled(): boolean;
+
+  toggle(): void;
+}
+```
+
+### Disclosure Trigger
+
+```ts
+interface DisclosureTriggerOptions {
+  native?: boolean;
+}
+
+interface DisclosureTriggerAttributes {
+  id?: string;
+  role?: 'button';
+  disabled?: boolean;
+  tabindex?: number;
+  'aria-expanded'?: 'true' | 'false';
+  'aria-controls'?: string;
+  'aria-disabled'?: 'true' | 'false';
+}
+
+declare class DisclosureTriggerAria {
+  readonly id: string;
+  get expanded(): boolean;
+  get disabled(): boolean;
+
+  toggle(): void;
+}
+```
+
+### Disclosure Panel
+
+```ts
+interface DisclosurePanelAttributes {
+  id?: string;
+  role?: 'region';
+  'aria-labelledby'?: string;
+  hidden?: boolean;
+}
+
+declare class DisclosurePanelAria {
+  readonly id: string;
+  get expanded(): boolean;
+}
+```
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`props`** / **`restProps(omit)`** is what you spread onto the host — your props minus the keys the controller writes and any you name, with the compiled attributes merged in; **`ref`** is what you bind the element with; **`attributes`** is that compiled dictionary on its own, when you need the low-level view.
+- **`assign()`** changes several parameters at once, **`refine()`** adds attributes of your own, **`on()`** listens for anything the part fires, **`destroy()`** tears it down.

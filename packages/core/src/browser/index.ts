@@ -1,6 +1,9 @@
+export * from './animation.js';
 export * from './clipboard.js';
 export * from './cursor.js';
+export * from './dom.js';
 export * from './drag.js';
+export * from './event.js';
 export * from './geo.js';
 export * from './interactive.js';
 export * from './keyboard.js';
@@ -9,4 +12,5 @@ export * from './media.js';
 export * from './network.js';
 export * from './scroll.js';
 export * from './selection.js';
+export * from './url.js';
 export * from './window.js';

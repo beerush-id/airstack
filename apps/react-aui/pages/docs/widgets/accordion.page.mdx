@@ -1,0 +1,196 @@
+---
+title: AUI Accordion
+nav: Accordion
+nav-priority: 320
+description: Stack sections that open and close — pass the section titles and their content, choose one-at-a-time or several open, and get headers that work with the keyboard and screen readers.
+keywords: [React accordion, accessible accordion, collapsible sections React, FAQ accordion, expand collapse React]
+---
+
+# AUI Accordion
+
+FAQs, filter panels, long settings forms: when a page has more sections than fit on screen, an accordion lets people open only what they need. Building one by hand means pairing each header with its section, announcing open and closed to screen readers, deciding whether opening one section closes the others, and keeping every header reachable from the keyboard.
+
+**AUI Accordion** does all of that. Give it the section titles and their content, say whether several sections may stay open, and bind the open sections to your state when you need them.
+
+:::interactive[Accordion demo]
+
+```tsx
+import { Accordion, Toggle } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { DemoControl } from '@/components/DemoControl.js';
+import { GlassStage } from '@/components/GlassStage.js';
+
+const QUESTIONS = { shipping: 'Shipping', returns: 'Returns', payment: 'Payment' };
+
+const ANSWERS = {
+  shipping: 'Orders leave the warehouse within two business days.',
+  returns: 'Send anything back within 30 days for a full refund.',
+  payment: 'Cards, bank transfer, and split payments.',
+};
+
+const AccordionDemo = setup(() => {
+  const state = mutable({
+    open: 'shipping',
+    several: ['shipping'],
+    multiple: false,
+    size: 'md',
+    color: 'primary',
+    disabled: false,
+  });
+
+  return () => (
+    <div className="demo-button">
+      <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} disabled={$bind(state, 'disabled')}>
+        <Toggle size="sm" pressed={$bind(state, 'multiple')}>
+          {() => (state.multiple ? 'Several open' : 'One at a time')}
+        </Toggle>
+      </DemoControl>
+      <GlassStage>
+        <div className="flex flex-col">
+          <Snippet>
+            {() => (
+              <Accordion
+                items={QUESTIONS}
+                multiple={state.multiple}
+                value={state.multiple ? $bind(state, 'several') : $bind(state, 'open')}
+                size={state.size}
+                color={state.color}
+                disabled={state.disabled}
+              >
+                <Accordion.Snippet for="panel">{(entry) => ANSWERS[entry.name]}</Accordion.Snippet>
+              </Accordion>
+            )}
+          </Snippet>
+        </div>
+      </GlassStage>
+    </div>
+  );
+}, 'AccordionDemo');
+```
+
+```html
+<AccordionDemo />
+```
+
+<AccordionDemo />
+
+:::
+
+## Usage
+
+### From a list of sections
+
+Pass the sections as `items` and fill each one through the `panel` slot. Each entry's key is the section's name; its value is the header text:
+
+```tsx
+import { Accordion } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/accordion.css';
+
+const QUESTIONS = { shipping: 'How fast do you ship?', returns: 'Can I return an order?' };
+
+export const Faq = () => (
+  <Accordion items={QUESTIONS}>
+    <Accordion.Snippet for="panel">{(entry) => <Answer topic={entry.name} />}</Accordion.Snippet>
+  </Accordion>
+);
+```
+
+One section is open at a time, and opening another closes it. Choose the behavior that fits:
+
+- **`multiple`** — every section opens and closes on its own; `value` becomes a list of names.
+- **`required`** — one section always stays open, so the last open one cannot be closed.
+
+```tsx
+<Accordion items={FILTERS} multiple value={$bind(search, 'openFilters')}>
+  …
+</Accordion>
+```
+
+Pass full entries instead of a map when a section needs to be disabled:
+
+```tsx
+const QUESTIONS = [
+  { name: 'shipping', label: 'Shipping' },
+  { name: 'customs', label: 'Customs (coming soon)', disabled: true },
+];
+```
+
+### Custom header content
+
+When a header needs more than text — a count, a status — supply it through the `header` slot. The chevron and the open/close behavior stay in place:
+
+```tsx
+<Accordion items={FILTERS} multiple>
+  <Accordion.Snippet for="header">
+    {(entry) => (
+      <>
+        {entry.label} <span className="count">{active[entry.name]}</span>
+      </>
+    )}
+  </Accordion.Snippet>
+  <Accordion.Snippet for="panel">{(entry) => <FilterOptions filter={entry.name} />}</Accordion.Snippet>
+</Accordion>
+```
+
+### Building from parts
+
+When sections come from different places or carry long hand-written content, compose the parts. A header and its section find each other by a shared `name`:
+
+```tsx
+import { Accordion, AccordionButton, AccordionPanel } from '@airlib/react-aui';
+
+<Accordion value={$bind(page, 'faq')}>
+  <AccordionButton name="shipping">Shipping</AccordionButton>
+  <AccordionPanel name="shipping">
+    <ShippingTable />
+  </AccordionPanel>
+  <AccordionButton name="returns">Returns</AccordionButton>
+  <AccordionPanel name="returns">
+    <ReturnsPolicy />
+  </AccordionPanel>
+</Accordion>
+```
+
+### Style it once
+
+`size` and `color` on `Accordion` reach every header; a header's own prop still wins. An open header takes the color. See [Theming](/docs/theming#style-a-composite-once).
+
+### Properties
+
+`Accordion`:
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `items` | `Record<string, string>` or `Array<{ name, label?, disabled? }>` | — | The sections to render. Leave it out to compose the parts yourself. |
+| `value` | `Bindable<string \| string[] \| null>` | — | The open section's name, or the list of names with `multiple`. Bind it to read or change what is open. |
+| `multiple` | `boolean` | `false` | Lets several sections stay open; `value` becomes a list. |
+| `required` | `boolean` | `false` | One at a time only: keeps one section open at all times. |
+| `manual` | `boolean` | `true` | Leave it on so moving focus never opens a section; turn it off to open each header as focus reaches it. |
+| `orientation` | `'horizontal'`, `'vertical'` | `'vertical'` | Which arrow keys move between headers. |
+| `disabled` | `boolean` | `false` | Locks every section. |
+| `size` | `xs`–`xxl` | `'md'` | Reaches every header and section. |
+| `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | The color of open headers. |
+| `onchange` | `(event: CustomEvent<string \| string[] \| null>) => void` | — | What is open changed; `detail` is the whole value. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+
+Slots, used with `items`:
+
+| Slot | Receives | Renders |
+| --- | --- | --- |
+| `panel` | the entry (`name`, `label`) | The content of that section. |
+| `header` | the entry (`name`, `label`) | What the header shows, in place of its label. |
+
+Parts, used without `items`:
+
+| Part | Props | Notes |
+| --- | --- | --- |
+| `AccordionButton` | `name` (required), `disabled` | A section header. |
+| `AccordionPanel` | `name` (required) | The section shown while the header with the same `name` is open. |
+
+Keyboard: every header is its own stop in the tab order. `Down` and `Up` move between headers, `Home` and `End` jump to the first and last, and `Enter` or `Space` opens or closes the focused section.
+
+## Next Steps
+
+- [Disclosure](/docs/widgets/disclosure) — A single section that shows and hides on its own.
+- [Tabs](/docs/widgets/tabs) — Sections that swap in one spot instead of stacking.
+- [Tree](/docs/composites/tree) — When the sections nest inside each other.

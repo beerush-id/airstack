@@ -1,0 +1,207 @@
+---
+title: AUI Toast
+nav: Toast
+nav-priority: 309
+description: Tell people something happened without stopping them — a short message that announces itself, disappears on its own, pauses while hovered or focused, and closes on demand.
+keywords: [React toast, React snackbar, notification message, accessible toast, aria-live, status message, React notifications]
+---
+
+# AUI Toast
+
+"Draft saved", "Upload failed — retrying", "Copied to clipboard" — some news deserves a moment of attention, not an interruption. A toast has to announce itself to screen readers, go away on its own, wait while someone is reading or hovering it, and close when asked — exactly once.
+
+**AUI Toast** is that message. You decide where toasts live and when one is added; each toast handles its own lifetime and tells you when it's done.
+
+:::interactive[Toast demo]
+
+```tsx
+import { Button, Readout, Toast, ToastClose } from '@airlib/react-aui';
+import { For, mutable, setup, Snippet } from '@airlib/react';
+import { GlassStage } from '@/components/GlassStage.js';
+
+const LIFETIME = 6000;
+
+type Message = { text: string; color?: string; critical?: boolean; sticky?: boolean };
+
+const ToastDemo = setup(() => {
+  const toasts = mutable<Message[]>([]);
+
+  const add = (text: string, options: Omit<Message, 'text'> = {}) => {
+    toasts.push({ text, ...options });
+  };
+
+  const remove = (message: Message) => {
+    toasts.splice(toasts.indexOf(message), 1);
+  };
+
+  return () => (
+    <div className="demo-button">
+      <GlassStage style={{ maxInlineSize: '30rem' }}>
+        <div className="flex flex-col gap-lg">
+          <div className="flex flex-col gap-xs">
+            <div className="text-title-sm">Invoice INV-1042</div>
+            <div>Northwind Studio · $2,400 · due 14 November</div>
+          </div>
+          <div className="flex gap-xs flex-wrap">
+            <Button size="sm" variant="tonal" onClick={() => add('Draft saved')}>
+              Save draft
+            </Button>
+            <Button size="sm" color="success" onClick={() => add('Invoice sent to Northwind Studio', { color: 'success' })}>
+              Send
+            </Button>
+            <Button size="sm" variant="text" onClick={() => add('Receipt upload failed — retrying', { critical: true })}>
+              Attach receipt
+            </Button>
+            <Button size="sm" variant="text" onClick={() => add('Payment reminder set for 12 November', { sticky: true })}>
+              Remind me
+            </Button>
+          </div>
+          <div className="flex flex-col gap-sm" style={{ minBlockSize: '9rem' }} role="region" aria-label="Notifications">
+            <For each={() => toasts}>
+              {(message) => (
+                <Toast
+                  color={message.color}
+                  critical={message.critical}
+                  duration={message.sticky ? undefined : LIFETIME}
+                  ondismiss={() => remove(message)}
+                >
+                  <span>{message.text}</span>
+                  <ToastClose aria-label="Dismiss" />
+                </Toast>
+              )}
+            </For>
+          </div>
+        </div>
+      </GlassStage>
+      <Snippet>
+        {() => (
+          <Readout
+            label="On screen"
+            value={toasts.length ? `${toasts.length} ${toasts.length === 1 ? 'message' : 'messages'}` : undefined}
+            empty="No messages"
+          />
+        )}
+      </Snippet>
+    </div>
+  );
+}, 'ToastDemo');
+```
+
+```html
+<ToastDemo />
+```
+
+<ToastDemo />
+
+:::
+
+## Usage
+
+### Show a message
+
+Keep your toasts in a list, render one `Toast` per message, and take it out of the list when it reports `ondismiss`. `duration` is how long it stays, in milliseconds:
+
+```tsx
+import { Toast, ToastClose } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/toast.css';
+
+export const SavedToast = ({ onDone }: { onDone: () => void }) => (
+  <Toast duration={6000} ondismiss={onDone}>
+    <span>Draft saved</span>
+    <ToastClose aria-label="Dismiss" />
+  </Toast>
+);
+```
+
+- **`ToastClose`** without children shows a close glyph; give it an `aria-label` in your users' language, since nothing is named for you. Pass children for a text button such as "Undo".
+- The toast never removes itself from your page — `ondismiss` is your cue to drop it from your list, so where toasts stack and how they animate stay yours.
+
+### How long it stays
+
+- With `duration`, it closes on its own after that many milliseconds. Hovering it or moving focus into it pauses the countdown; leaving resumes it.
+- Without `duration`, it stays until it's closed.
+- Closing by timeout, by `ToastClose`, or from your code all end the same way: `ondismiss` fires once.
+
+### How loud it is
+
+- A normal toast is announced politely, after whatever the screen reader is saying.
+- **`critical`** announces immediately, interrupting — use it for failures people must act on. A critical toast also takes the error look.
+
+### How it looks
+
+By default a toast is a neutral dark snackbar that stands out on any page. Give it a `color` to tint it with that color's container — `success` for a completed action, `warning` for something to check:
+
+```tsx
+<Toast color="success" duration={6000} ondismiss={onDone}>
+  <span>Invoice sent</span>
+  <ToastClose aria-label="Dismiss" />
+</Toast>
+```
+
+`size` on the toast also sizes its close button.
+
+### Notify from anywhere
+
+Keeping your own list fits when the toasts belong to one screen. When the news comes from anywhere — a save in a store, a failed request in a service, a background sync — mount one `ToastHost` and call `toast` from wherever the news happens:
+
+```tsx
+import { ToastHost } from '@airlib/react-aui';
+
+<ToastHost closeLabel="Dismiss" placement="bottom-end" />
+```
+
+```ts
+import { toast } from '@airlib/react-aui';
+
+toast.success('Invoice sent');
+toast.error('Upload failed — retrying', { critical: true });
+const syncing = toast.info('Syncing 24 files…', { duration: 20000 });
+syncing.dismiss(); // the sync finished early
+```
+
+- `toast.add(content, options)` shows one notification; `info`, `success`, `warning`, and `error` show one in that color. `content` is text, or a function that draws it.
+- Each call returns the notification, so `dismiss()` takes it down early; `toast.clear()` takes every one down.
+- Options: `color` (on `add`), `critical` to announce at once, and `duration` in milliseconds. What a notification says never changes once it shows — for something that keeps changing, use a [Progress](/docs/widgets/progress) or an [Announcer](/docs/widgets/announcer) instead.
+
+The host gathers notifications in a corner, newest last, and none takes focus from what people are doing. Every notification it shows leaves on its own: after its `duration`, else the host's, else 5 seconds. A message that must stay until closed belongs in your own list, with a `Toast` and no `duration`.
+
+### Properties
+
+`Toast`:
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `duration` | `number` | — | Milliseconds until it closes on its own. Omit it to keep the toast until closed. |
+| `critical` | `boolean` | `false` | Announce immediately and take the error look. |
+| `ondismiss` | `(event: CustomEvent<void>) => void` | — | Called once when the toast closes, for any reason. `event.target` is the toast. |
+| `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | — | Tints the toast; without it the toast is neutral. |
+| `size` | shared size | `md` | Also sizes the close button. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `children` | `ReactNode` | — | The message and, usually, a `ToastClose`. |
+
+`ToastClose`:
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `children` | `ReactNode` | close glyph | Button content; without it, a close glyph that needs your `aria-label`. |
+| `aria-label` | `string` | — | The glyph's name for screen readers. |
+| `disabled` | `boolean` | `false` | Stops the button from closing the toast. |
+| `color` / `variant` | shared vocabulary | toast's action color / `text` | Override the button's look. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+
+Put `ToastClose` inside the `Toast` it closes.
+
+`ToastHost`:
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `closeLabel` | `string` | — | Names each notification's close button; without it, they have none and leave on their own. |
+| `duration` | `number` | `5000` | Milliseconds a notification stays when it sets none of its own. |
+| `placement` | `'top-end'`, `'top-start'`, `'bottom-end'`, `'bottom-start'` | `'top-end'` | The corner they gather in. |
+| `size` | shared size | `md` | Sizes every notification. |
+
+## Next Steps
+
+- [Announcer](/docs/widgets/announcer) — Tell screen-reader users about a change with nothing on screen.
+- [Confirm](/docs/composites/confirm) — When the news needs an answer, not just attention.
+- [Button](/docs/widgets/button) — The actions that usually trigger a toast.

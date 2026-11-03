@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "@airlib/form",
-  "version": "2.1.0",
+  "version": "2.3.0",
   "description": "Reactive and declarative, framework-agnostic form engine powered by Zod schemas. Validation, dirty tracking, cross-field matching, and submission lifecycle built on AirLib.",
   "keywords": [
     "form",
@@ -55,7 +55,7 @@
     "zod": "catalog:lib"
   },
   "scripts": {
-    "dev": "tsdown --watch ./src",
+    "dev": "rimraf dist && tsdown --watch ./src",
     "clean": "rimraf dist",
     "build": "bun run clean && tsdown && publint",
     "prepublish": "bun run format && bun run build",

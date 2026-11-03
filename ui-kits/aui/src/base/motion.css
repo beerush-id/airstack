@@ -1,0 +1,16 @@
+/*
+ * Reduced motion is the end user's setting, so it beats every page style:
+ * important declarations in a layer outrank all normal ones and unlayered
+ * important ones. A component that must keep some motion to stay meaningful
+ * (a spinner) opts back in from this same layer, with a more specific
+ * selector and `!important` of its own.
+ */
+@layer reduced-motion {
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      transition: none !important;
+      scroll-behavior: auto !important;
+      animation: none !important;
+    }
+  }
+}

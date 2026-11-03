@@ -1,0 +1,86 @@
+@import './item.css';
+
+/*
+ * Shared collapsible sheet worn by Accordion and Disclosure: a quiet surface
+ * of item-row headers, each followed by its body. An open header takes the
+ * role color and turns its chevron.
+ */
+@layer theme {
+  :root {
+    --aui-collapsible-bg: var(--color-container);
+    --aui-collapsible-radius: var(--radius-lg);
+    --aui-collapsible-padding: var(--spacing-xs);
+  }
+}
+
+@layer component {
+  .aui-collapsible {
+    /* The headers sit one padding in from the sheet's edge, so their corners follow its. */
+    --aui-collapsible-inner-radius: max(
+      calc(var(--aui-collapsible-radius) - var(--aui-collapsible-padding)),
+      0px
+    );
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: var(--aui-collapsible-padding);
+    background-color: var(--aui-collapsible-bg);
+    color: var(--color-on-surface);
+    border-radius: var(--aui-collapsible-radius);
+  }
+
+  .aui-collapsible-header {
+    inline-size: 100%;
+    border: 0;
+    background-color: transparent;
+    color: inherit;
+    font-family: inherit;
+    font-weight: 600;
+    text-align: start;
+
+    & > .aui-icon:last-child {
+      transition: transform var(--duration-short) var(--ease-emphasized);
+    }
+
+    &[aria-expanded='true'] {
+      color: var(--aui-item-bg);
+
+      & > .aui-icon:last-child {
+        transform: rotate(180deg);
+      }
+    }
+  }
+
+  /*
+   * The headers are items floating in the sheet, not segments of one strip, so every one takes the
+   * same corners: the sheet's, one padding in, concentric with it. A header grows tall enough to
+   * hold that corner rather than flattening it.
+   */
+  .aui-collapsible > .aui-collapsible-header {
+    border-radius: var(--aui-collapsible-inner-radius);
+    block-size: max(var(--aui-control-height), calc(var(--aui-collapsible-inner-radius) * 2));
+  }
+
+  /* A disabled item fades its text on the sheet, rather than turning into a block of its own. */
+  .aui-collapsible .aui-collapsible-header[aria-disabled='true'] {
+    background-color: transparent;
+  }
+
+  /* With every item disabled, the whole sheet takes the disabled surface: neutral, not the container's tint. */
+  .aui-collapsible:not(:has(.aui-collapsible-header:not([aria-disabled='true']))) {
+    background-color: var(--color-disabled-bg);
+  }
+
+  .aui-collapsible-body {
+    /* Same inline inset as the header row (the root carries the size scale), so text lines up. */
+    padding-block: var(--spacing-xs) var(--spacing-md);
+    padding-inline: calc(var(--aui-control-padding-x) * 0.85);
+    color: var(--color-on-surface-variant);
+    font-size: var(--font-label-lg-size);
+    line-height: var(--font-label-lg-line-height);
+
+    &[hidden] {
+      display: none;
+    }
+  }
+}

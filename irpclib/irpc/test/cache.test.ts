@@ -293,5 +293,17 @@ describe('IRPCCacher', () => {
       expect(cache.has(key)).toBe(true);
       expect(cache.size).toBe(1);
     });
+
+    it('should keep an entry older than a timer can wait until its age runs out', () => {
+      const day = 24 * 60 * 60 * 1000;
+
+      cache.set('key', 'value', 365 * day);
+
+      vi.advanceTimersByTime(30 * day);
+      expect(cache.has('key')).toBe(true);
+
+      vi.advanceTimersByTime(335 * day + 1);
+      expect(cache.has('key')).toBe(false);
+    });
   });
 });

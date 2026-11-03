@@ -1,0 +1,176 @@
+---
+title: AUI Pagination
+nav: Pagination
+nav-priority: 203
+description: Let people move through pages of results — previous and next, the first and last page, and the pages around the current one, from just a page count.
+keywords: [React pagination, accessible pagination, pagination component, page navigation, React paging]
+---
+
+# AUI Pagination
+
+Search results, order histories, and article archives all split into pages. A hand-built pager has to decide which page numbers to show, disable previous and next at the ends, keep the current page highlighted, and stay usable from the keyboard without a tab stop per page.
+
+**Pagination** does all of that from a page count. Bind the current page, give it the total, and it shows previous and next, the first and last page, the pages around the current one, and a gap wherever pages are skipped.
+
+:::interactive[Pagination demo]
+
+```tsx
+import { Link, Pagination, Readout } from '@airlib/react-aui';
+import { $bind, For, mutable, setup, Snippet } from '@airlib/react';
+import { DemoControl } from '@/components/DemoControl.js';
+import { GlassStage } from '@/components/GlassStage.js';
+
+const pages = [1, 2, 3, 4, 5];
+
+const PaginationDemo = setup(() => {
+  const state = mutable({ size: 'md', color: 'primary', disabled: false, archive: 6, page: 2 });
+  const stay = (event: { preventDefault: () => void }) => event.preventDefault();
+
+  return () => (
+    <div className="demo-button">
+      <DemoControl size={$bind(state, 'size')} color={$bind(state, 'color')} disabled={$bind(state, 'disabled')} />
+      <GlassStage>
+        <div className="flex gap-lg items-center justify-center">
+          <Snippet>
+            {() => (
+              <Pagination
+                label="Archive pages"
+                previousLabel="Previous page"
+                nextLabel="Next page"
+                page={$bind(state, 'archive')}
+                total={12}
+                size={state.size}
+                color={state.color}
+              />
+            )}
+          </Snippet>
+        </div>
+      </GlassStage>
+      <Snippet>{() => <Readout label="Archive page" value={`${state.archive} of 12`} />}</Snippet>
+      <GlassStage>
+        <div className="flex gap-lg items-center justify-center">
+          <Snippet>
+            {() => (
+              <Pagination
+                label="Search results pages"
+                previousLabel="Previous page"
+                nextLabel="Next page"
+                page={$bind(state, 'page')}
+                total={5}
+                size={state.size}
+                color={state.color}
+              >
+                <For each={() => pages}>
+                  {(page) => (
+                    <Link
+                      href={`#page-${page}`}
+                      page={page}
+                      current={state.page === page}
+                      disabled={state.disabled && page === 3}
+                      onClick={stay}
+                    >
+                      {page}
+                    </Link>
+                  )}
+                </For>
+              </Pagination>
+            )}
+          </Snippet>
+        </div>
+      </GlassStage>
+      <Snippet>{() => <Readout label="Results page" value={`${state.page} of 5`} />}</Snippet>
+    </div>
+  );
+}, 'PaginationDemo');
+```
+
+```html
+<PaginationDemo />
+```
+
+<PaginationDemo />
+
+:::
+
+## Usage
+
+### From a page count
+
+Bind the current page and pass `total`. Pagination shows the previous and next steppers, the first and last page, one page either side of the current one, and a gap where pages are skipped:
+
+```tsx
+import { Pagination } from '@airlib/react-aui';
+import { $bind, mutable, setup } from '@airlib/react';
+import '@airlib/aui/components/widgets/pagination.css';
+
+const OrderHistory = setup(() => {
+  const view = mutable({ page: 1 });
+
+  return () => (
+    <Pagination
+      label="Order history pages"
+      previousLabel="Previous page"
+      nextLabel="Next page"
+      page={$bind(view, 'page')}
+      total={24}
+    />
+  );
+}, 'OrderHistory');
+```
+
+Each tweak is one prop:
+
+- **Real URLs.** Give `href` a function from page number to address, so each page is a shareable, crawlable link: `href={(page) => '/orders?page=' + page}`. Without it the pages only move the bound position.
+- **More pages around the current one.** `siblings={2}` keeps two on each side instead of one.
+- **Names for the steppers.** `previousLabel` and `nextLabel` name the arrow buttons for screen readers. Nothing is named for you; the words come from you, in your users' language.
+
+Previous is disabled on the first page and next on the last. Leave `total` out while the last page is still unknown — next stays disabled until it arrives.
+
+### Composing the pages yourself
+
+When you need your own layout — only a few pages, custom labels, disabled pages — place [Link](/docs/widgets/link) elements inside. Give each its `page` number so activating it moves the bound position, and mark the one the reader is on `current`:
+
+```tsx
+import { Link, Pagination } from '@airlib/react-aui';
+
+<Pagination label="Search results pages" previousLabel="Previous page" nextLabel="Next page" page={$bind(view, 'page')} total={3}>
+  <Link href="/search?page=1" page={1}>1</Link>
+  <Link href="/search?page=2" page={2} current>2</Link>
+  <Link href="/search?page=3" page={3} disabled>3</Link>
+</Pagination>
+```
+
+Your own previous and next controls just write the bound page: `onClick={() => (view.page -= 1)}`.
+
+### Style it once
+
+`size` and `color` on the Pagination reach every page and stepper. See [Style a composite once](/docs/theming#style-a-composite-once).
+
+### Properties
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `page` | `Bindable<number>` | `1` | The current page, 1-based. Bind it to read and set the position. |
+| `total` | `number` | — | The number of pages. Without it, next stays disabled. |
+| `siblings` | `number` | `1` | Pages shown on each side of the current one. |
+| `href` | `(page: number) => string` | — | Builds each page's address. Without it, pages only move the position. |
+| `previousLabel` | `string` | — | Screen-reader name of the previous stepper. |
+| `nextLabel` | `string` | — | Screen-reader name of the next stepper. |
+| `label` | `string` | — | The landmark's name for screen readers. |
+| `size` | `xs`, `sm`, `md`, `lg`, `xl`, `xxl` | `'md'` | Size of every page and stepper. |
+| `color` | `primary`, `secondary`, `tertiary`, `error`, `success`, `warning`, `info` | `'primary'` | The current page's highlight and the steppers' color. |
+| `className` | `string` | — | Added alongside the built-in classes, or in place of them with `overrides` enabled. |
+| `children` | `ReactNode` | — | Your own links, when you compose instead of passing `total` alone. |
+| `ref` | `Ref<HTMLElement>` | — | Access to the landmark element. |
+
+For a fully custom pager, `pageWindow(page, total, siblings)` returns the same run of page numbers and gaps the simple form shows.
+
+## Keyboard
+
+`Tab` lands on the current page and leaves the pager from there. `ArrowRight` / `ArrowLeft` move between the pages, skipping disabled ones and wrapping at the ends. `Home` / `End` jump to the first and last page. `Enter` opens the focused page.
+
+## Next Steps
+
+- [Navigation](/docs/widgets/navigation) — A list of links to the sections of your app.
+- [Breadcrumb](/docs/widgets/breadcrumb) — Show where a page sits and link back up.
+- [Grid](/docs/composites/grid) — A keyboard-driven table for the results you are paging through.

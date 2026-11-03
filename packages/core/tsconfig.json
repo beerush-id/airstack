@@ -5,6 +5,7 @@
     "outDir": "./dist",
     "allowImportingTsExtensions": true,
     "allowJs": true,
+    "experimentalDecorators": true,
     "forceConsistentCasingInFileNames": true,
     "jsx": "react-jsx",
     "lib": ["ESNext", "DOM"],

@@ -1,4 +1,4 @@
-import { getContext, setContext } from '../scope/index.js';
+import { getContext, getRootContextStore, setContext } from '../scope/index.js';
 
 let lastTimestamp = 0;
 let sequence = 0;
@@ -42,13 +42,18 @@ function simpleId(): string {
 
 /**
  * Default UUID provider that attempts to use the crypto API if available,
- * otherwise falls back to a simpler implementation.
+ * otherwise falls back to a simpler implementation. Available isn't always allowed: Cloudflare Workers
+ * throw on it at module load, where a declared workflow makes its ids.
  *
  * @returns A UUID v4 string
  */
 function defaultUUIDProvider() {
-  if (typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
+  try {
+    if (typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+  } catch {
+    // Refused by the runtime: the fallback below needs nothing from it.
   }
 
   return simpleId();
@@ -81,15 +86,16 @@ export function setUUIDProvider(provider: UUIDProvider) {
  * Creates a unique index within the current scope.
 
  * @param name - The name of the unique index.
- * @param scoped - Use the nearest index store.
+ * @param shared - Use the top-level scope index store (e.g. for tab id generation, dialog id generation, etc.).
  * @returns The next unique index value.
  */
-export const uIndex = (name: symbol, scoped?: boolean) => {
-  if (scoped) {
-    let store = getContext<{ value: number }>(name);
+export const uIndex = (name: symbol, shared?: boolean) => {
+  if (shared) {
+    const root = getRootContextStore();
+    let store = root.get(name) as { value: number };
     if (!store) {
       store = { value: 0 };
-      setContext(name, store);
+      root.set(name, store);
     }
     store.value += 1;
     return store.value;

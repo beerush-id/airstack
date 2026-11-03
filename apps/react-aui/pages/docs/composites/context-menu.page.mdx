@@ -1,0 +1,260 @@
+---
+title: AUI Context Menu
+nav: Context Menu
+nav-priority: 305
+description: Commands for whatever was right-clicked — put the menu in the thing it acts on, give it your commands, and get a menu at the pointer or on Shift+F10, with each command landing on that thing.
+keywords: [React context menu, right click menu, React right-click, accessible context menu, Shift+F10, ARIA menu]
+---
+
+# AUI Context Menu
+
+Notes on a board, photos in a gallery, files in a tree — people expect a right-click to offer the commands for that thing, right where they clicked. Keyboard users need the same menu without a mouse, and everyone expects it to close on `Escape`, on a click elsewhere, or once a command runs.
+
+**AUI Context Menu** belongs to the thing it's placed in. Put it inside a card, and a right-click on the card — or `Shift + F10` from anything focused in it — opens the card's commands, and the one picked lands on that card.
+
+:::interactive[Context Menu demo]
+
+```tsx
+import { Card, ContextMenu, Menu, Readout } from '@airlib/react-aui';
+import { MoreHorizIcon } from '@airlib/react-aui/icons';
+import { mutable, setup, Snippet } from '@airlib/react';
+import { GlassStage } from '@/components/GlassStage.js';
+
+const NOTES = [
+  { id: 1, title: 'Offsite packing', text: 'Adapters, the projector clicker, name badges for 14, and the printed agenda.' },
+  { id: 2, title: 'Lisbon dinner', text: 'Table for 12 at 8pm on Thursday.' },
+  {
+    id: 3,
+    title: 'Workshop ideas',
+    text: 'Start with the onboarding story, then split into three tables: search, the editor, and the mobile app. Each table leaves with one change it can ship in a week.',
+  },
+  { id: 4, title: 'Flights', text: 'Book before Friday; fares jump after the weekend.' },
+  { id: 5, title: 'Venue', text: 'Front desk closes at 6pm. Ask for Inês about the terrace.' },
+];
+
+// The note's commands, the same whether they come from a right-click or the ⋯ button.
+const actionsFor = (note) => ({ pin: note.pinned ? 'Unpin' : 'Pin to top', duplicate: 'Duplicate', delete: 'Delete' });
+
+const ContextMenuDemo = setup(() => {
+  const board = mutable({ notes: NOTES.map((note) => ({ ...note, pinned: false })), next: 6, last: '' });
+
+  const act = (note, command) => {
+    board.last = `${actionsFor(note)[command] ?? command}: ${note.title}`;
+    if (command === 'pin') note.pinned = !note.pinned;
+    if (command === 'duplicate') {
+      board.notes.splice(board.notes.indexOf(note) + 1, 0, { ...note, id: board.next++, title: `${note.title} (copy)` });
+    }
+    if (command === 'delete') board.notes.splice(board.notes.indexOf(note), 1);
+  };
+
+  return () => (
+    <div className="demo-button">
+      <GlassStage>
+        <Snippet>
+          {() => (
+            <div style={{ columnWidth: '13rem', columnGap: 'var(--spacing-md)' }}>
+              {[...board.notes]
+                .sort((a, b) => Number(b.pinned) - Number(a.pinned))
+                .map((note) => (
+                  <Card
+                    key={note.id}
+                    as="div"
+                    title={note.title}
+                    description={note.pinned ? 'Pinned' : undefined}
+                    variant="tonal"
+                    color={note.pinned ? 'tertiary' : 'primary'}
+                    style={{ breakInside: 'avoid', marginBlockEnd: 'var(--spacing-md)' }}
+                    oncommand={(event) => act(note, event.detail)}
+                  >
+                    {note.text}
+                    <ContextMenu label={`${note.title} actions`} items={actionsFor(note)} />
+                    <Card.Snippet for="actions">
+                      {() => (
+                        <Menu label={`More actions for ${note.title}`} items={actionsFor(note)} variant="text" size="sm">
+                          <Menu.Snippet for="trigger">{() => <MoreHorizIcon />}</Menu.Snippet>
+                        </Menu>
+                      )}
+                    </Card.Snippet>
+                  </Card>
+                ))}
+            </div>
+          )}
+        </Snippet>
+      </GlassStage>
+      <Snippet>{() => <Readout label="Last command" value={board.last} empty="Right-click a note, or use its ⋯ button" />}</Snippet>
+    </div>
+  );
+}, 'ContextMenuDemo');
+```
+
+```html
+<ContextMenuDemo />
+```
+
+<ContextMenuDemo />
+
+:::
+
+## Usage
+
+### Put it in the thing it acts on
+
+Place the menu inside the thing people right-click, give it `items` and a `label`, and listen on that thing's `oncommand` for the picked command's `name`:
+
+```tsx
+import { Card, ContextMenu } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/context-menu.css';
+
+export const NoteCard = ({ note, onAction }: { note: Note; onAction: (note: Note, name: string) => void }) => (
+  <Card title={note.title} oncommand={(event) => onAction(note, event.detail)}>
+    {note.text}
+    <ContextMenu label={`${note.title} actions`} items={{ pin: 'Pin to top', duplicate: 'Duplicate', delete: 'Delete' }} />
+  </Card>
+);
+```
+
+The menu draws nothing in place; it lends its behavior to the thing around it. The command lands on that thing, so its handler already knows which note it is — nothing to look up, however many notes share one handler.
+
+- **What can hold one:** a part that stands for something people act on — `Card`, `Button`, `Image`, a [Tree](/docs/composites/tree) item, a [Listbox](/docs/composites/listbox) option. Static markup isn't a holder; a menu placed in it belongs to the nearest part around it, and a menu with none stays inert.
+- **From the keyboard:** `Shift + F10` on anything focused inside the holder opens its menu — a card's button or link is enough.
+- **Commands keep going:** every scope around the holder hears the command too, so a board can catch every note's commands in one `oncommand` when that suits it better.
+
+`items` takes a name-to-label map, or an array of `{ name, label, disabled }` when a command needs to be disabled.
+
+### Commands from a button too
+
+A [Menu](/docs/composites/menu) inside the same card — the ⋯ button above — sends its commands to the card's `oncommand` as well. Give both the same names, and one handler serves the right-click and the button.
+
+### Change what a row shows
+
+Keep `items` and supply each row's content through the `item` slot — an icon, a shortcut hint:
+
+```tsx
+<ContextMenu label="Note actions" items={NOTE_ACTIONS}>
+  <ContextMenu.Snippet for="item">{(entry) => <span>{entry.label}</span>}</ContextMenu.Snippet>
+</ContextMenu>
+```
+
+### Build the menu from parts
+
+When the menu mixes kinds of rows — toggles, exclusive options, separators — give it a `ContextMenuPanel` and fill it with the same rows a [Menu](/docs/composites/menu) uses:
+
+:::interactive[Every kind of row]
+
+```tsx
+import { Card, ContextMenu, ContextMenuPanel, Divider, MenuItem, MenuItemCheckbox, MenuItemGroup, MenuItemRadio, Readout } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { GlassStage } from '@/components/GlassStage.js';
+
+const NOTE_COMMANDS = { copy: 'Copy text', share: 'Share…' };
+const NOTE_COLORS = { primary: 'Rose', tertiary: 'Sand', success: 'Sage', info: 'Sky' };
+
+const NoteMenuDemo = setup(() => {
+  const note = mutable({ pinned: false, color: 'primary', last: '' });
+
+  return () => (
+    <div className="demo-button">
+      <GlassStage>
+        <Snippet>
+          {() => (
+            <Card
+              as="div"
+              title="Workshop ideas"
+              description={note.pinned ? 'Pinned' : undefined}
+              variant="tonal"
+              color={note.color}
+              oncommand={(event) => (note.last = event.detail)}
+            >
+              Start with the onboarding story, then split into three tables: search, the editor, and the mobile app.
+              <ContextMenu label="Workshop ideas actions">
+                <ContextMenuPanel>
+                  <MenuItem name="copy">Copy text</MenuItem>
+                  <MenuItem name="share" disabled>
+                    Share…
+                  </MenuItem>
+                  <Divider />
+                  <MenuItemCheckbox checked={$bind(note, 'pinned')}>Pinned</MenuItemCheckbox>
+                  <Divider />
+                  <MenuItemGroup label="Color" value={$bind(note, 'color')}>
+                    {Object.entries(NOTE_COLORS).map(([value, label]) => (
+                      <MenuItemRadio key={value} value={value}>
+                        {label}
+                      </MenuItemRadio>
+                    ))}
+                  </MenuItemGroup>
+                </ContextMenuPanel>
+              </ContextMenu>
+            </Card>
+          )}
+        </Snippet>
+      </GlassStage>
+      <Snippet>
+        {() => (
+          <div className="flex flex-wrap gap-lg">
+            <Readout label="Command" value={NOTE_COMMANDS[note.last]} empty="Right-click the note" />
+            <Readout label="Pinned" value={note.pinned ? 'Yes' : 'No'} />
+            <Readout label="Color" value={NOTE_COLORS[note.color]} />
+          </div>
+        )}
+      </Snippet>
+    </div>
+  );
+}, 'NoteMenuDemo');
+```
+
+```html
+<NoteMenuDemo />
+```
+
+<NoteMenuDemo />
+
+:::
+
+The checkbox and the color change the card directly through their bindings; only the plain commands reach `oncommand`.
+
+### Open it from your code
+
+Bind `open` when something else should open the menu — a long press on a touch screen, for example. Every way of closing writes the same `open`:
+
+```tsx
+<Card title={note.title} oncommand={(event) => onAction(note, event.detail)}>
+  {note.text}
+  <ContextMenu label="Note actions" items={NOTE_ACTIONS} open={$bind(note, 'menuOpen')} />
+</Card>
+```
+
+### Style it once
+
+`size`, `color`, and `variant` on `ContextMenu` reach the popup and every row; a row's own prop wins. See [Style a composite once](/docs/theming#style-a-composite-once).
+
+### Properties
+
+`ContextMenu`:
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `label` | `string` | — | The menu's name, announced when it opens. |
+| `items` | `Record<string, string>` or `Array<{ name, label?, disabled? }>` | — | Renders the popup with one row per command. |
+| `oncommand` | `(event: CustomEvent<string>) => void` | — | Receives the picked command's `name`; it also reaches the `oncommand` of the part holding the menu, and every part around that. |
+| `open` | `Bindable<boolean>` | `false` | Whether the menu is showing. |
+| `disabled` | `boolean` | `false` | Stops the menu from opening. |
+| `onopen` / `onclose` | `(event: CustomEvent<boolean>) => void` | — | Called after the menu opens or closes. |
+| `size` / `color` / `variant` | shared vocabulary | `md` / `primary` / — | Reach the popup and every row. |
+| `children` | `ReactNode` | — | A `ContextMenuPanel` of your own rows, when composing by hand. |
+
+Slot (with `items`): `item(entry)` for each row's content.
+
+Parts: `ContextMenuPanel` (style props, `children`) holds the rows; the rows are [Menu](/docs/composites/menu)'s `MenuItem`, `MenuItemCheckbox`, `MenuItemGroup`, and `MenuItemRadio`.
+
+### Keyboard
+
+- `Shift + F10` (or the context-menu key) on anything focused inside the part holding the menu opens it.
+- `↑` / `↓` move between rows; typing a letter jumps to the next row that starts with it.
+- `Enter` or `Space` runs a command and closes the menu, or flips a checkbox row.
+- `Escape` closes the menu and returns focus to where it was.
+
+## Next Steps
+
+- [Menu](/docs/composites/menu) — The same commands behind a button.
+- [Tree](/docs/composites/tree) — Nested items that often carry a context menu each.
+- [Grid](/docs/composites/grid) — Rows and cells people act on.

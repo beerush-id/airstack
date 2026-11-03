@@ -1,0 +1,122 @@
+---
+title: AUI Image Viewer
+nav: Image Viewer
+nav-priority: 341
+description: Show one image of a set at a time, fit to its box — step through the set, zoom in, drag around, and fill the screen, by pointer, keyboard, or by setting its state.
+keywords: [React image viewer, lightbox React, photo viewer, zoom and pan image, fullscreen image viewer, accessible image viewer, AUI image viewer]
+---
+
+# AUI Image Viewer
+
+A photo someone picked, a product shot to inspect, the reference image for a generation: once a picture matters, people want it big. They step to the next one, zoom into a detail, drag around it, and send it full screen, and they expect the keyboard to do all of it as well as the pointer.
+
+**Image Viewer** is that view. Hand it the images and bind which one is on show; stepping, zooming, panning and full screen come with it.
+
+:::interactive[Image viewer demo]
+
+```tsx
+import { ImageViewer, Readout } from '@airlib/react-aui';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+import { GlassStage } from '@/components/GlassStage.js';
+
+const PARK = [
+  { src: 'https://picsum.photos/seed/aui-park-1/1600/1200', alt: 'A kite over the lawn', caption: 'Kite over the lawn · Saturday' },
+  { src: 'https://picsum.photos/seed/aui-park-2/1600/1200', alt: 'Trees along the lake path', caption: 'Lake path · Saturday' },
+  { src: 'https://picsum.photos/seed/aui-park-3/1600/1200', alt: 'The playground at noon', caption: 'Playground · Sunday' },
+];
+
+const ViewerDemo = setup(() => {
+  const state = mutable({ index: 0, zoom: 1 });
+
+  return () => (
+    <div className="demo-button">
+      <GlassStage style={{ inlineSize: '100%' }}>
+        <ImageViewer label="Photos from the park" items={PARK} index={$bind(state, 'index')} zoom={$bind(state, 'zoom')} />
+      </GlassStage>
+      <Snippet>
+        {() => <Readout label="On show" value={`${PARK[state.index].alt}, ${Math.round(state.zoom * 100)}%`} />}
+      </Snippet>
+    </div>
+  );
+}, 'ViewerDemo');
+```
+
+```html
+<ViewerDemo />
+```
+
+<ViewerDemo />
+
+:::
+
+## Usage
+
+### Show a set
+
+Pass the images as `items` — each with its `src`, what it shows as `alt`, and an optional `caption` — and bind `index` to the one on show:
+
+```tsx
+import { ImageViewer } from '@airlib/react-aui';
+import '@airlib/aui/components/widgets/image-viewer.css';
+
+<ImageViewer label="Photos from the park" items={PARK} index={$bind(album, 'index')} />;
+```
+
+Focus the viewer and the arrows step through the set, Home and End jump to its ends, `+` and `-` zoom, and `0` fits the image again. The wheel zooms too, and a magnified image follows a drag.
+
+### Drive it from your app
+
+`index` and `zoom` are state like any other, so your app — or an agent answering "show me the third one, closer" — moves the viewer by setting them:
+
+```tsx
+album.index = 2;
+album.zoom = 2;
+```
+
+### Fill the screen
+
+The toolbar's last button sends the viewer full screen and back, and Escape leaves. Put a `FullscreenButton` anywhere else inside the viewer to do the same; it finds the viewer itself.
+
+### Add your own actions
+
+Hand the toolbar more buttons through `actions` — edit, share, use as a reference:
+
+```tsx
+<ImageViewer
+  label="Reference"
+  items={PICKED}
+  actions={
+    <Button variant="text" size="sm" onClick={useAsReference}>
+      Use as reference
+    </Button>
+  }
+/>
+```
+
+### Name the buttons
+
+The buttons are named in English by default. Pass `labels` to name them in your app's words:
+
+```tsx
+<ImageViewer items={PARK} labels={{ previous: 'Foto sebelumnya', next: 'Foto berikutnya', zoomIn: 'Perbesar', zoomOut: 'Perkecil', fullscreen: 'Layar penuh' }} />
+```
+
+## Properties
+
+| Prop | Type | Default | What it does |
+|---|---|---|---|
+| `label` | `string` | — | Names the viewer for screen readers |
+| `items` | `ImageViewerEntry[]` | — | The images: `src`, `alt`, and an optional `caption` |
+| `index` | `Bindable<number>` | `0` | The image on show, from zero |
+| `zoom` | `Bindable<number>` | `1` | How far it's magnified; 1 fits it |
+| `maxZoom` | `number` | `4` | The most it can be magnified |
+| `loop` | `boolean` | `false` | Steps from the last image back to the first |
+| `labels` | `ImageViewerLabels` | English | Names of the toolbar buttons |
+| `actions` | `ReactNode` | — | More buttons for the toolbar |
+
+The stage's shape comes from `--aui-image-viewer-ratio` (`4 / 3` by default) and its backdrop from `--aui-image-viewer-bg`.
+
+## Next Steps
+
+- [Gallery](/docs/composites/gallery) — pick the images to show
+- [UI from Data](/docs/dynamic) — let an agent answer with a viewer

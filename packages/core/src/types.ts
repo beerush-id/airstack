@@ -74,6 +74,7 @@ export type StateBaseOptions = {
   recursive?: Recursive;
   safeParse?: boolean;
   observable?: boolean;
+  trapOwnKeys?: boolean;
 };
 export type StateOptions<S extends LinkableSchema = LinkableSchema> = StateBaseOptions & {
   schema?: S;
@@ -293,6 +294,25 @@ export type MutationKey<T> =
         : keyof T;
 
 export type MergedType<T> = { [P in keyof T]: T[P] } & {};
+
+/**
+ * Merges two object types where properties of Patch override properties of Base.
+ */
+export type OverrideProps<Base, Patch> = MergedType<Omit<Base, keyof Patch> & Patch>;
+
+/**
+ * Computes a composite type from a sequence of sources, where subsequent sources override
+ * properties from earlier ones.
+ */
+export type MergeSources<T extends readonly unknown[], Acc = {}> = T extends readonly []
+  ? MergedType<Acc>
+  : T extends readonly [infer Head, ...infer Tail]
+    ? MergeSources<Tail, Head extends object ? OverrideProps<Acc, NonNullable<Head>> : Acc>
+    : T extends readonly (infer Element)[]
+      ? Element extends object
+        ? OverrideProps<Acc, NonNullable<Element>>
+        : MergedType<Acc>
+      : MergedType<Acc>;
 
 export type MutablePart<T, K extends MutationKey<T>[]> =
   T extends ReadonlyMap<infer M, infer V>
@@ -1040,9 +1060,13 @@ export interface StateInspector {
  */
 export type ContextReader<T> = {
   /**
-   * Retrieves the current value from the context.
+   * The unique key associated with the context.
    */
-  get(): T;
+  key: symbol;
+  /**
+   * Retrieves the current value from the context with optional fallback.
+   */
+  get(fallback?: T): T;
   /**
    * Updates the context with a new value.
    * @param value - The new value to set in the context.

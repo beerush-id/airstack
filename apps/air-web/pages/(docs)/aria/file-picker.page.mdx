@@ -1,0 +1,325 @@
+---
+title: 'Headless File Picker'
+description: 'Headless file pickers for React and SolidJS. A trigger that bridges to a hidden native input, keeps your filters in sync, reports the chosen files and a dismissal, and works on any host — no markup or styles imposed.'
+nav: 'File Picker'
+nav-priority: 262
+---
+
+import './aria.css';
+import './file-picker.css';
+
+# Headless File Picker
+
+A file picker is a button that opens something you do not control. Getting it right means **bridging the activation to a real `<input type="file">`**, **keeping `accept`, `multiple`, and `capture` in sync with it**, **reporting both the chosen files and a dismissal**, and **staying inert while an upload is already running**.
+
+**Headless File Picker** does all of that for you, and leaves the markup and the styling entirely yours.
+
+```tsx
+const picker = aria('file-picker', props);
+
+<button ref={picker.ref} {...picker.restProps()} />
+```
+
+:::interactive[Attach Files]
+```tsx
+import { aria } from '@airlib/aria';
+import { mutable, setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+const formatSize = (bytes: number) => (bytes < 1024 ? `${bytes} B` : `${Math.round(bytes / 1024)} KB`);
+
+type DemoFileButtonProps = ComponentProps<'button'> & {
+  accept?: string;
+  multiple?: boolean;
+  capture?: 'user' | 'environment';
+  disabled?: boolean;
+  onchange?: (event: CustomEvent<File[]>) => void;
+  oncancel?: (event: CustomEvent<void>) => void;
+};
+
+const DemoFileButton = setup<DemoFileButtonProps>((props) => {
+  const picker = aria('file-picker', props);
+
+  return () => (
+    <button ref={picker.ref} {...picker.restProps(['children'])} className="demo-file-trigger">
+      {props.children}
+    </button>
+  );
+}, 'DemoFileButton');
+
+type DemoFileBrowseProps = ComponentProps<'div'> & {
+  accept?: string;
+  disabled?: boolean;
+  onchange?: (event: CustomEvent<File[]>) => void;
+  oncancel?: (event: CustomEvent<void>) => void;
+};
+
+const DemoFileBrowse = setup<DemoFileBrowseProps>((props) => {
+  const picker = aria('file-picker', props, { native: false });
+
+  return () => (
+    <div ref={picker.ref} {...picker.restProps(['children'])} className="demo-file-trigger demo-file-trigger--custom">
+      {props.children}
+    </div>
+  );
+}, 'DemoFileBrowse');
+
+const DemoAttachments = setup(() => {
+  const state = mutable({ files: [] as File[] });
+
+  const attach = (event: CustomEvent<File[]>) => {
+    state.files = event.detail;
+  };
+
+  return () => (
+    <div className="demo-file-stack">
+      <div className="demo-file-row">
+        <span className="demo-file-caption">Images, several at a time</span>
+        <div className="demo-file-card">
+          <DemoFileButton accept="image/*" multiple={true} onchange={attach}>
+            Choose images
+          </DemoFileButton>
+          <span className="demo-file-note">{'A real <button> host: accept and multiple ride the hidden input, never the trigger.'}</span>
+        </div>
+      </div>
+
+      <div className="demo-file-row">
+        <span className="demo-file-caption">One PDF</span>
+        <div className="demo-file-card">
+          <DemoFileBrowse accept="application/pdf" onchange={attach}>
+            Browse for a PDF
+          </DemoFileBrowse>
+          <span className="demo-file-note">{'A <div> host given role="button", a tab stop, and the Enter/Space mechanics a button has for free.'}</span>
+        </div>
+      </div>
+
+      <div className="demo-file-row">
+        <span className="demo-file-caption">Locked while the upload runs</span>
+        <div className="demo-file-card">
+          <div className="demo-file-actions">
+            <DemoFileButton disabled={true}>Uploading…</DemoFileButton>
+            <DemoFileBrowse disabled={true}>Uploading…</DemoFileBrowse>
+          </div>
+          <span className="demo-file-note">{'A native host gets disabled; the custom host gets aria-disabled, leaves the tab order, and has its events canceled.'}</span>
+        </div>
+      </div>
+
+      <div className="demo-file-row">
+        <span className="demo-file-caption">Picked</span>
+        <div className="demo-file-card">
+          {state.files.length === 0 ? (
+            <span className="demo-file-empty">Nothing picked yet.</span>
+          ) : (
+            <ul className="demo-file-list">
+              {state.files.map((file) => (
+                <li key={file.name} className="demo-file-item">
+                  <span>{file.name}</span>
+                  <span className="demo-file-size">{formatSize(file.size)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}, 'DemoAttachments');
+```
+```html
+<DemoAttachments />
+```
+
+<DemoAttachments />
+:::
+
+:::tip
+The trigger is a button, not a drop zone. Drag and drop is a different path — read `event.dataTransfer.files` from a drop handler of your own. This face covers the system picker, which is the only route a mobile browser or a screen reader can take.
+:::
+
+## File Picker
+
+**The trigger.** It opens the system picker through a hidden input you never have to create.
+
+### Usage
+
+```ts
+aria<E extends BaseElement = HTMLButtonElement>(
+  role: 'file-picker',
+  props?: FilePickerProps,
+  options?: FilePickerOptions
+): FilePickerAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type FileButtonProps = ComponentProps<'button'> & {
+  accept?: string;
+  multiple?: boolean;
+  disabled?: boolean;
+};
+
+const FileButton = setup<FileButtonProps>((props) => {
+  const picker = aria('file-picker', props);
+
+  return () => (
+    <button ref={picker.ref} {...picker.restProps(['children'])}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type FileButtonProps = ComponentProps<'button'> & {
+  accept?: string;
+  multiple?: boolean;
+  disabled?: boolean;
+};
+
+const FileButton = setup<FileButtonProps>((props) => {
+  const picker = aria('file-picker', props);
+
+  return (
+    <button ref={picker.ref} {...picker.restProps(['children'])}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+:::
+
+### Parameters
+
+_What you pass in. The props object stays live — change a filter and the next opening uses it._
+
+- **accept** _string, optional_: The types the dialog offers, forwarded to the hidden input. Left out, everything is offered.
+- **multiple** _boolean, optional_: Whether more than one file can be chosen in one go.
+- **capture** _'user' | 'environment', optional_: Asks a mobile device for the camera or the front-facing one instead of the gallery.
+- **disabled** _boolean, optional_: Keeps the dialog closed — and takes the trigger out of the tab order on a custom host.
+- **onchange** _(event: CustomEvent&lt;File[]&gt;) =&gt; void, optional_: Called with the files that were chosen.
+- **oncancel** _(event: CustomEvent&lt;void&gt;) =&gt; void, optional_: Called when the dialog closes with nothing chosen.
+
+### Options
+
+_What you fix when you create it. Read once, never reactive._
+
+- **native** _boolean, optional, default `true`_: Pass `false` when the trigger is not a `<button>`, and it gets `role="button"`, a tab stop, `aria-disabled`, and the `Enter`/`Space` mechanics a button has for free.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **disabled** _boolean_: Whether the trigger is locked.
+
+### How it behaves
+
+- **A hidden native input does the picking.** The trigger bridges to an `<input type="file">` the controller creates when the element binds, keeps in sync, and removes with itself — so the system dialog, the type filter, and multi-select all work the way the platform implements them, and nothing lingers in the document after teardown.
+- **Your filters stay current.** Writing `accept`, `multiple`, or `capture` re-publishes them onto the hidden input before the next opening, without rebinding anything.
+- **The dialog's own events never leak.** The hidden input's `change` and `cancel` are stopped there and re-announced **on your element**, so the page sees exactly one announcement per gesture.
+- **Dismissal is a real signal.** Closing the dialog without choosing fires `cancel`, so an optimistic “uploading…” state can be released instead of hanging.
+- **One opening per activation.** A click, `Enter`, or `Space` opens the dialog once; a canceled initiating event opens nothing.
+- **Disabled means inert.** Every activation is refused and the events themselves are cancelled and stopped from bubbling — so a trigger locked during an upload cannot wake a handler above it either.
+- **The trigger is never a form field.** A native host compiles `type="button"`, so pressing it cannot submit the form around it, and `accept`, `multiple`, and `capture` never land on the trigger element — they belong to the hidden input.
+
+### Events
+
+_What it tells you._
+
+- **`change`** — bubbles from the trigger with the chosen `File[]` in `detail`. Choosing nothing on a browser that reports it arrives as an empty list.
+- **`cancel`** — fires on the trigger **without bubbling** when the dialog is dismissed with nothing chosen.
+
+```tsx
+const picker = aria('file-picker', {
+  accept: 'image/*',
+  multiple: true,
+  onchange: (event) => upload(event.detail),
+  oncancel: () => stopSpinner(),
+});
+```
+
+Listening on the element yourself works too; there the DOM types the event as `Event`, so `detail` needs a cast to `FilePickerEvent`.
+
+### Navigation
+
+_What the keys do._
+
+- **`Click`** — opens the dialog.
+- **`Enter`** — opens it on keydown, and the key is canceled so a `<button>` does not activate twice.
+- **`Space`** — on a custom host the keydown suppresses the page scroll and the keyup opens; on a native `<button>` the browser's own activation is used.
+- **`Tab`** — reaches the trigger. A disabled trigger leaves the tab order.
+
+## Next Steps
+
+- **[Image](/docs/aria/image)**: Preview what was chosen, with a fallback while it loads.
+- **[Button](/docs/aria/button)**: The command trigger this face borrows its mechanics from.
+- **[Text Input](/docs/aria/text-input)**: The other way to take user input.
+- **[Form](/docs/aria/form)**: The landmark that groups fields and triggers for submission.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### File Picker
+
+```ts
+type FilePickerEvent = CustomEvent<File[]>;
+type FilePickerCancelEvent = CustomEvent<void>;
+
+interface FilePickerProps {
+  accept?: string;
+  multiple?: boolean;
+  capture?: 'user' | 'environment';
+  disabled?: boolean;
+  onchange?: (event: FilePickerEvent) => void;
+  oncancel?: (event: FilePickerCancelEvent) => void;
+}
+
+interface FilePickerOptions extends AriaOptions {}
+
+interface FilePickerAttributes {
+  role?: 'button';
+  type?: 'button';
+  disabled?: boolean;
+  tabindex?: number;
+  'aria-disabled'?: 'true' | 'false';
+}
+
+declare class FilePickerAria {
+  get disabled(): boolean;
+}
+```
+
+`onclick`, `onkeydown`, and `onkeyup` are compiled onto the attributes dictionary at runtime — that is how the trigger opens the dialog and how a custom host gets its key mechanics — but they are absent from the published `FilePickerAttributes` interface.
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`props`** / **`restProps(omit)`** is what you spread onto the host — your props minus the keys the controller writes and any you name, with the compiled attributes merged in; **`ref`** is what you bind the element with; **`attributes`** is that compiled dictionary on its own, when you need the low-level view.
+- **`assign()`** changes several parameters at once, **`refine()`** adds attributes of your own, **`on()`** listens for anything the part fires, **`destroy()`** tears it down.

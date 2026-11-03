@@ -1,0 +1,223 @@
+---
+nav: 'Persistence & Hydration'
+nav-priority: 84
+title: 'Serialization & Hydration'
+description: 'Persist entire timeline projects as plain JSON schemas and hydrate compositions across client and server environments.'
+keywords:
+  - AirLib
+  - Timeline
+  - Persistence
+  - Snapshot
+  - Hydration
+  - Serialization
+  - JSON
+---
+
+# Serialization & Hydration
+
+Timeline compositions can be fully serialized into plain, framework-agnostic JSON schemas and restored on any client or server runtime without side-effects.
+
+## Taking Snapshots
+
+Use `timeline.snapshot()` to capture the active composition into a decoupled JSON structure:
+
+```typescript
+const snapshot = timeline.snapshot();
+console.log(JSON.stringify(snapshot, null, 2));
+```
+
+The resulting `TimelineSnapshot` contains the configuration options, tracks, bounded segments, keyframe scene payloads, and markers:
+
+```typescript
+type TimelineSnapshot = {
+  id: string;
+  options: TimelineOptions;
+  tracks: TimelineTrackSnapshot[];
+  markers?: TimelineMarkerSnapshot[];
+};
+```
+
+You can also take isolated snapshots of individual tracks, segments, or scenes:
+
+```typescript
+const trackSnapshot = videoTrack.snapshot();
+const segmentSnapshot = clip.snapshot();
+const sceneSnapshot = keyframe.snapshot();
+```
+
+## Hydrating a Composition
+
+Restore a previously persisted timeline using `timeline.hydrate()`:
+
+```typescript
+const timeline = createTimeline();
+
+// Hydrate from stored JSON or backend database response
+timeline.hydrate(savedProjectSnapshot);
+
+console.log(timeline.totalFrames); // Bounds recalculated automatically
+console.log(timeline.tracks.size); // All tracks restored
+```
+
+Hydration tears down existing tracks and markers, instantiates the restored hierarchy, re-orders scenes chronologically, and recalculates timeline bounds in a single synchronized pass.
+
+## Dynamic Framerate Scaling
+
+When changing `timeline.frameRate` (or hydrating a 30fps project into a 60fps timeline), AirLib automatically recalculates all discrete frame numbers proportionally to preserve exact real-world timing:
+
+```typescript
+const timeline = createTimeline({ frameRate: 30 });
+const track = timeline.addTrack();
+const clip = track.addSegment({ duration: 2, startFrame: 30 }); // Starts at 1.0s (frame 30)
+
+// Change framerate to 60fps
+timeline.frameRate = 60;
+
+// Frame indices scale proportionally to preserve 1.0s
+console.log(clip.startFrame); // 60
+console.log(clip.startTime);  // 1.0s
+```
+
+All tracks, segments, keyframe scenes, and cue markers scale automatically when the framerate changes.
+
+## Component Example
+
+Here is how you save and restore timeline project files in an AirLib component:
+
+:::code-group
+
+```tsx [React]
+import { setup, mutable, Snippet } from '@airlib/react';
+import { createTimeline, type TimelineSnapshot } from '@airlib/react/timeline';
+
+export const ProjectManager = setup(() => {
+  const timeline = createTimeline({ frameRate: 30 });
+  const track = timeline.addTrack({ name: 'Video Layer', type: 'video' });
+  track.addSegment({ name: 'Opening Scene', duration: 4, startFrame: 0 });
+  timeline.addMarker({ atFrame: 60, name: 'Title Drop' });
+  timeline.refresh();
+
+  const savedJSON = mutable<string>('');
+
+  const saveProject = () => {
+    const snapshot = timeline.snapshot();
+    savedJSON.value = JSON.stringify(snapshot, null, 2);
+  };
+
+  const loadProject = () => {
+    if (!savedJSON.value) return;
+    try {
+      const parsed = JSON.parse(savedJSON.value) as TimelineSnapshot;
+      timeline.hydrate(parsed);
+    } catch (err) {
+      console.error('Failed to parse timeline snapshot', err);
+    }
+  };
+
+  return () => (
+    <div className="flex flex-col gap-4 p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm">
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Project Serialization</h3>
+        <div className="flex gap-2">
+          <button
+            onClick={saveProject}
+            className="px-3 py-1.5 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700"
+          >
+            Save Snapshot
+          </button>
+          <Snippet>
+            {() => (
+              <button
+                onClick={loadProject}
+                disabled={!savedJSON.value}
+                className="px-3 py-1.5 rounded-lg text-sm font-medium border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 disabled:opacity-50"
+              >
+                Restore Project
+              </button>
+            )}
+          </Snippet>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs font-medium text-zinc-500">Persisted Snapshot JSON</label>
+        <Snippet>
+          {() => (
+            <textarea
+              readOnly
+              value={savedJSON.value || 'Click "Save Snapshot" to serialize current timeline project.'}
+              rows={6}
+              className="w-full p-3 font-mono text-xs rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 resize-none"
+            />
+          )}
+        </Snippet>
+      </div>
+    </div>
+  );
+}, 'ProjectManager');
+```
+
+```tsx [SolidJS]
+import { setup, mutable } from '@airlib/solid';
+import { createTimeline, type TimelineSnapshot } from '@airlib/solid/timeline';
+
+export const ProjectManager = setup(() => {
+  const timeline = createTimeline({ frameRate: 30 });
+  const track = timeline.addTrack({ name: 'Video Layer', type: 'video' });
+  track.addSegment({ name: 'Opening Scene', duration: 4, startFrame: 0 });
+  timeline.addMarker({ atFrame: 60, name: 'Title Drop' });
+  timeline.refresh();
+
+  const savedJSON = mutable<string>('');
+
+  const saveProject = () => {
+    const snapshot = timeline.snapshot();
+    savedJSON.value = JSON.stringify(snapshot, null, 2);
+  };
+
+  const loadProject = () => {
+    if (!savedJSON.value) return;
+    try {
+      const parsed = JSON.parse(savedJSON.value) as TimelineSnapshot;
+      timeline.hydrate(parsed);
+    } catch (err) {
+      console.error('Failed to parse timeline snapshot', err);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-4 p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm">
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Project Serialization</h3>
+        <div className="flex gap-2">
+          <button
+            onClick={saveProject}
+            className="px-3 py-1.5 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700"
+          >
+            Save Snapshot
+          </button>
+          <button
+            onClick={loadProject}
+            disabled={!savedJSON.value}
+            className="px-3 py-1.5 rounded-lg text-sm font-medium border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 disabled:opacity-50"
+          >
+            Restore Project
+          </button>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs font-medium text-zinc-500">Persisted Snapshot JSON</label>
+        <textarea
+          readOnly
+          value={savedJSON.value || 'Click "Save Snapshot" to serialize current timeline project.'}
+          rows={6}
+          className="w-full p-3 font-mono text-xs rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 resize-none"
+        />
+      </div>
+    </div>
+  );
+}, 'ProjectManager');
+```
+
+:::

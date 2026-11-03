@@ -1,0 +1,50 @@
+.demo-main-frame {
+  width: min(100%, 30rem);
+  margin-inline: auto;
+  border: 1px solid var(--demo-border);
+  border-radius: var(--demo-radius);
+  background: var(--demo-bg);
+  overflow: hidden;
+}
+
+.demo-main-chrome {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--demo-gap);
+  padding: 0.5rem 1rem;
+  background: var(--demo-hover);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--demo-muted);
+}
+
+.demo-main-chrome-note {
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--demo-fg-hover);
+}
+
+.demo-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--demo-gap-sm);
+  padding: 1rem;
+  border-block: 1px solid var(--demo-border);
+  background: color-mix(in srgb, var(--demo-fg) 4%, var(--demo-bg));
+}
+
+.demo-main-title {
+  font-size: var(--demo-font);
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--demo-fg);
+}
+
+.demo-main-text {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--demo-muted);
+}

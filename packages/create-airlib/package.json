@@ -1,19 +1,9 @@
 {
   "name": "create-airlib",
-  "version": "2.1.0",
+  "version": "2.3.0",
   "description": "Scaffolding tool for AirLib",
   "type": "module",
-  "keywords": [
-    "airlib",
-    "starter",
-    "template",
-    "scaffold",
-    "cli",
-    "create-airlib",
-    "react",
-    "solid",
-    "irpc"
-  ],
+  "keywords": ["airlib", "starter", "template", "scaffold", "cli", "create-airlib", "react", "solid", "irpc"],
   "author": "Nanang Mahdaen El Agung <mahdaen@gmail.com>",
   "homepage": "https://github.com/beerush-id/airstack",
   "license": "MIT",
@@ -30,16 +20,14 @@
   "bin": {
     "create-airlib": "./bin/index.js"
   },
-  "files": [
-    "bin",
-    "dist"
-  ],
+  "files": ["bin", "dist"],
   "scripts": {
     "clean": "rimraf dist && mkdir -p dist",
-    "dev": "bun run clean && bun run template && tsdown --watch",
-    "build": "bun run clean && bun run template && tsdown",
+    "dev": "bun run clean && bun run template && bun run skills && tsdown --watch",
+    "build": "bun run clean && bun run template && bun run skills && tsdown",
     "format": "biome format --write",
     "prepublish": "bun run format && bun run build",
+    "skills": "tar --exclude='.DS_Store' -cf ./dist/skills.tar.tgz -C ../../skills airlib airlib-form airlib-irpc airlib-markdown airlib-r2-file airlib-r2-image airlib-routing airlib-state airlib-storage airlib-ui airlib-workflow",
     "template": "tar --exclude='.DS_Store' -cf ./dist/templates.tar.tgz -C ../../templates air-react air-solid react-ssr solid-ssr irpc-starter"
   },
   "dependencies": {

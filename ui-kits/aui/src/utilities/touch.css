@@ -1,0 +1,18 @@
+@layer utility {
+  @media (pointer: coarse) {
+    .aui-touch-area,
+    .aui-action {
+      position: relative;
+    }
+
+    .aui-touch-area::after,
+    .aui-action::after {
+      content: '';
+      position: absolute;
+      inset: 50% auto auto 50%;
+      transform: translate(-50%, -50%);
+      width: max(100%, calc(var(--spacing) * 12));
+      height: max(100%, calc(var(--spacing) * 12));
+    }
+  }
+}

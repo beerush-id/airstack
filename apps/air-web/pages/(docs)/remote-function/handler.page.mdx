@@ -343,6 +343,10 @@ Context is scoped to the individual request. On server runtimes, `AsyncLocalStor
 
 Handlers can directly read and mutate isomorphic [Reactive Cookies](/docs/state-management/cookie) without manual header parsing or response header wiring:
 
+:::important[Standalone Dispatch for Cookie Handlers]
+Any procedure that mutates or clears cookies **must** be declared with `standalone: true` on the client stub (see [Standalone Requests](/docs/remote-function/function#standalone-requests-standalone-true)). This bypasses the microtask batching window so the call dispatches as an isolated HTTP request whose `Set-Cookie` response headers are processed immediately by the browser.
+:::
+
 ```typescript
 import { cookies } from '@airlib/core';
 
@@ -351,6 +355,7 @@ type UserSession = {
   userId: string;
 };
 
+// Login: sets authentication cookies on dedicated response
 irpc.construct(login, async (credentials) => {
   const user = await auth.verify(credentials);
   const session = cookies<UserSession>('session', { token: '', userId: '' }, {
@@ -365,6 +370,19 @@ irpc.construct(login, async (credentials) => {
   session.userId = user.id;
 
   return { success: true };
+});
+
+// Logout: expires and clears session cookies immediately
+irpc.construct(logout, async () => {
+  const session = cookies<UserSession>('session', { token: '', userId: '' }, {
+    path: '/',
+    secure: true,
+    sameSite: 'Lax',
+    maxAge: 0, // Clears cookie on the browser
+  });
+
+  session.token = '';
+  session.userId = '';
 });
 ```
 

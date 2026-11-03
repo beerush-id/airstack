@@ -1,0 +1,29 @@
+.demo-field-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: min(100%, 30rem);
+  margin-inline: auto;
+}
+
+.demo-field-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--demo-gap-sm);
+}
+
+.demo-field-caption {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--demo-muted);
+}
+
+.demo-field-form {
+  position: relative;
+  z-index: 0;
+}
+
+.demo-field-form:focus-within {
+  z-index: 1;
+}

@@ -1,0 +1,166 @@
+@import './item.css';
+
+/*
+ * A tree node is one `<li>` holding its row and its nested group, so the
+ * node itself is a grid: row 1 is the toggle plus the label, row 2 the group.
+ * The row surface is painted by `::before` on row 1 only, so selecting a
+ * branch never floods its children. Size and color come from the item scale.
+ */
+@layer theme {
+  :root {
+    --aui-tree-gap: 1px;
+    --aui-tree-indent: calc(var(--spacing) * 5);
+    --aui-tree-toggle-size: calc(var(--spacing) * 6);
+  }
+}
+
+@layer component {
+  .aui-tree,
+  .aui-tree-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--aui-tree-gap);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .aui-tree {
+    color: var(--color-on-surface);
+    outline: none;
+  }
+
+  /*
+   * A branch's children hang from a guide dropped from the center of its toggle, so each level
+   * reads as belonging to the row above it.
+   */
+  .aui-tree-group {
+    margin-inline-start: calc(var(--aui-tree-toggle-size) / 2);
+    padding-inline-start: calc(var(--aui-tree-indent) - var(--aui-tree-toggle-size) / 2);
+    border-inline-start: 1px solid
+      color-mix(in oklch, var(--color-outline-variant) 70%, transparent);
+
+    &[hidden] {
+      display: none;
+    }
+  }
+
+  .aui-tree-item {
+    display: grid;
+    grid-template-columns: var(--aui-tree-toggle-size) minmax(0, 1fr);
+    align-items: center;
+    row-gap: var(--aui-tree-gap);
+    list-style: none;
+    isolation: isolate;
+    cursor: pointer;
+    user-select: none;
+    outline: none;
+
+    &::before {
+      content: '';
+      grid-row: 1;
+      grid-column: 1 / -1;
+      align-self: stretch;
+      z-index: -1;
+      border-radius: var(--aui-item-radius);
+      outline: var(--focus-ring-width) var(--focus-ring-style) transparent;
+      outline-offset: calc(var(--focus-ring-offset) * -1);
+      transition-property: background-color, outline-color;
+      transition-duration: var(--duration-short);
+      transition-timing-function: var(--ease-emphasized);
+    }
+
+    /* A round target for the pointer, lit on hover; the arrow turns as the branch opens. */
+    & > .aui-tree-toggle {
+      grid-row: 1;
+      grid-column: 1;
+      justify-self: center;
+      display: grid;
+      place-items: center;
+      inline-size: calc(var(--aui-tree-toggle-size) * 0.8);
+      block-size: calc(var(--aui-tree-toggle-size) * 0.8);
+      border-radius: var(--radius-full);
+      visibility: hidden;
+      color: var(--color-on-surface-variant);
+      transition-property: transform, background-color, color;
+      transition-duration: var(--duration-short);
+      transition-timing-function: var(--ease-emphasized);
+
+      &:hover {
+        background-color: color-mix(in oklch, currentColor var(--tone-hover-strength), transparent);
+      }
+    }
+
+    & > :not(.aui-tree-toggle, .aui-tree-group) {
+      grid-row: 1;
+      grid-column: 2;
+      display: flex;
+      align-items: center;
+      gap: calc(var(--aui-control-gap) * 0.75);
+      /* A tree packs many rows, so they sit tighter than a control of the same size. */
+      min-block-size: var(--aui-tree-row-height, calc(var(--aui-control-height) * 0.78));
+      padding-inline-end: var(--spacing-sm);
+    }
+
+    & > .aui-tree-group {
+      grid-row: 2;
+      grid-column: 1 / -1;
+    }
+
+    &[aria-expanded] > .aui-tree-toggle {
+      visibility: visible;
+    }
+
+    &[aria-expanded='true'] > .aui-tree-toggle {
+      transform: rotate(90deg);
+    }
+
+    /* Hovering a child must not light up every ancestor row. */
+    &:hover:not(
+        :has(.aui-tree-group:hover),
+        [aria-selected='true'],
+        [aria-disabled='true']
+      )::before {
+      background-color: color-mix(
+        in oklch,
+        var(--aui-item-bg) var(--tone-hover-strength),
+        transparent
+      );
+    }
+
+    &:focus-visible::before {
+      outline-color: color-mix(in oklch, var(--focus-ring-color) 75%, var(--light-up));
+    }
+
+    &[aria-selected='true']::before {
+      background-color: var(--aui-item-bg);
+    }
+
+    &[aria-selected='true'] > :not(.aui-tree-group) {
+      color: var(--aui-item-fg);
+    }
+
+    /* Several picked rows are tinted rather than filled, as in any list that keeps several. */
+    [aria-multiselectable='true'] &[aria-selected='true'] {
+      &::before {
+        background-color: color-mix(
+          in oklch,
+          var(--aui-item-bg) var(--tone-container-strength),
+          transparent
+        );
+      }
+
+      & > :not(.aui-tree-group) {
+        color: var(--aui-item-bg);
+      }
+    }
+
+    &[aria-disabled='true'] {
+      cursor: not-allowed;
+
+      & > :not(.aui-tree-group) {
+        color: var(--color-disabled-fg);
+      }
+    }
+  }
+}

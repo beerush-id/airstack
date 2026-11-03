@@ -4,6 +4,7 @@
 @import '@airlib/react/mdx/default.css' layer(mdx);
 @import './styles/docs.css' layer(components);
 @import './styles/form.css' layer(components);
+@import '../components/aria/aria-landing.css';
 
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 

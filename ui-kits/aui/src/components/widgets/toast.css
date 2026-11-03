@@ -1,0 +1,207 @@
+@import './button.css';
+
+/*
+ * Neutral by default: an inverse snackbar whose actions read in the inverse
+ * primary. A role color swaps the surface for that role's container.
+ */
+@layer theme {
+  :root {
+    --aui-toast-bg: var(--color-inverse-surface);
+    --aui-toast-fg: var(--color-inverse-on-surface);
+    --aui-toast-action: var(--color-inverse-primary);
+    --aui-toast-radius: var(--radius-md);
+    --aui-toast-padding-block: var(--spacing-sm);
+    --aui-toast-padding-inline: var(--spacing-md);
+    --aui-toast-gap: var(--spacing-sm);
+    --aui-toast-min-width: calc(var(--spacing) * 72);
+    --aui-toast-max-width: calc(var(--spacing) * 110);
+  }
+}
+
+@layer component {
+  @keyframes aui-toast-enter {
+    from {
+      transform: translateY(calc(var(--spacing) * 4));
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  /*
+   * The corner notifications gather in, above everything a desktop shows, newest nearest the
+   * corner's edge. Only the toasts take the pointer.
+   */
+  .aui-toast-host {
+    position: fixed;
+    z-index: max(var(--z-index-toast), calc(var(--aui-window-z, 0) + 1100));
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--spacing-sm);
+    inset-block-start: var(--spacing-lg);
+    inset-inline-end: var(--spacing-lg);
+    pointer-events: none;
+
+    & > .aui-toast {
+      pointer-events: auto;
+    }
+
+    &[data-placement$='start'] {
+      align-items: flex-start;
+      inset-inline: var(--spacing-lg) auto;
+    }
+
+    &[data-placement^='bottom'] {
+      flex-direction: column-reverse;
+      inset-block: auto var(--spacing-lg);
+    }
+
+    &:empty {
+      display: none;
+    }
+  }
+
+  .aui-toast {
+    display: flex;
+    align-items: center;
+    gap: var(--aui-toast-gap);
+    min-inline-size: min(var(--aui-toast-min-width), 100%);
+    max-inline-size: min(var(--aui-toast-max-width), calc(100dvi - (var(--spacing-lg) * 2)));
+    min-block-size: calc(var(--spacing) * 12);
+    padding-block: var(--aui-toast-padding-block);
+    padding-inline: var(--aui-toast-padding-inline);
+    background-color: var(--aui-toast-bg);
+    color: var(--aui-toast-fg);
+    border-radius: var(--aui-toast-radius);
+    box-shadow: var(--elevation-3);
+    font-size: var(--font-label-lg-size);
+    line-height: var(--font-label-lg-line-height);
+    letter-spacing: var(--font-label-lg-tracking);
+    animation: aui-toast-enter var(--duration-medium) var(--ease-emphasized-decelerate) both;
+  }
+
+  /* Zero specificity: the close button reads in the toast's action color unless given a role color. */
+  :where(.aui-toast-close) {
+    --aui-control-bg: var(--aui-toast-action);
+    --aui-control-fg: var(--aui-toast-bg);
+    --focus-ring-color: var(--aui-toast-action);
+  }
+
+  .aui-toast[role='alert'] {
+    --aui-toast-bg: var(--color-error-container);
+    --aui-toast-fg: var(--color-on-error-container);
+    --aui-toast-action: var(--color-error);
+  }
+
+  .aui-toast-primary {
+    --aui-toast-bg: var(--color-primary-container);
+    --aui-toast-fg: var(--color-on-primary-container);
+    --aui-toast-action: var(--color-primary);
+  }
+
+  .aui-toast-secondary {
+    --aui-toast-bg: var(--color-secondary-container);
+    --aui-toast-fg: var(--color-on-secondary-container);
+    --aui-toast-action: var(--color-secondary);
+  }
+
+  .aui-toast-tertiary {
+    --aui-toast-bg: var(--color-tertiary-container);
+    --aui-toast-fg: var(--color-on-tertiary-container);
+    --aui-toast-action: var(--color-tertiary);
+  }
+
+  .aui-toast-info {
+    --aui-toast-bg: var(--color-info-container);
+    --aui-toast-fg: var(--color-on-info-container);
+    --aui-toast-action: var(--color-info);
+  }
+
+  .aui-toast-error {
+    --aui-toast-bg: var(--color-error-container);
+    --aui-toast-fg: var(--color-on-error-container);
+    --aui-toast-action: var(--color-error);
+  }
+
+  .aui-toast-success {
+    --aui-toast-bg: var(--color-success-container);
+    --aui-toast-fg: var(--color-on-success-container);
+    --aui-toast-action: var(--color-success);
+  }
+
+  .aui-toast-warning {
+    --aui-toast-bg: var(--color-warning-container);
+    --aui-toast-fg: var(--color-on-warning-container);
+    --aui-toast-action: var(--color-warning);
+  }
+
+  /* A labelled close sits at the toast's end, with the same room there as above and below it. */
+  .aui-toast > .aui-toast-close {
+    margin-inline: auto calc(var(--aui-toast-padding-block) - var(--aui-toast-padding-inline));
+  }
+
+  .aui-toast-close {
+    --aui-state-layer-color: var(--aui-toast-action);
+    flex: none;
+
+    /*
+     * The toast surface is inverse, so the button tints toward its own action
+     * color instead of the page's light: a light wash here would sink the label.
+     */
+    &.aui-button-text:hover:not(:disabled, [aria-disabled='true']) {
+      background-color: color-mix(
+        in oklch,
+        var(--aui-toast-action) var(--tone-hover-strength),
+        var(--aui-toast-bg)
+      );
+    }
+  }
+
+  /*
+   * A glyph-only close keeps off the content: a small round button straddling the top-end corner,
+   * shown while the toast is pointed at or holds focus, and always where there is no pointer to
+   * hover with. A labelled close stays in line, at the end. `.aui-toast-floating` lends the same
+   * corner button to parts that aren't toasts — a widget above the dock.
+   */
+  :is(.aui-toast, .aui-toast-floating) {
+    position: relative;
+
+    & > .aui-toast-close.aui-control-icon {
+      --aui-icon-size: calc(var(--aui-control-height) * 0.36);
+      position: absolute;
+      inset-block-start: 0;
+      inset-inline-end: 0;
+      translate: 35% -35%;
+      inline-size: calc(var(--aui-control-height) * 0.66);
+      block-size: calc(var(--aui-control-height) * 0.66);
+      margin: 0;
+      padding: 0;
+      color: var(--aui-toast-fg);
+      background-color: color-mix(in oklch, var(--aui-toast-bg) 92%, var(--aui-toast-fg));
+      border-radius: var(--radius-full);
+      box-shadow: var(--elevation-2);
+      /* Scaled away rather than hidden, so the keyboard still reaches it, and focusing it brings it out. */
+      scale: 0;
+      transition-property: scale, background-color, var(--aui-state-transitions);
+      transition-duration: var(--duration-short);
+      transition-timing-function: var(--ease-emphasized);
+    }
+
+    &:is(:hover, :focus-within) > .aui-toast-close.aui-control-icon {
+      scale: 1;
+    }
+
+    @media (hover: none) {
+      & > .aui-toast-close.aui-control-icon {
+        scale: 1;
+      }
+    }
+  }
+
+  :dir(rtl) :is(.aui-toast, .aui-toast-floating) > .aui-toast-close.aui-control-icon {
+    translate: -35% -35%;
+  }
+}

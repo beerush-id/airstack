@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 140">
+  <style>
+    .frame { fill: #e9d3d8; }
+    .surface { fill: #8a2f45; }
+    .ripple { fill: #ffffff; }
+    @media (prefers-color-scheme: dark) {
+      .frame { fill: #4a2630; }
+      .surface { fill: #e8a4b4; }
+      .ripple { fill: #3a1820; }
+    }
+  </style>
+  <rect class="frame" width="140" height="140" rx="40" />
+  <rect class="surface" x="14" y="14" width="112" height="112" rx="26" />
+  <circle class="ripple" cx="56" cy="84" r="32" opacity="0.16" />
+  <circle class="ripple" cx="56" cy="84" r="19" opacity="0.3" />
+  <circle class="ripple" cx="56" cy="84" r="7.5" />
+</svg>

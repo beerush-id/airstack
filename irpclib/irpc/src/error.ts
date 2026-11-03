@@ -23,6 +23,8 @@ export const STUB_ERROR = {
   NOT_FOUND: 'not_found',
   INVALID_NAME: 'invalid_name',
   INVALID_VERSION: 'invalid_version',
+  NOT_DECLARED: 'not_declared',
+  INVALID_TOOL: 'invalid_tool',
 } as const;
 
 export const HANDLER_ERROR = {
@@ -134,6 +136,15 @@ export class StubError extends IRPCError {
   static invalidVersion(version: string) {
     return new StubError(STUB_ERROR.INVALID_VERSION, `Invalid version: ${version}`);
   }
+  static notDeclared(name: string, href: string) {
+    return new StubError(STUB_ERROR.NOT_DECLARED, `IRPC "${name}" is not declared in ${href}.`);
+  }
+  static invalidTool(name: string) {
+    return new StubError(
+      STUB_ERROR.INVALID_TOOL,
+      `IRPC "${name}" takes positional arguments, so its mcp options must name them (args).`
+    );
+  }
 }
 
 /** Errors related to handler registration and execution. */
@@ -149,6 +160,8 @@ export class HandlerError extends IRPCError {
     return new HandlerError(HANDLER_ERROR.MISSING, `IRPC "${name}" has no implementation.`);
   }
   static failed(input: Error | string) {
+    // A handler that says what went wrong keeps its code, so the caller can tell.
+    if (input instanceof HandlerError) return input;
     const { message, cause } = unwrap(input);
     return new HandlerError(HANDLER_ERROR.ERROR, message, cause);
   }

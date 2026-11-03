@@ -1,0 +1,11 @@
+@layer utility {
+  /*
+   * Shared semantic color-variant vocabulary:
+   * primary | secondary | tertiary | error | success | warning | info.
+   * Components map these names to `aui-<component>-<color>` classes and
+   * `--aui-<component>-<variant>-*` token overrides driven by color tokens.
+   */
+  :root {
+    --aui-color-variant-names: 'primary, secondary, tertiary, error, success, warning, info';
+  }
+}

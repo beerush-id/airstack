@@ -1,0 +1,220 @@
+---
+title: AUI Desktop Widgets
+nav: Desktop Widgets
+nav-priority: 306
+description: Put the time, a quick note, or any small view of your app straight on the desktop — beneath the windows, on a grid people can rearrange, resting above the dock.
+keywords: [desktop widgets, React widget grid, draggable widgets, clock widget, notes widget, dashboard tiles, React AUI desktop widgets]
+---
+
+# AUI Desktop Widgets
+
+Some things belong on the desktop itself, not in a window: the time, a note someone jotted down, a count they glance at between tasks. Building that by hand means a layer that fights the windows for the pointer, tiles that drift out of line on a different screen, and a layout that resets every time the page loads.
+
+**Desktop Widgets** gives you that layer: a grid of tiles beneath the windows, centered on the desktop and resting above the dock. Tiles stay where people put them — they can drag one to a new cell or move it with the keyboard — and the layer scrolls on its own once it outgrows the screen, while the desktop around it stays put.
+
+:::interactive[Desktop widgets demo]
+
+```tsx
+import { Stat } from '@airlib/react-aui';
+import { Desktop, DesktopClock, DesktopNotes, DesktopWidget, DesktopWidgets } from '@airlib/react-aui/desktop';
+import { $bind, mutable, setup } from '@airlib/react';
+import wallpaper from '@/assets/air-desktop.webp?asset&sizes=1600';
+import wallpaperDark from '@/assets/air-desktop-dark.webp?asset&sizes=1600';
+
+const WidgetsDemo = setup(() => {
+  const desk = mutable({ note: 'Call the venue about Friday' });
+
+  return () => (
+    <Desktop className="demo-desktop" wallpaper={{ light: wallpaper.src, dark: wallpaperDark.src }}>
+      <DesktopWidgets label="Widgets">
+        <DesktopClock title="Today" span="3x1" column={1} row={1} />
+        <DesktopNotes
+          title="Notes"
+          label="Notes"
+          span="2x1"
+          column={1}
+          row={2}
+          placeholder="Jot something down"
+          value={$bind(desk, 'note')}
+        />
+        <DesktopWidget title="Inbox" span="1x1" column={3} row={2}>
+          <Stat label="Unread" value={12} change="+4" trend="up" caption="since this morning" />
+        </DesktopWidget>
+      </DesktopWidgets>
+    </Desktop>
+  );
+}, 'WidgetsDemo');
+```
+
+```html
+<WidgetsDemo />
+```
+
+<WidgetsDemo />
+
+:::
+
+Drag a widget by its glass or title to another cell, or click it and move it with the arrow keys. Drop it on another widget and it goes back.
+
+## Usage
+
+### Put widgets on the desktop
+
+Put a `DesktopWidgets` in the `Desktop`, and the widgets you want inside it:
+
+```tsx
+import { Desktop, DesktopClock, DesktopNotes, DesktopWidgets, Dock, WindowHost } from '@airlib/react-aui/desktop';
+import { $bind, mutable, setup } from '@airlib/react';
+import '@airlib/aui/desktop.css';
+
+export const Workspace = setup(() => {
+  const desk = mutable({ note: 'Call the venue about Friday' });
+
+  return () => (
+    <Desktop>
+      <DesktopWidgets label="Widgets">
+        <DesktopClock title="Today" />
+        <DesktopNotes title="Notes" label="Notes" placeholder="Jot something down" value={$bind(desk, 'note')} />
+      </DesktopWidgets>
+      <WindowHost closeLabel="Close" />
+      <Dock label="Dock" promptLabel="Ask the assistant" />
+    </Desktop>
+  );
+}, 'Workspace');
+```
+
+- `label` — names the widgets for screen readers, e.g. "Widgets"; with it they are a landmark people can jump to.
+
+The layer sits beneath the windows and takes no pointer of its own: pressing the empty desktop between widgets still leaves every window inactive, as pressing the desktop always does.
+
+### Show the time
+
+`DesktopClock` shows the time large and the date below it, in your users' language, turning over on the minute with their system clock:
+
+```tsx
+<DesktopClock title="Today" locales={['en-GB']} hourCycle="h23" />
+```
+
+- `title` — the quiet label above the time.
+- `locales` — the languages for the time and date. Read once.
+- `hourCycle` — `h12` for a 12-hour clock, `h23` for 24-hour; by default, the locale's. Read once.
+
+The clock sits straight on the desktop, with a soft halo round its text so it reads over any wallpaper; give it `bare={false}` to put it on glass like the other widgets. It shows the time only once it runs in the browser, so a server-rendered page never shows the server's clock or time zone.
+
+### Keep a note
+
+`DesktopNotes` is a note on the desktop: the tile is the field, and the text lives in your state through `value`:
+
+```tsx
+<DesktopNotes title="Notes" label="Notes" placeholder="Jot something down" value={$bind(desk, 'note')} />
+```
+
+- `value` — the note's text, bound to your state.
+- `label` — names the note's field for screen readers.
+- `placeholder` — the hint while the note is empty.
+
+The note grows with its text up to two cells tall, then scrolls, so a long note never pushes the other widgets off the screen.
+
+### Make your own widget
+
+When the desktop should show something of your app's — an unread count, the next meeting, a pinned answer — put it in a `DesktopWidget`. It is a tile on the windows' glass, named by its title:
+
+```tsx
+import { DesktopWidget } from '@airlib/react-aui/desktop';
+import { Stat } from '@airlib/react-aui';
+
+<DesktopWidget title="Inbox" span="1x1">
+  <Stat label="Unread" value={inbox.unread} change="+4 since this morning" trend="up" />
+</DesktopWidget>
+```
+
+- `title` — shown at the top, and the widget's accessible name. For a widget with no visible title, name it with `label` instead.
+- `span` — the cells it takes, across by down: `1x1` up to `3x3`. Defaults to `1x1`.
+- `bare` — sits straight on the desktop with no glass, for something that reads on its own.
+- children — whatever the widget shows; it reads your live state like any component.
+
+Light catches a widget's glass where the pointer is, as it does on the windows. To give a part of your widget the windows' solid or frosted panels, see [Glass](/docs/theming#glass).
+
+### Place and move widgets
+
+Widgets sit on a grid of square cells across the desktop. Without a place of their own, they stack down the middle column, one below another. Give a widget `column` and `row` to put its top-left corner in a cell, counting from 1:
+
+```tsx
+const layout = mutable({
+  clock: { column: 5, row: 1 },
+  notes: { column: 5, row: 2 },
+});
+
+<DesktopWidgets label="Widgets">
+  <DesktopClock title="Today" column={$bind(layout.clock, 'column')} row={$bind(layout.clock, 'row')} />
+  <DesktopNotes
+    title="Notes"
+    label="Notes"
+    value={$bind(desk, 'note')}
+    column={$bind(layout.notes, 'column')}
+    row={$bind(layout.notes, 'row')}
+  />
+</DesktopWidgets>
+```
+
+People move a widget by dragging its glass or its title — the note's text and any control inside keep their own presses — or by focusing it and using the arrow keys. A widget lands in the cell beneath its corner; a cell another widget already takes is refused, and the widget goes back where it was. Moving writes the new place to `column` and `row`, so binding them to state your app keeps — settings, storage, an account — brings the layout back next visit. Give a widget `movable={false}` to keep it where you put it.
+
+The grid always has an odd number of columns, however wide the screen, so there is always one middle column: widgets one or three cells wide sit exactly centered.
+
+## Style it once
+
+Widgets are the windows' glass, with more of the surface color laid over it so text on it reads. Tune them with:
+
+- `--aui-desktop-widget-cell` — one grid cell, square; `160px` by default.
+- `--aui-desktop-widget-gap` — the space between cells.
+- `--aui-desktop-widget-inset` — the space round the grid; the top keeps twice as much, for the widgets' shadows.
+- `--aui-desktop-widget-tint` — how much surface color covers the glass, `75%` by default.
+- `--aui-desktop-clock-size` — the time's size.
+- `--aui-desktop-widget-halo` — the glow round a bare widget's text.
+
+## Properties
+
+`DesktopWidgets`:
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `label` | `string` | — | Names the widgets; with it they are a landmark. |
+
+`DesktopWidget`, and every widget built on it:
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `title` | `string` | — | Shown at the top; names the widget. |
+| `label` | `string` | — | Names a widget with no visible title. |
+| `span` | `1x1` … `3x3` | `1x1` | Cells across by down. |
+| `column` / `row` | `Bindable<number>` | — | The cell its top-left corner sits in, from 1. Moving writes them. |
+| `movable` | `boolean` | `true` | Whether people may drag it or move it with the arrows. |
+| `bare` | `boolean` | `false` | No glass: straight on the desktop. |
+
+`DesktopClock`, on top of those:
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `locales` | `string \| string[]` | — | Languages for the time and date. Read once. |
+| `hourCycle` | `'h12'`, `'h23'` | — | 12- or 24-hour; by default, the locale's. Read once. |
+| `span` | as above | `3x1` | |
+| `bare` | as above | `true` | Straight on the desktop by default. |
+
+`DesktopNotes`, on top of those:
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `value` | `Bindable<string>` | — | The note's text. |
+| `label` | `string` | — | Names the note's field. |
+| `placeholder` | `string` | — | The hint while it's empty. |
+| `span` | as above | `3x1` | Grows with the note up to two cells tall. |
+
+## Keyboard
+
+`Tab` reaches each widget, then what's inside it. With a widget itself focused, the arrow keys move it a cell; a move into a cell another widget takes is refused. While dragging, `Escape` puts the widget back.
+
+## Next Steps
+
+- [Dock Widgets](/docs/composites/dock-widgets) — The assistant's answers, stacked above the dock.
+- [Window](/docs/composites/window) — The desktop, the dock, and the windows the widgets sit beneath.
+- [Theming](/docs/theming#glass) — The glass every widget and window is made of.

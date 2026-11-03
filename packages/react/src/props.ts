@@ -155,7 +155,7 @@ export function proxyProps<P>(props: P, strict = true): ComponentProps<P> {
         return [];
       }
 
-      return Object.keys(target);
+      return untrack(() => Reflect.ownKeys(target));
     },
   });
 
@@ -186,7 +186,7 @@ export function omitProps<T, K extends keyof T>(source: T, props: T, excludes: A
     },
     ownKeys(target: Record<string, unknown>): ArrayLike<string | symbol> {
       return untrack(() => {
-        return Object.keys(target as Record<string, unknown>).filter((k) => !excludes.includes(k as never));
+        return Reflect.ownKeys(target as Record<string, unknown>).filter((k) => !excludes.includes(k as never));
       });
     },
   }) as never;
@@ -216,7 +216,7 @@ export function pickProps<T, K extends keyof T>(source: T, props: T, includes: A
     },
     ownKeys(target: Record<string, unknown>): ArrayLike<string | symbol> {
       return untrack(() => {
-        return Object.keys(target as Record<string, unknown>).filter((k) => includes.includes(k as never));
+        return Reflect.ownKeys(target as Record<string, unknown>).filter((k) => includes.includes(k as never));
       });
     },
   }) as never;

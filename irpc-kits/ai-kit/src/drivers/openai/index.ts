@@ -1,0 +1,556 @@
+import { getEnv, type IRPCData } from '@irpclib/irpc';
+import {
+  type ChatMessage,
+  type ChatOutput,
+  type ChatTool,
+  chatTurns,
+  WEB_SEARCH,
+  type ToolCall,
+} from '../../chat/index.js';
+import type { ImageAspectRatio, ImageOptions } from '../../image/index.js';
+import type { AIEnv, AskContext, ImageContext } from '../../types/context.js';
+import type { AIDriver } from '../../types/driver.js';
+import { DriverError } from '../../types/errors.js';
+import type { OutputMeta } from '../../types/output.js';
+import { type Batcher, createBatcher, createChunkWriter } from '../../utils/chunks.js';
+import { readSSE } from '../../utils/sse.js';
+
+/** Configuration for one OpenAI-compatible endpoint. */
+export interface OpenAIOptions {
+  /** Driver name, also the key checked against the environment's `allowedDrivers`. */
+  name: string;
+  /** API root including the version segment, e.g. `https://api.meta.ai/v1`. */
+  baseUrl: string;
+  /** Bearer token for the endpoint. */
+  apiKey: string;
+  /** Model ids this endpoint serves; calls for any other model are left to other drivers. */
+  models: string[];
+  /** Model used when a call names none. */
+  defaultModel?: string;
+  /** Image model used when a draw names none, e.g. `muse-image-1.0`; it must be among `models`. */
+  defaultImageModel?: string;
+  /**
+   * Which API to speak: `chat` (Chat Completions, the default) or `responses` (the Responses API,
+   * which streams answers in real deltas, reasoning summaries, and commentary apart from the answer).
+   */
+  api?: 'chat' | 'responses';
+  /** Explicitly disables this driver regardless of credentials. */
+  enabled?: boolean;
+}
+
+/**
+ * Driver for any OpenAI-compatible endpoint, one instance per endpoint, and the base a provider's
+ * own driver extends with its defaults and what only it does (`MuseDriver` for Meta, `BasetenDriver`).
+ * Chat runs over Chat Completions or the Responses API: it streams the answer into `chunks`, keeps
+ * reasoning and commentary apart when the provider separates them, assembles tool calls, and
+ * translates tool names to the provider's allowed form and back, so callers keep their own naming
+ * (`sys.fs.read`). Images are drawn from a prompt with the OpenAI images endpoint.
+ */
+export class OpenAIDriver implements AIDriver {
+  readonly name: string;
+  protected readonly options: OpenAIOptions;
+
+  constructor(options: OpenAIOptions) {
+    this.options = { ...options };
+    this.name = options.name;
+  }
+
+  /**
+   * Runs one chat turn: the answer streams into `ctx.state.data.chunks`; `text` and `toolCalls` are
+   * set once the stream completes. Reasoning summaries and commentary stream into their own fields.
+   */
+  async ask<T extends IRPCData = IRPCData, M extends IRPCData = OutputMeta>(ctx: AskContext<T, M>): Promise<void> {
+    const output = ctx.state.data;
+    if (!this.canHandle(output.text || output.chunks?.length || output.data || output.toolCalls?.length)) return;
+    const model = ctx.payload.model ?? this.options.defaultModel;
+    if (!model || !this.options.models.includes(model)) return;
+
+    const tools = ctx.payload.tools ?? [];
+    const turns = chatTurns(ctx.input);
+    const sampling = {
+      ...(typeof ctx.payload.temperature === 'number' ? { temperature: ctx.payload.temperature } : {}),
+    };
+    const names = new Map(tools.map((tool) => [encodeName(tool.name), tool.name]));
+    const decode = (name: string) => names.get(name) ?? name;
+
+    const calls =
+      this.options.api === 'responses'
+        ? await this.streamResponses(
+            output,
+            {
+              model,
+              stream: true,
+              ...(ctx.payload.system ? { instructions: ctx.payload.system } : {}),
+              input: toInputItems(turns),
+              ...(tools.length || ctx.payload.webSearch
+                ? {
+                    tools: [
+                      ...tools.map(toResponsesFunction),
+                      ...(ctx.payload.webSearch ? [{ type: WEB_SEARCH }] : []),
+                    ],
+                  }
+                : {}),
+              ...(ctx.payload.webSearch ? { include: ['web_search_call.action.sources'] } : {}),
+              ...sampling,
+              ...(ctx.payload.json ? { text: { format: { type: 'json_object' } } } : {}),
+              ...(typeof ctx.payload.maxTokens === 'number' ? { max_output_tokens: ctx.payload.maxTokens } : {}),
+              reasoning: {
+                summary: 'auto',
+                ...(ctx.payload.reasoningEffort ? { effort: ctx.payload.reasoningEffort } : {}),
+              },
+            },
+            decode,
+            ctx.signal
+          )
+        : await this.streamChat(
+            output,
+            {
+              model,
+              stream: true,
+              messages: toMessages(turns, ctx.payload.system),
+              ...(tools.length ? { tools: tools.map(toChatFunction) } : {}),
+              ...sampling,
+              ...(ctx.payload.json ? { response_format: { type: 'json_object' } } : {}),
+              ...(typeof ctx.payload.maxTokens === 'number' ? { max_tokens: ctx.payload.maxTokens } : {}),
+              ...(ctx.payload.reasoningEffort ? { reasoning_effort: ctx.payload.reasoningEffort } : {}),
+            },
+            decode,
+            ctx.signal
+          );
+
+    if (calls.length) {
+      output.toolCalls = calls.map(
+        (call): ToolCall => ({ id: call.id, name: decode(call.name), args: parseArgs(call.args) })
+      );
+    }
+  }
+
+  /**
+   * Draws a new image from the prompt with the OpenAI images endpoint (`/images/generations`).
+   * Assigns `ctx.state.data.url`: the provider's URL, or a data URL when it returns the image
+   * inline. Draws with attachments are edits, whose request each provider shapes its own way: they
+   * are left to a driver extending this one with `edit`, or to another driver.
+   */
+  async draw(ctx: ImageContext): Promise<void> {
+    if (!this.canHandle(ctx.state.data.url)) return;
+    const payload = ctx.payload as ImageOptions;
+    const model = payload.model ?? this.options.defaultImageModel;
+    if (!model || !this.options.models.includes(model)) return;
+
+    const response = payload.attachments?.length
+      ? await this.edit(model, payload, ctx.signal)
+      : await this.post('/images/generations', this.imageRequest(model, payload), ctx.signal);
+    if (response) ctx.state.data.url = await this.imageOf(response, payload);
+  }
+
+  /**
+   * Edits the attached images by the prompt, for a provider that can: sends the request and returns
+   * the response, or `undefined` to leave the draw to another driver. The OpenAI endpoint takes the
+   * images as uploaded files, which this driver doesn't send, so it leaves every edit.
+   *
+   * @param _model - The image model.
+   * @param _payload - The draw, with its attachments.
+   * @param _signal - Aborts the request.
+   * @returns The images endpoint's response, or `undefined`.
+   */
+  protected async edit(_model: string, _payload: ImageOptions, _signal?: AbortSignal): Promise<Response | undefined> {
+    return undefined;
+  }
+
+  /**
+   * The fields every images request shares: the model, the prompt, the size its ratio gives, the
+   * file type, and the image returned as a URL where the provider hosts one.
+   *
+   * @param model - The image model.
+   * @param payload - The draw.
+   * @returns The request body, for a provider to add its own fields to.
+   */
+  protected imageRequest(model: string, payload: ImageOptions): Record<string, unknown> {
+    const size = sizeOf(payload.aspectRatio);
+    return {
+      model,
+      prompt: payload.prompt,
+      ...(size ? { size } : {}),
+      ...(payload.format ? { output_format: payload.format } : {}),
+      response_format: 'url',
+    };
+  }
+
+  /**
+   * The first image of an images response: its URL, or a data URL when it came inline.
+   *
+   * @param response - The images endpoint's response.
+   * @param payload - The draw, for the file type it asked for.
+   * @returns The image's URL.
+   * @throws DriverError When the response holds no image.
+   */
+  protected async imageOf(response: Response, payload: ImageOptions): Promise<string> {
+    const result = (await response.json()) as {
+      data?: Array<{ url?: string; b64_json?: string }>;
+      output_format?: string;
+    };
+    const [image] = result.data ?? [];
+    if (!image?.url && !image?.b64_json) throw new DriverError('The image endpoint returned no image', this.name);
+    return image.url ?? `data:image/${result.output_format ?? payload.format ?? 'webp'};base64,${image.b64_json}`;
+  }
+
+  /** Streams a Chat Completions response: answer deltas, and tool calls assembled from fragments. */
+  private async streamChat(
+    output: ChatOutput,
+    body: Record<string, unknown>,
+    decode: (name: string) => string,
+    signal?: AbortSignal
+  ) {
+    const response = await this.post('/chat/completions', body, signal);
+    const calls: RawCall[] = [];
+    const writer = createChunkWriter(output);
+    const drafting = new Map<number, Batcher>();
+
+    await readSSE(response, (event) => {
+      const delta = (event.choices as Array<{ delta?: ChatDelta }> | undefined)?.[0]?.delta;
+      if (!delta) return;
+      if (delta.content) writer.write(delta.content);
+      for (const part of delta.tool_calls ?? []) {
+        calls[part.index] ??= { id: '', name: '', args: '' };
+        const call = calls[part.index];
+        if (part.id) call.id = part.id;
+        if (part.function?.name) call.name += part.function.name;
+        if (part.function?.arguments) {
+          // Arguments only start once the name is whole.
+          if (!call.args) {
+            // What was said before a call lands before it's named, however the batch falls.
+            writer.flush();
+            drafting.set(part.index, createDraftWriter(output, announce(output, decode(call.name))));
+          }
+          call.args += part.function.arguments;
+          drafting.get(part.index)?.write(part.function.arguments);
+        }
+      }
+    });
+    writer.end();
+    for (const draft of drafting.values()) draft.flush();
+
+    return calls.filter(Boolean);
+  }
+
+  /**
+   * Streams a Responses API response. Text of a message the provider marks as commentary goes to
+   * `commentary`, the rest to the answer; reasoning summaries go to `reasoning`; function calls are
+   * taken whole when their item completes.
+   */
+  private async streamResponses(
+    output: ChatOutput,
+    body: Record<string, unknown>,
+    decode: (name: string) => string,
+    signal?: AbortSignal
+  ) {
+    const response = await this.post('/responses', body, signal);
+    const calls: RawCall[] = [];
+    const phases = new Map<string, string | undefined>();
+    const answer = createChunkWriter(output);
+    const commentary = createBatcher((batch) => {
+      output.commentary ??= [];
+      output.commentary.push(batch);
+    });
+    const reasoning = createBatcher((batch) => {
+      output.reasoning ??= [];
+      output.reasoning.push(batch);
+    });
+    const drafting = new Map<string, Batcher>();
+    let summaries = 0;
+    let failure: string | undefined;
+
+    await readSSE(response, (event) => {
+      const item = event.item as ResponsesItem | undefined;
+
+      switch (event.type) {
+        case 'response.output_item.added':
+          if (item?.type === 'message') phases.set(item.id, item.phase);
+          if (item?.type === WEB_SEARCH_CALL || (item?.type === 'function_call' && item.name)) {
+            // What was said before a call lands before it's named, however the batch falls.
+            commentary.flush();
+            answer.flush();
+            const index = announce(output, item.type === WEB_SEARCH_CALL ? WEB_SEARCH : decode(item.name as string));
+            if (item.type === 'function_call') drafting.set(item.id, createDraftWriter(output, index));
+          }
+          break;
+        case 'response.function_call_arguments.delta':
+          drafting.get(event.item_id as string)?.write(event.delta as string);
+          break;
+        case 'response.output_text.delta':
+          if (phases.get(event.item_id as string) === 'commentary') commentary.write(event.delta as string);
+          else answer.write(event.delta as string);
+          break;
+        case 'response.reasoning_summary_part.added':
+          if (summaries > 0) reasoning.write('\n\n');
+          summaries += 1;
+          break;
+        case 'response.reasoning_summary_text.delta':
+          reasoning.write(event.delta as string);
+          break;
+        case 'response.output_item.done':
+          if (item?.type === WEB_SEARCH_CALL) {
+            output.searched ??= [];
+            output.searched.push(item.action?.query ?? '');
+            for (const { url, title } of item.action?.sources ?? []) cite(output, url, title);
+          }
+          if (item?.type === 'function_call') {
+            calls.push({ id: item.call_id ?? '', name: item.name ?? '', args: item.arguments ?? '' });
+          }
+          for (const { annotations } of item?.content ?? []) {
+            for (const { type, url, title } of annotations ?? []) if (type === 'url_citation') cite(output, url, title);
+          }
+          break;
+        case 'response.failed':
+        case 'error':
+          failure = failureMessage(event) ?? 'unknown error';
+          break;
+      }
+    });
+
+    commentary.flush();
+    reasoning.flush();
+    answer.end();
+    for (const draft of drafting.values()) draft.flush();
+    if (failure) throw new DriverError(`${this.name} response failed: ${failure}`, this.name, 'UPSTREAM_ERROR');
+
+    return calls;
+  }
+
+  /** Posts a streaming request, rejecting a failed HTTP status. */
+  protected async post(path: string, body: Record<string, unknown>, signal?: AbortSignal): Promise<Response> {
+    const response = await fetch(`${this.options.baseUrl}${path}`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${this.options.apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+      signal,
+    });
+    if (!response.ok) {
+      throw new DriverError(`${this.name} chat request failed: ${response.status}`, this.name, 'UPSTREAM_ERROR');
+    }
+    return response;
+  }
+
+  /** Reports whether this driver may serve: enabled, credentialed, allowed, and the output not yet served. */
+  protected canHandle(served?: unknown): boolean {
+    if (this.options.enabled === false || !this.options.apiKey) return false;
+    const allowed = getEnv<AIEnv>().allowedDrivers;
+    if (allowed && !allowed.has(this.name)) return false;
+    return !served;
+  }
+}
+
+/** The pixels per ratio unit an aspect ratio is sent with; the endpoint reads only the ratio. */
+const RATIO_UNIT = 64;
+
+/**
+ * An aspect ratio as the images endpoint's `size`, width x height: the endpoint keeps only its
+ * ratio. `auto`, or anything that isn't a ratio, sends none.
+ */
+function sizeOf(ratio?: ImageAspectRatio): string | undefined {
+  const match = /^(\d+):(\d+)$/.exec(ratio ?? '');
+  return match ? `${Number(match[1]) * RATIO_UNIT}x${Number(match[2]) * RATIO_UNIT}` : undefined;
+}
+
+/** A tool call as it came off the wire: provider id, encoded name, raw argument text. */
+type RawCall = { id: string; name: string; args: string };
+
+/** The parts of a Chat Completions stream delta this driver reads. */
+interface ChatDelta {
+  content?: string | null;
+  tool_calls?: Array<{ index: number; id?: string; function?: { name?: string; arguments?: string } }>;
+}
+
+/** The parts of a Responses API output item this driver reads. */
+interface ResponsesItem {
+  id: string;
+  type: string;
+  phase?: string;
+  call_id?: string;
+  name?: string;
+  arguments?: string;
+  /** What a hosted web search did. */
+  action?: { query?: string; sources?: Array<{ url?: string; title?: string }> };
+  /** A message's text, with what it cites. */
+  content?: Array<{ annotations?: Array<{ type?: string; url?: string; title?: string }> }>;
+}
+
+/** A hosted web search in a response's items. */
+const WEB_SEARCH_CALL = 'web_search_call';
+
+/**
+ * Says the model has started calling a tool, before its arguments have arrived.
+ *
+ * @param output - The streaming output.
+ * @param name - The tool's caller-facing name.
+ * @returns The call's place in `calling`, and in `drafts`.
+ */
+function announce(output: ChatOutput, name: string): number {
+  output.calling ??= [];
+  output.drafts ??= [];
+  output.drafts.push([]);
+  return output.calling.push(name) - 1;
+}
+
+/**
+ * Keeps a page the provider cited, once.
+ *
+ * @param output - The streaming output.
+ * @param url - The page's address.
+ * @param title - The page's title.
+ */
+function cite(output: ChatOutput, url?: string, title?: string): void {
+  // Some providers hand addresses over HTML-escaped, some of them many times.
+  const address = url?.replace(/&(amp;)+/g, '&');
+  if (!address || output.sources?.some((source) => source.url === address)) return;
+  output.sources ??= [];
+  output.sources.push({ url: address, ...(title ? { title } : {}) });
+}
+
+/**
+ * Streams what a call writes of its arguments into its place in `drafts`, batched as answers are.
+ *
+ * @param output - The streaming output.
+ * @param index - The call's place in `calling`.
+ * @returns The batcher its deltas go through.
+ */
+function createDraftWriter(output: ChatOutput, index: number): Batcher {
+  return createBatcher((batch) => {
+    output.drafts?.[index]?.push(batch);
+  });
+}
+
+/**
+ * Encodes a tool name into the providers' allowed form: letters, digits, `_`, `-`, and at most one
+ * dot. Dots become `__`, so `sys.fs.read` is sent as `sys__fs__read`.
+ */
+function encodeName(name: string): string {
+  return name.replace(/\./g, '__');
+}
+
+/** A normalized tool as a Chat Completions function definition. */
+function toChatFunction(tool: ChatTool): Record<string, unknown> {
+  return { type: 'function', function: functionShape(tool) };
+}
+
+/** A normalized tool as a Responses API function definition: the same fields, flat. */
+function toResponsesFunction(tool: ChatTool): Record<string, unknown> {
+  return { type: 'function', ...functionShape(tool) };
+}
+
+function functionShape(tool: ChatTool): Record<string, unknown> {
+  return {
+    name: encodeName(tool.name),
+    ...(tool.description ? { description: tool.description } : {}),
+    ...(tool.parameters ? { parameters: tool.parameters } : {}),
+  };
+}
+
+/** The text a turn carries: its text, or its data as JSON. */
+function contentOf<T extends IRPCData, M extends IRPCData>(turn: ChatMessage<T, M>): string {
+  return turn.type === 'text' ? turn.text : JSON.stringify(turn.data);
+}
+
+/** A turn's attachments that are URLs, sent as images. */
+function imagesOf<T extends IRPCData, M extends IRPCData>(turn: ChatMessage<T, M>): string[] {
+  return (turn.attachments ?? []).filter((item): item is string => typeof item === 'string');
+}
+
+/**
+ * Translates normalized turns into Chat Completions messages: the system option first, assistant
+ * tool calls with encoded names and string arguments, tool results by call id, and user
+ * attachments as image parts.
+ */
+function toMessages<T extends IRPCData, M extends IRPCData>(
+  turns: ChatMessage<T, M>[],
+  system?: string
+): Record<string, unknown>[] {
+  const messages: Record<string, unknown>[] = system ? [{ role: 'system', content: system }] : [];
+
+  for (const turn of turns) {
+    const content = contentOf(turn);
+
+    if (turn.role === 'tool') {
+      messages.push({ role: 'tool', tool_call_id: turn.toolCallId, content });
+    } else if (turn.role === 'assistant' && turn.toolCalls?.length) {
+      messages.push({
+        role: 'assistant',
+        content: content || null,
+        tool_calls: turn.toolCalls.map((call) => ({
+          id: call.id,
+          type: 'function',
+          function: { name: encodeName(call.name), arguments: JSON.stringify(call.args) },
+        })),
+      });
+    } else {
+      const images = imagesOf(turn);
+      messages.push({
+        role: turn.role,
+        content: images.length
+          ? [{ type: 'text', text: content }, ...images.map((url) => ({ type: 'image_url', image_url: { url } }))]
+          : content,
+      });
+    }
+  }
+
+  return messages;
+}
+
+/**
+ * Translates normalized turns into Responses API input items: messages by role, an assistant turn's
+ * tool calls as `function_call` items after its text, tool results as `function_call_output`, and
+ * user attachments as `input_image` parts. The system prompt travels as `instructions` instead.
+ */
+function toInputItems<T extends IRPCData, M extends IRPCData>(turns: ChatMessage<T, M>[]): Record<string, unknown>[] {
+  const items: Record<string, unknown>[] = [];
+
+  for (const turn of turns) {
+    const content = contentOf(turn);
+
+    if (turn.role === 'tool') {
+      items.push({ type: 'function_call_output', call_id: turn.toolCallId, output: content });
+      continue;
+    }
+
+    const images = imagesOf(turn);
+    if (content || images.length || !turn.toolCalls?.length) {
+      items.push({
+        role: turn.role,
+        content: images.length
+          ? [{ type: 'input_text', text: content }, ...images.map((url) => ({ type: 'input_image', image_url: url }))]
+          : content,
+      });
+    }
+
+    for (const call of turn.toolCalls ?? []) {
+      items.push({
+        type: 'function_call',
+        call_id: call.id,
+        name: encodeName(call.name),
+        arguments: JSON.stringify(call.args),
+      });
+    }
+  }
+
+  return items;
+}
+
+/** The message of a failed Responses stream, wherever the provider put it. */
+function failureMessage(event: Record<string, unknown>): string | undefined {
+  const response = event.response as { error?: { message?: string } } | undefined;
+  const error = event.error as { message?: string } | undefined;
+  return response?.error?.message ?? error?.message ?? (event.message as string | undefined);
+}
+
+/** Parses streamed tool arguments; empty means no arguments, invalid JSON is kept as the raw string. */
+function parseArgs(raw: string): IRPCData {
+  if (!raw.trim()) return {};
+  try {
+    return JSON.parse(raw) as IRPCData;
+  } catch {
+    return raw;
+  }
+}

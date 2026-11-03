@@ -19,6 +19,7 @@ import {
   setContextStore,
   setScope,
   sleep,
+  withContext,
   withIsolation,
   withScope,
 } from '../../src/index.js';
@@ -550,6 +551,44 @@ describe('Anchor - Async Scope', () => {
       expect(getContext('foo')).toBe('bar');
 
       setContextStore(prevStore);
+    });
+
+    it('should handle getContext and setContext in an isolated scope', async () => {
+      await withContext(async () => {
+        expect(getContext('foo')).toBeUndefined();
+        setContext('foo', 'baz');
+        expect(getContext('foo')).toBe('baz');
+
+        await awaited(sleep(0));
+
+        expect(getContext('foo')).toBe('baz');
+      });
+
+      expect(getContext('foo')).toBeUndefined();
+    });
+
+    it('should handle getContext and setContext in an isolated scope', async () => {
+      await withContext([['foo', 'baz']], async () => {
+        expect(getContext('foo')).toBe('baz');
+
+        await awaited(sleep(0));
+
+        expect(getContext('foo')).toBe('baz');
+      });
+
+      expect(getContext('foo')).toBeUndefined();
+    });
+
+    it('should handle getContext and setContext in an isolated scope', async () => {
+      await withContext(createContextStore([['foo', 'baz']]), async () => {
+        expect(getContext('foo')).toBe('baz');
+
+        await awaited(sleep(0));
+
+        expect(getContext('foo')).toBe('baz');
+      });
+
+      expect(getContext('foo')).toBeUndefined();
     });
   });
 

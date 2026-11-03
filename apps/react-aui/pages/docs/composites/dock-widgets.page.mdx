@@ -1,0 +1,386 @@
+---
+title: AUI Dock Widgets
+nav: Dock Widgets
+nav-priority: 305
+description: Show an assistant's answers above the dock — text that streams in as markdown, widgets that arrive whole, and forms that report back — stacked, announced, and out of the way when quiet.
+keywords: [AI assistant UI, streaming answer, chat response widget, agent UI, generative UI, React AUI dock widgets]
+---
+
+# AUI Dock Widgets
+
+An assistant's answer isn't a message you show once. Its words arrive a few at a time, a card or a form lands in the middle of them, and sometimes it ends with a question the person has to answer before anything else happens. Building that by hand means a chat log that re-renders on every word, controls that lose their state when the text above them grows, and a pile of old answers covering the windows people are working in.
+
+**Dock Widgets** is where those answers live: a stack above the [Dock](/docs/composites/window#a-dock), newest nearest the prompt. You keep the answers in a list of your own and write to it as they arrive; the stack draws the list, draws again only the part that changed, and tells you what people press. Old answers tuck behind the newest, and when nothing has happened for a while the stack fades away until it's needed.
+
+:::interactive[Dock widgets demo]
+
+```tsx
+import { Button } from '@airlib/react-aui';
+import { Desktop, Dock, DockWidgets, type DockWidgetEntry, type DockWidgetPart } from '@airlib/react-aui/desktop';
+import { mutable, setup } from '@airlib/react';
+
+const REPLY = 'Your **Friday** is clear after lunch, and the venue has confirmed the room for thirty people.';
+
+const AnswerDemo = setup(() => {
+  const answers = mutable([] as DockWidgetEntry[], { recursive: false });
+  let count = 0;
+
+  const addAnswer = () => {
+    const children = mutable([] as DockWidgetPart[]);
+    answers.push({ id: `answer-${++count}`, children });
+    return children;
+  };
+
+  // Words arrive a few at a time; a widget lands whole once the words are done.
+  const stream = () => {
+    const children = addAnswer();
+    children.push({ type: 'text', text: '' });
+    const words = children[children.length - 1] as { type: 'text'; text: string };
+    const parts = REPLY.split(' ');
+    let written = 0;
+    const timer = setInterval(() => {
+      words.text = parts.slice(0, ++written).join(' ');
+      if (written < parts.length) return;
+      clearInterval(timer);
+      children.push({
+        type: 'widget',
+        role: 'stat',
+        props: { label: 'Guests', value: 30, change: '+6 since Monday', trend: 'up' },
+      });
+    }, 80);
+  };
+
+  const ask = () => {
+    addAnswer().push({
+      type: 'widget',
+      form: { guests: '30' },
+      formAction: 'room.book',
+      once: true,
+      children: [
+        {
+          role: 'card-body',
+          children: [
+            {
+              role: 'text-input',
+              props: { size: 'sm', label: 'Guests' },
+              bindings: [{ prop: 'value', state: '$this.form.guests', writable: true }],
+            },
+          ],
+        },
+        {
+          role: 'card-actions',
+          children: [{ role: 'button', props: { size: 'sm', variant: 'filled', type: 'submit' }, children: ['Book the room'] }],
+        },
+      ],
+    });
+  };
+
+  return () => (
+    <div className="flex flex-col gap-sm">
+      <div className="flex flex-wrap gap-xs">
+        <Button size="sm" onClick={stream}>
+          Stream an answer
+        </Button>
+        <Button size="sm" variant="tonal" onClick={ask}>
+          Ask with a form
+        </Button>
+        <Button size="sm" variant="text" onClick={() => answers.splice(0)}>
+          Clear
+        </Button>
+      </div>
+      <Desktop className="demo-desktop">
+        <Dock label="Dock" promptLabel="Ask the assistant" />
+        <DockWidgets
+          label="Assistant"
+          closeLabel="Dismiss"
+          widgets={answers}
+          onaction={({ form }) => `Booked for ${form.guests} people.`}
+          ondismiss={(answer) => answers.splice(answers.indexOf(answer), 1)}
+        />
+      </Desktop>
+    </div>
+  );
+}, 'AnswerDemo');
+```
+
+```html
+<AnswerDemo />
+```
+
+<AnswerDemo />
+
+:::
+
+Stream a few answers, then point at the stack to open it. Book the room and the result lands under the form, which locks. Wait a moment without touching anything and the stack fades to a pill above the dock; point at the pill to bring it back.
+
+## Usage
+
+### Show the stack
+
+Keep the answers in a shallow reactive list, and put a `DockWidgets` in the `Desktop` right after the `Dock`:
+
+```tsx
+import { mutable } from '@airlib/react';
+import { Desktop, Dock, DockWidgets, type DockWidgetEntry, WindowHost } from '@airlib/react-aui/desktop';
+import '@airlib/aui/desktop.css';
+
+const answers = mutable([] as DockWidgetEntry[], { recursive: false });
+
+<Desktop>
+  <WindowHost closeLabel="Close" />
+  <Dock label="Dock" promptLabel="Ask the assistant" onsubmit={ask} />
+  <DockWidgets label="Assistant" closeLabel="Dismiss" widgets={answers} />
+</Desktop>
+```
+
+- `widgets` — the answers to show, oldest first: a reactive array, set, or map. The list stays yours, and the stack only draws it. Make it shallow with `recursive: false`, so an answer drawn by code stays as you wrote it.
+- `label` — names the stack for screen readers, e.g. "Assistant"; with it the stack is a landmark people can jump to.
+- `closeLabel` — names each answer's close button, which floats on its corner. Without it answers have none, and they leave when your code takes them off the list.
+
+The stack shares the dock's `Tab` loop, so people move between the prompt and an answer's controls without leaving. Only the answers themselves take the pointer; the space around them belongs to the windows behind.
+
+### Stream an answer in
+
+Add an answer to your list when the assistant starts replying, then push its parts to its `children` as they arrive. An answer's `children` need their own `mutable`, because the shallow list doesn't watch inside its entries:
+
+```ts
+import { mutable } from '@airlib/react';
+import type { DockSubmitEvent, DockWidgetPart } from '@airlib/react-aui/desktop';
+
+const ask = async ({ text, signal }: DockSubmitEvent) => {
+  const children = mutable([] as DockWidgetPart[]);
+  answers.push({ id: crypto.randomUUID(), children });
+
+  // Words: a text part, written to as they arrive.
+  children.push({ type: 'text', text: '' });
+  const words = children[0];
+  for await (const chunk of assistant.reply(text, { signal })) words.text += chunk;
+
+  // A widget: UI described as data, added whole once it is complete.
+  children.push({
+    type: 'widget',
+    role: 'stat',
+    props: { label: 'Unread', value: 12, change: '+4 since yesterday', trend: 'up' },
+  });
+};
+```
+
+The prompt shows at work until what `onsubmit` returns settles, and `signal` aborts when people stop it or send something newer. See [the dock](/docs/composites/window#a-dock).
+
+- A **text** part is markdown. As its `text` grows, only the block the new words land in is drawn again — see [Markdown](/docs/markdown).
+- A **widget** part is [UI from data](/docs/dynamic): a `role`, plain `props`, live `bindings` to your app's state, and `children`. Add it once it is complete; a widget already showing keeps its state while more parts arrive after it.
+
+Every widget part is drawn in a card, so it always reads apart from the words around it. Leave `role` out and its `children` become the card's content, such as a `card-header` and a `card-body`. A model can use a `card` further inside to group things, but never as the widget's root.
+
+Text parts draw with the markdown renderer, so install its packages — `unified`, `remark-parse`, `remark-gfm`, `remark-math`, and `temml` — alongside the desktop.
+
+### Ask for something
+
+When an answer needs input — the details of a meeting, a choice before going on — seed a widget part with `form` and name what submitting it runs with `formAction`. A model can write all of it, because it's plain data:
+
+```json
+{
+  "type": "widget",
+  "id": "w_123",
+  "form": { "title": "Trailer review", "date": "2026-11-01" },
+  "formAction": "calendar.createEvent",
+  "once": true,
+  "children": [
+    { "role": "card-header", "children": [{ "role": "card-title", "children": ["New meeting"] }] },
+    {
+      "role": "card-body",
+      "children": [
+        {
+          "role": "text-input",
+          "props": { "size": "sm", "label": "Title", "required": true },
+          "bindings": [{ "prop": "value", "state": "$this.form.title", "writable": true }]
+        }
+      ]
+    },
+    {
+      "role": "card-actions",
+      "children": [
+        { "role": "button", "props": { "size": "sm", "variant": "filled", "type": "submit" }, "children": ["Add meeting"] }
+      ]
+    }
+  ]
+}
+```
+
+- `form` — what the inputs start with. It's the widget's own state, kept for as long as the widget.
+- `$this` — a binding's path into that state, such as `$this.form.title`. Any other path reads your app's state.
+- `formAction` — what a submit runs. With it the card holds a form, so a model never draws one; a button submits it with `type: 'submit'`.
+- `once` — locks the form once its action succeeds, for what mustn't run twice.
+- `id` — your id for this widget, handed back with whatever is pressed in it.
+- `status` — `'settled'` when you draw a finished widget again, such as reopening a conversation. It comes back filled in and locked. `'pending'` by default.
+
+A form takes no input while its action runs, and everything inside it dims to say so.
+
+A button can ask for something on its own, with or without a form. Its `action` runs in place of `formAction`, and its `once` uses up that button alone:
+
+```json
+{ "role": "button", "props": { "size": "sm", "action": "mail.markAllRead", "once": true }, "children": ["Mark all read"] }
+```
+
+### Act on what's pressed
+
+`onaction` hears every `formAction` and `action`. The stack keeps the widget busy until it finishes, and draws what it returns under the widget, in a place of its own, so the answer stays what the model wrote:
+
+```tsx
+import type { DockWidgetAction } from '@airlib/react-aui/desktop';
+
+const run = async ({ action, form, ctx, widgetId }: DockWidgetAction) => {
+  if (action !== 'calendar.createEvent') throw new Error(`I can't run ${action}.`);
+  if (calendar.has(form.title)) {
+    ctx.disabled = true;
+    return 'That meeting is already on your calendar.';
+  }
+
+  await calendar.create(form);
+  await assistant.settle(widgetId, form);
+  return <Stat label="Added" value={form.title} />;
+};
+
+<DockWidgets widgets={answers} onaction={run} />
+```
+
+- `action` — the name the widget asked for. It comes from the model, so check it, and raise your own confirmation for anything destructive; a button labeled "View" can name anything.
+- `form` and `ctx` — the widget's live state. Writing to `form` shows in its inputs at once, and `ctx.disabled = true` locks it. `ctx.busy` says an action is running.
+- `event`, `widget`, and `widgetId` — what triggered it, the entry it was pressed in, and the `id` of the widget part.
+
+What it returns is yours to draw: JSX, text, or nothing. An error's message shows in the same place, and an `AbortError` shows nothing, for a press that was called off. Focus goes back to the prompt when it's done, unless the action moved it somewhere else, such as a window it opened.
+
+### Open links in your apps
+
+An answer can link to things in your apps. `allowsLink` lets data use a link beyond the web and mail links every page may have, and `onlink` hears every link pressed, in the words and the widgets alike. Take a link from the browser with `preventDefault`:
+
+```tsx
+<DockWidgets
+  widgets={answers}
+  allowsLink={(href) => href.startsWith('photos:')}
+  onlink={(href, event) => {
+    if (!href.startsWith('photos:')) return;
+    event.preventDefault();
+    photos.open(href.slice('photos:'.length));
+  }}
+/>
+```
+
+### Show what the user sent
+
+Give the stack each prompt as an entry of its own, with `from: 'user'`, so people see what they asked next to what came back. It sits at the end of its row with the desktop's glass behind it, and it has no close button:
+
+```ts
+const ask = async ({ text, signal }: DockSubmitEvent) => {
+  answers.push({
+    id: crypto.randomUUID(),
+    from: 'user',
+    children: mutable([{ type: 'text', text }] as DockWidgetPart[]),
+  });
+  // ...then the answer, as an entry of its own.
+};
+```
+
+### Draw an answer your own way
+
+When an answer isn't text and widgets — a live chart, a list your app keeps updating — give it a `view` to draw instead, and let your component keep itself up to date:
+
+```tsx
+answers.push({ id: 'upload', view: <UploadProgress file="Q4-report.pdf" /> });
+```
+
+### An answer that waits on the user
+
+Mark an answer `important` when it asks something — a choice, a confirmation, a form to fill. It stands out here and tints the pill a sleeping stack leaves, and it never leaves on its own. It doesn't hold the stack open, so a question never gets in the way of the window behind it.
+
+The list keeps its entries plain, so an `important` that changes is a getter over your own state:
+
+```ts
+const waiting = mutable({ on: true });
+answers.push({
+  id: 'question',
+  children: mutable([] as DockWidgetPart[]),
+  get important() {
+    return waiting.on;
+  },
+});
+
+waiting.on = false;
+```
+
+`critical` interrupts screen readers at once instead of waiting their turn; save it for what can't wait.
+
+### Dismiss answers
+
+The list is yours, so an answer leaves when you take it off. `ondismiss` asks you to, when its close button is pressed or its time is up:
+
+```tsx
+<DockWidgets widgets={answers} ondismiss={(answer) => answers.splice(answers.indexOf(answer), 1)} />
+```
+
+The stack draws everything on the list, so a long conversation is yours to trim, by what your answers weigh.
+
+Whether answers leave on their own is the user's choice, not the assistant's. `autoDismiss` is off by default, so nothing goes before it's read; pass the milliseconds from your user's settings to turn it on. An `important` answer never leaves on its own either way:
+
+```tsx
+<DockWidgets label="Assistant" closeLabel="Dismiss" widgets={answers} autoDismiss={settings.answersLeave ? 20000 : false} />
+```
+
+### How the stack behaves
+
+- **Newest first.** The newest answer shows in full; the one before it keeps its place above, faded out, so opening the stack moves nothing. Pointing at the stack opens it to show every answer in view; it closes again a moment after the pointer leaves, so moving across the gaps between answers doesn't snap it shut.
+- **All of them when open.** Pointing at the stack shows every answer, and it scrolls once they outgrow the screen, newest nearest the dock. Set `visible` to cap how many an open stack shows; older ones then move out of view until newer ones are dismissed.
+- **Quiet when idle.** After a quiet spell the stack fades away and leaves a small pill just above the dock. A new or changing answer, pointing at the pill, or focus moving into the stack brings it back. Typing in the prompt doesn't, so a tall answer never covers the window you're working next to.
+- **Open while it's in use.** A date picker or a menu open in an answer keeps the stack showing, even though it floats outside the stack's area.
+- **Behind the window you're in.** While a window has focus the stack sits beneath the windows, so an answer never covers what you're typing. Pointing at the stack brings it forward.
+- **Over or under the windows.** `layer` puts the stack over the windows like the dock (`'above'`, the default), or on the desktop beneath them (`'below'`).
+
+## Style it once
+
+Each answer is the windows' glass with more of the surface color laid over it, so text on it reads over any wallpaper. Tune the stack with:
+
+- `--aui-dock-widgets-width` — the stack's least width.
+- `--aui-dock-widget-tint` — how much surface color covers the glass, `75%` by default.
+- `--aui-dock-widgets-close-delay` — how long an open stack waits after the pointer leaves.
+- `--aui-dock-widgets-idle` — how long a quiet stack stays before it fades, `6s` by default.
+- `--aui-dock-widgets-cue-width`, `--aui-dock-widgets-cue-height`, `--aui-dock-widgets-cue-color`, `--aui-dock-widgets-cue-reach` — the pill a sleeping stack leaves, and how close the pointer must come to wake it.
+
+## Properties
+
+`DockWidgets`:
+
+| Prop | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `widgets` | `Iterable<DockWidgetEntry>`, `Map<string, DockWidgetEntry>` | — | What to show, oldest first: a reactive array, set, or map. |
+| `label` | `string` | — | Names the stack; with it the stack is a landmark. |
+| `closeLabel` | `string` | — | Names each answer's close button; without it, answers have none. |
+| `onaction` | `(action: DockWidgetAction) => ReactNode \| Promise<ReactNode>` | — | Hears what's pressed in a widget; what it returns is drawn under the widget. |
+| `onlink` | `(href: string, event: MouseEvent) => void` | — | Hears any link pressed in an answer. |
+| `allowsLink` | `(href: string) => boolean` | — | Whether data may use a link beyond web and mail links. |
+| `ondismiss` | `(widget: DockWidgetEntry) => void` | — | Asks you to take an answer off the list. |
+| `autoDismiss` | `number \| false` | `false` | Milliseconds before an answer asks to leave — the user's choice. |
+| `visible` | `number` | — | Caps how many answers an open stack shows; without it, all of them. |
+| `layer` | `'above'`, `'below'` | `'above'` | Over the windows, or on the desktop beneath them. |
+| `size` | shared size | `md` | Sizes every answer. |
+
+`DockWidgetEntry`:
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `id` | `string` | Keeps its place in the list, and what it holds, as the list changes. |
+| `children` | `DockWidgetPart[]` | The answer's parts so far, reactive: `{ type: 'text', text }` or a widget part. |
+| `view` | `ReactNode` | What to draw instead of parts. |
+| `from` | `'user'` | What the user sent, a turn of its own. |
+| `important` | `boolean` | Waits on the user: it's marked, and never leaves on its own. |
+| `critical` | `boolean` | Interrupts screen readers at once. |
+
+A widget part is `{ type: 'widget', role?, props?, bindings?, children? }`, with `id`, `status`, `form`, `formAction`, and `once` when it's a form.
+
+`DockWidget` draws one answer; `DockWidgets` uses it for each, and you only need it when composing a stack of your own.
+
+## Next Steps
+
+- [UI from data](/docs/dynamic) — The nodes a widget part is made of, and binding them to your app.
+- [Markdown](/docs/markdown) — How text parts are drawn as they stream in.
+- [Window](/docs/composites/window) — The desktop, the dock, and the windows the stack sits over.
+- [Toast](/docs/composites/toast) — For news from your app, rather than answers from the assistant.

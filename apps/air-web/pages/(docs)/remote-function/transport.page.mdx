@@ -41,7 +41,7 @@ import { HTTPTransport } from '@irpclib/http';
 const irpc = createPackage({ name: 'my-api', version: '1.0.0' });
 
 const transport = new HTTPTransport({
-  endpoint: `/irpc/${irpc.href}`,
+  endpoint: '/irpc',
   timeout: 10000,
   debounce: 0,
   maxRetries: 3,
@@ -61,10 +61,11 @@ irpc.use(transport);
 | `headers` | `Record<string, string>` | — | Custom headers on every request |
 | `fetchOptions` | `RequestInit` | — | Custom fetch options (e.g., `credentials: 'include'`) |
 | `timeout` | `number` | — | Default timeout in ms |
-| `debounce` | `number` | `0` | Batching window in ms |
+| `debounce` | `number \| boolean` | `0` | Batching window in ms, or boolean to toggle batching |
 | `maxRetries` | `number` | `0` | Retry attempts on network failure |
 | `retryMode` | `'linear' \| 'exponential'` | `'linear'` | Retry strategy |
 | `retryDelay` | `number` | `1000` | Base delay between retries in ms |
+| `standalone` | `boolean` | `false` | Default standalone dispatch flag |
 
 ### Server Setup (HTTPRouter)
 
@@ -113,7 +114,7 @@ return router.resolve(req, [], async (body, init) => {
 When multiple calls happen in the same microtask, the transport batches them into a single HTTP POST:
 
 ```http
-POST /irpc/my-api/1.0.0
+POST /irpc
 Content-Type: application/json
 
 [
@@ -122,6 +123,10 @@ Content-Type: application/json
   { "id": "3", "name": "getStats", "args": ["123"] }
 ]
 ```
+
+:::tip[Bypassing Batching with Standalone Requests]
+Functions configured with `standalone: true` bypass microtask batching and dispatch as an independent HTTP request. Use this for operations that require an isolated request/response lifecycle, particularly authentication procedures like `login` and `logout` that receive or clear session cookies via `Set-Cookie` headers.
+:::
 
 ### How Streaming Works
 

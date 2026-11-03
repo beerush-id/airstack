@@ -1,0 +1,146 @@
+import type { DurableObjectNamespace, Fetcher, ImageWorkerEnv, R2Bucket, Resize } from '../types.js';
+import { isSizeAllowed, parseImageRequest } from '../utils/index.js';
+import { resizeImage, resolveBucket, resolveResizer } from './resizer.js';
+import { getOriginal, getVariant, getVariantKey, putVariant } from './storage.js';
+
+/** A vector picture's media type: drawn at any size, so never resized. */
+const SVG_TYPE = 'image/svg+xml';
+
+/** What an SVG served on its own may load: its own inline styles, nothing else, no scripts. */
+const SVG_POLICY = "default-src 'none'; style-src 'unsafe-inline'";
+
+export interface DeliveryOptions<Env> {
+  variantPrefix?: string;
+  browserTtl: number;
+  edgeTtl: number;
+  bucketResolver?: keyof Env | ((env: Env) => R2Bucket);
+  resizerResolver?: keyof Env | ((env: Env) => DurableObjectNamespace | Fetcher | string);
+  onDemand?: boolean;
+  allowedSizes?: (number | Resize)[];
+  sizes?: Resize[];
+}
+
+/**
+ * Handles binary image delivery using Cloudflare Edge Cache, R2, and container resizing.
+ *
+ * @param request Incoming GET request
+ * @param url Parsed request URL
+ * @param env Worker environment bindings
+ * @param options Delivery and caching options
+ * @returns Binary image HTTP Response
+ */
+export async function handleImageDelivery<Env extends ImageWorkerEnv>(
+  request: Request,
+  url: URL,
+  env: Env,
+  options: DeliveryOptions<Env>
+): Promise<Response> {
+  const cache = (caches as unknown as { default: Cache }).default;
+
+  // 1. Check Cloudflare Edge Cache
+  const cached = await cache.match(request);
+  if (cached) {
+    return cached;
+  }
+
+  const { path, transforms, isOriginal: rawIsOriginal } = parseImageRequest(url);
+  if (!path) {
+    return new Response('Image not found', { status: 404 });
+  }
+
+  // Resolve preset dimensions from worker sizes if named preset requested
+  if (transforms.name && options.sizes) {
+    const preset = options.sizes.find((s) => s.name === transforms.name);
+    if (preset) {
+      Object.assign(transforms, { ...preset, ...transforms });
+    }
+  }
+
+  // If transforms are not allowed by whitelist, skip the transform and serve original image
+  const isAllowed = rawIsOriginal || isSizeAllowed(transforms, options.allowedSizes);
+  const isOriginal = rawIsOriginal || !isAllowed;
+
+  const bucket = resolveBucket(env, options.bucketResolver);
+  const resizer = resolveResizer(env, options.resizerResolver);
+
+  const cacheHeaders = {
+    'Cache-Control': `public, max-age=${options.browserTtl}, s-maxage=${options.edgeTtl}, immutable`,
+  };
+
+  // 2. Original Image Requested (or transform skipped)
+  if (isOriginal) {
+    const original = await getOriginal(bucket, path);
+    if (!original) {
+      return new Response('Image not found', { status: 404 });
+    }
+
+    const contentType = original.httpMetadata?.contentType as string;
+    return respondAndCache(original.body, contentType, cacheHeaders, request, cache, original.httpEtag);
+  }
+
+  // 3. Transformed Variant Requested: Check R2 Variant Storage
+  const variantKey = getVariantKey(path, transforms, options.variantPrefix);
+  const existingVariant = await getVariant(bucket, variantKey);
+
+  if (existingVariant) {
+    const contentType = existingVariant.httpMetadata?.contentType as string;
+    return respondAndCache(existingVariant.body, contentType, cacheHeaders, request, cache, existingVariant.httpEtag);
+  }
+
+  // 4. Variant Cache Miss: the original decides
+  const original = await getOriginal(bucket, path);
+  if (!original) {
+    return new Response('Image not found', { status: 404 });
+  }
+
+  // A vector draws at any size, so it's served as it is at every requested size, never resized.
+  const originalType = original.httpMetadata?.contentType as string;
+  if (originalType === SVG_TYPE) {
+    return respondAndCache(original.body, originalType, cacheHeaders, request, cache, original.httpEtag);
+  }
+
+  // 5. Check if on-demand resizing is permitted
+  /* istanbul ignore else */
+  if (options.onDemand === false) {
+    return new Response('Image not found', { status: 404 });
+  }
+
+  // 6. Trigger Container Resize
+  try {
+    const resizedResponse = await resizeImage(resizer, original.body, transforms);
+    const contentType = resizedResponse.headers.get('content-type') as string;
+    const transformedBuffer = await resizedResponse.arrayBuffer();
+
+    // Persist to R2 variant storage in the background
+    await putVariant(bucket, variantKey, transformedBuffer, contentType, original.etag);
+    return respondAndCache(transformedBuffer, contentType, cacheHeaders, request, cache);
+  } catch (error) {
+    console.error(error);
+    return new Response('Internal Server Error', { status: 500 });
+  }
+}
+
+/**
+ * Constructs an HTTP Response, sets caching headers, and registers edge cache persistence.
+ */
+async function respondAndCache(
+  body: BodyInit | null,
+  contentType: string,
+  cacheHeaders: Record<string, string>,
+  request: Request,
+  cache: Cache,
+  etag?: string
+): Promise<Response> {
+  const headers: Record<string, string> = {
+    'Content-Type': contentType,
+    ...cacheHeaders,
+  };
+  /* istanbul ignore else */
+  if (etag) headers.ETag = etag;
+  // An SVG can carry scripts: an <img> never runs them, and neither does opening its URL.
+  if (contentType === SVG_TYPE) headers['Content-Security-Policy'] = SVG_POLICY;
+
+  const response = new Response(body, { status: 200, headers });
+  await cache.put(request, response.clone());
+  return response;
+}

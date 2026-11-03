@@ -208,7 +208,22 @@ function watchSelection() {
       });
     };
 
+    // Words selected in a text field aren't the document's selection: they're the field's own.
+    const assignFieldSelection = (field: TextField) => {
+      const start = field.selectionStart ?? 0;
+      const end = field.selectionEnd ?? 0;
+      const text = field.value.slice(start, end);
+      const rect = fieldSelectionRect(field, start, end);
+      anchor.assign(SELECTION_STATE, { rect, rects: [rect], size: text.length, text, target: field });
+    };
+
     const selectionHandler = () => {
+      const field = focusedTextField();
+      if (field) {
+        if (field.selectionStart === field.selectionEnd) return clearSelection();
+        return schedule(() => assignFieldSelection(field));
+      }
+
       const selection = window.getSelection();
 
       if (!selection?.rangeCount || selection.isCollapsed) {
@@ -230,4 +245,87 @@ function watchSelection() {
       cancel();
     };
   });
+}
+
+/** A field people type text into, whose selection is its own. */
+type TextField = HTMLTextAreaElement | HTMLInputElement;
+
+/** The kinds of input that hold text a selection can be made in. */
+const TEXT_INPUTS = new Set(['text', 'search', 'url', 'tel', 'email', 'password']);
+
+/**
+ * The text field that has focus, if one does.
+ *
+ * @returns The focused textarea or text input, or nothing.
+ */
+function focusedTextField(): TextField | undefined {
+  const active = document.activeElement;
+  if (active instanceof HTMLTextAreaElement) return active;
+  if (active instanceof HTMLInputElement && TEXT_INPUTS.has(active.type)) return active;
+}
+
+/** What a mirror of a field takes from it, so its text wraps and sits exactly as the field's does. */
+const MIRRORED = [
+  'boxSizing',
+  'width',
+  'paddingTop',
+  'paddingRight',
+  'paddingBottom',
+  'paddingLeft',
+  'borderTopWidth',
+  'borderRightWidth',
+  'borderBottomWidth',
+  'borderLeftWidth',
+  'fontFamily',
+  'fontSize',
+  'fontWeight',
+  'fontStyle',
+  'letterSpacing',
+  'lineHeight',
+  'textTransform',
+  'textIndent',
+  'tabSize',
+  'wordSpacing',
+] as const;
+
+/**
+ * Where the words selected in a text field sit on screen. A field doesn't expose that, so a hidden
+ * copy of it, laid out the same, holds its text with the selected words marked, and the mark is
+ * measured, then moved by the field's place and how far it has scrolled.
+ *
+ * @param field - The field.
+ * @param start - Where the selection starts in its value.
+ * @param end - Where it ends.
+ * @returns The selection's box, in the viewport.
+ */
+function fieldSelectionRect(field: TextField, start: number, end: number): DOMRect {
+  const style = getComputedStyle(field);
+  const mirror = document.createElement('div');
+  for (const key of MIRRORED) mirror.style[key] = style[key];
+  Object.assign(mirror.style, {
+    position: 'absolute',
+    top: '0',
+    left: '-9999px',
+    visibility: 'hidden',
+    overflow: 'hidden',
+    whiteSpace: field instanceof HTMLTextAreaElement ? 'pre-wrap' : 'pre',
+    overflowWrap: field instanceof HTMLTextAreaElement ? 'break-word' : 'normal',
+  });
+
+  const mark = document.createElement('span');
+  mark.textContent = field.value.slice(start, end) || '​';
+  mirror.append(field.value.slice(0, start), mark, field.value.slice(end));
+  document.body.append(mirror);
+
+  const box = field.getBoundingClientRect();
+  const from = mirror.getBoundingClientRect();
+  const at = mark.getBoundingClientRect();
+  mirror.remove();
+
+  return new DOMRect(
+    box.left + (at.left - from.left) - field.scrollLeft,
+    box.top + (at.top - from.top) - field.scrollTop,
+    at.width,
+    at.height
+  );
 }

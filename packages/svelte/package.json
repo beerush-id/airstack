@@ -1,6 +1,6 @@
 {
   "name": "@airlib/svelte",
-  "version": "2.1.0",
+  "version": "2.3.0",
   "description": "Svelte bindings for Anchor reactive state management",
   "keywords": [
     "state",
@@ -63,6 +63,10 @@
       "svelte": "./dist/utils/index.js",
       "import": "./dist/utils/index.js"
     },
+    "./timeline": {
+      "types": "./dist/timeline/index.d.ts",
+      "import": "./dist/timeline/index.js"
+    },
     "./workflow": {
       "types": "./dist/workflow/index.d.ts",
       "import": "./dist/workflow/index.js"
@@ -108,6 +112,7 @@
     "prepublish": "bun run format && bun run build",
     "format": "biome format --write",
     "test": "rimraf coverage && vitest --run",
+    "test:run": "rimraf coverage && vitest --run",
     "test:preview": "rimraf coverage && vitest --run && vite preview --outDir coverage"
   },
   "optionalDependencies": {

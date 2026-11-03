@@ -1,0 +1,689 @@
+---
+title: 'Headless Combobox'
+description: 'Headless comboboxes for React and SolidJS. Keeps the typed filter separate from the committed value, opens the popup without touching the caret, travels the matches with the arrow keys, and settles the field when you leave — with no markup or styles imposed.'
+nav: 'Combobox'
+nav-priority: 355
+---
+
+import './aria.css';
+import './combobox.css';
+
+# Headless Combobox
+
+A combobox is a text field that filters a list you pick from. Getting it right means **keeping the typed filter separate from the committed value**, **opening the popup without touching the caret**, **travelling the matches with the arrow keys**, and **settling the field when focus leaves**.
+
+**Headless Combobox** does all of that for you, and leaves the markup and the styling entirely yours.
+
+```tsx
+const combobox = aria('combobox', props);
+
+<div ref={combobox.ref} {...combobox.restProps(['children'])} />
+```
+
+:::interactive[City Picker]
+```tsx
+import { aria } from '@airlib/aria';
+import { derived, For, setup, shadowPortal } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+const cityMap: Record<string, string> = {
+  ams: 'Amsterdam',
+  ber: 'Berlin',
+  cop: 'Copenhagen',
+  dnb: 'Dublin',
+  vil: 'Vilnius',
+};
+const cities = Object.entries(cityMap);
+
+type DemoCityProps = ComponentProps<'div'> & {
+  value?: string | string[] | null;
+  query?: string;
+  open?: boolean;
+  multiple?: boolean;
+  disabled?: boolean;
+  required?: boolean;
+};
+
+const DemoCity = setup<DemoCityProps>((props) => {
+  const combobox = aria('combobox', props, cityMap);
+
+  const matches = derived(() => {
+    const query = combobox.query.trim().toLowerCase();
+    return cities.filter(([key, city]) => key.includes(query) || city.toLowerCase().includes(query));
+  });
+
+  return () => (
+    <div ref={combobox.ref} {...combobox.restProps(['children'])} className="demo-combobox">
+      <DemoCityInput label="City" />
+      <DemoCityPanel>
+        <For each={() => matches.value}>
+          {([key, city]) => <DemoCityOption value={key}>{city}</DemoCityOption>}
+        </For>
+        {matches.value.length === 0 ? <div className="demo-combobox-empty">No city matches that.</div> : null}
+      </DemoCityPanel>
+    </div>
+  );
+}, 'DemoCity');
+
+type DemoCityInputProps = ComponentProps<'input'> & {
+  label?: string;
+};
+
+const DemoCityInput = setup<DemoCityInputProps>((props) => {
+  const input = aria<HTMLInputElement>('combobox-input', props);
+
+  return () => (
+    <span className="demo-combobox-field">
+      <input
+        ref={input.ref}
+        {...input.restProps(['children', 'label'])}
+        aria-label={props.label}
+        placeholder="Type to filter"
+        className="demo-combobox-input"
+      />
+      <span className="demo-combobox-caret" aria-hidden="true" />
+    </span>
+  );
+}, 'DemoCityInput');
+
+const DemoCityPanel = setup<ComponentProps<'div'>>((props) => {
+  const panel = aria<HTMLElement>('combobox-panel', props);
+  const shadow = shadowPortal(() => true);
+
+  return () =>
+    shadow(
+      <div ref={panel.ref} {...panel.restProps(['children'])} className="demo-combobox-panel">
+        {props.children}
+      </div>
+    );
+}, 'DemoCityPanel');
+
+type DemoCityOptionProps = ComponentProps<'div'> & {
+  value: string;
+  disabled?: boolean;
+};
+
+const DemoCityOption = setup<DemoCityOptionProps>((props) => {
+  const option = aria('option', props);
+
+  return () => (
+    <div ref={option.ref} {...option.restProps(['children'])} className="demo-combobox-option">
+      {props.children}
+    </div>
+  );
+}, 'DemoCityOption');
+```
+```html
+<div className="demo-combobox-stack">
+  <div className="demo-combobox-row">
+    <span className="demo-combobox-caption">Typing filters, picking fills the field</span>
+    <DemoCity value="ber" />
+  </div>
+  <div className="demo-combobox-row">
+    <span className="demo-combobox-caption">Locked: no typing, no popup, no commit</span>
+    <DemoCity value="ber" disabled />
+  </div>
+</div>
+```
+
+<div className="demo-combobox-stack">
+  <div className="demo-combobox-row">
+    <span className="demo-combobox-caption">Typing filters, picking fills the field</span>
+    <DemoCity value="ber" />
+  </div>
+  <div className="demo-combobox-row">
+    <span className="demo-combobox-caption">Locked: no typing, no popup, no commit</span>
+    <DemoCity value="ber" disabled />
+  </div>
+</div>
+:::
+
+:::interactive[Departure Airports]
+```tsx
+import { aria } from '@airlib/aria';
+import { derived, For, setup, shadowPortal } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+const airportMap: Record<string, string> = {
+  ams: 'Schiphol',
+  lhr: 'Heathrow',
+  jfk: 'Kennedy',
+  cdg: 'Charles de Gaulle',
+  nrt: 'Narita',
+};
+const airports = Object.entries(airportMap);
+
+type DemoCitiesProps = ComponentProps<'div'> & {
+  value?: string | string[] | null;
+  query?: string;
+  open?: boolean;
+  multiple?: boolean;
+  disabled?: boolean;
+  required?: boolean;
+};
+
+const DemoCities = setup<DemoCitiesProps>((props) => {
+  const combobox = aria('combobox', props, airportMap);
+
+  const matches = derived(() => {
+    const query = combobox.query.trim().toLowerCase();
+    return airports.filter(([key, airport]) => key.includes(query) || airport.toLowerCase().includes(query));
+  });
+
+  return () => (
+    <div ref={combobox.ref} {...combobox.restProps(['children'])} className="demo-combobox">
+      <DemoCitiesInput label="Airports" placeholder="Filter airports" />
+      <DemoCitiesPanel>
+        <For each={() => matches.value}>
+          {([key, airport]) => <DemoCitiesOption value={key}>{airport}</DemoCitiesOption>}
+        </For>
+        {matches.value.length === 0 ? <div className="demo-combobox-empty">No airport matches that.</div> : null}
+      </DemoCitiesPanel>
+    </div>
+  );
+}, 'DemoCities');
+
+type DemoCitiesInputProps = ComponentProps<'input'> & {
+  label?: string;
+  placeholder?: string;
+};
+
+const DemoCitiesInput = setup<DemoCitiesInputProps>((props) => {
+  const input = aria<HTMLInputElement>('combobox-input', props);
+
+  return () => (
+    <span className="demo-combobox-field">
+      <input
+        ref={input.ref}
+        {...input.restProps(['children', 'label', 'placeholder'])}
+        aria-label={props.label}
+        placeholder={props.placeholder}
+        className="demo-combobox-input"
+      />
+      <span className="demo-combobox-caret" aria-hidden="true" />
+    </span>
+  );
+}, 'DemoCitiesInput');
+
+const DemoCitiesPanel = setup<ComponentProps<'div'>>((props) => {
+  const panel = aria<HTMLElement>('combobox-panel', props);
+  const shadow = shadowPortal(() => true);
+
+  return () =>
+    shadow(
+      <div ref={panel.ref} {...panel.restProps(['children'])} className="demo-combobox-panel">
+        {props.children}
+      </div>
+    );
+}, 'DemoCitiesPanel');
+
+type DemoCitiesOptionProps = ComponentProps<'div'> & {
+  value: string;
+  disabled?: boolean;
+};
+
+const DemoCitiesOption = setup<DemoCitiesOptionProps>((props) => {
+  const option = aria('option', props);
+
+  return () => (
+    <div ref={option.ref} {...option.restProps(['children'])} className="demo-combobox-option">
+      {props.children}
+    </div>
+  );
+}, 'DemoCitiesOption');
+```
+```html
+<div className="demo-combobox-stack">
+  <div className="demo-combobox-row">
+    <span className="demo-combobox-caption">Multiple stays open across commits</span>
+    <DemoCities multiple value={['lhr', 'jfk']} />
+  </div>
+  <div className="demo-combobox-row">
+    <span className="demo-combobox-caption">Required claims the first option</span>
+    <DemoCities required />
+  </div>
+</div>
+```
+
+<div className="demo-combobox-stack">
+  <div className="demo-combobox-row">
+    <span className="demo-combobox-caption">Multiple stays open across commits</span>
+    <DemoCities multiple value={['lhr', 'jfk']} />
+  </div>
+  <div className="demo-combobox-row">
+    <span className="demo-combobox-caption">Required claims the first option</span>
+    <DemoCities required />
+  </div>
+</div>
+:::
+
+:::tip
+**The query is not the value.** Typing writes `query` and selects nothing; a commit publishes the chosen label as `text` and frees the query, so the next opening offers the whole list again.
+:::
+
+## Combobox
+
+**The composite as a whole.** It holds the filter, the selection, and the popup visibility; the field, the panel, and the options all follow it.
+
+### Usage
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'combobox',
+  props?: ComboboxProps,
+  labels?: Record<string, string>
+): ComboboxAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup, shadowPortal } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type ComboboxProps = ComponentProps<'div'> & {
+  value?: string | null;
+  query?: string;
+  open?: boolean;
+  disabled?: boolean;
+  required?: boolean;
+  onchange?: (event: CustomEvent<string | string[] | undefined>) => void;
+};
+
+const Combobox = setup<ComboboxProps>((props) => {
+  const combobox = aria('combobox', props);
+  const panel = combobox.panel();
+  const shadow = shadowPortal(() => true);
+
+  return () => (
+    <div ref={combobox.ref} {...combobox.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type ComboboxProps = ComponentProps<'div'> & {
+  value?: string | null;
+  query?: string;
+  open?: boolean;
+  disabled?: boolean;
+  required?: boolean;
+  onchange?: (event: CustomEvent<string | string[] | undefined>) => void;
+};
+
+const Combobox = setup<ComboboxProps>((props) => {
+  const combobox = aria('combobox', props);
+
+  return (
+    <div ref={combobox.ref} {...combobox.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
+
+Filtering is your render job: read `combobox.query`, narrow your own data, and render the survivors as `option` members. The panel lives in the app's shadow root — render it through `shadowPortal(() => panel.open)` in React, or through your framework's portal into the same root — because the popover positions and dismisses from there and reads the committed labels back out of it.
+
+For several selections at once, declare the array archetype: `{ multiple: true, value: ['ams', 'ber'] }`. `multiple` and `value` narrow together, and commits leave the popup open.
+
+### Parameters
+
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **query** _string, optional, default `''`_: The filter text. Typing writes it; a commit or a leave clears it. Read and write it through `combobox.query`.
+- **value** _string | null, optional_: The selected option value, `null` when nothing is selected. Typing never writes it.
+- **value** _string[], optional, with `multiple: true`_: The selected values.
+- **multiple** _boolean, optional, default `false`_: Declares the array archetype.
+- **open** _boolean, optional_: Popup visibility, read and write through `combobox.open`.
+- **disabled** _boolean, optional_: Locks typing, opening, traversal, and committing across the **whole composite**.
+- **required** _boolean, optional_: With nothing selected, the first option to mount claims the selection.
+- **labels** _Record&lt;string, string&gt;, optional_: Option values to their labels, used to name the current choice.
+- **id** _string, optional_: Generated as `combobox-<n>` when you leave it out; the panel derives `{id}-panel`.
+- **onopen** / **onclose** _(event: CustomEvent&lt;true | false&gt;) =&gt; void, optional_: The popup's open and close edges, through every dismissal path.
+- **oninput** _(event: CustomEvent&lt;string | undefined&gt;) =&gt; void, optional_: The typed query, and the option value as traversal moves the cursor.
+- **onchange** _(event: CustomEvent&lt;string | string[] | undefined&gt;) =&gt; void, optional_: The whole committed value.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **value** _string | string[] | null | undefined, read and write_: The committed selection.
+- **query** _string, read and write_: The filter text.
+- **text** _string, read and write_: The label the field shows while you are not filtering, published from the committed options' rendered text.
+- **label** _string_: The current choice named through `labels`.
+- **open** _boolean, read and write_: Whether the popup is open.
+- **multiple** _boolean_: Whether several options may be selected at once.
+
+### Methods
+
+_What you call on the instance._
+
+- **`input(props?, options?)`** → `ComboboxInputAria`: Creates the field belonging to this composite.
+- **`panel(props?)`** → `ComboboxPanelAria`: Creates the popup list belonging to this composite.
+
+### How it behaves
+
+- **The root is a plain container.** It compiles no role of its own; the field, the panel, and the options carry the semantics.
+- **The query is not the value.** Typing writes `query` and selects nothing; a commit publishes the chosen option's rendered text as `text` and frees `query`, so the next opening offers the whole list again.
+- **Leaving settles the field.** Focus moving out beyond the field and the panel publishes `text` and clears `query`. `Escape` and arrow travel inside the composite are not leaving, so a filter in progress is never reset under you.
+- **Single closes, multiple stays.** A commit closes the popup in single mode and leaves it open in multiple.
+- **The field shows what you chose.** On a native host the engine writes the field's value as the query, else the chosen label; focusing the field selects that label so the first keystroke replaces it.
+
+### Events
+
+_What it tells you._
+
+- **`input`** — the typed query while you type (the browser's own event, never re-dispatched), and the option value as traversal moves the cursor.
+- **`change`** — the whole committed value after a member commit reaches the container.
+- **`open` / `close`** — the popup's edges.
+
+```tsx
+const combobox = aria('combobox', {
+  value: 'ams',
+  onchange: (event) => submit(event.detail),
+});
+```
+
+### Navigation
+
+_What the keys do._
+
+- **Typing** — writes `query` and opens the popup. Selects nothing.
+- **`ArrowDown` / `ArrowUp` on the field** — open a closed popup; while open, hand focus to the selected option, or to the list while nothing is selected.
+- **`ArrowDown` / `ArrowUp` / `Home` / `End` in the list** — rove across the options without committing.
+- **`Enter` on an option** — commits; the field then reads the chosen label.
+- **`Escape`** — closes, selects nothing, and returns focus to the field.
+- **`Tab`** — leaves the composite, which settles the field and closes the popup.
+
+## Combobox Input
+
+**The editable field.** It carries the combobox role, writes the query, and anchors the panel.
+
+### Usage
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'combobox-input',
+  props?: ComboboxInputProps,
+  options?: ComboboxInputOptions
+): ComboboxInputAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type ComboboxInputProps = ComponentProps<'input'> & {
+  id?: string;
+  disabled?: boolean;
+};
+
+const ComboboxInput = setup<ComboboxInputProps>((props) => {
+  const input = aria<HTMLInputElement>('combobox-input', props);
+
+  return () => (
+    <input
+      ref={input.ref}
+      {...input.restProps(['children'])}
+      aria-label="City"
+    />
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type ComboboxInputProps = ComponentProps<'input'> & {
+  id?: string;
+  disabled?: boolean;
+};
+
+const ComboboxInput = setup<ComboboxInputProps>((props) => {
+  const input = aria<HTMLInputElement>('combobox-input', props);
+
+  return (
+    <input
+      ref={input.ref}
+      {...input.restProps(['children'])}
+      aria-label="City"
+    />
+  );
+});
+```
+
+:::
+
+**On a native host the engine writes the field's text.** It tracks the query while you type and the chosen label after a commit, so leave the field uncontrolled — binding `value` yourself fights the controller's own write.
+
+Name the field yourself — `aria-label` or `aria-labelledby`. The engine invents no label.
+
+### Parameters
+
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **id** _string, optional_: This field's identifier in the DOM.
+- **disabled** _boolean, optional_: This field alone refuses typing and opening. Composite-level disablement applies on top of it.
+
+### How it behaves
+
+- **Announced as a combobox.** `role="combobox"` with `aria-autocomplete="list"` fixed, `aria-haspopup="listbox"`, `aria-expanded` tracking the popup, and `aria-controls` at the panel.
+- **Two hosts, one behavior.** A native host gets `type="text"`, the field value, and real `disabled`; a custom host gets a tab stop and `aria-disabled`. A required composite adds `required` on a native host and `aria-required` on a custom one.
+- **Typing and the arrows open it; opening never takes the caret.** The first keystroke and `ArrowDown` / `ArrowUp` on a closed field open the popup, and opening never pulls focus out of the field. Focusing the field selects the shown label, so the next keystroke replaces it.
+- **Text keys stay text keys.** `Enter` and `Space` type; commits happen on the option that holds focus.
+- **Nothing moves while disabled.** No typing into state, no opening, no committing.
+
+## Combobox Panel
+
+**The popup list.** A listbox with dismissal, positioning, and focus return delegated to an internal popover.
+
+### Usage
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'combobox-panel',
+  props?: ComboboxPanelProps
+): ComboboxPanelAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup, shadowPortal } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type ComboboxPanelProps = ComponentProps<'div'>;
+
+const ComboboxPanel = setup<ComboboxPanelProps>((props) => {
+  const panel = aria<HTMLElement>('combobox-panel', props);
+  const shadow = shadowPortal(() => true);
+
+  return () =>
+    shadow(
+      <div ref={panel.ref} {...panel.restProps(['children'])}>
+        {props.children}
+      </div>
+    );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps, JSX } from 'solid-js';
+
+type ComboboxPanelProps = ComponentProps<'div'> & {
+  children: JSX.Element;
+};
+
+const ComboboxPanel = setup<ComboboxPanelProps>((props) => {
+  const panel = aria<HTMLElement>('combobox-panel', props);
+
+  return (
+    <div ref={panel.ref} {...panel.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
+
+Keep the panel mounted: the popover compiles `hidden` while closed, so the popup disappears without unmounting and the same instance keeps managing its edges, dismissal, and focus return.
+
+### How it behaves
+
+- **A listbox in a popover.** `role="listbox"`, holding the identifier the field's `aria-controls` points at.
+- **Traversal commits nothing.** Focus moves across the options; activation commits through the option's own rules.
+- **Dismissal returns focus to the field.** Outside click and `Escape` close through the popover; opening never moves focus out of the field.
+- **The members are ordinary options.** [`option`](/docs/aria/option) controllers, ambiently coordinated — selected rather than checked, inert to keys of their own.
+
+## Next Steps
+
+- **[Select](/docs/aria/select)**: The same popup for picking only, behind a button trigger instead of a field.
+- **[Listbox](/docs/aria/listbox)**: The option list always visible, without the popup.
+- **[Option](/docs/aria/option)**: The selection member this composite coordinates.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Combobox
+
+```ts
+type ComboboxProps = SingleComboboxProps | MultipleComboboxProps;
+
+interface SingleComboboxProps {
+  id?: string;
+  query?: string;
+  open?: boolean;
+  disabled?: boolean;
+  required?: boolean;
+  multiple?: false;
+  value?: string | null;
+  labels?: Record<string, string>;
+  onopen?: (event: CustomEvent<true>) => void;
+  onclose?: (event: CustomEvent<false>) => void;
+  oninput?: (event: CustomEvent<string | undefined>) => void;
+  onchange?: (event: CustomEvent<string | string[] | undefined>) => void;
+}
+
+interface MultipleComboboxProps {
+  id?: string;
+  query?: string;
+  open?: boolean;
+  disabled?: boolean;
+  required?: boolean;
+  multiple: true;
+  value?: string[];
+  labels?: Record<string, string>;
+  onopen?: (event: CustomEvent<true>) => void;
+  onclose?: (event: CustomEvent<false>) => void;
+  oninput?: (event: CustomEvent<string | undefined>) => void;
+  onchange?: (event: CustomEvent<string | string[] | undefined>) => void;
+}
+
+declare class ComboboxAria {
+  get value(): string | string[] | null | undefined;
+  set value(value: string | string[] | null | undefined);
+  get query(): string;
+  set query(value: string);
+  get text(): string;
+  set text(value: string);
+  get label(): string;
+  get open(): boolean;
+  set open(value: boolean);
+  get multiple(): boolean;
+  get labels(): Record<string, string>;
+
+  input(props?: ComboboxInputProps, options?: ComboboxInputOptions): ComboboxInputAria;
+  panel(props?: ComboboxPanelProps): ComboboxPanelAria;
+}
+```
+
+### Combobox Input
+
+```ts
+interface ComboboxInputProps {
+  id?: string;
+  disabled?: boolean;
+}
+
+interface ComboboxInputOptions {
+  native?: boolean;
+}
+
+interface ComboboxInputAttributes {
+  id?: string;
+  name?: string;
+  type?: 'text';
+  value?: string;
+  required?: boolean;
+  role?: 'combobox';
+  tabindex?: number;
+  disabled?: boolean;
+  'aria-autocomplete'?: 'list';
+  'aria-haspopup'?: string;
+  'aria-expanded'?: 'true' | 'false';
+  'aria-controls'?: string;
+  'aria-disabled'?: 'true';
+  'aria-required'?: 'true' | 'false';
+}
+
+declare class ComboboxInputAria {
+  get value(): string | string[];
+  get label(): string;
+  get text(): string;
+  get query(): string;
+}
+```
+
+### Combobox Panel
+
+```ts
+type ComboboxPanelProps = ListboxProps;
+
+declare class ComboboxPanelAria {
+  get id(): string;
+  get open(): boolean;
+  get query(): string;
+}
+```
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`props`** / **`restProps(omit)`** is what you spread onto the host — your props minus the keys the controller writes and any you name, with the compiled attributes merged in; **`ref`** is what you bind the element with; **`attributes`** is that compiled dictionary on its own, when you need the low-level view.
+- **`assign()`** changes several parameters at once, **`refine()`** adds attributes of your own, **`on()`** listens for anything the part fires, **`destroy()`** tears it down.

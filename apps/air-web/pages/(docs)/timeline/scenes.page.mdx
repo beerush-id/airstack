@@ -1,0 +1,259 @@
+---
+nav: 'Scenes & Transitions'
+nav-priority: 82
+title: 'Keyframe Scenes & Transitions'
+description: 'Position declarative keyframe states on segments and interpolate values seamlessly with normalized progress calculation.'
+keywords:
+  - AirLib
+  - Timeline
+  - Keyframes
+  - Scenes
+  - Interpolation
+  - Transitions
+  - Progress
+---
+
+# Keyframe Scenes & Transitions
+
+Animations are driven by discrete **Scenes** (keyframes) positioned along a segment. Each scene holds a frame position and an arbitrary user-land `data` payload.
+
+## Declarative Keyframes
+
+You attach keyframes to a segment using `segment.addScene()`. Scenes automatically order themselves chronologically by `atFrame`:
+
+```typescript
+const segment = track.addSegment({ name: 'camera-move', duration: 4, startFrame: 0 });
+
+// Position keyframes using discrete frames:
+const startKey = segment.addScene(
+  { atFrame: 0, name: 'origin' },
+  { x: 0, y: 0, scale: 1, opacity: 1 }
+);
+
+const midKey = segment.addScene(
+  { atFrame: 59, name: 'zoom-in' },
+  { x: 100, y: -50, scale: 1.5, opacity: 0.8 }
+);
+
+const endKey = segment.addScene(
+  { atFrame: 119, name: 'fade-out' },
+  { x: 200, y: 0, scale: 1, opacity: 0 }
+);
+
+// Or position using seconds (converted to atFrame automatically):
+const cue = segment.addScene(
+  { atTime: 1.5, name: 'audio-sync' },
+  { opacity: 0.5 }
+);
+```
+
+### Scene Options & Data
+
+`segment.addScene()` accepts both seconds and discrete frames:
+
+| Property | Type | Description |
+|---|---|---|
+| `atTime` | `number` | Position in seconds; automatically converted to `atFrame` at the timeline's frame rate. |
+| `atFrame` | `number` | Integer frame index on the parent segment where this keyframe sits (source of truth). |
+| `name` | `string` | Optional identifier for landmark snapping and debug logs. |
+| `type` | `string` | Classification (e.g. `'gsap'`, `'shader'`, `'css'`, `'action'`). |
+| `data` | `Record<string, unknown>` | User-land payload holding target styling, coordinates, or driver state. |
+
+## Dual-Cursor Interpolation Model
+
+As the playhead moves across a segment, the segment resolves the active keyframe span:
+
+- **`activeScene`**: The keyframe positioned at or immediately before the local playhead.
+- **`nextScene`**: The upcoming keyframe immediately following the local playhead.
+- **`progress`**: A normalized float from `0.0` to `1.0` representing exact interpolation progress between `activeScene` and `nextScene`.
+
+```typescript
+// Local playhead is at frame 30 (halfway between frame 0 and frame 59)
+console.log(segment.activeScene?.name); // 'origin'
+console.log(segment.nextScene?.name);   // 'zoom-in'
+console.log(segment.progress);          // ~0.508 (normalized position within span)
+```
+
+:::info[Single-Scene Behavior]
+When the playhead passes the final keyframe on a segment, `nextScene` becomes `undefined` and `progress` locks at `1.0`, keeping the last state active.
+:::
+
+## Real-Time Transition Listener
+
+Subscribe directly to keyframe transitions using `segment.onTransition()` to update Canvas, WebGL, or DOM elements without triggering framework component re-renders:
+
+```typescript
+const unsubscribe = segment.onTransition(({ from, to, progress }) => {
+  if (!to) {
+    applyStyles(from.data);
+    return;
+  }
+
+  // Linear interpolation helper
+  const lerp = (start: number, end: number, t: number) => start + (end - start) * t;
+
+  const currentX = lerp(from.data.x, to.data.x, progress);
+  const currentY = lerp(from.data.y, to.data.y, progress);
+  const currentScale = lerp(from.data.scale, to.data.scale, progress);
+
+  element.style.transform = `translate3d(${currentX}px, ${currentY}px, 0) scale(${currentScale})`;
+});
+```
+
+## Component Example
+
+Here is how you build a smooth keyframe transition player in an AirLib component:
+
+:::code-group
+
+```tsx [React]
+import { setup, mutable, Snippet } from '@airlib/react';
+import { createTimeline } from '@airlib/react/timeline';
+
+export const KeyframeBlender = setup(() => {
+  const timeline = createTimeline({ frameRate: 30 });
+  const track = timeline.addTrack({ name: 'Transform Track', type: 'css' });
+  const segment = track.addSegment({ name: 'Box Animation', duration: 3, startFrame: 0 });
+
+  segment.addScene({ atFrame: 0, name: 'Left' }, { x: 0, color: '#3b82f6' });
+  segment.addScene({ atFrame: 44, name: 'Center' }, { x: 120, color: '#10b981' });
+  segment.addScene({ atFrame: 89, name: 'Right' }, { x: 240, color: '#ef4444' });
+
+  const currentX = mutable(0);
+  const currentColor = mutable('#3b82f6');
+
+  segment.onTransition(({ from, to, progress }) => {
+    if (!to) {
+      currentX.value = from.data.x as number;
+      currentColor.value = from.data.color as string;
+      return;
+    }
+
+    const startX = from.data.x as number;
+    const endX = to.data.x as number;
+    currentX.value = startX + (endX - startX) * progress;
+    currentColor.value = progress < 0.5 ? (from.data.color as string) : (to.data.color as string);
+  });
+
+  return () => (
+    <div className="flex flex-col gap-4 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900">
+      <div className="relative h-24 bg-zinc-100 dark:bg-zinc-950 rounded-lg overflow-hidden flex items-center px-4">
+        <Snippet>
+          {() => (
+            <div
+              className="size-12 rounded-lg flex items-center justify-center font-bold text-white text-xs shadow-md transition-colors"
+              style={{
+                transform: `translate3d(${currentX.value}px, 0, 0)`,
+                backgroundColor: currentColor.value,
+              }}
+            >
+              Key
+            </div>
+          )}
+        </Snippet>
+      </div>
+
+      <div className="flex items-center justify-between text-xs text-zinc-500 font-mono">
+        <Snippet>
+          {() => (
+            <>
+              <span>Active: {segment.activeScene?.name ?? 'None'}</span>
+              <span>Next: {segment.nextScene?.name ?? 'End'}</span>
+              <span>Progress: {(segment.progress * 100).toFixed(1)}%</span>
+            </>
+          )}
+        </Snippet>
+      </div>
+
+      <div className="flex gap-2">
+        <Snippet>
+          {() => (
+            <button
+              onClick={() => (timeline.status === 'playing' ? timeline.pause() : timeline.play())}
+              className="px-3 py-1.5 rounded-lg text-sm font-medium bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+            >
+              {timeline.status === 'playing' ? 'Pause' : 'Play'}
+            </button>
+          )}
+        </Snippet>
+        <button
+          onClick={() => timeline.stop()}
+          className="px-3 py-1.5 rounded-lg text-sm font-medium border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300"
+        >
+          Stop
+        </button>
+      </div>
+    </div>
+  );
+}, 'KeyframeBlender');
+```
+
+```tsx [SolidJS]
+import { setup, mutable } from '@airlib/solid';
+import { createTimeline } from '@airlib/solid/timeline';
+
+export const KeyframeBlender = setup(() => {
+  const timeline = createTimeline({ frameRate: 30 });
+  const track = timeline.addTrack({ name: 'Transform Track', type: 'css' });
+  const segment = track.addSegment({ name: 'Box Animation', duration: 3, startFrame: 0 });
+
+  segment.addScene({ atFrame: 0, name: 'Left' }, { x: 0, color: '#3b82f6' });
+  segment.addScene({ atFrame: 44, name: 'Center' }, { x: 120, color: '#10b981' });
+  segment.addScene({ atFrame: 89, name: 'Right' }, { x: 240, color: '#ef4444' });
+
+  const currentX = mutable(0);
+  const currentColor = mutable('#3b82f6');
+
+  segment.onTransition(({ from, to, progress }) => {
+    if (!to) {
+      currentX.value = from.data.x as number;
+      currentColor.value = from.data.color as string;
+      return;
+    }
+
+    const startX = from.data.x as number;
+    const endX = to.data.x as number;
+    currentX.value = startX + (endX - startX) * progress;
+    currentColor.value = progress < 0.5 ? (from.data.color as string) : (to.data.color as string);
+  });
+
+  return (
+    <div className="flex flex-col gap-4 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900">
+      <div className="relative h-24 bg-zinc-100 dark:bg-zinc-950 rounded-lg overflow-hidden flex items-center px-4">
+        <div
+          className="size-12 rounded-lg flex items-center justify-center font-bold text-white text-xs shadow-md transition-colors"
+          style={{
+            transform: `translate3d(${currentX.value}px, 0, 0)`,
+            backgroundColor: currentColor.value,
+          }}
+        >
+          Key
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between text-xs text-zinc-500 font-mono">
+        <span>Active: {segment.activeScene?.name ?? 'None'}</span>
+        <span>Next: {segment.nextScene?.name ?? 'End'}</span>
+        <span>Progress: {(segment.progress * 100).toFixed(1)}%</span>
+      </div>
+
+      <div className="flex gap-2">
+        <button
+          onClick={() => (timeline.status === 'playing' ? timeline.pause() : timeline.play())}
+          className="px-3 py-1.5 rounded-lg text-sm font-medium bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+        >
+          {timeline.status === 'playing' ? 'Pause' : 'Play'}
+        </button>
+        <button
+          onClick={() => timeline.stop()}
+          className="px-3 py-1.5 rounded-lg text-sm font-medium border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300"
+        >
+          Stop
+        </button>
+      </div>
+    </div>
+  );
+}, 'KeyframeBlender');
+```
+
+:::

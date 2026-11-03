@@ -1,0 +1,838 @@
+---
+title: 'Headless Confirm'
+description: 'Headless confirmation dialogs for React and SolidJS. Interrupts as an alertdialog, lands the first focus on the safe choice, refuses accidental dismissal, and returns focus to the trigger — with no markup or styles imposed.'
+nav: 'Confirm'
+nav-priority: 294
+---
+
+import './aria.css';
+import './confirm.css';
+
+# Headless Confirm
+
+A confirm stops a destructive action until the user chooses. Getting it right means **interrupting as an alertdialog**, **landing the first focus on the safe choice**, **refusing dismissal without a decision**, and **returning focus where the user started**.
+
+**Headless Confirm** does all of that for you, and leaves the markup and the styling entirely yours.
+
+```tsx
+const confirm = aria('confirm', props);
+const trigger = confirm.trigger();
+
+<button ref={trigger.ref} {...trigger.restProps(['children'])} />
+```
+
+:::interactive[Delete Repository]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup, shadowPortal } from '@airlib/react';
+import type { ComponentProps, ReactNode } from 'react';
+
+type DemoConfirmProps = ComponentProps<'div'> & {
+  open?: boolean;
+  dismissable?: boolean;
+  children: ReactNode;
+};
+
+const DemoConfirm = setup<DemoConfirmProps>((props) => {
+  const confirm = aria('confirm', props);
+
+  return () => (
+    <div ref={confirm.ref} {...confirm.restProps(['children'])} className="demo-confirm-group">
+      {props.children}
+    </div>
+  );
+}, 'DemoConfirm');
+
+type DemoConfirmTriggerProps = ComponentProps<'button'> & {
+  children: ReactNode;
+};
+
+const DemoConfirmTrigger = setup<DemoConfirmTriggerProps>((props) => {
+  const trigger = aria('confirm-trigger', props);
+
+  return () => (
+    <button ref={trigger.ref} {...trigger.restProps(['children'])} className="demo-confirm-trigger">
+      {props.children}
+    </button>
+  );
+}, 'DemoConfirmTrigger');
+
+type DemoConfirmPanelProps = ComponentProps<'div'> & {
+  children: ReactNode;
+};
+
+const DemoConfirmPanel = setup<DemoConfirmPanelProps>((props) => {
+  const panel = aria('confirm-panel', props);
+  const shadow = shadowPortal(() => panel.open);
+
+  return () => shadow(
+    <div ref={panel.ref} {...panel.restProps(['children'])} className="demo-confirm-panel">
+      {props.children}
+    </div>
+  );
+}, 'DemoConfirmPanel');
+
+type DemoConfirmTitleProps = ComponentProps<'span'> & {
+  children: ReactNode;
+};
+
+const DemoConfirmTitle = setup<DemoConfirmTitleProps>((props) => {
+  const title = aria('confirm-title', props);
+
+  return () => (
+    <span ref={title.ref} {...title.restProps(['children'])} className="demo-confirm-title">
+      {props.children}
+    </span>
+  );
+}, 'DemoConfirmTitle');
+
+type DemoConfirmDescriptionProps = ComponentProps<'span'> & {
+  children: ReactNode;
+};
+
+const DemoConfirmDescription = setup<DemoConfirmDescriptionProps>((props) => {
+  const description = aria('confirm-description', props);
+
+  return () => (
+    <span ref={description.ref} {...description.restProps(['children'])} className="demo-confirm-note">
+      {props.children}
+    </span>
+  );
+}, 'DemoConfirmDescription');
+
+type DemoConfirmCancelProps = ComponentProps<'button'> & {
+  children: ReactNode;
+};
+
+const DemoConfirmCancel = setup<DemoConfirmCancelProps>((props) => {
+  const cancel = aria('confirm-cancel', props);
+
+  return () => (
+    <button ref={cancel.ref} {...cancel.restProps(['children'])} className="demo-confirm-cancel">
+      {props.children}
+    </button>
+  );
+}, 'DemoConfirmCancel');
+
+type DemoConfirmActionProps = ComponentProps<'button'> & {
+  children: ReactNode;
+};
+
+const DemoConfirmAction = setup<DemoConfirmActionProps>((props) => {
+  const action = aria('confirm-action', props);
+
+  return () => (
+    <button ref={action.ref} {...action.restProps(['children'])} className="demo-confirm-action">
+      {props.children}
+    </button>
+  );
+}, 'DemoConfirmAction');
+```
+```html
+<div className="demo-confirm-stack">
+  <div className="demo-confirm-row">
+    <span className="demo-confirm-caption">Focus lands on Cancel</span>
+    <span className="demo-confirm-hint">No undo after confirmation.</span>
+    <DemoConfirm>
+      <DemoConfirmTrigger>Delete repository</DemoConfirmTrigger>
+      <DemoConfirmPanel>
+        <DemoConfirmTitle>This permanently deletes the repository</DemoConfirmTitle>
+        <DemoConfirmDescription>All branches, commits, and releases are removed. There is no undo.</DemoConfirmDescription>
+        <div className="demo-confirm-actions">
+          <DemoConfirmCancel>Cancel</DemoConfirmCancel>
+          <DemoConfirmAction>Delete forever</DemoConfirmAction>
+        </div>
+      </DemoConfirmPanel>
+    </DemoConfirm>
+  </div>
+  <div className="demo-confirm-row">
+    <span className="demo-confirm-caption">Escape and outside clicks decide nothing</span>
+    <span className="demo-confirm-hint">Integrations fail on their next call.</span>
+    <DemoConfirm>
+      <DemoConfirmTrigger>Revoke API token</DemoConfirmTrigger>
+      <DemoConfirmPanel>
+        <DemoConfirmTitle>Live integrations stop on their next call</DemoConfirmTitle>
+        <DemoConfirmDescription>The token is invalidated immediately and cannot be restored.</DemoConfirmDescription>
+        <div className="demo-confirm-actions">
+          <DemoConfirmCancel>Cancel</DemoConfirmCancel>
+          <DemoConfirmAction>Revoke token</DemoConfirmAction>
+        </div>
+      </DemoConfirmPanel>
+    </DemoConfirm>
+  </div>
+</div>
+```
+
+<div className="demo-confirm-stack">
+  <div className="demo-confirm-row">
+    <span className="demo-confirm-caption">Focus lands on Cancel</span>
+    <span className="demo-confirm-hint">No undo after confirmation.</span>
+    <DemoConfirm>
+      <DemoConfirmTrigger>Delete repository</DemoConfirmTrigger>
+      <DemoConfirmPanel>
+        <DemoConfirmTitle>This permanently deletes the repository</DemoConfirmTitle>
+        <DemoConfirmDescription>All branches, commits, and releases are removed. There is no undo.</DemoConfirmDescription>
+        <div className="demo-confirm-actions">
+          <DemoConfirmCancel>Cancel</DemoConfirmCancel>
+          <DemoConfirmAction>Delete forever</DemoConfirmAction>
+        </div>
+      </DemoConfirmPanel>
+    </DemoConfirm>
+  </div>
+  <div className="demo-confirm-row">
+    <span className="demo-confirm-caption">Escape and outside clicks decide nothing</span>
+    <span className="demo-confirm-hint">Integrations fail on their next call.</span>
+    <DemoConfirm>
+      <DemoConfirmTrigger>Revoke API token</DemoConfirmTrigger>
+      <DemoConfirmPanel>
+        <DemoConfirmTitle>Live integrations stop on their next call</DemoConfirmTitle>
+        <DemoConfirmDescription>The token is invalidated immediately and cannot be restored.</DemoConfirmDescription>
+        <div className="demo-confirm-actions">
+          <DemoConfirmCancel>Cancel</DemoConfirmCancel>
+          <DemoConfirmAction>Revoke token</DemoConfirmAction>
+        </div>
+      </DemoConfirmPanel>
+    </DemoConfirm>
+  </div>
+</div>
+:::
+
+:::tip
+**Cancel takes the first focus.** The trap lands on the safe choice when the panel opens, so a hasty `Enter` declines instead of destroying.
+:::
+
+## Confirm
+
+**The decision as a whole.** It holds the open state and names the parts; the trigger, the panel, and the four elements inside it all follow it.
+
+### Usage
+
+```ts
+aria<E extends HTMLElement = HTMLElement>(
+  role: 'confirm',
+  props?: ConfirmProps,
+  options?: ConfirmOptions
+): ConfirmAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type ConfirmProps = ComponentProps<'div'> & {
+  id?: string;
+  open?: boolean;
+  onconfirm?: (event: CustomEvent<void>) => void;
+  oncancel?: (event: CustomEvent<void>) => void;
+};
+
+const Confirm = setup<ConfirmProps>((props) => {
+  const confirm = aria('confirm', props);
+
+  return () => (
+    <div ref={confirm.ref} {...confirm.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps, JSX } from 'solid-js';
+
+type ConfirmProps = ComponentProps<'div'> & {
+  id?: string;
+  open?: boolean;
+  onconfirm?: (event: CustomEvent<void>) => void;
+  oncancel?: (event: CustomEvent<void>) => void;
+};
+
+const Confirm = setup<ConfirmProps>((props) => {
+  const confirm = aria('confirm', props);
+
+  return (
+    <div ref={confirm.ref} {...confirm.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
+
+### Parameters
+
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **open** _boolean, optional, default `false`_: Whether the panel is showing. Read and write it through `confirm.open`.
+- **id** _string, optional_: The prefix every part's identifier is built from, generated as `confirm-<n>` when you leave it out.
+- **onconfirm** _(event: CustomEvent&lt;void&gt;) =&gt; void, optional_: Called when the action button commits the decision.
+- **oncancel** _(event: CustomEvent&lt;void&gt;) =&gt; void, optional_: Called when the cancel button declines it.
+- **onopen** / **onclose** _(event: CustomEvent&lt;void&gt;) =&gt; void, optional_: The panel's visibility edges, once per transition, whichever path caused it.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **open** _boolean, read and write_: Whether the panel is showing.
+- **modality** _'modal'_: Always modal — the trap and the background lock are not optional here.
+- **dismissable** _boolean_: Always `false` — `Escape` and outside clicks never answer for the user.
+- **id** _string_: The prefix in use, generated when you left it out.
+
+### Methods
+
+_What you call on the instance._
+
+- **`show()`**: Opens the panel.
+- **`close()`**: Closes it and returns focus to the trigger.
+- **`toggle()`**: Opens or closes, whichever applies.
+- **`trigger(props?, options?)`** → `ConfirmTriggerAria`: Creates the button that opens it.
+- **`panel(props?, options?)`** → `ConfirmPanelAria`: Creates the alertdialog container.
+- **`title(props?, options?)`** → `ConfirmTitleAria`: Creates the element that names it.
+- **`description(props?, options?)`** → `ConfirmDescriptionAria`: Creates the element that explains it.
+- **`action(props?, options?)`** → `ConfirmActionAria`: Creates the destructive button.
+- **`cancel(props?, options?)`** → `ConfirmCancelAria`: Creates the safe button.
+
+### Events
+
+_What it tells you._
+
+- **`confirm`** — the action button was activated and the decision committed.
+- **`cancel`** — the cancel button was activated and the decision declined.
+- **`open` / `close`** — the panel's visibility edges.
+
+```tsx
+const confirm = aria('confirm', {
+  onconfirm: () => repository.delete(),
+  oncancel: () => audit.note('declined'),
+});
+```
+
+Calling `preventDefault` on `confirm` or `cancel` stops the close, so an async check can answer first.
+
+### Navigation
+
+_What the keys do._
+
+- **`Tab` / `Shift+Tab`** — cycle through the panel's focusable elements, trapped inside it.
+- **`Escape`** — suppressed. The decision belongs to the two buttons.
+- **`Enter` / `Space`** — activate the focused button, which starts out as Cancel.
+
+## Confirm Trigger
+
+**The button that opens it.** Usually the destructive control itself.
+
+### Usage
+
+```ts
+aria<E extends HTMLElement = HTMLElement>(
+  role: 'confirm-trigger',
+  props?: AriaProps,
+  options?: AriaOptions
+): ConfirmTriggerAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+const ConfirmTrigger = setup<ComponentProps<'button'>>((props) => {
+  const trigger = aria('confirm-trigger', props);
+
+  return () => (
+    <button ref={trigger.ref} {...trigger.restProps(['children'])}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+const ConfirmTrigger = setup<ComponentProps<'button'>>((props) => {
+  const trigger = aria('confirm-trigger', props);
+
+  return (
+    <button ref={trigger.ref} {...trigger.restProps(['children'])}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+:::
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **open** _boolean_: Whether the confirmation it opens is showing.
+- **disabled** _boolean_: Whether this trigger refuses to open it.
+
+### How it behaves
+
+- **Announced as opening something.** `aria-haspopup="dialog"` with `aria-expanded` tracking the panel and `aria-controls` pointing at it.
+- **Clicking toggles.** A disabled trigger refuses, on either host.
+- **It gets the focus back.** When the panel closes, focus returns here.
+
+## Confirm Panel
+
+**The alertdialog itself.** The trap, the lock, and the accessible linkages live here.
+
+### Usage
+
+```ts
+aria<E extends HTMLElement = HTMLElement>(
+  role: 'confirm-panel',
+  props?: AriaProps,
+  options?: AriaOptions
+): ConfirmPanelAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+const ConfirmPanel = setup<ComponentProps<'div'>>((props) => {
+  const panel = aria('confirm-panel', props);
+
+  return () => (
+    <div ref={panel.ref} {...panel.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps, JSX } from 'solid-js';
+
+const ConfirmPanel = setup<ComponentProps<'div'> & { children: JSX.Element }>((props) => {
+  const panel = aria('confirm-panel', props);
+
+  return (
+    <div ref={panel.ref} {...panel.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **open** _boolean_: Whether the panel is showing.
+
+### How it behaves
+
+- **Announced as an interruption.** `role="alertdialog"` with `aria-modal="true"`, labelled by the title and described by the description through derived identifiers.
+- **Focus stays inside.** `Tab` and `Shift+Tab` cycle within the panel; the background is locked while it is open.
+- **No accidental answers.** Outside clicks and `Escape` are suppressed — only the two buttons close it.
+- **Hidden when closed on a custom host.** A native `<dialog>` host carries its own visibility; any other element gets `hidden`.
+
+## Confirm Title
+
+**The element that names it.** Its identifier is what the panel's `aria-labelledby` points at.
+
+### Usage
+
+```ts
+aria<E extends HTMLElement = HTMLElement>(
+  role: 'confirm-title',
+  props?: AriaProps,
+  options?: AriaOptions
+): ConfirmTitleAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+const ConfirmTitle = setup<ComponentProps<'span'>>((props) => {
+  const title = aria('confirm-title', props);
+
+  return () => (
+    <span ref={title.ref} {...title.restProps(['children'])}>
+      {props.children}
+    </span>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps, JSX } from 'solid-js';
+
+const ConfirmTitle = setup<ComponentProps<'span'> & { children: JSX.Element }>((props) => {
+  const title = aria('confirm-title', props);
+
+  return (
+    <span ref={title.ref} {...title.restProps(['children'])}>
+      {props.children}
+    </span>
+  );
+});
+```
+
+:::
+
+### How it behaves
+
+- **One identifier, derived.** Compiles `{id}-title`, the address the panel labels itself with — no wiring on your side.
+
+## Confirm Description
+
+**The element that explains it.** Its identifier is what the panel's `aria-describedby` points at.
+
+### Usage
+
+```ts
+aria<E extends HTMLElement = HTMLElement>(
+  role: 'confirm-description',
+  props?: AriaProps,
+  options?: AriaOptions
+): ConfirmDescriptionAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+const ConfirmDescription = setup<ComponentProps<'span'>>((props) => {
+  const description = aria('confirm-description', props);
+
+  return () => (
+    <span ref={description.ref} {...description.restProps(['children'])}>
+      {props.children}
+    </span>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps, JSX } from 'solid-js';
+
+const ConfirmDescription = setup<ComponentProps<'span'> & { children: JSX.Element }>((props) => {
+  const description = aria('confirm-description', props);
+
+  return (
+    <span ref={description.ref} {...description.restProps(['children'])}>
+      {props.children}
+    </span>
+  );
+});
+```
+
+:::
+
+### How it behaves
+
+- **One identifier, derived.** Compiles `{id}-description`, the address the panel describes itself with.
+
+## Confirm Cancel
+
+**The safe way out.** The first focus the panel takes.
+
+### Usage
+
+```ts
+aria<E extends HTMLElement = HTMLElement>(
+  role: 'confirm-cancel',
+  props?: AriaProps,
+  options?: AriaOptions
+): ConfirmCancelAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+const ConfirmCancel = setup<ComponentProps<'button'>>((props) => {
+  const cancel = aria('confirm-cancel', props);
+
+  return () => (
+    <button ref={cancel.ref} {...cancel.restProps(['children'])}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+const ConfirmCancel = setup<ComponentProps<'button'>>((props) => {
+  const cancel = aria('confirm-cancel', props);
+
+  return (
+    <button ref={cancel.ref} {...cancel.restProps(['children'])}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+:::
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **open** _boolean_: Whether the confirmation it dismisses is showing.
+- **disabled** _boolean_: Whether this button refuses to dismiss it.
+
+### How it behaves
+
+- **Takes the first focus.** Compiled with `autofocus`, so the trap lands here when the panel opens.
+- **Declines and closes.** Dispatches a bubbling, cancelable `cancel` event, then closes and returns focus to the trigger — unless the event is vetoed.
+
+## Confirm Action
+
+**The destructive yes.**
+
+### Usage
+
+```ts
+aria<E extends HTMLElement = HTMLElement>(
+  role: 'confirm-action',
+  props?: AriaProps,
+  options?: AriaOptions
+): ConfirmActionAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+const ConfirmAction = setup<ComponentProps<'button'>>((props) => {
+  const action = aria('confirm-action', props);
+
+  return () => (
+    <button ref={action.ref} {...action.restProps(['children'])}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+const ConfirmAction = setup<ComponentProps<'button'>>((props) => {
+  const action = aria('confirm-action', props);
+
+  return (
+    <button ref={action.ref} {...action.restProps(['children'])}>
+      {props.children}
+    </button>
+  );
+});
+```
+
+:::
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **open** _boolean_: Whether the confirmation it commits is showing.
+- **disabled** _boolean_: Whether this button refuses to commit it.
+
+### How it behaves
+
+- **Commits and closes.** Dispatches a bubbling, cancelable `confirm` event, then closes and returns focus to the trigger — unless the event is vetoed.
+- **Never the first focus.** The trap lands on Cancel, so reaching this button is a deliberate tab or click.
+
+## Next Steps
+
+- **[Dialog](/docs/aria/dialog)**: The general overlay this is built on, with modality and dismissal you choose.
+- **[Popover](/docs/aria/popover)**: Anchored panels for menus and auxiliary content.
+- **[Disclosure](/docs/aria/disclosure)**: A show-hide unit that interrupts nothing.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Confirm
+
+```ts
+interface ConfirmProps {
+  id?: string;
+  open?: boolean;
+  onopen?: (event: CustomEvent<void>) => void;
+  onclose?: (event: CustomEvent<void>) => void;
+  onconfirm?: (event: CustomEvent<void>) => void;
+  oncancel?: (event: CustomEvent<void>) => void;
+}
+
+interface ConfirmAttributes {
+  id?: string;
+}
+
+declare class ConfirmAria {
+  id: string;
+  get open(): boolean;
+  set open(value: boolean);
+  get modality(): 'modal';
+  get dismissable(): boolean;
+
+  show(): void;
+  close(): void;
+  toggle(): void;
+
+  trigger(props?: AriaProps, options?: AriaOptions): ConfirmTriggerAria;
+  panel(props?: AriaProps, options?: AriaOptions): ConfirmPanelAria;
+  title(props?: AriaProps, options?: AriaOptions): ConfirmTitleAria;
+  description(props?: AriaProps, options?: AriaOptions): ConfirmDescriptionAria;
+  action(props?: AriaProps, options?: AriaOptions): ConfirmActionAria;
+  cancel(props?: AriaProps, options?: AriaOptions): ConfirmCancelAria;
+}
+```
+
+### Confirm Trigger
+
+```ts
+interface ConfirmTriggerAttributes {
+  type?: string;
+  disabled?: boolean;
+  role?: string;
+  tabindex?: number;
+  'aria-haspopup'?: 'dialog';
+  'aria-expanded'?: 'true' | 'false';
+  'aria-controls'?: string;
+  'aria-disabled'?: 'true' | 'false';
+}
+
+declare class ConfirmTriggerAria {
+  get open(): boolean;
+  get disabled(): boolean;
+}
+```
+
+### Confirm Panel
+
+```ts
+interface ConfirmPanelAttributes {
+  id?: string;
+  role?: 'alertdialog';
+  'aria-modal'?: 'true';
+  'aria-labelledby'?: string;
+  'aria-describedby'?: string;
+  hidden?: boolean;
+}
+
+declare class ConfirmPanelAria {
+  get open(): boolean;
+}
+```
+
+### Confirm Action
+
+```ts
+interface ConfirmActionAttributes {
+  type?: string;
+  disabled?: boolean;
+  role?: string;
+  tabindex?: number;
+  'aria-disabled'?: 'true' | 'false';
+}
+
+declare class ConfirmActionAria {
+  get open(): boolean;
+  get disabled(): boolean;
+}
+```
+
+### Confirm Cancel
+
+```ts
+interface ConfirmCancelAttributes {
+  type?: string;
+  disabled?: boolean;
+  role?: string;
+  tabindex?: number;
+  'aria-disabled'?: 'true' | 'false';
+}
+
+declare class ConfirmCancelAria {
+  get open(): boolean;
+  get disabled(): boolean;
+}
+```
+
+### Confirm Title
+
+```ts
+interface ConfirmTitleAttributes {
+  id?: string;
+}
+```
+
+### Confirm Description
+
+```ts
+interface ConfirmDescriptionAttributes {
+  id?: string;
+}
+```
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`props`** / **`restProps(omit)`** is what you spread onto the host — your props minus the keys the controller writes and any you name, with the compiled attributes merged in; **`ref`** is what you bind the element with; **`attributes`** is that compiled dictionary on its own, when you need the low-level view.
+- **`assign()`** changes several parameters at once, **`refine()`** adds attributes of your own, **`on()`** listens for anything the part fires, **`destroy()`** tears it down.

@@ -1,0 +1,369 @@
+---
+title: 'Headless Checkbox Group'
+description: 'Headless checkbox groups for React and SolidJS. Holds one committed set, lets each box toggle on its own, locks the whole set with one flag, and names the grouping — with no markup or styles imposed.'
+nav: 'Checkbox Group'
+nav-priority: 345
+---
+
+import './aria.css';
+import './checkbox-group.css';
+
+# Headless Checkbox Group
+
+A checkbox group holds one set of checked values across many boxes. Getting it right means **holding one committed set**, **letting each box toggle on its own**, **locking the whole set with one flag**, and **naming the grouping**.
+
+**Headless Checkbox Group** does all of that for you, and leaves the markup and the styling entirely yours.
+
+```tsx
+const group = aria('checkbox-group', props);
+
+<div ref={group.ref} {...group.restProps(['children'])} />
+```
+
+:::interactive[Notification Channels]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type DemoCardsProps = ComponentProps<'div'> & {
+  value?: string[];
+  label?: string;
+  disabled?: boolean;
+};
+
+const DemoCards = setup<DemoCardsProps>((props) => {
+  const group = aria('checkbox-group', props);
+
+  return () => (
+    <div ref={group.ref} {...group.restProps(['children'])} className="demo-group-cards">
+      {props.children}
+    </div>
+  );
+}, 'DemoCards');
+
+type DemoCardProps = ComponentProps<'div'> & {
+  value: string;
+  disabled?: boolean;
+};
+
+const DemoCard = setup<DemoCardProps>((props) => {
+  const checkbox = aria('checkbox', props, { native: false });
+
+  return () => (
+    <div ref={checkbox.ref} {...checkbox.restProps(['children'])} className="demo-group-card">
+      {props.children}
+    </div>
+  );
+}, 'DemoCard');
+```
+```html
+<div className="demo-group-stack">
+  <div className="demo-group-row">
+    <span className="demo-group-caption">Each choice toggles on its own</span>
+    <DemoCards value={['email', 'sms']} label="Notification channels">
+      <DemoCard value="email">
+        <span className="demo-group-card-title">Email</span>
+        <span className="demo-group-card-note">Daily digests and alerts</span>
+      </DemoCard>
+      <DemoCard value="sms">
+        <span className="demo-group-card-title">SMS</span>
+        <span className="demo-group-card-note">Critical security notices</span>
+      </DemoCard>
+      <DemoCard value="push">
+        <span className="demo-group-card-title">Push</span>
+        <span className="demo-group-card-note">Real-time mobile updates</span>
+      </DemoCard>
+    </DemoCards>
+  </div>
+  <div className="demo-group-row">
+    <span className="demo-group-caption">One flag locks every choice</span>
+    <DemoCards value={['email']} label="Locked channels" disabled={true}>
+      <DemoCard value="email">
+        <span className="demo-group-card-title">Email</span>
+        <span className="demo-group-card-note">Daily digests and alerts</span>
+      </DemoCard>
+      <DemoCard value="sms">
+        <span className="demo-group-card-title">SMS</span>
+        <span className="demo-group-card-note">Critical security notices</span>
+      </DemoCard>
+    </DemoCards>
+  </div>
+</div>
+```
+
+<div className="demo-group-stack">
+  <div className="demo-group-row">
+    <span className="demo-group-caption">Each choice toggles on its own</span>
+    <DemoCards value={['email', 'sms']} label="Notification channels">
+      <DemoCard value="email">
+        <span className="demo-group-card-title">Email</span>
+        <span className="demo-group-card-note">Daily digests and alerts</span>
+      </DemoCard>
+      <DemoCard value="sms">
+        <span className="demo-group-card-title">SMS</span>
+        <span className="demo-group-card-note">Critical security notices</span>
+      </DemoCard>
+      <DemoCard value="push">
+        <span className="demo-group-card-title">Push</span>
+        <span className="demo-group-card-note">Real-time mobile updates</span>
+      </DemoCard>
+    </DemoCards>
+  </div>
+  <div className="demo-group-row">
+    <span className="demo-group-caption">One flag locks every choice</span>
+    <DemoCards value={['email']} label="Locked channels" disabled={true}>
+      <DemoCard value="email">
+        <span className="demo-group-card-title">Email</span>
+        <span className="demo-group-card-note">Daily digests and alerts</span>
+      </DemoCard>
+      <DemoCard value="sms">
+        <span className="demo-group-card-title">SMS</span>
+        <span className="demo-group-card-note">Critical security notices</span>
+      </DemoCard>
+    </DemoCards>
+  </div>
+</div>
+:::
+
+:::interactive[Digest Subscriptions]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type DemoRowsProps = ComponentProps<'div'> & {
+  value?: string[];
+  label?: string;
+  disabled?: boolean;
+};
+
+const DemoRows = setup<DemoRowsProps>((props) => {
+  const group = aria('checkbox-group', props);
+
+  return () => (
+    <div ref={group.ref} {...group.restProps(['children'])} className="demo-group-list">
+      {props.children}
+    </div>
+  );
+}, 'DemoRows');
+
+type DemoRowProps = ComponentProps<'label'> & {
+  value: string;
+  disabled?: boolean;
+};
+
+const DemoRow = setup<DemoRowProps>((props) => {
+  const checkbox = aria('checkbox', props, { native: false });
+
+  return () => (
+    <label className="demo-group-line">
+      <div ref={checkbox.ref} {...checkbox.restProps(['children'])} className="demo-group-box" />
+      <span>{props.children}</span>
+    </label>
+  );
+}, 'DemoRow');
+```
+```html
+<div className="demo-group-stack">
+  <div className="demo-group-row">
+    <span className="demo-group-caption">Custom boxes over the same committed set</span>
+    <DemoRows value={['email']} label="Notification channels">
+      <DemoRow value="email">Email me a weekly digest</DemoRow>
+      <DemoRow value="sms">Text me when a payment fails</DemoRow>
+      <DemoRow value="push">Push me release notes</DemoRow>
+    </DemoRows>
+  </div>
+  <div className="demo-group-row">
+    <span className="demo-group-caption">Locked at the group, locked in every box</span>
+    <DemoRows value={['email']} label="Locked channels" disabled={true}>
+      <DemoRow value="email">Email me a weekly digest</DemoRow>
+      <DemoRow value="sms">Text me when a payment fails</DemoRow>
+    </DemoRows>
+  </div>
+</div>
+```
+
+<div className="demo-group-stack">
+  <div className="demo-group-row">
+    <span className="demo-group-caption">Custom boxes over the same committed set</span>
+    <DemoRows value={['email']} label="Notification channels">
+      <DemoRow value="email">Email me a weekly digest</DemoRow>
+      <DemoRow value="sms">Text me when a payment fails</DemoRow>
+      <DemoRow value="push">Push me release notes</DemoRow>
+    </DemoRows>
+  </div>
+  <div className="demo-group-row">
+    <span className="demo-group-caption">Locked at the group, locked in every box</span>
+    <DemoRows value={['email']} label="Locked channels" disabled={true}>
+      <DemoRow value="email">Email me a weekly digest</DemoRow>
+      <DemoRow value="sms">Text me when a payment fails</DemoRow>
+    </DemoRows>
+  </div>
+</div>
+:::
+
+:::tip
+**The set is ambient.** Compose the boxes inside the group and they share its `value` — no prop drilling and no identifiers between members.
+:::
+
+## Checkbox Group
+
+**The set as a whole.** It holds which values are checked and names the grouping; the boxes themselves are ordinary checkboxes.
+
+### Usage
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'checkbox-group',
+  props?: CheckboxGroupProps
+): CheckboxGroupAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type CheckboxGroupProps = ComponentProps<'div'> & {
+  id?: string;
+  value?: string[];
+  label?: string;
+  disabled?: boolean;
+};
+
+const CheckboxGroup = setup<CheckboxGroupProps>((props) => {
+  const group = aria('checkbox-group', props);
+
+  return () => (
+    <div ref={group.ref} {...group.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type CheckboxGroupProps = ComponentProps<'div'> & {
+  id?: string;
+  value?: string[];
+  label?: string;
+  disabled?: boolean;
+};
+
+const CheckboxGroup = setup<CheckboxGroupProps>((props) => {
+  const group = aria('checkbox-group', props);
+
+  return (
+    <div ref={group.ref} {...group.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
+
+The members are ordinary [`checkbox`](/docs/aria/checkbox) controllers — `checked`, `indeterminate`, and `disabled` keep working exactly as themselves inside the set.
+
+### Parameters
+
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **value** _string[], optional, default `[]`_: The values currently checked. Leave it out and the group keeps its own set; set it and the group follows your state.
+- **disabled** _boolean, optional_: Locks every member at once. Each box stays visible and announced as disabled.
+- **label** _string, optional_: The name of the grouping, compiled to `aria-label`.
+- **id** _string, optional_: The group's identifier in the DOM, generated as `checkbox-group-<n>` when you leave it out.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **value** _string[], read and write_: The checked values. Writing replaces the whole set.
+- **disabled** _boolean_: Whether the group is locked.
+
+### Methods
+
+_What you call on the instance._
+
+- **`checkbox(props?, options?)`** → `CheckboxAria`: Creates a member belonging to this group.
+
+### How it behaves
+
+- **Members toggle on their own.** Checking one adds its value to the set and unchecking removes it; siblings are untouched.
+- **One flag locks the set.** `disabled` on the group cascades to every member — each refuses activation on either host.
+- **Every box is its own tab stop.** No roving focus and no claimed arrow keys: `Tab` walks the enabled boxes in order and the page scrolls as usual.
+- **A fieldset needs no role.** On a native `<fieldset>` host the compiled `role="group"` is left off; any other host gets it.
+- **Each toggle tells you the whole set.** Every member fires `change`, and inside the group the event carries the committed array and bubbles to the container.
+
+### Navigation
+
+_What the keys do._
+
+- **`Tab` / `Shift+Tab`** — the next / previous enabled box in the set.
+- **`Space`** — toggles the focused box, as any checkbox does.
+
+## Next Steps
+
+- **[Checkbox](/docs/aria/checkbox)**: The single box behind every member, undecided state included.
+- **[Radio Group](/docs/aria/radio-group)**: One choice among many, with roving focus instead of independent stops.
+- **[Toggle Group](/docs/aria/toggle-group)**: Pressed buttons in a set, single or multiple.
+- **[Select](/docs/aria/select)**: The same multi-value set behind a dropdown.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Checkbox Group
+
+```ts
+interface CheckboxGroupProps {
+  value?: string[];
+  disabled?: boolean;
+  label?: string;
+  id?: string;
+}
+
+interface CheckboxGroupAttributes {
+  role?: 'group';
+  'aria-label'?: string;
+  'aria-disabled'?: 'true' | 'false';
+}
+
+declare class CheckboxGroupAria {
+  get value(): string[];
+  set value(val: string[]);
+  get disabled(): boolean;
+
+  checkbox(props?: Partial<CheckboxProps>, options?: Partial<CheckboxOptions>): CheckboxAria;
+}
+```
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`props`** / **`restProps(omit)`** is what you spread onto the host — your props minus the keys the controller writes and any you name, with the compiled attributes merged in; **`ref`** is what you bind the element with; **`attributes`** is that compiled dictionary on its own, when you need the low-level view.
+- **`assign()`** changes several parameters at once, **`refine()`** adds attributes of your own, **`on()`** listens for anything the part fires, **`destroy()`** tears it down.

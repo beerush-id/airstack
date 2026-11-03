@@ -1,0 +1,245 @@
+@layer utility {
+  /*
+   * Lowest-level layout primitives. Display + flex/grid atoms that compose
+   * with the spacing scale (`gap-*`, `p-*`, `m-*`). Each class sets one
+   * layout concern so apps combine them (e.g. `flex-row items-center gap-sm`).
+   * Logical `start`/`end` keywords keep RTL correct. Tier 1 only:
+   * flex `gap`, nesting-free flat selectors, cascade-layered.
+   */
+
+  /* ---- display ---- */
+  .flex {
+    display: flex;
+  }
+  .inline-flex {
+    display: inline-flex;
+  }
+  .grid {
+    display: grid;
+  }
+  .inline-grid {
+    display: inline-grid;
+  }
+  .block {
+    display: block;
+  }
+  .inline-block {
+    display: inline-block;
+  }
+  .contents {
+    display: contents;
+  }
+  .hidden {
+    display: none;
+  }
+
+  /* ---- flex direction (each sets display so `flex-row` alone suffices) ---- */
+  .flex-row {
+    display: flex;
+    flex-direction: row;
+  }
+  .flex-col {
+    display: flex;
+    flex-direction: column;
+  }
+  .flex-row-reverse {
+    display: flex;
+    flex-direction: row-reverse;
+  }
+  .flex-col-reverse {
+    display: flex;
+    flex-direction: column-reverse;
+  }
+
+  /* ---- flex wrap (each sets display so `flex-wrap` alone suffices) ---- */
+  .flex-wrap {
+    display: flex;
+    flex-wrap: wrap;
+  }
+  .flex-nowrap {
+    display: flex;
+    flex-wrap: nowrap;
+  }
+  .flex-wrap-reverse {
+    display: flex;
+    flex-wrap: wrap-reverse;
+  }
+
+  /* ---- flex factors ---- */
+  .flex-1 {
+    flex: 1 1 0%;
+  }
+  .flex-auto {
+    flex: 1 1 auto;
+  }
+  .flex-none {
+    flex: none;
+  }
+  .grow {
+    flex-grow: 1;
+  }
+  .grow-0 {
+    flex-grow: 0;
+  }
+  .shrink {
+    flex-shrink: 1;
+  }
+  .shrink-0 {
+    flex-shrink: 0;
+  }
+
+  /* ---- align-items ---- */
+  .items-start {
+    align-items: start;
+  }
+  .items-center {
+    align-items: center;
+  }
+  .items-end {
+    align-items: end;
+  }
+  .items-stretch {
+    align-items: stretch;
+  }
+  .items-baseline {
+    align-items: baseline;
+  }
+
+  /* ---- justify-content ---- */
+  .justify-start {
+    justify-content: start;
+  }
+  .justify-center {
+    justify-content: center;
+  }
+  .justify-end {
+    justify-content: end;
+  }
+  .justify-between {
+    justify-content: space-between;
+  }
+  .justify-around {
+    justify-content: space-around;
+  }
+  .justify-evenly {
+    justify-content: space-evenly;
+  }
+  .justify-stretch {
+    justify-content: stretch;
+  }
+
+  /* ---- align-self ---- */
+  .self-auto {
+    align-self: auto;
+  }
+  .self-start {
+    align-self: start;
+  }
+  .self-center {
+    align-self: center;
+  }
+  .self-end {
+    align-self: end;
+  }
+  .self-stretch {
+    align-self: stretch;
+  }
+  .self-baseline {
+    align-self: baseline;
+  }
+
+  /* ---- align-content ---- */
+  .content-start {
+    align-content: start;
+  }
+  .content-center {
+    align-content: center;
+  }
+  .content-end {
+    align-content: end;
+  }
+  .content-between {
+    align-content: space-between;
+  }
+  .content-around {
+    align-content: space-around;
+  }
+  .content-evenly {
+    align-content: space-evenly;
+  }
+  .content-stretch {
+    align-content: stretch;
+  }
+
+  /* ---- place-items / place-content ---- */
+  .place-items-start {
+    place-items: start;
+  }
+  .place-items-center {
+    place-items: center;
+  }
+  .place-items-end {
+    place-items: end;
+  }
+  .place-items-stretch {
+    place-items: stretch;
+  }
+  .place-content-start {
+    place-content: start;
+  }
+  .place-content-center {
+    place-content: center;
+  }
+  .place-content-end {
+    place-content: end;
+  }
+  .place-content-between {
+    place-content: space-between;
+  }
+  .place-content-around {
+    place-content: space-around;
+  }
+  .place-content-evenly {
+    place-content: space-evenly;
+  }
+  .place-content-stretch {
+    place-content: stretch;
+  }
+
+  /* ---- grid columns ---- */
+  .grid-cols-1 {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+  .grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .grid-cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .grid-cols-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .grid-cols-5 {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+  .grid-cols-6 {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  /* ---- grid flow ---- */
+  .grid-flow-row {
+    grid-auto-flow: row;
+  }
+  .grid-flow-col {
+    grid-auto-flow: column;
+  }
+  .grid-flow-dense {
+    grid-auto-flow: dense;
+  }
+  .grid-flow-row-dense {
+    grid-auto-flow: row dense;
+  }
+  .grid-flow-col-dense {
+    grid-auto-flow: column dense;
+  }
+}

@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.5.6/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.5.10/schema.json",
   "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
   "files": { "ignoreUnknown": false },
   "root": true,
@@ -27,8 +27,7 @@
       "**/.env.example",
       "!**/pnpm-lock.yaml",
       "!**/package-lock.json",
-      "!**/yarn.lock",
-      "!**/package.json"
+      "!**/yarn.lock"
     ]
   },
   "linter": {
@@ -46,13 +45,16 @@
         "noSvgWithoutTitle": "off",
         "useButtonType": "off",
         "noLabelWithoutControl": "off",
-        "noStaticElementInteractions": "off"
+        "noStaticElementInteractions": "off",
+        "useAriaPropsSupportedByRole": "off",
+        "noNoninteractiveTabindex": "off"
       },
       "security": {
         "noBlankTarget": "off"
       },
       "style": {
-        "noNonNullAssertion": "off"
+        "noNonNullAssertion": "off",
+        "noDescendingSpecificity": "off"
       }
     }
   },
@@ -80,6 +82,7 @@
       "tailwindDirectives": true
     },
     "formatter": {
+      "lineWidth": 100,
       "quoteStyle": "single"
     }
   },

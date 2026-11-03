@@ -2,7 +2,7 @@ export * from './common/index.js';
 export * from './engine/anchor.js';
 export * from './engine/broadcast.js';
 export * from './engine/config.js';
-export { inherit } from './engine/proxy.js';
+export { inherit, override } from './engine/proxy.js';
 export { $module } from './module.js';
 export * from './reactive/event.js';
 export * from './reactive/observation.js';
@@ -36,6 +36,7 @@ export {
 } from './shared/env.js';
 export * from './shared/exception.js';
 export * from './shared/inspector.js';
+export * from './timeline/index.js';
 export * from './types.js';
 export * from './utils/index.js';
 export * from './workflow/index.js';

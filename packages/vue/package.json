@@ -1,6 +1,6 @@
 {
   "name": "@airlib/vue",
-  "version": "2.1.0",
+  "version": "2.3.0",
   "description": "Vue bindings for Anchor reactive state management",
   "keywords": [
     "state",
@@ -72,6 +72,7 @@
     "format": "biome format --write",
     "prepublish": "bun run format && bun run build",
     "test": "rimraf coverage && vitest --run",
+    "test:run": "rimraf coverage && vitest --run",
     "test:preview": "rimraf coverage && vitest --run && vite preview --outDir coverage"
   },
   "optionalDependencies": {

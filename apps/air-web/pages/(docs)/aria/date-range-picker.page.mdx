@@ -1,0 +1,423 @@
+---
+title: 'Headless Date Range Picker'
+description: 'Headless date range picker for React and SolidJS. Picks a start and an end in a shared calendar, holds change until both ends are picked, and orders the pair — with no markup or styles imposed.'
+nav: 'Date Range Picker'
+nav-priority: 358
+---
+
+import './aria.css';
+import './date-picker.css';
+
+# Headless Date Range Picker
+
+A date range is two picks that only count together. Getting it right means **holding `change` silent until both ends are picked**, **ordering the pair no matter which end was picked first**, **landing on the day you left when the calendar reopens**, and **travelling months without saving anything**.
+
+**Headless Date Range Picker** does all of that for you, and leaves the markup and the styling entirely yours.
+
+```tsx
+const picker = aria('date-range-picker', props);
+
+<div ref={picker.ref} {...picker.restProps(['children'])} />
+```
+
+:::interactive[Pick a Range]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup, derived, For, Snippet, shadowPortal } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type DemoRangeProps = ComponentProps<'div'> & {
+  value?: [string, string];
+  min?: string;
+  max?: string;
+  label?: string;
+  disabled?: boolean;
+};
+
+const DemoRange = setup<DemoRangeProps>((props) => {
+  const picker = aria('date-range-picker', props);
+
+  return () => (
+    <div ref={picker.ref} {...picker.restProps(['children'])} className="demo-date-picker demo-date-range">
+      <div className="demo-date-picker-row">
+        <DemoPickerInput slot="start" />
+        <span className="demo-date-range-sep">–</span>
+        <DemoPickerInput slot="end" />
+        <DemoPickerTrigger />
+      </div>
+      <DemoPickerCalendar>
+        <div className="demo-date-picker-nav">
+          <DemoPrevMonth />
+          <Snippet>
+            {() => (
+              <span className="demo-date-picker-label">
+                <span className="demo-date-picker-month">{picker.range.monthStr}</span>
+                <DemoYearInput />
+              </span>
+            )}
+          </Snippet>
+          <DemoNextMonth />
+        </div>
+      </DemoPickerCalendar>
+    </div>
+  );
+}, 'DemoRange');
+
+type DemoPickerInputProps = ComponentProps<'input'> & {
+  id?: string;
+  disabled?: boolean;
+};
+
+const DemoPickerInput = setup<DemoPickerInputProps>((props) => {
+  const input = aria<HTMLInputElement>('date-picker-input', props);
+
+  return () => (
+    <input ref={input.ref} {...input.props} placeholder="YYYY-MM-DD" className="demo-date-picker-input" />
+  );
+}, 'DemoPickerInput');
+
+type DemoPickerTriggerProps = ComponentProps<'button'>;
+
+const DemoPickerTrigger = setup<DemoPickerTriggerProps>((props) => {
+  const trigger = aria<HTMLButtonElement>('date-picker-trigger', props);
+
+  return () => (
+    <button
+      ref={trigger.ref}
+      {...trigger.restProps(['children'])}
+      className="demo-date-picker-trigger"
+      aria-label="Open calendar"
+    >
+      <span className="demo-date-picker-icon" aria-hidden="true" />
+    </button>
+  );
+}, 'DemoPickerTrigger');
+
+type DemoMonthNavProps = ComponentProps<'button'>;
+
+const DemoPrevMonth = setup<DemoMonthNavProps>((props) => {
+  const nav = aria<HTMLButtonElement>('date-picker-nav', { type: 'month', direction: -1 });
+
+  return () => (
+    <button ref={nav.ref} {...nav.restProps(['children'])} className="demo-date-picker-navbtn" aria-label="Previous month">
+      ‹
+    </button>
+  );
+}, 'DemoPrevMonth');
+
+const DemoNextMonth = setup<DemoMonthNavProps>((props) => {
+  const nav = aria<HTMLButtonElement>('date-picker-nav', { type: 'month', direction: 1 });
+
+  return () => (
+    <button ref={nav.ref} {...nav.restProps(['children'])} className="demo-date-picker-navbtn" aria-label="Next month">
+      ›
+    </button>
+  );
+}, 'DemoNextMonth');
+
+const DemoYearInput = setup((props) => {
+  const input = aria<HTMLInputElement>('date-picker-year-input', props);
+
+  return () => (
+    <input ref={input.ref} {...input.props} className="demo-date-picker-year" />
+  );
+}, 'DemoYearInput');
+
+type DemoPickerCalendarProps = ComponentProps<'div'>;
+
+const DemoPickerCalendar = setup<DemoPickerCalendarProps>((props) => {
+  const calendar = aria<HTMLElement>('date-picker-calendar', props);
+  const shadow = shadowPortal(() => calendar.open);
+
+  return () => shadow(      <div ref={calendar.ref} {...calendar.restProps(['children'])} className="demo-date-picker-calendar demo-date-range">
+      {props.children}
+      <div className="demo-date-picker-grid">
+        <For each={() => calendar.grid.weeks}>
+          {(day) => <div className="demo-date-picker-day demo-date-picker-head">{day}</div>}
+        </For>
+        <For each={() => calendar.grid.dates}>
+          {(date) => <DemoDay date={date} />}
+        </For>
+      </div>
+    </div>
+  );
+}, 'DemoPickerCalendar');
+
+type DemoDayProps = ComponentProps<'div'> & {
+  date: string;
+};
+
+const DemoDay = setup<DemoDayProps>((props) => {
+  const day = aria<HTMLElement>('date-picker-day', props);
+
+  return () => (
+    <div ref={day.ref} {...day.restProps(['children'])} className="demo-date-picker-day">
+      {day.date.date}
+    </div>
+  );
+}, 'DemoDay');
+```
+```html
+<DemoRange label="Choose date range" />
+<DemoRange value={[new Date('Oct 4, 2026').toISOString(), new Date('Oct 16, 2026').toISOString()]} label="Choose date range" />
+<DemoRange min="2026-09-01" max={new Date().toISOString()} label="Choose date range" />
+```
+
+<div className="demo-date-picker-stack">
+  <div className="demo-date-picker-field">
+    <span className="demo-date-picker-caption">Starts empty, two picks save it</span>
+    <DemoRange label="Choose date range" />
+  </div>
+  <div className="demo-date-picker-field">
+    <span className="demo-date-picker-caption">Opens on the saved range</span>
+    <DemoRange value={[new Date('Oct 4, 2026').toISOString(), new Date('Oct 16, 2026').toISOString()]} label="Choose date range" />
+  </div>
+  <div className="demo-date-picker-field">
+    <span className="demo-date-picker-caption">Nothing before September or past today</span>
+    <DemoRange min="2026-09-01" max={new Date().toISOString()} label="Choose date range" />
+  </div>
+</div>
+:::
+
+:::tip
+**One click is a draft, two are the answer.** The pair saves ordered whichever end you pick first, and `change` stays silent until the second pick.
+:::
+
+## Date Range Picker
+
+**The group as a whole.** It holds the saved range, the unfinished draft, and the shown month, and the fields, the button, and the calendar all follow it.
+
+### Usage
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'date-range-picker',
+  props?: DateRangePickerProps
+): DateRangePickerAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps, ReactNode } from 'react';
+
+type RangeProps = ComponentProps<'div'> & {
+  id?: string;
+  value?: [string, string];
+  month?: number;
+  year?: number;
+  open?: boolean;
+  min?: string;
+  max?: string;
+  label?: string;
+  locales?: string[];
+  disabled?: boolean;
+  required?: boolean;
+  oninput?: (event: CustomEvent<string>) => void;
+  onchange?: (event: CustomEvent<[string, string] | undefined>) => void;
+  onopen?: (event: CustomEvent<true>) => void;
+  onclose?: (event: CustomEvent<false>) => void;
+  children: ReactNode;
+};
+
+const Range = setup<RangeProps>((props) => {
+  const picker = aria('date-range-picker', props);
+
+  return () => (
+    <div ref={picker.ref} {...picker.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+
+const Range = setup((props) => {
+  const picker = aria('date-range-picker', props);
+
+  return (
+    <div ref={picker.ref} {...picker.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
+
+### Parameters
+
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **id** _string, optional_: The prefix the fields, the button, and the calendar are linked through. Generated as `date-range-picker-<n>` when you leave it out.
+- **value** _[string, string], optional_: The saved pair as ordered dates. After the first pick that end is set and the other is still empty.
+- **month** _number, optional_: The shown month as `1`–`12`. Defaults to the saved start's month, otherwise the current month.
+- **year** _number, optional_: The shown year as `YYYY`. Defaults to the saved start's year, otherwise the current year.
+- **min** _string, optional_: The earliest date that can be chosen. Earlier days read disabled.
+- **max** _string, optional_: The latest date that can be chosen. Later days read disabled.
+- **label** _string, optional_: The calendar's name for screen readers. Leave it out and the dialog is unnamed.
+- **locales** _string[], optional_: The locale stack every label is formatted with. Defaults to the runtime locale.
+- **disabled** _boolean, optional_: Locks editing, opening, and choosing across the **whole composite**.
+- **required** _boolean, optional_: Marks range entry as required.
+- **open** _boolean, optional_: Whether the calendar shows.
+- **oninput** _(event: CustomEvent&lt;string&gt;) =&gt; void, optional_: The raw text as the start or the end is typed.
+- **onchange** _(event: CustomEvent&lt;[string, string] | undefined&gt;) =&gt; void, optional_: The pair as it stands whenever a pick or a field edit changes it.
+- **onopen** / **onclose** _(event: CustomEvent&lt;true&gt; | CustomEvent&lt;false&gt;) =&gt; void, optional_: The popup's edges, through every path.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **value** _[string, string] | undefined_: The pair. A waiting start has no end yet; a finished pair has both.
+- **draft** _(string | undefined)[]_: The day picked so far while the pair is unfinished.
+- **month** _number_: The month the grid shows, `1`–`12`. Writing it moves the grid.
+- **year** _number_: The year the grid shows. Writing it moves the grid.
+- **open** _boolean_: Whether the calendar shows.
+- **disabled** _boolean_: Whether the composite refuses interaction.
+- **range** _ParsedDate_: The shown month as a date — `monthStr` is the label the header shows.
+- **today** / **start** / **end** _ParsedDate_: Today, the saved start, and the saved end as dates, ready to compare.
+- **limit** _object_: The earliest and latest dates you allow, ready to compare, as `min` and `max`.
+- **id** / **panelId** / **triggerId** _string_: The identifiers the parts link through.
+
+### Methods
+
+_What you call on the instance._
+
+- **`select(start, end?)`**: Picks a day. The first pick waits for a partner; the second saves the ordered pair, fires `change`, and closes. Pass both ends to save at once.
+- **`deselect(index?)`**: Clears one end, or the whole pair when no index is given, and fires `change`.
+- **`navigateMonth(direction)`**: Moves the grid a month back (`-1`) or forward (`1`), across the year boundary. Chooses nothing.
+- **`navigateYear(direction)`**: Moves the grid a year back (`-1`) or forward (`1`). Chooses nothing.
+
+### How it behaves
+
+- **The first pick waits.** One day marks a starting point and `change` stays silent until you pick the other end.
+- **Order fixes itself.** Picking the end before the start still saves start → end, and equal picks save a valid single day.
+- **A half pick replaces the pair.** The first pick sets that end and clears the other; the calendar reopens on the day you left.
+- **Travel saves nothing.** Flipping months moves the grid, through `PageUp` / `PageDown` or the nav buttons; the pair stays put.
+- **One tab stop for the whole grid.** The active day carries it; the rest stay out of the tab order.
+- **The dialog is named by `label`.** Leave it out and the calendar carries no accessible name.
+
+### Events
+
+_What it tells you._
+
+- **`input`** — a field edit as the start or the end is typed; the text arrives through `oninput`.
+- **`change`** — the pair in `detail`, whenever a pick or a field edit changes it.
+
+```tsx
+const picker = aria('date-range-picker', {
+  onchange: (event) => save(event.detail),
+});
+```
+
+### Navigation
+
+_The group handles no keys itself._ Text goes to the **start and end fields**, grid travel to the **calendar**, picking to the **days**.
+
+## Shared with Date Picker
+
+The start and end fields, the calendar button, the popup, and the day cells are the parts the single-date picker already documents — read [Date Picker](/docs/aria/date-picker) for their usage, parameters, and dictionaries. A range composes them with three differences:
+
+- **Each field carries its slot.** The same `date-picker-input` takes `slot="start"` or `slot="end"`, so typing edits that end of the pair rather than a standalone date.
+- **The calendar opens on the draft.** Opening lands focus on the draft start, otherwise the saved start, otherwise today, otherwise the first enabled day.
+- **A pick is a step, not an answer.** `Enter` or `Space` on a day starts a draft or completes the pair, and the popup stays open through the first pick.
+
+The saved start and end read `aria-selected="true"`, the stretch from the start up to the day before the end carries `data-in-range="true"`, and anything outside `min` / `max` reads `aria-disabled="true"`.
+
+## Next Steps
+
+- **[Date Picker](/docs/aria/date-picker)**: A single date with the same grid contract.
+- **[Dialog](/docs/aria/dialog)**: A popup that must be answered before continuing.
+- **[Grid](/docs/aria/grid)**: Two-dimensional travel with cell and row selection for data tables.
+
+## API Reference
+
+What you can actually use, with every alias resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Date Range Picker
+
+```ts
+interface DateRangePickerProps {
+  id?: string;
+  value?: [string, string];
+  month?: number;
+  year?: number;
+  min?: string;
+  max?: string;
+  label?: string;
+  locales?: string[];
+  open?: boolean;
+  disabled?: boolean;
+  required?: boolean;
+  oninput?: (event: CustomEvent<string>) => void;
+  onchange?: (event: CustomEvent<[string, string] | undefined>) => void;
+  onopen?: (event: CustomEvent<true>) => void;
+  onclose?: (event: CustomEvent<false>) => void;
+}
+
+interface DateRangePickerAttributes {
+  id: string;
+}
+
+declare class DateRangePickerAria {
+  readonly range: ParsedDate;
+  readonly today: ParsedDate;
+  readonly start: ParsedDate;
+  readonly end: ParsedDate;
+  readonly limit: { min?: Date; max?: Date };
+  readonly draft: (string | undefined)[];
+  readonly id: string;
+  readonly panelId: string;
+  readonly triggerId: string;
+  get value(): [string, string] | undefined;
+  set value(value: [string, string] | undefined);
+  get month(): number;
+  set month(month: number);
+  get year(): number;
+  set year(year: number);
+  get open(): boolean;
+  set open(value: boolean);
+  get disabled(): boolean;
+
+  select(start: string, end?: string): void;
+  deselect(index?: number): void;
+  navigateMonth(direction: -1 | 1): void;
+  navigateYear(direction: -1 | 1): void;
+}
+```
+
+### Shared parts
+
+The `date-picker-input`, `date-picker-trigger`, `date-picker-calendar`, `date-picker-day`, and `date-picker-nav` roles carry the dictionaries documented on [Date Picker](/docs/aria/date-picker#api-reference). Only the root changes shape:
+
+```ts
+type DateRangePickerValue = [string, string] | undefined;
+```
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`props`** / **`restProps(omit)`** is what you spread onto the host — your props minus the keys the controller writes and any you name, with the compiled attributes merged in; **`ref`** is what you bind the element with; **`attributes`** is that compiled dictionary on its own, when you need the low-level view.
+- **`assign()`** changes several parameters at once, **`refine()`** adds attributes of your own, **`on()`** listens for anything the part fires, **`destroy()`** tears it down.

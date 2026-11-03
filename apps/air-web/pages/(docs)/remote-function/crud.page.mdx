@@ -71,14 +71,33 @@ You can pass standard IRPC options to the entity. These options are inherited by
 
 ```typescript
 export const users = irpc.crud<User>('users', () => ({ id: '', name: '', email: '' }), {
-  maxAge: 60000, // Cache reads for 60 seconds
-  coalesce: true, // Deduplicate concurrent calls
+  maxAge: 60000,            // Cache reads for 60 seconds
+  coalesce: true,           // Deduplicate concurrent calls
+  standalone: false,        // If true, bypasses batching and dispatches independently
+  timeout: 10000,           // Abort if request exceeds 10 seconds
+  maxRetries: 3,            // Retry attempts for transient transport failures
+  retryMode: 'exponential', // Backoff mode: 'linear' | 'exponential'
+  retryDelay: 1000,         // Base delay in milliseconds
   schema: {
     create: { input: [UserSchema] },
     update: { input: [PartialUserSchema] }
   }
 });
 ```
+
+### Primary Key Configuration (`key`)
+
+By default, CRUD operations assume the primary identifier is `'id'`. When targeting collections or tables using an alternative identifier (such as `'_id'`, `'uuid'`, or `'code'`), configure `key` in the package configuration:
+
+```typescript
+export const irpc = createPackage({
+  name: 'my-api',
+  version: '1.0.0',
+  key: '_id', // Primary key field name across all CRUD entities in this package
+});
+```
+
+The resolved `meta.key` is forwarded to all driver adapter methods (`get`, `update`, `delete`) to dynamically construct queries.
 
 ### Excluding Operations
 
@@ -152,8 +171,15 @@ The `meta` object passed to every driver method contains:
 |----------|------|-------------|
 | `name` | `string` | The entity name (e.g., `'users'`) |
 | `key` | `string` | The primary key field (defaults to `'id'`) |
-| `schema` | `object` | The validation schemas provided in options |
-| `maxAge` | `number` | The cache duration provided in options |
+| `description` | `string \| undefined` | Method-specific or shared description |
+| `schema` | `object \| undefined` | The validation schemas provided in options |
+| `maxAge` | `number \| undefined` | Cache duration in milliseconds (applied to `get`) |
+| `coalesce` | `boolean \| undefined` | Request deduplication setting |
+| `timeout` | `number \| undefined` | Call timeout in milliseconds |
+| `maxRetries` | `number \| undefined` | Maximum retry attempts |
+| `retryMode` | `'linear' \| 'exponential' \| undefined` | Backoff strategy |
+| `retryDelay` | `number \| undefined` | Base delay between retries in milliseconds |
+| `standalone` | `boolean \| undefined` | Standalone request dispatch flag |
 
 ## Wiring the Adapter
 

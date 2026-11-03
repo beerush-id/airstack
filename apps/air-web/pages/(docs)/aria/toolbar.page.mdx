@@ -1,0 +1,288 @@
+---
+title: 'Headless Toolbar'
+description: 'Headless toolbars for React and SolidJS. One named strip that owns arrow travel across every control inside it, passes through nested groups, and leaves activation to each control — with no markup or styles imposed.'
+nav: 'Toolbar'
+nav-priority: 330
+---
+
+import './aria.css';
+import './toolbar.css';
+
+# Headless Toolbar
+
+A toolbar is one control made of many: undo, redo, formatting, and send, announced together under one name.
+
+Getting it right means **naming the strip for assistive technology**, **moving focus along its axis with the arrows**, **wrapping at both ends**, and **passing straight through a nested group instead of stopping at its edge**.
+
+**Headless Toolbar** does all of that for you, and leaves the markup and the styling entirely yours.
+
+```tsx
+const toolbar = aria('toolbar', props);
+
+<div ref={toolbar.ref} {...toolbar.props} />
+```
+
+:::interactive[Comment Actions]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type DemoToolbarProps = ComponentProps<'div'> & {
+  label?: string;
+  orientation?: 'horizontal' | 'vertical';
+  disabled?: boolean;
+};
+
+const DemoToolbar = setup<DemoToolbarProps>((props) => {
+  const toolbar = aria('toolbar', props);
+
+  return () => (
+    <div ref={toolbar.ref} {...toolbar.props} className="demo-toolbar">
+      {props.children}
+    </div>
+  );
+}, 'DemoToolbar');
+
+const DemoAction = setup<ComponentProps<'button'>>((props) => {
+  const button = aria('button', props);
+
+  return () => (
+    <button ref={button.ref} {...button.restProps(['children'])} className="demo-toolbar-action">
+      {props.children}
+    </button>
+  );
+}, 'DemoAction');
+
+type DemoFormatGroupProps = ComponentProps<'div'> & {
+  value?: string[];
+  multiple?: boolean;
+};
+
+const DemoFormatGroup = setup<DemoFormatGroupProps>((props) => {
+  const group = aria('toggle-group', props);
+
+  return () => (
+    <div ref={group.ref} {...group.props}>
+      {props.children}
+    </div>
+  );
+}, 'DemoFormatGroup');
+
+type DemoFormatMemberProps = ComponentProps<'button'> & {
+  value: string;
+};
+
+const DemoFormatMember = setup<DemoFormatMemberProps>((props) => {
+  const toggle = aria('toggle', props);
+
+  return () => (
+    <button ref={toggle.ref} {...toggle.restProps(['children'])} className="demo-toolbar-action">
+      {props.children}
+    </button>
+  );
+}, 'DemoFormatMember');
+
+const DemoCommentBar = setup(() => (
+  <div className="demo-toolbar-surface">
+    <div className="demo-toolbar-head">
+      <span className="demo-toolbar-title">Comment</span>
+      <span className="demo-toolbar-note">{'One arrow press, one control'}</span>
+    </div>
+
+    <DemoToolbar label="Comment actions">
+      <DemoAction>Undo</DemoAction>
+      <DemoAction disabled={true}>Redo</DemoAction>
+      <div className="demo-toolbar-divider" role="separator" />
+      <DemoFormatGroup multiple value={['bold']}>
+        <DemoFormatMember value="bold">Bold</DemoFormatMember>
+        <DemoFormatMember value="italic">Italic</DemoFormatMember>
+      </DemoFormatGroup>
+      <div className="demo-toolbar-divider" role="separator" />
+      <DemoAction>Send</DemoAction>
+    </DemoToolbar>
+
+    <span className="demo-toolbar-hint">{'The arrows step over Redo and straight through the formatting group.'}</span>
+  </div>
+), 'DemoCommentBar');
+```
+```html
+<DemoCommentBar />
+```
+
+<DemoCommentBar />
+:::
+
+:::tip
+**There is no toolbar item role.** WAI-ARIA defines none, so any focusable control you place inside participates by being there — and the toolbar never presses anything on its own.
+:::
+
+## Toolbar
+
+**The container.** A named strip that owns arrow travel.
+
+### Usage
+
+```ts
+aria<E extends BaseElement = HTMLElement>(
+  role: 'toolbar',
+  props?: ToolbarProps
+): ToolbarAria<E>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps, ReactNode } from 'react';
+
+type ToolbarProps = ComponentProps<'div'> & {
+  label?: string;
+  orientation?: 'horizontal' | 'vertical';
+  disabled?: boolean;
+  children: ReactNode;
+};
+
+const Toolbar = setup<ToolbarProps>((props) => {
+  const toolbar = aria('toolbar', props);
+
+  return () => (
+    <div ref={toolbar.ref} {...toolbar.props}>
+      {props.children}
+    </div>
+  );
+}, 'Toolbar');
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps, JSX } from 'solid-js';
+
+type ToolbarProps = ComponentProps<'div'> & {
+  label?: string;
+  orientation?: 'horizontal' | 'vertical';
+  disabled?: boolean;
+  children: JSX.Element;
+};
+
+const Toolbar = setup<ToolbarProps>((props) => {
+  const toolbar = aria('toolbar', props);
+
+  return (
+    <div ref={toolbar.ref} {...toolbar.props}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
+
+### Parameters
+
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **label** _string, optional_: The strip's accessible name, compiled as `aria-label`.
+- **orientation** _'horizontal' | 'vertical', optional, default `'horizontal'`_: The axis the arrows travel, compiled as `aria-orientation`. It also decides which arrow pair is claimed.
+- **disabled** _boolean, optional_: Stops the toolbar from claiming any keystroke and compiles `aria-disabled`. The controls inside stay enabled.
+
+### Properties
+
+_What you read on the instance afterwards._
+
+- **orientation** _'horizontal' | 'vertical'_: The axis in force, defaulted to horizontal.
+- **disabled** _boolean_: Whether the strip is locked.
+- **id** _string_: The toolbar's own identifier.
+
+### How it behaves
+
+- **The container is a named toolbar.** `role="toolbar"`, `aria-label` from `label`, `aria-orientation` always, and `aria-disabled` as `"true"` or `"false"`.
+- **Travel is scoped to the container.** Each handled arrow collects the enabled descendants and moves focus to the next or previous one, wrapping at both ends.
+- **Only one axis is claimed.** A horizontal toolbar answers `ArrowRight` and `ArrowLeft` and leaves `ArrowUp` and `ArrowDown` alone; a vertical one is the mirror image.
+- **Arrows move focus, never state.** Activation stays with the focused control and its own `click`, `Enter`, or `Space`.
+- **Nested groups defer.** A toggle group or radio group inside returns early from its own key handler while an outer rover exists, so the toolbar carries the arrows across the group's members instead of stopping at its edge.
+- **The bar adds no tab stop.** Nothing compiles `tabindex` on the container, and no member is removed from the page order — each enabled control keeps its own stop unless a nested group narrows it.
+- **Disabled stops travel, nothing else.** A disabled toolbar claims no keystroke at all, while the controls inside stay focusable and activatable.
+- **Membership is read on every press.** The descendants are collected when a key arrives, so a control added or removed later is picked up without wiring.
+
+### Navigation
+
+_What the keys do._
+
+- **`ArrowRight` / `ArrowLeft`** — moves focus to the next or previous enabled control in a horizontal toolbar, wrapping at both ends.
+- **`ArrowDown` / `ArrowUp`** — does the same in a vertical toolbar, and is left unclaimed in a horizontal one.
+- **`Home` / `End`** — moves focus to the first or last enabled control.
+- **`Space` / `Enter`** — belongs to the focused control, which activates or presses itself.
+- **`Tab`** — left to the browser, so it visits each control that keeps a stop.
+
+## Controls
+
+**The members.** Ordinary role controllers, participating by being inside.
+
+### How it behaves
+
+- **Any enabled control takes part.** The travel matches native `<button>`, `<input>`, `<select>`, and `<a href>` elements plus the `button`, `radio`, `checkbox`, `link`, and `menuitem` roles, along with any element carrying a tab stop other than `-1`.
+- **A locked control is stepped over.** Every selector excludes `[disabled]` and `aria-disabled="true"`, so a disabled member is skipped rather than focused.
+- **Each member keeps its own contract.** A toggle carries `aria-pressed`, a radio its group state, a link its address — the toolbar adds no role and no state to any of them.
+- **Groups stay groups.** A nested [toggle group](/docs/aria/toggle-group) or [radio group](/docs/aria/radio-group) keeps its role, its name, and its shared value while the toolbar walks through it.
+- **Nothing needs registering.** Members are discovered from the DOM, so a list of controls can be built from data without a toolbar API for it.
+
+## Next Steps
+
+- **[Toggle Group](/docs/aria/toggle-group)**: Several pressed buttons over one shared value.
+- **[Radio Group](/docs/aria/radio-group)**: Mutually exclusive choices that select as focus moves.
+- **[Menu](/docs/aria/menu)**: A popup of commands with its own roving focus.
+- **[Button](/docs/aria/button)**: The one-state trigger most toolbar members are.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Toolbar
+
+```ts
+interface ToolbarProps {
+  label?: string;
+  orientation?: 'horizontal' | 'vertical';
+  disabled?: boolean;
+}
+
+interface ToolbarAttributes {
+  id?: string;
+  role?: 'toolbar';
+  'aria-label'?: string;
+  'aria-orientation'?: 'horizontal' | 'vertical';
+  'aria-disabled'?: 'true' | 'false';
+}
+
+declare class ToolbarAria {
+  id: string;
+  get orientation(): 'horizontal' | 'vertical';
+  get disabled(): boolean;
+}
+```
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`props`** / **`restProps(omit)`** is what you spread onto the host — your props minus the keys the controller writes and any you name, with the compiled attributes merged in; **`ref`** is what you bind the element with; **`attributes`** is that compiled dictionary on its own, when you need the low-level view.
+- **`assign()`** changes several parameters at once, **`refine()`** adds attributes of your own, **`on()`** listens for anything the part fires, **`destroy()`** tears it down.

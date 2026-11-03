@@ -1,0 +1,8 @@
+/*
+ * The desktop shell: the area windows live in, the windows themselves, and the
+ * dock with the answers above it. Opt in with `@airlib/aui/desktop.css`; the
+ * widgets it builds on come with it.
+ */
+@import './window.css';
+@import './dock.css';
+@import './desktop-widgets.css';

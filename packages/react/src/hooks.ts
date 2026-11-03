@@ -2,7 +2,7 @@
 
 /* istanbul ignore file */
 import { captureStack } from '@airlib/core';
-import { type FunctionComponent, memo, useEffect, useMemo, useRef, useState } from 'react';
+import { type Context, type FunctionComponent, memo, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 /**
  * ⚠️⚠️⚠️ LOW-LEVEL APIS - AVOID DIRECT USAGE ⚠️⚠️⚠️
@@ -91,6 +91,27 @@ export const createState = <T>(init: T | (() => T)) => {
  */
 export const createRef = <T>(init: T) => {
   return useRef(init);
+};
+
+/**
+ * ⚠️ LOW-LEVEL API - NOT RECOMMENDED FOR STANDARD USAGE ⚠️
+ *
+ * Reads the nearest value a React context provides above the component, like React's useContext,
+ * however the component came to render: inside its parent's render, re-mounted alone, or swapped
+ * by Fast Refresh.
+ *
+ * WARNING: A provider whose value changes re-renders every component that reads it, setup
+ * components included, breaking the purpose of setup components which should be pure and not
+ * reactive. Read only contexts whose value stays the same.
+ *
+ * Standard applications should avoid using this hook directly; use Anchor's own context instead.
+ *
+ * @template T - The type of the context value
+ * @param context - The React context to read
+ * @returns The value of the nearest provider, or the context's default without one
+ */
+export const readContext = <T>(context: Context<T>): T => {
+  return useContext(context);
 };
 
 /**

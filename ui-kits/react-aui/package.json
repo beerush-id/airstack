@@ -1,0 +1,126 @@
+{
+  "type": "module",
+  "name": "@airlib/react-aui",
+  "version": "2.3.0",
+  "description": "Reactive and declarative React headless components built on AirLib.",
+  "keywords": [
+    "react",
+    "form",
+    "validation",
+    "zod",
+    "reactive",
+    "airlib",
+    "anchor",
+    "typescript"
+  ],
+  "author": "Nanang Mahdaen El Agung <mahdaen@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/beerush-id/airstack.git"
+  },
+  "bugs": {
+    "url": "https://github.com/beerush-id/airstack/issues"
+  },
+  "sideEffects": false,
+  "types": "./dist/index.d.ts",
+  "module": "./dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./desktop": {
+      "types": "./dist/desktop/index.d.ts",
+      "import": "./dist/desktop/index.js"
+    },
+    "./dynamic": {
+      "types": "./dist/dynamic/index.d.ts",
+      "import": "./dist/dynamic/index.js"
+    },
+    "./markdown": {
+      "types": "./dist/dynamic/markdown.d.ts",
+      "import": "./dist/dynamic/markdown.js"
+    },
+    "./icons": {
+      "types": "./dist/icons/index.d.ts",
+      "import": "./dist/icons/index.js"
+    },
+    "./utils": {
+      "types": "./dist/utils/index.d.ts",
+      "import": "./dist/utils/index.js"
+    },
+    "./widgets": {
+      "types": "./dist/widgets/index.d.ts",
+      "import": "./dist/widgets/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "directories": {
+    "dist": "dist"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "catalog:",
+    "@testing-library/react": "catalog:",
+    "@testing-library/user-event": "catalog:",
+    "@types/bun": "catalog:",
+    "@types/mdast": "catalog:lib",
+    "jsdom": "catalog:",
+    "publint": "catalog:",
+    "remark-gfm": "catalog:lib",
+    "remark-math": "catalog:lib",
+    "remark-parse": "catalog:lib",
+    "rimraf": "catalog:",
+    "temml": "catalog:lib",
+    "tsdown": "catalog:",
+    "unified": "catalog:lib",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  },
+  "dependencies": {
+    "@airlib/aria": "workspace:*",
+    "@airlib/aui": "workspace:*",
+    "@airlib/react": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "catalog:lib",
+    "react-dom": "catalog:lib",
+    "remark-gfm": "catalog:lib",
+    "remark-math": "catalog:lib",
+    "remark-parse": "catalog:lib",
+    "temml": "catalog:lib",
+    "typescript": "catalog:lib",
+    "unified": "catalog:lib"
+  },
+  "peerDependenciesMeta": {
+    "remark-gfm": {
+      "optional": true
+    },
+    "remark-math": {
+      "optional": true
+    },
+    "remark-parse": {
+      "optional": true
+    },
+    "temml": {
+      "optional": true
+    },
+    "unified": {
+      "optional": true
+    }
+  },
+  "scripts": {
+    "dev": "rimraf dist && tsdown --watch ./src",
+    "clean": "rimraf dist",
+    "build": "bun run clean && tsdown && publint",
+    "prepublish": "bun run format && bun run build",
+    "format": "biome format --write",
+    "test:run": "rimraf coverage && vitest --run",
+    "test:preview": "rimraf coverage && vitest --run && vite preview --outDir coverage"
+  },
+  "license": "MIT"
+}

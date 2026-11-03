@@ -1,0 +1,115 @@
+---
+title: Overview
+description: React AUI components grouped by the job they do — accessible, styled, and ready to drop into your app. Find the component for your problem.
+keywords: [React components, accessible React UI, React component library, ARIA components, design system, select, combobox, date picker, dialog]
+---
+
+# React AUI
+
+Accessible React components that already look finished. Each one gives you the whole control — structure, keyboard, focus, screen-reader semantics, and the AUI look — from a single call with your data. Style a component once on its root, refine one piece with a slot, or compose its parts when the layout is yours to invent.
+
+:::interactive[Living demo]{standalone}
+
+```tsx
+import { Showcase } from '@/components/Showcase.js';
+```
+
+<Showcase />
+
+:::
+
+New here? [Getting Started](/docs/getting-started) takes you from install to a working component. [Theming](/docs/theming) covers tokens, the shared size/variant/color vocabulary, and how to style a whole composite at once.
+
+## Find a component by job
+
+### Act
+
+- [Button](/docs/widgets/button) — Run an action; safe inside forms, never submits by accident.
+- [Toggle](/docs/widgets/toggle) — A button that stays on or off, like bold or mute.
+- [Toggle Group](/docs/widgets/toggle-group) — One choice out of a row of pressed buttons, like text alignment.
+- [File Picker](/docs/widgets/file-picker) — Let people choose files from a styled button.
+- [Link](/docs/widgets/link) — Go somewhere, with a disabled state and the current-page mark.
+- [Toolbar](/docs/widgets/toolbar) — Group related controls so the arrow keys move between them.
+
+### Type a value
+
+- [Text Input](/docs/widgets/text-input) — A text field bound to your state without losing the caret.
+- [Field](/docs/widgets/field) — A label, a control, help text, and an error that wire themselves together.
+- [Number Stepper](/docs/widgets/number-stepper) — A number field clamped to its bounds.
+- [Stepper](/docs/composites/stepper) — A number field with − and + buttons that stop at the bounds.
+- [Code Input](/docs/composites/code-input) — A verification code or PIN typed one character per cell.
+
+### Choose
+
+- [Checkbox](/docs/widgets/checkbox) — Yes, no, or undecided.
+- [Checkbox Group](/docs/widgets/checkbox-group) — Any number of choices from a list.
+- [Radio](/docs/widgets/radio) and [Radio Group](/docs/widgets/radio-group) — Exactly one choice from a short list.
+- [Switch](/docs/widgets/switch) — Turn a setting on or off immediately.
+- [Slider](/docs/widgets/slider) — Pick a number or a range by dragging.
+- [Select](/docs/composites/select) — Pick one or several options from a list that opens on demand.
+- [Combobox](/docs/composites/combobox) — Type to filter a long list, then pick.
+- [Listbox](/docs/composites/listbox) — An always-visible list of options to pick from.
+- [Date Picker](/docs/composites/date-picker) — Type a date or pick it from a calendar.
+- [Date Range Picker](/docs/composites/date-range-picker) — Pick a start and an end date in one calendar.
+- [Chip](/docs/widgets/chip) — Label a status, show a removable value, or toggle a filter.
+- [Tag Input](/docs/composites/tag-input) — Type and pick several values, shown as chips.
+
+### Run commands
+
+- [Menu](/docs/composites/menu) — A list of commands behind a button.
+- [Context Menu](/docs/composites/context-menu) — Commands for whatever was right-clicked.
+- [Command Palette](/docs/composites/command-palette) — Search and run any action from the keyboard.
+
+### Show something on top
+
+- [Dialog](/docs/composites/dialog) — Ask for input or show detail in a sheet over the page.
+- [Confirm](/docs/composites/confirm) — Ask a yes-or-no question that must be answered.
+- [Drawer](/docs/composites/drawer) — A side sheet for filters, details, or settings that slides in from an edge.
+- [Window](/docs/composites/window) — Movable, resizable, snapping windows, and a manager to open them with data.
+- [Popover](/docs/composites/popover) — Extra content anchored to the button that opened it.
+- [Tooltip](/docs/composites/tooltip) — A short hint for the control under the pointer or focus.
+- [Toast](/docs/composites/toast) — A brief message that something happened.
+- [Announcer](/docs/widgets/announcer) — Tell screen-reader users about a change with nothing on screen.
+
+### Organize content
+
+- [Tabs](/docs/widgets/tabs) — Show one of several panels at a time.
+- [Accordion](/docs/widgets/accordion) — Stack sections that open and close.
+- [Disclosure](/docs/widgets/disclosure) — One section that shows and hides.
+- [Tree](/docs/composites/tree) — Browse nested items like folders and files.
+- [Grid](/docs/composites/grid) — A table people can move around and edit with the keyboard.
+- [Feed](/docs/composites/feed) — A stream of articles that keeps loading as people read.
+- [Reorder](/docs/composites/reorder) — Let people rearrange a list by dragging or with the keyboard.
+- [Carousel](/docs/composites/carousel) — One slide at a time, with arrows, dots, and autoplay.
+- [Splitter](/docs/widgets/splitter) — Resize two panes by dragging the line between them.
+- [Divider](/docs/widgets/divider) — Separate sections with a rule.
+- [Image](/docs/widgets/image) — An image with a fallback when it fails to load.
+- [Card](/docs/widgets/card) — Group media, a heading, and actions into one named unit.
+- [Avatar](/docs/widgets/avatar) — A person's picture or initials, alone or in an overlapping group.
+- [Empty State](/docs/widgets/empty-state) — Explain an empty list and offer the action that fills it.
+
+### Get around
+
+- [Navigation](/docs/widgets/navigation) — A list of links to the sections of your app.
+- [Breadcrumb](/docs/widgets/breadcrumb) — Show where a page sits and link back up.
+- [Pagination](/docs/widgets/pagination) — Move through pages of results.
+
+### Show status
+
+- [Progress](/docs/widgets/progress) — How far along a task is.
+- [Meter](/docs/widgets/meter) — A measurement within a range, like storage used.
+- [Alert](/docs/widgets/alert) — An inline message that stays in the page: a notice, a warning, an error, a success.
+- [Badge](/docs/widgets/badge) — A count or a dot pinned to whatever it describes.
+- [Skeleton](/docs/widgets/skeleton) — The shape of content while it loads.
+- [Spinner](/docs/widgets/spinner) — A named indicator for a wait with no known end.
+
+### Structure the page
+
+- [Header](/docs/landmarks/header), [Main](/docs/landmarks/main), [Footer](/docs/landmarks/footer) — The page's top, primary content, and bottom.
+- [Section](/docs/landmarks/section) and [Sidebar](/docs/landmarks/sidebar) — Named regions and supporting content.
+- [Search](/docs/landmarks/search) and [Form](/docs/landmarks/form) — Mark where people search and fill in forms.
+
+## Next Steps
+
+- [Getting Started](/docs/getting-started) — Install, load the styles, and render your first component.
+- [Theming](/docs/theming) — Tokens, the shared vocabulary, and styling a composite once.

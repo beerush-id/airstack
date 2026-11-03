@@ -74,3 +74,8 @@ bun.lock
 /.antigravitycli
 .qoder
 .wrangler
+.freebuff
+/bench
+/private
+.claude
+AGENTS.md

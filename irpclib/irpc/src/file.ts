@@ -1,4 +1,4 @@
-import { mutable, onCleanup } from '@airlib/core';
+import { type AnyType, mutable, onCleanup } from '@airlib/core';
 import { IRPC_FILE_STATUS, IRPC_STATUS } from './enum.js';
 import { IRPC_STORE } from './store.js';
 
@@ -19,7 +19,7 @@ export type IRPCFileMeta = {
 export type IRPCFilePipe = (chunk: Uint8Array) => void;
 export type IRPCFileUnpipe = () => void;
 
-export class IRPCFile {
+export class IRPCFile<T extends IRPCFileMeta = IRPCFileMeta> {
   protected state = mutable<IRPCFileState>({
     status: IRPC_FILE_STATUS.PENDING,
     downloaded: 0,
@@ -52,7 +52,7 @@ export class IRPCFile {
   public data: Blob;
 
   constructor(
-    public meta: IRPCFileMeta,
+    public meta: T,
     data?: Blob
   ) {
     this.data = data ?? new Blob([], { type: meta.type });
@@ -97,6 +97,9 @@ export class IRPCBlob {
     public meta?: { type?: string; size?: number; name?: string }
   ) {
     this.data = new Blob([], { type: meta?.type ?? '' });
+    // A blob is a pointer its caller loads. Where it is made (a handler), awaiting it or returning it
+    // from an async function must not load it, so it stays unawaitable until delivered (`deliverBlob`).
+    Object.defineProperty(this, 'then', { value: undefined, configurable: true, writable: true });
   }
 
   public load(): Promise<Blob> {
@@ -163,23 +166,35 @@ export class IRPCBlob {
   // biome-ignore lint/suspicious/noThenProperty: Expect thenable.
   public then<TResult1 = Blob, TResult2 = never>(
     onfulfilled?: ((value: Blob) => TResult1 | PromiseLike<TResult1>) | null,
-    onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null
+    onrejected?: ((reason: AnyType) => TResult2 | PromiseLike<TResult2>) | null
   ): Promise<TResult1 | TResult2> {
     return this.load().then(onfulfilled, onrejected);
   }
 
   public catch<TResult = never>(
-    onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | null
+    onrejected?: ((reason: AnyType) => TResult | PromiseLike<TResult>) | null
   ): Promise<Blob | TResult> {
     return this.load().catch(onrejected);
   }
 }
 
-export class IRPCFileStream extends IRPCFile {
+/**
+ * Hands a blob to its caller: from here on, awaiting it loads it. Transports deliver blobs as they
+ * reach the caller, so only the caller ever loads one.
+ *
+ * @param blob - The blob reaching its caller.
+ * @returns The same blob, now awaitable.
+ */
+export function deliverBlob(blob: IRPCBlob): IRPCBlob {
+  delete (blob as { then?: unknown }).then;
+  return blob;
+}
+
+export class IRPCFileStream<T extends IRPCFileMeta = IRPCFileMeta> extends IRPCFile<T> {
   private pipes = new Set<IRPCFilePipe>();
   private buffer: Uint8Array | undefined;
 
-  constructor(meta: IRPCFileMeta) {
+  constructor(meta: T) {
     super(meta);
 
     this.data = new Blob([], { type: meta.type });

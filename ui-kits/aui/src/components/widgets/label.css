@@ -1,0 +1,23 @@
+@layer theme {
+  :root {
+    --aui-label-gap: calc(var(--spacing) * 2.5);
+    --aui-label-fg: var(--color-on-surface);
+  }
+}
+
+/*
+ * A label sits its text beside the control it wraps. The pointer comes from the controls' label
+ * rule, so only a label around an enabled control offers one.
+ */
+@layer component {
+  .aui-label {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--aui-label-gap);
+    color: var(--aui-label-fg);
+  }
+
+  .aui-label:has([aria-disabled='true']) > .aui-label-text {
+    color: var(--color-disabled-fg);
+  }
+}

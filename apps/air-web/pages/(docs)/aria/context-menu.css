@@ -1,0 +1,101 @@
+.demo-context-menu-board {
+  display: flex;
+  flex-direction: column;
+  gap: var(--demo-gap);
+  width: min(100%, 26rem);
+  margin-inline: auto;
+  padding: 1rem;
+  border: 1px solid var(--demo-border);
+  border-radius: var(--demo-radius);
+  background: var(--demo-bg);
+}
+
+.demo-context-menu-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.demo-context-menu-title {
+  font-size: var(--demo-font);
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--demo-fg);
+}
+
+.demo-context-menu-meta {
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--demo-muted);
+}
+
+.demo-context-menu-zone {
+  position: relative;
+  z-index: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  padding: 0.3125rem;
+  border: 1px solid var(--demo-border);
+  border-radius: var(--demo-radius-sm);
+  background: color-mix(in srgb, var(--demo-fg) 2%, var(--demo-bg));
+  cursor: context-menu;
+}
+
+.demo-context-menu-zone:focus-within {
+  z-index: 1;
+}
+
+.demo-context-menu-row {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--demo-gap);
+  min-height: 2.25rem;
+  padding: 0.4375rem 0.5rem;
+  border-radius: var(--demo-radius-xs);
+  cursor: context-menu;
+}
+
+.demo-context-menu-row:hover {
+  background: var(--demo-hover);
+}
+
+.demo-context-menu-row:active {
+  background: color-mix(in srgb, var(--demo-fg) 10%, var(--demo-bg));
+}
+
+.demo-context-menu-row:focus {
+  z-index: 1;
+}
+
+.demo-context-menu-row:focus-visible {
+  outline: var(--demo-outline);
+  outline-offset: var(--demo-outline-offset);
+}
+
+.demo-context-menu-row-title {
+  font-size: var(--demo-font);
+  line-height: 1.3;
+  color: var(--demo-fg);
+}
+
+.demo-context-menu-row-meta {
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--demo-muted);
+}
+
+.demo-context-menu-panel {
+  position: fixed;
+  position-area: none;
+  inset: auto;
+  inset-block-start: calc(anchor(top) + var(--anchor-y, 0px));
+  inset-inline-start: calc(anchor(left) + var(--anchor-x, 0px));
+  position-try-fallbacks: flip-block, flip-inline, flip-block flip-inline;
+  position-try-order: normal;
+  min-width: 11rem;
+  margin: 0;
+  z-index: 60;
+}

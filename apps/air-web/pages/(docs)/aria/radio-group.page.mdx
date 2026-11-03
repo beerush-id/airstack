@@ -1,0 +1,257 @@
+---
+title: 'Headless Radio Group'
+description: 'Headless radio groups for React and SolidJS. Holds one shared value, roves the arrow keys across the options while selecting as it moves, and states the required and invalid contract — with no markup or styles imposed.'
+nav: 'Radio Group'
+nav-priority: 340
+---
+
+import './aria.css';
+import './radio-group.css';
+
+# Headless Radio Group
+
+A radio group is several options sharing one answer. Getting it right means **holding the value once for every option**, **roving the arrow keys along one axis while selecting as they move**, **keeping a single tab stop**, and **stating required and invalid without a form**.
+
+**Headless Radio Group** does all of that for you, and leaves the markup and the styling entirely yours.
+
+```tsx
+const group = aria('radio-group', props);
+
+<div ref={group.ref} {...group.restProps(['children'])} />
+```
+
+:::interactive[Plan Comparison]
+```tsx
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type DemoGroupProps = ComponentProps<'div'> & {
+  value?: string;
+  orientation?: 'horizontal' | 'vertical';
+  required?: boolean;
+  disabled?: boolean;
+};
+
+const DemoGroup = setup<DemoGroupProps>((props) => {
+  const group = aria('radio-group', props);
+
+  return () => (
+    <div ref={group.ref} {...group.restProps(['children'])} className="demo-radio-group-grid">
+      {props.children}
+    </div>
+  );
+}, 'DemoGroup');
+
+type DemoPlanProps = ComponentProps<'div'> & {
+  value: string;
+  title: string;
+  price: string;
+};
+
+const DemoPlan = setup<DemoPlanProps>((props) => {
+  const radio = aria('radio', props, { native: false });
+
+  return () => (
+    <div ref={radio.ref} {...radio.restProps(['title', 'price'])} className="demo-radio-group-card">
+      <span className="demo-radio-group-head">
+        <span className="demo-radio-group-title">{props.title}</span>
+        <span className="demo-radio-group-dot" aria-hidden="true" />
+      </span>
+      <span className="demo-radio-group-price">{props.price}</span>
+    </div>
+  );
+}, 'DemoPlan');
+```
+```html
+<DemoGroup value="pro" required={true}>
+  <DemoPlan value="starter" title="Starter" price="$0 / mo" />
+  <DemoPlan value="pro" title="Pro" price="$29 / mo" />
+  <DemoPlan value="team" title="Team" price="$79 / mo" />
+</DemoGroup>
+```
+
+<DemoGroup value="pro" required={true}>
+  <DemoPlan value="starter" title="Starter" price="$0 / mo" />
+  <DemoPlan value="pro" title="Pro" price="$29 / mo" />
+  <DemoPlan value="team" title="Team" price="$79 / mo" />
+</DemoGroup>
+:::
+
+:::tip
+Focus a card and press an arrow key. **The arrow keys select as they move** — there is no separate commit step, and the group keeps one tab stop between visits.
+:::
+
+## Radio Group
+
+**The group as a whole.** It holds the shared value the options read and write, and the keys that move between them.
+
+### Usage
+
+```ts
+aria<E extends BaseElement = HTMLElement, T extends Primitive = Primitive>(
+  role: 'radio-group',
+  props?: RadioGroupProps<T>
+): RadioGroupAria<E, RadioGroupProps<T>>
+```
+
+:::code-group
+
+```tsx [React]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/react';
+import type { ComponentProps } from 'react';
+
+type PlanGroupProps = ComponentProps<'div'> & {
+  value?: string;
+  name?: string;
+  orientation?: 'horizontal' | 'vertical';
+  required?: boolean;
+  disabled?: boolean;
+};
+
+const PlanGroup = setup<PlanGroupProps>((props) => {
+  const group = aria('radio-group', props);
+
+  return () => (
+    <div ref={group.ref} {...group.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+```tsx [SolidJS]
+import { aria } from '@airlib/aria';
+import { setup } from '@airlib/solid';
+import type { ComponentProps } from 'solid-js';
+
+type PlanGroupProps = ComponentProps<'div'> & {
+  value?: string;
+  name?: string;
+  orientation?: 'horizontal' | 'vertical';
+  required?: boolean;
+  disabled?: boolean;
+};
+
+const PlanGroup = setup<PlanGroupProps>((props) => {
+  const group = aria('radio-group', props);
+
+  return (
+    <div ref={group.ref} {...group.restProps(['children'])}>
+      {props.children}
+    </div>
+  );
+});
+```
+
+:::
+
+### Parameters
+
+_What you pass in. The props object stays live — change a value on it and the part follows._
+
+- **value** _Primitive, optional_: The token of the option in the slot. Options read it and write it back, so it is the one place the answer lives.
+- **name** _string, optional_: The field name forwarded to native radio inputs when the group submits with a form.
+- **orientation** _'vertical' | 'horizontal', optional, default `'vertical'`_: Which arrow keys walk the options — up and down, or left and right — compiled to `aria-orientation`.
+- **required** _boolean, optional, default `false`_: Compiles `aria-required="true"` while true and nothing while false.
+- **invalid** _boolean | 'grammar' | 'spelling', optional_: Validation state compiled to `aria-invalid`.
+- **disabled** _boolean, optional_: Locks the whole group: no clicks, no arrow keys, and every option announced as disabled.
+- **id** _string, optional_: The container's identifier, generated as `radiogroup-<n>` when you leave it out.
+
+### Properties
+
+_What you read or write on the instance afterwards._
+
+- **disabled** _boolean_: Whether the group is locked.
+- **orientation** _'vertical' | 'horizontal'_: The axis in use, default filled in.
+
+### Methods
+
+_What you call on the instance._
+
+- **`radio(props?, options?)`** → `RadioAria`: Creates an option belonging to this group. `{ native: false }` in `options` is what makes a card an option.
+
+### How it behaves
+
+- **One value, every option.** The group compiles `role="radiogroup"` and the options read the shared `value`; selecting one writes that value back, which unmarks the option that held it.
+- **Selection follows the arrows.** Arrow keys move focus **and** commit in the same step — there is no second keypress to apply the move, and the movement wraps at both ends.
+- **One axis.** `orientation` decides which arrows are claimed; the other pair is left to the page. `vertical` is the default, matching the usual stacked layout.
+- **No tab stop on the container.** The group itself is never focusable; only the option holding the slot is, so `Tab` lands on the answer and leaves from there.
+- **Unselected custom options fall out of the tab order.** A custom option compiles `tabindex="-1"` whenever the group holds no value, so an empty custom group has no stop until something selects one — a native `<input type="radio">` keeps the browser's own fallback instead.
+- **Locked means inert.** With `disabled`, the container refuses the arrow keys and every option refuses clicks, `Space`, and state writes.
+- **Required and invalid are announcements only.** `required` and `invalid` compile `aria-required` and `aria-invalid`; nothing blocks submission.
+
+### Navigation
+
+_What the keys do._
+
+- **`ArrowDown` / `ArrowUp`** — walk a vertical group, selecting the option they land on. **`ArrowRight` / `ArrowLeft`** do the same on the horizontal axis, and both pairs wrap at the ends.
+- **`Home` / `End`** — jump to the first or last enabled option and select it.
+- **`Space`** — selects the focused option. Doing it again on the option that already holds the slot commits nothing.
+- **`Enter`** — nothing. A radio group has no default action.
+- **`Tab`** — enters at the option in the slot and leaves the group in one step.
+
+## Next Steps
+
+- **[Radio](/docs/aria/radio)**: The standalone option, its two hosts, and its label handling.
+- **[Toggle Group](/docs/aria/toggle-group)**: The same roving strip with independent pressed states.
+- **[Select](/docs/aria/select)**: The same exclusivity folded into a closed control.
+- **[Form](/docs/aria/form)**: Where `required` and `invalid` meet a real submission.
+
+## API Reference
+
+What you can actually use, with every alias and every base resolved to what it really is. Each attribute dictionary also takes the standard HTML attributes and event handlers for its host, and each props dictionary takes any extra keys you want forwarded.
+
+### Radio Group
+
+```ts
+interface RadioGroupProps {
+  id?: string;
+  name?: string;
+  value?: Primitive;
+  disabled?: boolean;
+  orientation?: 'vertical' | 'horizontal';
+  required?: boolean;
+  invalid?: boolean | 'grammar' | 'spelling';
+}
+
+interface RadioGroupAttributes {
+  id?: string;
+  role?: 'radiogroup';
+  'aria-orientation'?: 'vertical' | 'horizontal';
+  'aria-required'?: 'true' | 'false';
+  'aria-disabled'?: 'true' | 'false';
+  'aria-invalid'?: 'true' | 'false' | 'grammar' | 'spelling';
+  onkeydown?: (event: KeyboardEvent) => void;
+}
+
+declare class RadioGroupAria {
+  get disabled(): boolean;
+  get orientation(): 'vertical' | 'horizontal';
+
+  radio(props?: RadioProps, options?: RadioOptions): RadioAria;
+}
+```
+
+### On every one of them
+
+```ts
+ref: (element: E | null) => (() => void) | undefined;
+
+get props(): T;
+get attributes(): Record<string, unknown>;
+get ownKeys(): string[];
+get isNative(): boolean;
+get current(): E | null;
+set current(element: E | null);
+
+assign(props: Partial<T>): void;
+refine(refiner: (props: T, attrs: A) => Partial<A> | void): (destroyed?: boolean) => void;
+on<K extends keyof HTMLElementEventMap>(type: K, handler: (event: HTMLElementEventMap[K]) => void): () => void;
+on(type: string, handler: (event: Event) => void): () => void;
+restProps(omit?: (keyof T)[]): T;
+destroy(): void;
+```
+
+- **`props`** / **`restProps(omit)`** is what you spread onto the host — your props minus the keys the controller writes and any you name, with the compiled attributes merged in; **`ref`** is what you bind the element with; **`attributes`** is that compiled dictionary on its own, when you need the low-level view.

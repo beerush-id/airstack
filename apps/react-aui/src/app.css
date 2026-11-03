@@ -1,0 +1,863 @@
+@layer reset, mdx, demo, aui, theme, base, component, utility, reduced-motion;
+
+@import '@airlib/aui/base/reset.css' layer(reset);
+@import '@airlib/react/mdx/default.css' layer(mdx);
+@import '@airlib/aui/index.css';
+@import '@airlib/aui/desktop.css';
+
+@layer theme {
+  :root {
+    --seed-color: #b0004c;
+    --seed-dark-color: #fbd049;
+    /*--color-primary: light-dark(#f4641b, #fbd049);*/
+  }
+
+  /* The theme switch's choice; without one, the page follows the system. */
+  :root[data-theme='dark'] {
+    color-scheme: only dark;
+  }
+
+  :root[data-theme='light'] {
+    color-scheme: only light;
+  }
+}
+
+@layer base {
+  body {
+    color: var(--color-on-surface);
+    background: var(--color-surface-low);
+    font-family: var(--font-sans), system-ui, sans-serif;
+  }
+}
+
+/* Bridge Air MDX chrome onto M3 tokens so docs read as Material You. */
+@layer mdx {
+  :root {
+    --spacing-header: calc(var(--spacing) * 16);
+  }
+
+  .air-mdx {
+    --air-mdx-bg-inner: var(--color-surface-lowest);
+    --air-mdx-code-bg: var(--color-surface-low);
+    --air-mdx-code-text: var(--color-on-surface);
+    --air-mdx-border: var(--color-surface-high);
+    --air-mdx-font: var(--font-sans), system-ui, sans-serif;
+    --air-mdx-font-mono: var(--font-mono), ui-monospace, monospace;
+
+    .air-mdx-sidebar-children {
+      /*padding-inline: 0.75rem;*/
+
+      .air-mdx-sidebar-link {
+        /*padding-inline-start: 1.75rem;*/
+      }
+    }
+
+    .air-mdx-sidebar-link {
+      /*width: 100%;*/
+      border-radius: var(--radius-sm);
+
+      &:hover {
+        background-color: var(--color-container);
+      }
+
+      &.active {
+        color: var(--color-on-primary);
+        background-color: var(--color-primary);
+      }
+    }
+
+    @supports (corner-shape: squircle) {
+      --air-box-radius: var(--radius-md);
+
+      .air-interactive-toggle label {
+        border-radius: calc(var(--air-box-radius) * 0.35);
+      }
+    }
+  }
+
+  .air-mdx-main {
+    border-top-left-radius: var(--radius-xl);
+    border-top-right-radius: var(--radius-xl);
+  }
+}
+
+@layer demo {
+  .docs-header {
+    position: sticky;
+    inset-block-start: 0;
+    height: calc(var(--spacing) * 16);
+    z-index: var(--z-index-sticky);
+    background: color-mix(in srgb, var(--color-surface-low) 88%, transparent);
+    backdrop-filter: blur(12px);
+  }
+
+  .docs-header-inner {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--spacing) * 4);
+    max-inline-size: 88rem;
+    margin-inline: auto;
+    padding: calc(var(--spacing) * 3) calc(var(--spacing) * 6);
+  }
+
+  .docs-header-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: var(--font-title-md-size);
+    font-weight: var(--font-title-md-weight);
+    letter-spacing: var(--font-title-md-tracking);
+    text-decoration: none;
+    color: var(--color-on-surface);
+  }
+
+  /* The mark, painted from the primary tokens so it follows the theme's seed and scheme. */
+  .brand-logo {
+    flex: none;
+    inline-size: 1.75em;
+    block-size: 1.75em;
+  }
+
+  .brand-logo-frame {
+    fill: var(--color-primary-container);
+  }
+
+  .brand-logo-surface {
+    fill: var(--color-primary);
+  }
+
+  .brand-logo-ripple {
+    fill: var(--color-on-primary);
+  }
+
+  .docs-header-nav {
+    display: flex;
+    gap: calc(var(--spacing) * 1);
+  }
+
+  .docs-header-link {
+    padding: calc(var(--spacing) * 2) calc(var(--spacing) * 4);
+    border-radius: var(--radius-full);
+    font-size: var(--font-label-lg-size);
+    font-weight: var(--font-label-lg-weight);
+    text-decoration: none;
+    color: var(--color-on-surface-variant);
+  }
+
+  .docs-header-link:hover {
+    background: var(--color-secondary-container);
+    color: var(--color-on-secondary-container);
+  }
+
+  .docs-header-link.active {
+    background: var(--color-secondary-container);
+    color: var(--color-on-secondary-container);
+    font-weight: 700;
+  }
+
+  .docs-header-spacer {
+    flex: 1;
+  }
+
+  .docs-header-toggle {
+    display: none;
+  }
+
+  .docs-header-panel {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing) * 1);
+    padding: calc(var(--spacing) * 2) calc(var(--spacing) * 6) calc(var(--spacing) * 4);
+  }
+
+  @media (max-width: 767px) {
+    .docs-header-nav {
+      display: none;
+    }
+
+    .docs-header-toggle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-inline-size: var(--size-md);
+      min-block-size: var(--size-md);
+      border-radius: var(--radius-full);
+      color: var(--color-on-surface-variant);
+    }
+
+    .docs-header-toggle:hover {
+      background: var(--color-container-high);
+    }
+  }
+
+  .docs-main {
+    background: var(--color-surface-low);
+  }
+
+  .docs-shell {
+    max-inline-size: 88rem;
+    margin-inline: auto;
+  }
+
+  /* Demo-only: roomier TOC than the library default. */
+  .air-mdx-toc {
+    font-size: var(--font-label-lg-size);
+  }
+
+  .air-interactive-icon {
+  }
+
+  .air-interactive-title {
+    font-size: var(--font-label-lg-size);
+    font-weight: var(--font-label-lg-weight);
+    letter-spacing: var(--font-label-lg-tracking);
+    color: var(--color-on-surface-variant);
+  }
+
+  .demo-button {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing) * 4);
+  }
+
+  .demo-button-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: calc(var(--spacing) * 2);
+  }
+
+  .demo-control {
+    display: inline-flex;
+    align-items: center;
+    gap: calc(var(--spacing) * 2);
+    flex: 1 1 calc(var(--spacing) * 36);
+    min-inline-size: 0;
+  }
+
+  .demo-control > .maui-select {
+    flex: 1;
+    min-inline-size: 0;
+  }
+
+  .demo-palette {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
+    gap: calc(var(--spacing) * 3);
+  }
+
+  .demo-swatch {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: calc(var(--spacing) * 2);
+    min-block-size: calc(var(--spacing) * 16);
+    padding: calc(var(--spacing) * 3) calc(var(--spacing) * 4);
+    border-radius: var(--radius-md);
+    overflow-wrap: anywhere;
+  }
+
+  .demo-swatch-name {
+    font-size: var(--font-label-md-size);
+    font-weight: var(--font-label-md-weight);
+    letter-spacing: var(--font-label-md-tracking);
+  }
+
+  .demo-swatch-aa {
+    font-size: var(--font-title-md-size);
+    font-weight: var(--font-title-md-weight);
+  }
+
+  .demo-spacing-row {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--spacing) * 4);
+    padding: calc(var(--spacing) * 2) calc(var(--spacing) * 4);
+    border-radius: var(--radius-md);
+    background: var(--color-container-low);
+  }
+
+  .demo-spacing-row + .demo-spacing-row {
+    margin-block-start: calc(var(--spacing) * 2);
+  }
+
+  .demo-spacing-label {
+    min-inline-size: 7rem;
+    flex-shrink: 0;
+    font-family: var(--font-mono);
+    font-size: var(--font-label-md-size);
+    color: var(--color-on-surface-variant);
+  }
+
+  .demo-spacing-bar {
+    block-size: calc(var(--spacing) * 4);
+    min-inline-size: calc(var(--spacing) * 2);
+    background: var(--color-primary);
+    border-radius: var(--radius-full);
+  }
+
+  .demo-radius-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: calc(var(--spacing) * 3);
+  }
+
+  @media (max-width: 640px) {
+    .demo-radius-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  .demo-radius-box {
+    display: flex;
+    align-items: flex-end;
+    min-inline-size: 0;
+    min-block-size: calc(var(--spacing) * 24);
+    padding: calc(var(--spacing) * 3);
+    background: var(--color-container-low);
+    border: 1px solid var(--color-outline-variant);
+    color: var(--color-on-surface-variant);
+    font-family: var(--font-mono);
+    font-size: var(--font-label-md-size);
+    overflow-wrap: anywhere;
+  }
+
+  .demo-type-stack {
+    display: flex;
+    flex-direction: column;
+    border-radius: var(--radius-md);
+    background: var(--color-surface-lowest);
+    border: 1px solid var(--color-outline-variant);
+    overflow: hidden;
+  }
+
+  .demo-type-row {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing) * 1);
+    padding: calc(var(--spacing) * 4);
+  }
+
+  .demo-type-row + .demo-type-row {
+    border-block-start: 1px solid var(--color-outline-variant);
+  }
+
+  .demo-type-token {
+    font-family: var(--font-mono);
+    font-size: var(--font-label-sm-size);
+    color: var(--color-primary);
+  }
+
+  /* Utility demos: one labelled row per utility, tinted tiles show the effect. */
+  .demo-util {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+    padding: var(--spacing-lg);
+  }
+
+  .demo-util-row {
+    display: grid;
+    grid-template-columns: minmax(calc(var(--spacing) * 32), auto) 1fr;
+    align-items: center;
+    gap: var(--spacing-md);
+  }
+
+  .demo-util-stage {
+    min-inline-size: 0;
+    border-radius: var(--radius-md);
+    background-color: var(--color-surface-high);
+  }
+
+  /* The tinted area a padding or margin utility creates. */
+  .demo-util-space {
+    border-radius: var(--radius-md);
+    background-color: color-mix(in oklch, var(--color-primary) 16%, var(--color-surface-high));
+  }
+
+  .demo-util-tile {
+    display: grid;
+    place-items: center;
+    min-block-size: calc(var(--spacing) * 10);
+    min-inline-size: calc(var(--spacing) * 10);
+    padding-inline: var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    background-color: var(--color-primary-container);
+    color: var(--color-on-primary-container);
+    font-size: var(--font-label-md-size);
+    font-weight: 500;
+  }
+
+  .demo-elevation-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: calc(var(--spacing) * 4);
+  }
+
+  @media (max-width: 640px) {
+    .demo-elevation-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  .demo-elevation-box {
+    display: flex;
+    align-items: flex-end;
+    min-inline-size: 0;
+    min-block-size: calc(var(--spacing) * 24);
+    padding: calc(var(--spacing) * 3);
+    background: var(--color-container-low);
+    color: var(--color-on-surface-variant);
+    border-radius: var(--radius-lg);
+    font-family: var(--font-mono);
+    font-size: var(--font-label-md-size);
+    overflow-wrap: anywhere;
+  }
+
+  .demo-motion-row {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--spacing) * 4);
+    padding: calc(var(--spacing) * 2);
+  }
+
+  .demo-motion-row + .demo-motion-row {
+    margin-block-start: calc(var(--spacing) * 2);
+  }
+
+  .demo-motion-label {
+    min-inline-size: 11rem;
+    flex-shrink: 0;
+    font-family: var(--font-mono);
+    font-size: var(--font-label-md-size);
+    color: var(--color-on-surface-variant);
+  }
+
+  .demo-motion-track {
+    position: relative;
+    flex: 1;
+    min-inline-size: 0;
+    block-size: calc(var(--spacing) * 8);
+    background: var(--color-container-high);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+  }
+
+  .demo-motion-dot {
+    position: absolute;
+    inset-block: calc(var(--spacing) * 1);
+    inset-inline-start: calc(var(--spacing) * 1);
+    inline-size: calc(var(--spacing) * 6);
+    border-radius: var(--radius-full);
+    background: var(--color-primary);
+    animation: demo-motion-slide 2.4s var(--ease-emphasized) infinite alternate;
+  }
+}
+
+@keyframes demo-motion-slide {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(min(12rem, 20vw));
+  }
+}
+
+/* Living showcase: shared by the docs overview and the landing page. */
+@layer demo {
+  .demo-desktop {
+    block-size: calc(var(--spacing) * 110);
+    padding: 0;
+  }
+
+  /* A neutral backdrop, a few steps darker than the page, for demos whose own surface is the point — a card's, say. */
+  .demo-stage {
+    padding: var(--spacing-xl);
+    border-radius: var(--radius-xl);
+    background-color: var(--color-surface-high);
+
+    /* A card narrowed by its demo — a form's reading width — sits in the middle of the stage. */
+    & > .aui-card {
+      margin-inline: auto;
+    }
+  }
+
+  /* A window-like glass frame holding panes, each concentric with its corners. */
+  .demo-window {
+    display: flex;
+    padding: var(--spacing-sm);
+  }
+
+  .demo-pane {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: calc(var(--aui-glass-radius) - var(--spacing-sm));
+  }
+
+
+  .showcase {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+
+  .showcase-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+    gap: var(--spacing-md);
+  }
+
+  .showcase-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    padding: var(--spacing-lg);
+  }
+
+  .showcase-fields {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .showcase-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+
+    & > .aui-slider {
+      flex: 1;
+      max-inline-size: 60%;
+    }
+  }
+
+  .showcase-panel {
+    margin: 0;
+    color: var(--color-on-surface-variant);
+  }
+
+  .showcase-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-sm);
+    margin-block-start: auto;
+  }
+}
+
+/* Landing page. */
+@layer demo {
+  .landing {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing) * 36);
+    max-inline-size: 84rem;
+    margin-inline: auto;
+    padding: calc(var(--spacing) * 16) var(--spacing-md) calc(var(--spacing) * 24);
+  }
+
+  .landing-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-lg);
+    text-align: center;
+
+    & .landing-ctas {
+      justify-content: center;
+    }
+  }
+
+  .landing-pill {
+    padding: var(--spacing-xs) var(--spacing-md);
+    border-radius: var(--radius-full);
+    background-color: color-mix(in oklch, var(--color-primary) var(--tone-container-strength), transparent);
+    color: var(--color-primary);
+    font-size: var(--font-label-lg-size);
+    font-weight: 500;
+  }
+
+  .landing-eyebrow {
+    color: var(--color-primary);
+    font-size: var(--font-label-lg-size);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .landing-title {
+    margin: 0;
+    font-family: var(--font-brand, var(--font-sans));
+    font-size: clamp(2.75rem, 6vw, 4.75rem);
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+
+  .landing-lead {
+    margin: 0;
+    max-inline-size: 58ch;
+    color: var(--color-on-surface-variant);
+    font-size: clamp(1.0625rem, 1.6vw, 1.25rem);
+    line-height: 1.55;
+    text-wrap: pretty;
+  }
+
+  .landing-ctas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    text-decoration: none;
+
+    & > a {
+      text-decoration: none;
+    }
+  }
+
+  .landing-install {
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-sm);
+    background: var(--color-container);
+    font-family: var(--font-mono);
+    font-size: var(--font-label-lg-size);
+    user-select: all;
+  }
+
+  .landing-heading {
+    margin: 0;
+    font-family: var(--font-brand, var(--font-sans));
+    font-size: clamp(1.75rem, 3.2vw, 2.5rem);
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+
+  /* What AUI gives you, at a glance: one card per promise. */
+  .landing-pillars {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+    gap: var(--spacing-md);
+  }
+
+  .landing-pillar {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-lg);
+
+    & h2 {
+      margin: 0;
+      font-size: var(--font-title-sm-size);
+      font-weight: var(--font-title-sm-weight);
+    }
+
+    & p {
+      margin: 0;
+      color: var(--color-on-surface-variant);
+    }
+  }
+
+  /* A claim beside the live demo that proves it; every other row puts the demo first. */
+  .landing-feature {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    align-items: center;
+    gap: calc(var(--spacing) * 12);
+
+    @media (width < 64rem) {
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--spacing-xl);
+    }
+  }
+
+  @media (width >= 64rem) {
+    .landing-feature-flip {
+      grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+
+      & > .landing-feature-text {
+        order: 2;
+      }
+    }
+  }
+
+  .landing-feature-text {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+
+    & p {
+      margin: 0;
+      color: var(--color-on-surface-variant);
+      line-height: 1.6;
+    }
+  }
+
+  .landing-feature-demo {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    min-inline-size: 0;
+  }
+
+  .landing-more {
+    color: var(--color-primary);
+    font-weight: 500;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  /* An app beside a chat with its agent; on narrow screens the chat drops below. */
+  .landing-duo {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+    align-items: start;
+    gap: var(--spacing-lg);
+  }
+
+  /* The demo app carries its own theme: its tokens resolve against its own color scheme. */
+  .landing-app {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-lg);
+    background-color: var(--color-surface);
+    color: var(--color-on-surface);
+    transition: background-color var(--duration-medium) var(--ease-emphasized);
+
+    &[data-theme='dark'] {
+      color-scheme: only dark;
+    }
+
+    &[data-theme='light'] {
+      color-scheme: only light;
+    }
+  }
+
+  .landing-app-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-sm);
+  }
+
+  /* Each message is its own glass card: yours on the end side, the agent's reply on the start. */
+  .landing-chat {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+
+    & p {
+      margin: 0;
+    }
+  }
+
+  .landing-chat-user {
+    align-self: flex-end;
+    max-inline-size: 85%;
+  }
+
+  /* An invitation to check the claim yourself, under its demo. */
+  .landing-proof {
+    margin: 0;
+    color: var(--color-on-surface-variant);
+    font-size: var(--font-label-lg-size);
+  }
+}
+
+/* Site footer. */
+@layer demo {
+  .site-footer {
+    background: var(--color-surface-lowest);
+    color: var(--color-on-surface-variant);
+    font-size: var(--font-label-lg-size);
+
+    & a {
+      color: inherit;
+      text-decoration: none;
+
+      &:hover {
+        color: var(--color-primary);
+      }
+    }
+  }
+
+  .site-footer-inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 2fr);
+    gap: var(--spacing-xl);
+    max-inline-size: 72rem;
+    margin-inline: auto;
+    padding: var(--spacing-xxl) var(--spacing-md);
+
+    @media (width < 48rem) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .site-footer-brand {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .site-footer-logo {
+    color: var(--color-on-surface);
+    font-size: var(--font-title-md-size);
+    font-weight: 700;
+  }
+
+  .site-footer-tagline {
+    margin: 0;
+    max-inline-size: 36ch;
+  }
+
+  .site-footer-columns {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+    gap: var(--spacing-lg);
+  }
+
+  .site-footer-column {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+
+    & h3 {
+      margin: 0;
+      color: var(--color-on-surface);
+      font-size: var(--font-label-lg-size);
+      font-weight: 600;
+    }
+
+    & ul {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-xs);
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+  }
+
+  .site-footer-bottom {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--spacing-sm);
+    max-inline-size: 72rem;
+    margin-inline: auto;
+    padding: var(--spacing-md) var(--spacing-md) var(--spacing-lg);
+    font-size: var(--font-label-md-size);
+  }
+}

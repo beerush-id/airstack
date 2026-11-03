@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "@irpclib/http",
-  "version": "2.1.0",
+  "version": "2.3.0",
   "types": "./dist/index.d.ts",
   "module": "./dist/index.js",
   "exports": {
@@ -43,6 +43,7 @@
     "clean": "rimraf dist",
     "build": "bun run clean && tsdown && publint",
     "test": "rimraf coverage && vitest --run",
+    "test:run": "rimraf coverage && vitest --run",
     "test:preview": "rimraf coverage && vitest --run && vite preview --outDir coverage",
     "prepublish": "bun run format && bun run build",
     "format": "biome format --write"

@@ -1,0 +1,73 @@
+:::interactive[App and agent, one setting]
+
+```tsx
+import { Card, List, ListItem, Stat, Toggle, ToggleGroup } from '@airlib/react-aui';
+import { auiAppCtx, WidgetRenderer, type WidgetNode } from '@airlib/react-aui/dynamic';
+import { $bind, mutable, setup, Snippet } from '@airlib/react';
+
+// The agent's reply: JSON, no code, bound to the app's own theme setting.
+const REPLY: WidgetNode = {
+  role: 'card',
+  props: { variant: 'glass', size: 'sm' },
+  children: [
+    {
+      role: 'card-body',
+      children: [
+        { role: 'p', children: ['Sure, here you go.'] },
+        {
+          role: 'toggle-group',
+          props: { 'aria-label': 'Theme', size: 'sm', required: true },
+          bindings: [{ prop: 'value', state: 'settings.theme.mode', writable: true }],
+          children: [
+            { role: 'toggle', props: { value: 'light' }, children: ['Light'] },
+            { role: 'toggle', props: { value: 'dark' }, children: ['Dark'] },
+          ],
+        },
+      ],
+    },
+  ],
+};
+
+const ThemeChat = setup(() => {
+  // The one setting the app's own switch and the agent's answer both edit.
+  const settings = mutable({ theme: { mode: 'light' } });
+  auiAppCtx.set({ settings });
+
+  return () => (
+    <div className="landing-duo">
+      <Snippet>
+        {() => (
+          <div className="landing-app" data-theme={settings.theme.mode}>
+            <div className="landing-app-bar">
+              <span className="text-title-sm">Northwind Studio</span>
+              <ToggleGroup aria-label="Theme" size="sm" required value={$bind(settings.theme, 'mode')}>
+                <Toggle value="light">Light</Toggle>
+                <Toggle value="dark">Dark</Toggle>
+              </ToggleGroup>
+            </div>
+            <Stat label="Bookings this week" value={48} change="+12 since Monday" trend="up" />
+            <List label="Upcoming trips">
+              <ListItem title="Team offsite" description="Lisbon · 6 travelers" meta="Nov 12" />
+              <ListItem title="Client visit" description="Oslo · 2 travelers" meta="Nov 20" />
+            </List>
+          </div>
+        )}
+      </Snippet>
+      <div className="landing-chat">
+        <Card variant="glass" size="sm" as="div" className="landing-chat-user">
+          Hey, give me the theme settings.
+        </Card>
+        <WidgetRenderer node={REPLY} />
+      </div>
+    </div>
+  );
+}, 'ThemeChat');
+```
+
+```html
+<ThemeChat />
+```
+
+<ThemeChat />
+
+:::

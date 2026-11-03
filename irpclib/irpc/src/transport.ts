@@ -70,6 +70,82 @@ export class IRPCTransport {
     const { timeout, maxRetries, retryMode, retryDelay } = { ...this.config, ...config };
 
     const call = new IRPCCall(this, payload, { timeout, maxRetries, retryMode, retryDelay }, reader, spec);
+    const childCalls = new Set<IRPCCall>();
+
+    // An ask goes once the server has answered the call: before that, its stream may not exist there
+    // yet, and an ask arriving first would be answered with nothing.
+    let started!: () => void;
+    const running = new Promise<void>((resolve) => {
+      started = resolve;
+    });
+    const unwatch = reader.packetSubscribe(() => {
+      started();
+      unwatch();
+    });
+    reader.onDestroy(() => {
+      started();
+      unwatch();
+    });
+
+    reader.bindAsk(async (type, askArgs) => {
+      await running;
+      if (reader.status !== IRPC_STATUS.PENDING) return undefined;
+      const askPayload: IRPCPayload = {
+        name: spec.name,
+        args: [type, ...askArgs],
+        package: spec.package,
+        type: IRPC_PACKET_TYPE.ASK,
+        callId: call.id,
+      };
+      const askCall = new IRPCCall(this, askPayload, { timeout, maxRetries, retryMode, retryDelay }, undefined, spec);
+      childCalls.add(askCall);
+      this.schedule(askCall);
+
+      try {
+        return await askCall.reader;
+      } finally {
+        childCalls.delete(askCall);
+      }
+    });
+
+    reader.bindReply((queryId, data, error) => {
+      const replyReader = new IRPCReader<IRPCData>(queryId);
+      const replyPayload: IRPCPayload = {
+        name: spec.name,
+        args: [data, error as unknown as IRPCData],
+        package: spec.package,
+        type: IRPC_PACKET_TYPE.REPLY,
+        callId: call.id,
+      };
+      const replyCall = new IRPCCall(
+        this,
+        replyPayload,
+        { timeout, maxRetries, retryMode, retryDelay },
+        replyReader,
+        spec
+      );
+      childCalls.add(replyCall);
+      this.schedule(replyCall);
+      replyReader.finally(() => {
+        childCalls.delete(replyCall);
+      });
+    });
+
+    const cleanupChildren = () => {
+      if (!childCalls.size) return;
+      for (const child of Array.from(childCalls)) {
+        this.queue.delete(child);
+        child.reader.close();
+      }
+      childCalls.clear();
+    };
+
+    const prevOnClose = reader.onClose;
+    reader.onClose = () => {
+      cleanupChildren();
+      prevOnClose?.();
+    };
+    reader.finally(cleanupChildren).catch(() => {});
 
     if (spec.stream || spec.standalone) {
       this.dispatch([call], spec.standalone)
