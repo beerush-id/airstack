@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "@airlib/aui",
-  "version": "2.0.0",
+  "version": "2.2.0",
   "description": "Aria Headless Component Library CSS Theme",
   "keywords": ["aria", "design-system", "css", "theme", "air-stack"],
   "author": "Nanang Mahdaen El Agung <mahdaen@gmail.com>",
